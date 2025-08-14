@@ -70,3 +70,25 @@ submodules/FFMpegBinding/SharedHeaders/*
 submodules/OpenSSLEncryptionProvider/SharedHeaders/*
 submodules/TelegramCore/FlatSerialization/Sources/*
 buildServer.json
+configuration_cerf/appstore-configuration.json
+provisioning_cerf/fake-codesigning/dev cert sends/development (1).cer
+provisioning_cerf/fake-codesigning/dev cert sends/development (2).cer
+provisioning_cerf/fake-codesigning/dev cert sends/development (3).cer
+provisioning_cerf/fake-codesigning/dev cert sends/development (4).cer
+provisioning_cerf/fake-codesigning/dev cert sends/development (6).cer
+provisioning_cerf/fake-codesigning/dev cert sends/development.cer
+provisioning_cerf/fake-codesigning/profiles/BUILD
+provisioning_cerf/fake-codesigning/profiles/BroadcastUploadDev.mobileprovision
+provisioning_cerf/fake-codesigning/profiles/Certificates.p12
+provisioning_cerf/fake-codesigning/profiles/IntentsDev.mobileprovision
+provisioning_cerf/fake-codesigning/profiles/NotificationContentDev.mobileprovision
+provisioning_cerf/fake-codesigning/profiles/NotificationServiceDev.mobileprovision
+provisioning_cerf/fake-codesigning/profiles/SendsMessengerDev.mobileprovision
+provisioning_cerf/fake-codesigning/profiles/ShareDev.mobileprovision
+provisioning_cerf/fake-codesigning/profiles/WidgetDev.mobileprovision
+provisioning_cerf/fake-codesigning/profiles/development (1).cer
+provisioning_cerf/fake-codesigning/profiles/development (2).cer
+provisioning_cerf/fake-codesigning/profiles/development (3).cer
+provisioning_cerf/fake-codesigning/profiles/development (4).cer
+provisioning_cerf/fake-codesigning/profiles/development (5).cer
+provisioning_cerf/fake-codesigning/profiles/development.cer

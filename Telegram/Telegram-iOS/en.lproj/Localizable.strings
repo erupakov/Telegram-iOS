@@ -13470,6 +13470,7 @@ Sorry for the inconvenience.";
 "StarsTransaction.StarRefReason.Commission" = "Commission";
 
 "Gallery.SaveToGallery.cached" = "cached";
+"Login_EulaAgreement" = "By using DIVO, you agree to Apple’s end User License Agreement and our Terms of Service and Privacy Policy.";
 
 "ChatList.Search.Messages.AllChats" = "From All Chats";
 "ChatList.Search.Messages.PrivateChats" = "From Private Chats";
