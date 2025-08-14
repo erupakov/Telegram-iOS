@@ -94,7 +94,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
                 }
             }
             
-            self.backgroundView.layer.cornerRadius = size.height == 28.0 ? 12.0 : 15.0
+            self.backgroundView.layer.cornerRadius = 4//size.height == 28.0 ? 12.0 : 15.0
             if #available(iOS 13.0, *) {
                 self.backgroundView.layer.cornerCurve = .continuous
             }

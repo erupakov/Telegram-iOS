@@ -20,7 +20,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
     private let strings: PresentationStrings
     private let theme: PresentationTheme
     
-    private let animationNode: AnimatedStickerNode
+//    private let animationNode: AnimatedStickerNode
     private let titleNode: ImmediateTextNode
     private let titleActivateAreaNode: AccessibilityAreaNode
     private let titleIconNode: ASImageNode
@@ -121,7 +121,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.strings = strings
         self.theme = theme
         
-        self.animationNode = DefaultAnimatedStickerNodeImpl()
+//        self.animationNode = DefaultAnimatedStickerNodeImpl()
         
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 0
@@ -159,7 +159,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         
         self.nextOptionButtonNode = HighlightableButtonNode()
         self.nextOptionButtonNode.displaysAsynchronously = false
-        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: .sms(length: 5), nextType: .call, timeout: 60, strings: self.strings, primaryColor: self.theme.list.itemSecondaryTextColor, accentColor: self.theme.list.itemAccentColor)
+        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: .sms(length: 5), nextType: .call, timeout: 60, strings: self.strings, primaryColor: .white, accentColor: .white)
         self.nextOptionTitleNode.attributedText = nextOptionText
         self.nextOptionButtonNode.isUserInteractionEnabled = nextOptionActive
         self.nextOptionButtonNode.accessibilityLabel = nextOptionText.string
@@ -261,7 +261,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             return UITracingLayerView()
         })
         
-        self.backgroundColor = self.theme.list.plainBackgroundColor
+        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
         self.textField.textField.delegate = self
         
@@ -277,7 +277,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.addSubnode(self.currentOptionInfoNode)
         self.addSubnode(self.nextOptionButtonNode)
         self.nextOptionButtonNode.addSubnode(self.nextOptionArrowNode)
-        self.addSubnode(self.animationNode)
+//        self.addSubnode(self.animationNode)
         self.addSubnode(self.resetNode)
         self.addSubnode(self.resetTextNode)
         self.addSubnode(self.dividerNode)
@@ -418,7 +418,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         }
         self.appleSignInAllowed = appleSignInAllowed
         
-        self.currentOptionNode.attributedText = authorizationCurrentOptionText(codeType, phoneNumber: self.phoneNumber, email: self.email, strings: self.strings, primaryColor: self.theme.list.itemPrimaryTextColor, accentColor: self.theme.list.itemAccentColor)
+        self.currentOptionNode.attributedText = authorizationCurrentOptionText(codeType, phoneNumber: self.phoneNumber, email: self.email, strings: self.strings, primaryColor: .white, accentColor: self.theme.list.itemAccentColor)
         self.currentOptionActivateAreaNode.accessibilityLabel = self.currentOptionNode.attributedText?.string ?? ""
         if case .missedCall = codeType {
             self.currentOptionInfoNode.attributedText = NSAttributedString(string: self.strings.Login_CodePhonePatternInfoText, font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
@@ -442,7 +442,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 if let strongSelf = self {
                     if let currentTimeoutTime = strongSelf.currentTimeoutTime, currentTimeoutTime > 0 {
                         strongSelf.currentTimeoutTime = currentTimeoutTime - 1
-                        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: strongSelf.currentTimeoutTime, strings: strongSelf.strings, primaryColor: strongSelf.theme.list.itemSecondaryTextColor, accentColor: strongSelf.theme.list.itemAccentColor)
+                        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: strongSelf.currentTimeoutTime, strings: strongSelf.strings, primaryColor: .white, accentColor: strongSelf.theme.list.itemAccentColor)
                         strongSelf.nextOptionTitleNode.attributedText = nextOptionText
                         strongSelf.nextOptionButtonNode.isUserInteractionEnabled = nextOptionActive
                         strongSelf.nextOptionButtonNode.accessibilityLabel = nextOptionText.string
@@ -483,7 +483,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             self.countdownDisposable.set(nil)
         }
         
-        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: self.currentTimeoutTime, strings: self.strings, primaryColor: self.theme.list.itemSecondaryTextColor, accentColor: self.theme.list.itemAccentColor)
+        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: self.currentTimeoutTime, strings: self.strings, primaryColor: .white, accentColor: self.theme.list.itemAccentColor)
         self.nextOptionTitleNode.attributedText = nextOptionText
         self.nextOptionButtonNode.isUserInteractionEnabled = nextOptionActive
         self.nextOptionButtonNode.accessibilityLabel = nextOptionText.string
@@ -517,8 +517,8 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         var insets = layout.insets(options: [])
         insets.top = layout.statusBarHeight ?? 20.0
                 
-        var animationName = "IntroMessage"
-        var animationPlaybackMode: AnimatedStickerPlaybackMode = .once
+//        var animationName = "IntroMessage"
+//        var animationPlaybackMode: AnimatedStickerPlaybackMode = .once
         var textFieldPlaceholder = ""
         if let codeType = self.codeType {
             switch codeType {
@@ -526,9 +526,9 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterMissingDigits, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
             case .email:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeEmailTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
-                animationName = "IntroLetter"
+//                animationName = "IntroLetter"
             case .sms:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeSMSTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeSMSTitle.uppercased(), font: Font.semibold(28.0), textColor: .white)
             case .fragment:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeFragmentTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
                
@@ -536,8 +536,8 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.proceedNode.updateTheme(SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0x37475a), foregroundColor: .white))
                 self.proceedNode.isEnabled = true
                 
-                animationName = "IntroFragment"
-                animationPlaybackMode = .count(3)
+//                animationName = "IntroFragment"
+//                animationPlaybackMode = .count(3)
                 self.proceedNode.animation = "anim_fragment"
             case .word:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterWordTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
@@ -567,12 +567,12 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             }
         }
         
-        if !self.animationNode.visibility {
-            self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: animationName), width: 256, height: 256, playbackMode: animationPlaybackMode, mode: .direct(cachePathPrefix: nil))
-            self.animationNode.visibility = true
-        }
+//        if !self.animationNode.visibility {
+//            self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: animationName), width: 256, height: 256, playbackMode: animationPlaybackMode, mode: .direct(cachePathPrefix: nil))
+//            self.animationNode.visibility = true
+//        }
         
-        let animationSize = CGSize(width: 100.0, height: 100.0)
+//        let animationSize = CGSize(width: 100.0, height: 100.0)
         let titleSize = self.titleNode.updateLayout(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
         
         let currentOptionSize = self.currentOptionNode.updateLayout(CGSize(width: maximumWidth - 48.0, height: CGFloat.greatestFiniteMagnitude))
@@ -617,10 +617,10 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         let codeFieldSize = self.codeInputView.update(
             theme: CodeInputView.Theme(
                 inactiveBorder: self.theme.list.itemPlainSeparatorColor.argb,
-                activeBorder: self.theme.list.itemAccentColor.argb,
+                activeBorder: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6).argb,
                 succeedBorder: self.theme.list.itemDisclosureActions.constructive.fillColor.argb,
                 failedBorder: self.theme.list.itemDestructiveColor.argb,
-                foreground: self.theme.list.itemPrimaryTextColor.argb,
+                foreground: UIColor.white.argb,
                 isDark: self.theme.overallDarkAppearance
             ),
             prefix: codePrefix,
@@ -631,13 +631,13 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         
         var items: [AuthorizationLayoutItem] = []
         if layout.size.width > 320.0 {
-            items.append(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-            self.animationNode.updateLayout(size: animationSize)
-            self.animationNode.isHidden = false
-            self.animationNode.visibility = true
+//            items.append(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+//            self.animationNode.updateLayout(size: animationSize)
+//            self.animationNode.isHidden = false
+//            self.animationNode.visibility = true
         } else {
             insets.top = navigationBarHeight
-            self.animationNode.isHidden = true
+//            self.animationNode.isHidden = true
         }
         
         var additionalBottomInset: CGFloat = 20.0
