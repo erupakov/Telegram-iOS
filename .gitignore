@@ -70,7 +70,6 @@ submodules/FFMpegBinding/SharedHeaders/*
 submodules/OpenSSLEncryptionProvider/SharedHeaders/*
 submodules/TelegramCore/FlatSerialization/Sources/*
 buildServer.json
-configuration_cerf/appstore-configuration.json
 provisioning_cerf/fake-codesigning/dev cert sends/development (1).cer
 provisioning_cerf/fake-codesigning/dev cert sends/development (2).cer
 provisioning_cerf/fake-codesigning/dev cert sends/development (3).cer

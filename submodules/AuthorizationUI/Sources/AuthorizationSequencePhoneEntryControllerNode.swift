@@ -609,7 +609,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.titleNode.displaysAsynchronously = false
         self.titleNode.attributedText = NSAttributedString(
             string: (account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle).uppercased(),
-            font: UIFont(name: "Helvetica Neue LT Com", size: 34.0),
+            font: UIFont(name: "HelveticaNeueLT", size: 36),
             textColor: .white
         )
         

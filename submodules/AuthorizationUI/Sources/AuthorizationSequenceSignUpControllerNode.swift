@@ -78,7 +78,7 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         
         self.titleNode_new = ASTextNode()
         self.titleNode_new.attributedText = NSAttributedString(string: "Choose a role".uppercased(), attributes: [
-            .font: UIFont.boldSystemFont(ofSize: 34),
+            .font: UIFont(name: "HelveticaNeue-Semibold", size: 34) ?? UIFont.boldSystemFont(ofSize: 34),
             .foregroundColor: UIColor.white
         ])
         

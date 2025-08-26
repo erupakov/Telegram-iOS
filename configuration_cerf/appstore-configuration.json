@@ -1,0 +1,14 @@
+{
+    "bundle_id": "app.divo.fashion",
+    "api_id": "17349",
+    "api_hash": "344583e45741c457fe1862106095a5eb",
+    "team_id": "9DTLH63S7N",
+    "app_center_id": "0",
+    "is_internal_build": false,
+    "is_appstore_build": "true",
+    "appstore_id": "0",
+    "app_specific_url_scheme": "tg",
+    "premium_iap_product_id": "app.divo.fashion.monthly",
+    "enable_siri": true,
+    "enable_icloud": true
+}

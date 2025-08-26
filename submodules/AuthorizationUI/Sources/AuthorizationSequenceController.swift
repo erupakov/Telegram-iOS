@@ -86,7 +86,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
             } else if case let .unauthorized(state) = state {
                 return .state(state.contents)
             } else {
-                return .state(.empty)
+                return .state(.empty)///////////////////
             }
         }
         |> distinctUntilChanged
@@ -122,34 +122,37 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         self.view.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
     }
     
-    private func splashController() -> AuthorizationSequenceSplashController {
-        var currentController: AuthorizationSequenceSplashController?
-        for c in self.viewControllers {
-            if let c = c as? AuthorizationSequenceSplashController {
-                currentController = c
-                break
-            }
-        }
-        let controller: AuthorizationSequenceSplashController
-        if let currentController = currentController {
-            controller = currentController
-        } else {
-            controller = AuthorizationSequenceSplashController(accountManager: self.sharedContext.accountManager, account: self.account, theme: self.presentationData.theme)
-            controller.nextPressed = { [weak self] strings in
-                if let strongSelf = self {
-                    if let strings = strings {
-                        strongSelf.presentationData = strongSelf.presentationData.withStrings(strings)
-                    }
-                    let masterDatacenterId = strongSelf.account.masterDatacenterId
-                    let isTestingEnvironment = strongSelf.account.testingEnvironment
-                    
-                    let countryCode = AuthorizationSequenceController.defaultCountryCode()
-                    
-                    let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: isTestingEnvironment, masterDatacenterId: masterDatacenterId, contents: .phoneEntry(countryCode: countryCode, number: ""))).startStandalone()
-                }
-            }
-        }
-        return controller
+    private func splashController() -> AuthorizationSequencePhoneEntryController {
+        
+        
+        return phoneEntryController(countryCode: AuthorizationSequenceController.defaultCountryCode(), number: "", splashController: nil)
+//        var currentController: AuthorizationSequenceSplashController?
+//        for c in self.viewControllers {
+//            if let c = c as? AuthorizationSequenceSplashController {
+//                currentController = c
+//                break
+//            }
+//        }
+//        let controller: AuthorizationSequenceSplashController
+//        if let currentController = currentController {
+//            controller = currentController
+//        } else {
+//            controller = AuthorizationSequenceSplashController(accountManager: self.sharedContext.accountManager, account: self.account, theme: self.presentationData.theme)
+//            controller.nextPressed = { [weak self] strings in
+//                if let strongSelf = self {
+//                    if let strings = strings {
+//                        strongSelf.presentationData = strongSelf.presentationData.withStrings(strings)
+//                    }
+//                    let masterDatacenterId = strongSelf.account.masterDatacenterId
+//                    let isTestingEnvironment = strongSelf.account.testingEnvironment
+//                    
+//                    let countryCode = AuthorizationSequenceController.defaultCountryCode()
+//                    
+//                    let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: isTestingEnvironment, masterDatacenterId: masterDatacenterId, contents: .phoneEntry(countryCode: countryCode, number: ""))).startStandalone()
+//                }
+//            }
+//        }
+//        return controller
     }
     
     private func phoneEntryController(countryCode: Int32, number: String, splashController: AuthorizationSequenceSplashController?) -> AuthorizationSequencePhoneEntryController {

@@ -1850,6 +1850,7 @@ plist_fragment(
         <string>SFCompactRounded-Semibold.otf</string>
         <string>AremacFS-Regular.otf</string>
         <string>AremacFS-Semibold.otf</string>
+        <string>HelveticaNeue-Semibold.ttf</string>
     </array>
     <key>UIBackgroundModes</key>
     <array>
