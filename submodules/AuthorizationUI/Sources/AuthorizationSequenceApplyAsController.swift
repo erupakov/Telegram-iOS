@@ -24,13 +24,16 @@ final class AuthorizationSequenceApplyAsController: ViewController {
     private let moreButtonNode: MoreButtonNode
     
     private let presentationData: PresentationData
+    
+    private let typeOfRole: String
+    
     private let back: () -> Void
     
     var initialName: (String, String) = ("", "")
     private var termsOfService: UnauthorizedAccountTermsOfService?
     
     var signUpWithName: ((String, String, Data?, Any?, TGVideoEditAdjustments?, Bool) -> Void)?
-    var newAction: (() -> Void)?
+    
     var openUrl: ((String) -> Void)?
     
     var avatarAsset: Any?
@@ -39,6 +42,7 @@ final class AuthorizationSequenceApplyAsController: ViewController {
     var announceSignUp = true
     
     private let hapticFeedback = HapticFeedback()
+    private var isFirstAppearance = true
     
     var inProgress: Bool = false {
         didSet {
@@ -47,9 +51,11 @@ final class AuthorizationSequenceApplyAsController: ViewController {
         }
     }
     
-    init(presentationData: PresentationData, back: @escaping () -> Void, displayCancel: Bool) {
+    init(presentationData: PresentationData, back: @escaping () -> Void, typeOfRole: String) {
         self.presentationData = presentationData
         self.back = back
+        
+        self.typeOfRole = typeOfRole
         
         self.moreButtonNode = MoreButtonNode(theme: self.presentationData.theme)
         self.moreButtonNode.iconNode.enqueueState(.more, animated: false)
@@ -59,8 +65,6 @@ final class AuthorizationSequenceApplyAsController: ViewController {
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .all, compactSize: .portrait)
         
         self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-        
-//        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Next, style: .done, target: self, action: #selector(self.nextPressed))
         
         self.attemptNavigation = { _ in
             return false
@@ -75,12 +79,6 @@ final class AuthorizationSequenceApplyAsController: ViewController {
             })]), in: .window(.root))
         }
         
-        if displayCancel {
-            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: presentationData.strings.Common_Cancel, style: .plain, target: self, action: #selector(self.cancelPressed))
-        }
-//
-//        self.navigationItem.rightBarButtonItem = UIBarButtonItem(customDisplayNode: self.moreButtonNode)
-//
         self.moreButtonNode.action = { [weak self] _, gesture in
             if let strongSelf = self {
                 strongSelf.morePressed(node: strongSelf.moreButtonNode.contextSourceNode, gesture: gesture)
@@ -156,7 +154,7 @@ final class AuthorizationSequenceApplyAsController: ViewController {
         let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         
         let theme = self.presentationData.theme
-        self.displayNode = ChooseRoleControllerNode(theme: theme, strings: self.presentationData.strings, addPhoto: { [weak self] in
+        self.displayNode = ChooseRoleControllerNode(theme: theme, strings: self.presentationData.strings, typeOfRole: typeOfRole, addPhoto: { [weak self] in
             presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
                 self?.view.endEditing(true)
                 self?.present(c, in: .window(.root), with: a)
@@ -172,11 +170,10 @@ final class AuthorizationSequenceApplyAsController: ViewController {
         })
         self.displayNodeDidLoad()
         
-        self.controllerNode.view.disableAutomaticKeyboardHandling = [.forward, .backward]
+//        self.controllerNode.view.disableAutomaticKeyboardHandling = [.forward, .backward]
         
         self.controllerNode.signUpWithName = { [weak self] _, _ in
 //            self?.nextPressed()
-//            self?.newAction?()
             self?.back()
         }
         self.controllerNode.openTermsOfService = { [weak self] in
@@ -218,9 +215,9 @@ final class AuthorizationSequenceApplyAsController: ViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        if let navigationController = self.navigationController as? NavigationController, let layout = self.validLayout {
-            addTemporaryKeyboardSnapshotView(navigationController: navigationController, layout: layout)
-        }
+//        if let navigationController = self.navigationController as? NavigationController, let layout = self.validLayout {
+//            addTemporaryKeyboardSnapshotView(navigationController: navigationController, layout: layout)
+//        }
         
         self.controllerNode.activateInput()
     }
@@ -251,7 +248,11 @@ final class AuthorizationSequenceApplyAsController: ViewController {
             }
         }
         
-        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        if isFirstAppearance {
+            self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+            
+            isFirstAppearance = false
+        }
     }
     
     @objc func nextPressed() {

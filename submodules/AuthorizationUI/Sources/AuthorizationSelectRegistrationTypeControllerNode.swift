@@ -9,6 +9,12 @@ import Markdown
 import SolidRoundedButtonNode
 import AuthorizationUtils
 
+private enum TypeOfRole: String {
+    case talent = "TALENT"
+    case model = "MODEL"
+    case agencies = "AGENCIES"
+}
+
 private func roundCorners(diameter: CGFloat) -> UIImage {
     UIGraphicsBeginImageContextWithOptions(CGSize(width: diameter, height: diameter), false, 0.0)
     let context = UIGraphicsGetCurrentContext()!
@@ -24,35 +30,42 @@ private func roundCorners(diameter: CGFloat) -> UIImage {
 
 private func getTextFiel(title: String) -> TextFieldNode {
     let field = TextFieldNode()
-    field.textField.font = Font.regular(20.0)
+    field.textField.font = Font.regular(16.0)
     field.textField.textColor = .white.withAlphaComponent(0.6)
     field.textField.textAlignment = .natural
     field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
-    field.textField.keyboardType = .URL
+    //    field.textField.keyboardType = .URL
     field.borderWidth = 1.0
     field.borderColor = UIColor(red: 1, green: 1, blue: 1, alpha: 0.4).cgColor
     field.cornerRadius = 11.0
     field.clipsToBounds = true
     field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
- 
+    
     return field
 }
 
 final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let theme: PresentationTheme
     private let strings: PresentationStrings
+    private let typeOfRole: TypeOfRole
     private let addPhoto: () -> Void
     
     private let titleNode: ASTextNode
     private let currentOptionNode: ASTextNode
     
     private let sectionTitleNode: ASTextNode
-
+    
     private let nameAgency: TextFieldNode
     private let chooseCountryField: TextFieldNode
+    private let chooseGenderField: TextFieldNode
+    private let chooseAgencyField: TextFieldNode
     private let websiteField: TextFieldNode
+    
+    private let ageSliderNode: AgeSliderNode
+    
+    private var activeTextField: UITextField?
     
     private let currentPhotoNode: ASImageNode
     private let addPhotoButton: HighlightableButtonNode
@@ -89,7 +102,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     
     var inProgress: Bool = false
     
-    init(theme: PresentationTheme, strings: PresentationStrings, addPhoto: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, typeOfRole: String, addPhoto: @escaping () -> Void) {
         self.theme = theme
         self.strings = strings
         self.addPhoto = addPhoto
@@ -97,7 +110,27 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = NSAttributedString(string: "Apply as a agencies & brands".uppercased(), font: Font.bold(34), textColor: .white)
+        
+        self.typeOfRole = TypeOfRole(rawValue: typeOfRole) ?? .model
+        
+        var titleText = ""
+        var nameAgencyText = ""
+        
+        switch self.typeOfRole {
+        case .talent:
+            titleText = "Apply as \n a new talent"
+            nameAgencyText = "Full Name"
+            
+        case .model:
+            titleText = "Apply as a \n Professional Model"
+            nameAgencyText = "Full Name"
+            
+        case .agencies:
+            titleText = "Apply as a agencies & brands"
+            nameAgencyText = "Name Agency"
+        }
+        
+        self.titleNode.attributedText = NSAttributedString(string: titleText.uppercased(), font: Font.bold(30), textColor: .white, paragraphAlignment: .center)
         
         self.currentOptionNode = ASTextNode()
         self.currentOptionNode.isUserInteractionEnabled = false
@@ -113,9 +146,13 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.sectionTitleNode.displaysAsynchronously = false
         self.sectionTitleNode.attributedText = NSAttributedString(string: "Your personal data".uppercased(), font: Font.bold(20.0), textColor: .white, paragraphAlignment: .natural)
         
-        self.nameAgency = getTextFiel(title: "Name Agency")
+        self.nameAgency = getTextFiel(title: nameAgencyText)
         self.websiteField = getTextFiel(title: "Enter name your website")
         self.chooseCountryField = getTextFiel(title: "Choose a country")
+        self.chooseGenderField = getTextFiel(title: "Select a Gender")
+        self.chooseAgencyField = getTextFiel(title: "Choose agency name")
+        
+        self.ageSliderNode = AgeSliderNode()
         
         self.currentPhotoNode = ASImageNode()
         self.currentPhotoNode.isUserInteractionEnabled = false
@@ -133,7 +170,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         let backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
         let borderColor = UIColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1.0)
         self.addPhotoButton.setBackgroundImage(generateFilledCircleImage(diameter: 110.0, color: backgroundColor, strokeColor: borderColor, strokeWidth: 1.0, backgroundColor: nil), for: .normal)
-                
+        
         self.addPhotoButton.addSubnode(self.currentPhotoNode)
         self.addPhotoButton.allowsGroupOpacity = true
         
@@ -143,7 +180,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         let imageSize: CGSize = CGSize(width: 24, height: 24)
         self.backNode = ButtonWithIconNode(title: "Back", icon: backIcon, theme: theme, spacing: 10, imageSize: imageSize)
         self.backNode.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14)
-
+        
         self.saveNode = ButtonWithIconNode(title: "Save", icon: nil, theme: theme, spacing: 10, imageSize: imageSize)
         self.saveNode.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
         
@@ -153,12 +190,27 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
             return UITracingLayerView()
         })
         
+        self.nameAgency.textField.delegate = self
+        self.websiteField.textField.delegate = self
+        self.chooseCountryField.textField.delegate = self
+        self.chooseGenderField.textField.delegate = self
+        self.chooseAgencyField.textField.delegate = self
+        
         self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
+        self.view.addGestureRecognizer(tapGesture)
+        
         self.addSubnode(self.sectionTitleNode)
-
+        
         self.addSubnode(self.websiteField)
         self.addSubnode(self.chooseCountryField)
+        
+        if self.typeOfRole != .agencies {
+            self.addSubnode(self.ageSliderNode)
+        }
+        self.addSubnode(self.chooseGenderField)
+        self.addSubnode(self.chooseAgencyField)
         self.addSubnode(self.nameAgency)
         self.addSubnode(self.titleNode)
         self.addSubnode(self.currentOptionNode)
@@ -169,12 +221,12 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         
         self.addPhotoButton.addTarget(self, action: #selector(self.addPhotoPressed), forControlEvents: .touchUpInside)
         self.backNode.addTarget(self, action: #selector(self.backButtonPressed), forControlEvents: .touchUpInside)
-
+        
         self.saveNode.addTarget(self, action: #selector(self.saveButtonPressed), forControlEvents: .touchUpInside)
     }
     
     func updateData(firstName: String, lastName: String, hasTermsOfService: Bool) {
-       
+        
         if let (layout, navigationHeight) = self.layoutArguments {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
         }
@@ -201,10 +253,8 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         let titleSize = self.titleNode.measure(CGSize(width: maximumWidth-40, height: .greatestFiniteMagnitude))
         
         let additionalBottomInset: CGFloat = layout.size.width > 320.0 ? 90.0 : 10.0
-                
-        self.titleNode.attributedText = NSAttributedString(string: "Apply as a agencies & brands".uppercased(), font: Font.bold(34), textColor: .white, paragraphAlignment: .center)
         
-        let fieldHeight: CGFloat = 54.0
+        let fieldHeight: CGFloat = 40.0
         
         let sideInset: CGFloat = 24.0
         
@@ -217,22 +267,47 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10, maxValue: 10), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         
         items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 20.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-
+        
         items.append(AuthorizationLayoutItem(node: self.addPhotoButton, size: avatarSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
         self.currentPhotoNode.frame = CGRect(origin: CGPoint(), size: avatarSize)
         
         items.append(AuthorizationLayoutItem(node: self.sectionTitleNode, size: CGSize(width: maximumWidth - sideInset * 2.0, height: sectionTitleSize.height), spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 20.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0, maxValue: 0)))
         
         
-        items.append(AuthorizationLayoutItem(node: self.nameAgency, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        items.append(AuthorizationLayoutItem(node: self.chooseCountryField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 12, maxValue: 12), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        if typeOfRole == .agencies {
+            items.append(AuthorizationLayoutItem(node: self.nameAgency, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            items.append(AuthorizationLayoutItem(node: self.chooseCountryField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 12, maxValue: 12), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            
+            items.append(AuthorizationLayoutItem(node: self.websiteField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        }
         
-        items.append(AuthorizationLayoutItem(node: self.websiteField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-
+        if typeOfRole == .talent {
+            items.append(AuthorizationLayoutItem(node: self.nameAgency, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            items.append(AuthorizationLayoutItem(node: self.chooseGenderField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 12, maxValue: 12), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            
+            items.append(AuthorizationLayoutItem(node: self.chooseCountryField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            
+            let ageSliderHeight: CGFloat = 60.0
+            
+            items.append(AuthorizationLayoutItem(node: self.ageSliderNode, size: CGSize(width: maximumWidth, height: ageSliderHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 20.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        }
+        
+        if typeOfRole == .model {
+            items.append(AuthorizationLayoutItem(node: self.nameAgency, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            items.append(AuthorizationLayoutItem(node: self.chooseGenderField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 12, maxValue: 12), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            
+            items.append(AuthorizationLayoutItem(node: self.chooseCountryField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            items.append(AuthorizationLayoutItem(node: self.chooseAgencyField, size: CGSize(width: maximumWidth - sideInset * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            
+            let ageSliderHeight: CGFloat = 60.0
+            
+            items.append(AuthorizationLayoutItem(node: self.ageSliderNode, size: CGSize(width: maximumWidth, height: ageSliderHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 20.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        }
+        
         let buttonWidth = (maximumWidth - 48.0 - 10.0) / 2.0
         let buttonHeight: CGFloat = 50.0
         let bottomInset: CGFloat = 24.0
-
+        
         let saveButtonFrame = CGRect(
             x: floorToScreenPixels((layout.size.width - maximumWidth + 48.0) / 2.0) + buttonWidth + 10.0,
             y: layout.size.height - insets.bottom - buttonHeight - bottomInset,
@@ -240,7 +315,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
             height: buttonHeight
         )
         transition.updateFrame(node: self.saveNode, frame: saveButtonFrame)
-
+        
         let backButtonFrame = CGRect(
             x: floorToScreenPixels((layout.size.width - maximumWidth + 48.0) / 2.0),
             y: layout.size.height - insets.bottom - buttonHeight - bottomInset,
@@ -257,16 +332,16 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     func animateError() {
-       
+        
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-//        if textField === self.firstNameField.textField {
-//            self.lastNameField.textField.becomeFirstResponder()
-//        } else {
-//            let name = self.currentName
-//            self.signUpWithName?(name.0, name.1)
-//        }
+        //        if textField === self.firstNameField.textField {
+        //            self.lastNameField.textField.becomeFirstResponder()
+        //        } else {
+        //            let name = self.currentName
+        //            self.signUpWithName?(name.0, name.1)
+        //        }
         return false
     }
     
@@ -277,8 +352,69 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     @objc private func backButtonPressed() {
         signUpWithName?("", "")
     }
-
+    
     @objc private func saveButtonPressed() {
         print("Save button pressed!")
+    }
+    
+    @objc private func dismissKeyboard() {
+        self.view.endEditing(true)
+    }
+    
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        self.activeTextField = textField
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        self.activeTextField = nil
+    }
+    
+    override func didLoad() {
+        super.didLoad()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    
+    @objc func keyboardWillShow(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+              let animationDuration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double,
+              let activeTextField = self.activeTextField else {
+            return
+        }
+        
+        let textFieldFrameInView = self.view.convert(activeTextField.bounds, from: activeTextField)
+        let bottomOfTextField = textFieldFrameInView.maxY
+        let keyboardTopY = self.view.frame.size.height - keyboardFrame.height
+        
+        let offset: CGFloat
+        if bottomOfTextField > keyboardTopY {
+            offset = bottomOfTextField - keyboardTopY + 20
+        } else {
+            offset = 0
+        }
+        
+        if offset > 0 {
+            UIView.animate(withDuration: animationDuration, animations: {
+                self.view.transform = CGAffineTransform(translationX: 0, y: -offset)
+            })
+        }
+    }
+    
+    @objc func keyboardWillHide(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let animationDuration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else {
+            return
+        }
+        
+        UIView.animate(withDuration: animationDuration, animations: {
+            self.view.transform = .identity
+        })
     }
 }

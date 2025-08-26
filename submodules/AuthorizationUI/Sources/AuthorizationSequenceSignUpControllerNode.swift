@@ -12,25 +12,19 @@ import AuthorizationUtils
 final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let theme: PresentationTheme
     private let strings: PresentationStrings
-    private let addPhoto: () -> Void
     
     private let titleNode: ASTextNode
     private let currentOptionNode: ASTextNode
-    private let termsNode: ImmediateTextNode
     
-    private let firstNameField: TextFieldNode
-    private let lastNameField: TextFieldNode
-    private let firstSeparatorNode: ASDisplayNode
-    private let lastSeparatorNode: ASDisplayNode
-    private let addPhotoButton: HighlightableButtonNode
     private let proceedNode: SolidRoundedButtonNode
+    private var typeOfRole: String = ""
     
     private var layoutArguments: (ContainerViewLayout, CGFloat)?
     
     private let appearanceTimestamp = CACurrentMediaTime()
     
     var currentName: (String, String) {
-        return (self.firstNameField.textField.text ?? "", self.lastNameField.textField.text ?? "")
+        return ("", "")
     }
     
     var signUpWithName: ((String, String) -> Void)?
@@ -38,9 +32,6 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
     
     var inProgress: Bool = false {
         didSet {
-            self.firstNameField.alpha = self.inProgress ? 0.6 : 1.0
-            self.lastNameField.alpha = self.inProgress ? 0.6 : 1.0
-            
             if self.inProgress != oldValue {
                 if self.inProgress {
                     self.proceedNode.transitionToProgress()
@@ -61,10 +52,9 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
     private var selectedNode: RoleSelectionNode?
     private let backgroundNode: ASImageNode
     
-    init(theme: PresentationTheme, strings: PresentationStrings, addPhoto: @escaping () -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings) {
         self.theme = theme
         self.strings = strings
-        self.addPhoto = addPhoto
         
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = false
@@ -75,56 +65,6 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.currentOptionNode.isUserInteractionEnabled = false
         self.currentOptionNode.displaysAsynchronously = false
         self.currentOptionNode.attributedText = NSAttributedString(string: self.strings.Login_InfoHelp, font: Font.regular(16.0), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
-        
-        self.termsNode = ImmediateTextNode()
-        self.termsNode.textAlignment = .center
-        self.termsNode.maximumNumberOfLines = 0
-        self.termsNode.displaysAsynchronously = false
-        let body = MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemSecondaryTextColor)
-        let link = MarkdownAttributeSet(font: Font.regular(13.0), textColor: theme.list.itemAccentColor, additionalAttributes: [TelegramTextAttributes.URL: ""])
-        self.termsNode.attributedText = parseMarkdownIntoAttributedString(strings.Login_TermsOfServiceLabel.replacingOccurrences(of: "\n", with: " ").replacingOccurrences(of: "]", with: "]()"), attributes: MarkdownAttributes(body: body, bold: body, link: link, linkAttribute: { _ in nil }), textAlignment: .center)
-        
-        self.firstSeparatorNode = ASDisplayNode()
-        self.firstSeparatorNode.isLayerBacked = true
-        self.firstSeparatorNode.backgroundColor = self.theme.list.itemPlainSeparatorColor
-        
-        self.lastSeparatorNode = ASDisplayNode()
-        self.lastSeparatorNode.isLayerBacked = true
-        self.lastSeparatorNode.backgroundColor = self.theme.list.itemPlainSeparatorColor
-        
-        self.firstNameField = TextFieldNode()
-        self.firstNameField.textField.font = Font.regular(20.0)
-        self.firstNameField.textField.textColor = self.theme.list.itemPrimaryTextColor
-        self.firstNameField.textField.textAlignment = .natural
-        self.firstNameField.textField.returnKeyType = .next
-        self.firstNameField.textField.attributedPlaceholder = NSAttributedString(string: self.strings.UserInfo_FirstNamePlaceholder, font: self.firstNameField.textField.font, textColor: self.theme.list.itemPlaceholderTextColor)
-        self.firstNameField.textField.autocapitalizationType = .words
-        self.firstNameField.textField.autocorrectionType = .no
-        if #available(iOSApplicationExtension 10.0, iOS 10.0, *) {
-            self.firstNameField.textField.textContentType = .givenName
-        }
-        self.firstNameField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
-        self.firstNameField.textField.tintColor = theme.list.itemAccentColor
-        
-        self.lastNameField = TextFieldNode()
-        self.lastNameField.textField.font = Font.regular(20.0)
-        self.lastNameField.textField.textColor = self.theme.list.itemPrimaryTextColor
-        self.lastNameField.textField.textAlignment = .natural
-        self.lastNameField.textField.returnKeyType = .done
-        self.lastNameField.textField.attributedPlaceholder = NSAttributedString(string: strings.UserInfo_LastNamePlaceholder, font: self.lastNameField.textField.font, textColor: self.theme.list.itemPlaceholderTextColor)
-        self.lastNameField.textField.autocapitalizationType = .words
-        self.lastNameField.textField.autocorrectionType = .no
-        if #available(iOSApplicationExtension 10.0, iOS 10.0, *) {
-            self.lastNameField.textField.textContentType = .familyName
-        }
-        self.lastNameField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
-        self.lastNameField.textField.tintColor = theme.list.itemAccentColor
-        
-        self.addPhotoButton = HighlightableButtonNode()
-        self.addPhotoButton.setImage(generateTintedImage(image: UIImage(bundleImageName: "Avatar/EditAvatarIconLarge"), color: self.theme.list.itemAccentColor), for: .normal)
-        self.addPhotoButton.setBackgroundImage(generateFilledCircleImage(diameter: 110.0, color: self.theme.list.itemAccentColor.withAlphaComponent(0.1), strokeColor: nil, strokeWidth: nil, backgroundColor: nil), for: .normal)
-        
-        self.addPhotoButton.allowsGroupOpacity = true
         
         let customButtonTheme = SolidRoundedButtonTheme(
             backgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
@@ -151,17 +91,20 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.talentNode = RoleSelectionNode(
             roleImage: UIImage(bundleImageName: "Components/NewTalent"),
             title: "NEW TALENT",
-            description: "I don’t have any experience / have little experience. I’m new in."
+            description: "I don’t have any experience / have little experience. I’m new in.",
+            typeOfRole: "TALENT"
         )
         self.modelNode = RoleSelectionNode(
             roleImage: UIImage(bundleImageName: "Components/Model"),
             title: "MODEL",
-            description: "I have working experience as a model. I’m professional."
+            description: "I have working experience as a model. I’m professional.",
+            typeOfRole: "MODEL"
         )
         self.agencyNode = RoleSelectionNode(
             roleImage: UIImage(bundleImageName: "Components/Agencies"),
             title: "AGENCIES & SCOUTS",
-            description: "Looking for / working with models."
+            description: "Looking for / working with models.",
+            typeOfRole: "AGENCIES"
         )
         
         self.backgroundNode = ASImageNode()
@@ -191,40 +134,17 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         
         self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
-        self.firstNameField.textField.delegate = self
-        self.lastNameField.textField.delegate = self
         
-        self.addSubnode(self.firstSeparatorNode)
-        self.addSubnode(self.lastSeparatorNode)
-        self.addSubnode(self.firstNameField)
-        self.addSubnode(self.lastNameField)
+
         self.addSubnode(self.titleNode)
         self.addSubnode(self.currentOptionNode)
-        self.addSubnode(self.termsNode)
-        self.termsNode.isHidden = true
-        self.addSubnode(self.addPhotoButton)
         self.addSubnode(self.proceedNode)
         
-        self.addPhotoButton.addTarget(self, action: #selector(self.addPhotoPressed), forControlEvents: .touchUpInside)
-        
-        self.termsNode.linkHighlightColor = self.theme.list.itemAccentColor.withAlphaComponent(0.2)
-        self.termsNode.highlightAttributeAction = { attributes in
-            if let _ = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] {
-                return NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)
-            } else {
-                return nil
-            }
-        }
-        self.termsNode.tapAttributeAction = { [weak self] attributes, _ in
-            if let _ = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] {
-                self?.openTermsOfService?()
-            }
-        }
-        
         self.proceedNode.pressed = { [weak self] in
-            if let strongSelf = self {
+            if let strongSelf = self,
+               let typeOfRole = strongSelf.selectedNode?.typeOfRole {
                 let name = strongSelf.currentName
-                strongSelf.signUpWithName?(name.0, name.1)
+                strongSelf.signUpWithName?(typeOfRole, name.1)
             }
         }
     }
@@ -236,10 +156,6 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
     }
     
     func updateData(firstName: String, lastName: String, hasTermsOfService: Bool) {
-        self.termsNode.isHidden = !hasTermsOfService
-        self.firstNameField.textField.attributedText = NSAttributedString(string: firstName, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
-        self.lastNameField.textField.attributedText = NSAttributedString(string: lastName, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
-        
         if let (layout, navigationHeight) = self.layoutArguments {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
         }
@@ -299,26 +215,15 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
     }
     
     func activateInput() {
-        self.firstNameField.textField.becomeFirstResponder()
+        
     }
     
     func animateError() {
-        if self.firstNameField.textField.text == nil || self.firstNameField.textField.text!.isEmpty {
-            self.firstNameField.layer.addShakeAnimation()
-        }
+        
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        if textField === self.firstNameField.textField {
-            self.lastNameField.textField.becomeFirstResponder()
-        } else {
-            let name = self.currentName
-            self.signUpWithName?(name.0, name.1)
-        }
+      
         return false
-    }
-    
-    @objc private func addPhotoPressed() {
-        self.addPhoto()
     }
 }

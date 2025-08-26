@@ -1058,7 +1058,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         return controller
     }
     
-    private func newScreen() -> AuthorizationSequenceApplyAsController {
+    private func newScreen(_ typeOfRole: String) -> AuthorizationSequenceApplyAsController {
         var currentController: AuthorizationSequenceApplyAsController?
         for c in self.viewControllers {
             if let c = c as? AuthorizationSequenceApplyAsController {
@@ -1083,11 +1083,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         termsOfService: nil,
                         syncContacts: true)
                 ))
-            }, displayCancel: false)
-
-            controller.newAction = { [weak self] in
-                self?.updateState(state: .state(.empty))
-            }
+            }, typeOfRole: typeOfRole)
         }
         
         return controller
@@ -1120,8 +1116,8 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 self.openUrl(url)
             }
             
-            controller.newAction = { [weak self] in
-                self?.updateState(state: .state(.newScreen))
+            controller.newAction = { [weak self] typeOfRole in
+                self?.updateState(state: .state(.newScreen(typeOfRole: typeOfRole)))
             }
             
             controller.signUpWithName = { [weak self, weak controller] firstName, lastName, avatarData, avatarAsset, avatarAdjustments, announceSignUp in
@@ -1237,9 +1233,9 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         }
                         self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                     }
-                case .newScreen:
+                case let .newScreen(typeOfRole):
                     var controllers: [ViewController] = []
-                    controllers.append(self.newScreen())
+                    controllers.append(self.newScreen(typeOfRole))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                 
                 case let .phoneEntry(countryCode, number):

@@ -14,6 +14,7 @@ final class RoleSelectionNode: ASDisplayNode {
     let roleTitleNode: ASTextNode
     let roleDescriptionNode: ASTextNode
     let checkmarkNode: ASImageNode
+    let typeOfRole: String
     
     private let backgroundBlurView: UIVisualEffectView
     
@@ -25,7 +26,7 @@ final class RoleSelectionNode: ASDisplayNode {
     
     var tapped: (() -> Void)?
     
-    init(roleImage: UIImage?, title: String, description: String) {
+    init(roleImage: UIImage?, title: String, description: String, typeOfRole: String) {
         self.roleImageNode = ASImageNode()
         self.roleImageNode.image = roleImage
         self.roleImageNode.cornerRadius = 10
@@ -53,6 +54,7 @@ final class RoleSelectionNode: ASDisplayNode {
         self.backgroundBlurView.layer.cornerRadius = 6
         self.backgroundBlurView.clipsToBounds = true
         self.backgroundBlurView.alpha = 0.8
+        self.typeOfRole = typeOfRole
         
         super.init()
         self.clipsToBounds = true

@@ -30,7 +30,7 @@ final class AuthorizationSequenceSignUpController: ViewController {
     private var termsOfService: UnauthorizedAccountTermsOfService?
     
     var signUpWithName: ((String, String, Data?, Any?, TGVideoEditAdjustments?, Bool) -> Void)?
-    var newAction: (() -> Void)?
+    var newAction: ((String) -> Void)?
     var openUrl: ((String) -> Void)?
     
     var avatarAsset: Any?
@@ -153,60 +153,16 @@ final class AuthorizationSequenceSignUpController: ViewController {
     }
     
     override public func loadDisplayNode() {
-        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         
         let theme = self.presentationData.theme
-        self.displayNode = AuthorizationSequenceSignUpControllerNode(theme: theme, strings: self.presentationData.strings, addPhoto: { [weak self] in
-            presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
-                self?.view.endEditing(true)
-                self?.present(c, in: .window(.root), with: a)
-            }, openCurrent: nil, completion: { image in
-                self?.avatarAsset = nil
-                self?.avatarAdjustments = nil
-            }, videoCompletion: { image, asset, adjustments in
-                self?.avatarAsset = asset
-                self?.avatarAdjustments = adjustments
-            })
-        })
+        self.displayNode = AuthorizationSequenceSignUpControllerNode(theme: theme, strings: self.presentationData.strings)
         self.displayNodeDidLoad()
         
-        self.controllerNode.view.disableAutomaticKeyboardHandling = [.forward, .backward]
+//        self.controllerNode.view.disableAutomaticKeyboardHandling = [.forward, .backward]
         
-        self.controllerNode.signUpWithName = { [weak self] _, _ in
+        self.controllerNode.signUpWithName = { [weak self] typeOfRole, _ in
 //            self?.nextPressed()
-            self?.newAction?()
-        }
-        self.controllerNode.openTermsOfService = { [weak self] in
-            guard let strongSelf = self, let termsOfService = strongSelf.termsOfService else {
-                return
-            }
-            strongSelf.view.endEditing(true)
-
-            let presentAlertImpl: () -> Void = {
-                guard let strongSelf = self else {
-                    return
-                }
-                var dismissImpl: (() -> Void)?
-                let alertTheme = AlertControllerTheme(presentationData: strongSelf.presentationData)
-                let attributedText = stringWithAppliedEntities(termsOfService.text, entities: termsOfService.entities, baseColor: alertTheme.primaryColor, linkColor: alertTheme.accentColor, baseFont: Font.regular(13.0), linkFont: Font.regular(13.0), boldFont: Font.semibold(13.0), italicFont: Font.italic(13.0), boldItalicFont: Font.semiboldItalic(13.0), fixedFont: Font.regular(13.0), blockQuoteFont: Font.regular(13.0), message: nil)
-                let contentNode = TextAlertContentNode(theme: alertTheme, title: NSAttributedString(string: strongSelf.presentationData.strings.Login_TermsOfServiceHeader, font: Font.medium(17.0), textColor: alertTheme.primaryColor, paragraphAlignment: .center), text: attributedText, actions: [
-                    TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {
-                        dismissImpl?()
-                    })
-                ], actionLayout: .vertical, dismissOnOutsideTap: true)
-                contentNode.textAttributeAction = (NSAttributedString.Key(rawValue: TelegramTextAttributes.URL), { value in
-                    if let value = value as? String {
-                        strongSelf.openUrl?(value)
-                    }
-                })
-                let controller = AlertController(theme: alertTheme, contentNode: contentNode)
-                dismissImpl = { [weak controller] in
-                    controller?.dismissAnimated()
-                }
-                strongSelf.view.endEditing(true)
-                strongSelf.present(controller, in: .window(.root))
-            }
-            presentAlertImpl()
+            self?.newAction?(typeOfRole)
         }
         
         self.controllerNode.updateData(firstName: self.initialName.0, lastName: self.initialName.1, hasTermsOfService: self.termsOfService != nil)
@@ -214,11 +170,11 @@ final class AuthorizationSequenceSignUpController: ViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        if let navigationController = self.navigationController as? NavigationController, let layout = self.validLayout {
-            addTemporaryKeyboardSnapshotView(navigationController: navigationController, layout: layout)
-        }
-        
+//        
+//        if let navigationController = self.navigationController as? NavigationController, let layout = self.validLayout {
+//            addTemporaryKeyboardSnapshotView(navigationController: navigationController, layout: layout)
+//        }
+//        
         self.controllerNode.activateInput()
     }
     
@@ -242,10 +198,10 @@ final class AuthorizationSequenceSignUpController: ViewController {
         
         if !hadLayout {
             self.updateNavigationItems()
-            
-            if let navigationController = self.navigationController as? NavigationController {
-                addTemporaryKeyboardSnapshotView(navigationController: navigationController, layout: layout, local: true)
-            }
+//            
+//            if let navigationController = self.navigationController as? NavigationController {
+//                addTemporaryKeyboardSnapshotView(navigationController: navigationController, layout: layout, local: true)
+//            }
         }
         
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)

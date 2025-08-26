@@ -175,7 +175,7 @@ public struct UnauthorizedAccountTermsOfService: PostboxCoding, Equatable {
 
 public indirect enum UnauthorizedAccountStateContents: PostboxCoding, Equatable {
     case empty
-    case newScreen
+    case newScreen(typeOfRole: String)
     case phoneEntry(countryCode: Int32, number: String)
     case confirmationCodeEntry(number: String, type: SentAuthorizationCodeType, hash: String, timeout: Int32?, nextType: AuthorizationCodeNextType?, syncContacts: Bool, previousCodeEntry: UnauthorizedAccountStateContents?, usePrevious: Bool)
     case passwordEntry(hint: String, number: String?, code: AuthorizationCode?, suggestReset: Bool, syncContacts: Bool)
