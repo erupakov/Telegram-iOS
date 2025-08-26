@@ -427,7 +427,7 @@ private final class SeparatorWithTextNode: ASDisplayNode {
     }
 }
 
-private final class AuthButtonNode: ASControlNode {
+private final class AuthButtonNode: ASControlNode { // ButtonWithIconNode
     private let textNode: ASTextNode
     private let iconNode: ASImageNode
     private let spacing: CGFloat
