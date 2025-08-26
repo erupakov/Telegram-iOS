@@ -1058,6 +1058,41 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         return controller
     }
     
+    private func newScreen() -> AuthorizationSequenceApplyAsController {
+        var currentController: AuthorizationSequenceApplyAsController?
+        for c in self.viewControllers {
+            if let c = c as? AuthorizationSequenceApplyAsController {
+                currentController = c
+                break
+            }
+        }
+        let controller: AuthorizationSequenceApplyAsController
+        if let currentController = currentController {
+            controller = currentController
+        } else {
+            controller = AuthorizationSequenceApplyAsController(presentationData: self.presentationData, back: { [weak self] in
+                guard let strongSelf = self else {
+                    return
+                }
+                strongSelf.updateState(state: .state(
+                    .signUp(
+                        number: "509505848",
+                        codeHash: "String",
+                        firstName: "String",
+                        lastName: "String",
+                        termsOfService: nil,
+                        syncContacts: true)
+                ))
+            }, displayCancel: false)
+
+            controller.newAction = { [weak self] in
+                self?.updateState(state: .state(.empty))
+            }
+        }
+        
+        return controller
+    }
+    
     private func signUpController(firstName: String, lastName: String, termsOfService: UnauthorizedAccountTermsOfService?, displayCancel: Bool) -> AuthorizationSequenceSignUpController {
         var currentController: AuthorizationSequenceSignUpController?
         for c in self.viewControllers {
@@ -1084,6 +1119,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 }
                 self.openUrl(url)
             }
+            
+            controller.newAction = { [weak self] in
+                self?.updateState(state: .state(.newScreen))
+            }
+            
             controller.signUpWithName = { [weak self, weak controller] firstName, lastName, avatarData, avatarAsset, avatarAdjustments, announceSignUp in
                 if let strongSelf = self {
                     controller?.inProgress = true
@@ -1197,6 +1237,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         }
                         self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                     }
+                case .newScreen:
+                    var controllers: [ViewController] = []
+                    controllers.append(self.newScreen())
+                    self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
+                
                 case let .phoneEntry(countryCode, number):
                     var controllers: [ViewController] = []
                     if !self.otherAccountPhoneNumbers.1.isEmpty {

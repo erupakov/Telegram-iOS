@@ -175,6 +175,7 @@ public struct UnauthorizedAccountTermsOfService: PostboxCoding, Equatable {
 
 public indirect enum UnauthorizedAccountStateContents: PostboxCoding, Equatable {
     case empty
+    case newScreen
     case phoneEntry(countryCode: Int32, number: String)
     case confirmationCodeEntry(number: String, type: SentAuthorizationCodeType, hash: String, timeout: Int32?, nextType: AuthorizationCodeNextType?, syncContacts: Bool, previousCodeEntry: UnauthorizedAccountStateContents?, usePrevious: Bool)
     case passwordEntry(hint: String, number: String?, code: AuthorizationCode?, suggestReset: Bool, syncContacts: Bool)
@@ -223,6 +224,8 @@ public indirect enum UnauthorizedAccountStateContents: PostboxCoding, Equatable 
     public func encode(_ encoder: PostboxEncoder) {
         switch self {
             case .empty:
+                encoder.encodeInt32(UnauthorizedAccountStateContentsValue.empty.rawValue, forKey: "v")
+            case .newScreen:
                 encoder.encodeInt32(UnauthorizedAccountStateContentsValue.empty.rawValue, forKey: "v")
             case let .phoneEntry(countryCode, number):
                 encoder.encodeInt32(UnauthorizedAccountStateContentsValue.phoneEntry.rawValue, forKey: "v")
@@ -310,6 +313,12 @@ public indirect enum UnauthorizedAccountStateContents: PostboxCoding, Equatable 
         switch lhs {
             case .empty:
                 if case .empty = rhs {
+                    return true
+                } else {
+                    return false
+                }
+            case .newScreen:
+                if case .newScreen = rhs {
                     return true
                 } else {
                     return false

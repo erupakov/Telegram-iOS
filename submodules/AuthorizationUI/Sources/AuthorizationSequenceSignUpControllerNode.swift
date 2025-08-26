@@ -9,19 +9,6 @@ import Markdown
 import SolidRoundedButtonNode
 import AuthorizationUtils
 
-private func roundCorners(diameter: CGFloat) -> UIImage {
-    UIGraphicsBeginImageContextWithOptions(CGSize(width: diameter, height: diameter), false, 0.0)
-    let context = UIGraphicsGetCurrentContext()!
-    context.setBlendMode(.copy)
-    context.setFillColor(UIColor.black.cgColor)
-    context.fill(CGRect(origin: CGPoint(), size: CGSize(width: diameter, height: diameter)))
-    context.setFillColor(UIColor.clear.cgColor)
-    context.fillEllipse(in: CGRect(origin: CGPoint(), size: CGSize(width: diameter, height: diameter)))
-    let image = UIGraphicsGetImageFromCurrentImageContext()!.stretchableImage(withLeftCapWidth: Int(diameter / 2.0), topCapHeight: Int(diameter / 2.0))
-    UIGraphicsEndImageContext()
-    return image
-}
-
 final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let theme: PresentationTheme
     private let strings: PresentationStrings
@@ -35,7 +22,6 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
     private let lastNameField: TextFieldNode
     private let firstSeparatorNode: ASDisplayNode
     private let lastSeparatorNode: ASDisplayNode
-    private let currentPhotoNode: ASImageNode
     private let addPhotoButton: HighlightableButtonNode
     private let proceedNode: SolidRoundedButtonNode
     
@@ -45,22 +31,6 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
     
     var currentName: (String, String) {
         return (self.firstNameField.textField.text ?? "", self.lastNameField.textField.text ?? "")
-    }
-    
-    var currentPhoto: UIImage? = nil {
-        didSet {
-            if let currentPhoto = self.currentPhoto {
-                self.currentPhotoNode.image = generateImage(CGSize(width: 110.0, height: 110.0), contextGenerator: { size, context in
-                    context.clear(CGRect(origin: CGPoint(), size: size))
-                    context.setBlendMode(.copy)
-                    context.draw(currentPhoto.cgImage!, in: CGRect(origin: CGPoint(), size: size))
-                    context.setBlendMode(.destinationOut)
-                    context.draw(roundCorners(diameter: size.width).cgImage!, in: CGRect(origin: CGPoint(), size: size))
-                })
-            } else {
-                self.currentPhotoNode.image = nil
-            }
-        }
     }
     
     var signUpWithName: ((String, String) -> Void)?
@@ -80,6 +50,16 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
             }
         }
     }
+    
+    let titleNode_new: ASTextNode
+    let subtitleNode: ASTextNode
+    
+    private let talentNode: RoleSelectionNode
+    private let modelNode: RoleSelectionNode
+    private let agencyNode: RoleSelectionNode
+    
+    private var selectedNode: RoleSelectionNode?
+    private let backgroundNode: ASImageNode
     
     init(theme: PresentationTheme, strings: PresentationStrings, addPhoto: @escaping () -> Void) {
         self.theme = theme
@@ -140,28 +120,76 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.lastNameField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
         self.lastNameField.textField.tintColor = theme.list.itemAccentColor
         
-        self.currentPhotoNode = ASImageNode()
-        self.currentPhotoNode.isUserInteractionEnabled = false
-        self.currentPhotoNode.displaysAsynchronously = false
-        self.currentPhotoNode.displayWithoutProcessing = true
-        
         self.addPhotoButton = HighlightableButtonNode()
         self.addPhotoButton.setImage(generateTintedImage(image: UIImage(bundleImageName: "Avatar/EditAvatarIconLarge"), color: self.theme.list.itemAccentColor), for: .normal)
         self.addPhotoButton.setBackgroundImage(generateFilledCircleImage(diameter: 110.0, color: self.theme.list.itemAccentColor.withAlphaComponent(0.1), strokeColor: nil, strokeWidth: nil, backgroundColor: nil), for: .normal)
-                
-        self.addPhotoButton.addSubnode(self.currentPhotoNode)
+        
         self.addPhotoButton.allowsGroupOpacity = true
         
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), height: 50.0, cornerRadius: 11.0, gloss: false)
+        let customButtonTheme = SolidRoundedButtonTheme(
+            backgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            foregroundColor: .white,
+            disabledBackgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            disabledForegroundColor: .white
+        )
+        
+        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: customButtonTheme, height: 50.0, cornerRadius: 11.0, gloss: false)
         self.proceedNode.progressType = .embedded
         
+        self.titleNode_new = ASTextNode()
+        self.titleNode_new.attributedText = NSAttributedString(string: "Choose a role".uppercased(), attributes: [
+            .font: UIFont.boldSystemFont(ofSize: 34),
+            .foregroundColor: UIColor.white
+        ])
+        
+        self.subtitleNode = ASTextNode()
+        self.subtitleNode.attributedText = NSAttributedString(string: "Select the role that your profile will correspond to. The role can be changed at any time", attributes: [
+            .font: UIFont.systemFont(ofSize: 16),
+            .foregroundColor: UIColor.white.withAlphaComponent(0.6)
+        ])
+        
+        self.talentNode = RoleSelectionNode(
+            roleImage: UIImage(bundleImageName: "Components/NewTalent"),
+            title: "NEW TALENT",
+            description: "I don’t have any experience / have little experience. I’m new in."
+        )
+        self.modelNode = RoleSelectionNode(
+            roleImage: UIImage(bundleImageName: "Components/Model"),
+            title: "MODEL",
+            description: "I have working experience as a model. I’m professional."
+        )
+        self.agencyNode = RoleSelectionNode(
+            roleImage: UIImage(bundleImageName: "Components/Agencies"),
+            title: "AGENCIES & SCOUTS",
+            description: "Looking for / working with models."
+        )
+        
+        self.backgroundNode = ASImageNode()
+        self.backgroundNode.contentMode = .scaleAspectFill
+        self.backgroundNode.image = UIImage(named: "Components/ChooseRoleBackground")
+        self.backgroundNode.displaysAsynchronously = false
+        
         super.init()
+        
+        self.automaticallyManagesSubnodes = true
+        
+        self.addSubnode(self.backgroundNode)
+        
+        self.addSubnode(titleNode_new)
+        self.addSubnode(subtitleNode)
+        self.addSubnode(talentNode)
+        self.addSubnode(modelNode)
+        self.addSubnode(agencyNode)
+        
+        self.talentNode.tapped = { [weak self] in self?.selectNode(self!.talentNode) }
+        self.modelNode.tapped = { [weak self] in self?.selectNode(self!.modelNode) }
+        self.agencyNode.tapped = { [weak self] in self?.selectNode(self!.agencyNode) }
         
         self.setViewBlock({
             return UITracingLayerView()
         })
         
-        self.backgroundColor = self.theme.list.plainBackgroundColor
+        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
         self.firstNameField.textField.delegate = self
         self.lastNameField.textField.delegate = self
@@ -201,6 +229,12 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         }
     }
     
+    private func selectNode(_ node: RoleSelectionNode) {
+        selectedNode?.isSelected = false
+        selectedNode = node
+        selectedNode?.isSelected = true
+    }
+    
     func updateData(firstName: String, lastName: String, hasTermsOfService: Bool) {
         self.termsNode.isHidden = !hasTermsOfService
         self.firstNameField.textField.attributedText = NSAttributedString(string: firstName, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
@@ -212,65 +246,56 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
-        let previousInputHeight = self.layoutArguments?.0.inputHeight ?? 0.0
-        let newInputHeight = layout.inputHeight ?? 0.0
-        
-        self.layoutArguments = (layout, navigationBarHeight)
-        
-        var layout = layout
-        if CACurrentMediaTime() - self.appearanceTimestamp < 2.0, newInputHeight < previousInputHeight {
-            layout = layout.withUpdatedInputHeight(previousInputHeight)
-        }
         
         let maximumWidth: CGFloat = min(430.0, layout.size.width)
         
-        var insets = layout.insets(options: [.statusBar])
-        if let inputHeight = layout.inputHeight {
-            insets.bottom = max(inputHeight, layout.standardInputHeight)
-        }
+        let insets = layout.insets(options: [.statusBar])
+
+        self.proceedNode.isHidden = false
         
-        let additionalBottomInset: CGFloat = layout.size.width > 320.0 ? 90.0 : 10.0
-                
-        self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_InfoTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
-        let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
+        let inset: CGFloat = 24.0
+        let proceedHeight = self.proceedNode.updateLayout(width: maximumWidth - 48.0, transition: transition)
+        let proceedSize = CGSize(width: maximumWidth - 48.0, height: proceedHeight)
+        transition.updateFrame(node: self.proceedNode, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize))
+
+        let sideInsets: CGFloat = 20.0
+        let verticalSpacing: CGFloat = 15.0
         
-        let fieldHeight: CGFloat = 54.0
+        self.backgroundNode.frame = CGRect(origin: .zero, size: layout.size)
         
-        let sideInset: CGFloat = 24.0
-        let innerInset: CGFloat = 16.0
+        let titleSize = self.titleNode_new.measure(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
+        let titleOriginY: CGFloat = 40.0
+        let titleFrame = CGRect(
+            origin: CGPoint(x: floorToScreenPixels((layout.size.width - titleSize.width) / 2.0), y: titleOriginY + 100),
+            size: titleSize
+        )
+        self.titleNode_new.frame = titleFrame
         
-        let noticeSize = self.currentOptionNode.measure(CGSize(width: maximumWidth - 28.0, height: CGFloat.greatestFiniteMagnitude))
-        let termsSize = self.termsNode.updateLayout(CGSize(width: maximumWidth - 28.0, height: CGFloat.greatestFiniteMagnitude))
+        let noticeSize = self.subtitleNode.measure(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
+        let noticeFrame = CGRect(
+            origin: CGPoint(x: floorToScreenPixels((layout.size.width - noticeSize.width) / 2.0), y: titleFrame.maxY + 5),
+            size: noticeSize
+        )
+        self.subtitleNode.frame = noticeFrame
         
-        let avatarSize: CGSize = CGSize(width: 110.0, height: 110.0)
-        var items: [AuthorizationLayoutItem] = []
-        items.append(AuthorizationLayoutItem(node: self.addPhotoButton, size: avatarSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 16.0, maxValue: 16.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        self.currentPhotoNode.frame = CGRect(origin: CGPoint(), size: avatarSize)
+        var currentY = noticeFrame.maxY + 40
+        let nodeWidth = maximumWidth - sideInsets * 2
+        let nodeHeight: CGFloat = 120
         
-        items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 20.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        let talentFrame = CGRect(x: sideInsets, y: currentY, width: nodeWidth, height: nodeHeight)
+        self.talentNode.frame = talentFrame
+        self.talentNode.layout()
+        currentY = talentFrame.maxY + verticalSpacing
         
-        items.append(AuthorizationLayoutItem(node: self.firstNameField, size: CGSize(width: layout.size.width - (sideInset + innerInset) * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 32.0, maxValue: 60.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        items.append(AuthorizationLayoutItem(node: self.firstSeparatorNode, size: CGSize(width: layout.size.width - sideInset * 2.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+        let modelFrame = CGRect(x: sideInsets, y: currentY, width: nodeWidth, height: nodeHeight)
+        self.modelNode.frame = modelFrame
+        self.modelNode.layout()
+        currentY = modelFrame.maxY + verticalSpacing
         
-        items.append(AuthorizationLayoutItem(node: self.lastNameField, size: CGSize(width: layout.size.width - (sideInset + innerInset) * 2.0, height: fieldHeight), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        items.append(AuthorizationLayoutItem(node: self.lastSeparatorNode, size: CGSize(width: layout.size.width - sideInset * 2.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        
-        items.append(AuthorizationLayoutItem(node: self.termsNode, size: termsSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 48.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        
-        if layout.size.width > 320.0 {
-            self.proceedNode.isHidden = false
-            
-            let inset: CGFloat = 24.0
-            let proceedHeight = self.proceedNode.updateLayout(width: maximumWidth - 48.0, transition: transition)
-            let proceedSize = CGSize(width: maximumWidth - 48.0, height: proceedHeight)
-            transition.updateFrame(node: self.proceedNode, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize))
-        } else {
-            insets.top = navigationBarHeight
-            self.proceedNode.isHidden = true
-        }
-        
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: 0.0, y: insets.top), size: CGSize(width: layout.size.width, height: layout.size.height - insets.top - insets.bottom - additionalBottomInset)), items: items, transition: transition, failIfDoesNotFit: false)
+        let agencyFrame = CGRect(x: sideInsets, y: currentY, width: nodeWidth, height: nodeHeight)
+        self.agencyNode.frame = agencyFrame
+        self.agencyNode.layout()
+        currentY = agencyFrame.maxY + verticalSpacing
     }
     
     func activateInput() {

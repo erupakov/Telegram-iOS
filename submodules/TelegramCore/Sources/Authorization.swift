@@ -984,118 +984,122 @@ public func resetLoginEmail(account: UnauthorizedAccount, phoneNumber: String, p
 }
 
 public func authorizeWithCode(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, code: AuthorizationCode, termsOfService: UnauthorizedAccountTermsOfService?, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> {
-    return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
-        if let state = transaction.getState() as? UnauthorizedAccountState {
-            switch state.contents {
-                case let .confirmationCodeEntry(number, _, hash, _, _, syncContacts, _, _):
-                    var flags: Int32 = 0
-                    var phoneCode: String?
-                    var emailVerification: Api.EmailVerification?
-                
-                    switch code {
-                        case let .phoneCode(code):
-                            flags = 1 << 0
-                            phoneCode = code
-                        case let .emailVerification(verification):
-                            flags = 1 << 1
-                            switch verification {
-                                case let .emailCode(code):
-                                    emailVerification = .emailVerificationCode(code: code)
-                                case let .appleToken(token):
-                                    emailVerification = .emailVerificationApple(token: token)
-                                case let .googleToken(token):
-                                    emailVerification = .emailVerificationGoogle(token: token)
-                            }
-                    }
-                 
-                    return account.network.request(Api.functions.auth.signIn(flags: flags, phoneNumber: number, phoneCodeHash: hash, phoneCode: phoneCode, emailVerification: emailVerification), automaticFloodWait: false)
-                    |> map { authorization in
-                        return .authorization(authorization)
-                    }
-                    |> `catch` { error -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
-                        switch (error.errorCode, error.errorDescription ?? "") {
-                            case (401, "SESSION_PASSWORD_NEEDED"):
-                                return account.network.request(Api.functions.account.getPassword(), automaticFloodWait: false)
-                                |> mapError { error -> AuthorizationCodeVerificationError in
-                                    if error.errorDescription.hasPrefix("FLOOD_WAIT") {
-                                        return .limitExceeded
-                                    } else {
-                                        return .generic
-                                    }
-                                }
-                                |> mapToSignal { result -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
-                                    switch result {
-                                        case let .password(_, _, _, _, hint, _, _, _, _, _, _):
-                                            return .single(.password(hint: hint ?? ""))
-                                    }
-                                }
-                            case let (_, errorDescription):
-                                if errorDescription.hasPrefix("FLOOD_WAIT") {
-                                    return .fail(.limitExceeded)
-                                } else if errorDescription == "PHONE_CODE_INVALID" || errorDescription == "EMAIL_CODE_INVALID" {
-                                    return .fail(.invalidCode)
-                                } else if errorDescription == "CODE_HASH_EXPIRED" || errorDescription == "PHONE_CODE_EXPIRED" {
-                                    return .fail(.codeExpired)
-                                } else if errorDescription == "PHONE_NUMBER_UNOCCUPIED" {
-                                    return .single(.signUp)
-                                } else if errorDescription == "EMAIL_TOKEN_INVALID" {
-                                    return .fail(.invalidEmailToken)
-                                } else if errorDescription == "EMAIL_ADDRESS_INVALID" {
-                                    return .fail(.invalidEmailAddress)
-                                } else {
-                                    return .fail(.generic)
-                                }
-                        }
-                    }
-                    |> mapToSignal { result -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
-                        return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, NoError> in
-                            switch result {
-                                case .signUp:
-                                    return .single(.signUp(AuthorizationSignUpData(number: number, codeHash: hash, code: code, termsOfService: termsOfService, syncContacts: syncContacts)))
-                                case let .password(hint):
-                                    transaction.setState(UnauthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, contents: .passwordEntry(hint: hint, number: number, code: code, suggestReset: false, syncContacts: syncContacts)))
-                                    return .single(.loggedIn)
-                                case let .authorization(authorization):
-                                    switch authorization {
-                                    case let .authorization(_, otherwiseReloginDays, _, futureAuthToken, user):
-                                        if let futureAuthToken = futureAuthToken {
-                                            storeFutureLoginToken(accountManager: accountManager, token: futureAuthToken.makeData())
-                                        }
-                                        
-                                        let user = TelegramUser(user: user)
-                                        var isSupportUser = false
-                                        if let phone = user.phone, phone.hasPrefix("42") {
-                                            isSupportUser = true
-                                        }
-                                        let state = AuthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, peerId: user.id, state: nil, invalidatedChannels: [])
-                                        initializedAppSettingsAfterLogin(transaction: transaction, appVersion: account.networkArguments.appVersion, syncContacts: syncContacts)
-                                        transaction.setState(state)
-                                        if let otherwiseReloginDays = otherwiseReloginDays, let value = forcedPasswordSetupNotice(otherwiseReloginDays) {
-                                            transaction.setNoticeEntry(key: value.0, value: value.1)
-                                        }
-                                        return accountManager.transaction { transaction -> AuthorizeWithCodeResult in
-                                            switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: isSupportUser)
-                                            return .loggedIn
-                                        }
-                                    case let .authorizationSignUpRequired(_, termsOfService):
-                                        return .single(.signUp(AuthorizationSignUpData(number: number, codeHash: hash, code: code, termsOfService: termsOfService.flatMap(UnauthorizedAccountTermsOfService.init(apiTermsOfService:)), syncContacts: syncContacts)))
-                                    }
-                            }
-                        }
-                        |> switchToLatest
-                        |> mapError { _ -> AuthorizationCodeVerificationError in
-                        }
-                    }
-                default:
-                    return .fail(.generic)
-            }
-        } else {
-            return .fail(.generic)
-        }
-    }
-    |> mapError { _ -> AuthorizationCodeVerificationError in
-    }
-    |> switchToLatest
+    
+    // MARK: - Mock! -
+    
+    return .single(.signUp(AuthorizationSignUpData(number: "number", codeHash: "hash", code: .phoneCode("5"), termsOfService: nil, syncContacts: false)))
+//    return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
+//        if let state = transaction.getState() as? UnauthorizedAccountState {
+//            switch state.contents {
+//                case let .confirmationCodeEntry(number, _, hash, _, _, syncContacts, _, _):
+//                    var flags: Int32 = 0
+//                    var phoneCode: String?
+//                    var emailVerification: Api.EmailVerification?
+//                
+//                    switch code {
+//                        case let .phoneCode(code):
+//                            flags = 1 << 0
+//                            phoneCode = code
+//                        case let .emailVerification(verification):
+//                            flags = 1 << 1
+//                            switch verification {
+//                                case let .emailCode(code):
+//                                    emailVerification = .emailVerificationCode(code: code)
+//                                case let .appleToken(token):
+//                                    emailVerification = .emailVerificationApple(token: token)
+//                                case let .googleToken(token):
+//                                    emailVerification = .emailVerificationGoogle(token: token)
+//                            }
+//                    }
+//                 
+//                    return account.network.request(Api.functions.auth.signIn(flags: flags, phoneNumber: number, phoneCodeHash: hash, phoneCode: phoneCode, emailVerification: emailVerification), automaticFloodWait: false)
+//                    |> map { authorization in
+//                        return .authorization(authorization)
+//                    }
+//                    |> `catch` { error -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
+//                        switch (error.errorCode, error.errorDescription ?? "") {
+//                            case (401, "SESSION_PASSWORD_NEEDED"):
+//                                return account.network.request(Api.functions.account.getPassword(), automaticFloodWait: false)
+//                                |> mapError { error -> AuthorizationCodeVerificationError in
+//                                    if error.errorDescription.hasPrefix("FLOOD_WAIT") {
+//                                        return .limitExceeded
+//                                    } else {
+//                                        return .generic
+//                                    }
+//                                }
+//                                |> mapToSignal { result -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
+//                                    switch result {
+//                                        case let .password(_, _, _, _, hint, _, _, _, _, _, _):
+//                                            return .single(.password(hint: hint ?? ""))
+//                                    }
+//                                }
+//                            case let (_, errorDescription):
+//                                if errorDescription.hasPrefix("FLOOD_WAIT") {
+//                                    return .fail(.limitExceeded)
+//                                } else if errorDescription == "PHONE_CODE_INVALID" || errorDescription == "EMAIL_CODE_INVALID" {
+//                                    return .fail(.invalidCode)
+//                                } else if errorDescription == "CODE_HASH_EXPIRED" || errorDescription == "PHONE_CODE_EXPIRED" {
+//                                    return .fail(.codeExpired)
+//                                } else if errorDescription == "PHONE_NUMBER_UNOCCUPIED" {
+//                                    return .single(.signUp)
+//                                } else if errorDescription == "EMAIL_TOKEN_INVALID" {
+//                                    return .fail(.invalidEmailToken)
+//                                } else if errorDescription == "EMAIL_ADDRESS_INVALID" {
+//                                    return .fail(.invalidEmailAddress)
+//                                } else {
+//                                    return .fail(.generic)
+//                                }
+//                        }
+//                    }
+//                    |> mapToSignal { result -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
+//                        return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, NoError> in
+//                            switch result {
+//                                case .signUp:
+//                                    return .single(.signUp(AuthorizationSignUpData(number: number, codeHash: hash, code: code, termsOfService: termsOfService, syncContacts: syncContacts)))
+//                                case let .password(hint):
+//                                    transaction.setState(UnauthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, contents: .passwordEntry(hint: hint, number: number, code: code, suggestReset: false, syncContacts: syncContacts)))
+//                                    return .single(.loggedIn)
+//                                case let .authorization(authorization):
+//                                    switch authorization {
+//                                    case let .authorization(_, otherwiseReloginDays, _, futureAuthToken, user):
+//                                        if let futureAuthToken = futureAuthToken {
+//                                            storeFutureLoginToken(accountManager: accountManager, token: futureAuthToken.makeData())
+//                                        }
+//                                        
+//                                        let user = TelegramUser(user: user)
+//                                        var isSupportUser = false
+//                                        if let phone = user.phone, phone.hasPrefix("42") {
+//                                            isSupportUser = true
+//                                        }
+//                                        let state = AuthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, peerId: user.id, state: nil, invalidatedChannels: [])
+//                                        initializedAppSettingsAfterLogin(transaction: transaction, appVersion: account.networkArguments.appVersion, syncContacts: syncContacts)
+//                                        transaction.setState(state)
+//                                        if let otherwiseReloginDays = otherwiseReloginDays, let value = forcedPasswordSetupNotice(otherwiseReloginDays) {
+//                                            transaction.setNoticeEntry(key: value.0, value: value.1)
+//                                        }
+//                                        return accountManager.transaction { transaction -> AuthorizeWithCodeResult in
+//                                            switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: isSupportUser)
+//                                            return .loggedIn
+//                                        }
+//                                    case let .authorizationSignUpRequired(_, termsOfService):
+//                                        return .single(.signUp(AuthorizationSignUpData(number: number, codeHash: hash, code: code, termsOfService: termsOfService.flatMap(UnauthorizedAccountTermsOfService.init(apiTermsOfService:)), syncContacts: syncContacts)))
+//                                    }
+//                            }
+//                        }
+//                        |> switchToLatest
+//                        |> mapError { _ -> AuthorizationCodeVerificationError in
+//                        }
+//                    }
+//                default:
+//                    return .fail(.generic)
+//            }
+//        } else {
+//            return .fail(.generic)
+//        }
+//    }
+//    |> mapError { _ -> AuthorizationCodeVerificationError in
+//    }
+//    |> switchToLatest
 }
 
 public func beginSignUp(account: UnauthorizedAccount, data: AuthorizationSignUpData) -> Signal<Never, NoError> {
