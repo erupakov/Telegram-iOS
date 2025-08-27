@@ -77,15 +77,16 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.proceedNode.progressType = .embedded
         
         self.titleNode_new = ASTextNode()
-        self.titleNode_new.attributedText = NSAttributedString(string: "Choose a role".uppercased(), attributes: [
-            .font: UIFont(name: "HelveticaNeue-Semibold", size: 34) ?? UIFont.boldSystemFont(ofSize: 34),
-            .foregroundColor: UIColor.white
-        ])
+        self.titleNode_new.attributedText = Font.helveticaNeue("Choose a role".uppercased(), 34)
         
         self.subtitleNode = ASTextNode()
+        let paragraphStyle: NSMutableParagraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        
         self.subtitleNode.attributedText = NSAttributedString(string: "Select the role that your profile will correspond to. The role can be changed at any time", attributes: [
             .font: UIFont.systemFont(ofSize: 16),
-            .foregroundColor: UIColor.white.withAlphaComponent(0.6)
+            .foregroundColor: UIColor.white.withAlphaComponent(0.6),
+            .paragraphStyle: paragraphStyle
         ])
         
         self.talentNode = RoleSelectionNode(
@@ -187,7 +188,7 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         )
         self.titleNode_new.frame = titleFrame
         
-        let noticeSize = self.subtitleNode.measure(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
+        let noticeSize = self.subtitleNode.measure(CGSize(width: maximumWidth - 140, height: CGFloat.greatestFiniteMagnitude))
         let noticeFrame = CGRect(
             origin: CGPoint(x: floorToScreenPixels((layout.size.width - noticeSize.width) / 2.0), y: titleFrame.maxY + 5),
             size: noticeSize

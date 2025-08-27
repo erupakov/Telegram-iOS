@@ -126,12 +126,11 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
             nameAgencyText = "Full Name"
             
         case .agencies:
-            titleText = "Apply as a agencies & brands"
+            titleText = "Apply as a \n agencies & brands"
             nameAgencyText = "Name Agency"
         }
         
-        self.titleNode.attributedText = NSAttributedString(string: titleText.uppercased(), font: Font.bold(30), textColor: .white, paragraphAlignment: .center)
-        
+        self.titleNode.attributedText = Font.helveticaNeue(titleText.uppercased(), 34)
         self.currentOptionNode = ASTextNode()
         self.currentOptionNode.isUserInteractionEnabled = false
         self.currentOptionNode.displaysAsynchronously = false
@@ -144,7 +143,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.sectionTitleNode = ASTextNode()
         self.sectionTitleNode.isUserInteractionEnabled = false
         self.sectionTitleNode.displaysAsynchronously = false
-        self.sectionTitleNode.attributedText = NSAttributedString(string: "Your personal data".uppercased(), font: Font.bold(20.0), textColor: .white, paragraphAlignment: .natural)
+        self.sectionTitleNode.attributedText = Font.helveticaNeue("Your personal data".uppercased(), 20, alignment: .left)
         
         self.nameAgency = getTextFiel(title: nameAgencyText)
         self.websiteField = getTextFiel(title: "Enter name your website")

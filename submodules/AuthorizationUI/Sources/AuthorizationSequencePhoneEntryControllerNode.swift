@@ -438,7 +438,7 @@ private final class AuthButtonNode: ASControlNode { // ButtonWithIconNode
         self.imageSize = imageSize
         
         self.textNode = ASTextNode()
-        self.textNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: .white)
+        self.textNode.attributedText = Font.helveticaNeue(title, 17)
         
         self.iconNode = ASImageNode()
         self.iconNode.image = icon
@@ -607,11 +607,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = true
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = NSAttributedString(
-            string: (account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle).uppercased(),
-            font: UIFont(name: "HelveticaNeueLT", size: 36),
-            textColor: .white
-        )
+        self.titleNode.attributedText = Font.helveticaNeue((account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle).uppercased(), 34)
         
         self.titleActivateAreaNode = AccessibilityAreaNode()
         self.titleActivateAreaNode.accessibilityTraits = .staticText
@@ -788,8 +784,8 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
             
             var currentY: CGFloat = insets.top + (layout.statusBarHeight ?? 20.0) + 10.0
             
-                self.titleNode.attributedText = NSAttributedString(string: (self.account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle).uppercased(), font: Font.bold(34.0), textColor: .white)
-                self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
+            self.titleNode.attributedText = Font.helveticaNeue(strings.Login_PhoneTitle.uppercased(), 34)
+            self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
             let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
             let titleFrame = CGRect(
                 origin: CGPoint(x: floorToScreenPixels((layout.size.width - titleSize.width) / 2.0), y: currentY),

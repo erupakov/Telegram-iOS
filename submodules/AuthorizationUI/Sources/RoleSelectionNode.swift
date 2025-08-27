@@ -34,10 +34,7 @@ final class RoleSelectionNode: ASDisplayNode {
         self.roleImageNode.contentMode = .scaleAspectFill
         
         self.roleTitleNode = ASTextNode()
-        self.roleTitleNode.attributedText = NSAttributedString(string: title.uppercased(), attributes: [
-            .font: UIFont.boldSystemFont(ofSize: 20),
-            .foregroundColor: UIColor.white
-        ])
+        self.roleTitleNode.attributedText = Font.helveticaNeue(title.uppercased(), 20)
         
         self.roleDescriptionNode = ASTextNode()
         self.roleDescriptionNode.attributedText = NSAttributedString(string: description, attributes: [

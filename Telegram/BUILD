@@ -348,7 +348,12 @@ filegroup(
         "Telegram-iOS/Base.lproj/LaunchScreen.xib",
     ]),
 )
-
+filegroup(
+    name = "HelveticaNeue",
+    srcs = glob([
+        "Telegram-iOS/HelveticaNeue/HelveticaNeue-Semibold.ttf",
+    ]),
+)
 objc_library(
     name = "Main",
     srcs = [
@@ -647,7 +652,7 @@ plist_fragment(
     template =
     """
     <key>CFBundleDisplayName</key>
-    <string>Teamgram</string>
+    <string>Divo</string>
     """
 )
 
@@ -1764,11 +1769,11 @@ plist_fragment(
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Teamgram</string>
+    <string>Divo</string>
     <key>CFBundleIdentifier</key>
     <string>{telegram_bundle_id}</string>
     <key>CFBundleName</key>
-    <string>Teamgram</string>
+    <string>Divo</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>
@@ -1963,6 +1968,7 @@ ios_application(
     #ipa_post_processor = ":AddAlternateIcons",
     resources = [
         ":LaunchScreen",
+        ":HelveticaNeue",
         ":DefaultAppIcon",
         #":AdditionalIcons",
     ],
