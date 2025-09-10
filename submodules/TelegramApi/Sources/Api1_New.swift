@@ -12,9 +12,9 @@ public extension ApiNew {
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
                 case .modelInfo(let flags, let typeId, let gender, let age, let name, let agencyName):
-                    if boxed {
+//                    if boxed {
                         buffer.appendInt32(1974795807)
-                    }
+//                    }
                     serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeInt32(typeId, buffer: buffer, boxed: false)
                     if Int(flags) & Int(1 << 1) != 0 {serializeInt32(gender!, buffer: buffer, boxed: false)}
