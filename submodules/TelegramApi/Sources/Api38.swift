@@ -2239,7 +2239,7 @@ public extension Api.functions.auth {
 //                    typeId 0 -> 1 -> 2
 //                    gender 0 -> 1
 //                    flags 0
-                    let modelInfo = ApiNew.ModelInfo.modelInfo(flags: flags, typeId: 42, gender: 1, age: 21, name: "testName", agencyName: "test AgencyName")
+                    let modelInfo = ApiNew.ModelInfo.modelInfo(flags: 1, typeId: 42, gender: 1, age: 21, name: "testName", agencyName: "test AgencyName")
                     modelInfo.serialize(buffer, false)
                     return (FunctionDescription(name: "auth.signUp", parameters: [("flags", String(describing: 1)), ("phoneNumber", String(describing: phoneNumber)), ("phoneCodeHash", String(describing: phoneCodeHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("modelInfo", String(describing: modelInfo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.auth.Authorization? in
                         let reader = BufferReader(buffer)
