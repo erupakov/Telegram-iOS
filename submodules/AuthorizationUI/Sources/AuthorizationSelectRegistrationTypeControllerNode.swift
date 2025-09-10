@@ -99,6 +99,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     
     var signUpWithName: ((String, String) -> Void)?
     var openTermsOfService: (() -> Void)?
+    var back: (() -> Void)?
     
     var inProgress: Bool = false
     
@@ -349,11 +350,12 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     @objc private func backButtonPressed() {
-        signUpWithName?("", "")
+        back?()
     }
     
     @objc private func saveButtonPressed() {
         print("Save button pressed!")
+        signUpWithName?("firstName", "lastName")
     }
     
     @objc private func dismissKeyboard() {

@@ -1460,6 +1460,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[997004590] = { return Api.users.UserFull.parse_userFull($0) }
     dict[1658259128] = { return Api.users.Users.parse_users($0) }
     dict[828000628] = { return Api.users.Users.parse_usersSlice($0) }
+    dict[1974795807] = { return Api.ModelInfo.parse_modelInfo($0) }
+    dict[1187678708] = { return Api.auth.Authorization.parse_signUp($0) }
     return dict
 }()
 
