@@ -2231,7 +2231,7 @@ public extension Api.functions.auth {
                 static func signUp(flags: Int32, phoneNumber: String, phoneCodeHash: String, firstName: String, lastName: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.auth.Authorization>) {
                     let buffer = Buffer()
                     buffer.appendInt32(1187678708)
-                    serializeInt32(1, buffer: buffer, boxed: false)
+                    serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeString(phoneNumber, buffer: buffer, boxed: false)
                     serializeString(phoneCodeHash, buffer: buffer, boxed: false)
                     serializeString(firstName, buffer: buffer, boxed: false)
@@ -2239,9 +2239,10 @@ public extension Api.functions.auth {
 //                    typeId 0 -> 1 -> 2
 //                    gender 0 -> 1
 //                    flags 0
-                    let modelInfo = ApiNew.ModelInfo.modelInfo(flags: 1, typeId: 42, gender: 1, age: 21, name: "testName", agencyName: "test AgencyName")
+                    let modelInfo = ApiNew.ModelInfo.modelInfo(flags: flags, typeId: 42, gender: 1, age: 21, name: "testName", agencyName: "test AgencyName")
+//                    if Int(flags) & Int(1 << 1) != 0 {modelInfo.serialize(buffer, true)}
                     modelInfo.serialize(buffer, false)
-                    return (FunctionDescription(name: "auth.signUp", parameters: [("flags", String(describing: 1)), ("phoneNumber", String(describing: phoneNumber)), ("phoneCodeHash", String(describing: phoneCodeHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("modelInfo", String(describing: modelInfo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.auth.Authorization? in
+                    return (FunctionDescription(name: "auth.signUp", parameters: [("flags", String(describing: flags)), ("phoneNumber", String(describing: phoneNumber)), ("phoneCodeHash", String(describing: phoneCodeHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("modelInfo", String(describing: modelInfo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.auth.Authorization? in
                         let reader = BufferReader(buffer)
                         var result: Api.auth.Authorization?
                         if let signature = reader.readInt32() {

@@ -1342,9 +1342,9 @@ public func signUpWithName(accountManager: AccountManager<TelegramAccountManager
     return account.postbox.transaction { transaction -> Signal<Void, SignUpError> in
         if let state = transaction.getState() as? UnauthorizedAccountState, case let .signUp(number, codeHash, _, _, _, syncContacts) = state.contents {
             var flags: Int32 = 0
-            if disableJoinNotifications {
-                flags |= (1 << 0)
-            }
+//            if disableJoinNotifications {
+                flags |= (1 << 1)
+//            }
             
 //            account.network.request(ApiNew.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName))
             
