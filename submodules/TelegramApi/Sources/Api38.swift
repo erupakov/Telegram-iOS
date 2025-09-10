@@ -2236,10 +2236,12 @@ public extension Api.functions.auth {
                     serializeString(phoneCodeHash, buffer: buffer, boxed: false)
                     serializeString(firstName, buffer: buffer, boxed: false)
                     serializeString(lastName, buffer: buffer, boxed: false)
-                    
+//                    typeId 0 -> 1 -> 2
+//                    gender 0 -> 1
+//                    flags 0
                     let modelInfo = ApiNew.ModelInfo.modelInfo(flags: flags, typeId: 42, gender: 1, age: 21, name: "testName", agencyName: "test AgencyName")
                     modelInfo.serialize(buffer, false)
-                    return (FunctionDescription(name: "auth.signUp", parameters: [("flags", String(describing: flags)), ("phoneNumber", String(describing: phoneNumber)), ("phoneCodeHash", String(describing: phoneCodeHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("modelInfo", String(describing: modelInfo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.auth.Authorization? in
+                    return (FunctionDescription(name: "auth.signUp", parameters: [("flags", String(describing: 1)), ("phoneNumber", String(describing: phoneNumber)), ("phoneCodeHash", String(describing: phoneCodeHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("modelInfo", String(describing: modelInfo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.auth.Authorization? in
                         let reader = BufferReader(buffer)
                         var result: Api.auth.Authorization?
                         if let signature = reader.readInt32() {
