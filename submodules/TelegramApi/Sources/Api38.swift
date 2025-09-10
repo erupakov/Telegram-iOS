@@ -2231,7 +2231,7 @@ public extension Api.functions.auth {
                 static func signUp(flags: Int32, phoneNumber: String, phoneCodeHash: String, firstName: String, lastName: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.auth.Authorization>) {
                     let buffer = Buffer()
                     buffer.appendInt32(1187678708)
-                    serializeInt32(flags, buffer: buffer, boxed: false)
+                    serializeInt32(1, buffer: buffer, boxed: false)
                     serializeString(phoneNumber, buffer: buffer, boxed: false)
                     serializeString(phoneCodeHash, buffer: buffer, boxed: false)
                     serializeString(firstName, buffer: buffer, boxed: false)
