@@ -2239,9 +2239,24 @@ public extension Api.functions.auth {
 //                    typeId 0 -> 1 -> 2
 //                    gender 0 -> 1
 //                    flags 0
-                    let modelInfo = ApiNew.ModelInfo.modelInfo(flags: flags, typeId: 42, gender: 1, age: 21, name: "testName", agencyName: "test AgencyName")
-//                    if Int(flags) & Int(1 << 1) != 0 {modelInfo.serialize(buffer, true)}
-                    modelInfo.serialize(buffer, true)
+                    let gender: Int32? = 1
+                    let age: Int32? = 21
+                    let name: String? = "testName"
+                    let agencyName: String? = "test AgencyName"
+                    
+                    let genderFlag: Int32 = 1 << 1
+                    let ageFlag: Int32 = 1 << 2
+                    let nameFlag: Int32 = 1 << 3
+                    let agencyNameFlag: Int32 = 1 << 4
+
+                    let modelInfoFlags: Int32 = genderFlag | ageFlag | nameFlag | agencyNameFlag
+                    
+                    let modelInfo = Api.ModelInfo.modelInfo(flags: modelInfoFlags, typeId: 2, gender: gender, age: age, name: name, agencyName: agencyName)
+                    if Int(flags) & Int(1 << 1) != 0 {
+                        modelInfo.serialize(buffer, true)
+                    }
+                    
+//                    modelInfo.serialize(buffer, true)
                     return (FunctionDescription(name: "auth.signUp", parameters: [("flags", String(describing: flags)), ("phoneNumber", String(describing: phoneNumber)), ("phoneCodeHash", String(describing: phoneCodeHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("modelInfo", String(describing: modelInfo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.auth.Authorization? in
                         let reader = BufferReader(buffer)
                         var result: Api.auth.Authorization?
