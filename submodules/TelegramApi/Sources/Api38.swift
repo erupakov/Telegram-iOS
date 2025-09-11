@@ -1,12 +1,13 @@
 public extension Api {
     enum ModelInfo: TypeConstructorDescription {
-        case modelInfo(flags: Int32, typeId: Int32, gender: Int32?, age: Int32?, name: String?, agencyName: String?)
+        case modelInfo(flags: Int32, typeId: Int32, gender: Int32?, age: Int32?, name: String?, agencyName: String?, countryCode: String?, url: String?)
 
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
-                case .modelInfo(let flags, let typeId, let gender, let age, let name, let agencyName):
+                case .modelInfo(let flags, let typeId, let gender, let age, let name, let agencyName, let countryCode, let url):
                     if boxed {
                         buffer.appendInt32(1974795807)
+//                        buffer.appendInt32(199368456)
                     }
                     serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeInt32(typeId, buffer: buffer, boxed: false)
@@ -14,14 +15,16 @@ public extension Api {
                     if Int(flags) & Int(1 << 2) != 0 {serializeInt32(age!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 3) != 0 {serializeString(name!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 4) != 0 {serializeString(agencyName!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 5) != 0 {serializeString(countryCode!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 6) != 0 {serializeString(url!, buffer: buffer, boxed: false)}
                     break
             }
         }
         
         public func descriptionFields() -> (String, [(String, Any)]) {
             switch self {
-                case .modelInfo(let flags, let typeId, let gender, let age, let name, let agencyName):
-                return ("modelInfo", [("flags", String(describing: flags)), ("typeId", String(describing: typeId)), ("gender", String(describing: gender)), ("age", String(describing: age)), ("name", String(describing: name)), ("agencyName", String(describing: agencyName))])
+                case .modelInfo(let flags, let typeId, let gender, let age, let name, let agencyName, let countryCode, let url):
+                return ("modelInfo", [("flags", String(describing: flags)), ("typeId", String(describing: typeId)), ("gender", String(describing: gender)), ("age", String(describing: age)), ("name", String(describing: name)), ("agencyName", String(describing: agencyName)), ("countryCode", String(describing: countryCode)), ("url", String(describing: url))])
             }
         }
 
@@ -38,14 +41,20 @@ public extension Api {
             if Int(_1!) & Int(1 << 3) != 0 {_5 = parseString(reader) }
             var _6: String?
             if Int(_1!) & Int(1 << 4) != 0 {_6 = parseString(reader) }
+            var _7: String?
+            if Int(_1!) & Int(1 << 5) != 0 {_7 = parseString(reader) }
+            var _8: String?
+            if Int(_1!) & Int(1 << 6) != 0 {_8 = parseString(reader) }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = (Int(_1!) & Int(1 << 1) == 0) || _3 != nil
             let _c4 = (Int(_1!) & Int(1 << 2) == 0) || _4 != nil
             let _c5 = (Int(_1!) & Int(1 << 3) == 0) || _5 != nil
             let _c6 = (Int(_1!) & Int(1 << 4) == 0) || _6 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 {
-                return Api.ModelInfo.modelInfo(flags: _1!, typeId: _2!, gender: _3, age: _4, name: _5, agencyName: _6)
+            let _c7 = (Int(_1!) & Int(1 << 5) == 0) || _7 != nil
+            let _c8 = (Int(_1!) & Int(1 << 6) == 0) || _8 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 {
+                return Api.ModelInfo.modelInfo(flags: _1!, typeId: _2!, gender: _3, age: _4, name: _5, agencyName: _6, countryCode: _7, url: _8)
             }
             else {
                 return nil
@@ -2285,7 +2294,13 @@ public extension Api.functions.auth {
                 }
 }
 public extension Api.functions.auth {
-                static func signUp(flags: Int32, phoneNumber: String, phoneCodeHash: String, firstName: String, lastName: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.auth.Authorization>) {
+                static func signUp(
+                    flags: Int32,
+                    phoneNumber: String,
+                    phoneCodeHash: String,
+                    firstName: String,
+                    lastName: String,
+                    modelInfo: Api.ModelInfo) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.auth.Authorization>) {
                     let buffer = Buffer()
                     buffer.appendInt32(1187678708)
                     serializeInt32(flags, buffer: buffer, boxed: false)
@@ -2293,27 +2308,11 @@ public extension Api.functions.auth {
                     serializeString(phoneCodeHash, buffer: buffer, boxed: false)
                     serializeString(firstName, buffer: buffer, boxed: false)
                     serializeString(lastName, buffer: buffer, boxed: false)
-//                    typeId 0 -> 1 -> 2
-//                    gender 0 -> 1
-//                    flags 0
-                    let gender: Int32? = 1
-                    let age: Int32? = 21
-                    let name: String? = "testName"
-                    let agencyName: String? = "test AgencyName"
-                    
-                    let genderFlag: Int32 = 1 << 1
-                    let ageFlag: Int32 = 1 << 2
-                    let nameFlag: Int32 = 1 << 3
-                    let agencyNameFlag: Int32 = 1 << 4
 
-                    let modelInfoFlags: Int32 = genderFlag | ageFlag | nameFlag | agencyNameFlag
-                    
-                    let modelInfo = Api.ModelInfo.modelInfo(flags: modelInfoFlags, typeId: 2, gender: gender, age: age, name: name, agencyName: agencyName)
                     if Int(flags) & Int(1 << 1) != 0 {
                         modelInfo.serialize(buffer, true)
                     }
                     
-//                    modelInfo.serialize(buffer, true)
                     return (FunctionDescription(name: "auth.signUp", parameters: [("flags", String(describing: flags)), ("phoneNumber", String(describing: phoneNumber)), ("phoneCodeHash", String(describing: phoneCodeHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("modelInfo", String(describing: modelInfo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.auth.Authorization? in
                         let reader = BufferReader(buffer)
                         var result: Api.auth.Authorization?

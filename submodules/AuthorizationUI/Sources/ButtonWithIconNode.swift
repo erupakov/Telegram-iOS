@@ -12,7 +12,7 @@ import AuthorizationUtils
 class AgeSliderNode: ASDisplayNode {
     private let titleNode: ASTextNode
     private let valueNode: ASTextNode
-    private let slider: UISlider
+    public let slider: UISlider
     
     private let minAgeNode: ASTextNode
     private let maxAgeNode: ASTextNode

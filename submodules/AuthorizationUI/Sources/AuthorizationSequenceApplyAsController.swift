@@ -13,6 +13,7 @@ import Postbox
 import TextFormat
 import MoreButtonNode
 import ContextUI
+import CountrySelectionUI
 
 final class AuthorizationSequenceApplyAsController: ViewController {
     private var controllerNode: ChooseRoleControllerNode {
@@ -32,7 +33,7 @@ final class AuthorizationSequenceApplyAsController: ViewController {
     var initialName: (String, String) = ("", "")
     private var termsOfService: UnauthorizedAccountTermsOfService?
     
-    var signUpWithName: ((String, String, Data?, Any?, TGVideoEditAdjustments?, Bool) -> Void)?
+    var signUpWithName: ((String, String, AuthorizationModelInfo, Data?, Any?, TGVideoEditAdjustments?, Bool) -> Void)?
     
     var openUrl: ((String) -> Void)?
     
@@ -141,13 +142,6 @@ final class AuthorizationSequenceApplyAsController: ViewController {
         guard let layout = self.validLayout, layout.size.width < 360.0 else {
             return
         }
-                
-        if self.inProgress {
-            let item = UIBarButtonItem(customDisplayNode: ProgressNavigationButtonNode(color: self.presentationData.theme.rootController.navigationBar.accentTextColor))
-            self.navigationItem.rightBarButtonItem = item
-        } else {
-            self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Next, style: .done, target: self, action: #selector(self.nextPressed))
-        }
     }
     
     override public func loadDisplayNode() {
@@ -172,8 +166,24 @@ final class AuthorizationSequenceApplyAsController: ViewController {
         
 //        self.controllerNode.view.disableAutomaticKeyboardHandling = [.forward, .backward]
         
-        self.controllerNode.signUpWithName = { [weak self] _, _ in
-            self?.nextPressed()
+        self.controllerNode.signUpWithName = { [weak self] modelInfo in
+            self?.nextPressed(modelInfo: modelInfo)
+        }
+        
+        self.controllerNode.selectCountryCode = { [weak self] in
+            if let strongSelf = self {
+                let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, displayCodes: false)
+                controller.completeWithCountryCode = { _, countryId, name in
+                    
+                    if let strongSelf = self {
+                        strongSelf.controllerNode.updateCountry(countryId: countryId, countryName: name)
+                    }
+                }
+                controller.dismissed = {
+//                    self?.controllerNode.activateInput()
+                }
+                strongSelf.push(controller)
+            }
         }
         
         self.controllerNode.back = { [weak self] in
@@ -259,29 +269,17 @@ final class AuthorizationSequenceApplyAsController: ViewController {
         }
     }
     
-    @objc func nextPressed() {
-        let firstName = "firstName"//self.controllerNode.currentName.0.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lastName = "lastName"//self.controllerNode.currentName.1.trimmingCharacters(in: .whitespacesAndNewlines)
+    func nextPressed(modelInfo: AuthorizationModelInfo) {
         
-        var name: (String, String)?
-        if firstName.isEmpty && lastName.isEmpty {
-            self.hapticFeedback.error()
-            self.controllerNode.animateError()
-            return
-        } else if firstName.isEmpty && !lastName.isEmpty {
-            name = (lastName, "")
-        } else {
-            name = (firstName, lastName)
-        }
-        
-        if let name = name {
-            self.signUpWithName?(name.0, name.1, self.controllerNode.currentPhoto.flatMap({ image in
-                let tempFile = TempBox.shared.tempFile(fileName: "file")
-                let result = compressImageToJPEG(image, quality: 0.7, tempFilePath: tempFile.path)
-                TempBox.shared.dispose(tempFile)
-                return result
-            }), self.avatarAsset, self.avatarAdjustments, self.announceSignUp)
-        }
+//        self.hapticFeedback.error()
+//        self.controllerNode.animateError()
+        let name = modelInfo.name ?? ""
+        self.signUpWithName?(name, "", modelInfo, self.controllerNode.currentPhoto.flatMap({ image in
+            let tempFile = TempBox.shared.tempFile(fileName: "file")
+            let result = compressImageToJPEG(image, quality: 0.7, tempFilePath: tempFile.path)
+            TempBox.shared.dispose(tempFile)
+            return result
+        }), self.avatarAsset, self.avatarAdjustments, self.announceSignUp)
     }
 }
 

@@ -1338,7 +1338,7 @@ public enum SignUpError {
     case invalidLastName
 }
 
-public func signUpWithName(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, firstName: String, lastName: String, avatarData: Data?, avatarVideo: Signal<UploadedPeerPhotoData?, NoError>?, videoStartTimestamp: Double?, disableJoinNotifications: Bool = false, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<Void, SignUpError> {
+public func signUpWithName(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, firstName: String, lastName: String, modelinfo: AuthorizationModelInfo? = nil, avatarData: Data?, avatarVideo: Signal<UploadedPeerPhotoData?, NoError>?, videoStartTimestamp: Double?, disableJoinNotifications: Bool = false, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<Void, SignUpError> {
     return account.postbox.transaction { transaction -> Signal<Void, SignUpError> in
         if let state = transaction.getState() as? UnauthorizedAccountState, case let .signUp(number, codeHash, _, _, _, syncContacts) = state.contents {
             var flags: Int32 = 0
@@ -1346,9 +1346,41 @@ public func signUpWithName(accountManager: AccountManager<TelegramAccountManager
                 flags |= (1 << 1)
 //            }
             
-//            account.network.request(ApiNew.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName))
+            if let modelinfo = modelinfo {
+                print(modelinfo)
+            } else {
+                print("print(modelinfo)")
+            }
             
-            return account.network.request(Api.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName))
+            let gender: Int32? = 1
+            let typeId: Int32? = modelinfo?.typeId
+            let age: Int32? = modelinfo?.age
+            let name: String? = modelinfo?.name
+            let agencyName: String? = modelinfo?.agencyName
+            let countryCode: String? = modelinfo?.countryCode
+            let url: String? = modelinfo?.url
+
+            let genderFlag: Int32 = 1 << 1
+            let ageFlag: Int32 = 1 << 2
+            let nameFlag: Int32 = 1 << 3
+            let agencyNameFlag: Int32 = 1 << 4
+            let countryCodeFlag: Int32 = 1 << 5
+            let urlFlag: Int32 = 1 << 6
+
+            let modelInfoFlags: Int32 = genderFlag | ageFlag | nameFlag | agencyNameFlag | countryCodeFlag | urlFlag
+            
+            let modelInfoTest = Api.ModelInfo.modelInfo(
+                flags: modelInfoFlags,
+                typeId: typeId ?? 1,
+                gender: gender,
+                age: age,
+                name: name,
+                agencyName: agencyName,
+                countryCode: countryCode,
+                url: url
+            )
+            
+            return account.network.request(Api.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName, modelInfo: modelInfoTest))
             |> mapError { error -> SignUpError in
                 if error.errorDescription.hasPrefix("FLOOD_WAIT") {
                     return .limitExceeded

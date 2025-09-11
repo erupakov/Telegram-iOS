@@ -8,6 +8,7 @@ import TextFormat
 import Markdown
 import SolidRoundedButtonNode
 import AuthorizationUtils
+import TelegramCore
 
 private enum TypeOfRole: String {
     case talent = "TALENT"
@@ -59,6 +60,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     
     private let nameAgency: TextFieldNode
     private let chooseCountryField: TextFieldNode
+    private var countryId: String = ""
     private let chooseGenderField: TextFieldNode
     private let chooseAgencyField: TextFieldNode
     private let websiteField: TextFieldNode
@@ -97,7 +99,8 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         }
     }
     
-    var signUpWithName: ((String, String) -> Void)?
+    var signUpWithName: ((AuthorizationModelInfo) -> Void)?
+    var selectCountryCode: (() -> Void)?
     var openTermsOfService: (() -> Void)?
     var back: (() -> Void)?
     
@@ -226,10 +229,18 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     func updateData(firstName: String, lastName: String, hasTermsOfService: Bool) {
-        
         if let (layout, navigationHeight) = self.layoutArguments {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
         }
+    }
+    
+    func updateCountry(countryId: String, countryName: String) {
+        chooseCountryField.textField.text = countryName
+        self.countryId = countryId
+//        if let (layout, navigationHeight) = self.layoutArguments {
+//            self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, transition: .immediate)
+//        }
+        
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -355,7 +366,16 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     
     @objc private func saveButtonPressed() {
         print("Save button pressed!")
-        signUpWithName?("firstName", "lastName")
+        let typeId: Int32 = typeOfRole == .talent ? 1 : typeOfRole == .model ? 2 : 3
+        let modelInfo = AuthorizationModelInfo(
+            typeId: typeId,
+            gender: 2,//chooseGenderField
+            age: Int32(ageSliderNode.slider.value.rounded()),
+            name: nameAgency.textField.text,
+            agencyName: chooseAgencyField.textField.text,
+            countryCode: countryId,
+            url: websiteField.textField.text)
+        signUpWithName?(modelInfo)
     }
     
     @objc private func dismissKeyboard() {
@@ -368,6 +388,15 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     
     func textFieldDidEndEditing(_ textField: UITextField) {
         self.activeTextField = nil
+    }
+    
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        if textField == chooseCountryField.textField {
+            selectCountryCode?()
+            return false
+        } else {
+            return true
+        }
     }
     
     override func didLoad() {
