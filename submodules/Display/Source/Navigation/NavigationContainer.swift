@@ -138,26 +138,26 @@ public final class NavigationContainer: ASDisplayNode, ASGestureRecognizerDelega
     public override func didLoad() {
         super.didLoad()
         
-        let panRecognizer = InteractiveTransitionGestureRecognizer(target: self, action: #selector(self.panGesture(_:)), allowedDirections: { [weak self] _ in
-            guard let strongSelf = self, strongSelf.controllers.count > 1 else {
-                return []
-            }
-            return .right
-        })
+//        let panRecognizer = InteractiveTransitionGestureRecognizer(target: self, action: #selector(self.panGesture(_:)), allowedDirections: { [weak self] _ in
+//            guard let strongSelf = self, strongSelf.controllers.count > 1 else {
+//                return []
+//            }
+//            return .right
+//        })
         /*panRecognizer.dynamicEdgeWidth = { [weak self] _ in
             guard let self, let controller = self.controllers.last, let value = controller.interactiveNavivationGestureEdgeWidth else {
                 return .constant(16.0)
             }
             return value
         }*/
-        if #available(iOS 13.4, *) {
-            panRecognizer.allowedScrollTypesMask = .continuous
-        }
-        panRecognizer.delegate = self.wrappedGestureRecognizerDelegate
-        panRecognizer.delaysTouchesBegan = false
-        panRecognizer.cancelsTouchesInView = true
-        self.panRecognizer = panRecognizer
-        self.view.addGestureRecognizer(panRecognizer)
+//        if #available(iOS 13.4, *) {
+//            panRecognizer.allowedScrollTypesMask = .continuous
+//        }
+//        panRecognizer.delegate = self.wrappedGestureRecognizerDelegate
+//        panRecognizer.delaysTouchesBegan = false
+//        panRecognizer.cancelsTouchesInView = true
+//        self.panRecognizer = panRecognizer
+//        self.view.addGestureRecognizer(panRecognizer)
         
         /*self.view.disablesInteractiveTransitionGestureRecognizerNow = { [weak self] in
             guard let strongSelf = self else {
