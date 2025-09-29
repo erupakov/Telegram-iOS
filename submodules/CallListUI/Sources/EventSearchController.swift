@@ -29,9 +29,22 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(presentationData: self.presentationData))
         
-        self.navigationPresentation = .modal
+        let darkNavigationTheme = NavigationBarTheme(
+            buttonColor: .black,
+            disabledButtonColor: UIColor(rgb: 0x525252),
+            primaryTextColor: .white,
+            backgroundColor: .clear,
+            opaqueBackgroundColor: .clear,
+            enableBackgroundBlur: false,
+            separatorColor: .clear,
+            badgeBackgroundColor: .clear,
+            badgeStrokeColor: .clear,
+            badgeTextColor: .clear)
+
+        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
+        
+        super.init(navigationBarPresentationData: navigationBarData)
         
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         
@@ -57,7 +70,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
             //            self?.activateSearch()
         })
 //        self.searchContentNode?.setIsEnabled(false)
-        self.navigationBar?.setContentNode(self.searchContentNode, animated: false)
+//        self.navigationBar?.setContentNode(self.searchContentNode, animated: false)
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -82,7 +95,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
     override public func loadDisplayNode() {
         self.displayNode = EventsSearchControllerNode(context: self.context)
         
-        self.contactsNode.navigationBar = self.navigationBar
+//        self.contactsNode.navigationBar = self.navigationBar
         self.displayNodeDidLoad()
     }
     

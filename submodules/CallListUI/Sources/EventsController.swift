@@ -84,29 +84,11 @@ public final class EventsController: TelegramBaseController {
     private var lastContentOffset: CGPoint = .zero
     
     public func updateContentOffset(offset: CGPoint) {
-        
-//        print("offset", offset)
     }
 
     @objc private func searchPressed() {
-        print("Search button pressed")
-        
-//        let controller = self.context.sharedContext.makeContactSelectionController(ContactSelectionControllerParams(context: self.context, title: { $0.Calls_NewCall }, displayCallIcons: true))
-//        controller.navigationPresentation = .modal
-//        self.createActionDisposable.set((controller.result
-//        |> take(1)
-//        |> deliverOnMainQueue).startStrict(next: { [weak controller] result in
-//            controller?.dismissSearch()
-//            if let (contactPeers, _, _, _, _, _) = result {
-//                print("\(contactPeers)")
-//            }
-//        }))
-
-        
         let controller = EventsSearchController(context: context)
-        //EventsSearchController(context: context)
         
-//        navigationController.pushViewController(controller)
         if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
             navigationController.pushViewController(controller)
         }

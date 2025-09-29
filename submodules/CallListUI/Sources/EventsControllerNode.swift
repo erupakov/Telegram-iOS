@@ -133,11 +133,10 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
         return cell
     }
     
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) { //TODO: move to EventsController
         let selectedEvent = events[indexPath.item]
         let detailController = EventDetailController(context: context, eventData: selectedEvent)
         
-        // Получаем текущий навигационный контроллер и показываем новый экран
         if let navigationController = controller?.navigationController {
             navigationController.pushViewController(detailController, animated: true)
         }

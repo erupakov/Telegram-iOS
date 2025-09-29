@@ -7,56 +7,17 @@ import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
 import MergeLists
-import ActivityIndicator
 import AccountContext
 import SearchBarNode
 import SearchUI
-import ContactsPeerItem
 import ChatListSearchItemHeader
 import AppBundle
-import PhoneNumberFormat
 import ItemListUI
-import ContactListUI
-import SolidRoundedButtonNode
 
 final class EventsSearchControllerNode: ASDisplayNode {
-    let listNode: ListView
-    private var activityIndicator: ActivityIndicator?
     
     private let context: AccountContext
-    private var searchDisplayController: SearchDisplayController?
-    
-    private var validLayout: (ContainerViewLayout, CGFloat, CGFloat)?
-    
-    var navigationBar: NavigationBar?
-    
-//    private let countPanelNode: InviteContactsCountPanelNode
-    
-    var requestActivateSearch: (() -> Void)?
-    var requestDeactivateSearch: (() -> Void)?
-    var requestShareTelegram: (() -> Void)?
-    var requestShare: (([(DeviceContactBasicData, Int32)]) -> Void)?
-    var selectionChanged: (() -> Void)?
-    
-    let currentSortedContacts = Atomic<[(DeviceContactStableId, DeviceContactBasicData, Int32)]?>(value: nil)
-    
-    var selectionState = InviteContactsGroupSelectionState() {
-        didSet {
-            if self.selectionState != oldValue {
-                self.selectionStatePromise.set(.single(self.selectionState))
-//                self.countPanelNode.count = self.selectionState.selectedContactIndices.count
-                if oldValue.selectedContactIndices.isEmpty != self.selectionState.selectedContactIndices.isEmpty {
-                    if let (layout, navigationHeight, actualNavigationHeight) = self.validLayout {
-                        self.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, actualNavigationBarHeight: actualNavigationHeight, transition: .animated(duration: 0.3, curve: .spring))
-                    }
-                }
-                self.selectionChanged?()
-            }
-        }
-    }
-    private let selectionStatePromise = Promise<InviteContactsGroupSelectionState>(InviteContactsGroupSelectionState())
-    
-    private var queuedTransitions: [InviteContactsTransition] = []
+    private let searchBarNode: SearchBarNode
     
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
@@ -75,11 +36,30 @@ final class EventsSearchControllerNode: ASDisplayNode {
         return self._ready.get()
     }
     
-    var loadedContacts: (() -> Void)?
-    
     private var disposable: Disposable?
     
-    private let currentContactIds = Atomic<[String]>(value: [])
+    private let scrollNode: ASScrollNode
+    private let filterByLabel: ASTextNode
+    
+    private let locationLabel: ASTextNode
+    private let locationTextField: TextFieldNode
+    
+    private let eventTypeLabel: ASTextNode
+    private let eventTypeTextField: TextFieldNode
+    
+    private let dateRangeLabel: ASTextNode
+    
+    private let fromDateControl: ASControlNode
+    private let fromDateTitle: ASTextNode
+    private let fromDateValue: ASTextNode
+    private let fromDateSeparator: ASControlNode
+    
+    private let toDateControl: ASControlNode
+    private let toDateTitle: ASTextNode
+    private let toDateValue: ASTextNode
+    private let toDateSeparator: ASControlNode
+    
+    private let applyButton: ASControlNode
     
     init(context: AccountContext) {
         self.context = context
@@ -89,27 +69,97 @@ final class EventsSearchControllerNode: ASDisplayNode {
         
         self.presentationDataPromise = Promise(self.presentationData)
         
-        self.listNode = ListView()
-        self.listNode.accessibilityPageScrolledString = { row, count in
-            return presentationData.strings.VoiceOver_ScrollStatus(row, count).string
-        }
+        let searchBarNodeTheme = SearchBarNodeTheme(
+            background: .white,
+            separator: .gray,
+            inputFill: UIColor(red: 0.47, green: 0.47, blue: 0.50, alpha: 0.12),
+            primaryText: .black,
+            placeholder: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6),
+            inputIcon: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6),
+            inputClear: .gray,
+            accent: .gray,
+            keyboard: .light)
         
+        self.searchBarNode = SearchBarNode(theme: searchBarNodeTheme, strings: presentationData.strings, fieldStyle: .modern)
+        let placeholderText = presentationData.strings.Common_Search
+        let searchBarFont = Font.regular(17.0)
         
-       
+        self.searchBarNode.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: presentationData.theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+        self.searchBarNode.hasCancelButton = false
+        
+        self.scrollNode = ASScrollNode()
+        
+        self.filterByLabel = ASTextNode()
+        self.filterByLabel.attributedText = NSAttributedString(string: "Filter by:", font: Font.semibold(12), textColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6))
+        
+        self.locationLabel = ASTextNode()
+        self.locationLabel.attributedText = NSAttributedString(string: "Location", font: Font.semibold(16), textColor: UIColor(red: 0.09, green: 0.09, blue: 0.11, alpha: 1.00))
+        
+        self.locationTextField = getTextFiel(title: "Choose a country")
+
+        self.eventTypeLabel = ASTextNode()
+        self.eventTypeLabel.attributedText = NSAttributedString(string: "Event Type", font: Font.semibold(16), textColor: UIColor(red: 0.09, green: 0.09, blue: 0.11, alpha: 1.00))
+        
+        self.eventTypeTextField = getTextFiel(title: "All Types")
+        
+        self.dateRangeLabel = ASTextNode()
+        self.dateRangeLabel.attributedText = NSAttributedString(string: "Date Range", font: Font.semibold(16), textColor: UIColor(red: 0.09, green: 0.09, blue: 0.11, alpha: 1.00))
+        
+        self.fromDateControl = ASControlNode()
+        self.fromDateControl.backgroundColor = .clear
+        
+        self.fromDateTitle = ASTextNode()
+        self.fromDateTitle.attributedText = NSAttributedString(string: "From", font: Font.regular(17), textColor: .black)
+        
+        self.fromDateValue = ASTextNode()
+        self.fromDateValue.attributedText = NSAttributedString(string: "Today, 24 Jun 2025", font: Font.regular(17), textColor: .black)
+        
+        self.fromDateSeparator = ASControlNode()
+        self.fromDateSeparator.backgroundColor = UIColor(red: 0.33, green: 0.33, blue: 0.34, alpha: 0.34)
+        
+        self.toDateControl = ASControlNode()
+        self.toDateControl.backgroundColor = .clear
+        
+        self.toDateTitle = ASTextNode()
+        self.toDateTitle.attributedText = NSAttributedString(string: "To", font: Font.regular(17), textColor: .black)
+        
+        self.toDateValue = ASTextNode()
+        self.toDateValue.attributedText = NSAttributedString(string: "24 Jul, 2025", font: Font.regular(17), textColor: .black)
+        
+        self.toDateSeparator = ASControlNode()
+        self.toDateSeparator.backgroundColor = UIColor(red: 0.33, green: 0.33, blue: 0.34, alpha: 0.34)
+        
+        self.applyButton = ButtonWithIconNode(title: "Apply filter", icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
+        self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        
         super.init()
         
-        self.setViewBlock({
-            return UITracingLayerView()
-        })
+        self.backgroundColor = .white
+        self.addSubnode(self.searchBarNode)
+        self.addSubnode(self.scrollNode)
+        self.scrollNode.addSubnode(self.filterByLabel)
+        self.scrollNode.addSubnode(self.locationLabel)
+        self.scrollNode.addSubnode(self.locationTextField)
+        self.scrollNode.addSubnode(self.eventTypeLabel)
+        self.scrollNode.addSubnode(self.eventTypeTextField)
+        self.scrollNode.addSubnode(self.dateRangeLabel)
+        self.scrollNode.addSubnode(self.fromDateControl)
+        self.fromDateControl.addSubnode(self.fromDateTitle)
+        self.fromDateControl.addSubnode(self.fromDateValue)
+        self.fromDateControl.addSubnode(self.fromDateSeparator)
         
-        self.backgroundColor = self.presentationData.theme.chatList.backgroundColor
-        self.listNode.backgroundColor = self.presentationData.theme.chatList.backgroundColor
+        self.scrollNode.addSubnode(self.toDateControl)
+        self.toDateControl.addSubnode(self.toDateTitle)
+        self.toDateControl.addSubnode(self.toDateValue)
+        self.toDateControl.addSubnode(self.toDateSeparator)
         
-        self.addSubnode(self.listNode)
-//        self.addSubnode(self.countPanelNode)
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
+        self.view.addGestureRecognizer(tapGesture)
+        
+        self.scrollNode.addSubnode(self.applyButton)
         
         self.presentationDataDisposable = (context.sharedContext.presentationData
-        |> deliverOnMainQueue).start(next: { [weak self] presentationData in
+                                           |> deliverOnMainQueue).start(next: { [weak self] presentationData in
             if let strongSelf = self {
                 let previousTheme = strongSelf.presentationData.theme
                 let previousStrings = strongSelf.presentationData.strings
@@ -127,410 +177,181 @@ final class EventsSearchControllerNode: ASDisplayNode {
     deinit {
         self.disposable?.dispose()
         self.presentationDataDisposable?.dispose()
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    override func didLoad() {
+        super.didLoad()
+        
+        self.applyButton.addTarget(self, action: #selector(self.applyButtonTapped), forControlEvents: .touchUpInside)
+        self.searchBarNode.textUpdated = { [weak self] query, _ in
+            self?.handleSearchQueryUpdate(query)
+        }
+        
+        self.fromDateControl.addTarget(self, action: #selector(self.fromDateTapped), forControlEvents: .touchUpInside)
+        self.toDateControl.addTarget(self, action: #selector(self.toDateTapped), forControlEvents: .touchUpInside)
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    @objc private func applyButtonTapped() {
+        print("Apply filter button tapped!")
+    }
+    
+    @objc private func fromDateTapped() {
+        print("From Date tapped! Should open date picker.")
+    }
+    
+    @objc private func toDateTapped() {
+        print("To Date tapped! Should open date picker.")
+    }
+    
+    private func handleSearchQueryUpdate(_ query: String) {
+        print("Search query updated: \(query)")
     }
     
     private func updateThemeAndStrings() {
         self.backgroundColor = self.presentationData.theme.chatList.backgroundColor
-        self.listNode.backgroundColor = self.presentationData.theme.chatList.backgroundColor
-        self.searchDisplayController?.updatePresentationData(self.presentationData)
+    }
+    
+    @objc private func dismissKeyboard() {
+        self.view.endEditing(true)
+    }
+    
+    @objc func keyboardWillShow(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue,
+              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber,
+              let curve = userInfo[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber else {
+            return
+        }
+
+        let keyboardHeight = keyboardFrame.cgRectValue.height
+
+        var currentInsets = self.scrollNode.view.contentInset
+        
+        currentInsets.bottom = keyboardHeight
+        
+        UIView.animate(withDuration: duration.doubleValue, delay: 0.0, options: UIView.AnimationOptions(rawValue: curve.uintValue << 16), animations: {
+            self.scrollNode.view.contentInset = currentInsets
+            self.scrollNode.view.scrollIndicatorInsets = currentInsets
+        }, completion: nil)
+    }
+    
+    @objc func keyboardWillHide(notification: NSNotification) {
+        guard let userInfo = notification.userInfo,
+              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber,
+              let curve = userInfo[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber else {
+            return
+        }
+
+        var currentInsets = self.scrollNode.view.contentInset
+        currentInsets.bottom = 0
+        
+        UIView.animate(withDuration: duration.doubleValue, delay: 0.0, options: UIView.AnimationOptions(rawValue: curve.uintValue << 16), animations: {
+            self.scrollNode.view.contentInset = currentInsets
+            self.scrollNode.view.scrollIndicatorInsets = currentInsets
+        }, completion: nil)
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
-        let hadValidLayout = self.validLayout != nil
-        self.validLayout = (layout, navigationBarHeight, actualNavigationBarHeight)
         
-        var insets = layout.insets(options: [.input])
-        insets.top += navigationBarHeight
+        let searchBarHeight: CGFloat = 56.0
+        let searchBarFrame = CGRect(origin: CGPoint(x: 0.0, y: navigationBarHeight), size: CGSize(width: layout.size.width, height: searchBarHeight))
+        self.searchBarNode.frame = searchBarFrame
+        self.searchBarNode.updateLayout(boundingSize: searchBarFrame.size, leftInset: 0.0, rightInset: 0.0, transition: transition)
         
-        if let searchDisplayController = self.searchDisplayController {
-            searchDisplayController.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: transition)
-        }
+        let topInset: CGFloat = navigationBarHeight + searchBarHeight
         
-        insets.left += layout.safeInsets.left
-        insets.right += layout.safeInsets.right
+        let sidePadding: CGFloat = 16.0
+        let sectionSpacing: CGFloat = 24.0
+        let itemSpacing: CGFloat = 12.0
+        let itemHeight: CGFloat = 48.0
         
-        var headerInsets = layout.insets(options: [.input])
-        headerInsets.top += actualNavigationBarHeight
+        self.scrollNode.frame = CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: layout.size.width, height: layout.size.height - topInset))
         
-//        let countPanelHeight = self.countPanelNode.updateLayout(width: layout.size.width, sideInset: layout.safeInsets.left, bottomInset: layout.intrinsicInsets.bottom, transition: transition)
-//        if self.selectionState.selectedContactIndices.isEmpty {
-//            transition.updateFrame(node: self.countPanelNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height), size: CGSize(width: layout.size.width, height: countPanelHeight)))
-//        } else {
-//            insets.bottom += countPanelHeight
-//            transition.updateFrame(node: self.countPanelNode, frame: CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - countPanelHeight), size: CGSize(width: layout.size.width, height: countPanelHeight)))
-//        }
+        var currentY: CGFloat = 20.0
         
-        self.listNode.bounds = CGRect(x: 0.0, y: 0.0, width: layout.size.width, height: layout.size.height)
-        self.listNode.position = CGPoint(x: layout.size.width / 2.0, y: layout.size.height / 2.0)
+        let filterBySize = self.filterByLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
+        self.filterByLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: filterBySize)
+        currentY += filterBySize.height + sectionSpacing
         
-        let (duration, curve) = listViewAnimationDurationAndCurve(transition: transition)
-        let updateSizeAndInsets = ListViewUpdateSizeAndInsets(size: layout.size, insets: insets, headerInsets: headerInsets, duration: duration, curve: curve)
+        let locationLabelSize = self.locationLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
+        self.locationLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: locationLabelSize)
+        currentY += locationLabelSize.height + itemSpacing
         
-        self.listNode.transaction(deleteIndices: [], insertIndicesAndItems: [], updateIndicesAndItems: [], options: [.Synchronous, .LowLatency], scrollToItem: nil, updateSizeAndInsets: updateSizeAndInsets, stationaryItemRange: nil, updateOpaqueState: nil, completion: { _ in })
+        self.locationTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        currentY += itemHeight + sectionSpacing
         
-        if let activityIndicator = self.activityIndicator {
-            let indicatorSize = activityIndicator.measure(CGSize(width: 100.0, height: 100.0))
-            transition.updateFrame(node: activityIndicator, frame: CGRect(origin: CGPoint(x: floor((layout.size.width - indicatorSize.width) / 2.0), y: updateSizeAndInsets.insets.top + 50.0 + floor((layout.size.height - updateSizeAndInsets.insets.top - updateSizeAndInsets.insets.bottom - indicatorSize.height - 50.0) / 2.0)), size: indicatorSize))
-        }
+        let eventTypeLabelSize = self.eventTypeLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
+        self.eventTypeLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: eventTypeLabelSize)
+        currentY += eventTypeLabelSize.height + itemSpacing
         
-        if !hadValidLayout {
-            self.dequeueTransitions()
-        }
-    }
-    
-    func activateSearch(placeholderNode: SearchBarPlaceholderNode) {
-        guard let (containerLayout, navigationBarHeight, _) = self.validLayout, let navigationBar = self.navigationBar, self.searchDisplayController == nil else {
-            return
-        }
+        self.eventTypeTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        currentY += itemHeight + sectionSpacing
         
-        self.searchDisplayController = SearchDisplayController(presentationData: self.presentationData, contentNode: ContactsSearchContainerNode(context: self.context, onlyWriteable: false, categories: [.deviceContacts], addContact: nil, openPeer: { [weak self] peer in
-            if let strongSelf = self, case let .deviceContact(id, _) = peer {
-                strongSelf.selectionState = strongSelf.selectionState.withSelectedContactId(id)
-                strongSelf.requestDeactivateSearch?()
-            }
-        }, openDisabledPeer: { _, _ in
-        }, contextAction: nil), cancel: { [weak self] in
-            if let requestDeactivateSearch = self?.requestDeactivateSearch {
-                requestDeactivateSearch()
-            }
-        })
+        let dateRangeLabelSize = self.dateRangeLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
+        self.dateRangeLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: dateRangeLabelSize)
+        currentY += dateRangeLabelSize.height + itemSpacing
         
-        self.searchDisplayController?.containerLayoutUpdated(containerLayout, navigationBarHeight: navigationBarHeight, transition: .immediate)
-        self.searchDisplayController?.activate(insertSubnode: { [weak self, weak placeholderNode] subnode, isSearchBar in
-            if let strongSelf = self, let strongPlaceholderNode = placeholderNode {
-                if isSearchBar {
-                    strongPlaceholderNode.supernode?.insertSubnode(subnode, aboveSubnode: strongPlaceholderNode)
-                } else {
-                    strongSelf.insertSubnode(subnode, belowSubnode: navigationBar)
-                }
-            }
-        }, placeholder: placeholderNode)
-    }
-    
-    func deactivateSearch(placeholderNode: SearchBarPlaceholderNode) {
-        if let searchDisplayController = self.searchDisplayController {
-            self.searchDisplayController = nil
-            searchDisplayController.deactivate(placeholder: placeholderNode)
-        }
-    }
-    
-    private func enqueueTransition(_ transition: InviteContactsTransition) {
-        self.queuedTransitions.append(transition)
+        let dateItemHeight: CGFloat = 44.0
+        let dateItemInnerPadding: CGFloat = 0
         
-        if self.validLayout != nil {
-            self.dequeueTransitions()
-        }
-    }
-    
-    private func dequeueTransitions() {
-        if self.validLayout != nil {
-            while !self.queuedTransitions.isEmpty {
-                let transition = self.queuedTransitions.removeFirst()
-                
-                var options = ListViewDeleteAndInsertOptions()
-                if transition.firstTime {
-                    options.insert(.Synchronous)
-                    options.insert(.LowLatency)
-                } else if transition.crossfade {
-                    options.insert(.AnimateCrossfade)
-                }
-                self.listNode.transaction(deleteIndices: transition.deletions, insertIndicesAndItems: transition.insertions, updateIndicesAndItems: transition.updates, options: options, updateOpaqueState: nil, completion: { [weak self] _ in
-                    if let strongSelf = self {
-                        strongSelf.readyValue = true
-                        
-                        if transition.isLoading, strongSelf.activityIndicator == nil {
-                            let activityIndicator = ActivityIndicator(type: .custom(strongSelf.presentationData.theme.list.itemAccentColor, 22.0, 1.0, false))
-                            strongSelf.activityIndicator = activityIndicator
-                            strongSelf.insertSubnode(activityIndicator, aboveSubnode: strongSelf.listNode)
-                            
-                            if let (layout, navigationHeight, actualNavigationBarHeight) = strongSelf.validLayout {
-                                strongSelf.containerLayoutUpdated(layout, navigationBarHeight: navigationHeight, actualNavigationBarHeight: actualNavigationBarHeight, transition: .immediate)
-                            }
-                        } else if !transition.isLoading, let activityIndicator = strongSelf.activityIndicator {
-                            strongSelf.activityIndicator = nil
-                            activityIndicator.removeFromSupernode()
-                        }
-                        
-                        let previous = strongSelf.currentSortedContacts.swap(transition.sortedContacts)
-                        if previous == nil && transition.sortedContacts != nil {
-                            strongSelf.loadedContacts?()
-                        }
-                    }
-                })
-            }
-        }
-    }
-    
-    func selectAll() {
-        let ids = self.currentSortedContacts.with { $0 }?.map { $0.0 } ?? []
-        var allSelected = true
-        for id in ids {
-            if self.selectionState.selectedContactIndices[id] == nil {
-                allSelected = false
-                break
-            }
-        }
-        self.selectionState = self.selectionState.withReplacedSelectedContactIds(allSelected ? [] : ids)
+        self.fromDateControl.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: dateItemHeight))
+        
+        let fromTitleSize = self.fromDateTitle.measure(CGSize(width: layout.size.width / 2.0, height: dateItemHeight))
+        self.fromDateTitle.frame = CGRect(origin: CGPoint(x: dateItemInnerPadding, y: (dateItemHeight - fromTitleSize.height) / 2.0), size: fromTitleSize)
+        
+        let fromValueSize = self.fromDateValue.measure(CGSize(width: layout.size.width - fromTitleSize.width - dateItemInnerPadding * 3, height: dateItemHeight))
+        self.fromDateValue.frame = CGRect(origin: CGPoint(x: self.fromDateControl.frame.width - fromValueSize.width - dateItemInnerPadding, y: (dateItemHeight - fromValueSize.height) / 2.0), size: fromValueSize)
+        
+        self.fromDateSeparator.frame = CGRect(origin: CGPoint(x: dateItemInnerPadding, y: dateItemHeight - UIScreenPixel), size: CGSize(width: self.fromDateControl.frame.width - dateItemInnerPadding, height: UIScreenPixel))
+        
+        self.fromDateControl.clipsToBounds = true
+        
+        currentY += dateItemHeight
+        
+        self.toDateControl.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: dateItemHeight))
+        
+        let toTitleSize = self.toDateTitle.measure(CGSize(width: layout.size.width / 2.0, height: dateItemHeight))
+        self.toDateTitle.frame = CGRect(origin: CGPoint(x: dateItemInnerPadding, y: (dateItemHeight - toTitleSize.height) / 2.0), size: toTitleSize)
+        
+        let toValueSize = self.toDateValue.measure(CGSize(width: layout.size.width - toTitleSize.width - dateItemInnerPadding * 3, height: dateItemHeight))
+        self.toDateValue.frame = CGRect(origin: CGPoint(x: self.toDateControl.frame.width - toValueSize.width - dateItemInnerPadding, y: (dateItemHeight - toValueSize.height) / 2.0), size: toValueSize)
+        
+        self.toDateSeparator.frame = CGRect(origin: CGPoint(x: dateItemInnerPadding, y: dateItemHeight - UIScreenPixel), size: CGSize(width: self.toDateControl.frame.width - dateItemInnerPadding, height: UIScreenPixel))
+        
+        self.toDateControl.clipsToBounds = true
+        
+        currentY += dateItemHeight + sectionSpacing
+        
+        let buttonWidth = layout.size.width - sidePadding * 2
+        let buttonHeight: CGFloat = 50.0
+        self.applyButton.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: buttonWidth, height: buttonHeight))
+        
+        currentY += buttonHeight + sectionSpacing
+        
+        self.scrollNode.view.contentSize = CGSize(width: layout.size.width, height: currentY)
+        
+        self.readyValue = true
     }
 }
 
-final class InviteContactsCountPanelNode: ASDisplayNode {
-    private let theme: PresentationTheme
-    private let strings: PresentationStrings
-    
-    private let separatorNode: ASDisplayNode
-    private let button: SolidRoundedButtonNode
-    
-    private var validLayout: (CGFloat, CGFloat, CGFloat)?
-    
-    var count: Int = 0 {
-        didSet {
-            if self.count != oldValue && self.count > 0 {
-                self.button.title = self.strings.Contacts_InviteContacts(Int32(self.count))
-                
-                if let (width, sideInset, bottomInset) = self.validLayout {
-                    let _ = self.updateLayout(width: width, sideInset: sideInset, bottomInset: bottomInset, transition: .immediate)
-                }
-            }
-        }
-    }
-    
-    init(theme: PresentationTheme, strings: PresentationStrings, action: @escaping () -> Void) {
-        self.theme = theme
-        self.strings = strings
-
-        self.separatorNode = ASDisplayNode()
-        self.separatorNode.backgroundColor = theme.rootController.navigationBar.separatorColor
-        
-        self.button = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(theme: theme), height: 48.0, cornerRadius: 10.0)
-        
-        super.init()
-        
-        self.backgroundColor = theme.rootController.navigationBar.opaqueBackgroundColor
-        
-        self.addSubnode(self.button)
-        self.addSubnode(self.separatorNode)
-        
-        self.button.pressed = {
-            action()
-        }
-    }
-    
-    func updateLayout(width: CGFloat, sideInset: CGFloat, bottomInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGFloat {
-        self.validLayout = (width, sideInset, bottomInset)
-        let topInset: CGFloat = 9.0
-        var bottomInset = bottomInset
-        bottomInset += topInset - (bottomInset.isZero ? 0.0 : 4.0)
-        
-        let buttonInset: CGFloat = 16.0 + sideInset
-        let buttonWidth = width - buttonInset * 2.0
-        let buttonHeight = self.button.updateLayout(width: buttonWidth, transition: transition)
-        transition.updateFrame(node: self.button, frame: CGRect(x: buttonInset, y: topInset, width: buttonWidth, height: buttonHeight))
-        
-        transition.updateFrame(node: self.separatorNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: width, height: UIScreenPixel)))
-        
-        return topInset + buttonHeight + bottomInset
-    }
-}
-
-struct InviteContactsGroupSelectionState: Equatable {
-    let selectedContactIndices: [String: Int]
-    let nextSelectionIndex: Int
-    
-    private init(selectedContactIndices: [String: Int], nextSelectionIndex: Int) {
-        self.selectedContactIndices = selectedContactIndices
-        self.nextSelectionIndex = nextSelectionIndex
-    }
-    
-    init() {
-        self.selectedContactIndices = [:]
-        self.nextSelectionIndex = 0
-    }
-    
-    func withReplacedSelectedContactIds(_ contactIds: [String]) -> InviteContactsGroupSelectionState {
-        var selectedContactIndices: [String: Int] = [:]
-        var nextSelectionIndex: Int = self.nextSelectionIndex
-        for contactId in contactIds {
-            selectedContactIndices[contactId] = nextSelectionIndex
-            nextSelectionIndex += 1
-        }
-        return InviteContactsGroupSelectionState(selectedContactIndices: selectedContactIndices, nextSelectionIndex: nextSelectionIndex)
-    }
-    
-    func withToggledContactId(_ contactId: String) -> InviteContactsGroupSelectionState {
-        var updatedIndices = self.selectedContactIndices
-        if let _ = updatedIndices[contactId] {
-            updatedIndices.removeValue(forKey: contactId)
-            return InviteContactsGroupSelectionState(selectedContactIndices: updatedIndices, nextSelectionIndex: self.nextSelectionIndex)
-        } else {
-            updatedIndices[contactId] = self.nextSelectionIndex
-            return InviteContactsGroupSelectionState(selectedContactIndices: updatedIndices, nextSelectionIndex: self.nextSelectionIndex + 1)
-        }
-    }
-    
-    func withSelectedContactId(_ contactId: String) -> InviteContactsGroupSelectionState {
-        var updatedIndices = self.selectedContactIndices
-        if let _ = updatedIndices[contactId] {
-            return self
-        } else {
-            updatedIndices[contactId] = self.nextSelectionIndex
-            return InviteContactsGroupSelectionState(selectedContactIndices: updatedIndices, nextSelectionIndex: self.nextSelectionIndex + 1)
-        }
-    }
-    
-    func withClearedSelection() -> InviteContactsGroupSelectionState {
-        return InviteContactsGroupSelectionState(selectedContactIndices: [:], nextSelectionIndex: self.nextSelectionIndex)
-    }
-    
-    static func ==(lhs: InviteContactsGroupSelectionState, rhs: InviteContactsGroupSelectionState) -> Bool {
-        return lhs.selectedContactIndices == rhs.selectedContactIndices && lhs.nextSelectionIndex == rhs.nextSelectionIndex
-    }
-}
-private enum InviteContactsEntryId: Hashable {
-    case option(index: Int)
-    case contactId(String)
-}
-
-private final class InviteContactsInteraction {
-    let toggleContact: (String) -> Void
-    let shareTelegram: () -> Void
-    
-    init(toggleContact: @escaping (String) -> Void, shareTelegram: @escaping () -> Void) {
-        self.toggleContact = toggleContact
-        self.shareTelegram = shareTelegram
-    }
-}
-
-private enum InviteContactsEntry: Comparable, Identifiable {
-    case option(Int, ContactListAdditionalOption, PresentationTheme, PresentationStrings)
-    case peer(Int, DeviceContactStableId, DeviceContactBasicData, Int32, ContactsPeerItemSelection, PresentationTheme, PresentationStrings, PresentationPersonNameOrder, PresentationPersonNameOrder)
-    
-    var stableId: InviteContactsEntryId {
-        switch self {
-            case let .option(index, _, _, _):
-                return .option(index: index)
-            case let .peer(_, id, _, _, _, _, _, _, _):
-                return .contactId(id)
-        }
-    }
-    
-    func item(context: AccountContext, presentationData: PresentationData, interaction: InviteContactsInteraction) -> ListViewItem {
-        switch self {
-            case let .option(_, option, _, _):
-                return ContactListActionItem(presentationData: ItemListPresentationData(presentationData), title: option.title, icon: option.icon, header: nil, action: option.action)
-            case let .peer(_, id, contact, count, selection, theme, strings, nameSortOrder, nameDisplayOrder):
-                let status: ContactsPeerItemStatus
-                if count != 0 {
-                    status = .custom(string: NSAttributedString(string: strings.Contacts_ImportersCount(count)), multiline: false, isActive: false, icon: nil)
-                } else {
-                    status = .none
-                }
-                let peer: EnginePeer = .user(TelegramUser(id: EnginePeer.Id(namespace: .max, id: EnginePeer.Id.Id._internalFromInt64Value(0)), accessHash: nil, firstName: contact.firstName, lastName: contact.lastName, username: nil, phone: nil, photo: [], botInfo: nil, restrictionInfo: nil, flags: [], emojiStatus: nil, usernames: [], storiesHidden: nil, nameColor: nil, backgroundEmojiId: nil, profileColor: nil, profileBackgroundEmojiId: nil, subscriberCount: nil, verificationIconFileId: nil))
-                return ContactsPeerItem(presentationData: ItemListPresentationData(presentationData), sortOrder: nameSortOrder, displayOrder: nameDisplayOrder, context: context, peerMode: .peer, peer: .peer(peer: peer, chatPeer: peer), status: status, enabled: true, selection: selection, editing: ContactsPeerItemEditing(editable: false, editing: false, revealed: false), index: nil, header: ChatListSearchItemHeader(type: .contacts, theme: theme, strings: strings, actionTitle: nil, action: nil), action: { _ in
-                    interaction.toggleContact(id)
-                })
-        }
-    }
-    
-    static func ==(lhs: InviteContactsEntry, rhs: InviteContactsEntry) -> Bool {
-        switch lhs {
-            case let .option(lhsIndex, lhsOption, lhsTheme, lhsStrings):
-                if case let .option(rhsIndex, rhsOption, rhsTheme, rhsStrings) = rhs, lhsIndex == rhsIndex, lhsOption == rhsOption, lhsTheme === rhsTheme, lhsStrings === rhsStrings {
-                    return true
-                } else {
-                    return false
-                }
-            case let .peer(lhsIndex, lhsId, lhsContact, lhsCount, lhsSelection, lhsTheme, lhsStrings, lhsSortOrder, lhsDisplayOrder):
-                switch rhs {
-                    case let .peer(rhsIndex, rhsId, rhsContact, rhsCount, rhsSelection, rhsTheme, rhsStrings, rhsSortOrder, rhsDisplayOrder):
-                        if lhsIndex != rhsIndex {
-                            return false
-                        }
-                        if lhsId != rhsId {
-                            return false
-                        }
-                        if lhsContact != rhsContact {
-                            return false
-                        }
-                        if lhsCount != rhsCount {
-                            return false
-                        }
-                        if lhsSelection != rhsSelection {
-                            return false
-                        }
-                        if lhsTheme !== rhsTheme {
-                            return false
-                        }
-                        if lhsStrings !== rhsStrings {
-                            return false
-                        }
-                        if lhsSortOrder != rhsSortOrder {
-                            return false
-                        }
-                        if lhsDisplayOrder != rhsDisplayOrder {
-                            return false
-                        }
-                        return true
-                    default:
-                        return false
-            }
-        }
-    }
-    
-    static func <(lhs: InviteContactsEntry, rhs: InviteContactsEntry) -> Bool {
-        switch lhs {
-            case let .option(lhsIndex, _, _, _):
-                switch rhs {
-                    case let .option(rhsIndex, _, _, _):
-                        return lhsIndex < rhsIndex
-                    case .peer:
-                        return true
-                }
-            case let .peer(lhsIndex, _, _, _, _, _, _, _, _):
-                switch rhs {
-                    case .option:
-                        return false
-                    case let .peer(rhsIndex, _, _, _, _, _, _, _, _):
-                        return lhsIndex < rhsIndex
-                }
-        }
-    }
-}
-
-private func inviteContactsEntries(accountPeer: EnginePeer?, sortedContacts: [(DeviceContactStableId, DeviceContactBasicData, Int32)]?, selectionState: InviteContactsGroupSelectionState, theme: PresentationTheme, strings: PresentationStrings, nameSortOrder: PresentationPersonNameOrder, nameDisplayOrder: PresentationPersonNameOrder) -> [InviteContactsEntry] {
-    var entries: [InviteContactsEntry] = []
-        
-//    entries.append(.option(0, ContactListAdditionalOption(title: strings.Contacts_ShareTelegram, icon: .generic(UIImage(bundleImageName: "Contact List/HeartActionIcon")!), action: {
-//        interaction.shareTelegram()
-//    }), theme, strings))
-//    
-    var index = 0
-    if let sortedContacts = sortedContacts {
-        for (id, contact, count) in sortedContacts {
-            entries.append(.peer(index, id, contact, count, .selectable(selected: selectionState.selectedContactIndices[id] != nil), theme, strings, nameSortOrder, nameDisplayOrder))
-            index += 1
-        }
-    }
-    
-    return entries
-}
-
-private func preparedInviteContactsTransition(context: AccountContext, presentationData: PresentationData, from fromEntries: [InviteContactsEntry], to toEntries: [InviteContactsEntry], sortedContacts: [(DeviceContactStableId, DeviceContactBasicData, Int32)]?, interaction: InviteContactsInteraction, isLoading: Bool, firstTime: Bool, crossfade: Bool) -> InviteContactsTransition {
-    let (deleteIndices, indicesAndItems, updateIndices) = mergeListsStableWithUpdates(leftList: fromEntries, rightList: toEntries)
-    
-    let deletions = deleteIndices.map { ListViewDeleteItem(index: $0, directionHint: nil) }
-    let insertions = indicesAndItems.map { ListViewInsertItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(context: context, presentationData: presentationData, interaction: interaction), directionHint: nil) }
-    let updates = updateIndices.map { ListViewUpdateItem(index: $0.0, previousIndex: $0.2, item: $0.1.item(context: context, presentationData: presentationData, interaction: interaction), directionHint: nil) }
-    
-    return InviteContactsTransition(deletions: deletions, insertions: insertions, updates: updates, sortedContacts: sortedContacts, isLoading: isLoading, firstTime: firstTime, crossfade: crossfade)
-}
-
-private struct InviteContactsTransition {
-    let deletions: [ListViewDeleteItem]
-    let insertions: [ListViewInsertItem]
-    let updates: [ListViewUpdateItem]
-    let sortedContacts: [(DeviceContactStableId, DeviceContactBasicData, Int32)]?
-    let isLoading: Bool
-    let firstTime: Bool
-    let crossfade: Bool
+private func getTextFiel(title: String) -> TextFieldNode {
+    let field = TextFieldNode()
+    field.textField.font = Font.regular(16.0)
+    field.textField.textColor = UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6)
+    field.textField.textAlignment = .natural
+    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6))
+    field.textField.autocapitalizationType = .none
+    field.textField.autocorrectionType = .no
+    //    field.textField.keyboardType = .URL
+    field.borderWidth = 1.0
+    field.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
+    field.cornerRadius = 11.0
+    field.clipsToBounds = true
+    field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+    field.backgroundColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00)
+    return field
 }
