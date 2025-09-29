@@ -14,7 +14,7 @@ import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
 
-final class EventsSearchControllerNode: ASDisplayNode {
+final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
     
     private let context: AccountContext
     private let searchBarNode: SearchBarNode
@@ -60,6 +60,11 @@ final class EventsSearchControllerNode: ASDisplayNode {
     private let toDateSeparator: ASControlNode
     
     private let applyButton: ASControlNode
+    
+    var selectCountryCode: (() -> Void)?
+    var scheduleTimeController: (() -> Void)?
+    private var countryId: String = ""
+    private var lastActiveDate: ASTextNode? = nil
     
     init(context: AccountContext) {
         self.context = context
@@ -134,6 +139,8 @@ final class EventsSearchControllerNode: ASDisplayNode {
         
         super.init()
         
+        self.locationTextField.textField.delegate = self
+        
         self.backgroundColor = .white
         self.addSubnode(self.searchBarNode)
         self.addSubnode(self.scrollNode)
@@ -154,7 +161,8 @@ final class EventsSearchControllerNode: ASDisplayNode {
         self.toDateControl.addSubnode(self.toDateSeparator)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
-        self.view.addGestureRecognizer(tapGesture)
+        tapGesture.cancelsTouchesInView = false
+        self.scrollNode.view.addGestureRecognizer(tapGesture)
         
         self.scrollNode.addSubnode(self.applyButton)
         
@@ -195,16 +203,51 @@ final class EventsSearchControllerNode: ASDisplayNode {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        if textField == locationTextField.textField {
+            selectCountryCode?()
+            return false
+        }
+        return true
+    }
+    
+    func updateCountry(countryId: String, countryName: String) {
+        locationTextField.textField.text = countryName
+        self.countryId = countryId
+    }
+    
     @objc private func applyButtonTapped() {
         print("Apply filter button tapped!")
     }
     
     @objc private func fromDateTapped() {
-        print("From Date tapped! Should open date picker.")
+        scheduleTimeController?()
+        lastActiveDate = fromDateValue
     }
     
     @objc private func toDateTapped() {
-        print("To Date tapped! Should open date picker.")
+        scheduleTimeController?()
+        lastActiveDate = toDateValue
+    }
+    
+    func updateTime(_ timestamp: Int32) {
+        
+        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.dateFormat = "d MMM yyyy"
+        let dateString = dateFormatter.string(from: date)
+        
+        
+        let today = Date()
+        let calendar = Calendar.current
+        let prefix = calendar.isDate(date, inSameDayAs: today) ? "Today " : ""
+        
+        if lastActiveDate == fromDateValue {
+            fromDateValue.attributedText = NSAttributedString(string: prefix + dateString, font: Font.regular(17), textColor: .black)
+        } else {
+            toDateValue.attributedText = NSAttributedString(string: dateString, font: Font.regular(17), textColor: .black)
+        }
     }
     
     private func handleSearchQueryUpdate(_ query: String) {

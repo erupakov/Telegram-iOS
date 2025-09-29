@@ -11,21 +11,20 @@ import ShareController
 import AlertUI
 import PresentationDataUtils
 import SearchUI
+import LegacyMediaPickerUI
 import CountrySelectionUI
 import ChatScheduleTimeController
 import Postbox
 
-public class EventsSearchController: ViewController, UINavigationControllerDelegate {
+public class CreateEventController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
     
-    private var contactsNode: EventsSearchControllerNode {
-        return self.displayNode as! EventsSearchControllerNode
+    private var createEventNode: CreateEventNode {
+        return self.displayNode as! CreateEventNode
     }
     
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
-    
-    private var searchContentNode: NavigationBarSearchContentNode?
     
     public init(context: AccountContext) {
         self.context = context
@@ -51,7 +50,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
         
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         
-        self.title = ""
+        self.title = "Create event"
         
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
         
@@ -68,12 +67,6 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
                 }
             }
         }).strict()
-        
-        self.searchContentNode = NavigationBarSearchContentNode(theme: self.presentationData.theme, placeholder: self.presentationData.strings.Common_Search, activate: {
-            //            self?.activateSearch()
-        })
-//        self.searchContentNode?.setIsEnabled(false)
-//        self.navigationBar?.setContentNode(self.searchContentNode, animated: false)
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -88,23 +81,37 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData))
         
-        self.searchContentNode?.updateThemeAndPlaceholder(theme: self.presentationData.theme, placeholder: self.presentationData.strings.Common_Search)
-        
-        self.title = ""
+        self.title = "Create event"
         
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = EventsSearchControllerNode(context: self.context)
+        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
+        let theme = self.presentationData.theme
         
-        self.contactsNode.selectCountryCode = { [weak self] in
+        self.displayNode = CreateEventNode(context: self.context, addPhoto: { [weak self] in
+            presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
+                self?.view.endEditing(true)
+                self?.present(c, in: .window(.root), with: a)
+            }, openCurrent: nil, completion: { image in
+                self?.createEventNode.currentPhoto = image
+//                self?.avatarAsset = nil
+//                self?.avatarAdjustments = nil
+            }, videoCompletion: { image, asset, adjustments in
+                self?.createEventNode.currentPhoto = image
+//                self?.avatarAsset = asset
+//                self?.avatarAdjustments = adjustments
+            })
+        })
+        
+        self.createEventNode.selectCountryCode = { [weak self] in
             if let strongSelf = self {
                 let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, displayCodes: false)
                 controller.completeWithCountryCode = { _, countryId, name in
                     
                     if let strongSelf = self {
-                        strongSelf.contactsNode.updateCountry(countryId: countryId, countryName: name)
+                        strongSelf.createEventNode.updateCountry(countryId: countryId, countryName: name)
                     }
                 }
                 controller.dismissed = {
@@ -114,10 +121,9 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
             }
         }
         
-        self.contactsNode.scheduleTimeController = { [weak self] in
+        self.createEventNode.scheduleTimeController = { [weak self] in
             self?.scheduleTimeController()
         }
-        
         self.displayNodeDidLoad()
     }
     
@@ -132,11 +138,10 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
             currentTime: nil,
             minimalTime: nil,
             completion: { [weak self] time in
-                self?.contactsNode.updateTime(time)
+                self?.createEventNode.updateTime(time)
             })
         present(controller, in: .window(.root))
     }
-    
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
     }
@@ -148,7 +153,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         
-        self.contactsNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        self.createEventNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
     
 }

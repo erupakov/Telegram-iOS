@@ -95,6 +95,12 @@ public final class EventsController: TelegramBaseController {
     }
 
     @objc private func addPressed() {
+        let controller = CreateEventController(context: context)
+        
+        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
+            navigationController.pushViewController(controller)
+        }
+        
         print("Add button pressed")
     }
     
