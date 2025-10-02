@@ -14021,3 +14021,4 @@ Sorry for the inconvenience.";
 "Stars.AccountRevenue.Withdraw.Info" = "You can collect rewards for Stars using Fragment. You cannot withdraw less than 1000 stars. [Learn More >]()";
 
 "Events.TabTitle" = "Events";
+"ModelsFeed.TabTitle" = "Models";
