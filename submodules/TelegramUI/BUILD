@@ -158,6 +158,7 @@ swift_library(
         "//submodules/SolidRoundedButtonNode:SolidRoundedButtonNode",
         "//submodules/PasscodeUI:PasscodeUI",
         "//submodules/CallListUI:CallListUI",
+        "//submodules/EventsUI:EventsUI",
         "//submodules/ChatListUI:ChatListUI",
         "//submodules/ChatTitleActivityNode:ChatTitleActivityNode",
         "//submodules/DeleteChatPeerActionSheetItem:DeleteChatPeerActionSheetItem",

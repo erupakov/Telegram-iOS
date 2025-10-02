@@ -9,6 +9,7 @@ import TelegramPresentationData
 import AccountContext
 import ContactListUI
 import CallListUI
+import EventsUI
 import ChatListUI
 import SettingsUI
 import AppBundle
