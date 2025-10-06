@@ -18,15 +18,15 @@ public final class ProfileScreenController: TelegramBaseController {
     
     private var customBackSwipeGestureRecognizer: UIScreenEdgePanGestureRecognizer?
     
-    private let eventData: String
+    private let model: ProfileModel
     private let context: AccountContext
     private var presentationData: PresentationData
     
     private var navigationBarIsTransparent = true
 
-    public init(context: AccountContext, eventData: String) {
+    public init(context: AccountContext, model: ProfileModel) {
         self.context = context
-        self.eventData = eventData
+        self.model = model
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
         let darkNavigationTheme = NavigationBarTheme(
@@ -54,44 +54,6 @@ public final class ProfileScreenController: TelegramBaseController {
     
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
-        
-//        self.navigationController?.navigationBar.tintColor = .white
-        
-        let likeLabel = UILabel()
-        likeLabel.text = "1K"
-        likeLabel.textColor = .white
-        likeLabel.font = .systemFont(ofSize: 17, weight: .bold)
-        
-        let likeImageView = UIImageView(image: UIImage(bundleImageName: "Contact List/HeartActionIcon")!)
-        likeImageView.tintColor = .white
-        
-        let customLikeView = UIView(frame: CGRect(x: 0, y: 0, width: 60, height: 30))
-        customLikeView.addSubview(likeImageView)
-        customLikeView.addSubview(likeLabel)
-        
-        likeImageView.translatesAutoresizingMaskIntoConstraints = false
-        likeLabel.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            likeImageView.leadingAnchor.constraint(equalTo: customLikeView.leadingAnchor, constant: 0),
-            likeImageView.centerYAnchor.constraint(equalTo: customLikeView.centerYAnchor),
-            likeImageView.widthAnchor.constraint(equalToConstant: 25),
-            likeImageView.heightAnchor.constraint(equalToConstant: 25),
-            
-            likeLabel.leadingAnchor.constraint(equalTo: likeImageView.trailingAnchor, constant: 5),
-            likeLabel.centerYAnchor.constraint(equalTo: customLikeView.centerYAnchor)
-        ])
-        
-        let likeButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Contact List/HeartActionIcon"), color: .white)
-        let shareButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/MessageSelectionAction"), color: .white)
-        let bookmarkButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Instant View/Bookmark"), color: .white)
-        
-        let likeButton = UIBarButtonItem(image: likeButtonImg, style: .plain, target: self, action: #selector(self.likePressed))
-        
-        let shareButton = UIBarButtonItem(image: shareButtonImg, style: .plain, target: self, action: #selector(self.sharePressed))
-        let bookmarkButton =  UIBarButtonItem(image: bookmarkButtonImg, style: .plain, target: self, action: #selector(self.bookmarkPressed))
-        
-//        self.navigationItem.leftBarButtonItem = backButton
-        self.navigationItem.rightBarButtonItems = [likeButton, shareButton, bookmarkButton]
     }
     
     @objc private func backPressed() {
@@ -111,7 +73,8 @@ public final class ProfileScreenController: TelegramBaseController {
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = ProfileScreenNode(context: self.context, eventData: self.eventData, presentationData: self.presentationData)
+        self.displayNode = ProfileScreenNode(controller: self, context: self.context, presentationData: self.presentationData, model: model)
+        
         self.displayNodeDidLoad()
     }
     

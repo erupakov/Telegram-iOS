@@ -99,7 +99,21 @@ public final class ModelsFeedController: TelegramBaseController {
     }
     
     private func showProfile(_ model: CardModel) {
-        let detailController = ProfileScreenController(context: context, eventData: "selectedEvent")
+        let dummyModel = ProfileModel(
+            name: model.name,
+            age: 22,
+            location: "New York",
+            mainImageName: model.mainImageName,
+            avatarImageName: model.avatarImageName,
+            isVerified: true,
+            likesCount: "1K",
+            viewsCount: "285",
+            savesCount: "765",
+            biography: "France's Top Model, World's Best Model 2024 Winner. France's Top Model France's Top Model France's Top Model France's Top Model France's Top Model France's Top Model, World's Best Model 2024 Winner. France's Top Model France's Top Model France's Top Model France's Top Model France's Top Model",
+            socialMediaHandles: ["_britney_ny", "_britney_ny", "britney_ny", "Website"],
+            galleryImageNames: model.previewImagesName + model.previewImagesName
+        )
+        let detailController = ProfileScreenController(context: context, model: dummyModel)
         
         navigationController?.pushViewController(detailController, animated: true)
     }

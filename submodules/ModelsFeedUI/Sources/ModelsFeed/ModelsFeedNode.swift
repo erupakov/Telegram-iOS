@@ -41,6 +41,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             avatarImageName: "Models/image7",
             previewImagesName: ["Models/image4", "Models/image2", "Models/image3"]),
         CardModel(name: "Helen Stone", mainImageName: "Models/image6", avatarImageName: "Models/image7", previewImagesName: []),
+        CardModel(name: "la model management", mainImageName: "Models/image8", avatarImageName: "Models/image7", previewImagesName: ["Models/image4", "Models/image2", "Models/image3"]),
     ]
     
     private let tabsView: UIView = {
