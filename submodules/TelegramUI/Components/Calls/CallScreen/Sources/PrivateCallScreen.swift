@@ -923,7 +923,7 @@ public final class PrivateCallScreen: OverlayMaskContainerView, AVPictureInPictu
         transition.setFrame(view: self.backButtonView, frame: backButtonFrame)
         genericAlphaTransition.setAlpha(view: self.backButtonView, alpha: (currentAreControlsHidden || self.isAnimatedOutToGroupCall) ? 0.0 : 1.0)
         
-        var isConferencePossible = false
+        var isConferencePossible = true
         if case .active = params.state.lifecycleState, params.state.isConferencePossible {
             isConferencePossible = true
         }
