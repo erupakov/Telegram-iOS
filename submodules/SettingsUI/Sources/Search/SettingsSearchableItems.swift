@@ -1064,7 +1064,7 @@ func settingsSearchableItems(context: AccountContext, notificationExceptionsList
         })
         allItems.append(getCountries)
         
-        let getEvents = SettingsSearchableItem(id: .support(0), title: "getEvents", alternate: ["getEvents"], icon: .support, breadcrumbs: [], present: { context, _, present in
+        let getEvents = SettingsSearchableItem(id: .support(1), title: "getEvents", alternate: ["getEvents"], icon: .support, breadcrumbs: [], present: { context, _, present in
             let _ = (context.engine.peers.supportEvents()
             |> deliverOnMainQueue).start(next: { _ in
             })
@@ -1072,7 +1072,7 @@ func settingsSearchableItems(context: AccountContext, notificationExceptionsList
         allItems.append(getEvents)
         
         
-        let eventTypes = SettingsSearchableItem(id: .support(0), title: "EventTypes", alternate: ["getEvents"], icon: .support, breadcrumbs: [], present: { context, _, present in
+        let eventTypes = SettingsSearchableItem(id: .support(2), title: "EventTypes", alternate: ["getEvents"], icon: .support, breadcrumbs: [], present: { context, _, present in
             let _ = (context.engine.peers.supportGetEventTypes()
             |> deliverOnMainQueue).start(next: { _ in
             })
