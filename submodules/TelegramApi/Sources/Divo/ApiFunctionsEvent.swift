@@ -224,7 +224,7 @@ public extension Api.functions.event {
         })
     }
 }
-public extension Api.functions.event {
+public extension Api.functions.event {//
     static func getEvents(userId: Int64, filter: Api.event.Filter, offset: Int32, limit: Int32) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.event.Events>) {
         let buffer = Buffer()
         buffer.appendInt32(200595927)
