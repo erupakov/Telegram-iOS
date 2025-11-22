@@ -807,7 +807,7 @@
                         rpcResult = request.responseParser(unwrappedData);
                         if (rpcResult == nil)
                         {
-                            rpcError = [[MTRpcError alloc] initWithErrorCode:500 errorDescription:@"TL_PARSING_ERROR"];
+                            rpcError = [[MTRpcError alloc] initWithErrorCode:444 errorDescription:@"🚫TL_PARSING_ERROR"];
                             [_context performBatchUpdates:^{
                                 MTDatacenterAuthInfo *authInfo = [_context authInfoForDatacenterWithId:mtProto.datacenterId selector:authInfoSelector];
                                 
