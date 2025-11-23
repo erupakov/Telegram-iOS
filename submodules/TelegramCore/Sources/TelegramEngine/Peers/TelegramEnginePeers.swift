@@ -223,7 +223,7 @@ public extension TelegramEngine {
         }
         
         public func supportGetEventTypes() -> Signal<PeerId?, NoError> {
-            return _internal_getEventTypes(account: self.account)
+            return _internal_getEvent(account: self.account)
         }
         
         public func inactiveChannelList() -> Signal<[InactiveChannel], NoError> {

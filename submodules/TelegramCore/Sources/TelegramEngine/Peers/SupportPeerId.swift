@@ -34,6 +34,22 @@ func _internal_getEventTypes(account: Account) -> Signal<PeerId?, NoError> {
     }
 }
 
+func _internal_getEvent(account: Account) -> Signal<PeerId?, NoError> {
+    print("⛳️", "get one getEvent")
+    
+    return account.network.request(Api.functions.event.getEvent(userId: 0, eventId: 3))
+    |> map(Optional.init)
+    |> `catch` { _ in
+        return Signal<Api.event.Event?, NoError>.single(nil)
+    }
+    |> mapToSignal { support -> Signal<PeerId?, NoError> in
+        if let getEvent = support {
+            print("👌 get one getEvent: ", getEvent)
+        }
+        return .single(nil)
+    }
+}
+
 
 func _internal_getEvents(account: Account) -> Signal<PeerId?, NoError> {
 //    let accountPeerId = account.peerId
