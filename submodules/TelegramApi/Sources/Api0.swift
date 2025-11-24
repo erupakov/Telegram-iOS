@@ -21,7 +21,6 @@ public enum Api {
     public enum updates {}
     public enum upload {}
     public enum users {}
-    
     //MARK: - NEW Divo -
     public enum event {}
     
@@ -48,7 +47,6 @@ public enum Api {
         public enum updates {}
         public enum upload {}
         public enum users {}
-        
         //MARK: - NEW Divo -
         public enum event {}
     }
@@ -1469,28 +1467,27 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[828000628] = { return Api.users.Users.parse_usersSlice($0) }
     dict[1974795807] = { return Api.ModelInfo.parse_modelInfo($0) }
     dict[1187678708] = { return Api.auth.Authorization.parse_signUp($0) }
-    
     //MARK: - NEW Divo -
 //    dict[593489812] = { return Api.Update.parse_update($0) }
 //    dict[553287311] = { return Api.Update.parse_updateApplicationApproved($0) }
 //    dict[706653339] = { return Api.Update.parse_updateApplicationRejected($0) }
-//    dict[945009897] = { return Api.Update.parse_updateEventLiked($0) }
-//    dict[1859473757] = { return Api.Update.parse_updateNewApplicant($0) }
+//    dict[88932760] = { return Api.Update.parse_updateEventLiked($0) }
+//    dict[925133019] = { return Api.Update.parse_updateNewApplicant($0) }
     dict[-1217837952] = { return Api.event.AvailableParameter.parse_availableParameter($0) }
     dict[774760486] = { return Api.event.City.parse_city($0) }
     dict[1618197693] = { return Api.event.Country.parse_country($0) }
     dict[-2081385980] = { return Api.event.Error.parse_error($0) }
-    dict[765330776] = { return Api.event.Event.parse_event($0) }
+    dict[710088095] = { return Api.event.Event.parse_event($0) }
     dict[1872847863] = { return Api.event.EventParameter.parse_eventParameter($0) }
     dict[405950179] = { return Api.event.EventType.parse_eventType($0) }
-    dict[-139189710] = { return Api.event.Events.parse_events($0) }
-    dict[-1526113586] = { return Api.event.Filter.parse_filter($0) }
-    dict[1261068553] = { return Api.event.Location.parse_location($0) }
-    dict[887140881] = { return Api.event.MemberTypeFilter.parse_memberTypeFilter($0) }
-    dict[1028523612] = { return Api.event.Members.parse_members($0) }
+    dict[-2018520751] = { return Api.event.Events.parse_events($0) }
+    dict[17917205] = { return Api.event.Filter.parse_filter($0) }
+    dict[-1713480390] = { return Api.event.Location.parse_location($0) }
+    dict[1698376519] = { return Api.event.MemberTypeFilter.parse_memberTypeFilter($0) }
+    dict[1540388111] = { return Api.event.Members.parse_members($0) }
     dict[-1200681466] = { return Api.event.Photo.parse_photo($0) }
-    dict[-1599196108] = { return Api.event.Short.parse_short($0) }
-    dict[1508149430] = { return Api.event.Stats.parse_stats($0) }
+    dict[1899462038] = { return Api.event.Short.parse_short($0) }
+    dict[1322901220] = { return Api.event.Stats.parse_stats($0) }
     dict[-1742876116] = { return Api.event.Success.parse_success($0) }
     dict[2016712066] = { return Api.event.User.parse_user($0) }
     
@@ -2617,10 +2614,8 @@ public extension Api {
                 _1.serialize(buffer, boxed)
             case let _1 as Api.users.Users:
                 _1.serialize(buffer, boxed)
-            
+
             //MARK: - NEW Divo -
-            case let _1 as Api.Update:
-                _1.serialize(buffer, boxed)
             case let _1 as Api.event.AvailableParameter:
                 _1.serialize(buffer, boxed)
             case let _1 as Api.event.City:

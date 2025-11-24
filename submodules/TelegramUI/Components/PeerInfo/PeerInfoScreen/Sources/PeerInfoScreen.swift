@@ -1043,7 +1043,7 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         }
     }
     
-    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 0, text: "getCountries", icon: PresentationResourcesSettings.support, action: {
+    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 0, text: "createEvent", icon: PresentationResourcesSettings.support, action: {
         interaction.openSettings(.support)
     }))
     items[.support]!.append(PeerInfoScreenDisclosureItem(id: 1, text: "getEvents", icon: PresentationResourcesSettings.faq, action: {

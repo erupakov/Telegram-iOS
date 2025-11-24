@@ -3,8 +3,8 @@
 //        case update(event: Api.event.Short)
 //        case updateApplicationApproved(eventId: Int64, eventTitle: String)
 //        case updateApplicationRejected(eventId: Int64, eventTitle: String)
-//        case updateEventLiked(eventId: Int64, user: Api.event.User)
-//        case updateNewApplicant(eventId: Int64, applicant: Api.event.User)
+//        case updateEventLiked(flags: Int32, eventId: Int64, user: Api.event.User?)
+//        case updateNewApplicant(flags: Int32, eventId: Int64, applicant: Api.event.User?)
 //
 //        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
 //            switch self {
@@ -28,19 +28,21 @@
 //                    serializeInt64(eventId, buffer: buffer, boxed: false)
 //                    serializeString(eventTitle, buffer: buffer, boxed: false)
 //                    break
-//                case .updateEventLiked(let eventId, let user):
+//                case .updateEventLiked(let flags, let eventId, let user):
 //                    if boxed {
-//                        buffer.appendInt32(945009897)
+//                        buffer.appendInt32(88932760)
 //                    }
+//                    serializeInt32(flags, buffer: buffer, boxed: false)
 //                    serializeInt64(eventId, buffer: buffer, boxed: false)
-//                    user.serialize(buffer, true)
+//                    if Int(flags) & Int(1 << 0) != 0 {user!.serialize(buffer, true)}
 //                    break
-//                case .updateNewApplicant(let eventId, let applicant):
+//                case .updateNewApplicant(let flags, let eventId, let applicant):
 //                    if boxed {
-//                        buffer.appendInt32(1859473757)
+//                        buffer.appendInt32(925133019)
 //                    }
+//                    serializeInt32(flags, buffer: buffer, boxed: false)
 //                    serializeInt64(eventId, buffer: buffer, boxed: false)
-//                    applicant.serialize(buffer, true)
+//                    if Int(flags) & Int(1 << 0) != 0 {applicant!.serialize(buffer, true)}
 //                    break
 //            }
 //        }
@@ -53,10 +55,10 @@
 //                return ("updateApplicationApproved", [("eventId", String(describing: eventId)), ("eventTitle", String(describing: eventTitle))])
 //                case .updateApplicationRejected(let eventId, let eventTitle):
 //                return ("updateApplicationRejected", [("eventId", String(describing: eventId)), ("eventTitle", String(describing: eventTitle))])
-//                case .updateEventLiked(let eventId, let user):
-//                return ("updateEventLiked", [("eventId", String(describing: eventId)), ("user", String(describing: user))])
-//                case .updateNewApplicant(let eventId, let applicant):
-//                return ("updateNewApplicant", [("eventId", String(describing: eventId)), ("applicant", String(describing: applicant))])
+//                case .updateEventLiked(let flags, let eventId, let user):
+//                return ("updateEventLiked", [("flags", String(describing: flags)), ("eventId", String(describing: eventId)), ("user", String(describing: user))])
+//                case .updateNewApplicant(let flags, let eventId, let applicant):
+//                return ("updateNewApplicant", [("flags", String(describing: flags)), ("eventId", String(describing: eventId)), ("applicant", String(describing: applicant))])
 //            }
 //        }
 //
@@ -102,32 +104,38 @@
 //            }
 //        }
 //        public static func parse_updateEventLiked(_ reader: BufferReader) -> Update? {
-//            var _1: Int64?
-//            _1 = reader.readInt64()
-//            var _2: Api.event.User?
-//            if let signature = reader.readInt32() {
-//                _2 = Api.parse(reader, signature: signature) as? Api.event.User
-//            }
+//            var _1: Int32?
+//            _1 = reader.readInt32()
+//            var _2: Int64?
+//            _2 = reader.readInt64()
+//            var _3: Api.event.User?
+//            if Int(_1!) & Int(1 << 0) != 0 {if let signature = reader.readInt32() {
+//                _3 = Api.parse(reader, signature: signature) as? Api.event.User
+//            } }
 //            let _c1 = _1 != nil
 //            let _c2 = _2 != nil
-//            if _c1 && _c2 {
-//                return Api.Update.updateEventLiked(eventId: _1!, user: _2!)
+//            let _c3 = (Int(_1!) & Int(1 << 0) == 0) || _3 != nil
+//            if _c1 && _c2 && _c3 {
+//                return Api.Update.updateEventLiked(flags: _1!, eventId: _2!, user: _3)
 //            }
 //            else {
 //                return nil
 //            }
 //        }
 //        public static func parse_updateNewApplicant(_ reader: BufferReader) -> Update? {
-//            var _1: Int64?
-//            _1 = reader.readInt64()
-//            var _2: Api.event.User?
-//            if let signature = reader.readInt32() {
-//                _2 = Api.parse(reader, signature: signature) as? Api.event.User
-//            }
+//            var _1: Int32?
+//            _1 = reader.readInt32()
+//            var _2: Int64?
+//            _2 = reader.readInt64()
+//            var _3: Api.event.User?
+//            if Int(_1!) & Int(1 << 0) != 0 {if let signature = reader.readInt32() {
+//                _3 = Api.parse(reader, signature: signature) as? Api.event.User
+//            } }
 //            let _c1 = _1 != nil
 //            let _c2 = _2 != nil
-//            if _c1 && _c2 {
-//                return Api.Update.updateNewApplicant(eventId: _1!, applicant: _2!)
+//            let _c3 = (Int(_1!) & Int(1 << 0) == 0) || _3 != nil
+//            if _c1 && _c2 && _c3 {
+//                return Api.Update.updateNewApplicant(flags: _1!, eventId: _2!, applicant: _3)
 //            }
 //            else {
 //                return nil
