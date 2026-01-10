@@ -23,6 +23,9 @@ public final class TelegramEngine {
     public lazy var peers: Peers = {
         return Peers(account: self.account)
     }()
+    public lazy var eventsEngine: EventsEngine = {
+        return EventsEngine(account: self.account)
+    }()
 
     public lazy var auth: Auth = {
         return Auth(account: self.account)

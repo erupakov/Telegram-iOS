@@ -135,7 +135,7 @@ public extension Api.functions.event {
         })
     }
 }
-public extension Api.functions.event {
+public extension Api.functions.event {//ok
     static func getCountries(offset: Int32, limit: Int32) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<[Api.event.Country]>) {
         let buffer = Buffer()
         buffer.appendInt32(-193871156)

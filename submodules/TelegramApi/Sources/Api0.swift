@@ -1489,7 +1489,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1899462038] = { return Api.event.Short.parse_short($0) }
     dict[1322901220] = { return Api.event.Stats.parse_stats($0) }
     dict[-1742876116] = { return Api.event.Success.parse_success($0) }
-    dict[2016712066] = { return Api.event.User.parse_user($0) }
+    dict[1569760113] = { return Api.event.User.parse_user($0) }
     
     return dict
 }()

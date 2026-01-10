@@ -16,6 +16,8 @@ import ItemListUI
 final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
     
     private let context: AccountContext
+    private let supportPeerDisposable = MetaDisposable()
+    private var currentTime: Int32 = 0
     
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
@@ -68,6 +70,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
     private let addPhoto: () -> Void
     var selectCountryCode: (() -> Void)?
     var scheduleTimeController: (() -> Void)?
+    var showAlert: ((String) -> Void)?
     private var countryId: String = ""
     
     var currentPhoto: UIImage? = nil {
@@ -224,6 +227,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
     deinit {
         self.disposable?.dispose()
         self.presentationDataDisposable?.dispose()
+        self.supportPeerDisposable.dispose()
         NotificationCenter.default.removeObserver(self)
     }
     
@@ -255,6 +259,39 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
     }
     @objc private func applyButtonTapped() {
         print("applyButton Tapped!")
+        
+        if let nameEventTextField = nameEventTextField.textField.text,
+           nameEventTextField.isEmpty,
+           let aboutEventTextField = aboutEventTextField.textField.text,
+           aboutEventTextField.isEmpty,
+           currentTime != 0 {
+            showAlert?("Please fill in all fields")
+        }
+        
+        let unixTimestamp = TimeInterval(currentTime)
+        let date = Date(timeIntervalSince1970: unixTimestamp)
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        let formattedDate = formatter.string(from: date)
+
+        formatter.dateFormat = "HH:mm"
+        let formattedTime = formatter.string(from: date)
+        
+        let supportPeer = Promise<String?>()
+        let eventModel = EventModel(
+            title: nameEventTextField.textField.text ?? "",
+            description: aboutEventTextField.textField.text ?? "",
+            eventDate: formattedDate,
+            eventTime: formattedTime,
+            coverPhotoId: 0,
+            enabledParameterKeys: [])
+        
+        supportPeer.set(context.engine.eventsEngine.createEvent(eventModel: eventModel))
+        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+            print("🔕", peerId ?? "")
+            self.showAlert?("event added")
+        }))
     }
     
     @objc private func addParametersTapped() {
@@ -267,7 +304,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     func updateTime(_ timestamp: Int32) {
-        
+        currentTime = timestamp
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")

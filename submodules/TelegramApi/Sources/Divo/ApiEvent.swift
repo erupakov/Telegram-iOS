@@ -903,31 +903,29 @@ public extension Api.event {
 }
 public extension Api.event {
     enum User: TypeConstructorDescription {
-        case user(user: Api.User)
-
+        case user(user: Int64)
+        
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
-                case .user(let user):
-                    if boxed {
-                        buffer.appendInt32(2016712066)
-                    }
-                    user.serialize(buffer, true)
-                    break
+            case .user(let user):
+                if boxed {
+                    buffer.appendInt32(1569760113)
+                }
+                serializeInt64(user, buffer: buffer, boxed: false)
+                break
             }
         }
         
         public func descriptionFields() -> (String, [(String, Any)]) {
             switch self {
-                case .user(let user):
+            case .user(let user):
                 return ("user", [("user", String(describing: user))])
             }
         }
 
         public static func parse_user(_ reader: BufferReader) -> User? {
-            var _1: Api.User?
-            if let signature = reader.readInt32() {
-                _1 = Api.parse(reader, signature: signature) as? Api.User
-            }
+            var _1: Int64?
+            _1 = reader.readInt64()
             let _c1 = _1 != nil
             if _c1 {
                 return Api.event.User.user(user: _1!)

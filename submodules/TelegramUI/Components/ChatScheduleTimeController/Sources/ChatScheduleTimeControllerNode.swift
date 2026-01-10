@@ -283,7 +283,7 @@ class ChatScheduleTimeControllerNode: ViewControllerTracingNode, ASScrollViewDel
                 }
             case .reminders:
                 if calendar.isDateInToday(date) {
-                    self.doneButton.title = self.presentationData.strings.Conversation_SetReminder_RemindToday(time).string
+                    self.doneButton.title = self.presentationData.strings.Conversation_SetReminder_RemindToday(time).string//
                 } else if calendar.isDateInTomorrow(date) {
                     self.doneButton.title = self.presentationData.strings.Conversation_SetReminder_RemindTomorrow(time).string
                 } else {

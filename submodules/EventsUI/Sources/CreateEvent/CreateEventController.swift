@@ -124,7 +124,23 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.createEventNode.scheduleTimeController = { [weak self] in
             self?.scheduleTimeController()
         }
+        self.createEventNode.showAlert = { [weak self] text in
+            self?.showAlert(text: text)
+        }
+        
         self.displayNodeDidLoad()
+    }
+    
+    private func showAlert(text: String) {
+        
+        let alertController = textAlertController(
+            context: context, title: nil,
+            text: text, actions: [])
+//
+//        let alertController = UIAlertController(title: nil, message: "no no no.", preferredStyle: .alert)
+//        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
+//        }))
+        present(alertController, in: .window(.root))
     }
     
     private func scheduleTimeController() {

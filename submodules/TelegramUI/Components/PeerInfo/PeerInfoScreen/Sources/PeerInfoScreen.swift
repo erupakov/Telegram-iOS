@@ -10315,7 +10315,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 })]), in: .window(.root))
         case .faq:
             let supportPeer = Promise<PeerId?>()
-            supportPeer.set(context.engine.peers.supportEvents())
+            supportPeer.set(context.engine.peers.supportGetEventTypes())
             self.controller?.present(textAlertController(context: self.context, updatedPresentationData: self.controller?.updatedPresentationData, title: nil, text: self.presentationData.strings.Settings_FAQ_Intro, actions: [
                 TextAlertAction(type: .genericAction, title: presentationData.strings.Settings_FAQ_Button, action: { [weak self] in
                     self?.openFaq()

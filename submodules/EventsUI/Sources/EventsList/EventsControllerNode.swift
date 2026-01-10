@@ -93,6 +93,11 @@ final class EventsControllerNode: ASDisplayNode {
         self._ready.set(true)
     }
     
+    public func reloadEvents(events: [EventData]) {
+        self.events = events
+        self.collectionView.reloadData()
+    }
+    
     override func layout() {
         super.layout()
         if let (layout, navigationBarHeight) = self.containerLayout {

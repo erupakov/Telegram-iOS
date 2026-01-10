@@ -1065,7 +1065,7 @@ func settingsSearchableItems(context: AccountContext, notificationExceptionsList
         allItems.append(getCountries)
         
         let getEvents = SettingsSearchableItem(id: .support(1), title: "getEvents", alternate: ["getEvents"], icon: .support, breadcrumbs: [], present: { context, _, present in
-            let _ = (context.engine.peers.supportEvents()
+            let _ = (context.engine.peers.supportPeerId()
             |> deliverOnMainQueue).start(next: { _ in
             })
         })

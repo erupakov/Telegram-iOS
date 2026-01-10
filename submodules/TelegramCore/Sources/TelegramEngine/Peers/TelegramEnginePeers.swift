@@ -218,8 +218,12 @@ public extension TelegramEngine {
             return _internal_supportPeerId(account: self.account)
         }
 
-        public func supportEvents() -> Signal<PeerId?, NoError> {
-            return _internal_getEvents(account: self.account)
+        public func getCountries() -> Signal<String?, NoError> {
+            return _internal_getCountries(account: self.account)
+        }
+        
+        public func getEvent(eventId: Int) -> Signal<String?, NoError> {
+            return _getEvent(account: self.account, eventId: eventId)
         }
         
         public func supportGetEventTypes() -> Signal<PeerId?, NoError> {
