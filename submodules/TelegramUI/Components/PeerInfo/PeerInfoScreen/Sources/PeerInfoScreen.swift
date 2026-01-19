@@ -112,6 +112,7 @@ import OldChannelsController
 import UrlHandling
 import VerifyAlertController
 import GiftViewScreen
+import ProfileScreenUI
 
 public enum PeerInfoAvatarEditingMode {
     case generic
@@ -993,42 +994,42 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         interaction.openSettings(.language)
     }))
     
-    let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
-    let isPremiumDisabled = premiumConfiguration.isPremiumDisabled
-    if !isPremiumDisabled || context.isPremium {
-        items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 100, label: .text(""), text: presentationData.strings.Settings_Premium, icon: PresentationResourcesSettings.premium, action: {
-            interaction.openSettings(.premium)
-        }))
-    }
-    if let starsState = data.starsState {
-        if !isPremiumDisabled || starsState.balance > StarsAmount.zero {
-            let balanceText: NSAttributedString
-            if starsState.balance > StarsAmount.zero {
-                let formattedLabel = formatStarsAmountText(starsState.balance, dateTimeFormat: presentationData.dateTimeFormat)
-                let smallLabelFont = Font.regular(floor(presentationData.listsFontSize.itemListBaseFontSize / 17.0 * 13.0))
-                let labelFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
-                let labelColor = presentationData.theme.list.itemSecondaryTextColor
-                balanceText = tonAmountAttributedString(formattedLabel, integralFont: labelFont, fractionalFont: smallLabelFont, color: labelColor, decimalSeparator: presentationData.dateTimeFormat.decimalSeparator)
-            } else {
-                balanceText = NSAttributedString()
-            }
-            items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 102, label: .attributedText(balanceText), text: presentationData.strings.Settings_Stars, icon: PresentationResourcesSettings.stars, action: {
-                interaction.openSettings(.stars)
-            }))
-        }
-    }
-    if !isPremiumDisabled || context.isPremium {
-        items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 103, label: .text(""), additionalBadgeLabel: presentationData.strings.Settings_New, text: presentationData.strings.Settings_Business, icon: PresentationResourcesSettings.business, action: {
-            interaction.openSettings(.businessSetup)
-        }))
-    }
-    if let starsState = data.starsState {
-        if !isPremiumDisabled || starsState.balance > StarsAmount.zero {
-            items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 104, label: .text(""), text: presentationData.strings.Settings_SendGift, icon: PresentationResourcesSettings.premiumGift, action: {
-                interaction.openSettings(.premiumGift)
-            }))
-        }
-    }
+//    let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
+////    let isPremiumDisabled = premiumConfiguration.isPremiumDisabled
+////    if !isPremiumDisabled || context.isPremium {
+////        items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 100, label: .text(""), text: presentationData.strings.Settings_Premium, icon: PresentationResourcesSettings.premium, action: {
+////            interaction.openSettings(.premium)
+////        }))
+////    }
+//    if let starsState = data.starsState {
+//        if !isPremiumDisabled || starsState.balance > StarsAmount.zero {
+//            let balanceText: NSAttributedString
+//            if starsState.balance > StarsAmount.zero {
+//                let formattedLabel = formatStarsAmountText(starsState.balance, dateTimeFormat: presentationData.dateTimeFormat)
+//                let smallLabelFont = Font.regular(floor(presentationData.listsFontSize.itemListBaseFontSize / 17.0 * 13.0))
+//                let labelFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
+//                let labelColor = presentationData.theme.list.itemSecondaryTextColor
+//                balanceText = tonAmountAttributedString(formattedLabel, integralFont: labelFont, fractionalFont: smallLabelFont, color: labelColor, decimalSeparator: presentationData.dateTimeFormat.decimalSeparator)
+//            } else {
+//                balanceText = NSAttributedString()
+//            }
+//            items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 102, label: .attributedText(balanceText), text: presentationData.strings.Settings_Stars, icon: PresentationResourcesSettings.stars, action: {
+//                interaction.openSettings(.stars)
+//            }))
+//        }
+//    }
+//    if !isPremiumDisabled || context.isPremium {
+//        items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 103, label: .text(""), additionalBadgeLabel: presentationData.strings.Settings_New, text: presentationData.strings.Settings_Business, icon: PresentationResourcesSettings.business, action: {
+//            interaction.openSettings(.businessSetup)
+//        }))
+//    }
+//    if let starsState = data.starsState {
+//        if !isPremiumDisabled || starsState.balance > StarsAmount.zero {
+//            items[.payment]!.append(PeerInfoScreenDisclosureItem(id: 104, label: .text(""), text: presentationData.strings.Settings_SendGift, icon: PresentationResourcesSettings.premiumGift, action: {
+//                interaction.openSettings(.premiumGift)
+//            }))
+//        }
+//    }
     
     if let settings = data.globalSettings {
         if settings.hasPassport {
@@ -1043,15 +1044,15 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         }
     }
     
-    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 0, text: "createEvent", icon: PresentationResourcesSettings.support, action: {
-        interaction.openSettings(.support)
-    }))
-    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 1, text: "getEvents", icon: PresentationResourcesSettings.faq, action: {
-        interaction.openSettings(.faq)
-    }))
-    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 2, text: "get One Event", icon: PresentationResourcesSettings.tips, action: {
-        interaction.openSettings(.tips)
-    }))
+//    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 0, text: "createEvent", icon: PresentationResourcesSettings.support, action: {
+//        interaction.openSettings(.support)
+//    }))
+//    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 1, text: "getEvents", icon: PresentationResourcesSettings.faq, action: {
+//        interaction.openSettings(.faq)
+//    }))
+//    items[.support]!.append(PeerInfoScreenDisclosureItem(id: 2, text: "get One Event", icon: PresentationResourcesSettings.tips, action: {
+//        interaction.openSettings(.tips)
+//    }))
     
     var result: [(AnyHashable, [PeerInfoScreenItem])] = []
     for section in SettingsSection.allCases {
@@ -10178,18 +10179,46 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         case .proxy:
             self.controller?.push(proxySettingsController(context: self.context))
         case .profile:
-            self.controller?.push(PeerInfoScreenImpl(
-                context: self.context,
-                updatedPresentationData: self.controller?.updatedPresentationData,
-                peerId: self.context.account.peerId,
-                avatarInitiallyExpanded: false,
-                isOpenedFromChat: false,
-                nearbyPeerDistance: nil,
-                reactionSourceMessageId: nil,
-                callMessages: [],
-                isMyProfile: true,
-                profileGiftsContext: self.data?.profileGiftsContext
-            ))
+            
+            let _ = (context.engine.peers.requestPeerPhotos(peerId: peerId)
+            |> deliverOnMainQueue).start(next: { photos in
+                //[TelegramPeerPhoto]
+                let dummyModel = ProfileModel(
+                    name: "model.name",
+                    age: 22,
+                    location: "New York",
+                    mainImageName: "Models/image1",
+                    avatarImageName: "Models/image7",
+                    isVerified: true,
+                    likesCount: "1K",
+                    viewsCount: "285",
+                    savesCount: "765",
+                    biography: "France's Top Model, World's Best Model 2024 Winner. France's Top Model France's Top Model France's Top Model France's Top Model France's Top Model France's Top Model, World's Best Model 2024 Winner. France's Top Model France's Top Model France's Top Model France's Top Model France's Top Model",
+                    socialMediaHandles: ["_britney_ny", "_britney_ny", "britney_ny", "Website"],
+                    galleryImageNames: ["Models/image4", "Models/image2", "Models/image3"],
+                    photos: photos,
+                    isMyProfile: true
+                )
+                let detailController = ProfileScreenController(context: self.context, model: dummyModel)
+                self.controller?.push(detailController)
+            })
+            
+            
+//
+            
+            
+//            self.controller?.push(PeerInfoScreenImpl(
+//                context: self.context,
+//                updatedPresentationData: self.controller?.updatedPresentationData,
+//                peerId: self.context.account.peerId,
+//                avatarInitiallyExpanded: false,
+//                isOpenedFromChat: false,
+//                nearbyPeerDistance: nil,
+//                reactionSourceMessageId: nil,
+//                callMessages: [],
+//                isMyProfile: true,
+//                profileGiftsContext: self.data?.profileGiftsContext
+//            ))
         case .stories:
             push(PeerInfoStoryGridScreen(context: self.context, peerId: self.context.account.peerId, scope: .saved))
         case .savedMessages:

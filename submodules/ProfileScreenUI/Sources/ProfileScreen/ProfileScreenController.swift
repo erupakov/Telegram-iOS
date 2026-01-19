@@ -9,6 +9,9 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 import TelegramBaseController
+import LegacyMediaPickerUI
+import Postbox
+import MapResourceToAvatarSizes
 
 public final class ProfileScreenController: TelegramBaseController {
     
@@ -73,7 +76,52 @@ public final class ProfileScreenController: TelegramBaseController {
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = ProfileScreenNode(controller: self, context: self.context, presentationData: self.presentationData, model: model)
+        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
+        let theme = self.presentationData.theme
+        
+        self.displayNode = ProfileScreenNode(
+            controller: self,
+            context: self.context,
+            presentationData: self.presentationData,
+            model: model,
+            addPhoto: { [weak self] in
+                presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
+                    self?.view.endEditing(true)
+                    self?.present(c, in: .window(.root), with: a)
+                }, openCurrent: nil, completion: { image in
+                    self?.controllerNode.currentPhoto = image
+                    self?.controllerNode.toggleSpinner(active: true)
+                    
+                    let tempFile = TempBox.shared.tempFile(fileName: "avatar.jpg")
+                    guard let data = image.jpegData(compressionQuality: 0.9), let context = self?.context else { return }
+                    try? data.write(to: URL(fileURLWithPath: tempFile.path))
+                    
+                    let resource = LocalFileReferenceMediaResource(localFilePath: tempFile.path, randomId: Int64.random(in: Int64.min ... Int64.max))
+                    
+                    let uploadedPeerPhoto = context.engine.peers.uploadedPeerPhoto(resource: resource)
+                    let postbox = context.account.postbox
+                    let signal = context.engine.peers.updatePeerPhoto(
+                        peerId: context.account.peerId,
+                        photo: uploadedPeerPhoto,
+                        video: nil,
+                        videoStartTimestamp: nil,
+                        markup: nil,
+                        mapResourceToAvatarSizes: { resource, representations in
+                            return mapResourceToAvatarSizes(postbox: postbox, resource: resource, representations: representations)
+                        }
+                    )
+                    
+                    let _ = (signal |> deliverOnMainQueue).start(next: { status in
+                        if case .complete = status {
+                            self?.controllerNode.toggleSpinner(active: false)
+                            self?.controllerNode.addPhotoToCollection()
+                        }
+                    }, error: { error in
+                        self?.controllerNode.toggleSpinner(active: false)
+                    })
+                }, videoCompletion: { _, _, _ in
+                })
+            })
         
         self.displayNodeDidLoad()
     }

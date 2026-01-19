@@ -1,4 +1,5 @@
 import UIKit
+import TelegramCore
 
 final class GalleryCell: UICollectionViewCell {
     
@@ -12,6 +13,10 @@ final class GalleryCell: UICollectionViewCell {
     
     func configure(with imageName: String) {
         imageView.image = UIImage(named: imageName)
+    }
+    
+    func configure(with imageName: UIImage) {
+        imageView.image = imageName
     }
     
     override init(frame: CGRect) {

@@ -23,7 +23,16 @@ final class ProfileScreenNode: ASDisplayNode {
     private let iconPlaceholder = "HeartActionIcon"
     private let fixedHeaderHeight: CGFloat = 630.0
     
+    private let addPhoto: () -> Void
+    
     private let scrollView = UIScrollView()
+    
+    enum PhotoItem {
+        case telegram(TelegramPeerPhoto)
+        case local(UIImage, Date)
+    }
+    
+    var localPhotos: [PhotoItem] = []
     
     private let contentViewStack: UIStackView = {
         let stack = UIStackView()
@@ -51,6 +60,16 @@ final class ProfileScreenNode: ASDisplayNode {
         return iv
     }()
     
+    var currentPhoto: UIImage? = nil {
+        didSet {
+            if let currentPhoto = self.currentPhoto {
+                avatarImageView.image = currentPhoto
+            } else {
+                self.avatarImageView.image = nil
+            }
+        }
+    }
+    
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -61,6 +80,14 @@ final class ProfileScreenNode: ASDisplayNode {
         iv.backgroundColor = .systemGray
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
+    }()
+    
+    private let avatarSpinner: UIActivityIndicatorView = {
+        let spinner = UIActivityIndicatorView(style: .whiteLarge)
+        spinner.color = .white
+        spinner.hidesWhenStopped = true
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        return spinner
     }()
     
     private let nameLabel: UILabel = {
@@ -143,12 +170,12 @@ final class ProfileScreenNode: ASDisplayNode {
         return view
     }()
     
-    init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel) {
+    init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel, addPhoto: @escaping () -> Void) {
         self.controller = controller
         self.context = context
         self.presentationData = presentationData
         self.model = model
-        
+        self.addPhoto = addPhoto
         super.init()
         
         self.view.backgroundColor = .black
@@ -156,6 +183,8 @@ final class ProfileScreenNode: ASDisplayNode {
         self.view.addSubview(scrollView)
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.addSubview(contentViewStack)
+        
+        localPhotos = model.photos.map { PhotoItem.telegram($0) }
         
         setupContent()
         configureNodes()
@@ -308,6 +337,13 @@ final class ProfileScreenNode: ASDisplayNode {
         infoStack.translatesAutoresizingMaskIntoConstraints = false
         
         headerContainer.addSubview(avatarImageView)
+        
+        headerContainer.addSubview(avatarSpinner)
+        NSLayoutConstraint.activate([
+            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
+            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor)
+        ])
+        
         headerContainer.addSubview(infoStack)
         
         headerContainer.addSubview(dmButton)
@@ -323,6 +359,11 @@ final class ProfileScreenNode: ASDisplayNode {
         
         headerContainer.addSubview(counterActionsStack)
         
+        var dmButtonWidthAnchor: CGFloat = 100
+        
+        if model.isMyProfile {
+            dmButtonWidthAnchor = 300
+        }
         NSLayoutConstraint.activate([
             avatarImageView.heightAnchor.constraint(equalToConstant: 80),
             avatarImageView.widthAnchor.constraint(equalToConstant: 80),
@@ -335,7 +376,7 @@ final class ProfileScreenNode: ASDisplayNode {
             dmButton.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
             dmButton.topAnchor.constraint(equalTo: infoStack.bottomAnchor, constant: 20),
             dmButton.heightAnchor.constraint(equalToConstant: 40),
-            dmButton.widthAnchor.constraint(equalToConstant: 100),
+            dmButton.widthAnchor.constraint(equalToConstant: dmButtonWidthAnchor),
             
             counterActionsStack.topAnchor.constraint(equalTo: dmButton.bottomAnchor, constant: 20),
             counterActionsStack.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
@@ -345,6 +386,27 @@ final class ProfileScreenNode: ASDisplayNode {
         ])
     }
     
+    func toggleSpinner(active: Bool) {
+        if active {
+            avatarSpinner.startAnimating()
+            avatarImageView.alpha = 0.5
+        } else {
+            avatarSpinner.stopAnimating()
+            avatarImageView.alpha = 1.0
+        }
+    }
+    
+    func addPhotoToCollection() {
+        if let currentPhoto = currentPhoto {
+            let newItem = PhotoItem.local(currentPhoto, Date())
+            
+            self.localPhotos.insert(newItem, at: 0)
+            
+            self.galleryCollectionView.performBatchUpdates({
+                self.galleryCollectionView.insertItems(at: [IndexPath(item: 0, section: 0)])
+            })
+        }
+    }
     private func setupBiographyBlock() {
         let wrapperView = UIView()
         wrapperView.translatesAutoresizingMaskIntoConstraints = false
@@ -436,9 +498,16 @@ final class ProfileScreenNode: ASDisplayNode {
     private func setupDmButtonContent() {
         dmButton.subviews.forEach { $0.removeFromSuperview() }
         
+        var iconImageName = "Chat/Context Menu/MessageBubble"
+        var labelText = "Send DM"
+        if model.isMyProfile {
+            iconImageName = "Avatar/AddAvatarIconLarge"
+            labelText = "Upload your photos"
+        }
+        
         let iconImageView: UIImageView = {
             let imageView = UIImageView()
-            imageView.image = UIImage(bundleImageName: "Chat/Context Menu/MessageBubble")
+            imageView.image = UIImage(bundleImageName: iconImageName)
             imageView.tintColor = .white
             imageView.contentMode = .scaleAspectFit
             imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -447,7 +516,7 @@ final class ProfileScreenNode: ASDisplayNode {
         
         let label: UILabel = {
             let label = UILabel()
-            label.text = "Send DM"
+            label.text = labelText
             label.textColor = .white
             label.font = Font.helveticaNeue(13)
             label.translatesAutoresizingMaskIntoConstraints = false
@@ -472,6 +541,14 @@ final class ProfileScreenNode: ASDisplayNode {
             iconImageView.widthAnchor.constraint(equalToConstant: 20),
             iconImageView.heightAnchor.constraint(equalToConstant: 20)
         ])
+    }
+    
+    override func didLoad() {
+        super.didLoad()
+        
+        if model.isMyProfile {
+            dmButton.addTarget(self, action: #selector(dmButtonTapped), for: .touchUpInside)
+        }
     }
     
     private func setupCounterView(_ container: UIView, count: String, name: String, iconName: String) {
@@ -568,10 +645,41 @@ final class ProfileScreenNode: ASDisplayNode {
         return button
     }
     
+    @objc private func dmButtonTapped() {
+        self.addPhoto()
+    }
+    
     private func configureNodes() {
         
         headerImageView.image = UIImage(named: model.mainImageName)
-        avatarImageView.image = UIImage(named: model.avatarImageName)
+        if model.isMyProfile {
+            
+            if !model.photos.isEmpty {
+                guard let photo = model.photos.first else {
+                    return
+                }
+                
+                let image = photo.image
+                guard let representation = largestImageRepresentation(image.representations) else {
+                    return
+                }
+                
+                let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
+                let _ = (resourceData
+                         |> deliverOnMainQueue).start(next: { data in
+                    if data.complete {
+                        if let uiImage = UIImage(contentsOfFile: data.path) {
+                            self.avatarImageView.image = uiImage
+                        }
+                        
+                    } else {
+                        let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
+                    }
+                })
+            }
+        } else {
+            avatarImageView.image = UIImage(named: model.avatarImageName)
+        }
         
         nameLabel.text = model.name
         
@@ -579,8 +687,10 @@ final class ProfileScreenNode: ASDisplayNode {
         let ageLocationBadge = createStatusBadge(text: "\(model.age) y.o. · \(model.location)", iconName: "location_icon")
         
         statusStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        statusStack.addArrangedSubview(modelBadge)
-        statusStack.addArrangedSubview(ageLocationBadge)
+        if !model.isMyProfile {
+            statusStack.addArrangedSubview(modelBadge)
+            statusStack.addArrangedSubview(ageLocationBadge)
+        }
         
         setupDmButtonContent()
         
@@ -599,12 +709,45 @@ final class ProfileScreenNode: ASDisplayNode {
 extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if !localPhotos.isEmpty {
+            return localPhotos.count
+        }
         return model.galleryImageNames.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GalleryCell", for: indexPath) as? GalleryCell else {
             return UICollectionViewCell()
+        }
+        
+        if !localPhotos.isEmpty {
+            
+            let item = localPhotos[indexPath.item]
+            
+            switch item {
+            case .telegram(let peerPhoto):
+                let image = peerPhoto.image
+                guard let representation = largestImageRepresentation(image.representations) else {
+                    return cell
+                }
+                
+                let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
+                let _ = (resourceData
+                         |> deliverOnMainQueue).start(next: { data in
+                    if data.complete {
+                        if let uiImage = UIImage(contentsOfFile: data.path) {
+                            cell.configure(with: uiImage)
+                        }
+                        
+                    } else {
+                        let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
+                    }
+                })
+            case .local(let uiImage, _):
+                cell.configure(with: uiImage)
+            }
+            
+            return cell
         }
         
         guard let imageName = model.galleryImageNames[safe: indexPath.row] else {

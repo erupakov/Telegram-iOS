@@ -1,4 +1,5 @@
 import Foundation
+import TelegramCore
 
 public struct ProfileModel {
     let name: String
@@ -19,6 +20,9 @@ public struct ProfileModel {
     
     let galleryImageNames: [String]
     
+    let photos: [TelegramPeerPhoto]
+    let isMyProfile: Bool
+    
     public init(
         name: String,
         age: Int,
@@ -31,7 +35,9 @@ public struct ProfileModel {
         savesCount: String,
         biography: String,
         socialMediaHandles: [String],
-        galleryImageNames: [String]
+        galleryImageNames: [String],
+        photos: [TelegramPeerPhoto] = [],
+        isMyProfile: Bool = false
     ) {
         self.name = name
         self.age = age
@@ -45,5 +51,7 @@ public struct ProfileModel {
         self.biography = biography
         self.socialMediaHandles = socialMediaHandles
         self.galleryImageNames = galleryImageNames
+        self.photos = photos
+        self.isMyProfile = isMyProfile
     }
 }

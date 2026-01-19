@@ -156,6 +156,7 @@ swift_library(
         "//submodules/TelegramUI/Components/CameraScreen",
         "//submodules/TelegramUI/Components/PeerInfo/VerifyAlertController",
         "//submodules/TelegramUI/Components/Gifts/GiftViewScreen",
+        "//submodules/ProfileScreenUI:ProfileScreenUI",
     ],
     visibility = [
         "//visibility:public",
