@@ -81,7 +81,7 @@ public extension Api.functions.profile {
     }
 }
 public extension Api.functions.profile {
-    static func getPortfolio(userId: Api.InputUser, tab: String, offset: Int32, limit: Int32) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.profile.Portfolio>) {
+    static func getPortfolio(userId: Api.InputUser, tab: String, offset: Int32, limit: Int32) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.profile.Portfolio>) {//
         let buffer = Buffer()
         buffer.appendInt32(185951911)
         userId.serialize(buffer, true)

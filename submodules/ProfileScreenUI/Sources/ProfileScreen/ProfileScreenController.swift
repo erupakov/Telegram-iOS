@@ -12,6 +12,7 @@ import TelegramBaseController
 import LegacyMediaPickerUI
 import Postbox
 import MapResourceToAvatarSizes
+import ContextUI
 
 public final class ProfileScreenController: TelegramBaseController {
     
@@ -23,15 +24,19 @@ public final class ProfileScreenController: TelegramBaseController {
     
     private let model: ProfileModel
     private let context: AccountContext
+    private let supportPeerDisposable = MetaDisposable()
+    private let createWorkExperienceDisposable = MetaDisposable()
+    
     private var presentationData: PresentationData
     
     private var navigationBarIsTransparent = true
-
-    public init(context: AccountContext, model: ProfileModel) {
+    private let peer: Peer?
+    
+    public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
         self.model = model
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
-        
+        self.peer = peer
         let darkNavigationTheme = NavigationBarTheme(
             buttonColor: .white,
             disabledButtonColor: UIColor(rgb: 0x525252),
@@ -51,12 +56,65 @@ public final class ProfileScreenController: TelegramBaseController {
         updateNavigation()
     }
     
+    deinit {
+        self.supportPeerDisposable.dispose()
+        self.createWorkExperienceDisposable.dispose()
+    }
+    
+    
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
+
+        
+        let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Contact List/EditActionIcon"), color: .white)
+        let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.editPressed))
+        
+        self.navigationItem.rightBarButtonItems = [editButton]
+    }
+    
+    @objc private func editPressed() {
+        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+        
+        alert.addAction(UIAlertAction(title: "Edit Profile", style: .default, handler: { _ in
+            let controller = EditProfileController(context: self.context, model: self.model)
+            
+            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
+                navigationController.pushViewController(controller)
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Edit  Appearance", style: .default, handler: { _ in
+            let controller = ProfileParametersController(context: self.context, model: self.model)
+            
+            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
+                navigationController.pushViewController(controller)
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Change Profile Background", style: .default, handler: { _ in }))
+        alert.addAction(UIAlertAction(title: "Edit Social Links", style: .default, handler: { _ in
+            let controller = EditSocialLinksController(context: self.context, model: self.model)
+            
+            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
+                navigationController.pushViewController(controller)
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Manage Work Experience", style: .default, handler: { _ in
+            let controller = WorkExperienceController(context: self.context, model: self.model, peer: self.peer)
+            
+            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
+                navigationController.pushViewController(controller)
+            }
+        }))
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        
+        if let popover = alert.popoverPresentationController {
+            popover.barButtonItem = self.navigationItem.rightBarButtonItem
+        }
+        
+        self.present(alert, animated: true)
     }
     
     @objc private func backPressed() {

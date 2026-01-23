@@ -3,6 +3,7 @@ import TelegramCore
 
 public struct ProfileModel {
     let name: String
+    let lastName: String?
     let age: Int
     let location: String
     let mainImageName: String
@@ -25,6 +26,7 @@ public struct ProfileModel {
     
     public init(
         name: String,
+        lastName: String? = nil,
         age: Int,
         location: String,
         mainImageName: String,
@@ -40,6 +42,7 @@ public struct ProfileModel {
         isMyProfile: Bool = false
     ) {
         self.name = name
+        self.lastName = lastName
         self.age = age
         self.location = location
         self.mainImageName = mainImageName

@@ -25,5 +25,13 @@ public extension TelegramEngine {
         public func getEvents() -> Signal<[EventModel]?, NoError> {
             _internal_getEvents(account: account)
         }
+        
+        public func getWorkHistory(peer: Peer?) -> Signal<[WorkExperienceModel]?, NoError> {
+            _internal_getWorkHistory(account: account, peer: peer)
+        }
+        
+        public func createWorkExperience(agencyName: String, startDate: Int32) -> Signal<String?, NoError> {
+            _internal_createWorkExperience(account: account, agencyName: agencyName, startDate: startDate)
+        }
     }
 }

@@ -682,6 +682,9 @@ final class ProfileScreenNode: ASDisplayNode {
         }
         
         nameLabel.text = model.name
+        if let lastName = model.lastName {
+            nameLabel.text = model.name + " " + lastName
+        }
         
         let modelBadge = createStatusBadge(text: "model", iconName: "model_icon")
         let ageLocationBadge = createStatusBadge(text: "\(model.age) y.o. · \(model.location)", iconName: "location_icon")
