@@ -51,7 +51,7 @@ func updatePeers(transaction: Transaction, accountPeerId: PeerId, peers: Accumul
         if let telegramUser = TelegramUser.merge(transaction.getPeer(user.peerId) as? TelegramUser, rhs: user) {
             parsedPeers.append(telegramUser)
             switch user {
-            case let .user(flags, flags2, _, _, _, _, _, _, _, _, _, _, _, _, _, _, storiesMaxId, _, _, _, _, _, _, _):
+            case let .user(flags, _, _, _, _, _, _, _, _, _, _, _, _, flags2, _, storiesMaxId, _, _, _, _, _, _, _, _):
                 let isMin = (flags & (1 << 20)) != 0
                 let storiesUnavailable = (flags2 & (1 << 4)) != 0
                 

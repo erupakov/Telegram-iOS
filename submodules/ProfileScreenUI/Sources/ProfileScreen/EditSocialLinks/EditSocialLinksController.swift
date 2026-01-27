@@ -51,7 +51,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
         
-        self.title = "Your parameters"
+        self.title = "EDIT SOCIAL LINKS"
         
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
         
@@ -115,7 +115,11 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         
         let alertController = textAlertController(
             context: context, title: nil,
-            text: text, actions: [])
+            text: text, actions: [
+                TextAlertAction(type: .genericAction, title: "Ok", action: {
+                    print("ok")
+                })
+            ])
 //
 //        let alertController = UIAlertController(title: nil, message: "no no no.", preferredStyle: .alert)
 //        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in

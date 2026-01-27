@@ -475,7 +475,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             apiEnvironment.apiId = arguments.apiId
             apiEnvironment.langPack = arguments.languagesCategory
-            apiEnvironment.layer = NSNumber(value: Int(serialization.currentLayer()))
+            apiEnvironment.layer = NSNumber(value: Int(serialization.currentLayer()))//
             apiEnvironment.disableUpdates = supplementary
             apiEnvironment = apiEnvironment.withUpdatedLangPackCode(languageCode ?? "en")
             

@@ -123,7 +123,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
     
     private func scheduleTimeController() {
         let peerId = PeerId(0)
-        let controller = ChatScheduleTimeController(
+        let controller = TimeController(
             context: context,
             updatedPresentationData: nil,
             peerId: peerId,

@@ -105,22 +105,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
             })
         })
         
-        self.createEventNode.selectCountryCode = { [weak self] in
-            if let strongSelf = self {
-                let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, displayCodes: false)
-                controller.completeWithCountryCode = { _, countryId, name in
-                    
-                    if let strongSelf = self {
-                        strongSelf.createEventNode.updateCountry(countryId: countryId, countryName: name)
-                    }
-                }
-                controller.dismissed = {
-//                    self?.controllerNode.activateInput()
-                }
-                strongSelf.push(controller)
-            }
-        }
-        
         self.createEventNode.scheduleTimeController = { [weak self] in
             self?.scheduleTimeController()
         }
@@ -145,7 +129,7 @@ public class AddWorkExperienceController: ViewController, UINavigationController
     
     private func scheduleTimeController() {
         let peerId = PeerId(0)
-        let controller = ChatScheduleTimeController(
+        let controller = TimeController(
             context: context,
             updatedPresentationData: nil,
             peerId: peerId,

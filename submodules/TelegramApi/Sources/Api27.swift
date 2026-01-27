@@ -452,18 +452,16 @@ public extension Api {
 }
 public extension Api {
     enum User: TypeConstructorDescription {
-        case user(flags: Int32, flags2: Int32, id: Int64, accessHash: Int64?, firstName: String?, lastName: String?, username: String?, phone: String?, photo: Api.UserProfilePhoto?, status: Api.UserStatus?, botInfoVersion: Int32?, restrictionReason: [Api.RestrictionReason]?, botInlinePlaceholder: String?, langCode: String?, emojiStatus: Api.EmojiStatus?, usernames: [Api.Username]?, storiesMaxId: Int32?, color: Api.PeerColor?, profileColor: Api.PeerColor?, botActiveUsers: Int32?, botVerificationIcon: Int64?, sendPaidMessagesStars: Int64?, physicalParams: Api.profile.PhysicalParams?, socialLinks: Api.profile.SocialLinks?)
+        case user(flags: Int32, accessHash: Int64?, firstName: String?, lastName: String?, username: String?, phone: String?, photo: Api.UserProfilePhoto?, status: Api.UserStatus?, botInfoVersion: Int32?, restrictionReason: [Api.RestrictionReason]?, botInlinePlaceholder: String?, langCode: String?, emojiStatus: Api.EmojiStatus?, flags2: Int32, usernames: [Api.Username]?, storiesMaxId: Int32?, color: Api.PeerColor?, profileColor: Api.PeerColor?, botActiveUsers: Int32?, botVerificationIcon: Int64?, sendPaidMessagesStars: Int64?, physicalParams: Api.profile.PhysicalParams?, socialLinks: Api.profile.SocialLinks?, id: Int64)
         case userEmpty(id: Int64)
     
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
-                case .user(let flags, let flags2, let id, let accessHash, let firstName, let lastName, let username, let phone, let photo, let status, let botInfoVersion, let restrictionReason, let botInlinePlaceholder, let langCode, let emojiStatus, let usernames, let storiesMaxId, let color, let profileColor, let botActiveUsers, let botVerificationIcon, let sendPaidMessagesStars, let physicalParams, let socialLinks):
+                case .user(let flags, let accessHash, let firstName, let lastName, let username, let phone, let photo, let status, let botInfoVersion, let restrictionReason, let botInlinePlaceholder, let langCode, let emojiStatus, let flags2, let usernames, let storiesMaxId, let color, let profileColor, let botActiveUsers, let botVerificationIcon, let sendPaidMessagesStars, let physicalParams, let socialLinks, let id):
                     if boxed {
-                        buffer.appendInt32(-59627381)
+                        buffer.appendInt32(-1459900508)
                     }
                     serializeInt32(flags, buffer: buffer, boxed: false)
-                    serializeInt32(flags2, buffer: buffer, boxed: false)
-                    serializeInt64(id, buffer: buffer, boxed: false)
                     if Int(flags) & Int(1 << 0) != 0 {serializeInt64(accessHash!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 1) != 0 {serializeString(firstName!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 2) != 0 {serializeString(lastName!, buffer: buffer, boxed: false)}
@@ -472,19 +470,22 @@ public extension Api {
                     if Int(flags) & Int(1 << 5) != 0 {photo!.serialize(buffer, true)}
                     if Int(flags) & Int(1 << 6) != 0 {status!.serialize(buffer, true)}
                     if Int(flags) & Int(1 << 14) != 0 {serializeInt32(botInfoVersion!, buffer: buffer, boxed: false)}
-                    if Int(flags) & Int(1 << 18) != 0 {buffer.appendInt32(481674261)
-                    buffer.appendInt32(Int32(restrictionReason!.count))
-                    for item in restrictionReason! {
-                        item.serialize(buffer, true)
-                    }}
+                    if Int(flags) & Int(1 << 18) != 0 {
+                        buffer.appendInt32(481674261)
+                        buffer.appendInt32(Int32(restrictionReason!.count))
+                        for item in restrictionReason! {
+                            item.serialize(buffer, true)
+                        }}
                     if Int(flags) & Int(1 << 19) != 0 {serializeString(botInlinePlaceholder!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 22) != 0 {serializeString(langCode!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 30) != 0 {emojiStatus!.serialize(buffer, true)}
-                    if Int(flags2) & Int(1 << 0) != 0 {buffer.appendInt32(481674261)
-                    buffer.appendInt32(Int32(usernames!.count))
-                    for item in usernames! {
-                        item.serialize(buffer, true)
-                    }}
+                    serializeInt32(flags2, buffer: buffer, boxed: false)
+                    if Int(flags2) & Int(1 << 0) != 0 {
+                        buffer.appendInt32(481674261)
+                        buffer.appendInt32(Int32(usernames!.count))
+                        for item in usernames! {
+                            item.serialize(buffer, true)
+                        }}
                     if Int(flags2) & Int(1 << 5) != 0 {serializeInt32(storiesMaxId!, buffer: buffer, boxed: false)}
                     if Int(flags2) & Int(1 << 8) != 0 {color!.serialize(buffer, true)}
                     if Int(flags2) & Int(1 << 9) != 0 {profileColor!.serialize(buffer, true)}
@@ -493,6 +494,7 @@ public extension Api {
                     if Int(flags2) & Int(1 << 15) != 0 {serializeInt64(sendPaidMessagesStars!, buffer: buffer, boxed: false)}
                     if Int(flags2) & Int(1 << 16) != 0 {physicalParams!.serialize(buffer, true)}
                     if Int(flags2) & Int(1 << 17) != 0 {socialLinks!.serialize(buffer, true)}
+                    serializeInt64(id, buffer: buffer, boxed: false)
                     break
                 case .userEmpty(let id):
                     if boxed {
@@ -505,8 +507,8 @@ public extension Api {
     
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
-                case .user(let flags, let flags2, let id, let accessHash, let firstName, let lastName, let username, let phone, let photo, let status, let botInfoVersion, let restrictionReason, let botInlinePlaceholder, let langCode, let emojiStatus, let usernames, let storiesMaxId, let color, let profileColor, let botActiveUsers, let botVerificationIcon, let sendPaidMessagesStars, let physicalParams, let socialLinks):
-                return ("user", [("flags", String(describing: flags)), ("flags2", String(describing: flags2)), ("id", String(describing: id)), ("accessHash", String(describing: accessHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("username", String(describing: username)), ("phone", String(describing: phone)), ("photo", String(describing: photo)), ("status", String(describing: status)), ("botInfoVersion", String(describing: botInfoVersion)), ("restrictionReason", String(describing: restrictionReason)), ("botInlinePlaceholder", String(describing: botInlinePlaceholder)), ("langCode", String(describing: langCode)), ("emojiStatus", String(describing: emojiStatus)), ("usernames", String(describing: usernames)), ("storiesMaxId", String(describing: storiesMaxId)), ("color", String(describing: color)), ("profileColor", String(describing: profileColor)), ("botActiveUsers", String(describing: botActiveUsers)), ("botVerificationIcon", String(describing: botVerificationIcon)), ("sendPaidMessagesStars", String(describing: sendPaidMessagesStars)), ("physicalParams", String(describing: physicalParams)), ("socialLinks", String(describing: socialLinks))])
+                case .user(let flags, let accessHash, let firstName, let lastName, let username, let phone, let photo, let status, let botInfoVersion, let restrictionReason, let botInlinePlaceholder, let langCode, let emojiStatus, let flags2, let usernames, let storiesMaxId, let color, let profileColor, let botActiveUsers, let botVerificationIcon, let sendPaidMessagesStars, let physicalParams, let socialLinks, let id):
+                return ("user", [("flags", String(describing: flags)), ("accessHash", String(describing: accessHash)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("username", String(describing: username)), ("phone", String(describing: phone)), ("photo", String(describing: photo)), ("status", String(describing: status)), ("botInfoVersion", String(describing: botInfoVersion)), ("restrictionReason", String(describing: restrictionReason)), ("botInlinePlaceholder", String(describing: botInlinePlaceholder)), ("langCode", String(describing: langCode)), ("emojiStatus", String(describing: emojiStatus)), ("flags2", String(describing: flags2)), ("usernames", String(describing: usernames)), ("storiesMaxId", String(describing: storiesMaxId)), ("color", String(describing: color)), ("profileColor", String(describing: profileColor)), ("botActiveUsers", String(describing: botActiveUsers)), ("botVerificationIcon", String(describing: botVerificationIcon)), ("sendPaidMessagesStars", String(describing: sendPaidMessagesStars)), ("physicalParams", String(describing: physicalParams)), ("socialLinks", String(describing: socialLinks)), ("id", String(describing: id))])
                 case .userEmpty(let id):
                 return ("userEmpty", [("id", id as Any)])
     }
@@ -515,96 +517,96 @@ public extension Api {
         public static func parse_user(_ reader: BufferReader) -> User? {
             var _1: Int32?
             _1 = reader.readInt32()
-            var _2: Int32?
-            _2 = reader.readInt32()
-            var _3: Int64?
-            _3 = reader.readInt64()
-            var _4: Int64?
-            if Int(_1!) & Int(1 << 0) != 0 {_4 = reader.readInt64() }
+            var _2: Int64?
+            if Int(_1!) & Int(1 << 0) != 0 {_2 = reader.readInt64() }
+            var _3: String?
+            if Int(_1!) & Int(1 << 1) != 0 {_3 = parseString(reader) }
+            var _4: String?
+            if Int(_1!) & Int(1 << 2) != 0 {_4 = parseString(reader) }
             var _5: String?
-            if Int(_1!) & Int(1 << 1) != 0 {_5 = parseString(reader) }
+            if Int(_1!) & Int(1 << 3) != 0 {_5 = parseString(reader) }
             var _6: String?
-            if Int(_1!) & Int(1 << 2) != 0 {_6 = parseString(reader) }
-            var _7: String?
-            if Int(_1!) & Int(1 << 3) != 0 {_7 = parseString(reader) }
-            var _8: String?
-            if Int(_1!) & Int(1 << 4) != 0 {_8 = parseString(reader) }
-            var _9: Api.UserProfilePhoto?
+            if Int(_1!) & Int(1 << 4) != 0 {_6 = parseString(reader) }
+            var _7: Api.UserProfilePhoto?
             if Int(_1!) & Int(1 << 5) != 0 {if let signature = reader.readInt32() {
-                _9 = Api.parse(reader, signature: signature) as? Api.UserProfilePhoto
+                _7 = Api.parse(reader, signature: signature) as? Api.UserProfilePhoto
             } }
-            var _10: Api.UserStatus?
+            var _8: Api.UserStatus?
             if Int(_1!) & Int(1 << 6) != 0 {if let signature = reader.readInt32() {
-                _10 = Api.parse(reader, signature: signature) as? Api.UserStatus
+                _8 = Api.parse(reader, signature: signature) as? Api.UserStatus
             } }
-            var _11: Int32?
-            if Int(_1!) & Int(1 << 14) != 0 {_11 = reader.readInt32() }
-            var _12: [Api.RestrictionReason]?
+            var _9: Int32?
+            if Int(_1!) & Int(1 << 14) != 0 {_9 = reader.readInt32() }
+            var _10: [Api.RestrictionReason]?
             if Int(_1!) & Int(1 << 18) != 0 {if let _ = reader.readInt32() {
-                _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                _10 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
             } }
-            var _13: String?
-            if Int(_1!) & Int(1 << 19) != 0 {_13 = parseString(reader) }
-            var _14: String?
-            if Int(_1!) & Int(1 << 22) != 0 {_14 = parseString(reader) }
-            var _15: Api.EmojiStatus?
+            var _11: String?
+            if Int(_1!) & Int(1 << 19) != 0 {_11 = parseString(reader) }
+            var _12: String?
+            if Int(_1!) & Int(1 << 22) != 0 {_12 = parseString(reader) }
+            var _13: Api.EmojiStatus?
             if Int(_1!) & Int(1 << 30) != 0 {if let signature = reader.readInt32() {
-                _15 = Api.parse(reader, signature: signature) as? Api.EmojiStatus
+                _13 = Api.parse(reader, signature: signature) as? Api.EmojiStatus
             } }
-            var _16: [Api.Username]?
-            if Int(_2!) & Int(1 << 0) != 0 {if let _ = reader.readInt32() {
-                _16 = Api.parseVector(reader, elementSignature: 0, elementType: Api.Username.self)
+            var _14: Int32?
+            _14 = reader.readInt32()
+            var _15: [Api.Username]?
+            if Int(_14!) & Int(1 << 0) != 0 {if let _ = reader.readInt32() {
+                _15 = Api.parseVector(reader, elementSignature: 0, elementType: Api.Username.self)
             } }
-            var _17: Int32?
-            if Int(_2!) & Int(1 << 5) != 0 {_17 = reader.readInt32() }
+            var _16: Int32?
+            if Int(_14!) & Int(1 << 5) != 0 {_16 = reader.readInt32() }
+            var _17: Api.PeerColor?
+            if Int(_14!) & Int(1 << 8) != 0 {if let signature = reader.readInt32() {
+                _17 = Api.parse(reader, signature: signature) as? Api.PeerColor
+            } }
             var _18: Api.PeerColor?
-            if Int(_2!) & Int(1 << 8) != 0 {if let signature = reader.readInt32() {
+            if Int(_14!) & Int(1 << 9) != 0 {if let signature = reader.readInt32() {
                 _18 = Api.parse(reader, signature: signature) as? Api.PeerColor
             } }
-            var _19: Api.PeerColor?
-            if Int(_2!) & Int(1 << 9) != 0 {if let signature = reader.readInt32() {
-                _19 = Api.parse(reader, signature: signature) as? Api.PeerColor
-            } }
-            var _20: Int32?
-            if Int(_2!) & Int(1 << 12) != 0 {_20 = reader.readInt32() }
+            var _19: Int32?
+            if Int(_14!) & Int(1 << 12) != 0 {_19 = reader.readInt32() }
+            var _20: Int64?
+            if Int(_14!) & Int(1 << 14) != 0 {_20 = reader.readInt64() }
             var _21: Int64?
-            if Int(_2!) & Int(1 << 14) != 0 {_21 = reader.readInt64() }
-            var _22: Int64?
-            if Int(_2!) & Int(1 << 15) != 0 {_22 = reader.readInt64() }
-            var _23: Api.profile.PhysicalParams?
-            if Int(_2!) & Int(1 << 16) != 0 {if let signature = reader.readInt32() {
-                _23 = Api.parse(reader, signature: signature) as? Api.profile.PhysicalParams
+            if Int(_14!) & Int(1 << 15) != 0 {_21 = reader.readInt64() }
+            var _22: Api.profile.PhysicalParams?
+            if Int(_14!) & Int(1 << 16) != 0 {if let signature = reader.readInt32() {
+                _22 = Api.parse(reader, signature: signature) as? Api.profile.PhysicalParams
             } }
-            var _24: Api.profile.SocialLinks?
-            if Int(_2!) & Int(1 << 17) != 0 {if let signature = reader.readInt32() {
-                _24 = Api.parse(reader, signature: signature) as? Api.profile.SocialLinks
+            var _23: Api.profile.SocialLinks?
+            if Int(_14!) & Int(1 << 17) != 0 {if let signature = reader.readInt32() {
+                _23 = Api.parse(reader, signature: signature) as? Api.profile.SocialLinks
             } }
+            var _24: Int64?
+            _24 = reader.readInt64()
             let _c1 = _1 != nil
-            let _c2 = _2 != nil
-            let _c3 = _3 != nil
-            let _c4 = (Int(_1!) & Int(1 << 0) == 0) || _4 != nil
-            let _c5 = (Int(_1!) & Int(1 << 1) == 0) || _5 != nil
-            let _c6 = (Int(_1!) & Int(1 << 2) == 0) || _6 != nil
-            let _c7 = (Int(_1!) & Int(1 << 3) == 0) || _7 != nil
-            let _c8 = (Int(_1!) & Int(1 << 4) == 0) || _8 != nil
-            let _c9 = (Int(_1!) & Int(1 << 5) == 0) || _9 != nil
-            let _c10 = (Int(_1!) & Int(1 << 6) == 0) || _10 != nil
-            let _c11 = (Int(_1!) & Int(1 << 14) == 0) || _11 != nil
-            let _c12 = (Int(_1!) & Int(1 << 18) == 0) || _12 != nil
-            let _c13 = (Int(_1!) & Int(1 << 19) == 0) || _13 != nil
-            let _c14 = (Int(_1!) & Int(1 << 22) == 0) || _14 != nil
-            let _c15 = (Int(_1!) & Int(1 << 30) == 0) || _15 != nil
-            let _c16 = (Int(_2!) & Int(1 << 0) == 0) || _16 != nil
-            let _c17 = (Int(_2!) & Int(1 << 5) == 0) || _17 != nil
-            let _c18 = (Int(_2!) & Int(1 << 8) == 0) || _18 != nil
-            let _c19 = (Int(_2!) & Int(1 << 9) == 0) || _19 != nil
-            let _c20 = (Int(_2!) & Int(1 << 12) == 0) || _20 != nil
-            let _c21 = (Int(_2!) & Int(1 << 14) == 0) || _21 != nil
-            let _c22 = (Int(_2!) & Int(1 << 15) == 0) || _22 != nil
-            let _c23 = (Int(_2!) & Int(1 << 16) == 0) || _23 != nil
-            let _c24 = (Int(_2!) & Int(1 << 17) == 0) || _24 != nil
+            let _c2 = (Int(_1!) & Int(1 << 0) == 0) || _2 != nil
+            let _c3 = (Int(_1!) & Int(1 << 1) == 0) || _3 != nil
+            let _c4 = (Int(_1!) & Int(1 << 2) == 0) || _4 != nil
+            let _c5 = (Int(_1!) & Int(1 << 3) == 0) || _5 != nil
+            let _c6 = (Int(_1!) & Int(1 << 4) == 0) || _6 != nil
+            let _c7 = (Int(_1!) & Int(1 << 5) == 0) || _7 != nil
+            let _c8 = (Int(_1!) & Int(1 << 6) == 0) || _8 != nil
+            let _c9 = (Int(_1!) & Int(1 << 14) == 0) || _9 != nil
+            let _c10 = (Int(_1!) & Int(1 << 18) == 0) || _10 != nil
+            let _c11 = (Int(_1!) & Int(1 << 19) == 0) || _11 != nil
+            let _c12 = (Int(_1!) & Int(1 << 22) == 0) || _12 != nil
+            let _c13 = (Int(_1!) & Int(1 << 30) == 0) || _13 != nil
+            let _c14 = _14 != nil
+            let _c15 = (Int(_14!) & Int(1 << 0) == 0) || _15 != nil
+            let _c16 = (Int(_14!) & Int(1 << 5) == 0) || _16 != nil
+            let _c17 = (Int(_14!) & Int(1 << 8) == 0) || _17 != nil
+            let _c18 = (Int(_14!) & Int(1 << 9) == 0) || _18 != nil
+            let _c19 = (Int(_14!) & Int(1 << 12) == 0) || _19 != nil
+            let _c20 = (Int(_14!) & Int(1 << 14) == 0) || _20 != nil
+            let _c21 = (Int(_14!) & Int(1 << 15) == 0) || _21 != nil
+            let _c22 = (Int(_14!) & Int(1 << 16) == 0) || _22 != nil
+            let _c23 = (Int(_14!) & Int(1 << 17) == 0) || _23 != nil
+            let _c24 = _24 != nil
             if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 && _c15 && _c16 && _c17 && _c18 && _c19 && _c20 && _c21 && _c22 && _c23 && _c24 {
-                return Api.User.user(flags: _1!, flags2: _2!, id: _3!, accessHash: _4, firstName: _5, lastName: _6, username: _7, phone: _8, photo: _9, status: _10, botInfoVersion: _11, restrictionReason: _12, botInlinePlaceholder: _13, langCode: _14, emojiStatus: _15, usernames: _16, storiesMaxId: _17, color: _18, profileColor: _19, botActiveUsers: _20, botVerificationIcon: _21, sendPaidMessagesStars: _22, physicalParams: _23, socialLinks: _24)
+                return Api.User.user(flags: _1!, accessHash: _2, firstName: _3, lastName: _4, username: _5, phone: _6, photo: _7, status: _8, botInfoVersion: _9, restrictionReason: _10, botInlinePlaceholder: _11, langCode: _12, emojiStatus: _13, flags2: _14!, usernames: _15, storiesMaxId: _16, color: _17, profileColor: _18, botActiveUsers: _19, botVerificationIcon: _20, sendPaidMessagesStars: _21, physicalParams: _22, socialLinks: _23, id: _24!)
             }
             else {
                 return nil

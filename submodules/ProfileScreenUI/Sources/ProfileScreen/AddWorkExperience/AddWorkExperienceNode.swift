@@ -56,7 +56,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     private let applyButton: ASControlNode
     private let addPhoto: () -> Void
-    var selectCountryCode: (() -> Void)?
+    
     var scheduleTimeController: (() -> Void)?
     var showAlert: ((String) -> Void)?
     private var countryId: String = ""
@@ -214,15 +214,11 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         let unixTimestamp = TimeInterval(currentTime)
         
         let supportPeer = Promise<String?>()
-        supportPeer.set(context.engine.eventsEngine.createWorkExperience(agencyName: nameEventTextField.textField.text ?? "", startDate: Int32(unixTimestamp)))
+        supportPeer.set(context.engine.profileEngine.createWorkExperience(agencyName: nameEventTextField.textField.text ?? "", startDate: Int32(unixTimestamp)))
         self.createWorkExperienceDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
             print("🔕 createWorkExperienceDisposable", peerId ?? "")
             self.showAlert?("WorkExperience Added")
         }))
-    }
-    
-    func updateCountry(countryId: String, countryName: String) {
-        self.countryId = countryId
     }
     
     func updateTime(_ timestamp: Int32) {

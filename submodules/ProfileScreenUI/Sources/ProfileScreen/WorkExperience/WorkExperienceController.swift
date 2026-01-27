@@ -108,7 +108,7 @@ public final class WorkExperienceController: TelegramBaseController {
     private func getWorkHistory() {
         let supportPeer = Promise<[WorkExperienceModel]?>()
         
-        supportPeer.set(context.engine.eventsEngine.getWorkHistory(peer: peer))
+        supportPeer.set(context.engine.profileEngine.getWorkHistory(peer: peer))
         self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { getWorkHistory in
             print("🔕", getWorkHistory ?? "")
             

@@ -1148,7 +1148,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1445536993] = { return Api.UrlAuthResult.parse_urlAuthResultDefault($0) }
     dict[-1831650802] = { return Api.UrlAuthResult.parse_urlAuthResultRequest($0) }
     //MARK: - NEW Divo -
-    dict[-59627381] = { return Api.User.parse_user($0) }
+    dict[-1459900508] = { return Api.User.parse_user($0) }
     //MARK: - NEW Divo -
     
     dict[-742634630] = { return Api.User.parse_userEmpty($0) }

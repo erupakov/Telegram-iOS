@@ -35,11 +35,10 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     private let scrollNode: ASScrollNode
     
-    private let nameEventTextField: TextFieldNode
-    private let lastNameEventTextField: TextFieldNode
-    
-    private let eyeColorTextField: TextFieldNode
-    private let breastSizeTextField: TextFieldNode
+    private let instagramTextField: DivoTextField
+    private let tiktokTextField: DivoTextField
+    private let youtubeTextField: DivoTextField
+    private let websiteTextField: DivoTextField
     
     private let applyButton: ASControlNode
     private let addPhoto: () -> Void
@@ -58,11 +57,11 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         
         self.scrollNode = ASScrollNode()
         
-        self.nameEventTextField = getTextFiel(title: "Enter your Instagram")
-        self.lastNameEventTextField = getTextFiel(title: "Enter your TikTok")
+        self.instagramTextField = DivoTextField(title: "username", prefix: "instagram.com/")
+        self.tiktokTextField = DivoTextField(title: "username", prefix: "tiktok.com/")
+        self.youtubeTextField = DivoTextField(title: "username", prefix: "youtube.com/")
         
-        self.eyeColorTextField = getTextFiel(title: "Enter your YouTube")
-        self.breastSizeTextField = getTextFiel(title: "Enter your website")
+        self.websiteTextField = DivoTextField(title: "Enter your website")
         
         self.applyButton = ButtonWithIconNode(title: "Save", icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
         self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
@@ -72,27 +71,45 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
         self.addSubnode(self.scrollNode)
-        self.scrollNode.addSubnode(self.nameEventTextField)
         
-        self.scrollNode.addSubnode(self.lastNameEventTextField)
+        self.scrollNode.addSubnode(self.instagramTextField)
+        self.scrollNode.addSubnode(self.tiktokTextField)
+        self.scrollNode.addSubnode(self.youtubeTextField)
+        self.scrollNode.addSubnode(self.websiteTextField)
         
-        self.scrollNode.addSubnode(self.eyeColorTextField)
-        self.scrollNode.addSubnode(self.breastSizeTextField)
         self.scrollNode.addSubnode(self.applyButton)
     }
 
+    deinit {
+        self.supportPeerDisposable.dispose()
+        NotificationCenter.default.removeObserver(self)
+    }
+    
     override func didLoad() {
         super.didLoad()
         self.applyButton.addTarget(self, action: #selector(self.applyButtonTapped), forControlEvents: .touchUpInside)
     }
 
     @objc private func applyButtonTapped() {
-        let nameText = self.nameEventTextField.textField.text ?? ""
-        if nameText.isEmpty {
-            showAlert?("Please fill in all fields")
-            return
-        }
-        self.showAlert?("Saving...")
+        
+        let instagram = instagramTextField.textField.text ?? ""
+        let tiktok = tiktokTextField.textField.text ?? ""
+        let youtube = youtubeTextField.textField.text ?? ""
+        let website = websiteTextField.textField.text ?? ""
+        
+        
+        let supportPeer = Promise<String?>()
+        supportPeer.set(
+            context.engine.profileEngine.updateSocialLinks(
+                instagram: instagram,
+                tiktok: tiktok,
+                youtube: youtube,
+                website: website
+            ))
+        
+        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+            self.showAlert?("Saved")
+        }))
     }
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -106,15 +123,15 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         
         var currentY: CGFloat = 30.0
         
-        self.nameEventTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        self.instagramTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
         currentY += itemHeight + sectionSpacing
         
-        self.lastNameEventTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        self.tiktokTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
         currentY += itemHeight + sectionSpacing
         
-        self.eyeColorTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        self.youtubeTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
         currentY += itemHeight + sectionSpacing
-        self.breastSizeTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        self.websiteTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
         currentY += itemHeight + sectionSpacing
         
         self.applyButton.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: 50.0))

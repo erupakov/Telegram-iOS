@@ -35,8 +35,8 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
     
     private let scrollNode: ASScrollNode
     
-    private let nameEventTextField: TextFieldNode
-    private let lastNameEventTextField: TextFieldNode
+    private let genderTextField: TextFieldNode
+    private let hairColorTextField: TextFieldNode
     
     private let eyeColorTextField: TextFieldNode
     private let skinColorTextField: TextFieldNode
@@ -67,8 +67,8 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         
         self.scrollNode = ASScrollNode()
         
-        self.nameEventTextField = getTextFiel(title: "Select a Gender")
-        self.lastNameEventTextField = getTextFiel(title: "Choose your hair color")
+        self.genderTextField = getTextFiel(title: "Select a Gender")
+        self.hairColorTextField = getTextFiel(title: "Choose your hair color")
         
         self.eyeColorTextField = getTextFiel(title: "Choose your eye color")
         self.skinColorTextField = getTextFiel(title: "Choose your skin color")
@@ -90,7 +90,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
         self.addSubnode(self.scrollNode)
-        self.scrollNode.addSubnode(self.nameEventTextField)
+        self.scrollNode.addSubnode(self.genderTextField)
         self.scrollNode.addSubnode(self.ageSliderNode)
         self.scrollNode.addSubnode(self.heightSliderNode)
         
@@ -99,26 +99,53 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         self.scrollNode.addSubnode(self.shoeSliderNode)
         self.scrollNode.addSubnode(self.hairSliderNode)
         
-        self.scrollNode.addSubnode(self.lastNameEventTextField)
+        self.scrollNode.addSubnode(self.hairColorTextField)
         
         self.scrollNode.addSubnode(self.eyeColorTextField)
         self.scrollNode.addSubnode(self.skinColorTextField)
         self.scrollNode.addSubnode(self.breastSizeTextField)
         self.scrollNode.addSubnode(self.applyButton)
     }
-
+    
+    deinit {
+        self.supportPeerDisposable.dispose()
+        NotificationCenter.default.removeObserver(self)
+    }
+    
     override func didLoad() {
         super.didLoad()
         self.applyButton.addTarget(self, action: #selector(self.applyButtonTapped), forControlEvents: .touchUpInside)
     }
 
     @objc private func applyButtonTapped() {
-        let nameText = self.nameEventTextField.textField.text ?? ""
-        if nameText.isEmpty {
-            showAlert?("Please fill in all fields")
-            return
-        }
-        self.showAlert?("Saving...")
+        
+        print("applyButton Tapped!")
+        
+        let supportPeer = Promise<String?>()
+        let data = ProfileParametersData(
+            firstName: nil,
+            lastName: nil,
+            country: nil,
+            about: nil,
+            gender: nil,//Api.Gender?
+            birthDate: nil,
+            height: Int32(heightSliderNode.slider.value.rounded()),
+            waist: 0,
+            hips: 0,
+            shoeSize: 0,
+            hairLength: 0,
+            hairColor: "String",
+            eyeColor: "String",
+            skinColor: "String",
+            breastSize: "String",
+            photoId: nil
+        )
+        
+        supportPeer.set(context.engine.profileEngine.updateProfile(data: data))
+        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+            print("🔕 updateProfile", peerId ?? "")
+            self.showAlert?("Saved")
+        }))
     }
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -132,7 +159,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         
         var currentY: CGFloat = 30.0
         
-        self.nameEventTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        self.genderTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
         currentY += itemHeight + sectionSpacing
         
         let measuredSliderHeight = self.ageSliderNode.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude)).height
@@ -153,7 +180,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         self.hairSliderNode.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: sliderHeight))
         currentY += sliderHeight + sectionSpacing
         
-        self.lastNameEventTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
+        self.hairColorTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
         currentY += itemHeight + sectionSpacing
         
         self.eyeColorTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))

@@ -26,6 +26,9 @@ public final class TelegramEngine {
     public lazy var eventsEngine: EventsEngine = {
         return EventsEngine(account: self.account)
     }()
+    public lazy var profileEngine: ProfileEngine = {
+        return ProfileEngine(account: self.account)
+    }()
 
     public lazy var auth: Auth = {
         return Auth(account: self.account)

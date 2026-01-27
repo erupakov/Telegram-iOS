@@ -32,6 +32,8 @@ public final class ProfileScreenController: TelegramBaseController {
     private var navigationBarIsTransparent = true
     private let peer: Peer?
     
+    private let contextSourceNode = ContextReferenceContentNode()
+    
     public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
         self.model = model
@@ -61,7 +63,6 @@ public final class ProfileScreenController: TelegramBaseController {
         self.createWorkExperienceDisposable.dispose()
     }
     
-    
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -69,68 +70,76 @@ public final class ProfileScreenController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
 
-        
         let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Contact List/EditActionIcon"), color: .white)
-        let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.editPressed))
+        let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.showMenu))
         
         self.navigationItem.rightBarButtonItems = [editButton]
     }
     
-    @objc private func editPressed() {
-        let alert = UIAlertController(title: nil, message: nil, preferredStyle: .actionSheet)
+    @objc func showMenu() {
+        let presentationData = self.presentationData
+        let barHeight: CGFloat = 44.0
+        let screenWidth = self.view.bounds.width
         
-        alert.addAction(UIAlertAction(title: "Edit Profile", style: .default, handler: { _ in
-            let controller = EditProfileController(context: self.context, model: self.model)
-            
-            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-                navigationController.pushViewController(controller)
-            }
-        }))
-        alert.addAction(UIAlertAction(title: "Edit  Appearance", style: .default, handler: { _ in
-            let controller = ProfileParametersController(context: self.context, model: self.model)
-            
-            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-                navigationController.pushViewController(controller)
-            }
-        }))
-        alert.addAction(UIAlertAction(title: "Change Profile Background", style: .default, handler: { _ in }))
-        alert.addAction(UIAlertAction(title: "Edit Social Links", style: .default, handler: { _ in
-            let controller = EditSocialLinksController(context: self.context, model: self.model)
-            
-            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-                navigationController.pushViewController(controller)
-            }
-        }))
-        alert.addAction(UIAlertAction(title: "Manage Work Experience", style: .default, handler: { _ in
-            let controller = WorkExperienceController(context: self.context, model: self.model, peer: self.peer)
-            
-            if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-                navigationController.pushViewController(controller)
-            }
-        }))
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-        
-        if let popover = alert.popoverPresentationController {
-            popover.barButtonItem = self.navigationItem.rightBarButtonItem
+        if self.contextSourceNode.supernode == nil {
+            self.view.addSubnode(self.contextSourceNode)
         }
         
-        self.present(alert, animated: true)
+        self.contextSourceNode.frame = CGRect(x: screenWidth - 50, y: 50, width: 40, height: barHeight)
+        self.contextSourceNode.isUserInteractionEnabled = false
+        
+        var items: [ContextMenuItem] = []
+        items.append(.action(ContextMenuActionItem(text: "Edit Profile", icon: { _ in return nil }, action: { [weak self] _, f in
+            f(.default)
+            self?.editProfile()
+        })))
+        items.append(.action(ContextMenuActionItem(text: "Edit Appearance", icon: { _ in return nil }, action: { [weak self] _, f in
+            f(.default)
+            self?.editAppearance()
+        })))
+        items.append(.action(ContextMenuActionItem(text: "Edit Social Links", icon: { _ in return nil }, action: { [weak self] _, f in
+            f(.default)
+            self?.editSocialLinks()
+        })))
+        items.append(.action(ContextMenuActionItem(text: "Manage Work Experience", icon: { _ in return nil }, action: { [weak self] _, f in
+            f(.default)
+            self?.editWorkExperience()
+        })))
+
+        let contextController = ContextController(
+            presentationData: presentationData,
+            source: .reference(MenuSource(controller: self, sourceNode: self.contextSourceNode)),
+            items: .single(ContextController.Items(content: .list(items)))
+        )
+        
+        self.present(contextController, in: .window(.root))
     }
     
-    @objc private func backPressed() {
-        self.navigationController?.popViewController(animated: true)
+    private func editProfile() {
+        let controller = EditProfileController(context: self.context, model: self.model)
+        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
+            navigationController.pushViewController(controller)
+        }
     }
     
-    @objc private func likePressed() {
-        print("Like button pressed")
+    private func editAppearance() {
+        let controller = ProfileParametersController(context: self.context, model: self.model)
+        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
+            navigationController.pushViewController(controller)
+        }
     }
     
-    @objc private func sharePressed() {
-        print("Share button pressed")
+    private func editSocialLinks() {
+        let controller = EditSocialLinksController(context: context, model: model)
+        if let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController {
+            navigationController.pushViewController(controller)
+        }
     }
-    
-    @objc private func bookmarkPressed() {
-        print("Bookmark button pressed")
+    private func editWorkExperience() {
+        let controller = WorkExperienceController(context: context, model: model, peer: peer)
+        if let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController {
+            navigationController.pushViewController(controller)
+        }
     }
     
     override public func loadDisplayNode() {
@@ -188,5 +197,19 @@ public final class ProfileScreenController: TelegramBaseController {
         super.containerLayoutUpdated(layout, transition: transition)
         
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+    }
+}
+
+final class MenuSource: ContextReferenceContentSource {
+    let controller: ViewController
+    let sourceNode: ContextReferenceContentNode
+
+    init(controller: ViewController, sourceNode: ContextReferenceContentNode) {
+        self.controller = controller
+        self.sourceNode = sourceNode
+    }
+
+    func transitionInfo() -> ContextControllerReferenceViewInfo? {
+        return ContextControllerReferenceViewInfo(referenceView: self.sourceNode.view, contentAreaInScreenSpace: UIScreen.main.bounds)
     }
 }
