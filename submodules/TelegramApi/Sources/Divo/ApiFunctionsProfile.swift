@@ -358,3 +358,19 @@ public extension Api.functions.profile {
         })
     }
 }
+
+public extension Api.functions.profile {
+    static func getUserProfile(userId: Api.InputUser) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.UserProfile>) {
+        let buffer = Buffer()
+        buffer.appendInt32(504379527)
+        userId.serialize(buffer, true)
+        return (FunctionDescription(name: "profile.getUserProfile", parameters: [("userId", String(describing: userId))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.UserProfile? in
+            let reader = BufferReader(buffer)
+            var result: Api.UserProfile?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.UserProfile
+            }
+            return result
+        })
+    }
+}

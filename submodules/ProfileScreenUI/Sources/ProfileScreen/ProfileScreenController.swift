@@ -198,6 +198,21 @@ public final class ProfileScreenController: TelegramBaseController {
         
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
+    
+    override public func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        getUserProfile()
+    }
+    
+    private func getUserProfile() {
+        let supportPeer = Promise<UserProfileData?>()
+        
+        supportPeer.set(context.engine.profileEngine.getUserProfile(peer: peer))
+        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { userProfile in
+            print("🔕", userProfile ?? "")
+        }))
+    }
+    
 }
 
 final class MenuSource: ContextReferenceContentSource {

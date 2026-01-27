@@ -37,5 +37,9 @@ public extension TelegramEngine {
         public func updateProfile(data: ProfileParametersData) -> Signal<String?, NoError> {
             _internal_updateProfile(account: account, data: data)
         }
+        
+        public func getUserProfile(peer: Peer?) -> Signal<UserProfileData?, NoError> {
+            _internal_getUserProfile(account: account, peer: peer)
+        }
     }
 }

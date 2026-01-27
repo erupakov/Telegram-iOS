@@ -214,4 +214,86 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
     }
 }
 
+func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfileData?, NoError> {
+    print("⛳️", "_internal_getWorkHistory")
 
+    if let peer = peer, let inputUser = apiInputUser(peer) {
+        return account.network.request(Api.functions.profile.getUserProfile(userId: inputUser))
+        |> map(Optional.init)
+        |> `catch` { _ in
+            return Signal<Api.UserProfile?, NoError>.single(nil)
+        }
+        |> mapToSignal { userProfile -> Signal<UserProfileData?, NoError> in
+            if let userProfile = userProfile {
+                print("👌 UserProfile:", userProfile)
+            }
+            switch userProfile {
+            case .userProfile(_, _, let country, let city, let gender, let birthDate, _, let about, let physicalParams, _, _, let socialLinks, _):
+                
+//                print(physicalParams, socialLinks)
+                
+//                physicalParams(flags: Int32, age: Api.Range?, height: Api.Range?, waist: Api.Range?, hips: Api.Range?, shoeSize: Api.Range?, hairLength: Api.Range?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?)
+//            case socialLinks(links: [Api.profile.KeyVal])
+//            case keyVal(key: String, val: String)
+                
+                var finalGender: UserProfileData.Gender? = nil
+                if let gender = gender {
+                    switch gender {
+                    case .genderFemale: finalGender = .genderFemale
+                    case .genderMale: finalGender = .genderMale
+                    }
+                }
+                
+                
+                var finalSocialLinks: SocialLinks? = nil
+                if let socialLinks = socialLinks, case let .socialLinks(apiLinks) = socialLinks {
+                    let mappedLinks = apiLinks.compactMap { item -> SocialKeyVal? in
+                        if case let .keyVal(key, val) = item {
+                            return SocialKeyVal(key: key, val: val)
+                        }
+                        return nil
+                    }
+                    finalSocialLinks = SocialLinks(links: mappedLinks)
+                }
+                
+                var finalPhysical: PhysicalParams? = nil
+                if let p = physicalParams, case let .physicalParams(flags, age, height, waist, hips, shoeSize, hairLength, hairColor, eyeColor, skinColor, breastSize) = p {
+                    
+                    let unwrapRange: (Api.Range?) -> RangeValue? = { range in
+                        guard let range = range, case let .range(f, max, val) = range else { return nil }
+                        return RangeValue(flags: Int(f), max: max.map(Int.init), value: val.map(Int.init))
+                    }
+                    
+                    finalPhysical = PhysicalParams(
+                        flags: Int(flags),
+                        age: age.flatMap { if case let .range(_, _, v) = $0 { return v.map(Int.init) }; return nil }, // age в твоей модели Int?
+                        height: unwrapRange(height),
+                        waist: unwrapRange(waist),
+                        hips: unwrapRange(hips),
+                        shoeSize: unwrapRange(shoeSize),
+                        hairLength: hairLength.flatMap { if case let .range(_, _, v) = $0 { return v.map { "\($0)" } }; return nil }, // hairLength в модели String?
+                        hairColor: hairColor,
+                        eyeColor: eyeColor,
+                        skinColor: skinColor,
+                        breastSize: breastSize
+                    )
+                }
+                
+                let data = UserProfileData(
+                    country: country,
+                    city: city,
+                    gender: finalGender,
+                    birthDate: Int(birthDate ?? 0),
+                    about: about,
+                    physicalParams: finalPhysical,
+                    socialLinks: finalSocialLinks,
+                    agency: nil
+                )
+                return .single(data)
+            default:
+                return .single(nil)
+            }
+        }
+    }
+    return .single(nil)
+}
