@@ -6,7 +6,7 @@ public extension Api {
             switch self {
             case .userProfile(let flags, let userId, let country, let city, let gender, let birthDate, let role, let about, let physicalParams, let stats, let portfolio, let socialLinks, let agency):
                 if boxed {
-                    buffer.appendInt32(446635322)
+                    buffer.appendInt32(-1676832783)
                 }
                 serializeInt32(flags, buffer: buffer, boxed: false)
                 serializeInt64(userId, buffer: buffer, boxed: false)

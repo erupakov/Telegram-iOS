@@ -92,7 +92,7 @@ private func formatExperiencePeriod(startDate: Int32, endDate: Int32?) -> String
 }
 
 func _internal_createWorkExperience(account: Account, agencyName: String, startDate: Int32) -> Signal<String?, NoError> {
-    print("⛳️", "post createEvent")
+    print("⛳️", "post _internal_createWorkExperience")
     
     var flags: Int32 = 0
 
@@ -130,7 +130,7 @@ func _internal_updateSocialLinks(
     youtube: String,
     website: String
 ) -> Signal<String?, NoError> {
-    print("⛳️", "post createEvent")
+    print("⛳️", "post _internal_updateSocialLinks")
     
     var flags: Int32 = 0
 
@@ -161,7 +161,7 @@ func _internal_updateSocialLinks(
 }
 
 func _internal_updateProfile(account: Account, data: ProfileParametersData) -> Signal<String?, NoError> {
-    print("⛳️", "post createEvent")
+    print("⛳️", "post _internal_updateProfile")
     
     var flags: Int32 = 0
     
@@ -204,7 +204,7 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
     )
     |> map(Optional.init)
     |> `catch` { _ in
-        return Signal<Api.User?, NoError>.single(nil)
+        return Signal<Api.UserProfile?, NoError>.single(nil)
     }
     |> mapToSignal { user -> Signal<String?, NoError> in
         if let user = user {
@@ -246,7 +246,7 @@ func _internal_updateProfileNameAndBio(account: Account, data: ProfileParameters
     )
     |> map(Optional.init)
     |> `catch` { _ in
-        return Signal<Api.User?, NoError>.single(nil)
+        return Signal<Api.UserProfile?, NoError>.single(nil)
     }
     |> mapToSignal { user -> Signal<String?, NoError> in
         if let user = user {
