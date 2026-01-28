@@ -21,28 +21,28 @@ class AgeSliderNode: ASDisplayNode {
     private let maxAgeNode: ASTextNode
     private let type: String
     
-    init(title: String, min: String, max: String, value: String, type: String) {
+    init(title: String, type: String, defaultValue: Int, minimumValue: Int, maximumValue: Int) {
         self.type = type
         self.titleNode = ASTextNode()
         self.titleNode.attributedText = NSAttributedString(string: title, font: Font.regular(16), textColor: .white)
         self.titleNode.displaysAsynchronously = false
         
         self.valueNode = ASTextNode()
-        self.valueNode.attributedText = NSAttributedString(string: value + " " + type, font: Font.bold(16), textColor: .white)
+        self.valueNode.attributedText = NSAttributedString(string: String(defaultValue) + " " + type, font: Font.bold(16), textColor: .white)
         self.valueNode.displaysAsynchronously = false
         
         self.slider = UISlider()
-        self.slider.minimumValue = 14
-        self.slider.maximumValue = 45
-        self.slider.value = 17
+        self.slider.minimumValue = Float(minimumValue)
+        self.slider.maximumValue = Float(maximumValue)
+        self.slider.value = Float(defaultValue)
         self.slider.tintColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
         
         self.minAgeNode = ASTextNode()
-        self.minAgeNode.attributedText = NSAttributedString(string: min, font: Font.regular(14), textColor: .white.withAlphaComponent(0.8))
+        self.minAgeNode.attributedText = NSAttributedString(string: String(minimumValue), font: Font.regular(14), textColor: .white.withAlphaComponent(0.8))
         self.minAgeNode.displaysAsynchronously = false
         
         self.maxAgeNode = ASTextNode()
-        self.maxAgeNode.attributedText = NSAttributedString(string: max, font: Font.regular(14), textColor: .white.withAlphaComponent(0.8))
+        self.maxAgeNode.attributedText = NSAttributedString(string: String(maximumValue), font: Font.regular(14), textColor: .white.withAlphaComponent(0.8))
         self.maxAgeNode.displaysAsynchronously = false
         
         super.init()
@@ -73,10 +73,10 @@ class AgeSliderNode: ASDisplayNode {
         let sliderY = titleSize.height
         self.slider.frame = CGRect(x: sideInset, y: sliderY, width: sliderWidth, height: sliderHeight)
         
-        let minSize = self.minAgeNode.measure(CGSize(width: 20, height: 20))
+        let minSize = self.minAgeNode.measure(CGSize(width: maximumWidth / 2.0, height: .greatestFiniteMagnitude))
         self.minAgeNode.frame = CGRect(x: sideInset, y: sliderY + sliderHeight, width: minSize.width, height: minSize.height)
-        
-        let maxSize = self.maxAgeNode.measure(CGSize(width: 20, height: 20))
+
+        let maxSize = self.maxAgeNode.measure(CGSize(width: maximumWidth / 2.0, height: .greatestFiniteMagnitude))
         self.maxAgeNode.frame = CGRect(x: maximumWidth - sideInset - maxSize.width, y: sliderY + sliderHeight, width: maxSize.width, height: maxSize.height)
     }
     

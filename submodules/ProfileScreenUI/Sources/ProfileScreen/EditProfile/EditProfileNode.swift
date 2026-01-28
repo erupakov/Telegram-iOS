@@ -11,6 +11,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import Postbox
 
 final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
     
@@ -49,14 +50,31 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
     
     private let nameEventTextField: TextFieldNode
     private let lastNameEventTextField: TextFieldNode
-    private let aboutEventTextField: TextFieldNode
-    private let aboutEventLabel: ASTextNode
+    private let aboutEventTextField: DivoTextView
     
     private let applyButton: ASControlNode
     private let addPhoto: () -> Void
     var showAlert: ((String) -> Void)?
     
     private let model: ProfileModel
+    
+    var currentPhoto: UIImage? = nil {
+        didSet {
+            if let currentPhoto = self.currentPhoto {
+                avatarImageView.image = currentPhoto
+            } else {
+                self.avatarImageView.image = nil
+            }
+        }
+    }
+    
+    private let avatarSpinner: UIActivityIndicatorView = {
+        let spinner = UIActivityIndicatorView(style: .whiteLarge)
+        spinner.color = .white
+        spinner.hidesWhenStopped = true
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        return spinner
+    }()
     
     init(context: AccountContext, model: ProfileModel, addPhoto: @escaping () -> Void) {
         self.context = context
@@ -68,11 +86,6 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
         self.presentationDataPromise = Promise(self.presentationData)
         
         self.scrollNode = ASScrollNode()
-        
-        let regularFont = Font.regular(14)
-
-        self.aboutEventLabel = ASTextNode()
-        self.aboutEventLabel.attributedText = NSAttributedString(string: "Biography", font: regularFont, textColor: .white)
 
         self.nameEventTextField = getTextFiel(title: model.name)
         if !model.name.isEmpty {
@@ -82,11 +95,8 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
         if let lastName = model.lastName {
             lastNameEventTextField.textField.text = lastName
         }
-        self.aboutEventTextField = getTextFiel(title: model.biography, isMultiline: true)
         
-        if !model.biography.isEmpty {
-            aboutEventTextField.textField.text = model.biography
-        }
+        self.aboutEventTextField = DivoTextView(title: "Biography", initialText: model.biography)
         
         self.applyButton = ButtonWithIconNode(title: "Save", icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
         self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
@@ -98,10 +108,14 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
         self.addSubnode(self.scrollNode)
         
         self.scrollNode.view.addSubview(self.avatarImageView)
+        self.scrollNode.view.addSubview(avatarSpinner)
+        NSLayoutConstraint.activate([
+            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
+            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor)
+        ])
         
         self.scrollNode.addSubnode(self.nameEventTextField)
         self.scrollNode.addSubnode(self.lastNameEventTextField)
-        self.scrollNode.addSubnode(self.aboutEventLabel)
         self.scrollNode.addSubnode(self.aboutEventTextField)
         self.scrollNode.addSubnode(self.applyButton)
         
@@ -130,25 +144,65 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
         self.addPhoto()
     }
 
+    func toggleSpinner(active: Bool) {
+        if active {
+            avatarSpinner.startAnimating()
+            avatarImageView.alpha = 0.5
+        } else {
+            avatarSpinner.stopAnimating()
+            avatarImageView.alpha = 1.0
+        }
+    }
+    
     override func didLoad() {
         super.didLoad()
-        self.applyButton.addTarget(self, action: #selector(self.applyButtonTapped), forControlEvents: .touchUpInside)
+        self.applyButton.addTarget(self, action: #selector(self.updateAccountPeerName), forControlEvents: .touchUpInside)
     }
 
-    @objc private func applyButtonTapped() {
+    @objc private func updateProfileNameAndBio() {
         
-        print("applyButton Tapped!")
+        print("updateProfileNameAndBio Tapped!")
         
-//        let supportPeer = Promise<Void?>()
-//        
-//        supportPeer.set(context.engine.accountData.updateAbout(about: aboutEventTextField.textField.text ?? ""))
-//        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
-//            print("🔕 updateAbout(about", peerId ?? "")
-//            self.showAlert?("Saving...")
-//        }))
+        let supportPeer = Promise<String?>()
+        let data = ProfileParametersData(
+            firstName: nameEventTextField.textField.text ?? "",
+            lastName: lastNameEventTextField.textField.text ?? "",
+            country: nil,
+            about: aboutEventTextField.text,
+            gender: nil,
+            birthDate: nil,
+            height: nil,
+            waist: nil,
+            hips: nil,
+            shoeSize: nil,
+            hairLength: nil,
+            hairColor: nil,
+            eyeColor: nil,
+            skinColor: nil,
+            breastSize: nil,
+            photoId: nil
+        )
         
-        let _ = (context.engine.accountData.updateAbout(about: aboutEventTextField.textField.text ?? "")
-        |> `catch` { _ -> Signal<Void, NoError> in
+        supportPeer.set(context.engine.profileEngine.updateProfileNameAndBio(data: data))
+        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+            print("🔕 updateProfile", peerId ?? "")
+            self.showAlert?("Saved")
+        }))
+    }
+    
+    @objc private  func updateAccountPeerName() {
+        let firstName = nameEventTextField.textField.text ?? ""
+        let lastName = lastNameEventTextField.textField.text ?? ""
+        let _ = (context.engine.accountData.updateAccountPeerName(firstName: firstName, lastName: lastName)
+                 |> castError(UpdateInfoError.self)).start()
+        
+        enum UpdateInfoError {
+            case generic
+            case birthdayFlood
+        }
+        
+        let _ = (context.engine.accountData.updateAbout(about: aboutEventTextField.text)
+                 |> `catch` { _ -> Signal<Void, NoError> in
             return .complete()
         }).start()
     }
@@ -174,10 +228,6 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
         
         self.lastNameEventTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
         currentY += itemHeight + sectionSpacing
-        
-        let aboutLabelSize = self.aboutEventLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
-        self.aboutEventLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: aboutLabelSize)
-        currentY += aboutLabelSize.height + 4.0
 
         let aboutEventHeight: CGFloat = 100.0
         self.aboutEventTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: aboutEventHeight))
@@ -194,7 +244,7 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
 private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldNode {
     let field = TextFieldNode()
     field.textField.font = Font.regular(16.0)
-    field.textField.textColor = .white.withAlphaComponent(0.6)
+    field.textField.textColor = .white
     field.textField.textAlignment = .natural
     field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
     field.textField.autocapitalizationType = .none
@@ -211,17 +261,4 @@ private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldN
     }
     
     return field
-}
-
-private func roundCorners(diameter: CGFloat) -> UIImage {
-    UIGraphicsBeginImageContextWithOptions(CGSize(width: diameter, height: diameter), false, 0.0)
-    let context = UIGraphicsGetCurrentContext()!
-    context.setBlendMode(.copy)
-    context.setFillColor(UIColor.black.cgColor)
-    context.fill(CGRect(origin: CGPoint(), size: CGSize(width: diameter, height: diameter)))
-    context.setFillColor(UIColor.clear.cgColor)
-    context.fillEllipse(in: CGRect(origin: CGPoint(), size: CGSize(width: diameter, height: diameter)))
-    let image = UIGraphicsGetImageFromCurrentImageContext()!.stretchableImage(withLeftCapWidth: Int(diameter / 2.0), topCapHeight: Int(diameter / 2.0))
-    UIGraphicsEndImageContext()
-    return image
 }

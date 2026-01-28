@@ -54,12 +54,12 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
     private let addPhoto: () -> Void
     var showAlert: ((String) -> Void)?
     
-    private let model: ProfileModel
+    private var userProfileData: UserProfileData?
     
-    init(context: AccountContext, model: ProfileModel, addPhoto: @escaping () -> Void) {
+    init(context: AccountContext, userProfileData: UserProfileData?, addPhoto: @escaping () -> Void) {
         self.context = context
         self.addPhoto = addPhoto
-        self.model = model
+        self.userProfileData = userProfileData
         
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationData = presentationData
@@ -67,20 +67,20 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         
         self.scrollNode = ASScrollNode()
         
-        self.genderTextField = getTextFiel(title: "Select a Gender")
-        self.hairColorTextField = getTextFiel(title: "Choose your hair color")
+        self.genderTextField = getTextFiel(placeholder: "Select a Gender", value: nil)
         
-        self.eyeColorTextField = getTextFiel(title: "Choose your eye color")
-        self.skinColorTextField = getTextFiel(title: "Choose your skin color")
-        self.breastSizeTextField = getTextFiel(title: "Choose your breast size")
+        self.hairColorTextField = getTextFiel(placeholder: "Choose your hair color", value: userProfileData?.physicalParams?.hairColor)
+        self.eyeColorTextField = getTextFiel(placeholder: "Choose your eye color", value: userProfileData?.physicalParams?.eyeColor)
+        self.skinColorTextField = getTextFiel(placeholder: "Choose your skin color", value: userProfileData?.physicalParams?.skinColor)
+        self.breastSizeTextField = getTextFiel(placeholder: "Choose your breast size", value: userProfileData?.physicalParams?.breastSize)
         
-        self.ageSliderNode = AgeSliderNode(title: "Age (y.o)", min: "14", max: "45", value: "17", type: "y.o")
-        self.heightSliderNode = AgeSliderNode(title: "Height (cm)", min: "14", max: "250", value: "2.1", type: "cm")
         
-        self.waisttSliderNode = AgeSliderNode(title: "Waist (cm)", min: "48", max: "90", value: "2.1", type: "cm")
-        self.hipsSliderNode = AgeSliderNode(title: "Hips (cm)", min: "80", max: "110", value: "2.1", type: "cm")
-        self.shoeSliderNode = AgeSliderNode(title: "Shoe size (EU)", min: "36", max: "42", value: "2.1", type: "EU")
-        self.hairSliderNode = AgeSliderNode(title: "Hair length (cm)", min: "0", max: "200", value: "2.1", type: "cm")
+        self.ageSliderNode = AgeSliderNode(title: "Age (y.o)", type: "y.o", defaultValue: 17, minimumValue: 14, maximumValue: 45)
+        self.heightSliderNode = AgeSliderNode(title: "Height (cm)", type: "cm", defaultValue: userProfileData?.physicalParams?.height ?? 180, minimumValue: 150, maximumValue: 250)
+        self.waisttSliderNode = AgeSliderNode(title: "Waist (cm)", type: "cm", defaultValue: userProfileData?.physicalParams?.waist ?? 60, minimumValue: 48, maximumValue: 90)
+        self.hipsSliderNode = AgeSliderNode(title: "Hips (cm)", type: "cm", defaultValue: userProfileData?.physicalParams?.hips ?? 91, minimumValue: 80, maximumValue: 110)
+        self.shoeSliderNode = AgeSliderNode(title: "Shoe size (EU)", type: "EU", defaultValue: userProfileData?.physicalParams?.shoeSize ?? 37, minimumValue: 36, maximumValue: 42)
+        self.hairSliderNode = AgeSliderNode(title: "Hair length (cm)", type: "cm", defaultValue: userProfileData?.physicalParams?.hairLength ?? 46, minimumValue: 0, maximumValue: 200)
         
         self.applyButton = ButtonWithIconNode(title: "Save", icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
         self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
@@ -130,14 +130,14 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
             gender: nil,//Api.Gender?
             birthDate: nil,
             height: Int32(heightSliderNode.slider.value.rounded()),
-            waist: 0,
-            hips: 0,
-            shoeSize: 0,
-            hairLength: 0,
-            hairColor: "String",
-            eyeColor: "String",
-            skinColor: "String",
-            breastSize: "String",
+            waist: Int32(waisttSliderNode.slider.value.rounded()),
+            hips: Int32(hipsSliderNode.slider.value.rounded()),
+            shoeSize: Int32(shoeSliderNode.slider.value.rounded()),
+            hairLength: Int32(hairSliderNode.slider.value.rounded()),
+            hairColor: hairColorTextField.textField.text ?? "",
+            eyeColor: eyeColorTextField.textField.text ?? "",
+            skinColor: skinColorTextField.textField.text ?? "",
+            breastSize: breastSizeTextField.textField.text ?? "",
             photoId: nil
         )
         
@@ -198,12 +198,18 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
     }
 }
 
-private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldNode {
+private func getTextFiel(placeholder: String, isMultiline: Bool = false, value: String?) -> TextFieldNode {
     let field = TextFieldNode()
     field.textField.font = Font.regular(16.0)
-    field.textField.textColor = .white.withAlphaComponent(0.6)
+    field.textField.textColor = .white
     field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+    
+    if let value = value, !value.isEmpty {
+        field.textField.text = value
+    } else {
+        field.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+    }
+    
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
     field.borderWidth = 1.0

@@ -14,10 +14,10 @@ import Postbox
 import MapResourceToAvatarSizes
 import ContextUI
 
-public final class ProfileScreenController: TelegramBaseController {
+public final class PublicProfileScreenController: TelegramBaseController {
     
-    private var controllerNode: ProfileScreenNode {
-        return self.displayNode as! ProfileScreenNode
+    private var controllerNode: PublicProfileScreenNode {
+        return self.displayNode as! PublicProfileScreenNode
     }
     
     private var customBackSwipeGestureRecognizer: UIScreenEdgePanGestureRecognizer?
@@ -70,84 +70,13 @@ public final class ProfileScreenController: TelegramBaseController {
     
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
-
-        let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Contact List/EditActionIcon"), color: .white)
-        let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.showMenu))
-        
-        self.navigationItem.rightBarButtonItems = [editButton]
-    }
-    
-    @objc func showMenu() {
-        let presentationData = self.presentationData
-        let barHeight: CGFloat = 44.0
-        let screenWidth = self.view.bounds.width
-        
-        if self.contextSourceNode.supernode == nil {
-            self.view.addSubnode(self.contextSourceNode)
-        }
-        
-        self.contextSourceNode.frame = CGRect(x: screenWidth - 50, y: 50, width: 40, height: barHeight)
-        self.contextSourceNode.isUserInteractionEnabled = false
-        
-        var items: [ContextMenuItem] = []
-        items.append(.action(ContextMenuActionItem(text: "Edit Profile", icon: { _ in return nil }, action: { [weak self] _, f in
-            f(.default)
-            self?.editProfile()
-        })))
-        items.append(.action(ContextMenuActionItem(text: "Edit Appearance", icon: { _ in return nil }, action: { [weak self] _, f in
-            f(.default)
-            self?.editAppearance()
-        })))
-        items.append(.action(ContextMenuActionItem(text: "Edit Social Links", icon: { _ in return nil }, action: { [weak self] _, f in
-            f(.default)
-            self?.editSocialLinks()
-        })))
-        items.append(.action(ContextMenuActionItem(text: "Manage Work Experience", icon: { _ in return nil }, action: { [weak self] _, f in
-            f(.default)
-            self?.editWorkExperience()
-        })))
-
-        let contextController = ContextController(
-            presentationData: presentationData,
-            source: .reference(MenuSource(controller: self, sourceNode: self.contextSourceNode)),
-            items: .single(ContextController.Items(content: .list(items)))
-        )
-        
-        self.present(contextController, in: .window(.root))
-    }
-    
-    private func editProfile() {
-        let controller = EditProfileController(context: self.context, model: self.model)
-        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-            navigationController.pushViewController(controller)
-        }
-    }
-    
-    private func editAppearance() {
-        let controller = ProfileParametersController(context: self.context, userProfileData: userProfileData)
-        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-            navigationController.pushViewController(controller)
-        }
-    }
-    
-    private func editSocialLinks() {
-        let controller = EditSocialLinksController(context: context, userProfileData: userProfileData)
-        if let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController {
-            navigationController.pushViewController(controller)
-        }
-    }
-    private func editWorkExperience() {
-        let controller = WorkExperienceController(context: context, model: model, peer: peer)
-        if let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController {
-            navigationController.pushViewController(controller)
-        }
     }
     
     override public func loadDisplayNode() {
         let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         let theme = self.presentationData.theme
         
-        self.displayNode = ProfileScreenNode(
+        self.displayNode = PublicProfileScreenNode(
             controller: self,
             context: self.context,
             presentationData: self.presentationData,
@@ -189,9 +118,6 @@ public final class ProfileScreenController: TelegramBaseController {
                     })
                 }, videoCompletion: { _, _, _ in
                 })
-            },
-            openEditLink: {
-                self.editSocialLinks()
             })
         
         self.displayNodeDidLoad()
@@ -214,22 +140,7 @@ public final class ProfileScreenController: TelegramBaseController {
         supportPeer.set(context.engine.profileEngine.getUserProfile(peer: peer))
         self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { userProfile in
             self.userProfileData = userProfile
-            self.controllerNode.reloadSocialMedia(userProfile?.socialLinks)
         }))
     }
     
-}
-
-final class MenuSource: ContextReferenceContentSource {
-    let controller: ViewController
-    let sourceNode: ContextReferenceContentNode
-
-    init(controller: ViewController, sourceNode: ContextReferenceContentNode) {
-        self.controller = controller
-        self.sourceNode = sourceNode
-    }
-
-    func transitionInfo() -> ContextControllerReferenceViewInfo? {
-        return ContextControllerReferenceViewInfo(referenceView: self.sourceNode.view, contentAreaInScreenSpace: UIScreen.main.bounds)
-    }
 }

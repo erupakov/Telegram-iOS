@@ -44,12 +44,12 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     private let addPhoto: () -> Void
     var showAlert: ((String) -> Void)?
     
-    private let model: ProfileModel
+    private var userProfileData: UserProfileData?
     
-    init(context: AccountContext, model: ProfileModel, addPhoto: @escaping () -> Void) {
+    init(context: AccountContext, userProfileData: UserProfileData?, addPhoto: @escaping () -> Void) {
         self.context = context
         self.addPhoto = addPhoto
-        self.model = model
+        self.userProfileData = userProfileData
         
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.presentationData = presentationData
@@ -57,11 +57,26 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         
         self.scrollNode = ASScrollNode()
         
-        self.instagramTextField = DivoTextField(title: "username", prefix: "instagram.com/")
-        self.tiktokTextField = DivoTextField(title: "username", prefix: "tiktok.com/")
-        self.youtubeTextField = DivoTextField(title: "username", prefix: "youtube.com/")
+        var instagramName = ""
+        var tiktokName = ""
+        var youtubeName = ""
+        let websiteValue = userProfileData?.socialLinks?.website
         
-        self.websiteTextField = DivoTextField(title: "Enter your website")
+        if let urlString = userProfileData?.socialLinks?.instagram, let url = URL(string: urlString) {
+            instagramName = url.pathComponents.last(where: { $0 != "/" }) ?? ""
+        }
+        if let urlString = userProfileData?.socialLinks?.tiktok, let url = URL(string: urlString) {
+            tiktokName = url.pathComponents.last(where: { $0 != "/" }) ?? ""
+        }
+        if let urlString = userProfileData?.socialLinks?.youtube, let url = URL(string: urlString) {
+            youtubeName = url.pathComponents.last(where: { $0 != "/" }) ?? ""
+        }
+        
+        self.instagramTextField = DivoTextField(title: instagramName, prefix: "instagram.com/")
+        self.tiktokTextField = DivoTextField(title: tiktokName, prefix: "tiktok.com/")
+        self.youtubeTextField = DivoTextField(title: youtubeName, prefix: "youtube.com/")
+        
+        self.websiteTextField = DivoTextField(title: websiteValue ?? "Enter your website", prefix: "")
         
         self.applyButton = ButtonWithIconNode(title: "Save", icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
         self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)

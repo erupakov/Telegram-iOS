@@ -10,7 +10,7 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 
-final class ProfileScreenNode: ASDisplayNode {
+final class PublicProfileScreenNode: ASDisplayNode {
     
     private let model: ProfileModel
     private weak var controller: ViewController?
@@ -24,7 +24,6 @@ final class ProfileScreenNode: ASDisplayNode {
     private let fixedHeaderHeight: CGFloat = 630.0
     
     private let addPhoto: () -> Void
-    private let openEditLink: () -> Void
     
     private let scrollView = UIScrollView()
     
@@ -171,19 +170,12 @@ final class ProfileScreenNode: ASDisplayNode {
         return view
     }()
     
-    init(
-        controller: ViewController,
-        context: AccountContext,
-        presentationData: PresentationData,
-        model: ProfileModel,
-        addPhoto: @escaping () -> Void,
-        openEditLink: @escaping () -> Void) {
+    init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel, addPhoto: @escaping () -> Void) {
         self.controller = controller
         self.context = context
         self.presentationData = presentationData
         self.model = model
         self.addPhoto = addPhoto
-        self.openEditLink = openEditLink
         super.init()
         
         self.view.backgroundColor = .black
@@ -311,11 +303,9 @@ final class ProfileScreenNode: ASDisplayNode {
         contentViewStack.setCustomSpacing(overlap, after: headerContainer)
         setupSocialMediaBlock()
         setupSegmentedBar()
-        contentViewStack.setCustomSpacing(16, after: socialMediaStack)
+        contentViewStack.setCustomSpacing(-175, after: socialMediaStack)
         setupGallery()
-        if let segmentedWrapper = contentViewStack.arrangedSubviews.first(where: { $0.subviews.contains(segmentedBar) }) {
-            contentViewStack.setCustomSpacing(5, after: segmentedWrapper)
-        }
+        contentViewStack.setCustomSpacing(-40, after: segmentedBar)
     }
     
     private func setupHeaderLayout() {
@@ -442,7 +432,9 @@ final class ProfileScreenNode: ASDisplayNode {
     
     private func setupSocialMediaBlock() {
         
-        updateSocialMediaStack(nil)
+        for (index, handle) in model.socialMediaHandles.enumerated() {
+            socialMediaStack.addArrangedSubview(createSocialMediaButton(handle: handle, iconName: model.socialMediaIcons[safe: index] ?? iconPlaceholder))
+        }
         
         let paddedSocialMedia = UIView()
         paddedSocialMedia.translatesAutoresizingMaskIntoConstraints = false
@@ -619,7 +611,7 @@ final class ProfileScreenNode: ASDisplayNode {
         ])
     }
     
-    private func createSocialMediaButton(handle: String, iconName: String, action: @escaping () -> Void) -> UIButton {
+    private func createSocialMediaButton(handle: String, iconName: String) -> UIView {
         let button = UIButton(type: .system)
         button.backgroundColor = .black.withAlphaComponent(0.12)
         button.layer.cornerRadius = 10
@@ -649,8 +641,6 @@ final class ProfileScreenNode: ASDisplayNode {
             stack.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: button.centerYAnchor)
         ])
-        
-        button.addAction(action)
         
         return button
     }
@@ -711,61 +701,15 @@ final class ProfileScreenNode: ASDisplayNode {
         setupCounterView(viewsView, count: model.viewsCount, name: "Viewed", iconName: "Stories/EmbeddedViewIcon")
         setupCounterView(savesView, count: model.savesCount, name: "Save", iconName: "Instant View/Bookmark")
         
-    }
-    
-    private func updateSocialMediaStack(_ socialMedia: SocialLinks?) {
-        
-        socialMediaStack.arrangedSubviews.forEach { view in
-            socialMediaStack.removeArrangedSubview(view)
-            view.removeFromSuperview()
+        socialMediaStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for (index, handle) in model.socialMediaHandles.enumerated() {
+            let iconName = model.socialMediaIcons[safe: index] ?? iconPlaceholder
+            socialMediaStack.addArrangedSubview(createSocialMediaButton(handle: handle, iconName: iconName))
         }
-
-        if let socialMedia = socialMedia {
-            if let instagram = socialMedia.instagram,
-               let name = URL(string: instagram)?.pathComponents.last(where: { $0 != "/" }) {
-                
-                let buttonView = createSocialMediaButton(handle: "@" + name, iconName: "Models/instaIcon") {
-                    print("instaIcon")
-                }
-                socialMediaStack.addArrangedSubview(buttonView)
-            }
-            if let tiktok = socialMedia.tiktok,
-               let name = URL(string: tiktok)?.pathComponents.last(where: { $0 != "/" }) {
-                let buttonView = createSocialMediaButton(handle: "@" + name, iconName: "Models/TikTokIcon") {
-                    print("TikTokIcon")
-                }
-                socialMediaStack.addArrangedSubview(buttonView)
-            }
-            if let youtube = socialMedia.youtube,
-               let name = URL(string: youtube)?.pathComponents.last(where: { $0 != "/" }) {
-                let buttonView = createSocialMediaButton(handle: name, iconName: "Models/youtubeIcon") {
-                    print("youtubeIcon")
-                }
-                socialMediaStack.addArrangedSubview(buttonView)
-            }
-            if let website = socialMedia.website, !website.isEmpty {
-                let buttonView = createSocialMediaButton(handle: website, iconName: "Models/webIcon") {
-                    print("webIcon")
-                }
-                socialMediaStack.addArrangedSubview(buttonView)
-            }
-        } else {
-            let buttonView = createSocialMediaButton(handle: "Add Links", iconName: "Models/Link") {
-                self.openEditLink()
-            }
-            socialMediaStack.addArrangedSubview(buttonView)
-        }
-
-        self.setNeedsLayout()
-        self.layoutIfNeeded()
-    }
-    
-    public func reloadSocialMedia(_ socialMedia: SocialLinks?) {
-        updateSocialMediaStack(socialMedia)
     }
 }
 
-extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+extension PublicProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if !localPhotos.isEmpty {
@@ -834,7 +778,7 @@ extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegat
     }
 }
 
-extension ProfileScreenNode: ProfileInfoViewDelegate {
+extension PublicProfileScreenNode: ProfileInfoViewDelegate {
     func profileInfoViewDidUpdateContentHeight() {
         DispatchQueue.main.async {
             self.setNeedsLayout()
@@ -843,7 +787,7 @@ extension ProfileScreenNode: ProfileInfoViewDelegate {
     }
 }
 
-extension ProfileScreenNode: ProfileSegmentedBarDelegate {
+extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int) {
         print("Selected segment index: \(index)")
         

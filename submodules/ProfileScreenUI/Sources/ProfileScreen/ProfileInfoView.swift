@@ -11,7 +11,7 @@ final class ProfileInfoView: UIView {
     
     private let maxLinesCollapsed: Int = 3
     private var isExpanded: Bool = false
-    private let biographyText: String
+    private var biographyText: String
     private let appearanceText: String
     
     private let headerHeight: CGFloat = 30
@@ -107,6 +107,11 @@ final class ProfileInfoView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    func updateBio(_ about: String) {
+        biographyText = about
+        contentLabel.text = about
+    }
+              
     private func setupViews() {
         let headerStack = UIStackView(arrangedSubviews: [biographyButton, appearanceButton])
         headerStack.axis = .horizontal

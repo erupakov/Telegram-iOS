@@ -142,10 +142,10 @@ func _internal_updateSocialLinks(
     return account.network.request(
         Api.functions.profile.updateSocialLinks(
             flags: flags,
-            instagram: "https://www.instagram.com/" + instagram + "/",
-            tiktok: "https://tiktok.com/" + tiktok,
-            youtube: "https://youtube.com/" + youtube,
-            website: website
+            instagram: "https://" + instagram + "/",
+            tiktok: "https://" + tiktok,
+            youtube: "https://" + youtube,
+            website: website.isEmpty ? "" : website.contains("https://") ? website : "https://" + website
         )
     )
     |> map(Optional.init)
@@ -169,17 +169,17 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
 //    flags |= 1 << 1 //lastName
 //    flags |= 1 << 2 //country
 //    flags |= 1 << 3 //about
-    flags |= 1 << 4 //gender
+//    flags |= 1 << 4 //gender
 //    flags |= 1 << 5 //birthDate
     flags |= 1 << 6 //height
     flags |= 1 << 7 //waist
-    
-    
     flags |= 1 << 8 //hips
-//    flags |= 1 << 9 //shoeSize
-//    flags |= 1 << 10 //hairLength
-//    flags |= 1 << 11 //hairColor
+    flags |= 1 << 9 //shoeSize
+    flags |= 1 << 10 //hairLength
+    flags |= 1 << 11 //hairColor
     flags |= 1 << 12 //eyeColor
+    flags |= 1 << 13 //skinColor
+    flags |= 1 << 14 //breastSize
     
     return account.network.request(
         Api.functions.profile.updateProfile(
@@ -188,17 +188,17 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
             lastName: nil,//"lastName",//String?,
             country: nil,//"country",//String?,
             about: nil,//firstName,//String?,
-            gender: Api.Gender.genderMale,//Api.Gender?,
+            gender: nil,//Api.Gender.genderMale,//Api.Gender?,
             birthDate: nil,//Int32?,
-            height: 42,//20,//Int32?,
-            waist: 12,//Int32?,
-            hips: 0,//Int32?,
-            shoeSize: nil,//Int32?,
-            hairLength: nil,//Int32?,
-            hairColor: nil,//String?,
-            eyeColor: "greenNew",//String?,
-            skinColor: nil,//String?,
-            breastSize: nil,//String?,
+            height: data.height,
+            waist: data.waist,
+            hips: data.hips,
+            shoeSize: data.shoeSize,
+            hairLength: data.hairLength,
+            hairColor: data.hairColor,
+            eyeColor: data.eyeColor,
+            skinColor: data.skinColor,
+            breastSize: data.breastSize,
             photoId: nil//Int64?
         )
     )
@@ -212,6 +212,72 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
         }
         return .single(nil)
     }
+}
+
+func _internal_updateProfileNameAndBio(account: Account, data: ProfileParametersData) -> Signal<String?, NoError> {
+    print("⛳️", "post _internal_updateProfileNameAndBio")
+    
+    var flags: Int32 = 0
+    
+    flags |= 1 << 0 //firstName
+    flags |= 1 << 1 //lastName
+    flags |= 1 << 3 //about
+    
+    return account.network.request(
+        Api.functions.profile.updateProfile(
+            flags: flags,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            country: nil,
+            about: data.about,
+            gender: nil,
+            birthDate: nil,
+            height: nil,
+            waist: nil,
+            hips: nil,
+            shoeSize: nil,
+            hairLength: nil,
+            hairColor: nil,
+            eyeColor: nil,
+            skinColor: nil,
+            breastSize: nil,
+            photoId: nil//Int64?
+        )
+    )
+    |> map(Optional.init)
+    |> `catch` { _ in
+        return Signal<Api.User?, NoError>.single(nil)
+    }
+    |> mapToSignal { user -> Signal<String?, NoError> in
+        if let user = user {
+            print("👌 _internal_updateProfileNameAndBio: ", user)
+        }
+        return .single(nil)
+    }
+//    
+//    var flags: Int32 = 0
+//    
+//    flags |= 1 << 0 //firstName
+//    flags |= 1 << 1 //lastName
+//    flags |= 1 << 3 //about
+//    
+//    let firstName = data.firstName
+//    let lastName = data.lastName
+//    let about = data.about
+//    
+//    return account.network.request(Api.functions.account.updateProfile(flags: flags, firstName: firstName, lastName: lastName, about: about))
+//    |> map { result -> Api.User? in
+//        return result
+//    }
+//    |> `catch` { _ in
+//        return .single(nil)
+//    }
+//    |> mapToSignal { user -> Signal<String?, NoError> in
+//        if let user = user {
+//            print("👌 _internal_updateProfileNameAndBio: ", user)
+//        }
+//        return .single(nil)
+//    }
 }
 
 func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfileData?, NoError> {
@@ -230,12 +296,6 @@ func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfi
             switch userProfile {
             case .userProfile(_, _, let country, let city, let gender, let birthDate, _, let about, let physicalParams, _, _, let socialLinks, _):
                 
-//                print(physicalParams, socialLinks)
-                
-//                physicalParams(flags: Int32, age: Api.Range?, height: Api.Range?, waist: Api.Range?, hips: Api.Range?, shoeSize: Api.Range?, hairLength: Api.Range?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?)
-//            case socialLinks(links: [Api.profile.KeyVal])
-//            case keyVal(key: String, val: String)
-                
                 var finalGender: UserProfileData.Gender? = nil
                 if let gender = gender {
                     switch gender {
@@ -244,34 +304,48 @@ func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfi
                     }
                 }
                 
-                
                 var finalSocialLinks: SocialLinks? = nil
                 if let socialLinks = socialLinks, case let .socialLinks(apiLinks) = socialLinks {
-                    let mappedLinks = apiLinks.compactMap { item -> SocialKeyVal? in
+                    var instagram: String?
+                    var tiktok: String?
+                    var youtube: String?
+                    var website: String?
+                    
+                    for item in apiLinks {
                         if case let .keyVal(key, val) = item {
-                            return SocialKeyVal(key: key, val: val)
+                            switch key.lowercased() {
+                            case "instagram": instagram = val
+                            case "tiktok":    tiktok = val
+                            case "youtube":   youtube = val
+                            case "website":   website = val
+                            default: break
+                            }
                         }
-                        return nil
                     }
-                    finalSocialLinks = SocialLinks(links: mappedLinks)
+                    
+                    finalSocialLinks = SocialLinks(
+                        instagram: instagram,
+                        tiktok: tiktok,
+                        youtube: youtube,
+                        website: website
+                    )
                 }
-                
                 var finalPhysical: PhysicalParams? = nil
                 if let p = physicalParams, case let .physicalParams(flags, age, height, waist, hips, shoeSize, hairLength, hairColor, eyeColor, skinColor, breastSize) = p {
                     
-                    let unwrapRange: (Api.Range?) -> RangeValue? = { range in
-                        guard let range = range, case let .range(f, max, val) = range else { return nil }
-                        return RangeValue(flags: Int(f), max: max.map(Int.init), value: val.map(Int.init))
+                    let unwrapRange: (Api.Range?) -> Int? = { range in
+                        guard let range = range, case let .range(_, _, val) = range else { return nil }
+                        return val.map(Int.init)
                     }
                     
                     finalPhysical = PhysicalParams(
                         flags: Int(flags),
-                        age: age.flatMap { if case let .range(_, _, v) = $0 { return v.map(Int.init) }; return nil }, // age в твоей модели Int?
+                        age: age.flatMap { if case let .range(_, _, v) = $0 { return v.map(Int.init) }; return nil },
                         height: unwrapRange(height),
                         waist: unwrapRange(waist),
                         hips: unwrapRange(hips),
                         shoeSize: unwrapRange(shoeSize),
-                        hairLength: hairLength.flatMap { if case let .range(_, _, v) = $0 { return v.map { "\($0)" } }; return nil }, // hairLength в модели String?
+                        hairLength: unwrapRange(hairLength),
                         hairColor: hairColor,
                         eyeColor: eyeColor,
                         skinColor: skinColor,

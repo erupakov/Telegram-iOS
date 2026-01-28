@@ -4,16 +4,16 @@ public class UserProfileData {
     //    let stats: Api.profile.Stats?
     //    let portfolio: Api.profile.Portfolio?
     
-    let country: String?
-    let city: String?
-    let gender: Gender?
-    let birthDate: Int?
-    let about: String?
-    let physicalParams: PhysicalParams?
-    let socialLinks: SocialLinks?
-    let agency: String?
+    public let country: String?
+    public let city: String?
+    public let gender: Gender?
+    public let birthDate: Int?
+    public let about: String?
+    public let physicalParams: PhysicalParams?
+    public let socialLinks: SocialLinks?
+    public let agency: String?
 
-    enum Gender: String, Codable {
+    public enum Gender: String, Codable {
         case genderFemale
         case genderMale
     }
@@ -30,31 +30,29 @@ public class UserProfileData {
     }
 }
 
-struct PhysicalParams: Codable {
-    let flags: Int
-    let age: Int?
-    let height: RangeValue?
-    let waist: RangeValue?
-    let hips: RangeValue?
-    let shoeSize: RangeValue?
-    let hairLength: String?
-    let hairColor: String?
-    let eyeColor: String?
-    let skinColor: String?
-    let breastSize: String?
+public struct PhysicalParams: Codable {
+    public let flags: Int
+    public let age: Int?
+    public let height: Int?
+    public let waist: Int?
+    public let hips: Int?
+    public let shoeSize: Int?
+    public let hairLength: Int?
+    public let hairColor: String?
+    public let eyeColor: String?
+    public let skinColor: String?
+    public let breastSize: String?
 }
 
-struct RangeValue: Codable {
-    let flags: Int
-    let max: Int?
-    let value: Int?
-}
+//struct RangeValue: Codable {
+//    public let flags: Int
+//    public let max: Int?
+//    public let value: Int?
+//}
 
-struct SocialLinks: Codable {
-    let links: [SocialKeyVal]
-}
-
-struct SocialKeyVal: Codable {
-    let key: String
-    let val: String
+public struct SocialLinks: Codable {
+    public let instagram: String?
+    public let tiktok: String?
+    public let youtube: String?
+    public let website: String?
 }

@@ -25,11 +25,11 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
     
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
-    private let model: ProfileModel
+    private var userProfileData: UserProfileData?
     
-    public init(context: AccountContext, model: ProfileModel) {
+    public init(context: AccountContext, userProfileData: UserProfileData?) {
         self.context = context
-        self.model = model
+        self.userProfileData = userProfileData
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
@@ -89,7 +89,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         let theme = self.presentationData.theme
         
-        self.displayNode = EditSocialLinksNode(context: self.context, model: model, addPhoto: { [weak self] in
+        self.displayNode = EditSocialLinksNode(context: self.context, userProfileData: userProfileData, addPhoto: { [weak self] in
             presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
                 self?.view.endEditing(true)
                 self?.present(c, in: .window(.root), with: a)
@@ -120,10 +120,6 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                     print("ok")
                 })
             ])
-//
-//        let alertController = UIAlertController(title: nil, message: "no no no.", preferredStyle: .alert)
-//        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
-//        }))
         present(alertController, in: .window(.root))
     }
     

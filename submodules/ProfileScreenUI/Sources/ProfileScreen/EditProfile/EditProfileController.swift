@@ -15,6 +15,7 @@ import LegacyMediaPickerUI
 import CountrySelectionUI
 import ChatScheduleTimeController
 import Postbox
+import MapResourceToAvatarSizes
 
 public class EditProfileController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
@@ -89,20 +90,46 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         let theme = self.presentationData.theme
         
-        self.displayNode = EditProfileNode(context: self.context, model: model, addPhoto: { [weak self] in
-            presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
-                self?.view.endEditing(true)
-                self?.present(c, in: .window(.root), with: a)
-            }, openCurrent: nil, completion: { image in
-//                self?.createEventNode.currentPhoto = image
-//                self?.avatarAsset = nil
-//                self?.avatarAdjustments = nil
-            }, videoCompletion: { image, asset, adjustments in
-//                self?.createEventNode.currentPhoto = image
-//                self?.avatarAsset = asset
-//                self?.avatarAdjustments = adjustments
+        self.displayNode = EditProfileNode(
+            context: self.context,
+            model: model,
+            addPhoto: { [weak self] in
+                presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
+                    self?.view.endEditing(true)
+                    self?.present(c, in: .window(.root), with: a)
+                }, openCurrent: nil, completion: { image in
+                    self?.createEventNode.currentPhoto = image
+                    self?.createEventNode.toggleSpinner(active: true)
+                    
+                    let tempFile = TempBox.shared.tempFile(fileName: "avatar.jpg")
+                    guard let data = image.jpegData(compressionQuality: 0.9), let context = self?.context else { return }
+                    try? data.write(to: URL(fileURLWithPath: tempFile.path))
+                    
+                    let resource = LocalFileReferenceMediaResource(localFilePath: tempFile.path, randomId: Int64.random(in: Int64.min ... Int64.max))
+                    
+                    let uploadedPeerPhoto = context.engine.peers.uploadedPeerPhoto(resource: resource)
+                    let postbox = context.account.postbox
+                    let signal = context.engine.peers.updatePeerPhoto(
+                        peerId: context.account.peerId,
+                        photo: uploadedPeerPhoto,
+                        video: nil,
+                        videoStartTimestamp: nil,
+                        markup: nil,
+                        mapResourceToAvatarSizes: { resource, representations in
+                            return mapResourceToAvatarSizes(postbox: postbox, resource: resource, representations: representations)
+                        }
+                    )
+                    
+                    let _ = (signal |> deliverOnMainQueue).start(next: { status in
+                        if case .complete = status {
+                            self?.createEventNode.toggleSpinner(active: false)
+                        }
+                    }, error: { error in
+                        self?.createEventNode.toggleSpinner(active: false)
+                    })
+                }, videoCompletion: { _, _, _ in
+                })
             })
-        })
         
         self.createEventNode.showAlert = { [weak self] text in
             self?.showAlert(text: text)
@@ -115,8 +142,11 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         
         let alertController = textAlertController(
             context: context, title: nil,
-            text: text, actions: [])
-        
+            text: text, actions: [
+                TextAlertAction(type: .genericAction, title: "Ok", action: {
+                    print("ok")
+                })
+            ])
         present(alertController, in: .window(.root))
     }
     

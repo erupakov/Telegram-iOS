@@ -135,11 +135,11 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         
         let alertController = textAlertController(
             context: context, title: nil,
-            text: text, actions: [])
-//
-//        let alertController = UIAlertController(title: nil, message: "no no no.", preferredStyle: .alert)
-//        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in
-//        }))
+            text: text, actions: [
+                TextAlertAction(type: .genericAction, title: "Ok", action: {
+                    print("ok")
+                })
+            ])
         present(alertController, in: .window(.root))
     }
     

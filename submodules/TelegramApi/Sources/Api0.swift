@@ -1149,6 +1149,7 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1831650802] = { return Api.UrlAuthResult.parse_urlAuthResultRequest($0) }
     //MARK: - NEW Divo -
     dict[-1459900508] = { return Api.User.parse_user($0) }
+    dict[446635322] = { return Api.UserProfile.parse_userProfile($0) }
     //MARK: - NEW Divo -
     
     dict[-742634630] = { return Api.User.parse_userEmpty($0) }
@@ -2713,6 +2714,8 @@ public extension Api {
             case let _1 as Api.profile.WorkExperience:
                 _1.serialize(buffer, boxed)
             case let _1 as Api.profile.WorkHistory:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.UserProfile:
                 _1.serialize(buffer, boxed)
             default:
                 break

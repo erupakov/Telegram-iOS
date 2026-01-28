@@ -113,7 +113,7 @@ public final class ModelsFeedController: TelegramBaseController {
             socialMediaHandles: ["_britney_ny", "_britney_ny", "britney_ny", "Website"],
             galleryImageNames: model.previewImagesName + model.previewImagesName
         )
-        let detailController = ProfileScreenController(context: context, model: dummyModel)
+        let detailController = PublicProfileScreenController(context: context, model: dummyModel)
         
         navigationController?.pushViewController(detailController, animated: true)
     }
