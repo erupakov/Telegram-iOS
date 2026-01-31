@@ -13,11 +13,18 @@ import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
 
+enum TimeType {
+    case start
+    case end
+}
+
+
 final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     private let context: AccountContext
     private let createWorkExperienceDisposable = MetaDisposable()
-    private var currentTime: Int32 = 0
+    private var startTime: Int32 = 0
+    private var endTime: Int32 = 0
     
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
@@ -48,16 +55,20 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private let nameEventLabel: ASTextNode
     private let nameEventTextField: TextFieldNode
     
-    private let eventDateLabel: ASTextNode
-    private let eventDateTextField: TextFieldNode
+    private let startDateLabel: ASTextNode
+    private let startDateTextField: TextFieldNode
     
-    private let eventTimeLabel: ASTextNode
-    private let eventTimeTextField: TextFieldNode
+    private let endTimeLabel: ASTextNode
+    private let endTimeTextField: TextFieldNode
+    
+    private let currentlyWorkingContainer: ASDisplayNode
+    private let currentlyWorkingCheckbox: CheckboxNode
+    private let currentlyWorkingLabel: ASTextNode
     
     private let applyButton: ASControlNode
     private let addPhoto: () -> Void
     
-    var scheduleTimeController: (() -> Void)?
+    var scheduleTimeController: ((TimeType) -> Void)?
     var showAlert: ((String) -> Void)?
     private var countryId: String = ""
     
@@ -128,20 +139,36 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         
         self.nameEventTextField = getTextFiel(title: "Enter agency name")
 
-        self.eventDateLabel = ASTextNode()
-        self.eventDateLabel.attributedText = NSAttributedString(string: "Start date", font: regularFont, textColor: labelColor)
-        self.eventDateTextField = getTextFiel(title: "27 Jun 2025")
+        self.startDateLabel = ASTextNode()
+        self.startDateLabel.attributedText = NSAttributedString(string: "Start date", font: regularFont, textColor: labelColor)
+        self.startDateTextField = getTextFiel(title: "27 Jun 2025")
         
-        self.eventTimeLabel = ASTextNode()
-        self.eventTimeLabel.attributedText = NSAttributedString(string: "End date", font: regularFont, textColor: labelColor)
-        self.eventTimeTextField = getTextFiel(title: "27 Jun 2025")
+        self.endTimeLabel = ASTextNode()
+        self.endTimeLabel.attributedText = NSAttributedString(string: "End date", font: regularFont, textColor: labelColor)
+        self.endTimeTextField = getTextFiel(title: "27 Jun 2025")
+
+        self.currentlyWorkingContainer = ASDisplayNode()
+        self.currentlyWorkingContainer.isUserInteractionEnabled = true
+
+        self.currentlyWorkingCheckbox = CheckboxNode(size: CGSize(width: 20, height: 20))
+
+        self.currentlyWorkingLabel = ASTextNode()
+        self.currentlyWorkingLabel.attributedText = NSAttributedString(
+            string: "I am currently working in this role",
+            font: semiboldFont,
+            textColor: labelColor
+        )
+        self.currentlyWorkingLabel.isUserInteractionEnabled = false
+
+        self.currentlyWorkingContainer.addSubnode(self.currentlyWorkingCheckbox)
+        self.currentlyWorkingContainer.addSubnode(self.currentlyWorkingLabel)
         
         self.applyButton = ButtonWithIconNode(title: "Create New Work Experience", icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
         self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
         
         super.init()
-        self.eventDateTextField.textField.delegate = self
-        self.eventTimeTextField.textField.delegate = self
+        self.startDateTextField.textField.delegate = self
+        self.endTimeTextField.textField.delegate = self
         
         self.backgroundColor = .white
         self.addSubnode(self.scrollNode)
@@ -152,11 +179,13 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         self.scrollNode.addSubnode(self.nameEventLabel)
         self.scrollNode.addSubnode(self.nameEventTextField)
         
-        self.scrollNode.addSubnode(self.eventDateLabel)
-        self.scrollNode.addSubnode(self.eventDateTextField)
+        self.scrollNode.addSubnode(self.startDateLabel)
+        self.scrollNode.addSubnode(self.startDateTextField)
         
-        self.scrollNode.addSubnode(self.eventTimeLabel)
-        self.scrollNode.addSubnode(self.eventTimeTextField)
+        self.scrollNode.addSubnode(self.endTimeLabel)
+        self.scrollNode.addSubnode(self.endTimeTextField)
+        
+        self.scrollNode.addSubnode(self.currentlyWorkingContainer)
         
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
         tapGesture.cancelsTouchesInView = false
@@ -192,14 +221,19 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         
         self.applyButton.addTarget(self, action: #selector(self.applyButtonTapped), forControlEvents: .touchUpInside)
         self.addPhotoButton.addTarget(self, action: #selector(self.addPhotoPressed), forControlEvents: .touchUpInside)
+        let checkboxTapGesture = UITapGestureRecognizer(target: self, action: #selector(currentlyWorkingTapped))
+        self.currentlyWorkingContainer.view.addGestureRecognizer(checkboxTapGesture)
         
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
     }
     
     func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        if textField == eventDateTextField.textField || textField == eventTimeTextField.textField {
-            scheduleTimeController?()
+        if textField == startDateTextField.textField  {
+            scheduleTimeController?(.start)
+            return false
+        } else if textField == endTimeTextField.textField {
+            scheduleTimeController?(.end)
             return false
         }
         return true
@@ -211,18 +245,28 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     @objc private func applyButtonTapped() {
         print("applyButton Tapped!")
         
-        let unixTimestamp = TimeInterval(currentTime)
+        let startTimestamp = TimeInterval(startTime)
+        let endTimestamp = TimeInterval(endTime)
         
         let supportPeer = Promise<String?>()
-        supportPeer.set(context.engine.profileEngine.createWorkExperience(agencyName: nameEventTextField.textField.text ?? "", startDate: Int32(unixTimestamp)))
+        supportPeer.set(context.engine.profileEngine.createWorkExperience(
+            agencyName: nameEventTextField.textField.text ?? "",
+            startDate: Int32(startTimestamp),
+            endDate: endTimestamp > 0 ? Int32(endTimestamp) : nil
+        ))
         self.createWorkExperienceDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
             print("🔕 createWorkExperienceDisposable", peerId ?? "")
             self.showAlert?("WorkExperience Added")
         }))
     }
     
-    func updateTime(_ timestamp: Int32) {
-        currentTime = timestamp
+    @objc private func currentlyWorkingTapped() {
+        self.currentlyWorkingCheckbox.isSelected.toggle()
+        endTimeLabel.isHidden = currentlyWorkingCheckbox.isSelected
+        endTimeTextField.isHidden = currentlyWorkingCheckbox.isSelected
+    }
+    
+    func updateTime(_ timestamp: Int32, type: TimeType) {
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
@@ -231,8 +275,14 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         dateFormatter.dateFormat = "d MMM yyyy"
         let timeString = dateFormatter.string(from: date)
         
-        eventDateTextField.textField.text = dateString
-        eventTimeTextField.textField.text = timeString
+        switch type {
+        case .start:
+            startTime = timestamp
+            startDateTextField.textField.text = dateString
+        case .end:
+            endTime = timestamp
+            endTimeTextField.textField.text = timeString
+        }
     }
     
     private func updateThemeAndStrings() {
@@ -311,16 +361,38 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         
         let dateWidth: CGFloat = floor((layout.size.width - sidePadding * 3) / 2.0)
         
-        let eventDateLabelSize = self.eventDateLabel.measure(CGSize(width: dateWidth, height: .greatestFiniteMagnitude))
-        self.eventDateLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: eventDateLabelSize)
+        let startDateLabelSize = self.startDateLabel.measure(CGSize(width: dateWidth, height: .greatestFiniteMagnitude))
+        self.startDateLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: startDateLabelSize)
         
-        let eventTimeLabelSize = self.eventTimeLabel.measure(CGSize(width: dateWidth, height: .greatestFiniteMagnitude))
-        self.eventTimeLabel.frame = CGRect(origin: CGPoint(x: sidePadding * 2 + dateWidth, y: currentY), size: eventTimeLabelSize)
-        currentY += eventDateLabelSize.height + halfItemSpacing
+        let endTimeLabelSize = self.endTimeLabel.measure(CGSize(width: dateWidth, height: .greatestFiniteMagnitude))
+        self.endTimeLabel.frame = CGRect(origin: CGPoint(x: sidePadding * 2 + dateWidth, y: currentY), size: endTimeLabelSize)
+        currentY += startDateLabelSize.height + halfItemSpacing
         
-        self.eventDateTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: dateWidth, height: itemHeight))
-        self.eventTimeTextField.frame = CGRect(origin: CGPoint(x: sidePadding * 2 + dateWidth, y: currentY), size: CGSize(width: dateWidth, height: itemHeight))
+        self.startDateTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: dateWidth, height: itemHeight))
+        self.endTimeTextField.frame = CGRect(origin: CGPoint(x: sidePadding * 2 + dateWidth, y: currentY), size: CGSize(width: dateWidth, height: itemHeight))
         currentY += itemHeight + sectionSpacing
+        
+        let rowHeight: CGFloat = 24.0
+
+        self.currentlyWorkingContainer.frame = CGRect(
+            origin: CGPoint(x: sidePadding, y: currentY),
+            size: CGSize(width: layout.size.width - sidePadding * 2, height: rowHeight)
+        )
+
+        self.currentlyWorkingCheckbox.frame = CGRect(
+            origin: CGPoint(x: 0, y: (rowHeight - 20) / 2),
+            size: CGSize(width: 20, height: 20)
+        )
+
+        let labelSize = self.currentlyWorkingLabel.measure(
+            CGSize(width: layout.size.width - sidePadding * 2 - 32, height: rowHeight)
+        )
+        self.currentlyWorkingLabel.frame = CGRect(
+            origin: CGPoint(x: 32, y: 0),
+            size: labelSize
+        )
+
+        currentY += rowHeight + sectionSpacing
         
         let buttonWidth = layout.size.width - sidePadding * 2
         let buttonHeight: CGFloat = 50.0

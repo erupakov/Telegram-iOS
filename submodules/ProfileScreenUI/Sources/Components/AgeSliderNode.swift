@@ -86,3 +86,29 @@ class AgeSliderNode: ASDisplayNode {
         self.setNeedsLayout()
     }
 }
+
+class CheckboxNode: ASButtonNode {
+    private let checkboxSize: CGSize
+    
+    init(size: CGSize = CGSize(width: 20, height: 20)) {
+        self.checkboxSize = size
+        super.init()
+        self.updateAppearance()
+    }
+    
+    override var isSelected: Bool {
+        didSet {
+            updateAppearance()
+        }
+    }
+    
+    private func updateAppearance() {
+        let normalImage = UIImage(bundleImageName: "Models/Checkbox")
+        let selectedImage = UIImage(bundleImageName: "Models/CheckboxSelected")
+        
+        self.setImage(normalImage, for: .normal)
+        self.setImage(selectedImage, for: .selected)
+        self.setImage(selectedImage, for: .highlighted)
+    }
+}
+

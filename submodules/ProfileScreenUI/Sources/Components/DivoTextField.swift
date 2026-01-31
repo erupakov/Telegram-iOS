@@ -41,18 +41,7 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
         fieldNode.clipsToBounds = true
         fieldNode.padding = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
         
-        if let prefix = prefix, !prefix.isEmpty {
-            updateText(userText: title)
-        } else {
-            let placeholderAttributes: [NSAttributedString.Key: Any] = [
-                .font: Font.regular(16.0),
-                .foregroundColor: UIColor(white: 1.0, alpha: 0.4)
-            ]
-            fieldNode.textField.attributedPlaceholder = NSAttributedString(
-                string: title,
-                attributes: placeholderAttributes
-            )
-        }
+        updateText(userText: title)
     }
     
     private func updateText(userText: String) {

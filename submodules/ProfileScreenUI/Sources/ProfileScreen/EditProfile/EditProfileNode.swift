@@ -193,8 +193,12 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
     @objc private  func updateAccountPeerName() {
         let firstName = nameEventTextField.textField.text ?? ""
         let lastName = lastNameEventTextField.textField.text ?? ""
+        
         let _ = (context.engine.accountData.updateAccountPeerName(firstName: firstName, lastName: lastName)
-                 |> castError(UpdateInfoError.self)).start()
+            |> deliverOnMainQueue
+        ).start(completed: {
+            self.showAlert?("Saved")
+        })
         
         enum UpdateInfoError {
             case generic

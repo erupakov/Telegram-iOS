@@ -105,8 +105,8 @@ public class AddWorkExperienceController: ViewController, UINavigationController
             })
         })
         
-        self.createEventNode.scheduleTimeController = { [weak self] in
-            self?.scheduleTimeController()
+        self.createEventNode.scheduleTimeController = { [weak self] type in
+            self?.scheduleTimeController(type: type)
         }
         self.createEventNode.showAlert = { [weak self] text in
             self?.showAlert(text: text)
@@ -127,7 +127,7 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         present(alertController, in: .window(.root))
     }
     
-    private func scheduleTimeController() {
+    private func scheduleTimeController(type: TimeType) {
         let peerId = PeerId(0)
         let controller = TimeController(
             context: context,
@@ -138,7 +138,7 @@ public class AddWorkExperienceController: ViewController, UINavigationController
             currentTime: nil,
             minimalTime: nil,
             completion: { [weak self] time in
-                self?.createEventNode.updateTime(time)
+                self?.createEventNode.updateTime(time, type: type)
             })
         present(controller, in: .window(.root))
     }

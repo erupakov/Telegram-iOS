@@ -26,7 +26,7 @@ public final class ProfileScreenController: TelegramBaseController {
     private var userProfileData: UserProfileData? = nil
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
-    private let createWorkExperienceDisposable = MetaDisposable()
+    private let getFullUserDisposable = MetaDisposable()
     
     private var presentationData: PresentationData
     
@@ -61,7 +61,7 @@ public final class ProfileScreenController: TelegramBaseController {
     
     deinit {
         self.supportPeerDisposable.dispose()
-        self.createWorkExperienceDisposable.dispose()
+        self.getFullUserDisposable.dispose()
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -206,6 +206,17 @@ public final class ProfileScreenController: TelegramBaseController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         getUserProfile()
+        getFullUser()
+    }
+    
+    
+    private func getFullUser() {
+        let supportPeer = Promise<String?>()
+        
+        supportPeer.set(context.engine.profileEngine.getFullUser(peer: peer))
+        self.getFullUserDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { getWorkHistory in
+            self.controllerNode.getUpdates(getWorkHistory)
+        }))
     }
     
     private func getUserProfile() {

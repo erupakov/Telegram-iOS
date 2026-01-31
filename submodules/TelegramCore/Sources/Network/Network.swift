@@ -474,8 +474,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             var apiEnvironment = MTApiEnvironment(deviceModelName: arguments.deviceModelName)
             
             apiEnvironment.apiId = arguments.apiId
-            apiEnvironment.langPack = arguments.languagesCategory
-            apiEnvironment.layer = NSNumber(value: Int(serialization.currentLayer()))//
+            apiEnvironment.langPack = arguments.languagesCategory//
+            apiEnvironment.layer = NSNumber(value: Int(serialization.currentLayer()))///
             apiEnvironment.disableUpdates = supplementary
             apiEnvironment = apiEnvironment.withUpdatedLangPackCode(languageCode ?? "en")
             

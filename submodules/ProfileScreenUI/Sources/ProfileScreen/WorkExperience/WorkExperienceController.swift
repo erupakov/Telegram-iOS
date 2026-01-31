@@ -25,6 +25,7 @@ public final class WorkExperienceController: TelegramBaseController {
     private let model: ProfileModel
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
+    private let deleteWorkHistoryDisposable = MetaDisposable()
     private let createWorkExperienceDisposable = MetaDisposable()
     
     private var presentationData: PresentationData
@@ -58,6 +59,7 @@ public final class WorkExperienceController: TelegramBaseController {
     
     deinit {
         self.supportPeerDisposable.dispose()
+        self.deleteWorkHistoryDisposable.dispose()
         self.createWorkExperienceDisposable.dispose()
     }
     
@@ -68,15 +70,17 @@ public final class WorkExperienceController: TelegramBaseController {
     
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-
         
-        let addImage = PresentationResourcesRootController.navigationAddIcon(self.presentationData.theme)?.withRenderingMode(.alwaysTemplate)
-        let addItem = UIBarButtonItem(image: addImage, style: .plain, target: self, action: #selector(self.addPressed))
+        let addItem = UIBarButtonItem(image: UIImage(bundleImageName: "Models/addIcon"), style: .plain, target: self, action: #selector(self.addPressed))
         addItem.tintColor = UIColor(rgb: 0xBC8461)
         self.navigationItem.rightBarButtonItem = addItem
     }
     
     @objc private func addPressed() {
+        addWorkExperience()
+    }
+    
+    private func addWorkExperience() {
         let controller = AddWorkExperienceController(context: self.context)
         
         if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
@@ -87,19 +91,7 @@ public final class WorkExperienceController: TelegramBaseController {
     @objc private func backPressed() {
         self.navigationController?.popViewController(animated: true)
     }
-    
-    @objc private func likePressed() {
-        print("Like button pressed")
-    }
-    
-    @objc private func sharePressed() {
-        print("Share button pressed")
-    }
-    
-    @objc private func bookmarkPressed() {
-        print("Bookmark button pressed")
-    }
-    
+   
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         getWorkHistory()
@@ -115,7 +107,7 @@ public final class WorkExperienceController: TelegramBaseController {
             if let getWorkHistory = getWorkHistory {
                 let workHistoryDataArray: [WorkExperienceItem] = getWorkHistory.map { model in
                     
-                    return WorkExperienceItem(companyName: model.companyName, period: model.period, logoName: model.logoName)
+                    return WorkExperienceItem(id: model.id, companyName: model.companyName, period: model.period, logoName: model.logoName)
                 }
                 
                 self.controllerNode.reloadEvents(items: workHistoryDataArray)
@@ -131,7 +123,38 @@ public final class WorkExperienceController: TelegramBaseController {
             presentationData: self.presentationData,
             model: model)
         
+        self.controllerNode.showDeleteAlert = { [weak self] text, id in
+            self?.showDeleteAlert(text: text, id: id)
+        }
+        
+        self.controllerNode.openAddWorkExperience = { [weak self] in
+            self?.addWorkExperience()
+        }
+        
+        
         self.displayNodeDidLoad()
+    }
+    
+    private func showDeleteAlert(text: String, id: Int) {
+        
+        let alertController = textAlertController(
+            context: context, title: nil,
+            text: text, actions: [
+                TextAlertAction(type: .destructiveAction, title: "Yes", action: {
+                    self.deleteWorkHistory(id: id)
+                }),
+                TextAlertAction(type: .defaultAction, title: "No", action: {})
+            ])
+        present(alertController, in: .window(.root))
+    }
+    
+    private func deleteWorkHistory(id: Int) {
+        let supportPeer = Promise<Bool?>()
+        
+        supportPeer.set(context.engine.profileEngine.deleteWorkExperience(id: Int64(id)))
+        self.deleteWorkHistoryDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { getWorkHistory in
+            self.getWorkHistory()
+        }))
     }
     
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {

@@ -44,7 +44,7 @@ func _internal_createEvent(account: Account, event: EventModel) -> Signal<String
             description: event.description,
             eventType: eventType,
             eventDate: event.eventDate,
-            eventTime: event.eventTime,
+            eventTime: event.eventTime + ":00+03:00[Europe/Kyiv]",
             location: nil,
             coverPhotoId: event.coverPhotoId,
             enabledParameterKeys: event.enabledParameterKeys

@@ -9,6 +9,7 @@ import ItemListUI
 import PresentationDataUtils
 import AccountContext
 import AppBundle
+import Postbox
 
 final class ProfileScreenNode: ASDisplayNode {
     
@@ -16,7 +17,8 @@ final class ProfileScreenNode: ASDisplayNode {
     private weak var controller: ViewController?
     private let context: AccountContext
     private var presentationData: PresentationData
-    
+    private var peerDisposable: MetaDisposable?
+
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
     private var headerHeightConstraint: NSLayoutConstraint!
@@ -200,6 +202,10 @@ final class ProfileScreenNode: ASDisplayNode {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    deinit {
+        peerDisposable?.dispose()
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -749,7 +755,9 @@ final class ProfileScreenNode: ASDisplayNode {
                 }
                 socialMediaStack.addArrangedSubview(buttonView)
             }
-        } else {
+        }
+        
+        if socialMediaStack.arrangedSubviews.count == 0 {
             let buttonView = createSocialMediaButton(handle: "Add Links", iconName: "Models/Link") {
                 self.openEditLink()
             }
@@ -762,6 +770,34 @@ final class ProfileScreenNode: ASDisplayNode {
     
     public func reloadSocialMedia(_ socialMedia: SocialLinks?) {
         updateSocialMediaStack(socialMedia)
+    }
+    
+    func getUpdates(_ about: String?) {
+        peerDisposable = MetaDisposable()
+        
+        let signal: Signal<Peer?, NoError> = Signal { subscriber in
+            let disposable = MetaDisposable()
+            
+            let transactionSignal = self.context.account.postbox.transaction { transaction in
+                let peerId = self.context.account.peerId
+                return transaction.getPeer(peerId)
+            }
+            
+            disposable.set(transactionSignal.start(next: { peer in
+                subscriber.putNext(peer)
+                subscriber.putCompletion()
+            }))
+            
+            return disposable
+        }
+        
+        peerDisposable?.set(signal.start(next: { [weak self] peer in
+            DispatchQueue.main.async {
+                self?.nameLabel.text = peer?.debugDisplayTitle ?? ""
+            }
+        }))
+        
+        profileInfoView.updateBio(about ?? "")
     }
 }
 

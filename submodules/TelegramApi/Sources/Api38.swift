@@ -4974,7 +4974,7 @@ public extension Api.functions.langpack {
                 }
 }
 public extension Api.functions.langpack {
-                static func getLangPack(langPack: String, langCode: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.LangPackDifference>) {
+                static func getLangPack(langPack: String, langCode: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.LangPackDifference>) {//
                     let buffer = Buffer()
                     buffer.appendInt32(-219008246)
                     serializeString(langPack, buffer: buffer, boxed: false)
@@ -4990,7 +4990,7 @@ public extension Api.functions.langpack {
                 }
 }
 public extension Api.functions.langpack {
-                static func getLanguage(langPack: String, langCode: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.LangPackLanguage>) {
+                static func getLanguage(langPack: String, langCode: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.LangPackLanguage>) {//
                     let buffer = Buffer()
                     buffer.appendInt32(1784243458)
                     serializeString(langPack, buffer: buffer, boxed: false)
