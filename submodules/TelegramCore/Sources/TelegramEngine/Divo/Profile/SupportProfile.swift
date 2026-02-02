@@ -79,7 +79,8 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
             eyeColor: data.eyeColor,
             skinColor: data.skinColor,
             breastSize: data.breastSize,
-            photoId: nil//Int64?
+            photoId: nil,//Int64?
+            backgroundId: nil//Int64?
         )
     )
     |> map(Optional.init)
@@ -94,6 +95,7 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
     }
 }
 
+// MARK: - OLD
 func _internal_updateProfileNameAndBio(account: Account, data: ProfileParametersData) -> Signal<String?, NoError> {
     print("⛳️", "post _internal_updateProfileNameAndBio")
     
@@ -121,7 +123,8 @@ func _internal_updateProfileNameAndBio(account: Account, data: ProfileParameters
             eyeColor: nil,
             skinColor: nil,
             breastSize: nil,
-            photoId: nil//Int64?
+            photoId: nil,//Int64?
+            backgroundId: nil//Int64?
         )
     )
     |> map(Optional.init)
@@ -134,30 +137,6 @@ func _internal_updateProfileNameAndBio(account: Account, data: ProfileParameters
         }
         return .single(nil)
     }
-//    
-//    var flags: Int32 = 0
-//    
-//    flags |= 1 << 0 //firstName
-//    flags |= 1 << 1 //lastName
-//    flags |= 1 << 3 //about
-//    
-//    let firstName = data.firstName
-//    let lastName = data.lastName
-//    let about = data.about
-//    
-//    return account.network.request(Api.functions.account.updateProfile(flags: flags, firstName: firstName, lastName: lastName, about: about))
-//    |> map { result -> Api.User? in
-//        return result
-//    }
-//    |> `catch` { _ in
-//        return .single(nil)
-//    }
-//    |> mapToSignal { user -> Signal<String?, NoError> in
-//        if let user = user {
-//            print("👌 _internal_updateProfileNameAndBio: ", user)
-//        }
-//        return .single(nil)
-//    }
 }
 
 func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfileData?, NoError> {
@@ -174,7 +153,7 @@ func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfi
                 print("👌 UserProfile:", userProfile)
             }
             switch userProfile {
-            case .userProfile(_, _, let country, let city, let gender, let birthDate, _, let about, let physicalParams, _, _, let socialLinks, _):
+            case .userProfile(_, _, let country, let city, let gender, let birthDate, _, let about, let physicalParams, _, _, let socialLinks, _, _, _):
                 
                 var finalGender: UserProfileData.Gender? = nil
                 if let gender = gender {

@@ -159,36 +159,37 @@ final class EditProfileNode: ASDisplayNode, UITextFieldDelegate {
         self.applyButton.addTarget(self, action: #selector(self.updateAccountPeerName), forControlEvents: .touchUpInside)
     }
 
-    @objc private func updateProfileNameAndBio() {
-        
-        print("updateProfileNameAndBio Tapped!")
-        
-        let supportPeer = Promise<String?>()
-        let data = ProfileParametersData(
-            firstName: nameEventTextField.textField.text ?? "",
-            lastName: lastNameEventTextField.textField.text ?? "",
-            country: nil,
-            about: aboutEventTextField.text,
-            gender: nil,
-            birthDate: nil,
-            height: nil,
-            waist: nil,
-            hips: nil,
-            shoeSize: nil,
-            hairLength: nil,
-            hairColor: nil,
-            eyeColor: nil,
-            skinColor: nil,
-            breastSize: nil,
-            photoId: nil
-        )
-        
-        supportPeer.set(context.engine.profileEngine.updateProfileNameAndBio(data: data))
-        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
-            print("🔕 updateProfile", peerId ?? "")
-            self.showAlert?("Saved")
-        }))
-    }
+    // MARK: - OLD
+//    @objc private func updateProfileNameAndBio() {
+//        
+//        print("updateProfileNameAndBio Tapped!")
+//        
+//        let supportPeer = Promise<String?>()
+//        let data = ProfileParametersData(
+//            firstName: nameEventTextField.textField.text ?? "",
+//            lastName: lastNameEventTextField.textField.text ?? "",
+//            country: nil,
+//            about: aboutEventTextField.text,
+//            gender: nil,
+//            birthDate: nil,
+//            height: nil,
+//            waist: nil,
+//            hips: nil,
+//            shoeSize: nil,
+//            hairLength: nil,
+//            hairColor: nil,
+//            eyeColor: nil,
+//            skinColor: nil,
+//            breastSize: nil,
+//            photoId: nil
+//        )
+//        
+//        supportPeer.set(context.engine.profileEngine.updateProfileNameAndBio(data: data))
+//        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+//            print("🔕 updateProfile", peerId ?? "")
+//            self.showAlert?("Saved")
+//        }))
+//    }
     
     @objc private  func updateAccountPeerName() {
         let firstName = nameEventTextField.textField.text ?? ""

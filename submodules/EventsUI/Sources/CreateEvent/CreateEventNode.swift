@@ -12,6 +12,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import Postbox
 
 final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
     
@@ -284,14 +285,29 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
             description: aboutEventTextField.textField.text ?? "",
             eventDate: formattedDate,
             eventTime: formattedTime,
-            coverPhotoId: 0,
+            coverPhotoId: nil,
             enabledParameterKeys: [])
         
-        supportPeer.set(context.engine.eventsEngine.createEvent(eventModel: eventModel))
-        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
-            print("🔕", peerId ?? "")
-            self.showAlert?("event added")
-        }))
+        if let currentPhoto = currentPhoto {
+            let _ = uploadPhotoToCloud(context: context, image: currentPhoto).start(next: { id in
+                if let id = id {
+                    print("⛳️", id)
+                    supportPeer.set(self.context.engine.eventsEngine.createEvent(eventModel: eventModel, id: id))
+                    self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+                        print("🔕", peerId ?? "")
+                        self.showAlert?("event added")
+                    }))
+                }
+            })
+        }
+    }
+    
+    func uploadPhotoToCloud(context: AccountContext, image: UIImage) -> Signal<Int64?, NoError> {
+        guard let data = image.jpegData(compressionQuality: 0.9) else {
+            return .single(nil)
+        }
+        
+        return context.engine.engineDivo.uploadedPhoto(resource: data)
     }
     
     @objc private func addParametersTapped() {

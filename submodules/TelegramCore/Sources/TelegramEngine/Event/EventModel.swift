@@ -12,10 +12,10 @@ public class EventModel {
     public let eventDate: String
     public let eventTime: String
 //    let location: nil,
-    public let coverPhotoId: Int64
+    public let coverPhotoId: TelegramMediaImage?
     public let enabledParameterKeys: [String]?
     
-    public init(title: String, description: String, eventDate: String, eventTime: String, coverPhotoId: Int64, enabledParameterKeys: [String]?) {
+    public init(title: String, description: String, eventDate: String, eventTime: String, coverPhotoId: TelegramMediaImage?, enabledParameterKeys: [String]?) {
         self.title = title
         self.description = description
         self.eventDate = eventDate

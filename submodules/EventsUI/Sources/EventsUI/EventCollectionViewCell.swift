@@ -135,13 +135,32 @@ final class EventCollectionViewCell: UICollectionViewCell {
         ])
     }
     
-    func configure(with event: EventData) {
+    func configure(with event: EventData, context: AccountContext) {
         imageView.image = UIImage(named: event.imageName)
         profileImageView.image = UIImage(named: event.profileImageName)
         profileNameLabel.text = event.profileName
         titleLabel.text = event.title
         subtitleLabel.text = event.subtitle
         timeRemainingLabel.text = event.timeRemaining
+        
+        if let image = event.coverPhotoId {
+            guard let representation = largestImageRepresentation(image.representations) else {
+                return
+            }
+            
+            let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
+            let _ = (resourceData
+                     |> deliverOnMainQueue).start(next: { data in
+                if data.complete {
+                    if let uiImage = UIImage(contentsOfFile: data.path) {
+                        self.imageView.image = uiImage
+                    }
+                    
+                } else {
+                    let _ = context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
+                }
+            })
+        }
     }
 }
 

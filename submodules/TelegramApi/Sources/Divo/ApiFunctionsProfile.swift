@@ -273,9 +273,9 @@ public extension Api.functions.profile {
     }
 }
 public extension Api.functions.profile {
-    static func updateProfile(flags: Int32, firstName: String?, lastName: String?, country: String?, about: String?, gender: Api.Gender?, birthDate: Int32?, height: Int32?, waist: Int32?, hips: Int32?, shoeSize: Int32?, hairLength: Int32?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?, photoId: Int64?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.UserProfile>) {
+    static func updateProfile(flags: Int32, firstName: String?, lastName: String?, country: String?, about: String?, gender: Api.Gender?, birthDate: Int32?, height: Int32?, waist: Int32?, hips: Int32?, shoeSize: Int32?, hairLength: Int32?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?, photoId: Int64?, backgroundId: Int64?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.UserProfile>) {
         let buffer = Buffer()
-        buffer.appendInt32(1927320224)
+        buffer.appendInt32(-2079856034)
         serializeInt32(flags, buffer: buffer, boxed: false)
         if Int(flags) & Int(1 << 0) != 0 {serializeString(firstName!, buffer: buffer, boxed: false)}
         if Int(flags) & Int(1 << 1) != 0 {serializeString(lastName!, buffer: buffer, boxed: false)}
@@ -293,7 +293,8 @@ public extension Api.functions.profile {
         if Int(flags) & Int(1 << 13) != 0 {serializeString(skinColor!, buffer: buffer, boxed: false)}
         if Int(flags) & Int(1 << 14) != 0 {serializeString(breastSize!, buffer: buffer, boxed: false)}
         if Int(flags) & Int(1 << 15) != 0 {serializeInt64(photoId!, buffer: buffer, boxed: false)}
-        return (FunctionDescription(name: "profile.updateProfile", parameters: [("flags", String(describing: flags)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("country", String(describing: country)), ("about", String(describing: about)), ("gender", String(describing: gender)), ("birthDate", String(describing: birthDate)), ("height", String(describing: height)), ("waist", String(describing: waist)), ("hips", String(describing: hips)), ("shoeSize", String(describing: shoeSize)), ("hairLength", String(describing: hairLength)), ("hairColor", String(describing: hairColor)), ("eyeColor", String(describing: eyeColor)), ("skinColor", String(describing: skinColor)), ("breastSize", String(describing: breastSize)), ("photoId", String(describing: photoId))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.UserProfile? in
+        if Int(flags) & Int(1 << 16) != 0 {serializeInt64(backgroundId!, buffer: buffer, boxed: false)}
+        return (FunctionDescription(name: "profile.updateProfile", parameters: [("flags", String(describing: flags)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("country", String(describing: country)), ("about", String(describing: about)), ("gender", String(describing: gender)), ("birthDate", String(describing: birthDate)), ("height", String(describing: height)), ("waist", String(describing: waist)), ("hips", String(describing: hips)), ("shoeSize", String(describing: shoeSize)), ("hairLength", String(describing: hairLength)), ("hairColor", String(describing: hairColor)), ("eyeColor", String(describing: eyeColor)), ("skinColor", String(describing: skinColor)), ("breastSize", String(describing: breastSize)), ("photoId", String(describing: photoId)), ("backgroundId", String(describing: backgroundId))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.UserProfile? in
             let reader = BufferReader(buffer)
             var result: Api.UserProfile?
             if let signature = reader.readInt32() {

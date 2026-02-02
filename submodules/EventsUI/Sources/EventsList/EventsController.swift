@@ -109,7 +109,8 @@ public final class EventsController: TelegramBaseController {
                         imageName: "Components/Model",
                         profileImageName: "Components/Model",
                         profileName: "@nyfw",
-                        timeRemaining: String(datePartPrefix)
+                        timeRemaining: String(datePartPrefix),
+                        coverPhotoId: model.coverPhotoId
                     )
                 }
                 

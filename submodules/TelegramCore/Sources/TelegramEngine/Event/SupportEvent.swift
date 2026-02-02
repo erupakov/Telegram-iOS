@@ -19,7 +19,7 @@ func _getEvent(account: Account, eventId: Int) -> Signal<String?, NoError> {
     }
 }
 
-func _internal_createEvent(account: Account, event: EventModel) -> Signal<String?, NoError> {
+func _internal_createEvent(account: Account, event: EventModel, id: Int64) -> Signal<String?, NoError> {
     print("⛳️", "post createEvent")
     
     var flags: Int32 = 0
@@ -32,9 +32,9 @@ func _internal_createEvent(account: Account, event: EventModel) -> Signal<String
 ////    locationFlags |= 1 << 0
 //    let location = Api.event.Location.location(flags: 0, country: country, city: nil)
 //
-    flags |= 1 << 0
-//    flags |= 1 << 1
-//    flags |= 1 << 2
+    flags |= 1 << 0 //eventType
+//    flags |= 1 << 1 //location
+//    flags |= 1 << 2 // enabledParameterKeys ?????????
 //
 //
     return account.network.request(
@@ -46,7 +46,7 @@ func _internal_createEvent(account: Account, event: EventModel) -> Signal<String
             eventDate: event.eventDate,
             eventTime: event.eventTime + ":00+03:00[Europe/Kyiv]",
             location: nil,
-            coverPhotoId: event.coverPhotoId,
+            coverPhotoId: id,
             enabledParameterKeys: event.enabledParameterKeys
         )
     )
@@ -118,13 +118,19 @@ func _internal_getEvents(account: Account) -> Signal<[EventModel]?, NoError> {
         switch events {
         case .events(_, let events, _, _):
             let eventModels: [EventModel] = events.compactMap { shortEvent in
-                if case let .short(_, _, _, title, _, eventDate, eventTime, _, _, _, _, _) = shortEvent {
+                if case let .short(_, _, _, title, coverPhoto, eventDate, eventTime, _, _, _, _, _) = shortEvent {
+                    
+                    var coverPhotoId: TelegramMediaImage? = nil
+                    if case let .photo(photo, _) = coverPhoto {
+                        coverPhotoId = telegramMediaImageFromApiPhoto(photo)
+                    }
+                    
                     return EventModel(
                         title: title,
                         description: title,
                         eventDate: eventDate,
                         eventTime: eventTime,
-                        coverPhotoId: 0,
+                        coverPhotoId: coverPhotoId,
                         enabledParameterKeys: nil
                     )
                 }

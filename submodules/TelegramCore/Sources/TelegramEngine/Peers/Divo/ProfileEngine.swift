@@ -46,6 +46,7 @@ public extension TelegramEngine {
             _internal_getUserProfile(account: account, peer: peer)
         }
         
+        // MARK: - OLD
         public func updateProfileNameAndBio(data: ProfileParametersData) -> Signal<String?, NoError> {
             _internal_updateProfileNameAndBio(account: account, data: data)
         }

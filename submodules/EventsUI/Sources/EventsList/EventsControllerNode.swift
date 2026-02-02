@@ -10,26 +10,6 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 
-struct EventData {
-    let title: String
-    let subtitle: String
-    let imageName: String
-    let profileImageName: String
-    let profileName: String
-    let timeRemaining: String
-    let type: String
-    
-    init(title: String, subtitle: String, imageName: String, profileImageName: String, profileName: String, timeRemaining: String, type: String = "") {
-        self.title = title
-        self.subtitle = subtitle
-        self.imageName = imageName
-        self.profileImageName = profileImageName
-        self.profileName = profileName
-        self.timeRemaining = timeRemaining
-        self.type = type
-    }
-}
-
 final class EventsControllerNode: ASDisplayNode {
     private weak var controller: ViewController?
     private let context: AccountContext
@@ -134,7 +114,7 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
             fatalError("Unable to dequeue EventCollectionViewCell")
         }
         let event = events[indexPath.item]
-        cell.configure(with: event)
+        cell.configure(with: event, context: context)
         return cell
     }
     

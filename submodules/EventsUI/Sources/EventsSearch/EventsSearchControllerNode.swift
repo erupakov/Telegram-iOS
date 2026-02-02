@@ -230,7 +230,7 @@ final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
 //        }))
         let id = Int(searchQueryValue) ?? 0
         let supportPeer = Promise<String?>()
-        supportPeer.set(context.engine.peers.getEvent(eventId: id))
+        supportPeer.set(context.engine.eventsEngine.getEvent(eventId: id))
         self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
             print("🔕", peerId ?? "")
         }))

@@ -15,8 +15,8 @@ public extension TelegramEngine {
             return _getEvent(account: self.account, eventId: eventId)
         }
         
-        public func createEvent(eventModel: EventModel) -> Signal<String?, NoError> {
-            _internal_createEvent(account: account, event: eventModel)
+        public func createEvent(eventModel: EventModel, id: Int64) -> Signal<String?, NoError> {
+            _internal_createEvent(account: account, event: eventModel, id: id)
         }
         
         public func getCountries() -> Signal<String?, NoError> {
