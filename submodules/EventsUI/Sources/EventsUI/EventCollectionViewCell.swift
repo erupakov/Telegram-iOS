@@ -136,7 +136,6 @@ final class EventCollectionViewCell: UICollectionViewCell {
     }
     
     func configure(with event: EventData, context: AccountContext) {
-        imageView.image = UIImage(named: event.imageName)
         profileImageView.image = UIImage(named: event.profileImageName)
         profileNameLabel.text = event.profileName
         titleLabel.text = event.title
@@ -153,13 +152,20 @@ final class EventCollectionViewCell: UICollectionViewCell {
                      |> deliverOnMainQueue).start(next: { data in
                 if data.complete {
                     if let uiImage = UIImage(contentsOfFile: data.path) {
-                        self.imageView.image = uiImage
+                        UIView.transition(with: self.imageView,
+                                          duration: 0.3,
+                                          options: .transitionCrossDissolve,
+                                          animations: {
+                            self.imageView.image = uiImage
+                        }, completion: nil)
                     }
                     
                 } else {
                     let _ = context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
                 }
             })
+        } else {
+            imageView.image = UIImage(named: event.imageName)
         }
     }
 }

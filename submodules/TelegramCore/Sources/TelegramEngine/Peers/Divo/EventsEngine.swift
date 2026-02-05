@@ -11,7 +11,7 @@ public extension TelegramEngine {
             self.account = account
         }
         
-        public func getEvent(eventId: Int) -> Signal<String?, NoError> {
+        public func getEvent(eventId: Int) -> Signal<EventModel?, NoError> {
             return _getEvent(account: self.account, eventId: eventId)
         }
         
@@ -24,6 +24,9 @@ public extension TelegramEngine {
         }
         public func getEvents() -> Signal<[EventModel]?, NoError> {
             _internal_getEvents(account: account)
+        }
+        public func addEventPhoto(eventId: Int64, photoId: Int64) -> Signal<String?, NoError> {
+            _internal_addEventPhoto(account: account, eventId: eventId, photoId: photoId)
         }
     }
 }

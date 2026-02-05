@@ -5,6 +5,7 @@ import Display
 import TelegramCore
 import SwiftSignalKit
 import TelegramPresentationData
+import TelegramUIPreferences
 import ItemListUI
 import PresentationDataUtils
 import AccountContext
@@ -12,7 +13,7 @@ import AppBundle
 
 final class EventDetailControllerNode: ASDisplayNode {
     private let context: AccountContext
-    private let eventData: EventData
+    private var eventData: EventData? = nil
     private var presentationData: PresentationData
     
     private let scrollView: UIScrollView!
@@ -65,9 +66,11 @@ final class EventDetailControllerNode: ASDisplayNode {
     
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
-    init(context: AccountContext, eventData: EventData, presentationData: PresentationData) {
+    private let supportPeerDisposable = MetaDisposable()
+    private let addEventPhotoDisposable = MetaDisposable()
+    
+    init(context: AccountContext, presentationData: PresentationData) {
         self.context = context
-        self.eventData = eventData
         self.presentationData = presentationData
         
         let flowLayoutGallery = UICollectionViewFlowLayout()
@@ -89,6 +92,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         setupConstraints()
     }
     
+    deinit {
+        self.supportPeerDisposable.dispose()
+        self.addEventPhotoDisposable.dispose()
+    }
+    
     private func setupUI() {
         self.backgroundColor = .white
         
@@ -102,7 +110,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
         
-        backgroundImageView.image = UIImage(bundleImageName: eventData.imageName)
         backgroundImageView.contentMode = .scaleAspectFill
         backgroundImageView.clipsToBounds = true
         
@@ -181,7 +188,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         aboutTitleLabel.font = .systemFont(ofSize: 10, weight: .regular)
         aboutTitleLabel.textColor = UIColor(red: 0.55, green: 0.55, blue: 0.55, alpha: 1.00)
         
-        aboutDescriptionLabel.text = "Casting of models for a contract with the magazine on the initiative of the NYFW magazine in NY"
+//        aboutDescriptionLabel.text = "Casting of models for a contract with the magazine on the initiative of the NYFW magazine in NY"
         aboutDescriptionLabel.font = .systemFont(ofSize: 14)
         aboutDescriptionLabel.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         aboutDescriptionLabel.numberOfLines = 0
@@ -489,6 +496,57 @@ final class EventDetailControllerNode: ASDisplayNode {
         if let (layout, navigationBarHeight) = self.containerLayout {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
         }
+    }
+    override func didLoad() {
+        super.didLoad()
+        
+        applyButton.addTarget(self, action: #selector(applyButtonTapped(_:)), for: .touchUpInside)
+    }
+    
+    @objc private func applyButtonTapped(_ sender: UIButton) {
+
+//        if let id = eventData?.id {
+//            let supportPeer = Promise<String?>()
+//            supportPeer.set(context.engine.eventsEngine.addEventPhoto(eventId: Int64(id), photoId: 2018334237668675584))
+//            self.addEventPhotoDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+//                print("🔕", peerId ?? "")
+//            }))
+//        }
+    }
+    
+    func updateEventData(_ newEventData: EventData) {
+        self.eventData = newEventData
+        
+        if let image = newEventData.coverPhotoId {
+            guard let representation = largestImageRepresentation(image.representations) else {
+                return
+            }
+            
+            let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
+            let _ = (resourceData
+                     |> deliverOnMainQueue).start(next: { data in
+                if data.complete {
+                    if let uiImage = UIImage(contentsOfFile: data.path) {
+                        UIView.transition(with: self.backgroundImageView,
+                                          duration: 0.3,
+                                          options: .transitionCrossDissolve,
+                                          animations: {
+                            self.backgroundImageView.image = uiImage
+                        }, completion: nil)
+                    }
+                    
+                } else {
+                    let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
+                }
+            })
+        } else {
+            backgroundImageView.image = UIImage(bundleImageName: newEventData.imageName)
+        }
+        
+        eventTitleLabel.text = newEventData.title
+        eventSubtitleLabel.text = newEventData.timeRemaining
+        castingBadgeLabel.text = newEventData.type
+        aboutDescriptionLabel.text = newEventData.subtitle
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {

@@ -795,6 +795,8 @@ final class ProfileScreenNode: ASDisplayNode {
                     let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
                 }
             })
+        } else {
+            headerImageView.image = UIImage(named: model.mainImageName)
         }
     }
     

@@ -39,8 +39,6 @@ public final class WorkExperienceController: TelegramBaseController {
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
         
-        self.title = "Work experience"
-        
         let darkNavigationTheme = NavigationBarTheme(
             buttonColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
             disabledButtonColor: UIColor(rgb: 0x525252),
@@ -73,6 +71,8 @@ public final class WorkExperienceController: TelegramBaseController {
     
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
+        
+        self.title = "Work experience"
         
         let addItem = UIBarButtonItem(image: UIImage(bundleImageName: "Models/addIcon"), style: .plain, target: self, action: #selector(self.addPressed))
         addItem.tintColor = UIColor(rgb: 0xBC8461)

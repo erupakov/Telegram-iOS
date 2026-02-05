@@ -127,7 +127,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
             context: context,
             updatedPresentationData: nil,
             peerId: peerId,
-            mode: .reminders,
+            mode: .date,
             style: .default,
             currentTime: nil,
             minimalTime: nil,

@@ -18,7 +18,6 @@ enum TimeType {
     case end
 }
 
-
 final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     private let context: AccountContext

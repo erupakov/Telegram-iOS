@@ -3,6 +3,7 @@ import UIKit
 import TelegramCore
 
 struct EventData {
+    let id: Int
     let title: String
     let subtitle: String
     let imageName: String
@@ -13,6 +14,7 @@ struct EventData {
     let coverPhotoId: TelegramMediaImage?
     
     init(
+        id: Int = 0,
         title: String,
         subtitle: String,
         imageName: String,
@@ -22,6 +24,7 @@ struct EventData {
         type: String = "",
         coverPhotoId: TelegramMediaImage? = nil
     ) {
+        self.id = id
         self.title = title
         self.subtitle = subtitle
         self.imageName = imageName

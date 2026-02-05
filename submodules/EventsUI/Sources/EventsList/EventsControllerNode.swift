@@ -33,6 +33,8 @@ final class EventsControllerNode: ASDisplayNode {
         
         super.init()
         
+        self.view.backgroundColor = .black
+        
         let flowLayout = UICollectionViewFlowLayout()
         
         self.collectionView = UICollectionView(frame: .zero, collectionViewLayout: flowLayout)
@@ -45,27 +47,28 @@ final class EventsControllerNode: ASDisplayNode {
         
         self.view.addSubview(self.collectionView)
         
-        self.events = [
-            EventData(
-                title: "FASHION MODEL EVENT",
-                      subtitle: "May 27 · 5:00 PM · 🇺🇸 New York",
-                imageName: "Components/Model",
-                profileImageName: "Components/Model",
-                profileName: "@nyfw",
-                timeRemaining: "4d : 4h : 0m"
-            ),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/EventTest", profileImageName: "Components/Model", profileName: "@vogue", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@elle", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Model", profileImageName: "Components/Model", profileName: "@chanel", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/NewTalent", profileImageName: "Components/Model", profileName: "@dior", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@gucci", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Model", profileImageName: "Components/Model", profileName: "@nyfw", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/NewTalent", profileImageName: "Components/Model", profileName: "@vogue", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@elle", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Model", profileImageName: "Components/Model", profileName: "@chanel", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/NewTalent", profileImageName: "Components/Model", profileName: "@dior", timeRemaining: "4d : 4h : 0m"),
-            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@gucci", timeRemaining: "4d : 4h : 0m")
-        ]
+        self.events = []
+//        [
+//            EventData(
+//                title: "FASHION MODEL EVENT",
+//                      subtitle: "May 27 · 5:00 PM · 🇺🇸 New York",
+//                imageName: "Components/Model",
+//                profileImageName: "Components/Model",
+//                profileName: "@nyfw",
+//                timeRemaining: "4d : 4h : 0m"
+//            ),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/EventTest", profileImageName: "Components/Model", profileName: "@vogue", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@elle", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Model", profileImageName: "Components/Model", profileName: "@chanel", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/NewTalent", profileImageName: "Components/Model", profileName: "@dior", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@gucci", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Model", profileImageName: "Components/Model", profileName: "@nyfw", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/NewTalent", profileImageName: "Components/Model", profileName: "@vogue", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@elle", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Model", profileImageName: "Components/Model", profileName: "@chanel", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/NewTalent", profileImageName: "Components/Model", profileName: "@dior", timeRemaining: "4d : 4h : 0m"),
+//            EventData(title: "FASHION MODEL EVENT", subtitle: "May 27 • 5:00 PM • New York", imageName: "Components/Agencies", profileImageName: "Components/Model", profileName: "@gucci", timeRemaining: "4d : 4h : 0m")
+//        ]
         
         self.collectionView.reloadData()
         
@@ -74,8 +77,17 @@ final class EventsControllerNode: ASDisplayNode {
     }
     
     public func reloadEvents(events: [EventData]) {
+        let oldEvents = self.events
         self.events = events
-        self.collectionView.reloadData()
+        
+        let oldIds = Set(oldEvents.map { $0.id })
+        let newOnly = events.enumerated().filter { !oldIds.contains($0.element.id) }
+        
+        collectionView.performBatchUpdates({
+            for (index, _) in newOnly {
+                collectionView.insertItems(at: [IndexPath(item: index, section: 0)])
+            }
+        }, completion: nil)
     }
     
     override func layout() {

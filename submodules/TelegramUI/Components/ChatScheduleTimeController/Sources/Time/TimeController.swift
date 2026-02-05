@@ -8,6 +8,11 @@ import SwiftSignalKit
 import AccountContext
 import TelegramPresentationData
 
+public enum TimeControllerMode {
+    case time
+    case date
+}
+
 public final class TimeController: ViewController {
     private var controllerNode: TimeControllerNode {
         return self.displayNode as! TimeControllerNode
@@ -17,7 +22,7 @@ public final class TimeController: ViewController {
     
     private let context: AccountContext
     private let peerId: PeerId
-    private let mode: ChatScheduleTimeControllerMode
+    private let mode: TimeControllerMode
     private let style: ChatScheduleTimeControllerStyle
     private let currentTime: Int32?
     private let minimalTime: Int32?
@@ -29,7 +34,7 @@ public final class TimeController: ViewController {
     
     public var dismissed: () -> Void = {}
     
-    public init(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, peerId: PeerId, mode: ChatScheduleTimeControllerMode, style: ChatScheduleTimeControllerStyle, currentTime: Int32? = nil, minimalTime: Int32? = nil, dismissByTapOutside: Bool = true, completion: @escaping (Int32) -> Void) {
+    public init(context: AccountContext, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, peerId: PeerId, mode: TimeControllerMode, style: ChatScheduleTimeControllerStyle, currentTime: Int32? = nil, minimalTime: Int32? = nil, dismissByTapOutside: Bool = true, completion: @escaping (Int32) -> Void) {
         self.context = context
         self.peerId = peerId
         self.mode = mode

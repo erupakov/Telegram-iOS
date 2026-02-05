@@ -13,7 +13,7 @@ import UIKitRuntimeUtils
 
 class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
     private let context: AccountContext
-    private let mode: ChatScheduleTimeControllerMode
+    private let mode: TimeControllerMode
     private let controllerStyle: ChatScheduleTimeControllerStyle
     private var presentationData: PresentationData
     private let dismissByTapOutside: Bool
@@ -39,7 +39,7 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
     var dismiss: (() -> Void)?
     var cancel: (() -> Void)?
     
-    init(context: AccountContext, presentationData: PresentationData, mode: ChatScheduleTimeControllerMode, style: ChatScheduleTimeControllerStyle, currentTime: Int32?, minimalTime: Int32?, dismissByTapOutside: Bool) {
+    init(context: AccountContext, presentationData: PresentationData, mode: TimeControllerMode, style: ChatScheduleTimeControllerStyle, currentTime: Int32?, minimalTime: Int32?, dismissByTapOutside: Bool) {
         self.context = context
         self.mode = mode
         self.controllerStyle = style
@@ -92,13 +92,7 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
         self.contentBackgroundNode = ASDisplayNode()
         self.contentBackgroundNode.backgroundColor = backgroundColor
         
-        let title: String
-        switch mode {
-            case .scheduledMessages:
-                title = self.presentationData.strings.Conversation_ScheduleMessage_Title
-            case .reminders:
-                title = ""
-        }
+        let title: String = ""
         
         self.titleNode = ASTextNode()
         self.titleNode.attributedText = NSAttributedString(string: title, font: Font.bold(17.0), textColor: textColor)
@@ -139,9 +133,6 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
         self.contentContainerNode.addSubnode(self.titleNode)
         self.contentContainerNode.addSubnode(self.cancelButton)
         self.contentContainerNode.addSubnode(self.doneButton)
-        if case .scheduledMessages(true) = self.mode {
-            self.contentContainerNode.addSubnode(self.onlineButton)
-        }
         
         self.cancelButton.addTarget(self, action: #selector(self.cancelButtonPressed), forControlEvents: .touchUpInside)
         self.doneButton.pressed = { [weak self] in
@@ -176,35 +167,43 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
         
         let textColor: UIColor
         switch self.controllerStyle {
-            case .default:
-                textColor = self.presentationData.theme.actionSheet.primaryTextColor
-            case .media:
-                textColor = UIColor.white
+        case .default:
+            textColor = self.presentationData.theme.actionSheet.primaryTextColor
+        case .media:
+            textColor = .white
         }
         
         UILabel.setDateLabel(textColor)
         
         let pickerView = UIDatePicker()
         pickerView.timeZone = TimeZone(secondsFromGMT: 0)
-//        pickerView.datePickerMode = .countDownTimer
-//        pickerView.datePickerMode = .dateAndTime
-        pickerView.datePickerMode = .date
+        
+        switch self.mode {
+        case .date:
+            pickerView.datePickerMode = .date
+        case .time:
+            pickerView.datePickerMode = .time
+        }
+        
         pickerView.locale = Locale.current
         pickerView.timeZone = TimeZone.current
-//        pickerView.minuteInterval = 1
+        pickerView.minuteInterval = 1
+        
         self.contentContainerNode.view.addSubview(pickerView)
         pickerView.addTarget(self, action: #selector(self.datePickerUpdated), for: .valueChanged)
+        
         if #available(iOS 13.4, *) {
             pickerView.preferredDatePickerStyle = .wheels
         }
         pickerView.setValue(textColor, forKey: "textColor")
-        self.pickerView = pickerView
         
+        self.pickerView = pickerView
         self.updateMinimumDate(currentTime: currentTime)
         if let currentDate = currentDate {
             pickerView.date = currentDate
         }
     }
+
     
     func updatePresentationData(_ presentationData: PresentationData) {
         let previousTheme = self.presentationData.theme
@@ -255,23 +254,7 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
     
     private let calendar = Calendar(identifier: .gregorian)
     private func updateButtonTitle() {
-        guard let date = self.pickerView?.date else {
-            return
-        }
-        
-        let time = stringForMessageTimestamp(timestamp: Int32(date.timeIntervalSince1970), dateTimeFormat: self.presentationData.dateTimeFormat)
-        switch mode {
-            case .scheduledMessages:
-                if calendar.isDateInToday(date) {
-                    self.doneButton.title = self.presentationData.strings.Conversation_ScheduleMessage_SendToday(time).string
-                } else if calendar.isDateInTomorrow(date) {
-                    self.doneButton.title = self.presentationData.strings.Conversation_ScheduleMessage_SendTomorrow(time).string
-                } else {
-                    self.doneButton.title = self.presentationData.strings.Conversation_ScheduleMessage_SendOn(self.dateFormatter.string(from: date), time).string
-                }
-            case .reminders:
-                self.doneButton.title = "Ok"
-        }
+        self.doneButton.title = "Ok"
     }
     
     @objc private func datePickerUpdated() {
@@ -362,9 +345,6 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
         insets.top = max(10.0, insets.top)
         
         var buttonOffset: CGFloat = 0.0
-        if case .scheduledMessages(true) = self.mode {
-            buttonOffset += 64.0
-        }
         
         let bottomInset: CGFloat = 10.0 + cleanInsets.bottom
         let titleHeight: CGFloat = 54.0

@@ -133,7 +133,7 @@ public class AddWorkExperienceController: ViewController, UINavigationController
             context: context,
             updatedPresentationData: nil,
             peerId: peerId,
-            mode: .reminders,
+            mode: .date,
             style: .default,
             currentTime: nil,
             minimalTime: nil,

@@ -3,7 +3,7 @@ import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
 
-func _getEvent(account: Account, eventId: Int) -> Signal<String?, NoError> {
+func _getEvent(account: Account, eventId: Int) -> Signal<EventModel?, NoError> {
     print("⛳️", "get one getEvent")
     
     return account.network.request(Api.functions.event.getEvent(eventId: Int64(eventId)))
@@ -11,11 +11,9 @@ func _getEvent(account: Account, eventId: Int) -> Signal<String?, NoError> {
     |> `catch` { _ in
         return Signal<Api.event.Event?, NoError>.single(nil)
     }
-    |> mapToSignal { support -> Signal<String?, NoError> in
-        if let getEvent = support {
-            print("👌 get one getEvent: ", getEvent)
-        }
-        return .single(nil)
+    |> mapToSignal { support -> Signal<EventModel?, NoError> in
+        
+        return .single(getEventModel(support))
     }
 }
 
@@ -118,27 +116,90 @@ func _internal_getEvents(account: Account) -> Signal<[EventModel]?, NoError> {
         switch events {
         case .events(_, let events, _, _):
             let eventModels: [EventModel] = events.compactMap { shortEvent in
-                if case let .short(_, _, _, title, coverPhoto, eventDate, eventTime, _, _, _, _, _) = shortEvent {
-                    
-                    var coverPhotoId: TelegramMediaImage? = nil
-                    if case let .photo(photo, _) = coverPhoto {
-                        coverPhotoId = telegramMediaImageFromApiPhoto(photo)
-                    }
-                    
-                    return EventModel(
-                        title: title,
-                        description: title,
-                        eventDate: eventDate,
-                        eventTime: eventTime,
-                        coverPhotoId: coverPhotoId,
-                        enabledParameterKeys: nil
-                    )
-                }
-                return nil
+                return getEventModel(shortEvent)
             }
             return .single(eventModels)
         default:
             return .single(nil)
         }
+    }
+}
+
+private func getEventModel(_ shortEvent: Api.event.Short?) -> EventModel? {
+    if case let .short(_, id, _, title, coverPhoto, eventDate, eventTime, _, eventType, _, _, _) = shortEvent {
+        
+        var coverPhotoId: TelegramMediaImage? = nil
+        if case let .photo(photo, _) = coverPhoto {
+            coverPhotoId = telegramMediaImageFromApiPhoto(photo)
+        }
+        var eventTypeTitle: String? = nil
+        if case let .eventType(_, title) = eventType {
+            eventTypeTitle = title
+        }
+        
+        return EventModel(
+            id: Int(id),
+            title: title,
+            description: title,
+            eventDate: eventDate,
+            eventTime: eventTime,
+            coverPhotoId: coverPhotoId,
+            eventType: eventTypeTitle
+        )
+    } else {
+        return nil
+    }
+}
+
+private func getEventModel(_ fullEvent: Api.event.Event?) -> EventModel? {
+    
+    if case let .event(_, id, _, title, description, coverPhoto, eventDate, eventTime, _, eventType, _, _, _, gallery, _, _, _, _) = fullEvent {
+        
+        var coverPhotoId: TelegramMediaImage? = nil
+        if case let .photo(photo, _) = coverPhoto {
+            coverPhotoId = telegramMediaImageFromApiPhoto(photo)
+        }
+        var eventTypeTitle: String? = nil
+        if case let .eventType(_, title) = eventType {
+            eventTypeTitle = title
+        }
+        
+        let galleryPhotos: [TelegramMediaImage]? = gallery?.compactMap { element in
+            if case let .photo(photo, _) = element {
+                return telegramMediaImageFromApiPhoto(photo)
+            }
+            return nil
+        }
+        
+        return EventModel(
+            id: Int(id),
+            title: title,
+            description: description,
+            eventDate: eventDate,
+            eventTime: eventTime,
+            coverPhotoId: coverPhotoId,
+            eventType: eventTypeTitle,
+            gallery: galleryPhotos
+        )
+    } else {
+        return nil
+    }
+}
+
+func _internal_addEventPhoto(account: Account, eventId: Int64, photoId: Int64) -> Signal<String?, NoError> {
+    print("⛳️", "post _internal_addEventPhoto")
+
+    return account.network.request(
+        Api.functions.event.addEventPhoto(eventId: eventId, photoId: photoId, displayOrder: 0)
+    )
+    |> map(Optional.init)
+    |> `catch` { _ in
+        return Signal<Api.event.Photo?, NoError>.single(nil)
+    }
+    |> mapToSignal { user -> Signal<String?, NoError> in
+        if let user = user {
+            print("👌 _internal_addEventPhoto: ", user)
+        }
+        return .single(nil)
     }
 }

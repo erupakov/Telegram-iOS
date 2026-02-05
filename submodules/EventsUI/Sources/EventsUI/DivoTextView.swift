@@ -37,9 +37,9 @@ final class DivoTextView: ASDisplayNode, ASEditableTextNodeDelegate { //TODO: Mo
     }
     
     private func setupNodes() {
-        backgroundNode.backgroundColor = .clear
+        backgroundNode.backgroundColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00) // передать в init
         backgroundNode.borderWidth = 1.0
-        backgroundNode.borderColor = UIColor(white: 1.0, alpha: 0.2).cgColor
+        backgroundNode.borderColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00).cgColor // передать в init
         backgroundNode.cornerRadius = 11.0
         addSubnode(backgroundNode)
         
@@ -47,14 +47,14 @@ final class DivoTextView: ASDisplayNode, ASEditableTextNodeDelegate { //TODO: Mo
             string: title,
             attributes: [
                 .font: Font.regular(14.0),
-                .foregroundColor: UIColor(white: 1.0, alpha: 0.4)
+                .foregroundColor: UIColor.black
             ]
         )
         addSubnode(titleNode)
         
         textNode.delegate = self
         textNode.textView.font = Font.regular(16.0)
-        textNode.textView.textColor = .white
+        textNode.textView.textColor = .black
         textNode.textView.backgroundColor = .clear
 //        textNode.textView.typingAttributes = [
 //            NSAttributedString.Key.font.rawValue: Font.regular(16.0),
