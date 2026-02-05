@@ -1,12 +1,12 @@
 public extension Api {
     enum UserProfile: TypeConstructorDescription {
-        case userProfile(flags: Int32, userId: Int64, country: String?, city: String?, gender: Api.Gender?, birthDate: Int64?, role: Api.AgencyRole?, about: String?, physicalParams: Api.profile.PhysicalParams?, stats: Api.profile.Stats?, portfolio: Api.profile.Portfolio?, socialLinks: Api.profile.SocialLinks?, agency: Api.profile.Agency?, user: Api.User?, backgroundId: Int64?)
+        case userProfile(flags: Int32, userId: Int64, country: String?, city: String?, gender: Api.Gender?, birthDate: Int64?, role: Api.AgencyRole?, about: String?, physicalParams: Api.profile.PhysicalParams?, stats: Api.profile.Stats?, portfolio: Api.profile.Portfolio?, socialLinks: Api.profile.SocialLinks?, agency: Api.profile.Agency?, user: Api.User?, background: Api.Photo?)
         
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
-            case .userProfile(let flags, let userId, let country, let city, let gender, let birthDate, let role, let about, let physicalParams, let stats, let portfolio, let socialLinks, let agency, let user, let backgroundId):
+            case .userProfile(let flags, let userId, let country, let city, let gender, let birthDate, let role, let about, let physicalParams, let stats, let portfolio, let socialLinks, let agency, let user, let background):
                 if boxed {
-                    buffer.appendInt32(-1811163673)
+                    buffer.appendInt32(-271849932)
                 }
                 serializeInt32(flags, buffer: buffer, boxed: false)
                 serializeInt64(userId, buffer: buffer, boxed: false)
@@ -22,15 +22,15 @@ public extension Api {
                 if Int(flags) & Int(1 << 9) != 0 {socialLinks!.serialize(buffer, true)}
                 if Int(flags) & Int(1 << 10) != 0 {agency!.serialize(buffer, true)}
                 if Int(flags) & Int(1 << 11) != 0 {user!.serialize(buffer, true)}
-                if Int(flags) & Int(1 << 12) != 0 {serializeInt64(backgroundId!, buffer: buffer, boxed: false)}
+                if Int(flags) & Int(1 << 12) != 0 {background!.serialize(buffer, true)}
                 break
             }
         }
         
         public func descriptionFields() -> (String, [(String, Any)]) {
             switch self {
-            case .userProfile(let flags, let userId, let country, let city, let gender, let birthDate, let role, let about, let physicalParams, let stats, let portfolio, let socialLinks, let agency, let user, let backgroundId):
-                return ("userProfile", [("flags", String(describing: flags)), ("userId", String(describing: userId)), ("country", String(describing: country)), ("city", String(describing: city)), ("gender", String(describing: gender)), ("birthDate", String(describing: birthDate)), ("role", String(describing: role)), ("about", String(describing: about)), ("physicalParams", String(describing: physicalParams)), ("stats", String(describing: stats)), ("portfolio", String(describing: portfolio)), ("socialLinks", String(describing: socialLinks)), ("agency", String(describing: agency)), ("user", String(describing: user)), ("backgroundId", String(describing: backgroundId))])
+            case .userProfile(let flags, let userId, let country, let city, let gender, let birthDate, let role, let about, let physicalParams, let stats, let portfolio, let socialLinks, let agency, let user, let background):
+                return ("userProfile", [("flags", String(describing: flags)), ("userId", String(describing: userId)), ("country", String(describing: country)), ("city", String(describing: city)), ("gender", String(describing: gender)), ("birthDate", String(describing: birthDate)), ("role", String(describing: role)), ("about", String(describing: about)), ("physicalParams", String(describing: physicalParams)), ("stats", String(describing: stats)), ("portfolio", String(describing: portfolio)), ("socialLinks", String(describing: socialLinks)), ("agency", String(describing: agency)), ("user", String(describing: user)), ("background", String(describing: background))])
             }
         }
         
@@ -79,8 +79,10 @@ public extension Api {
             if Int(_1!) & Int(1 << 11) != 0 {if let signature = reader.readInt32() {
                 _14 = Api.parse(reader, signature: signature) as? Api.User
             } }
-            var _15: Int64?
-            if Int(_1!) & Int(1 << 12) != 0 {_15 = reader.readInt64() }
+            var _15: Api.Photo?
+            if Int(_1!) & Int(1 << 12) != 0 {if let signature = reader.readInt32() {
+                _15 = Api.parse(reader, signature: signature) as? Api.Photo
+            } }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = (Int(_1!) & Int(1 << 0) == 0) || _3 != nil
@@ -95,9 +97,9 @@ public extension Api {
             let _c12 = (Int(_1!) & Int(1 << 9) == 0) || _12 != nil
             let _c13 = (Int(_1!) & Int(1 << 10) == 0) || _13 != nil
             let _c14 = (Int(_1!) & Int(1 << 11) == 0) || _14 != nil
-            let _c15 = (Int(_1!) & Int(1 << 12) == 0) || _15 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 && _c15 {
-                return Api.UserProfile.userProfile(flags: _1!, userId: _2!, country: _3, city: _4, gender: _5, birthDate: _6, role: _7, about: _8, physicalParams: _9, stats: _10, portfolio: _11, socialLinks: _12, agency: _13, user: _14, backgroundId: _15)
+//            let _c15 = (Int(_1!) & Int(1 << 12) == 0) || _15 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 {
+                return Api.UserProfile.userProfile(flags: _1!, userId: _2!, country: _3, city: _4, gender: _5, birthDate: _6, role: _7, about: _8, physicalParams: _9, stats: _10, portfolio: _11, socialLinks: _12, agency: _13, user: _14, background: _15)
             }
             else {
                 return nil

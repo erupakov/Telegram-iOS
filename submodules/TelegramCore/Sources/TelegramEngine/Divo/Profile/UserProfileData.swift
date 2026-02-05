@@ -12,13 +12,14 @@ public class UserProfileData {
     public let physicalParams: PhysicalParams?
     public let socialLinks: SocialLinks?
     public let agency: String?
+    public let backgroundImage: TelegramMediaImage?
 
     public enum Gender: String, Codable {
         case genderFemale
         case genderMale
     }
     
-    init(country: String?, city: String?, gender: Gender?, birthDate: Int?, about: String?, physicalParams: PhysicalParams?, socialLinks: SocialLinks?, agency: String?) {
+    init(country: String?, city: String?, gender: Gender?, birthDate: Int?, about: String?, physicalParams: PhysicalParams?, socialLinks: SocialLinks?, agency: String?, backgroundImage: TelegramMediaImage? = nil) {
         self.country = country
         self.city = city
         self.gender = gender
@@ -27,6 +28,7 @@ public class UserProfileData {
         self.physicalParams = physicalParams
         self.socialLinks = socialLinks
         self.agency = agency
+        self.backgroundImage = backgroundImage
     }
 }
 

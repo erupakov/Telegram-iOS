@@ -26,6 +26,7 @@ public final class ProfileScreenController: TelegramBaseController {
     private var userProfileData: UserProfileData? = nil
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
+    private let supportBackground = MetaDisposable()
     private let getFullUserDisposable = MetaDisposable()
     
     private var presentationData: PresentationData
@@ -61,6 +62,7 @@ public final class ProfileScreenController: TelegramBaseController {
     
     deinit {
         self.supportPeerDisposable.dispose()
+        self.supportBackground.dispose()
         self.getFullUserDisposable.dispose()
     }
     
@@ -94,6 +96,12 @@ public final class ProfileScreenController: TelegramBaseController {
             f(.default)
             self?.editProfile()
         })))
+        
+        items.append(.action(ContextMenuActionItem(text: "Change Profile Background", icon: { _ in return nil }, action: { [weak self] _, f in
+            f(.default)
+            self?.changeProfileBackground()
+        })))
+        
         items.append(.action(ContextMenuActionItem(text: "Edit Appearance", icon: { _ in return nil }, action: { [weak self] _, f in
             f(.default)
             self?.editAppearance()
@@ -114,6 +122,52 @@ public final class ProfileScreenController: TelegramBaseController {
         )
         
         self.present(contextController, in: .window(.root))
+    }
+    
+    func uploadPhotoToCloud(context: AccountContext, image: UIImage) -> Signal<Int64?, NoError> {
+        guard let data = image.jpegData(compressionQuality: 0.9) else {
+            return .single(nil)
+        }
+        
+        return context.engine.engineDivo.uploadedPhoto(resource: data)
+    }
+    
+    private func changeProfileBackground() {
+        
+        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
+        let theme = self.presentationData.theme
+        
+        let supportPeer = Promise<String?>()
+        
+        presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
+            self.view.endEditing(true)
+            self.present(c, in: .window(.root), with: a)
+        }, openCurrent: nil, completion: { image in
+            let _ = self.uploadPhotoToCloud(context: self.context, image: image).start(next: { id in
+                if let id = id {
+                    print("⛳️", id)
+                    supportPeer.set(self.context.engine.profileEngine.updateProfileBackground(backgroundId: id))
+                    self.supportBackground.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
+                        print("🔕", peerId ?? "")
+                        self.showAlert(text: "Profile Background changed")
+                        self.getUserProfile()
+                    }))
+                }
+            })
+        }, videoCompletion: { _, _, _ in
+        })
+    }
+
+    private func showAlert(text: String) {
+        
+        let alertController = textAlertController(
+            context: context, title: nil,
+            text: text, actions: [
+                TextAlertAction(type: .genericAction, title: "Ok", action: {
+                    print("ok")
+                })
+            ])
+        present(alertController, in: .window(.root))
     }
     
     private func editProfile() {
@@ -226,6 +280,7 @@ public final class ProfileScreenController: TelegramBaseController {
         self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { userProfile in
             self.userProfileData = userProfile
             self.controllerNode.reloadSocialMedia(userProfile?.socialLinks)
+            self.controllerNode.reloadBackground(userProfile?.backgroundImage)
         }))
     }
     

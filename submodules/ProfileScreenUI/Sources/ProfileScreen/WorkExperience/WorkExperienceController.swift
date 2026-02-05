@@ -38,6 +38,9 @@ public final class WorkExperienceController: TelegramBaseController {
         self.model = model
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
+        
+        self.title = "Work experience"
+        
         let darkNavigationTheme = NavigationBarTheme(
             buttonColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
             disabledButtonColor: UIColor(rgb: 0x525252),

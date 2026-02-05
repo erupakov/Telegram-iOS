@@ -667,7 +667,7 @@ final class ProfileScreenNode: ASDisplayNode {
     
     private func configureNodes() {
         
-        headerImageView.image = UIImage(named: model.mainImageName)
+//        headerImageView.image = UIImage(named: model.mainImageName)
         if model.isMyProfile {
             
             if !model.photos.isEmpty {
@@ -770,6 +770,32 @@ final class ProfileScreenNode: ASDisplayNode {
     
     public func reloadSocialMedia(_ socialMedia: SocialLinks?) {
         updateSocialMediaStack(socialMedia)
+    }
+    
+    public func reloadBackground(_ image: TelegramMediaImage?) {
+        if let image = image {
+            guard let representation = largestImageRepresentation(image.representations) else {
+                return
+            }
+            
+            let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
+            let _ = (resourceData
+                     |> deliverOnMainQueue).start(next: { data in
+                if data.complete {
+                    if let uiImage = UIImage(contentsOfFile: data.path) {
+                        UIView.transition(with: self.headerImageView,
+                                          duration: 0.3,
+                                          options: .transitionCrossDissolve,
+                                          animations: {
+                            self.headerImageView.image = uiImage
+                        }, completion: nil)
+                    }
+                    
+                } else {
+                    let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
+                }
+            })
+        }
     }
     
     func getUpdates(_ about: String?) {
