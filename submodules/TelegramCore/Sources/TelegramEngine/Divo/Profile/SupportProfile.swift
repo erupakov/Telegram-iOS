@@ -49,7 +49,9 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
 //    flags |= 1 << 1 //lastName
 //    flags |= 1 << 2 //country
 //    flags |= 1 << 3 //about
-//    flags |= 1 << 4 //gender
+    if data.gender != nil {
+        flags |= 1 << 4 //gender
+    }
 //    flags |= 1 << 5 //birthDate
     flags |= 1 << 6 //height
     flags |= 1 << 7 //waist
@@ -60,6 +62,10 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
     flags |= 1 << 12 //eyeColor
     flags |= 1 << 13 //skinColor
     flags |= 1 << 14 //breastSize
+
+    //    flags |= 1 << 15 //photoId
+    
+    flags |= 1 << 16 //backgroundId
     
     return account.network.request(
         Api.functions.profile.updateProfile(
@@ -68,7 +74,7 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
             lastName: nil,//"lastName",//String?,
             country: nil,//"country",//String?,
             about: nil,//firstName,//String?,
-            gender: nil,//Api.Gender.genderMale,//Api.Gender?,
+            gender: data.gender,//Api.Gender.genderMale,//Api.Gender?,
             birthDate: nil,//Int32?,
             height: data.height,
             waist: data.waist,
@@ -80,7 +86,7 @@ func _internal_updateProfile(account: Account, data: ProfileParametersData) -> S
             skinColor: data.skinColor,
             breastSize: data.breastSize,
             photoId: nil,//Int64?
-            backgroundId: nil//Int64?
+            backgroundId: data.backgroundId
         )
     )
     |> map(Optional.init)
@@ -191,13 +197,13 @@ func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfi
         }
         |> mapToSignal { userProfile -> Signal<UserProfileData?, NoError> in
             switch userProfile {
-            case .userProfile(_, _, let country, let city, let gender, let birthDate, _, let about, let physicalParams, _, _, let socialLinks, _, _, let background):
+            case .userProfile(_, _, let country, let city, let gender, let birthDate, _, let about, let physicalParams, _, _, let socialLinks, _, let user, let background):
                 
-                var finalGender: UserProfileData.Gender? = nil
+                var finalGender: SecureIdGender? = nil
                 if let gender = gender {
                     switch gender {
-                    case .genderFemale: finalGender = .genderFemale
-                    case .genderMale: finalGender = .genderMale
+                    case .genderFemale: finalGender = .female
+                    case .genderMale: finalGender = .male
                     }
                 }
                 
@@ -253,6 +259,13 @@ func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfi
                 var backgroundImage: TelegramMediaImage? = nil
                 if let background = background {
                     backgroundImage = telegramMediaImageFromApiPhoto(background)
+                }
+                
+                if let user = user,
+                   case let .user(_, _, _, _, _, _, photo, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = user,
+                   case let .userProfilePhoto(_, photoId, _, _) = photo
+                {
+                    print("⚠️", photoId)
                 }
                 let data = UserProfileData(
                     country: country,

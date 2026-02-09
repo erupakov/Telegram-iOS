@@ -35,7 +35,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
     
     private let scrollNode: ASScrollNode
     
-    private let genderTextField: TextFieldNode
+    private var genderTextField: TextFieldNode
     private let hairColorTextField: TextFieldNode
     
     private let eyeColorTextField: TextFieldNode
@@ -53,6 +53,19 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
     private let applyButton: ASControlNode
     private let addPhoto: () -> Void
     var showAlert: ((String) -> Void)?
+    var openGenderPicker: (() -> Void)?
+    var currentGender: SecureIdGender? {
+        didSet {
+            switch currentGender {
+            case .male:
+                genderTextField.textField.text = "Male"
+            case .female:
+                genderTextField.textField.text = "Female"
+            case nil:
+                return
+            }
+        }
+    }
     
     private var userProfileData: UserProfileData?
     
@@ -67,8 +80,8 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         
         self.scrollNode = ASScrollNode()
         
-        self.genderTextField = getTextFiel(placeholder: "Select a Gender", value: nil)
-        
+        let gender = userProfileData?.gender == nil ? nil : userProfileData?.gender == .male ? "Male" : "Female"
+        self.genderTextField = getTextFiel(placeholder: "Select a Gender", value: gender, showChevron: true)
         self.hairColorTextField = getTextFiel(placeholder: "Choose your hair color", value: userProfileData?.physicalParams?.hairColor)
         self.eyeColorTextField = getTextFiel(placeholder: "Choose your eye color", value: userProfileData?.physicalParams?.eyeColor)
         self.skinColorTextField = getTextFiel(placeholder: "Choose your skin color", value: userProfileData?.physicalParams?.skinColor)
@@ -87,6 +100,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         
         super.init()
         
+        self.genderTextField.textField.delegate = self
         self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
         self.addSubnode(self.scrollNode)
@@ -127,7 +141,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
             lastName: nil,
             country: nil,
             about: nil,
-            gender: nil,//Api.Gender?
+            gender: currentGender == nil ? nil : currentGender == .male ? .genderMale : .genderFemale,
             birthDate: nil,
             height: Int32(heightSliderNode.slider.value.rounded()),
             waist: Int32(waisttSliderNode.slider.value.rounded()),
@@ -138,7 +152,8 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
             eyeColor: eyeColorTextField.textField.text ?? "",
             skinColor: skinColorTextField.textField.text ?? "",
             breastSize: breastSizeTextField.textField.text ?? "",
-            photoId: nil
+            photoId: nil,
+            backgroundId:  userProfileData?.backgroundImage?.id?.id
         )
         
         supportPeer.set(context.engine.profileEngine.updateProfile(data: data))
@@ -148,6 +163,14 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         }))
     }
 
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        if textField == genderTextField.textField  {
+            openGenderPicker?()
+            return false
+        }
+        return true
+    }
+    
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         
         let topInset = navigationBarHeight
@@ -198,7 +221,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
     }
 }
 
-private func getTextFiel(placeholder: String, isMultiline: Bool = false, value: String?) -> TextFieldNode {
+private func getTextFiel(placeholder: String, isMultiline: Bool = false, value: String?, showChevron: Bool = false) -> TextFieldNode {
     let field = TextFieldNode()
     field.textField.font = Font.regular(16.0)
     field.textField.textColor = .white
@@ -207,7 +230,11 @@ private func getTextFiel(placeholder: String, isMultiline: Bool = false, value: 
     if let value = value, !value.isEmpty {
         field.textField.text = value
     } else {
-        field.textField.attributedPlaceholder = NSAttributedString(string: placeholder, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+        field.textField.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            font: field.textField.font,
+            textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4)
+        )
     }
     
     field.textField.autocapitalizationType = .none
@@ -216,10 +243,25 @@ private func getTextFiel(placeholder: String, isMultiline: Bool = false, value: 
     field.borderColor = UIColor(red: 1, green: 1, blue: 1, alpha: 0.4).cgColor
     field.cornerRadius = 11.0
     field.clipsToBounds = true
+    
+    if showChevron {
+        let iconView = UIImageView(image: UIImage(bundleImageName: "Models/chevron-down"))
+        iconView.contentMode = .center
+        
+        let padding: CGFloat = 10.0
+        let iconSize: CGFloat = 24.0
+        let outerView = UIView(frame: CGRect(x: 0, y: 0, width: iconSize + padding, height: iconSize))
+        iconView.frame = CGRect(x: 0, y: 0, width: iconSize, height: iconSize)
+        outerView.addSubview(iconView)
+        
+        field.textField.rightView = outerView
+        field.textField.rightViewMode = .always
+    }
+    
     if isMultiline {
         field.padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
     } else {
-        field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+        field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 34)
     }
     
     return field

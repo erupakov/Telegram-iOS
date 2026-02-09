@@ -107,6 +107,9 @@ public class ProfileParametersController: ViewController, UINavigationController
         self.createEventNode.showAlert = { [weak self] text in
             self?.showAlert(text: text)
         }
+        self.createEventNode.openGenderPicker = { [weak self] in
+            self?.openGenderPicker()
+        }
         
         self.displayNodeDidLoad()
     }
@@ -121,6 +124,31 @@ public class ProfileParametersController: ViewController, UINavigationController
                 })
             ])
         present(alertController, in: .window(.root))
+    }
+    
+    private func openGenderPicker() {
+        let presentationData = self.presentationData
+        
+        let controller = ActionSheetController(presentationData: presentationData)
+        
+        let dismissAction = ActionSheetButtonItem(title: presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak controller] in
+            controller?.dismissAnimated()
+        })
+        controller.setItemGroups([
+            ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: "Male", color: .accent, action: { [weak self] in
+                    self?.createEventNode.currentGender = .male
+                    controller.dismissAnimated()
+                }),
+                ActionSheetButtonItem(title: "Female", color: .accent, action: { [weak self] in
+                    self?.createEventNode.currentGender = .female
+                    controller.dismissAnimated()
+                })
+            ]),
+            ActionSheetItemGroup(items: [dismissAction])
+        ])
+        
+        self.present(controller, in: .window(.root))
     }
     
     override public func viewWillAppear(_ animated: Bool) {

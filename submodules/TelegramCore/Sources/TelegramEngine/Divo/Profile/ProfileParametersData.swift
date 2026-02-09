@@ -20,8 +20,9 @@ public class ProfileParametersData {
     let skinColor: String?
     let breastSize: String?
     let photoId: Int64?
+    let backgroundId: Int64?
     
-    public init(firstName: String?, lastName: String?, country: String?, about: String?, gender: Api.Gender?, birthDate: Int32?, height: Int32?, waist: Int32?, hips: Int32?, shoeSize: Int32?, hairLength: Int32?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?, photoId: Int64?) {
+    public init(firstName: String?, lastName: String?, country: String?, about: String?, gender: Api.Gender?, birthDate: Int32?, height: Int32?, waist: Int32?, hips: Int32?, shoeSize: Int32?, hairLength: Int32?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?, photoId: Int64?, backgroundId: Int64? = nil) {
         self.firstName = firstName
         self.lastName = lastName
         self.country = country
@@ -38,5 +39,6 @@ public class ProfileParametersData {
         self.skinColor = skinColor
         self.breastSize = breastSize
         self.photoId = photoId
+        self.backgroundId = backgroundId
     }
 }

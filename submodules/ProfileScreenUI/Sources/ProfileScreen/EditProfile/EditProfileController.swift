@@ -27,10 +27,12 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
     private let model: ProfileModel
+    private let updatePhoto: (UIImage?) -> Void
     
-    public init(context: AccountContext, model: ProfileModel) {
+    public init(context: AccountContext, model: ProfileModel, updatePhoto: @escaping (UIImage?) -> Void) {
         self.context = context
         self.model = model
+        self.updatePhoto = updatePhoto
         
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
@@ -100,7 +102,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 }, openCurrent: nil, completion: { image in
                     self?.createEventNode.currentPhoto = image
                     self?.createEventNode.toggleSpinner(active: true)
-                    
+                    self?.updatePhoto(image)
                     let tempFile = TempBox.shared.tempFile(fileName: "avatar.jpg")
                     guard let data = image.jpegData(compressionQuality: 0.9), let context = self?.context else { return }
                     try? data.write(to: URL(fileURLWithPath: tempFile.path))

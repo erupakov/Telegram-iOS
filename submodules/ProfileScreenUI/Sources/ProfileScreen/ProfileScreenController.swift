@@ -22,12 +22,13 @@ public final class ProfileScreenController: TelegramBaseController {
     
     private var customBackSwipeGestureRecognizer: UIScreenEdgePanGestureRecognizer?
     
-    private let model: ProfileModel
+    private var model: ProfileModel
     private var userProfileData: UserProfileData? = nil
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
     private let supportBackground = MetaDisposable()
     private let getFullUserDisposable = MetaDisposable()
+    private var peerDisposable: MetaDisposable?
     
     private var presentationData: PresentationData
     
@@ -64,6 +65,7 @@ public final class ProfileScreenController: TelegramBaseController {
         self.supportPeerDisposable.dispose()
         self.supportBackground.dispose()
         self.getFullUserDisposable.dispose()
+        self.peerDisposable?.dispose()
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -171,7 +173,10 @@ public final class ProfileScreenController: TelegramBaseController {
     }
     
     private func editProfile() {
-        let controller = EditProfileController(context: self.context, model: self.model)
+        let controller = EditProfileController(context: self.context, model: self.model, updatePhoto: { [weak self] image in
+            self?.controllerNode.currentPhoto = image
+            self?.controllerNode.addPhotoToCollection()
+        })
         if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
             navigationController.pushViewController(controller)
         }
@@ -260,17 +265,6 @@ public final class ProfileScreenController: TelegramBaseController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         getUserProfile()
-        getFullUser()
-    }
-    
-    
-    private func getFullUser() {
-        let supportPeer = Promise<String?>()
-        
-        supportPeer.set(context.engine.profileEngine.getFullUser(peer: peer))
-        self.getFullUserDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { getWorkHistory in
-            self.controllerNode.getUpdates(getWorkHistory)
-        }))
     }
     
     private func getUserProfile() {
@@ -279,8 +273,35 @@ public final class ProfileScreenController: TelegramBaseController {
         supportPeer.set(context.engine.profileEngine.getUserProfile(peer: peer))
         self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { userProfile in
             self.userProfileData = userProfile
+            self.model.biography = userProfile?.about ?? ""
+            self.controllerNode.getUpdates(userProfile?.about ?? "", userProfile?.physicalParams, userProfile?.gender)
             self.controllerNode.reloadSocialMedia(userProfile?.socialLinks)
             self.controllerNode.reloadBackground(userProfile?.backgroundImage)
+        }))
+        
+        peerDisposable = MetaDisposable()
+        let signal: Signal<Peer?, NoError> = Signal { subscriber in
+            let disposable = MetaDisposable()
+            let transactionSignal = self.context.account.postbox.transaction { transaction in
+                let peerId = self.context.account.peerId
+                return transaction.getPeer(peerId)
+            }
+            disposable.set(transactionSignal.start(next: { peer in
+                subscriber.putNext(peer)
+                subscriber.putCompletion()
+            }))
+            return disposable
+        }
+        peerDisposable?.set(signal.start(next: { [weak self] peer in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                self.model.name = (peer as? TelegramUser)?.firstName ?? ""
+                self.model.lastName = (peer as? TelegramUser)?.lastName ?? ""
+                
+                let fullName = self.model.name + " " + (self.model.lastName ?? "")
+                self.controllerNode.updateNameLabel(fullName)
+            }
         }))
     }
     

@@ -17,13 +17,10 @@ final class ProfileScreenNode: ASDisplayNode {
     private weak var controller: ViewController?
     private let context: AccountContext
     private var presentationData: PresentationData
-    private var peerDisposable: MetaDisposable?
 
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
-    private var headerHeightConstraint: NSLayoutConstraint!
     private let iconPlaceholder = "HeartActionIcon"
-    private let fixedHeaderHeight: CGFloat = 630.0
     
     private let addPhoto: () -> Void
     private let openEditLink: () -> Void
@@ -42,10 +39,15 @@ final class ProfileScreenNode: ASDisplayNode {
         stack.axis = .vertical
         stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.backgroundColor = .clear
         return stack
     }()
     
-    private let headerContainer = UIView()
+    private let headerContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
     private let blurredHeaderImageView: UIImageView = {
         let iv = UIImageView()
@@ -59,7 +61,8 @@ final class ProfileScreenNode: ASDisplayNode {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.backgroundColor = .gray
+        iv.backgroundColor = .black
+        iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
     
@@ -144,18 +147,18 @@ final class ProfileScreenNode: ASDisplayNode {
     }()
     
     private lazy var segmentedBar: ProfileSegmentedBar = {
-            let view = ProfileSegmentedBar()
-            view.delegate = self
-            view.translatesAutoresizingMaskIntoConstraints = false
-            return view
-        }()
+        let view = ProfileSegmentedBar()
+        view.delegate = self
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
     private lazy var galleryCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.minimumInteritemSpacing = 1
         layout.minimumLineSpacing = 1
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .black
+        collectionView.backgroundColor = .clear
         collectionView.register(GalleryCell.self, forCellWithReuseIdentifier: "GalleryCell")
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -164,14 +167,7 @@ final class ProfileScreenNode: ASDisplayNode {
         return collectionView
     }()
     
-    private lazy var profileInfoView: ProfileInfoView = {
-        let view = ProfileInfoView(
-            biography: model.biography,
-            appearance: "model.appearance"
-        )
-        view.delegate = self
-        return view
-    }()
+    private var profileInfoView: ProfileInfoView
     
     init(
         controller: ViewController,
@@ -180,32 +176,36 @@ final class ProfileScreenNode: ASDisplayNode {
         model: ProfileModel,
         addPhoto: @escaping () -> Void,
         openEditLink: @escaping () -> Void) {
-        self.controller = controller
-        self.context = context
-        self.presentationData = presentationData
-        self.model = model
-        self.addPhoto = addPhoto
-        self.openEditLink = openEditLink
-        super.init()
-        
-        self.view.backgroundColor = .black
-        
-        self.view.addSubview(scrollView)
-        scrollView.contentInsetAdjustmentBehavior = .never
-        scrollView.addSubview(contentViewStack)
-        
-        localPhotos = model.photos.map { PhotoItem.telegram($0) }
-        
-        setupContent()
-        configureNodes()
-    }
+            self.controller = controller
+            self.context = context
+            self.presentationData = presentationData
+            self.model = model
+            self.addPhoto = addPhoto
+            self.openEditLink = openEditLink
+            
+            profileInfoView = ProfileInfoView(biography: "Some long text...", appearance: [])
+            
+            super.init()
+            
+            self.view.backgroundColor = .black
+            
+            self.view.addSubview(headerContainer)
+            headerContainer.addSubview(headerImageView)
+            headerContainer.addSubview(blurredHeaderImageView)
+            
+            self.view.addSubview(scrollView)
+            scrollView.backgroundColor = .clear
+            scrollView.contentInsetAdjustmentBehavior = .never
+            scrollView.addSubview(contentViewStack)
+            
+            localPhotos = model.photos.map { PhotoItem.telegram($0) }
+            
+            setupContent()
+            configureNodes()
+        }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    deinit {
-        peerDisposable?.dispose()
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -220,8 +220,6 @@ final class ProfileScreenNode: ASDisplayNode {
         
         self.scrollView.contentInset = contentInset
         self.scrollView.scrollIndicatorInsets = scrollIndicatorInsets
-        
-        headerHeightConstraint.constant = fixedHeaderHeight
         
         applyGradientBlurMask()
         
@@ -248,13 +246,13 @@ final class ProfileScreenNode: ASDisplayNode {
         super.layout()
         
         guard let (layout, _) = self.containerLayout else { return }
-        
         let stackWidth = layout.size.width
         
         contentViewStack.layoutIfNeeded()
         
+        let targetSize = CGSize(width: stackWidth, height: UIView.layoutFittingCompressedSize.height)
         let contentHeight = contentViewStack.systemLayoutSizeFitting(
-            CGSize(width: stackWidth, height: UIView.layoutFittingCompressedSize.height),
+            targetSize,
             withHorizontalFittingPriority: .required,
             verticalFittingPriority: .fittingSizeLevel
         ).height
@@ -267,14 +265,9 @@ final class ProfileScreenNode: ASDisplayNode {
     
     private func applyGradientBlurMask() {
         let blurStartPoint: CGFloat = 100.0
-        let blurFullPoint: CGFloat = 250.0
+        let blurFullPoint: CGFloat = 400.0
         
-        guard let originalImage = headerImageView.image,
-              let headerHeight = headerHeightConstraint?.constant,
-              headerHeight > 0
-        else {
-            return
-        }
+        guard let originalImage = headerImageView.image else { return }
         
         let blurredImage = originalImage.applyBlur(radius: 20)
         blurredHeaderImageView.image = blurredImage
@@ -282,23 +275,36 @@ final class ProfileScreenNode: ASDisplayNode {
         let gradientLayer = CAGradientLayer()
         gradientLayer.frame = blurredHeaderImageView.bounds
         
-        let startLocation = blurStartPoint / headerHeight
-        let fullLocation = blurFullPoint / headerHeight
+        let totalHeight = self.view.bounds.height
+        guard totalHeight > 0 else { return }
         
-        let clampedStartLocation = max(0.0, min(1.0, startLocation))
-        let clampedFullLocation = max(0.0, min(1.0, fullLocation))
+        let startLocation = blurStartPoint / totalHeight
+        let fullLocation = blurFullPoint / totalHeight
         
         gradientLayer.colors = [UIColor.clear.cgColor, UIColor.black.cgColor]
-        
-        gradientLayer.locations = [NSNumber(value: Double(clampedStartLocation)),
-                                   NSNumber(value: Double(clampedFullLocation))]
+        gradientLayer.locations = [NSNumber(value: Double(startLocation)),
+                                   NSNumber(value: Double(fullLocation))]
         
         blurredHeaderImageView.layer.mask = gradientLayer
     }
     
     private func setupContent() {
-        
         NSLayoutConstraint.activate([
+            headerContainer.topAnchor.constraint(equalTo: self.view.topAnchor),
+            headerContainer.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            headerContainer.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            headerContainer.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            
+            headerImageView.topAnchor.constraint(equalTo: headerContainer.topAnchor),
+            headerImageView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
+            headerImageView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor),
+            headerImageView.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
+            
+            blurredHeaderImageView.topAnchor.constraint(equalTo: headerContainer.topAnchor),
+            blurredHeaderImageView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
+            blurredHeaderImageView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor),
+            blurredHeaderImageView.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
+            
             scrollView.topAnchor.constraint(equalTo: self.view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
@@ -311,10 +317,8 @@ final class ProfileScreenNode: ASDisplayNode {
             contentViewStack.widthAnchor.constraint(equalTo: self.view.widthAnchor)
         ])
         
-        setupHeaderLayout()
+        setupProfileHeaderInfo()
         setupBiographyBlock()
-        let overlap: CGFloat = -250.0
-        contentViewStack.setCustomSpacing(overlap, after: headerContainer)
         setupSocialMediaBlock()
         setupSegmentedBar()
         contentViewStack.setCustomSpacing(16, after: socialMediaStack)
@@ -324,27 +328,9 @@ final class ProfileScreenNode: ASDisplayNode {
         }
     }
     
-    private func setupHeaderLayout() {
-        headerContainer.addSubview(headerImageView)
-        headerContainer.addSubview(blurredHeaderImageView)
-        contentViewStack.addArrangedSubview(headerContainer)
-        
-        headerImageView.translatesAutoresizingMaskIntoConstraints = false
-        
-        NSLayoutConstraint.activate([
-            headerImageView.topAnchor.constraint(equalTo: headerContainer.topAnchor),
-            headerImageView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
-            headerImageView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor),
-            headerImageView.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
-            
-            blurredHeaderImageView.topAnchor.constraint(equalTo: headerContainer.topAnchor),
-            blurredHeaderImageView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
-            blurredHeaderImageView.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor),
-            blurredHeaderImageView.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
-        ])
-        
-        headerHeightConstraint = headerContainer.heightAnchor.constraint(equalToConstant: fixedHeaderHeight)
-        headerHeightConstraint.isActive = true
+    private func setupProfileHeaderInfo() {
+        let profileHeaderWrapper = UIView()
+        profileHeaderWrapper.translatesAutoresizingMaskIntoConstraints = false
         
         let infoStack = UIStackView(arrangedSubviews: [nameLabel, statusStack])
         infoStack.axis = .vertical
@@ -352,17 +338,10 @@ final class ProfileScreenNode: ASDisplayNode {
         infoStack.spacing = 0
         infoStack.translatesAutoresizingMaskIntoConstraints = false
         
-        headerContainer.addSubview(avatarImageView)
-        
-        headerContainer.addSubview(avatarSpinner)
-        NSLayoutConstraint.activate([
-            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
-            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor)
-        ])
-        
-        headerContainer.addSubview(infoStack)
-        
-        headerContainer.addSubview(dmButton)
+        profileHeaderWrapper.addSubview(avatarImageView)
+        profileHeaderWrapper.addSubview(avatarSpinner)
+        profileHeaderWrapper.addSubview(infoStack)
+        profileHeaderWrapper.addSubview(dmButton)
         
         let counterActionsStack: UIStackView = {
             let stack = UIStackView(arrangedSubviews: [likesView, viewsView, savesView])
@@ -373,33 +352,38 @@ final class ProfileScreenNode: ASDisplayNode {
             return stack
         }()
         
-        headerContainer.addSubview(counterActionsStack)
+        profileHeaderWrapper.addSubview(counterActionsStack)
         
         var dmButtonWidthAnchor: CGFloat = 100
-        
         if model.isMyProfile {
             dmButtonWidthAnchor = 300
         }
+        
         NSLayoutConstraint.activate([
+            profileHeaderWrapper.heightAnchor.constraint(equalToConstant: 380),
+            
             avatarImageView.heightAnchor.constraint(equalToConstant: 80),
             avatarImageView.widthAnchor.constraint(equalToConstant: 80),
-            avatarImageView.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
-            avatarImageView.topAnchor.constraint(equalTo: headerContainer.topAnchor, constant: 190),
+            avatarImageView.leadingAnchor.constraint(equalTo: profileHeaderWrapper.leadingAnchor, constant: 16),
+            avatarImageView.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor, constant: 190),
+            
+            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
+            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
             
             infoStack.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 15),
             infoStack.bottomAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: -10),
             
-            dmButton.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
+            dmButton.leadingAnchor.constraint(equalTo: profileHeaderWrapper.leadingAnchor, constant: 16),
             dmButton.topAnchor.constraint(equalTo: infoStack.bottomAnchor, constant: 20),
             dmButton.heightAnchor.constraint(equalToConstant: 40),
             dmButton.widthAnchor.constraint(equalToConstant: dmButtonWidthAnchor),
             
             counterActionsStack.topAnchor.constraint(equalTo: dmButton.bottomAnchor, constant: 20),
-            counterActionsStack.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
-            
-            counterActionsStack.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
-            counterActionsStack.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+            counterActionsStack.leadingAnchor.constraint(equalTo: profileHeaderWrapper.leadingAnchor, constant: 16),
+            counterActionsStack.trailingAnchor.constraint(equalTo: profileHeaderWrapper.trailingAnchor, constant: -16),
         ])
+        
+        contentViewStack.addArrangedSubview(profileHeaderWrapper)
     }
     
     func toggleSpinner(active: Bool) {
@@ -415,45 +399,36 @@ final class ProfileScreenNode: ASDisplayNode {
     func addPhotoToCollection() {
         if let currentPhoto = currentPhoto {
             let newItem = PhotoItem.local(currentPhoto, Date())
-            
             self.localPhotos.insert(newItem, at: 0)
-            
             self.galleryCollectionView.performBatchUpdates({
                 self.galleryCollectionView.insertItems(at: [IndexPath(item: 0, section: 0)])
             })
         }
     }
+
     private func setupBiographyBlock() {
         let wrapperView = UIView()
         wrapperView.translatesAutoresizingMaskIntoConstraints = false
-        
         profileInfoView.layer.cornerRadius = 8
         profileInfoView.clipsToBounds = true
-        
         wrapperView.addSubview(profileInfoView)
         profileInfoView.translatesAutoresizingMaskIntoConstraints = false
         
         let sideMargin: CGFloat = 16.0
-        
         NSLayoutConstraint.activate([
             profileInfoView.topAnchor.constraint(equalTo: wrapperView.topAnchor),
             profileInfoView.bottomAnchor.constraint(equalTo: wrapperView.bottomAnchor),
-            
             profileInfoView.leadingAnchor.constraint(equalTo: wrapperView.leadingAnchor, constant: sideMargin),
             profileInfoView.trailingAnchor.constraint(equalTo: wrapperView.trailingAnchor, constant: -sideMargin)
         ])
-        
         contentViewStack.addArrangedSubview(wrapperView)
     }
     
     private func setupSocialMediaBlock() {
-        
         updateSocialMediaStack(nil)
-        
         let paddedSocialMedia = UIView()
         paddedSocialMedia.translatesAutoresizingMaskIntoConstraints = false
         paddedSocialMedia.addSubview(socialMediaStack)
-        
         NSLayoutConstraint.activate([
             socialMediaStack.topAnchor.constraint(equalTo: paddedSocialMedia.topAnchor),
             socialMediaStack.bottomAnchor.constraint(equalTo: paddedSocialMedia.bottomAnchor),
@@ -461,7 +436,6 @@ final class ProfileScreenNode: ASDisplayNode {
             socialMediaStack.trailingAnchor.constraint(equalTo: paddedSocialMedia.trailingAnchor, constant: -16),
             socialMediaStack.heightAnchor.constraint(equalToConstant: 70)
         ])
-        
         contentViewStack.addArrangedSubview(paddedSocialMedia)
     }
     
@@ -469,7 +443,6 @@ final class ProfileScreenNode: ASDisplayNode {
         let paddedSegmentedBar = UIView()
         paddedSegmentedBar.translatesAutoresizingMaskIntoConstraints = false
         paddedSegmentedBar.addSubview(segmentedBar)
-        
         NSLayoutConstraint.activate([
             segmentedBar.topAnchor.constraint(equalTo: paddedSegmentedBar.topAnchor),
             segmentedBar.bottomAnchor.constraint(equalTo: paddedSegmentedBar.bottomAnchor),
@@ -477,7 +450,6 @@ final class ProfileScreenNode: ASDisplayNode {
             segmentedBar.trailingAnchor.constraint(equalTo: paddedSegmentedBar.trailingAnchor, constant: 0),
             segmentedBar.heightAnchor.constraint(equalToConstant: 40)
         ])
-        
         contentViewStack.addArrangedSubview(paddedSegmentedBar)
     }
     
@@ -491,12 +463,10 @@ final class ProfileScreenNode: ASDisplayNode {
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.widthAnchor.constraint(equalToConstant: 12).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 12).isActive = true
-        
         let label = UILabel()
         label.text = text
         label.font = UIFont.systemFont(ofSize: 14)
         label.textColor = .black
-        
         let stack = UIStackView(arrangedSubviews: [icon, label])
         stack.axis = .horizontal
         stack.spacing = 4
@@ -505,20 +475,17 @@ final class ProfileScreenNode: ASDisplayNode {
         stack.layer.cornerRadius = 8
         stack.isLayoutMarginsRelativeArrangement = true
         stack.layoutMargins = UIEdgeInsets(top: 2, left: 6, bottom: 2, right: 6)
-        
         return stack
     }
     
     private func setupDmButtonContent() {
         dmButton.subviews.forEach { $0.removeFromSuperview() }
-        
         var iconImageName = "Chat/Context Menu/MessageBubble"
         var labelText = "Send DM"
         if model.isMyProfile {
             iconImageName = "Avatar/AddAvatarIconLarge"
             labelText = "Upload your photos"
         }
-        
         let iconImageView: UIImageView = {
             let imageView = UIImageView()
             imageView.image = UIImage(bundleImageName: iconImageName)
@@ -527,7 +494,6 @@ final class ProfileScreenNode: ASDisplayNode {
             imageView.translatesAutoresizingMaskIntoConstraints = false
             return imageView
         }()
-        
         let label: UILabel = {
             let label = UILabel()
             label.text = labelText
@@ -536,7 +502,6 @@ final class ProfileScreenNode: ASDisplayNode {
             label.translatesAutoresizingMaskIntoConstraints = false
             return label
         }()
-        
         let stackView: UIStackView = {
             let stack = UIStackView(arrangedSubviews: [iconImageView, label])
             stack.axis = .horizontal
@@ -546,9 +511,7 @@ final class ProfileScreenNode: ASDisplayNode {
             stack.translatesAutoresizingMaskIntoConstraints = false
             return stack
         }()
-        
         dmButton.addSubview(stackView)
-        
         NSLayoutConstraint.activate([
             stackView.centerXAnchor.constraint(equalTo: dmButton.centerXAnchor),
             stackView.centerYAnchor.constraint(equalTo: dmButton.centerYAnchor),
@@ -559,7 +522,6 @@ final class ProfileScreenNode: ASDisplayNode {
     
     override func didLoad() {
         super.didLoad()
-        
         if model.isMyProfile {
             dmButton.addTarget(self, action: #selector(dmButtonTapped), for: .touchUpInside)
         }
@@ -567,7 +529,6 @@ final class ProfileScreenNode: ASDisplayNode {
     
     private func setupCounterView(_ container: UIView, count: String, name: String, iconName: String) {
         container.subviews.forEach { $0.removeFromSuperview() }
-        
         let icon: UIImageView = {
             let imageView = UIImageView()
             imageView.image = UIImage(bundleImageName: iconName)
@@ -578,7 +539,6 @@ final class ProfileScreenNode: ASDisplayNode {
             imageView.heightAnchor.constraint(equalToConstant: 20).isActive = true
             return imageView
         }()
-        
         let countLabel: UILabel = {
             let label = UILabel()
             label.text = count
@@ -586,7 +546,6 @@ final class ProfileScreenNode: ASDisplayNode {
             label.textColor = .white
             return label
         }()
-        
         let nameLabel: UILabel = {
             let label = UILabel()
             label.text = name
@@ -594,7 +553,6 @@ final class ProfileScreenNode: ASDisplayNode {
             label.textColor = .white
             return label
         }()
-        
         let countStack: UIStackView = {
             let stack = UIStackView(arrangedSubviews: [icon, countLabel])
             stack.axis = .horizontal
@@ -603,7 +561,6 @@ final class ProfileScreenNode: ASDisplayNode {
             stack.translatesAutoresizingMaskIntoConstraints = false
             return stack
         }()
-        
         let mainStack: UIStackView = {
             let stack = UIStackView(arrangedSubviews: [countStack, nameLabel])
             stack.axis = .horizontal
@@ -612,9 +569,7 @@ final class ProfileScreenNode: ASDisplayNode {
             stack.translatesAutoresizingMaskIntoConstraints = false
             return stack
         }()
-        
         container.addSubview(mainStack)
-        
         NSLayoutConstraint.activate([
             mainStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             mainStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
@@ -629,7 +584,6 @@ final class ProfileScreenNode: ASDisplayNode {
         let button = UIButton(type: .system)
         button.backgroundColor = .black.withAlphaComponent(0.12)
         button.layer.cornerRadius = 10
-        
         let icon = UIImageView()
         icon.image = UIImage(bundleImageName: iconName)
         icon.tintColor = .white
@@ -637,27 +591,21 @@ final class ProfileScreenNode: ASDisplayNode {
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.widthAnchor.constraint(equalToConstant: 24).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 24).isActive = true
-        
         let label = UILabel()
         label.text = handle
         label.font = UIFont.systemFont(ofSize: 10)
         label.textColor = .white
-        
         let stack = UIStackView(arrangedSubviews: [icon, label])
         stack.axis = .vertical
         stack.spacing = 5
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
-        
         button.addSubview(stack)
-        
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: button.centerYAnchor)
         ])
-        
         button.addAction(action)
-        
         return button
     }
     
@@ -666,28 +614,17 @@ final class ProfileScreenNode: ASDisplayNode {
     }
     
     private func configureNodes() {
-        
-//        headerImageView.image = UIImage(named: model.mainImageName)
         if model.isMyProfile {
-            
             if !model.photos.isEmpty {
-                guard let photo = model.photos.first else {
-                    return
-                }
-                
+                guard let photo = model.photos.first else { return }
                 let image = photo.image
-                guard let representation = largestImageRepresentation(image.representations) else {
-                    return
-                }
-                
+                guard let representation = largestImageRepresentation(image.representations) else { return }
                 let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
-                let _ = (resourceData
-                         |> deliverOnMainQueue).start(next: { data in
+                let _ = (resourceData |> deliverOnMainQueue).start(next: { data in
                     if data.complete {
                         if let uiImage = UIImage(contentsOfFile: data.path) {
                             self.avatarImageView.image = uiImage
                         }
-                        
                     } else {
                         let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
                     }
@@ -696,76 +633,73 @@ final class ProfileScreenNode: ASDisplayNode {
         } else {
             avatarImageView.image = UIImage(named: model.avatarImageName)
         }
-        
         nameLabel.text = model.name
         if let lastName = model.lastName {
             nameLabel.text = model.name + " " + lastName
         }
-        
         let modelBadge = createStatusBadge(text: "model", iconName: "model_icon")
         let ageLocationBadge = createStatusBadge(text: "\(model.age) y.o. · \(model.location)", iconName: "location_icon")
-        
         statusStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if !model.isMyProfile {
             statusStack.addArrangedSubview(modelBadge)
             statusStack.addArrangedSubview(ageLocationBadge)
         }
-        
         setupDmButtonContent()
-        
         setupCounterView(likesView, count: model.likesCount, name: "Like", iconName: "Chat/Input/Text/AccessoryIconReaction")
         setupCounterView(viewsView, count: model.viewsCount, name: "Viewed", iconName: "Stories/EmbeddedViewIcon")
         setupCounterView(savesView, count: model.savesCount, name: "Save", iconName: "Instant View/Bookmark")
-        
     }
     
     private func updateSocialMediaStack(_ socialMedia: SocialLinks?) {
-        
         socialMediaStack.arrangedSubviews.forEach { view in
             socialMediaStack.removeArrangedSubview(view)
             view.removeFromSuperview()
         }
-
         if let socialMedia = socialMedia {
             if let instagram = socialMedia.instagram,
                let name = URL(string: instagram)?.pathComponents.last(where: { $0 != "/" }) {
-                
                 let buttonView = createSocialMediaButton(handle: "@" + name, iconName: "Models/instaIcon") {
-                    print("instaIcon")
+                    self.openURL(instagram)
                 }
                 socialMediaStack.addArrangedSubview(buttonView)
             }
             if let tiktok = socialMedia.tiktok,
                let name = URL(string: tiktok)?.pathComponents.last(where: { $0 != "/" }) {
                 let buttonView = createSocialMediaButton(handle: "@" + name, iconName: "Models/TikTokIcon") {
-                    print("TikTokIcon")
+                    self.openURL(tiktok)
                 }
                 socialMediaStack.addArrangedSubview(buttonView)
             }
             if let youtube = socialMedia.youtube,
                let name = URL(string: youtube)?.pathComponents.last(where: { $0 != "/" }) {
                 let buttonView = createSocialMediaButton(handle: name, iconName: "Models/youtubeIcon") {
-                    print("youtubeIcon")
+                    self.openURL(youtube)
                 }
                 socialMediaStack.addArrangedSubview(buttonView)
             }
             if let website = socialMedia.website, !website.isEmpty {
                 let buttonView = createSocialMediaButton(handle: website, iconName: "Models/webIcon") {
-                    print("webIcon")
+                    self.openURL(website)
                 }
                 socialMediaStack.addArrangedSubview(buttonView)
             }
         }
-        
         if socialMediaStack.arrangedSubviews.count == 0 {
             let buttonView = createSocialMediaButton(handle: "Add Links", iconName: "Models/Link") {
                 self.openEditLink()
             }
             socialMediaStack.addArrangedSubview(buttonView)
         }
-
         self.setNeedsLayout()
         self.layoutIfNeeded()
+    }
+    
+    private func openURL(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        
+        if UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
     }
     
     public func reloadSocialMedia(_ socialMedia: SocialLinks?) {
@@ -774,13 +708,9 @@ final class ProfileScreenNode: ASDisplayNode {
     
     public func reloadBackground(_ image: TelegramMediaImage?) {
         if let image = image {
-            guard let representation = largestImageRepresentation(image.representations) else {
-                return
-            }
-            
+            guard let representation = largestImageRepresentation(image.representations) else { return }
             let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
-            let _ = (resourceData
-                     |> deliverOnMainQueue).start(next: { data in
+            let _ = (resourceData |> deliverOnMainQueue).start(next: { data in
                 if data.complete {
                     if let uiImage = UIImage(contentsOfFile: data.path) {
                         UIView.transition(with: self.headerImageView,
@@ -790,7 +720,6 @@ final class ProfileScreenNode: ASDisplayNode {
                             self.headerImageView.image = uiImage
                         }, completion: nil)
                     }
-                    
                 } else {
                     let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
                 }
@@ -800,68 +729,75 @@ final class ProfileScreenNode: ASDisplayNode {
         }
     }
     
-    func getUpdates(_ about: String?) {
-        peerDisposable = MetaDisposable()
+    func updateNameLabel(_ name: String) {
+        nameLabel.text = name
+    }
+    
+    func getUpdates(_ about: String?, _ physicalParams: PhysicalParams?, _ gender: SecureIdGender?) {
         
-        let signal: Signal<Peer?, NoError> = Signal { subscriber in
-            let disposable = MetaDisposable()
+        var appearanceAttrs: [AppearanceAttribute] = []
+        if let physicalParams = physicalParams {
             
-            let transactionSignal = self.context.account.postbox.transaction { transaction in
-                let peerId = self.context.account.peerId
-                return transaction.getPeer(peerId)
+            if let gender = gender {
+                appearanceAttrs.append(AppearanceAttribute(title: "Gender", value: gender == .male ? "Male" : "Female"))
             }
             
-            disposable.set(transactionSignal.start(next: { peer in
-                subscriber.putNext(peer)
-                subscriber.putCompletion()
-            }))
-            
-            return disposable
+            if let age = physicalParams.age {
+                appearanceAttrs.append(AppearanceAttribute(title: "Age (y.o)", value: String(age)))
+            }
+            if let height = physicalParams.height {
+                appearanceAttrs.append(AppearanceAttribute(title: "Height (cm)", value: String(height)))
+            }
+            if let waist = physicalParams.waist {
+                appearanceAttrs.append(AppearanceAttribute(title: "Waist (cm)", value: String(waist)))
+            }
+            if let hips = physicalParams.hips {
+                appearanceAttrs.append(AppearanceAttribute(title: "Hips (cm)", value: String(hips)))
+            }
+            if let shoeSize = physicalParams.shoeSize {
+                appearanceAttrs.append(AppearanceAttribute(title: "Shoe size (EU)", value: String(shoeSize)))
+            }
+            if let hairLength = physicalParams.hairLength {
+                appearanceAttrs.append(AppearanceAttribute(title: "Hair length (cm)", value: String(hairLength)))
+            }
+            if let hairColor = physicalParams.hairColor {
+                appearanceAttrs.append(AppearanceAttribute(title: "Hair color", value: hairColor))
+            }
+            if let eyeColor = physicalParams.eyeColor {
+                appearanceAttrs.append(AppearanceAttribute(title: "Eye color", value: eyeColor))
+            }
+            if let skinColor = physicalParams.skinColor {
+                appearanceAttrs.append(AppearanceAttribute(title: "Skin color", value: skinColor))
+            }
         }
         
-        peerDisposable?.set(signal.start(next: { [weak self] peer in
-            DispatchQueue.main.async {
-                self?.nameLabel.text = peer?.debugDisplayTitle ?? ""
-            }
-        }))
-        
-        profileInfoView.updateBio(about ?? "")
+        profileInfoView.update(biography: about ?? "", appearance: appearanceAttrs)
     }
 }
 
 extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if !localPhotos.isEmpty {
             return localPhotos.count
         }
         return model.galleryImageNames.count
     }
-    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GalleryCell", for: indexPath) as? GalleryCell else {
             return UICollectionViewCell()
         }
-        
         if !localPhotos.isEmpty {
-            
             let item = localPhotos[indexPath.item]
-            
             switch item {
             case .telegram(let peerPhoto):
                 let image = peerPhoto.image
-                guard let representation = largestImageRepresentation(image.representations) else {
-                    return cell
-                }
-                
+                guard let representation = largestImageRepresentation(image.representations) else { return cell }
                 let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
-                let _ = (resourceData
-                         |> deliverOnMainQueue).start(next: { data in
+                let _ = (resourceData |> deliverOnMainQueue).start(next: { data in
                     if data.complete {
                         if let uiImage = UIImage(contentsOfFile: data.path) {
                             cell.configure(with: uiImage)
                         }
-                        
                     } else {
                         let _ = self.context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
                     }
@@ -869,30 +805,21 @@ extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegat
             case .local(let uiImage, _):
                 cell.configure(with: uiImage)
             }
-            
             return cell
         }
-        
-        guard let imageName = model.galleryImageNames[safe: indexPath.row] else {
-            return cell
-        }
-        
+        guard let imageName = model.galleryImageNames[safe: indexPath.row] else { return cell }
         cell.configure(with: imageName)
-
         return cell
     }
-    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         guard let (layout, _) = self.containerLayout else { return .zero }
         let totalSpacing: CGFloat = 2
         let width = (layout.size.width - totalSpacing) / 3.0
         return CGSize(width: width, height: width)
     }
-    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
         return 1.0
     }
-    
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
         return 1.0
     }
@@ -900,17 +827,15 @@ extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegat
 
 extension ProfileScreenNode: ProfileInfoViewDelegate {
     func profileInfoViewDidUpdateContentHeight() {
-        DispatchQueue.main.async {
-            self.setNeedsLayout()
-            self.layoutIfNeeded()
-        }
+        UIView.animate(withDuration: 0.25, delay: 0, options: [.allowUserInteraction, .beginFromCurrentState], animations: {
+            self.view.setNeedsLayout()
+            self.view.layoutIfNeeded()
+        })
     }
 }
 
 extension ProfileScreenNode: ProfileSegmentedBarDelegate {
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int) {
-        print("Selected segment index: \(index)")
-        
         DispatchQueue.main.async {
             self.setNeedsLayout()
             self.layoutIfNeeded()

@@ -6,7 +6,7 @@ public class UserProfileData {
     
     public let country: String?
     public let city: String?
-    public let gender: Gender?
+    public let gender: SecureIdGender?
     public let birthDate: Int?
     public let about: String?
     public let physicalParams: PhysicalParams?
@@ -14,12 +14,7 @@ public class UserProfileData {
     public let agency: String?
     public let backgroundImage: TelegramMediaImage?
 
-    public enum Gender: String, Codable {
-        case genderFemale
-        case genderMale
-    }
-    
-    init(country: String?, city: String?, gender: Gender?, birthDate: Int?, about: String?, physicalParams: PhysicalParams?, socialLinks: SocialLinks?, agency: String?, backgroundImage: TelegramMediaImage? = nil) {
+    init(country: String?, city: String?, gender: SecureIdGender?, birthDate: Int?, about: String?, physicalParams: PhysicalParams?, socialLinks: SocialLinks?, agency: String?, backgroundImage: TelegramMediaImage? = nil) {
         self.country = country
         self.city = city
         self.gender = gender

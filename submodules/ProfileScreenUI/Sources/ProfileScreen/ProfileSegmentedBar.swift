@@ -48,6 +48,7 @@ final class ProfileSegmentedBar: UIView {
         super.init(frame: frame)
         setupView()
         updateButtonStyles()
+        animateIndicator(to: 0)
         self.backgroundColor = .black.withAlphaComponent(0.15)
     }
 
@@ -136,7 +137,7 @@ final class ProfileSegmentedBar: UIView {
         indicatorLeadingConstraint.isActive = false
         indicatorWidthConstraint.isActive = false
 
-        indicatorWidthConstraint = indicatorView.widthAnchor.constraint(equalToConstant: selectedContainer.frame.width)
+        indicatorWidthConstraint = indicatorView.widthAnchor.constraint(equalTo: selectedContainer.widthAnchor)
         indicatorLeadingConstraint = indicatorView.leadingAnchor.constraint(equalTo: selectedContainer.leadingAnchor)
 
         NSLayoutConstraint.activate([indicatorWidthConstraint, indicatorLeadingConstraint])
@@ -146,7 +147,7 @@ final class ProfileSegmentedBar: UIView {
                 self.layoutIfNeeded()
             }, completion: nil)
         } else {
-            layoutIfNeeded()
+            self.layoutIfNeeded()
         }
     }
     

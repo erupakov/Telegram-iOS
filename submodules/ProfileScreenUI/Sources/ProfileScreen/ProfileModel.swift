@@ -2,8 +2,8 @@ import Foundation
 import TelegramCore
 
 public struct ProfileModel {
-    let name: String
-    let lastName: String?
+    var name: String
+    var lastName: String?
     let age: Int
     let location: String
     let mainImageName: String
@@ -14,7 +14,7 @@ public struct ProfileModel {
     let viewsCount: String
     let savesCount: String
     
-    let biography: String
+    var biography: String
     
     let socialMediaIcons: [String] = ["Models/instaIcon", "Models/TikTokIcon", "Models/youtubeIcon", "Models/webIcon"]
     let socialMediaHandles: [String]

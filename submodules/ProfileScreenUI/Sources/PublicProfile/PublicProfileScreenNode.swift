@@ -164,7 +164,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private lazy var profileInfoView: ProfileInfoView = {
         let view = ProfileInfoView(
             biography: model.biography,
-            appearance: "model.appearance"
+            appearance: []
         )
         view.delegate = self
         return view
