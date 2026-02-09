@@ -13,6 +13,7 @@ import LegacyMediaPickerUI
 import Postbox
 import MapResourceToAvatarSizes
 import ContextUI
+import GalleryUI
 
 public final class ProfileScreenController: TelegramBaseController {
     
@@ -251,11 +252,108 @@ public final class ProfileScreenController: TelegramBaseController {
             },
             openEditLink: {
                 self.editSocialLinks()
-            })
+            },
+            openGallery: { [weak self] index in
+                self?.openGallery(at: index)
+            }
+        )
         
         self.displayNodeDidLoad()
     }
     
+    private func openGallery(at index: Int) {
+        let photos: [TelegramPeerPhoto] = self.controllerNode.localPhotos.compactMap { item in
+            switch item {
+            case let .telegram(photo): return photo
+            default: return nil
+            }
+        }
+        
+        guard !photos.isEmpty else { return }
+        
+        let groupingKey = Int64.random(in: Int64.min...Int64.max)
+        let totalCount = UInt32(photos.count)
+        let commonTimestamp = Int32(Date().timeIntervalSince1970)
+        
+        var messages: [Message] = []
+        for (i, photo) in photos.enumerated() {
+            let fakeMsgId = MessageId(
+                peerId: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(1)),
+                namespace: Namespaces.Message.Local,
+                id: Int32(i + 1)
+            )
+            
+            let message = Message(
+                stableId: UInt32(i + 1),
+                stableVersion: 0,
+                id: fakeMsgId,
+                globallyUniqueId: nil,
+                groupingKey: groupingKey,
+                groupInfo: MessageGroupInfo(stableId: totalCount),
+                threadId: nil,
+                timestamp: commonTimestamp,
+                flags: [],
+                tags: [],
+                globalTags: [],
+                localTags: [],
+                customTags: [],
+                forwardInfo: nil,
+                author: nil,
+                text: "",
+                attributes: [],
+                media: [photo.image],
+                peers: SimpleDictionary(),
+                associatedMessages: SimpleDictionary(),
+                associatedMessageIds: [],
+                associatedMedia: [:],
+                associatedThreadInfo: nil,
+                associatedStories: [:]
+            )
+            
+            messages.append(message)
+        }
+        
+        let startMessageId = messages[max(0, min(index, messages.count - 1))].id
+        
+        let source: GalleryControllerItemSource = .custom(
+            messages: .single((messages, Int32(totalCount), false)),
+            messageId: startMessageId,
+            loadMore: nil
+        )
+        
+        let controller = GalleryController(
+            context: self.context,
+            source: source,
+            invertItemOrder: true,
+            replaceRootController: { _, _ in },
+            baseNavigationController: self.navigationController as? NavigationController
+        )
+        
+        controller.centralItemUpdated = { [weak controller] messageId in
+            guard let controller = controller else { return }
+            controller.navigationItem.titleView = nil
+            if let index = messages.firstIndex(where: { $0.id == messageId }) {
+                controller.title = "\(index + 1) из \(totalCount)"
+            }
+        }
+        
+        let _ = (controller.ready.get() |> take(1) |> deliverOnMainQueue).start(next: { [weak controller] _ in
+            Queue.mainQueue().after(0.15) {
+                guard let controller = controller else { return }
+                UIView.transition(with: controller.view, duration: 0.2, options: .transitionCrossDissolve, animations: {
+                    controller.navigationItem.titleView = nil
+                    if let index = messages.firstIndex(where: { $0.id == startMessageId }) {
+                        controller.title = "\(index + 1) \(self.presentationData.strings.Common_of) \(totalCount)"
+                    }
+                }, completion: nil)
+            }
+        })
+        
+        controller.temporaryDoNotWaitForReady = true
+        
+        self.present(controller, in: .window(.root))
+    }
+
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         

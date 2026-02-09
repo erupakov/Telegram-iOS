@@ -81,6 +81,7 @@ final class ProfileParametersNode: ASDisplayNode, UITextFieldDelegate {
         self.scrollNode = ASScrollNode()
         
         let gender = userProfileData?.gender == nil ? nil : userProfileData?.gender == .male ? "Male" : "Female"
+        currentGender = userProfileData?.gender
         self.genderTextField = getTextFiel(placeholder: "Select a Gender", value: gender, showChevron: true)
         self.hairColorTextField = getTextFiel(placeholder: "Choose your hair color", value: userProfileData?.physicalParams?.hairColor)
         self.eyeColorTextField = getTextFiel(placeholder: "Choose your eye color", value: userProfileData?.physicalParams?.eyeColor)

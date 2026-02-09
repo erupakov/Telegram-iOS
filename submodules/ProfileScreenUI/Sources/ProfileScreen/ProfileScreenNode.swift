@@ -25,6 +25,8 @@ final class ProfileScreenNode: ASDisplayNode {
     private let addPhoto: () -> Void
     private let openEditLink: () -> Void
     
+    private let openGallery: (Int) -> Void
+    
     private let scrollView = UIScrollView()
     
     enum PhotoItem {
@@ -175,13 +177,16 @@ final class ProfileScreenNode: ASDisplayNode {
         presentationData: PresentationData,
         model: ProfileModel,
         addPhoto: @escaping () -> Void,
-        openEditLink: @escaping () -> Void) {
+        openEditLink: @escaping () -> Void,
+        openGallery: @escaping (Int) -> Void
+    ) {
             self.controller = controller
             self.context = context
             self.presentationData = presentationData
             self.model = model
             self.addPhoto = addPhoto
             self.openEditLink = openEditLink
+            self.openGallery = openGallery
             
             profileInfoView = ProfileInfoView(biography: "Some long text...", appearance: [])
             
@@ -229,8 +234,10 @@ final class ProfileScreenNode: ASDisplayNode {
             let totalWidth = layout.size.width
             let itemWidth = (totalWidth - 2 * spacing) / itemsPerRow
             
-            let fixedRows: CGFloat = 3
-            let galleryHeight = fixedRows * itemWidth + (fixedRows - 1) * spacing
+            let totalItems = CGFloat(!localPhotos.isEmpty ? localPhotos.count : model.galleryImageNames.count)
+            let rowCount = ceil(totalItems / itemsPerRow)
+            
+            let galleryHeight = rowCount * itemWidth + (max(0, rowCount - 1)) * spacing
             
             galleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
             galleryCollectionView.heightAnchor.constraint(equalToConstant: galleryHeight).isActive = true
@@ -589,23 +596,26 @@ final class ProfileScreenNode: ASDisplayNode {
         icon.tintColor = .white
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.isUserInteractionEnabled = false
         icon.widthAnchor.constraint(equalToConstant: 24).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 24).isActive = true
         let label = UILabel()
         label.text = handle
         label.font = UIFont.systemFont(ofSize: 10)
         label.textColor = .white
+        label.isUserInteractionEnabled = false
         let stack = UIStackView(arrangedSubviews: [icon, label])
         stack.axis = .vertical
         stack.spacing = 5
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.isUserInteractionEnabled = false
         button.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: button.centerYAnchor)
         ])
-        button.addAction(action)
+        button.addAction(for: .touchUpInside, action)
         return button
     }
     
@@ -678,7 +688,7 @@ final class ProfileScreenNode: ASDisplayNode {
                 socialMediaStack.addArrangedSubview(buttonView)
             }
             if let website = socialMedia.website, !website.isEmpty {
-                let buttonView = createSocialMediaButton(handle: website, iconName: "Models/webIcon") {
+                let buttonView = createSocialMediaButton(handle: "website", iconName: "Models/webIcon") {
                     self.openURL(website)
                 }
                 socialMediaStack.addArrangedSubview(buttonView)
@@ -822,6 +832,9 @@ extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegat
     }
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
         return 1.0
+    }
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        self.openGallery(indexPath.item)
     }
 }
 
