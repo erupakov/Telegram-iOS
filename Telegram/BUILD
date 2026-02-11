@@ -379,6 +379,7 @@ swift_library(
         ":GeneratedPresentationStrings/Resources/PresentationStrings.data",
     ],
     deps = [
+        "//submodules/DivoDAL:DivoDAL",
         "//submodules/TelegramUI:TelegramUI",
         "//third-party/boringssl:crypto",
     ],

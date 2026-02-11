@@ -1,0 +1,1913 @@
+openapi: 3.0.3
+info:
+  title: Divo API
+  description: Backend API for Divo mobile and web clients. Authentication, user management, publications, events, feed, wallet, messenger, and related domains.
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API base path (prepend host from APP_URL)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Authentication and registration
+  - name: User
+    description: User profile and account
+  - name: Publication
+    description: Publications and feed content
+  - name: Event
+    description: Events and applies
+  - name: File
+    description: File upload and resize
+  - name: Agency
+    description: Agencies and models
+  - name: Agency Employee
+    description: Agency employee roles
+  - name: Customer
+    description: Customer roles
+  - name: Geo
+    description: Geocoding and address search
+  - name: Feedline
+    description: Feed and feedline
+  - name: Follower
+    description: Followers and following
+  - name: Favorite
+    description: Favorites (organization roles)
+  - name: User Gallery
+    description: User gallery photos
+  - name: Social Network
+    description: Social network and Instagram
+  - name: User Social Network
+    description: User social network links
+  - name: Messenger
+    description: Chat and messenger (some routes throttled)
+  - name: Dictionary
+    description: Lookup dictionaries
+  - name: User Geoposition
+    description: User geoposition
+  - name: Radar
+    description: Radar, places, reviews (model/radar access)
+  - name: Wallet
+    description: Wallets and transactions
+  - name: User Paid Services
+    description: Paid services
+  - name: NFT
+    description: NFT create, list, buy
+  - name: Banners
+    description: Banners
+  - name: System
+    description: System and feature flags
+  - name: Crypto
+    description: Crypto webhook (no auth)
+
+paths:
+  # ---- Auth ----
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Email/password login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, deviceId, deviceType]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                deviceId: { type: string }
+                deviceType: { type: string }
+      responses:
+        '200': { description: Success; returns accessToken }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/registration:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Email registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, timezone, role]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+                timezone: { type: string }
+                role: { type: string, enum: [new_face, model, agency_employee, customer] }
+      responses:
+        '200': { description: Success; may return token for email confirmation }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/registration-social:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Social (Firebase) registration
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firebaseToken: { type: string }
+                deviceId: { type: string }
+                deviceType: { type: string }
+      responses:
+        '200': { description: Success }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/login-social:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Social (Firebase) login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firebaseToken: { type: string }
+                deviceId: { type: string }
+                deviceType: { type: string }
+      responses:
+        '200': { description: Success; returns accessToken }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/send-email-code:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Send email code (confirm_email, forgot_password)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, type]
+              properties:
+                email: { type: string, format: email }
+                type: { type: string, enum: [confirm_email, forgot_password] }
+      responses:
+        '200': { description: Success; returns token for confirm step }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/confirm-email:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Confirm email by code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, token, deviceId, deviceType]
+              properties:
+                code: { type: integer }
+                token: { type: string }
+                deviceId: { type: string }
+                deviceType: { type: string }
+      responses:
+        '200': { description: Success; returns accessToken }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/confirm-code:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Confirm code
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200': { description: Success }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, code, password]
+              properties:
+                token: { type: string }
+                code: { type: integer }
+                password: { type: string }
+      responses:
+        '200': { description: Success }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/find-user:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Find user by email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: Success }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ---- User ----
+  /user/info:
+    get:
+      tags: [User]
+      summary: Current user info
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/rating:
+    get:
+      tags: [User]
+      summary: User rating
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/available-rating-features:
+    get:
+      tags: [User]
+      summary: Available rating features
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/viewers:
+    get:
+      tags: [User]
+      summary: Viewers list
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/budge-count:
+    get:
+      tags: [User]
+      summary: Badge count
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/{id}:
+    get:
+      tags: [User]
+      summary: Get user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not found }
+
+  /user/update-profile:
+    post:
+      tags: [User]
+      summary: Update profile
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /user/update-password:
+    post:
+      tags: [User]
+      summary: Update password
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /user/update-email:
+    post:
+      tags: [User]
+      summary: Update email
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /user/update-email-confirm:
+    post:
+      tags: [User]
+      summary: Confirm email update
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /user/list-with-wallets:
+    post:
+      tags: [User]
+      summary: List users with wallets
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/save-push-token:
+    post:
+      tags: [User]
+      summary: Save push token
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/send-test-push:
+    post:
+      tags: [User]
+      summary: Send test push
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/delete-account:
+    delete:
+      tags: [User]
+      summary: Delete account
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user/change-role:
+    post:
+      tags: [User]
+      summary: Change role
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ---- Publication ----
+  /publication/list:
+    post:
+      tags: [Publication]
+      summary: List publications
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /publication/feed:
+    post:
+      tags: [Publication]
+      summary: Feed list
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /publication/create:
+    post:
+      tags: [Publication]
+      summary: Create publication
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /publication/like:
+    post:
+      tags: [Publication]
+      summary: Like publication
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /publication/unlike:
+    post:
+      tags: [Publication]
+      summary: Unlike publication
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /publication/{id}:
+    post:
+      tags: [Publication]
+      summary: Edit publication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Publication]
+      summary: Delete publication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ---- Event ----
+  /event/user/applies:
+    post:
+      tags: [Event]
+      summary: User applies
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /event/list:
+    post:
+      tags: [Event]
+      summary: List events
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /event/create:
+    post:
+      tags: [Event]
+      summary: Create event
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /event/update/{id}:
+    post:
+      tags: [Event]
+      summary: Update event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /event/{id}/applies:
+    post:
+      tags: [Event]
+      summary: Get event applies
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /event/{id}:
+    get:
+      tags: [Event]
+      summary: Get event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not found }
+    delete:
+      tags: [Event]
+      summary: Cancel event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /event/types:
+    post:
+      tags: [Event]
+      summary: Event types list
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /event/apply:
+    post:
+      tags: [Event]
+      summary: Apply to event
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /event/{id}/like:
+    post:
+      tags: [Event]
+      summary: Like event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /event/{id}/unlike:
+    post:
+      tags: [Event]
+      summary: Unlike event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- File ----
+  /file/upload-file:
+    post:
+      tags: [File]
+      security: []
+      summary: Upload single file
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /file/upload-files:
+    post:
+      tags: [File]
+      security: []
+      summary: Upload multiple files
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /file/resize:
+    get:
+      tags: [File]
+      security: []
+      summary: Resize image
+      parameters:
+        - name: url
+          in: query
+          schema: { type: string }
+        - name: width
+          in: query
+          schema: { type: integer }
+        - name: height
+          in: query
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+
+  # ---- Agency ----
+  /agency/list:
+    post:
+      tags: [Agency]
+      summary: List agencies
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /agency/{id}:
+    get:
+      tags: [Agency]
+      summary: Get agency
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not found }
+
+  /agency/update:
+    post:
+      tags: [Agency]
+      summary: Update agency
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /agency/{id}/models/list:
+    post:
+      tags: [Agency]
+      summary: List agency models
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /agency/{id}/models/{modelId}:
+    delete:
+      tags: [Agency]
+      summary: Remove model from agency (agency access required)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: modelId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ---- Agency Employee ----
+  /agency-employee/roles:
+    get:
+      tags: [Agency Employee]
+      summary: Agency employee roles
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- Customer ----
+  /customer/roles:
+    get:
+      tags: [Customer]
+      summary: Customer roles
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- Geo ----
+  /geo/search-by-address-name:
+    get:
+      tags: [Geo]
+      security: []
+      summary: Search by address name
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { description: Success }
+
+  /geo/search-geocoder:
+    get:
+      tags: [Geo]
+      security: []
+      summary: Geocoder search
+      parameters:
+        - name: q
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { description: Success }
+
+  # ---- Feedline ----
+  /feedline/list:
+    post:
+      tags: [Feedline]
+      summary: List feed
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /feedline/like:
+    post:
+      tags: [Feedline]
+      summary: Like feed item
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /feedline/unlike:
+    post:
+      tags: [Feedline]
+      summary: Unlike feed item
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /feedline/user-activity:
+    post:
+      tags: [Feedline]
+      summary: User activity
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /feedline/search:
+    post:
+      tags: [Feedline]
+      summary: Search feed
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /feedline/report:
+    post:
+      tags: [Feedline]
+      summary: Report feed item
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /feedline/{id}:
+    get:
+      tags: [Feedline]
+      summary: Get feed item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not found }
+
+  # ---- Follower ----
+  /follower/follow:
+    post:
+      tags: [Follower]
+      summary: Follow user
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /follower/unfollow:
+    post:
+      tags: [Follower]
+      summary: Unfollow user
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /follower/following:
+    post:
+      tags: [Follower]
+      summary: Following list
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /follower/followers:
+    post:
+      tags: [Follower]
+      summary: Followers list
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- Favorite ----
+  /favorite/mark:
+    post:
+      tags: [Favorite]
+      summary: Mark favorite (organization roles only)
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /favorite/unmark:
+    post:
+      tags: [Favorite]
+      summary: Unmark favorite
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /favorite/list:
+    get:
+      tags: [Favorite]
+      summary: List favorites
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- User Gallery ----
+  /user-gallery/add:
+    post:
+      tags: [User Gallery]
+      summary: Add gallery photo
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /user-gallery/list:
+    post:
+      tags: [User Gallery]
+      summary: List gallery
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user-gallery/{id}:
+    delete:
+      tags: [User Gallery]
+      summary: Remove gallery photo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /user-gallery/like:
+    post:
+      tags: [User Gallery]
+      summary: Like gallery photo
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user-gallery/unlike:
+    post:
+      tags: [User Gallery]
+      summary: Unlike gallery photo
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- Social Network ----
+  /social-network/:
+    get:
+      tags: [Social Network]
+      summary: List social networks
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /social-network/instagram/import:
+    get:
+      tags: [Social Network]
+      summary: Instagram import
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /social-network/instagram/add:
+    post:
+      tags: [Social Network]
+      summary: Add Instagram post
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /social-network/instagram/{id}/update:
+    post:
+      tags: [Social Network]
+      summary: Update Instagram post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /social-network/instagram/{id}/delete:
+    delete:
+      tags: [Social Network]
+      summary: Delete Instagram post
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- User Social Network ----
+  /user-social-network/:
+    get:
+      tags: [User Social Network]
+      summary: List user social networks
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user-social-network/upsert:
+    post:
+      tags: [User Social Network]
+      summary: Upsert user social network
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /user-social-network/{id}:
+    delete:
+      tags: [User Social Network]
+      summary: Remove user social network
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- Messenger ----
+  /messenger/threads/{thread}/pin-message:
+    post:
+      tags: [Messenger]
+      summary: Pin message
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/unpin-message:
+    post:
+      tags: [Messenger]
+      summary: Unpin message
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/pinned:
+    get:
+      tags: [Messenger]
+      summary: Get pinned message
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/search/{query}:
+    get:
+      tags: [Messenger]
+      summary: Search in thread
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: query
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/messages/token:
+    post:
+      tags: [Messenger]
+      summary: Send token message (throttled)
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/messages/phone:
+    post:
+      tags: [Messenger]
+      summary: Send phone message (throttled)
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/messages:
+    post:
+      tags: [Messenger]
+      summary: Send message (throttled)
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/images:
+    post:
+      tags: [Messenger]
+      summary: Send image (throttled)
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads/{thread}/documents:
+    post:
+      tags: [Messenger]
+      summary: Send document (throttled)
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/threads-search/{query}:
+    get:
+      tags: [Messenger]
+      summary: Search threads
+      parameters:
+        - name: query
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/start-dialog:
+    post:
+      tags: [Messenger]
+      summary: Start dialog
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/start-system-dialog:
+    post:
+      tags: [Messenger]
+      summary: Start system dialog
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/block-user:
+    post:
+      tags: [Messenger]
+      summary: Block user
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/unblock-user:
+    post:
+      tags: [Messenger]
+      summary: Unblock user
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/block/{recipientId}:
+    get:
+      tags: [Messenger]
+      summary: Get blocked status
+      parameters:
+        - name: recipientId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/get-users-for-messenging:
+    get:
+      tags: [Messenger]
+      summary: Users for messaging
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/thread-leave/{thread}:
+    delete:
+      tags: [Messenger]
+      summary: Leave thread
+      parameters:
+        - name: thread
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/privates/token:
+    post:
+      tags: [Messenger]
+      summary: New private thread token
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/privates/phone:
+    post:
+      tags: [Messenger]
+      summary: New private thread phone
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /messenger/friends:
+    get:
+      tags: [Messenger]
+      summary: Friends list
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- Dictionary ----
+  /dictionary/gender:
+    get:
+      tags: [Dictionary]
+      summary: Genders
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /dictionary/appearances:
+    get:
+      tags: [Dictionary]
+      summary: Appearances
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /dictionary/payments:
+    get:
+      tags: [Dictionary]
+      summary: Payments
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /dictionary/feed-report-types:
+    get:
+      tags: [Dictionary]
+      summary: Feed report types
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- User Geoposition ----
+  /user-geoposition/add:
+    post:
+      tags: [User Geoposition]
+      summary: Add geoposition
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ---- Radar ----
+  /radar/:
+    get:
+      tags: [Radar]
+      summary: Get radar (model roles)
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Radar]
+      summary: Set radar
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Radar]
+      summary: Delete radar (radar access)
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /radar/models:
+    post:
+      tags: [Radar]
+      summary: Models list (radar access)
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /radar/places:
+    post:
+      tags: [Radar]
+      summary: Places list (radar access)
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /radar/places/{id}:
+    get:
+      tags: [Radar]
+      summary: Get place
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not found }
+
+  /radar/places/{id}/reviews/list:
+    post:
+      tags: [Radar]
+      summary: Place reviews list
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /radar/places/{id}/reviews/add:
+    post:
+      tags: [Radar]
+      summary: Add place review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ---- Wallet ----
+  /wallet/list:
+    post:
+      tags: [Wallet]
+      summary: List wallets
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wallet/withdrawal-networks:
+    get:
+      tags: [Wallet]
+      summary: Withdrawal networks
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wallet/bonus:
+    post:
+      tags: [Wallet]
+      summary: Bonus
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wallet/{walletId}:
+    get:
+      tags: [Wallet]
+      summary: Get wallet
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not found }
+
+  /wallet/{walletId}/operations:
+    post:
+      tags: [Wallet]
+      summary: Transaction list
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wallet/{walletId}/withdraw:
+    post:
+      tags: [Wallet]
+      summary: Withdraw
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /wallet/{walletId}/send:
+    post:
+      tags: [Wallet]
+      summary: Send
+      parameters:
+        - name: walletId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ---- User Paid Services ----
+  /user-paid-services/:
+    get:
+      tags: [User Paid Services]
+      summary: List paid services
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user-paid-services/check-balance:
+    post:
+      tags: [User Paid Services]
+      summary: Check balance
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /user-paid-services/buy:
+    post:
+      tags: [User Paid Services]
+      summary: Buy
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ---- NFT ----
+  /nft/create:
+    post:
+      tags: [NFT]
+      summary: Create NFT
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /nft/{id}:
+    get:
+      tags: [NFT]
+      summary: Get NFT
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { description: Not found }
+    delete:
+      tags: [NFT]
+      summary: Delete NFT
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /nft/update/{id}:
+    post:
+      tags: [NFT]
+      summary: Update NFT
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /nft/list:
+    post:
+      tags: [NFT]
+      summary: List NFTs
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /nft/buy/{id}:
+    post:
+      tags: [NFT]
+      summary: Buy NFT
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ---- Banners ----
+  /banners/:
+    get:
+      tags: [Banners]
+      summary: Get banners
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /banners/list:
+    get:
+      tags: [Banners]
+      summary: List banners
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /banners/{id}/close:
+    post:
+      tags: [Banners]
+      summary: Close banner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- System ----
+  /system/feature-flags:
+    get:
+      tags: [System]
+      summary: Feature flags
+      responses:
+        '200': { description: Success }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ---- Crypto ----
+  /crypto/webhook:
+    get:
+      tags: [Crypto]
+      security: []
+      summary: Crypto webhook (GET)
+      responses:
+        '200': { description: Success }
+    post:
+      tags: [Crypto]
+      security: []
+      summary: Crypto webhook (POST)
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+    put:
+      tags: [Crypto]
+      security: []
+      summary: Crypto webhook (PUT)
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+    patch:
+      tags: [Crypto]
+      security: []
+      summary: Crypto webhook (PATCH)
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        '200': { description: Success }
+    delete:
+      tags: [Crypto]
+      security: []
+      summary: Crypto webhook (DELETE)
+      responses:
+        '200': { description: Success }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from login, registration, or social auth
+
+  responses:
+    Unauthorized:
+      description: Unauthenticated or invalid token
+    Forbidden:
+      description: Authenticated but not allowed
+    ValidationError:
+      description: Validation failed (422)
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        errors: { type: object }
