@@ -112,8 +112,8 @@ private final class PhoneAndCountryNode: ASDisplayNode {
         
         self.phoneInputNode.countryCodeField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
         self.phoneInputNode.numberField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
-        self.phoneInputNode.countryCodeField.textField.textColor = theme.list.itemPrimaryTextColor
-        self.phoneInputNode.numberField.textField.textColor = theme.list.itemPrimaryTextColor
+        self.phoneInputNode.countryCodeField.textField.textColor = .white
+        self.phoneInputNode.numberField.textField.textColor = .white
         self.phoneInputNode.countryCodeField.textField.tintColor = theme.list.itemAccentColor
         self.phoneInputNode.numberField.textField.tintColor = theme.list.itemAccentColor
         self.phoneInputNode.countryCodeField.accessibilityHint = strings.Login_VoiceOver_PhoneCountryCode
@@ -217,7 +217,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
             if country.id == "FT" {
                 localizedName = self.strings.Login_AnonymousNumbers
             }
-            self.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: self.theme.list.itemAccentColor, for: [])
+            self.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: .white, for: [])
             self.hasCountry = true
             
             let maskFont = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])
@@ -302,15 +302,241 @@ private final class ContactSyncNode: ASDisplayNode {
     }
 }
 
+private final class EulaCheckboxNode: ASDisplayNode {
+    public let checkboxNode: SwitchNode
+    private let textNode: ImmediateTextNode
+    private let tapNode: AccessibilityAreaNode
+    
+    var valueUpdated: ((Bool) -> Void)?
+    
+    private let theme: PresentationTheme
+
+    var isChecked: Bool {
+        get {
+            return checkboxNode.isOn
+        }
+        set {
+            checkboxNode.setOn(newValue, animated: false)
+            updateSwitchAppearance(isOn: newValue)
+        }
+    }
+    
+    init(theme: PresentationTheme, strings: PresentationStrings) {
+        self.theme = theme
+        
+        self.checkboxNode = SwitchNode()
+        
+        self.textNode = ImmediateTextNode()
+        self.textNode.maximumNumberOfLines = 0
+        self.textNode.attributedText = NSAttributedString(
+            string: strings.Login_EulaAgreement,
+            font: Font.regular(13.0),
+            textColor: .white
+        )
+        
+        self.tapNode = AccessibilityAreaNode()
+        self.tapNode.accessibilityTraits = [.button]
+        self.tapNode.accessibilityLabel = strings.Login_EulaAgreement
+        
+        super.init()
+        
+        self.addSubnode(self.checkboxNode)
+        self.addSubnode(self.textNode)
+        self.addSubnode(self.tapNode)
+        
+        self.checkboxNode.valueUpdated = { [weak self] value in
+            guard let self else { return }
+            self.valueUpdated?(value)
+            self.updateSwitchAppearance(isOn: value)
+        }
+        
+        self.tapNode.activate = { [weak self] in
+            guard let self else { return false }
+            self.isChecked.toggle()
+            self.valueUpdated?(self.isChecked)
+            return true
+        }
+    }
+
+    override func didLoad() {
+        super.didLoad()
+        self.updateSwitchAppearance(isOn: self.isChecked)
+    }
+    
+    func updateLayout(width: CGFloat) -> CGSize {
+        let checkboxSize = CGSize(width: 51.0, height: 31.0)
+        let inset: CGFloat = 24.0
+        let spacing: CGFloat = 8.0
+        
+        let textSize = self.textNode.updateLayout(CGSize(width: width - checkboxSize.width - spacing - inset * 2.0, height: .greatestFiniteMagnitude))
+        
+        let height = max(checkboxSize.height, textSize.height)
+        
+        self.checkboxNode.frame = CGRect(origin: CGPoint(x: inset, y: floor((height - checkboxSize.height) / 2.0)), size: checkboxSize)
+        self.textNode.frame = CGRect(origin: CGPoint(x: inset + checkboxSize.width + spacing, y: floor((height - textSize.height) / 2.0)), size: textSize)
+        self.tapNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: width, height: height))
+        
+        return CGSize(width: width, height: height)
+    }
+    
+    private func updateSwitchAppearance(isOn: Bool) {
+        guard self.checkboxNode.isNodeLoaded else { return }
+        let uiSwitch = self.checkboxNode.view as! UISwitch
+        
+        if isOn {
+            uiSwitch.onTintColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
+            uiSwitch.thumbTintColor = .white
+            uiSwitch.backgroundColor = .clear
+        } else {
+            let inactiveColor = UIColor.black.withAlphaComponent(0.3)
+            uiSwitch.tintColor = inactiveColor
+            uiSwitch.backgroundColor = inactiveColor
+            uiSwitch.layer.cornerRadius = 16
+            uiSwitch.clipsToBounds = true
+            uiSwitch.thumbTintColor = .white
+        }
+    }
+}
+
+private final class SeparatorWithTextNode: ASDisplayNode {
+    private let theme: PresentationTheme
+    private let textNode: ImmediateTextNode
+    private let leftLineNode: ASDisplayNode
+    private let rightLineNode: ASDisplayNode
+    
+    init(theme: PresentationTheme, strings: PresentationStrings) {
+        self.theme = theme
+        
+        self.textNode = ImmediateTextNode()
+        self.textNode.attributedText = NSAttributedString(
+            string: "or continue with",
+            font: Font.bold(11.0),
+            textColor: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6)
+        )
+        
+        self.leftLineNode = ASDisplayNode()
+        self.leftLineNode.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6)
+        
+        self.rightLineNode = ASDisplayNode()
+        self.rightLineNode.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6)
+        
+        super.init()
+        
+        self.addSubnode(self.textNode)
+        self.addSubnode(self.leftLineNode)
+        self.addSubnode(self.rightLineNode)
+    }
+    
+    func updateLayout(width: CGFloat) -> CGSize {
+        let textPadding: CGFloat = 8.0
+        
+        let textSize = self.textNode.updateLayout(CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+        
+        let lineHeight = UIScreenPixel
+        let lineLength = floor((width - textSize.width - textPadding * 2.0) / 2.0)
+        
+        self.textNode.frame = CGRect(x: floor((width - textSize.width) / 2.0), y: 0.0, width: textSize.width, height: textSize.height)
+        
+        self.leftLineNode.frame = CGRect(x: 0.0, y: floor(textSize.height / 2.0) - lineHeight / 2.0, width: lineLength, height: lineHeight)
+        self.rightLineNode.frame = CGRect(x: width - lineLength, y: floor(textSize.height / 2.0) - lineHeight / 2.0, width: lineLength, height: lineHeight)
+        
+        return CGSize(width: width, height: textSize.height)
+    }
+}
+
+private final class AuthButtonNode: ASControlNode { // ButtonWithIconNode
+    private let textNode: ASTextNode
+    private let iconNode: ASImageNode
+    private let spacing: CGFloat
+    private let imageSize: CGSize
+    
+    init(title: String, icon: UIImage?, theme: PresentationTheme, spacing: CGFloat, imageSize: CGSize) {
+        self.spacing = spacing
+        self.imageSize = imageSize
+        
+        self.textNode = ASTextNode()
+        self.textNode.attributedText = Font.helveticaNeue(title, 17)
+        
+        self.iconNode = ASImageNode()
+        self.iconNode.image = icon
+        self.iconNode.contentMode = .scaleAspectFit
+        
+        super.init()
+        
+        self.backgroundColor = theme.list.itemBlocksBackgroundColor
+        self.cornerRadius = 12.0
+        self.layer.borderColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14).cgColor
+        self.layer.borderWidth = 1
+        
+        self.addSubnode(self.iconNode)
+        self.addSubnode(self.textNode)
+    }
+    
+    override func layout() {
+        super.layout()
+        
+        let textSize = self.textNode.measure(self.bounds.size)
+        
+        let contentWidth = self.imageSize.width + self.spacing + textSize.width
+        let contentOriginX = (self.bounds.width - contentWidth) / 2.0
+        
+        self.iconNode.frame = CGRect(x: contentOriginX,
+                                     y: (self.bounds.height - self.imageSize.height) / 2.0,
+                                     width: self.imageSize.width,
+                                     height: self.imageSize.height)
+        
+        self.textNode.frame = CGRect(x: contentOriginX + self.imageSize.width + self.spacing,
+                                     y: (self.bounds.height - textSize.height) / 2.0,
+                                     width: textSize.width,
+                                     height: textSize.height)
+    }
+}
+
+private final class AuthButtonsNode: ASDisplayNode {
+    private let theme: PresentationTheme
+    private let strings: PresentationStrings
+    
+    let googleButton: AuthButtonNode
+    let appleButton: AuthButtonNode
+    
+    init(theme: PresentationTheme, strings: PresentationStrings) {
+        self.theme = theme
+        self.strings = strings
+        let imageSize: CGSize = CGSize(width: 24, height: 24)
+        
+        let googleLogo = UIImage(bundleImageName: "Settings/GoogleIcon")
+        self.googleButton = AuthButtonNode(title: "Google", icon: googleLogo, theme: theme, spacing: 10, imageSize: imageSize)
+        self.googleButton.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14)
+        
+        let appleLogo = UIImage(named: "Settings/AppleIcon")
+        self.appleButton = AuthButtonNode(title: "Apple", icon: appleLogo, theme: theme, spacing: 10, imageSize: imageSize)
+        self.appleButton.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14)
+        
+        super.init()
+        
+        self.addSubnode(self.googleButton)
+        self.addSubnode(self.appleButton)
+    }
+    
+    func updateLayout(width: CGFloat) -> CGSize {
+        let buttonHeight: CGFloat = 50.0
+        let buttonWidth = (width - 16.0) / 2.0
+        
+        self.googleButton.frame = CGRect(x: 0, y: 0, width: buttonWidth, height: buttonHeight)
+        self.appleButton.frame = CGRect(x: buttonWidth + 16.0, y: 0, width: buttonWidth, height: buttonHeight)
+        
+        return CGSize(width: width, height: buttonHeight)
+    }
+}
+
+
 final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     private let sharedContext: SharedAccountContext
     private var account: UnauthorizedAccount?
     private let strings: PresentationStrings
     private let theme: PresentationTheme
     private let hasOtherAccounts: Bool
-    
-    private let animationNode: AnimatedStickerNode
-    private let managedAnimationNode: ManagedPhoneAnimationNode
+
     private let titleNode: ASTextNode
     private let titleActivateAreaNode: AccessibilityAreaNode
     private let noticeNode: ImmediateTextNode
@@ -318,6 +544,9 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     private let phoneAndCountryNode: PhoneAndCountryNode
     private let contactSyncNode: ContactSyncNode
     private let proceedNode: SolidRoundedButtonNode
+    private let eulaCheckboxNode: EulaCheckboxNode
+    private let separatorNode: SeparatorWithTextNode
+    private let authButtonsNode: AuthButtonsNode
     
     private var qrNode: ASImageNode?
     private let exportTokenDisposable = MetaDisposable()
@@ -394,16 +623,10 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.debugAction = debugAction
         self.hasOtherAccounts = hasOtherAccounts
         
-        self.animationNode = DefaultAnimatedStickerNodeImpl()
-        self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: "IntroPhone"), width: 256, height: 256, playbackMode: .once, mode: .direct(cachePathPrefix: nil))
-        
-        self.managedAnimationNode = ManagedPhoneAnimationNode()
-        self.managedAnimationNode.isHidden = true
-        
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = true
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = NSAttributedString(string: account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle, font: Font.light(30.0), textColor: theme.list.itemPrimaryTextColor)
+        self.titleNode.attributedText = Font.helveticaNeue((account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle).uppercased(), 34)
         
         self.titleActivateAreaNode = AccessibilityAreaNode()
         self.titleActivateAreaNode.accessibilityTraits = .staticText
@@ -417,15 +640,31 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.noticeActivateAreaNode = AccessibilityAreaNode()
         self.noticeActivateAreaNode.accessibilityTraits = .staticText
         
-        self.noticeNode.attributedText = NSAttributedString(string: account == nil ? strings.ChangePhoneNumberNumber_Help : strings.Login_PhoneAndCountryHelp, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
+        self.noticeNode.attributedText = NSAttributedString(
+            string: account == nil ? strings.ChangePhoneNumberNumber_Help : strings.Login_PhoneAndCountryHelp,
+            font: Font.regular(16.0), textColor: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6),
+            paragraphAlignment: .center
+        )
         
         self.contactSyncNode = ContactSyncNode(theme: theme, strings: strings)
-        
+        self.eulaCheckboxNode = EulaCheckboxNode(theme: theme, strings: strings)
+        self.eulaCheckboxNode.isHidden = false
+        self.eulaCheckboxNode.alpha = 1.0
         self.phoneAndCountryNode = PhoneAndCountryNode(strings: strings, theme: theme)
         
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), glass: false, height: 50.0, cornerRadius: 50 * 0.5)
+        let customButtonTheme = SolidRoundedButtonTheme(
+            backgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            foregroundColor: .white,
+            disabledBackgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            disabledForegroundColor: .white
+        )
+        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: customButtonTheme), glass: false, height: 50.0, cornerRadius: 11)
+
         self.proceedNode.progressType = .embedded
         self.proceedNode.isEnabled = false
+        
+        self.separatorNode = SeparatorWithTextNode(theme: theme, strings: strings)
+        self.authButtonsNode = AuthButtonsNode(theme: theme, strings: strings)
         
         super.init()
         
@@ -433,7 +672,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
             return UITracingLayerView()
         })
         
-        self.backgroundColor = theme.list.plainBackgroundColor
+        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
         self.addSubnode(self.titleNode)
         self.addSubnode(self.noticeNode)
@@ -441,9 +680,11 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.addSubnode(self.noticeActivateAreaNode)
         self.addSubnode(self.phoneAndCountryNode)
         self.addSubnode(self.contactSyncNode)
+        self.addSubnode(self.eulaCheckboxNode)
         self.addSubnode(self.proceedNode)
-        self.addSubnode(self.animationNode)
-        self.addSubnode(self.managedAnimationNode)
+        self.addSubnode(self.separatorNode)
+        self.addSubnode(self.authButtonsNode)
+
         self.contactSyncNode.isHidden = true
         
         self.noticeNode.highlightAttributeAction = { attributes in
@@ -472,10 +713,9 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.phoneAndCountryNode.hasNumberUpdated = { [weak self] hasNumber in
             self?.proceedNode.isEnabled = hasNumber
         }
-        self.phoneAndCountryNode.keyPressed = { [weak self] num in
-            if let strongSelf = self, !strongSelf.managedAnimationNode.isHidden {
-                strongSelf.managedAnimationNode.animate(num: num)
-            }
+        
+        self.eulaCheckboxNode.valueUpdated = { [weak self] isChecked in
+            self?.proceedNode.isEnabled = isChecked && !(self?.phoneAndCountryNode.phoneInputNode.codeAndNumber.2.isEmpty ?? true)
         }
         
         if let account = account {
@@ -487,11 +727,6 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         self.proceedNode.pressed = { [weak self] in
             self?.checkPhone?()
-        }
-        
-        self.animationNode.completed = { [weak self] _ in
-            self?.animationNode.removeFromSupernode()
-            self?.managedAnimationNode.isHidden = false
         }
     }
     
@@ -526,7 +761,6 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.view.insertSubview(textSnapshot, at: 0)
         
         let nodes: [ASDisplayNode] = [
-            self.animationNode,
             self.titleNode,
             self.noticeNode,
             self.phoneAndCountryNode,
@@ -555,14 +789,11 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.textSnapshotView?.layer.animatePosition(from: CGPoint(), to: CGPoint(x: 0.0, y: -140.0), duration: 0.3, timingFunction: kCAMediaTimingFunctionSpring, removeOnCompletion: false, additive: true)
     
         let nodes: [ASDisplayNode] = [
-            self.animationNode,
             self.titleNode,
             self.noticeNode,
             self.phoneAndCountryNode,
             self.contactSyncNode
         ]
-        
-        self.animationNode.layer.animateScale(from: 0.3, to: 1.0, duration: 0.3)
 
         for node in nodes {
             node.alpha = 1.0
@@ -597,75 +828,107 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+            
         var insets = layout.insets(options: [])
-        insets.top = layout.statusBarHeight ?? 20.0
-        if let inputHeight = layout.inputHeight, !inputHeight.isZero {
-            insets.bottom = max(inputHeight, insets.bottom)
+            insets.top = layout.statusBarHeight ?? 20.0
+            
+            if let inputHeight = layout.inputHeight, !inputHeight.isZero {
+                insets.bottom = max(inputHeight, insets.bottom)
+            }
+            
+            let maximumWidth: CGFloat = min(430.0, layout.size.width)
+            let horizontalInset: CGFloat = 24.0
+            
+            var currentY: CGFloat = insets.top + (layout.statusBarHeight ?? 20.0) + 10.0
+            
+            self.titleNode.attributedText = Font.helveticaNeue(strings.Login_PhoneTitle.uppercased(), 34)
+            self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
+            let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
+            let titleFrame = CGRect(
+                origin: CGPoint(x: floorToScreenPixels((layout.size.width - titleSize.width) / 2.0), y: currentY),
+                size: titleSize
+            )
+            transition.updateFrame(node: self.titleNode, frame: titleFrame)
+            currentY = titleFrame.maxY
+            
+            let noticeSize = self.noticeNode.measure(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
+            let noticeFrame = CGRect(
+                origin: CGPoint(x: floorToScreenPixels((layout.size.width - noticeSize.width) / 2.0), y: currentY + 8.0),
+                size: noticeSize
+            )
+            transition.updateFrame(node: self.noticeNode, frame: noticeFrame)
+            currentY = noticeFrame.maxY
+            
+            let phoneAndCountryHeight: CGFloat = 115.0
+            let phoneAndCountryFrame = CGRect(
+                x: floorToScreenPixels((layout.size.width - maximumWidth) / 2.0),
+                y: currentY + 30.0,
+                width: maximumWidth,
+                height: phoneAndCountryHeight
+            )
+            transition.updateFrame(node: self.phoneAndCountryNode, frame: phoneAndCountryFrame)
+            currentY = phoneAndCountryFrame.maxY
+            
+            let contactSyncSize = self.contactSyncNode.updateLayout(width: maximumWidth)
+            if self.hasOtherAccounts {
+                self.contactSyncNode.isHidden = false
+                let contactSyncFrame = CGRect(
+                    x: floorToScreenPixels((layout.size.width - maximumWidth) / 2.0),
+                    y: currentY + 14.0,
+                    width: maximumWidth,
+                    height: contactSyncSize.height
+                )
+                transition.updateFrame(node: self.contactSyncNode, frame: contactSyncFrame)
+                currentY = contactSyncFrame.maxY
+            } else {
+                self.contactSyncNode.isHidden = true
+            }
+            
+            let eulaSize = self.eulaCheckboxNode.updateLayout(width: maximumWidth)
+            let eulaFrame = CGRect(
+                x: floorToScreenPixels((layout.size.width - maximumWidth) / 2.0),
+                y: currentY + 14.0,
+                width: maximumWidth,
+                height: eulaSize.height
+            )
+            transition.updateFrame(node: self.eulaCheckboxNode, frame: eulaFrame)
+            currentY = eulaFrame.maxY
+            
+            let proceedWidth = maximumWidth - horizontalInset * 2.0
+            let proceedHeight = self.proceedNode.updateLayout(width: proceedWidth, transition: transition)
+            let proceedFrame = CGRect(
+                x: floorToScreenPixels((layout.size.width - proceedWidth) / 2.0),
+                y: currentY + 12.0,
+                width: proceedWidth,
+                height: proceedHeight
+            )
+            transition.updateFrame(node: self.proceedNode, frame: proceedFrame)
+            currentY = proceedFrame.maxY
+            
+            let separatorSize = self.separatorNode.updateLayout(width: maximumWidth - horizontalInset * 2.0)
+            let separatorFrame = CGRect(
+                x: floorToScreenPixels((layout.size.width - (maximumWidth - horizontalInset * 2.0)) / 2.0),
+                y: currentY + 20.0,
+                width: separatorSize.width,
+                height: separatorSize.height
+            )
+            transition.updateFrame(node: self.separatorNode, frame: separatorFrame)
+            currentY = separatorFrame.maxY
+            
+            let authButtonsSize = self.authButtonsNode.updateLayout(width: maximumWidth - horizontalInset * 2.0)
+            let authButtonsFrame = CGRect(
+                x: floorToScreenPixels((layout.size.width - (maximumWidth - horizontalInset * 2.0)) / 2.0),
+                y: currentY + 12.0,
+                width: authButtonsSize.width,
+                height: authButtonsSize.height
+            )
+            transition.updateFrame(node: self.authButtonsNode, frame: authButtonsFrame)
+            currentY = authButtonsFrame.maxY
+            
+            self.titleActivateAreaNode.frame = self.titleNode.frame
+            self.noticeActivateAreaNode.accessibilityLabel = self.noticeNode.attributedText?.string ?? ""
+            self.noticeActivateAreaNode.frame = self.noticeNode.frame
         }
-        
-        let titleInset: CGFloat = layout.size.width > 320.0 ? 18.0 : 0.0
-        let additionalBottomInset: CGFloat = layout.size.width > 320.0 ? 80.0 : 10.0
-        
-        self.titleNode.attributedText = NSAttributedString(string: self.account == nil ? self.strings.Login_NewNumber : self.strings.Login_PhoneTitle, font: Font.bold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
-        self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
-        
-        let inset: CGFloat = 24.0
-        let maximumWidth: CGFloat = min(430.0, layout.size.width)
-        
-        let animationSize = CGSize(width: 100.0, height: 100.0)
-        let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-        
-        let noticeInset: CGFloat = self.account == nil ? 32.0 : 0.0
-        
-        let noticeSize = self.noticeNode.updateLayout(CGSize(width: min(274.0 + noticeInset, maximumWidth - 28.0), height: CGFloat.greatestFiniteMagnitude))
-        let proceedHeight = self.proceedNode.updateLayout(width: maximumWidth - inset * 2.0, transition: transition)
-        let proceedSize = CGSize(width: maximumWidth - inset * 2.0, height: proceedHeight)
-        
-        var items: [AuthorizationLayoutItem] = [
-            AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: titleInset, maxValue: titleInset), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
-            AuthorizationLayoutItem(node: self.noticeNode, size: noticeSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
-            AuthorizationLayoutItem(node: self.phoneAndCountryNode, size: CGSize(width: maximumWidth, height: 115.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 30.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)),
-        ]
-        
-        if layout.size.width > 320.0 {
-            items.insert(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)), at: 0)
-            self.proceedNode.isHidden = false
-            self.animationNode.isHidden = false
-            self.animationNode.visibility = true
-        } else {
-            insets.top = navigationBarHeight
-            self.proceedNode.isHidden = true
-            self.animationNode.isHidden = true
-            self.managedAnimationNode.isHidden = true
-        }
-        
-        let contactSyncSize = self.contactSyncNode.updateLayout(width: maximumWidth)
-        if self.hasOtherAccounts {
-            self.contactSyncNode.isHidden = false
-            items.append(AuthorizationLayoutItem(node: self.contactSyncNode, size: contactSyncSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 14.0, maxValue: 14.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        } else {
-            self.contactSyncNode.isHidden = true
-        }
-        
-        let buttonFrame: CGRect
-        if let forcedButtonFrame = self.forcedButtonFrame, (layout.inputHeight ?? 0.0).isZero {
-            buttonFrame = forcedButtonFrame
-        } else {
-            buttonFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize)
-        }
-        
-        transition.updateFrame(node: self.proceedNode, frame: buttonFrame)
-        
-        self.animationNode.updateLayout(size: animationSize)
-        
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: 0.0, y: insets.top), size: CGSize(width: layout.size.width, height: layout.size.height - insets.top - insets.bottom - additionalBottomInset)), items: items, transition: transition, failIfDoesNotFit: false)
-        
-        transition.updateFrame(node: self.managedAnimationNode, frame: self.animationNode.frame)
-        
-        self.titleActivateAreaNode.frame = self.titleNode.frame
-        self.noticeActivateAreaNode.accessibilityLabel = self.noticeNode.attributedText?.string ?? ""
-        self.noticeActivateAreaNode.frame = self.noticeNode.frame
-    }
     
     func activateInput() {
         self.phoneAndCountryNode.phoneInputNode.numberField.textField.becomeFirstResponder()
@@ -699,14 +962,14 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     }
     
     @objc private func debugQrTap(_ recognizer: UITapGestureRecognizer) {
-        if self.qrNode == nil {
-            let qrNode = ASImageNode()
-            qrNode.frame = CGRect(origin: CGPoint(x: 16.0, y: 64.0 + 16.0), size: CGSize(width: 200.0, height: 200.0))
-            self.qrNode = qrNode
-            self.addSubnode(qrNode)
-            
-            self.refreshQrToken()
-        }
+//        if self.qrNode == nil {
+//            let qrNode = ASImageNode()
+//            qrNode.frame = CGRect(origin: CGPoint(x: 16.0, y: 64.0 + 16.0), size: CGSize(width: 200.0, height: 200.0))
+//            self.qrNode = qrNode
+//            self.addSubnode(qrNode)
+//            
+//            self.refreshQrToken()
+//        }
     }
     
     private func refreshQrToken() {
@@ -739,7 +1002,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
                 //print("export token \(tokenString)")
                 tokenString = tokenString.replacingOccurrences(of: "+", with: "-")
                 tokenString = tokenString.replacingOccurrences(of: "/", with: "_")
-                let urlString = "tg://login?token=\(tokenString)"
+                let urlString = "tg2://login?token=\(tokenString)"
                 let _ = (qrCode(string: urlString, color: .black, backgroundColor: .white, icon: .none)
                 |> deliverOnMainQueue).startStandalone(next: { _, generate in
                     guard let strongSelf = self else {

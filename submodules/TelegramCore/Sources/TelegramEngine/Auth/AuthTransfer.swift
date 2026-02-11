@@ -146,7 +146,7 @@ func _internal_exportAuthTransferToken(accountManager: AccountManager<TelegramAc
                 }
                 |> castError(ExportAuthTransferTokenError.self)
                 |> switchToLatest
-            case .authorizationSignUpRequired:
+            case .authorizationSignUpRequired, .signUp:
                 return .fail(.generic)
             }
         }

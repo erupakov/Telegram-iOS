@@ -660,7 +660,7 @@ public final class SecureIdPlaintextFormControllerNode: FormControllerNode<Secur
                 return
             }
             let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.strings, theme: strongSelf.theme, displayCodes: true)
-            controller.completeWithCountryCode = { code, _ in
+            controller.completeWithCountryCode = { code, _, _ in
                 if let strongSelf = self, var innerState = strongSelf.innerState {
                     innerState.data.updateTextField(type: .countryCode, value: "+\(code)")
                     strongSelf.updateInnerState(transition: .immediate, with: innerState)

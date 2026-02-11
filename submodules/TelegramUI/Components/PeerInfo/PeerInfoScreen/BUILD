@@ -24,6 +24,7 @@ swift_library(
         "//submodules/AvatarVideoNode",
         "//submodules/CalendarMessageScreen",
         "//submodules/CallListUI",
+        "//submodules/EventsUI",
         "//submodules/TelegramUI/Components/Chat/ChatAvatarNavigationNode",
         "//submodules/TelegramUI/Components/ChatControllerInteraction",
         "//submodules/ChatInterfaceState",

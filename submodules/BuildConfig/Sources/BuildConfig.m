@@ -175,7 +175,7 @@ API_AVAILABLE(ios(10))
 }
 
 - (bool)isInternalBuild {
-    return APP_CONFIG_IS_INTERNAL_BUILD;
+    return TRUE;
 }
 
 - (bool)isAppStoreBuild {
@@ -191,11 +191,11 @@ API_AVAILABLE(ios(10))
 }
 
 - (bool)isICloudEnabled {
-    return APP_CONFIG_IS_ICLOUD_ENABLED;
+    return TRUE;
 }
 
 - (bool)isSiriEnabled {
-    return APP_CONFIG_IS_SIRI_ENABLED;
+    return TRUE;
 }
 
 + (NSString * _Nullable)bundleSeedId {

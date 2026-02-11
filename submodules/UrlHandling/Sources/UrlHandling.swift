@@ -9,14 +9,11 @@ import TelegramUIPreferences
 import TelegramNotices
 import AccountContext
 
-private let baseTelegramMePaths = ["telegram.me", "t.me", "telegram.dog"]
+private let baseTelegramMePaths = ["teamgram.me"]
 private let baseTelegraPhPaths = [
-    "telegra.ph/",
-    "te.legra.ph/",
-    "graph.org/",
-    "t.me/iv?",
-    "telegram.org/blog/",
-    "telegram.org/tour/"
+    "teamgram.me/iv?",
+    "teamgram.net/blog/",
+    "teamgram.net/tour/"
 ]
 
 extension ResolvedBotAdminRights {
@@ -218,7 +215,7 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                             }
                         }
                         if let _ = url {
-                            return .internalInstantView(url: "https://t.me/\(query)")
+                            return .internalInstantView(url: "https://teamgram.me/\(query)")
                         }
                     } else if peerName == "contact" {
                         var code: String?
@@ -1299,7 +1296,7 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: String) -> (
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg2", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .proxy(host, port, username, password, secret) = internalUrl {
             return (host, port, username, password, secret)
         }
@@ -1320,7 +1317,7 @@ public func parseStickerPackUrl(sharedContext: SharedAccountContext, url: String
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg2", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .stickerPack(name, _) = internalUrl {
             return name
         }
@@ -1341,7 +1338,7 @@ public func parseWallpaperUrl(sharedContext: SharedAccountContext, url: String) 
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg2", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .wallpaper(wallpaper) = internalUrl {
             return wallpaper
         }
@@ -1362,7 +1359,7 @@ public func parseAdUrl(sharedContext: SharedAccountContext, context: AccountCont
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg2", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: context, query: host + "?" + query), case .peer = internalUrl {
             return internalUrl
         }

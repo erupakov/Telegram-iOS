@@ -48,6 +48,7 @@ load(
     "telegram_team_id",
     "telegram_enable_icloud",
     "telegram_enable_siri",
+    "telegram_enable_watch",
 )
 
 load("@build_bazel_rules_apple//apple:resources.bzl",
@@ -340,7 +341,12 @@ filegroup(
         "Telegram-iOS/Base.lproj/LaunchScreen.xib",
     ]),
 )
-
+filegroup(
+    name = "HelveticaNeue",
+    srcs = glob([
+        "Telegram-iOS/HelveticaNeue/HelveticaNeue-Semibold.ttf",
+    ]),
+)
 objc_library(
     name = "Main",
     module_name = "Main",
@@ -402,7 +408,7 @@ plist_fragment(
             <string>{telegram_bundle_id}</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>telegram</string>
+                <string>teamgram</string>
             </array>
         </dict>
         <dict>
@@ -412,7 +418,7 @@ plist_fragment(
             <string>{telegram_bundle_id}.compatibility</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>tg</string>
+                <string>tg2</string>
                 <string>tonsite</string>
             </array>
         </dict>
@@ -476,26 +482,6 @@ official_carplay_fragment = """
 """
 carplay_fragment = official_carplay_fragment if telegram_bundle_id in official_bundle_ids else ""
 
-icloud_fragment = "" if not telegram_enable_icloud else """
-<key>com.apple.developer.icloud-services</key>
-<array>
-    <string>CloudKit</string>
-    <string>CloudDocuments</string>
-</array>
-<key>com.apple.developer.icloud-container-identifiers</key>
-<array>
-    <string>iCloud.{telegram_bundle_id}</string>
-</array>
-<key>com.apple.developer.ubiquity-kvstore-identifier</key>
-<string>{telegram_team_id}.*</string>
-<key>com.apple.developer.icloud-container-environment</key>
-<string>{telegram_icloud_environment}</string>
-""".format(
-    telegram_team_id=telegram_team_id,
-    telegram_bundle_id=telegram_bundle_id,
-    telegram_icloud_environment="Production" if telegram_aps_environment == "production" else "Development"
-)
-
 associated_domains_fragment = "" if telegram_bundle_id not in official_bundle_ids else """
 <key>com.apple.developer.associated-domains</key>
 <array>
@@ -504,12 +490,9 @@ associated_domains_fragment = "" if telegram_bundle_id not in official_bundle_id
     <string>applinks:*.t.me</string>
     <string>webcredentials:t.me</string>
     <string>webcredentials:telegram.org</string>
+    <string>applinks:teamgram.me</string>
+    <string>applinks:*.teamgram.me</string>
 </array>
-"""
-
-siri_fragment = "" if not telegram_enable_siri else """
-<key>com.apple.developer.siri</key>
-<true/>
 """
 
 aps_fragment = "" if telegram_aps_environment == "" else """
@@ -555,9 +538,7 @@ plist_fragment(
     template = "".join([
         aps_fragment,
         app_groups_fragment,
-        siri_fragment,
         associated_domains_fragment,
-        icloud_fragment,
         apple_pay_merchants_fragment,
         unrestricted_voip_fragment,
         carplay_fragment,
@@ -595,7 +576,7 @@ plist_fragment(
     template =
     """
     <key>CFBundleDisplayName</key>
-    <string>Telegram</string>
+    <string>Divo</string>
     """
 )
 
@@ -1533,11 +1514,11 @@ plist_fragment(
     <key>CFBundleDevelopmentRegion</key>
     <string>en</string>
     <key>CFBundleDisplayName</key>
-    <string>Telegram</string>
+    <string>Divo</string>
     <key>CFBundleIdentifier</key>
     <string>{telegram_bundle_id}</string>
     <key>CFBundleName</key>
-    <string>Telegram</string>
+    <string>Divo</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleSignature</key>
@@ -1595,13 +1576,13 @@ plist_fragment(
     <key>NSFaceIDUsageDescription</key>
     <string>You can use Face ID to unlock the app.</string>
     <key>NSLocationAlwaysUsageDescription</key>
-    <string>When you send your location to your friends, Telegram needs access to show them a map. You also need this to send locations from an Apple Watch.</string>
+    <string>When you send your location to your friends, Teamgram needs access to show them a map. You also need this to send locations from an Apple Watch.</string>
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>When you send your location to your friends, Telegram needs access to show them a map.</string>
+    <string>When you send your location to your friends, Teamgram needs access to show them a map.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>We need this so that you can record and share voice messages and videos with sound.</string>
     <key>NSMotionUsageDescription</key>
-    <string>When you send your location to your friends, Telegram needs access to show them a map.</string>
+    <string>When you send your location to your friends, Teamgram needs access to show them a map.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>We need this so that you can share photos and videos from your photo library.</string>
     <key>NSPhotoLibraryUsageDescription</key>
@@ -1620,6 +1601,7 @@ plist_fragment(
         <string>SFCompactRounded-Semibold.otf</string>
         <string>AremacFS-Regular.otf</string>
         <string>AremacFS-Semibold.otf</string>
+        <string>HelveticaNeue-Semibold.ttf</string>
     </array>
     <key>UIBackgroundModes</key>
     <array>
@@ -1732,7 +1714,9 @@ ios_application(
     ],
     resources = [
         ":LaunchScreen",
-        #":DefaultAppIcon",
+        ":HelveticaNeue",
+        ":DefaultAppIcon",
+        #":AdditionalIcons",
     ],
     frameworks = [
         ":MtProtoKitFramework",

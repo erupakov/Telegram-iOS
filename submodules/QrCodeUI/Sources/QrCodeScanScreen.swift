@@ -144,7 +144,7 @@ public final class QrCodeScanScreen: ViewController {
             return
         }
         if let navigationController = navigationController as? NavigationController {
-            self.present(UndoOverlayController(presentationData: self.presentationData, content: .actionSucceeded(title: self.presentationData.strings.AuthSessions_AddedDeviceTitle, text: session?.appName ?? "Telegram for macOS", cancel: self.presentationData.strings.AuthSessions_AddedDeviceTerminate, destructive: true), elevatedLayout: false, animateInAsReplacement: false, action: { value in
+            self.present(UndoOverlayController(presentationData: self.presentationData, content: .actionSucceeded(title: self.presentationData.strings.AuthSessions_AddedDeviceTitle, text: session?.appName ?? "Teamgram for macOS", cancel: self.presentationData.strings.AuthSessions_AddedDeviceTerminate, destructive: true), elevatedLayout: false, animateInAsReplacement: false, action: { value in
                 if value == .undo, let session = session {
                     let _ = activeSessionsContext.remove(hash: session.hash).start()
                     return true
@@ -563,9 +563,9 @@ private final class QrCodeScanScreenNode: ViewControllerTracingNode, ASScrollVie
             let filteredCodes: [CameraCode]
             switch strongSelf.subject {
                 case .authTransfer:
-                    filteredCodes = codes.filter { $0.message.hasPrefix("tg://") }
+                    filteredCodes = codes.filter { $0.message.hasPrefix("tg2://") }
                 case .peer:
-                    filteredCodes = codes.filter { $0.message.hasPrefix("https://t.me/") || $0.message.hasPrefix("t.me/") }
+                    filteredCodes = codes.filter { $0.message.hasPrefix("https://teamgram.me/") || $0.message.hasPrefix("teamgram.me/") }
                 case .cryptoAddress:
                     filteredCodes = codes.filter { $0.message.hasPrefix("ton://") }
                 case .custom:
@@ -616,9 +616,9 @@ private final class QrCodeScanScreenNode: ViewControllerTracingNode, ASScrollVie
                                 if let url = attributes[NSAttributedString.Key(rawValue: TelegramTextAttributes.URL)] as? String {
                                     switch url {
                                     case "desktop":
-                                        self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: "https://getdesktop.telegram.org", forceExternal: true, presentationData: self.context.sharedContext.currentPresentationData.with { $0 }, navigationController: nil, dismissInput: {})
+                                        self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: "https://teamgram.net/desktop", forceExternal: true, presentationData: self.context.sharedContext.currentPresentationData.with { $0 }, navigationController: nil, dismissInput: {})
                                     case "web":
-                                        self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: "https://web.telegram.org", forceExternal: true, presentationData: self.context.sharedContext.currentPresentationData.with { $0 }, navigationController: nil, dismissInput: {})
+                                        self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: "https://web.teamgram.net", forceExternal: true, presentationData: self.context.sharedContext.currentPresentationData.with { $0 }, navigationController: nil, dismissInput: {})
                                     default:
                                         break
                                     }

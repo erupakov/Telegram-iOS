@@ -78,43 +78,20 @@ private final class DeviceContactDataModernContext: DeviceContactDataContext {
         }
     }
     
-    private func retrieveContacts() -> Signal<([DeviceContactStableId: DeviceContactBasicData], [PeerId: DeviceContactBasicDataWithReference]), NoError> {
-        return self.accountManager.transaction { transaction -> DeviceContactDataState? in
-            return transaction.getSharedData(SharedDataKeys.deviceContacts)?.get(DeviceContactDataState.self)
-        }
-        |> deliverOn(self.queue)
-        |> map { currentData -> ([DeviceContactStableId: DeviceContactBasicData], [PeerId: DeviceContactBasicDataWithReference]) in
-            if let currentData, let stateToken = currentData.stateToken, !sharedDisableDeviceContactDataDiffing {
-                final class ChangeVisitor: NSObject, CNChangeHistoryEventVisitor {
-                    let onDropEverything: () -> Void
-                    let onAdd: (CNContact) -> Void
-                    let onUpdate: (CNContact) -> Void
-                    let onDelete: (String) -> Void
-                    
-                    init(onDropEverything: @escaping () -> Void, onAdd: @escaping (CNContact) -> Void, onUpdate: @escaping (CNContact) -> Void, onDelete: @escaping (String) -> Void) {
-                        self.onDropEverything = onDropEverything
-                        self.onAdd = onAdd
-                        self.onUpdate = onUpdate
-                        self.onDelete = onDelete
-                        
-                        super.init()
-                    }
-                    
-                    func visit(_ event: CNChangeHistoryDropEverythingEvent) {
-                        self.onDropEverything()
-                    }
-                    
-                    func visit(_ event: CNChangeHistoryAddContactEvent) {
-                        self.onAdd(event.contact)
-                    }
-                    
-                    func visit(_ event: CNChangeHistoryUpdateContactEvent) {
-                        self.onUpdate(event.contact)
-                    }
-                    
-                    func visit(_ event: CNChangeHistoryDeleteContactEvent) {
-                        self.onDelete(event.contactIdentifier)
-                    }
+    private func retrieveContacts() -> ([DeviceContactStableId: DeviceContactBasicData], [PeerId: DeviceContactBasicDataWithReference]) {
+        let keysToFetch: [CNKeyDescriptor] = [CNContactFormatter.descriptorForRequiredKeys(for: .fullName), CNContactPhoneNumbersKey as CNKeyDescriptor, CNContactUrlAddressesKey as CNKeyDescriptor]
+        
+        let request = CNContactFetchRequest(keysToFetch: keysToFetch)
+        request.unifyResults = true
+        
+        var result: [DeviceContactStableId: DeviceContactBasicData] = [:]
+        var references: [PeerId: DeviceContactBasicDataWithReference] = [:]
+        let _ = try? self.store.enumerateContacts(with: request, usingBlock: { contact, _ in
+            let stableIdAndContact = DeviceContactDataModernContext.parseContact(contact)
+            result[stableIdAndContact.0] = stableIdAndContact.1
+            for address in contact.urlAddresses {
+                if address.label == "Teamgram", let peerId = parseAppSpecificContactReference(address.value as String) {
+                    references[peerId] = DeviceContactBasicDataWithReference(stableId: stableIdAndContact.0, basicData: stableIdAndContact.1)
                 }
                 
                 let changeRequest = CNChangeHistoryFetchRequest()

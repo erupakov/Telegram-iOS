@@ -1810,3 +1810,31 @@ public func standaloneStateManager(
         }
     }
 }
+
+public  struct AuthorizationModelInfo {
+    public let typeId: Int32
+    public let gender: Int32?
+    public let age: Int32?
+    public let name: String?
+    public let agencyName: String?
+    public let countryCode: String?
+    public let url: String?
+    
+    public init(
+        typeId: Int32,
+        gender: Int32? = nil,
+        age: Int32? = nil,
+        name: String? = nil,
+        agencyName: String? = nil,
+        countryCode: String? = nil,
+        url: String? = nil
+    ) {
+        self.typeId = typeId
+        self.gender = gender
+        self.age = age
+        self.name = name
+        self.agencyName = agencyName
+        self.countryCode = countryCode
+        self.url = url
+    }
+}

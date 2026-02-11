@@ -774,7 +774,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 if parsed.scheme == nil || parsed.scheme!.isEmpty {
                     parsedUrl = URL(string: "https://\(url)")
                 }
-                if parsed.scheme == "tg" {
+                if parsed.scheme == "tg2" {
                     return
                 }
             }
@@ -896,24 +896,25 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 completion(false)
             }
         }, siriAuthorization: {
-            if buildConfig.isSiriEnabled {
-                if #available(iOS 10, *) {
-                    switch INPreferences.siriAuthorizationStatus() {
-                    case .authorized:
-                        return .allowed
-                    case .denied, .restricted:
-                        return .denied
-                    case .notDetermined:
-                        return .notDetermined
-                    @unknown default:
-                        return .notDetermined
-                    }
-                } else {
-                    return .denied
-                }
-            } else {
-                return .denied
-            }
+            return .denied
+//            if buildConfig.isSiriEnabled {
+//                if #available(iOS 10, *) {
+//                    switch INPreferences.siriAuthorizationStatus() {
+//                    case .authorized:
+//                        return .allowed
+//                    case .denied, .restricted:
+//                        return .denied
+//                    case .notDetermined:
+//                        return .notDetermined
+//                    @unknown default:
+//                        return .notDetermined
+//                    }
+//                } else {
+//                    return .denied
+//                }
+//            } else {
+//                return .denied
+//            }
         }, getWindowHost: {
             return self.nativeWindow
         }, presentNativeController: { controller in
@@ -1449,9 +1450,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
         
         if let url = launchOptions?[.url] {
-            if let url = url as? URL, url.scheme == "tg" || url.scheme == buildConfig.appSpecificUrlScheme {
+            if let url = url as? URL, url.scheme == "tg2" || url.scheme == buildConfig.appSpecificUrlScheme {
                 self.openUrlWhenReady(url: url)
-            } else if let urlString = url as? String, urlString.lowercased().hasPrefix("tg:") || urlString.lowercased().hasPrefix("\(buildConfig.appSpecificUrlScheme):"), let url = URL(string: urlString) {
+            } else if let urlString = url as? String, urlString.lowercased().hasPrefix("tg2:") || urlString.lowercased().hasPrefix("\(buildConfig.appSpecificUrlScheme):"), let url = URL(string: urlString) {
                 self.openUrlWhenReady(url: url)
             }
         }
@@ -2558,7 +2559,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                         if let peerByContact = peerByContact {
                             startCall(peerByContact.id)
                             processed = true
-                        } else if let handle = contact.customIdentifier, handle.hasPrefix("tg") {
+                        } else if let handle = contact.customIdentifier, handle.hasPrefix("tg2") {
                             let string = handle.suffix(from: handle.index(handle.startIndex, offsetBy: 2))
                             if let value = Int64(string) {
                                 startCall(PeerId(value))
@@ -2607,7 +2608,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     return true
                 }
             } else if let sendMessageIntent = userActivity.interaction?.intent as? INSendMessageIntent {
-                if let contact = sendMessageIntent.recipients?.first, let handle = contact.customIdentifier, handle.hasPrefix("tg") {
+                if let contact = sendMessageIntent.recipients?.first, let handle = contact.customIdentifier, handle.hasPrefix("tg2") {
                     let string = handle.suffix(from: handle.index(handle.startIndex, offsetBy: 2))
                     if let value = Int64(string) {
                         self.openChatWhenReady(accountId: nil, peerId: PeerId(value), threadId: nil, activateInput: true, storyId: nil)

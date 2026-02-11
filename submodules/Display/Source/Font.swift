@@ -280,6 +280,25 @@ public struct Font {
         }
     }
     
+    public static func helveticaNeue(_ size: CGFloat) -> UIFont {
+        UIFont(name: "Helvetica Neue LT Com", size: size) ?? Font.bold(30)
+    }
+    
+    public static func helveticaNeue(_ text: String, _ size: CGFloat, _ color: UIColor = .white, alignment: NSTextAlignment = .center) -> NSAttributedString {
+        
+        let paragraphStyle: NSMutableParagraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = alignment
+        
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: Font.helveticaNeue(size),
+            .foregroundColor: color,
+            .baselineOffset: -2,
+            .paragraphStyle: paragraphStyle
+        ]
+        
+        return NSAttributedString(string: text, attributes: attributes)
+    }
+    
     public static func regular(_ size: CGFloat) -> UIFont {
         return UIFont.systemFont(ofSize: size)
     }

@@ -325,7 +325,7 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
         return self.displayNode as! AuthorizationSequenceCountrySelectionControllerNode
     }
     
-    public var completeWithCountryCode: ((Int, String) -> Void)?
+    public var completeWithCountryCode: ((Int, String, String) -> Void)?
     public var dismissed: (() -> Void)?
     
     public init(strings: PresentationStrings, theme: PresentationTheme, displayCodes: Bool = true, glass: Bool = false) {

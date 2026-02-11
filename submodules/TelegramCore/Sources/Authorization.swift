@@ -387,7 +387,7 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
                                 return .loggedIn
                             }
                             |> castError(AuthorizationCodeRequestError.self)
-                        case .authorizationSignUpRequired:
+                        case .authorizationSignUpRequired, .signUp:
                             return .never()
                         }
                     }
@@ -1015,6 +1015,10 @@ public func resetLoginEmail(account: UnauthorizedAccount, phoneNumber: String, p
 }
 
 public func authorizeWithCode(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, code: AuthorizationCode, termsOfService: UnauthorizedAccountTermsOfService?, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> {
+    
+    // MARK: - Mock! -
+    
+//    return .single(.signUp(AuthorizationSignUpData(number: "+380509505777", codeHash: "hash", code: .phoneCode("5888"), termsOfService: nil, syncContacts: false)))
     return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
         if let state = transaction.getState() as? UnauthorizedAccountState {
             switch state.contents {
@@ -1180,7 +1184,7 @@ public func authorizeWithPassword(accountManager: AccountManager<TelegramAccount
                 return accountManager.transaction { transaction -> Void in
                     switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: isSupportUser)
                 }
-            case .authorizationSignUpRequired:
+            case .authorizationSignUpRequired, .signUp:
                 return .complete()
             }
         }
@@ -1383,7 +1387,7 @@ public func loginWithRecoveredAccountData(accountManager: AccountManager<Telegra
             return accountManager.transaction { transaction -> Void in
                 switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: isSupportUser)
             }
-        case .authorizationSignUpRequired:
+        case .authorizationSignUpRequired, .signUp:
             return .complete()
         }
     }
@@ -1499,14 +1503,49 @@ public enum SignUpError {
     case invalidLastName
 }
 
-public func signUpWithName(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, firstName: String, lastName: String, avatarData: Data?, avatarVideo: Signal<UploadedPeerPhotoData?, NoError>?, videoStartTimestamp: Double?, disableJoinNotifications: Bool = false, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<Void, SignUpError> {
+public func signUpWithName(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, firstName: String, lastName: String, modelinfo: AuthorizationModelInfo? = nil, avatarData: Data?, avatarVideo: Signal<UploadedPeerPhotoData?, NoError>?, videoStartTimestamp: Double?, disableJoinNotifications: Bool = false, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<Void, SignUpError> {
     return account.postbox.transaction { transaction -> Signal<Void, SignUpError> in
         if let state = transaction.getState() as? UnauthorizedAccountState, case let .signUp(number, codeHash, _, _, _, syncContacts) = state.contents {
             var flags: Int32 = 0
-            if disableJoinNotifications {
-                flags |= (1 << 0)
+//            if disableJoinNotifications {
+                flags |= (1 << 1)
+//            }
+            
+            if let modelinfo = modelinfo {
+                print(modelinfo)
+            } else {
+                print("print(modelinfo)")
             }
-            return account.network.request(Api.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName))
+            
+            let gender: Int32? = 1
+            let typeId: Int32? = modelinfo?.typeId
+            let age: Int32? = modelinfo?.age
+            let name: String? = modelinfo?.name
+            let agencyName: String? = modelinfo?.agencyName
+            let countryCode: String? = modelinfo?.countryCode
+            let url: String? = modelinfo?.url
+
+            let genderFlag: Int32 = 1 << 1
+            let ageFlag: Int32 = 1 << 2
+            let nameFlag: Int32 = 1 << 3
+            let agencyNameFlag: Int32 = 1 << 4
+            let countryCodeFlag: Int32 = 1 << 5
+            let urlFlag: Int32 = 1 << 6
+
+            let modelInfoFlags: Int32 = genderFlag | ageFlag | nameFlag | agencyNameFlag | countryCodeFlag | urlFlag
+            
+            let modelInfoTest = Api.ModelInfo.modelInfo(
+                flags: modelInfoFlags,
+                typeId: typeId ?? 1,
+                gender: gender,
+                age: age,
+                name: name,
+                agencyName: agencyName,
+                countryCode: countryCode,
+                url: url
+            )
+            
+            return account.network.request(Api.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName, modelInfo: modelInfoTest))
             |> mapError { error -> SignUpError in
                 if error.errorDescription.hasPrefix("FLOOD_WAIT") {
                     return .limitExceeded
@@ -1573,7 +1612,7 @@ public func signUpWithName(accountManager: AccountManager<TelegramAccountManager
                         return appliedState
                         |> then(switchedAccounts)
                     }
-                case .authorizationSignUpRequired:
+                case .authorizationSignUpRequired, .signUp:
                     return .fail(.generic)
                 }
             }

@@ -242,7 +242,7 @@ func deleteAccountDataController(context: AccountContext, mode: DeleteAccountDat
     }, selectCountryCode: {
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         let controller = AuthorizationSequenceCountrySelectionController(strings: presentationData.strings, theme: presentationData.theme)
-        controller.completeWithCountryCode = { code, name in
+        controller.completeWithCountryCode = { code, name, _ in
             updateCountryCodeImpl?(Int32(code), name)
             activateInputImpl?()
         }

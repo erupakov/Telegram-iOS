@@ -311,7 +311,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     var items: [ActionSheetButtonItem] = []
 
                     if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                        items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
                             let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
@@ -368,7 +368,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
 
                         let composeController = MFMailComposeViewController()
                         composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
+                        composeController.setSubject("Teamgram Logs")
                         for (name, path) in logs {
                             if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
                                 composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
@@ -395,7 +395,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         var items: [ActionSheetButtonItem] = []
                         
                         if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                            items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                            items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                                 actionSheet?.dismissAnimated()
                                 
                                 let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
@@ -449,7 +449,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                             
                             let composeController = MFMailComposeViewController()
                             composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                            composeController.setSubject("Telegram Logs")
+                            composeController.setSubject("Teamgram Logs")
                             for (name, path) in logs {
                                 if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
                                     composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
@@ -477,7 +477,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     var items: [ActionSheetButtonItem] = []
 
                     if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                        items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
                             let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
@@ -534,7 +534,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
 
                         let composeController = MFMailComposeViewController()
                         composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
+                        composeController.setSubject("Teamgram Logs")
                         for (name, path) in logs {
                             if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
                                 composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
@@ -561,7 +561,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     var items: [ActionSheetButtonItem] = []
 
                     if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                        items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
                             let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
@@ -618,7 +618,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
 
                         let composeController = MFMailComposeViewController()
                         composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
+                        composeController.setSubject("Teamgram Logs")
                         for (name, path) in logs {
                             if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
                                 composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
@@ -646,7 +646,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     var items: [ActionSheetButtonItem] = []
 
                     if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                        items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
                             let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
@@ -703,7 +703,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
 
                         let composeController = MFMailComposeViewController()
                         composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                        composeController.setSubject("Telegram Logs")
+                        composeController.setSubject("Teamgram Logs")
                         for (name, path) in logs {
                             if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
                                 composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
@@ -730,7 +730,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                         var items: [ActionSheetButtonItem] = []
                         
                         if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                            items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                            items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                                 actionSheet?.dismissAnimated()
                                 
                                 let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
@@ -757,7 +757,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                             
                             let composeController = MFMailComposeViewController()
                             composeController.mailComposeDelegate = arguments.mailComposeDelegate
-                            composeController.setSubject("Telegram Logs")
+                            composeController.setSubject("Teamgram Logs")
                             for (name, path) in logs {
                                 if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
                                     composeController.addAttachmentData(data, mimeType: "application/text", fileName: name)
@@ -803,7 +803,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     var items: [ActionSheetButtonItem] = []
 
                     if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                        items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
                             let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))
@@ -892,7 +892,7 @@ private enum DebugControllerEntry: ItemListNodeEntry {
                     var items: [ActionSheetButtonItem] = []
 
                     if let context = arguments.context, context.sharedContext.applicationBindings.isMainApp {
-                        items.append(ActionSheetButtonItem(title: "Via Telegram", color: .accent, action: { [weak actionSheet] in
+                        items.append(ActionSheetButtonItem(title: "Via Teamgram", color: .accent, action: { [weak actionSheet] in
                             actionSheet?.dismissAnimated()
 
                             let controller = context.sharedContext.makePeerSelectionController(PeerSelectionControllerParams(context: context, filter: [.onlyWriteable, .excludeDisabled]))

@@ -926,7 +926,7 @@ final class ChatPinnedMessageTitlePanelNode: ChatTitleAccessoryPanelNode {
                         return
                     case let .url(url):
                         var isConcealed = true
-                        if url.hasPrefix("tg://") {
+                        if url.hasPrefix("tg2://") {
                             isConcealed = false
                         }
                         controllerInteraction.openUrl(ChatControllerInteraction.OpenUrl(url: url, concealed: isConcealed, progress: Promise()))

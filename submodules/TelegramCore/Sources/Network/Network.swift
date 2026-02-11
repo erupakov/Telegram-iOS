@@ -530,28 +530,33 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             if testingEnvironment {
                 seedAddressList = [
-                    1: ["149.154.175.10"],
-                    2: ["149.154.167.40"],
-                    3: ["149.154.175.117"]
+//                    1: ["91.98.140.47"]
+                    1: ["13.41.235.60"]
+                    // 1: ["149.154.175.10"],
+                    // 2: ["149.154.167.40"],
+                    // 3: ["149.154.175.117"]
                 ]
             } else {
                 seedAddressList = [
-                    1: ["149.154.175.50", "2001:b28:f23d:f001::a"],
-                    2: ["149.154.167.50", "95.161.76.100", "2001:67c:4e8:f002::a"],
-                    3: ["149.154.175.100", "2001:b28:f23d:f003::a"],
-                    4: ["149.154.167.91", "2001:67c:4e8:f004::a"],
-                    5: ["149.154.171.5", "2001:b28:f23f:f005::a"]
+                    1: ["13.41.235.60"]
+//                    1: ["91.98.140.47"]
+                    // 1: ["149.154.175.50", "2001:b28:f23d:f001::a"],
+                    // 2: ["149.154.167.50", "95.161.76.100", "2001:67c:4e8:f002::a"],
+                    // 3: ["149.154.175.100", "2001:b28:f23d:f003::a"],
+                    // 4: ["149.154.167.91", "2001:67c:4e8:f004::a"],
+                    // 5: ["149.154.171.5", "2001:b28:f23f:f005::a"]
                 ]
             }
             
             for (id, ips) in seedAddressList {
-                context.setSeedAddressSetForDatacenterWithId(id, seedAddressSet: MTDatacenterAddressSet(addressList: ips.map { MTDatacenterAddress(ip: $0, port: 443, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil) }))
+                context.setSeedAddressSetForDatacenterWithId(id, seedAddressSet: MTDatacenterAddressSet(addressList: ips.map { MTDatacenterAddress(ip: $0, port: 10443, preferForMedia: false, restrictToTcp: false, cdn: false, preferForProxy: false, secret: nil) }))
             }
             
             context.keychain = keychain
-            var wrappedAdditionalSource: MTSignal?
+            // var wrappedAdditionalSource: MTSignal?
             #if os(iOS)
-            if #available(iOS 10.0, *), !supplementary, arguments.isICloudEnabled {
+            if #available(iOS 10.0, *), false {
+                /*
                 var cloudDataContextValue: CloudDataContext?
                 if let value = cloudDataContext.with({ $0 }) {
                     cloudDataContextValue = value
@@ -572,11 +577,12 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                         })
                     })
                 }
+                */
             }
             #endif
             
             if !supplementary {
-                context.setDiscoverBackupAddressListSignal(MTBackupAddressSignals.fetchBackupIps(testingEnvironment, currentContext: context, additionalSource: wrappedAdditionalSource, phoneNumber: phoneNumber, mainDatacenterId: datacenterId))
+                // context.setDiscoverBackupAddressListSignal(MTBackupAddressSignals.fetchBackupIps(testingEnvironment, currentContext: context, additionalSource: wrappedAdditionalSource, phoneNumber: phoneNumber, mainDatacenterId: datacenterId))
                 let externalRequestVerificationStream = arguments.externalRequestVerificationStream
                 context.setExternalRequestVerification({ nonce in
                     return MTSignal(generator: { subscriber in

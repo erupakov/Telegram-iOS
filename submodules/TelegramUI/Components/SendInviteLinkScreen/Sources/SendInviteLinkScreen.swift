@@ -1180,7 +1180,12 @@ public class SendInviteLinkScreen: ViewControllerComponentContainer {
     public init(context: AccountContext, subject: SendInviteLinkScreenSubject, peers: [TelegramForbiddenInvitePeer], theme: PresentationTheme? = nil) {
         self.context = context
         
-        #if DEBUG && false
+        var link = link
+        if link == nil, let addressName = peer.addressName {
+            link = "https://teamgram.me/\(addressName)"
+        }
+        
+        #if DEBUG
         var peers = peers
         
         if !"".isEmpty {

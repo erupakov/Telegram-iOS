@@ -113,7 +113,7 @@ public func parseConfirmationCodeUrl(sharedContext: SharedAccountContext, url: U
             return code
         }
     }
-    if url.scheme == "tg" {
+    if url.scheme == "tg2" {
         if let host = url.host, let query = url.query, let parsedUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query) {
             switch parsedUrl {
             case let .confirmationCode(code):
@@ -421,7 +421,65 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
     )
     
     let continueHandling: () -> Void = {
-        if let scheme = parsedUrl.scheme, (scheme == "tg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
+        let handleResolvedUrl: (ResolvedUrl) -> Void = { resolved in
+            if case let .externalUrl(value) = resolved {
+                context.sharedContext.applicationBindings.openUrl(value)
+            } else {
+                context.sharedContext.openResolvedUrl(resolved, context: context, urlContext: .generic, navigationController: navigationController, forceExternal: false, forceUpdate: false, openPeer: { peer, navigation in
+                    switch navigation {
+                        case .info:
+                            if let infoController = context.sharedContext.makePeerInfoController(context: context, updatedPresentationData: nil, peer: peer._asPeer(), mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
+                                context.sharedContext.applicationBindings.dismissNativeController()
+                                navigationController?.pushViewController(infoController)
+                            }
+                        case let .chat(textInputState, subject, peekData):
+                            context.sharedContext.applicationBindings.dismissNativeController()
+                            if let navigationController = navigationController {
+                                context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), subject: subject, updateTextInputState: !peer.id.isGroupOrChannel ? textInputState : nil, peekData: peekData))
+                            }
+                        case let .withBotStartPayload(payload):
+                            context.sharedContext.applicationBindings.dismissNativeController()
+                            if let navigationController = navigationController {
+                                context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), botStart: payload))
+                            }
+                        case let .withAttachBot(attachBotStart):
+                            context.sharedContext.applicationBindings.dismissNativeController()
+                            if let navigationController = navigationController {
+                                context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), attachBotStart: attachBotStart))
+                            }
+                        case let .withBotApp(botAppStart):
+                            context.sharedContext.applicationBindings.dismissNativeController()
+                            if let navigationController = navigationController {
+                                context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), botAppStart: botAppStart))
+                            }
+                        default:
+                            break
+                    }
+                }, 
+                sendFile: nil,
+                sendSticker: nil,
+                sendEmoji: nil,
+                requestMessageActionUrlAuth: nil,
+                joinVoiceChat: { peerId, invite, call in
+                    
+                }, present: { c, a in
+                    context.sharedContext.applicationBindings.dismissNativeController()
+                    
+                    c.presentationArguments = a
+                    
+                    context.sharedContext.applicationBindings.getWindowHost()?.present(c, on: .root, blockInteraction: false, completion: {})
+                }, dismissInput: {
+                    dismissInput()
+                }, contentContext: nil, progress: nil, completion: nil)
+            }
+        }
+        
+        let handleInternalUrl: (String) -> Void = { url in
+            let _ = (context.sharedContext.resolveUrl(context: context, peerId: nil, url: url, skipUrlAuth: true)
+            |> deliverOnMainQueue).startStandalone(next: handleResolvedUrl)
+        }
+        
+        if let scheme = parsedUrl.scheme, (scheme == "tg2" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
             if parsedUrl.host == "tonsite" {
                 if let value = URL(string: "tonsite:/" + parsedUrl.path) {
                     parsedUrl = value
@@ -429,7 +487,7 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
             }
         }
         
-        if let scheme = parsedUrl.scheme, (scheme == "tg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
+        if let scheme = parsedUrl.scheme, (scheme == "tg2" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
             var convertedUrl: String?
             let host = parsedUrl.host?.lowercased() ?? ""
             if let query = parsedUrl.query, let params = QueryParameters(query) {

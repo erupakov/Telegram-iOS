@@ -20,7 +20,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
     private let strings: PresentationStrings
     private let theme: PresentationTheme
     
-    private let animationNode: AnimatedStickerNode
+//    private let animationNode: AnimatedStickerNode
     private let titleNode: ImmediateTextNode
     private let titleActivateAreaNode: AccessibilityAreaNode
     private let titleIconNode: ASImageNode
@@ -121,7 +121,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.strings = strings
         self.theme = theme
         
-        self.animationNode = DefaultAnimatedStickerNodeImpl()
+//        self.animationNode = DefaultAnimatedStickerNodeImpl()
         
         self.titleNode = ImmediateTextNode()
         self.titleNode.maximumNumberOfLines = 0
@@ -159,7 +159,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         
         self.nextOptionButtonNode = HighlightableButtonNode()
         self.nextOptionButtonNode.displaysAsynchronously = false
-        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: .sms(length: 5), nextType: .call, timeout: 60, strings: self.strings, primaryColor: self.theme.list.itemSecondaryTextColor, accentColor: self.theme.list.itemAccentColor)
+        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: .sms(length: 5), nextType: .call, timeout: 60, strings: self.strings, primaryColor: .white, accentColor: .white)
         self.nextOptionTitleNode.attributedText = nextOptionText
         self.nextOptionButtonNode.isUserInteractionEnabled = nextOptionActive
         self.nextOptionButtonNode.accessibilityLabel = nextOptionText.string
@@ -261,7 +261,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             return UITracingLayerView()
         })
         
-        self.backgroundColor = self.theme.list.plainBackgroundColor
+        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
         
         self.textField.textField.delegate = self
         
@@ -277,7 +277,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.addSubnode(self.currentOptionInfoNode)
         self.addSubnode(self.nextOptionButtonNode)
         self.nextOptionButtonNode.addSubnode(self.nextOptionArrowNode)
-        self.addSubnode(self.animationNode)
+//        self.addSubnode(self.animationNode)
         self.addSubnode(self.resetNode)
         self.addSubnode(self.resetTextNode)
         self.addSubnode(self.dividerNode)
@@ -418,7 +418,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         }
         self.appleSignInAllowed = appleSignInAllowed
         
-        self.currentOptionNode.attributedText = authorizationCurrentOptionText(codeType, phoneNumber: self.phoneNumber, email: self.email, strings: self.strings, primaryColor: self.theme.list.itemPrimaryTextColor, accentColor: self.theme.list.itemAccentColor)
+        self.currentOptionNode.attributedText = authorizationCurrentOptionText(codeType, phoneNumber: self.phoneNumber, email: self.email, strings: self.strings, primaryColor: .white, accentColor: self.theme.list.itemAccentColor)
         self.currentOptionActivateAreaNode.accessibilityLabel = self.currentOptionNode.attributedText?.string ?? ""
         if case .missedCall = codeType {
             self.currentOptionInfoNode.attributedText = NSAttributedString(string: self.strings.Login_CodePhonePatternInfoText, font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
@@ -442,7 +442,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 if let strongSelf = self {
                     if let currentTimeoutTime = strongSelf.currentTimeoutTime, currentTimeoutTime > 0 {
                         strongSelf.currentTimeoutTime = currentTimeoutTime - 1
-                        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: strongSelf.currentTimeoutTime, strings: strongSelf.strings, primaryColor: strongSelf.theme.list.itemSecondaryTextColor, accentColor: strongSelf.theme.list.itemAccentColor)
+                        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: strongSelf.currentTimeoutTime, strings: strongSelf.strings, primaryColor: .white, accentColor: strongSelf.theme.list.itemAccentColor)
                         strongSelf.nextOptionTitleNode.attributedText = nextOptionText
                         strongSelf.nextOptionButtonNode.isUserInteractionEnabled = nextOptionActive
                         strongSelf.nextOptionButtonNode.accessibilityLabel = nextOptionText.string
@@ -483,7 +483,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             self.countdownDisposable.set(nil)
         }
         
-        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: self.currentTimeoutTime, strings: self.strings, primaryColor: self.theme.list.itemSecondaryTextColor, accentColor: self.theme.list.itemAccentColor)
+        let (nextOptionText, nextOptionActive) = authorizationNextOptionText(currentType: codeType, nextType: nextType, previousCodeType: isPrevious ? previousCodeType : nil, timeout: self.currentTimeoutTime, strings: self.strings, primaryColor: .white, accentColor: self.theme.list.itemAccentColor)
         self.nextOptionTitleNode.attributedText = nextOptionText
         self.nextOptionButtonNode.isUserInteractionEnabled = nextOptionActive
         self.nextOptionButtonNode.accessibilityLabel = nextOptionText.string
@@ -501,302 +501,147 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
-        let previousInputHeight = self.layoutArguments?.0.inputHeight ?? 0.0
-        let newInputHeight = layout.inputHeight ?? 0.0
-        
-        self.layoutArguments = (layout, navigationBarHeight)
-        
-        var layout = layout
-        if CACurrentMediaTime() - self.appearanceTimestamp < 2.0, newInputHeight < previousInputHeight {
-            layout = layout.withUpdatedInputHeight(previousInputHeight)
-        }
-        
-        let maximumWidth: CGFloat = min(430.0, layout.size.width)
-        let inset: CGFloat = 24.0
-        
-        var insets = layout.insets(options: [])
-        insets.top = layout.statusBarHeight ?? 20.0
-                
-        var animationName = "IntroMessage"
-        var animationPlaybackMode: AnimatedStickerPlaybackMode = .once
-        var textFieldPlaceholder = ""
+            let previousInputHeight = self.layoutArguments?.0.inputHeight ?? 0.0
+            let newInputHeight = layout.inputHeight ?? 0.0
+            
+            self.layoutArguments = (layout, navigationBarHeight)
+            
+            var layout = layout
+            if CACurrentMediaTime() - self.appearanceTimestamp < 2.0, newInputHeight < previousInputHeight {
+                layout = layout.withUpdatedInputHeight(previousInputHeight)
+            }
+            
+            let maximumWidth: CGFloat = min(430.0, layout.size.width)
+            let inset: CGFloat = 24.0
+            
+            var insets = layout.insets(options: [])
+            insets.top = layout.statusBarHeight ?? 20.0
+            
+            let contentBottomInset: CGFloat = 20.0
+            
+            let contentBounds = CGRect(
+                origin: CGPoint(x: 0.0, y: insets.top),
+                size: CGSize(width: layout.size.width, height: layout.size.height - insets.top - contentBottomInset)
+            )
+            
         if let codeType = self.codeType {
             switch codeType {
             case .missedCall:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterMissingDigits, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
             case .email:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeEmailTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
-                animationName = "IntroLetter"
+                //                animationName = "IntroLetter"
             case .sms:
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeSMSTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
+                self.titleNode.attributedText = Font.helveticaNeue(self.strings.Login_EnterCodeSMSTitle.uppercased(), 34)
             case .fragment:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeFragmentTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
-               
+                
                 self.proceedNode.title = self.strings.Login_OpenFragment
                 self.proceedNode.updateTheme(SolidRoundedButtonTheme(backgroundColor: UIColor(rgb: 0x37475a), foregroundColor: .white))
                 self.proceedNode.isEnabled = true
                 
-                animationName = "IntroFragment"
-                animationPlaybackMode = .count(3)
+                //                animationName = "IntroFragment"
+                //                animationPlaybackMode = .count(3)
                 self.proceedNode.animation = "anim_fragment"
             case .word:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterWordTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
-                textFieldPlaceholder = self.strings.Login_EnterWordPlaceholder
+//                textFieldPlaceholder = self.strings.Login_EnterWordPlaceholder
             case .phrase:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterPhraseTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
-                textFieldPlaceholder = self.strings.Login_EnterPhrasePlaceholder
+//                textFieldPlaceholder = self.strings.Login_EnterPhrasePlaceholder
             default:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeTelegramTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
             }
         } else {
             self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeTelegramTitle, font: Font.semibold(40.0), textColor: self.theme.list.itemPrimaryTextColor)
         }
-        
-        self.textField.textField.attributedPlaceholder = NSAttributedString(string: textFieldPlaceholder, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
-        
-        self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
-        
-        if let inputHeight = layout.inputHeight {
+            self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
+            
+            let titleSize = self.titleNode.updateLayout(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
+            
+            let currentOptionSize = self.currentOptionNode.updateLayout(CGSize(width: maximumWidth - 48.0, height: .greatestFiniteMagnitude))
+//            let currentOptionInfoSize = self.currentOptionInfoNode.measure(CGSize(width: maximumWidth - 48.0, height: .greatestFiniteMagnitude))
+            let nextOptionSize = self.nextOptionTitleNode.updateLayout(CGSize(width: maximumWidth, height: .greatestFiniteMagnitude))
+            
+            let codeLength: Int
+            var codePrefix: String = ""
             switch self.codeType {
-            case .email, .fragment:
-                insets.bottom = max(inputHeight, insets.bottom)
+            case .flashCall:
+                codeLength = 6
+            case let .call(length):
+                codeLength = Int(length)
+            case let .otherSession(length):
+                codeLength = Int(length)
+            case let .missedCall(prefix, length):
+                if prefix.hasPrefix("+") {
+                    codePrefix = prefix
+                } else {
+                    codePrefix = InteractivePhoneFormatter().updateText("+" + prefix).1
+                }
+                codeLength = Int(length)
+            case let .sms(length):
+                codeLength = Int(length)
+            case let .email(_, length, _, _, _, _):
+                codeLength = Int(length)
+            case let .fragment(_, length):
+                codeLength = Int(length)
+            case let .firebase(_, length):
+                codeLength = Int(length)
+            case .emailSetupRequired:
+                codeLength = 6
             case .word, .phrase:
-                insets.bottom = max(inputHeight, layout.standardKeyboardHeight)
-            default:
-                insets.bottom = max(inputHeight, layout.standardInputHeight)
+                codeLength = 0
+            case .none:
+                codeLength = 6
             }
-        }
+            
+            let codeFieldSize = self.codeInputView.update(
+                theme: CodeInputView.Theme(
+                    inactiveBorder: self.theme.list.itemPlainSeparatorColor.argb,
+                    activeBorder: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6).argb,
+                    succeedBorder: self.theme.list.itemDisclosureActions.constructive.fillColor.argb,
+                    failedBorder: self.theme.list.itemDestructiveColor.argb,
+                    foreground: UIColor.white.argb,
+                    isDark: self.theme.overallDarkAppearance
+                ),
+                prefix: codePrefix,
+                count: codeLength,
+                width: maximumWidth - 28.0,
+                compact: layout.size.width <= 320.0 || (layout.size.width <= 375.0 && codeLength > 5)
+            )
+            
+            var items: [AuthorizationLayoutItem] = []
         
-        if !self.animationNode.visibility {
-            self.animationNode.setup(source: AnimatedStickerNodeLocalFileSource(name: animationName), width: 256, height: 256, playbackMode: animationPlaybackMode, mode: .direct(cachePathPrefix: nil))
-            self.animationNode.visibility = true
-        }
-        
-        let animationSize = CGSize(width: 100.0, height: 100.0)
-        let titleSize = self.titleNode.updateLayout(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-        
-        let currentOptionSize = self.currentOptionNode.updateLayout(CGSize(width: maximumWidth - 48.0, height: CGFloat.greatestFiniteMagnitude))
-        let currentOptionInfoSize = self.currentOptionInfoNode.measure(CGSize(width: maximumWidth - 48.0, height: CGFloat.greatestFiniteMagnitude))
-        let nextOptionSize = self.nextOptionTitleNode.updateLayout(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-    
-        let proceedHeight = self.proceedNode.updateLayout(width: maximumWidth - inset * 2.0, transition: transition)
-        let proceedSize = CGSize(width: maximumWidth - inset * 2.0, height: proceedHeight)
-        
-        let codeLength: Int
-        var codePrefix: String = ""
-        switch self.codeType {
-        case .flashCall:
-            codeLength = 6
-        case let .call(length):
-            codeLength = Int(length)
-        case let .otherSession(length):
-            codeLength = Int(length)
-        case let .missedCall(prefix, length):
-            if prefix.hasPrefix("+") {
-                codePrefix = prefix
-            } else {
-                codePrefix = InteractivePhoneFormatter().updateText("+" + prefix).1
-            }
-            codeLength = Int(length)
-        case let .sms(length):
-            codeLength = Int(length)
-        case let .email(_, length, _, _, _, _):
-            codeLength = Int(length)
-        case let .fragment(_, length):
-            codeLength = Int(length)
-        case let .firebase(_, length):
-            codeLength = Int(length)
-        case .emailSetupRequired:
-            codeLength = 6
-        case .word, .phrase:
-            codeLength = 0
-        case .none:
-            codeLength = 6
-        }
-        
-        let codeFieldSize = self.codeInputView.update(
-            theme: CodeInputView.Theme(
-                inactiveBorder: self.theme.list.itemPlainSeparatorColor.argb,
-                activeBorder: self.theme.list.itemAccentColor.argb,
-                succeedBorder: self.theme.list.itemDisclosureActions.constructive.fillColor.argb,
-                failedBorder: self.theme.list.itemDestructiveColor.argb,
-                foreground: self.theme.list.itemPrimaryTextColor.argb,
-                isDark: self.theme.overallDarkAppearance
-            ),
-            prefix: codePrefix,
-            count: codeLength,
-            width: maximumWidth - 28.0,
-            compact: layout.size.width <= 320.0 || (layout.size.width <= 375.0 && codeLength > 5)
-        )
-        
-        var items: [AuthorizationLayoutItem] = []
-        if layout.size.width > 320.0 {
-            items.append(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-            self.animationNode.updateLayout(size: animationSize)
-            self.animationNode.isHidden = false
-            self.animationNode.visibility = true
-        } else {
-            insets.top = navigationBarHeight
-            self.animationNode.isHidden = true
-        }
-        
-        var additionalBottomInset: CGFloat = 20.0
-        if let codeType = self.codeType {
-            switch codeType {
-            case .otherSession:
+            switch self.codeType {
+            case .email:
                 items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: currentOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+                items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: currentOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+                
+                items.append(AuthorizationLayoutItem(node: self.codeInputView, size: codeFieldSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 30.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+                
+            default:
+                self.titleIconNode.isHidden = true
+                items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+                items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: currentOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
                 
                 items.append(AuthorizationLayoutItem(node: self.codeInputView, size: codeFieldSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 30.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
                 
                 items.append(AuthorizationLayoutItem(node: self.nextOptionButtonNode, size: nextOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 50.0, maxValue: 120.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-            case .missedCall:
-                self.titleIconNode.isHidden = false
-                
-                if self.titleIconNode.image == nil {
-                    self.titleIconNode.image = generateImage(CGSize(width: 72.0, height: 72.0), rotatedContext: { size, context in
-                        context.clear(CGRect(origin: CGPoint(), size: size))
-                        
-                        context.setFillColor(theme.list.itemAccentColor.cgColor)
-                        let _ = try? drawSvgPath(context, path: "M42,10.5 C41.1716,10.5 40.5,11.1716 40.5,12 C40.5,12.8284 41.1716,13.5 42,13.5 L51.3787,13.5 L36,28.8787 L19.0607,11.9393 C18.4749,11.3536 17.5251,11.3536 16.9393,11.9393 C16.3536,12.5251 16.3536,13.4749 16.9393,14.0607 L34.9393,32.0607 C35.5251,32.6464 36.4749,32.6464 37.0607,32.0607 L53.5,15.6213 L53.5,25 C53.5,25.8284 54.1716,26.5 55,26.5 C55.8284,26.5 56.5,25.8284 56.5,25 L56.5,12 C56.5,11.1716 55.8284,10.5 55,10.5 L42,10.5 Z ")
-                        
-                        context.setFillColor(theme.list.itemPrimaryTextColor.cgColor)
-                        
-                        let _ = try? drawSvgPath(context, path: "M35.9832,37.4038 C46.3353,37.4066 56.7252,39.7842 62.0325,45.0915 C64.3893,47.4483 65.7444,50.3613 65.6897,53.8677 C65.6717,56.0012 64.9858,57.8376 63.8173,59.0061 C62.8158,60.0076 61.4987,60.5082 59.9403,60.248 L51.6994,58.3061 C49.2077,57.719 47.3333,55.6605 46.9816,53.1249 L46.264,47.9528 C46.2639,47.5446 46.1154,47.2478 45.8742,47.0065 C45.6515,46.7838 45.3175,46.6353 45.0206,46.5239 C43.3508,45.9298 39.7701,45.5763 35.9855,45.5753 C32.2194,45.5557 28.6389,45.9815 26.9694,46.5005 C26.6726,46.6117 26.3387,46.76 26.079,47.0197 C25.8194,47.2793 25.6525,47.5947 25.6526,48.0028 L24.9872,53.09 C24.6524,55.6494 22.7664,57.7335 20.253,58.3214 L11.8346,60.2905 C10.2949,60.5684 9.1074,60.0486 8.2166,59.1579 C6.9733,57.9145 6.3791,55.9107 6.3229,53.9628 C6.1921,50.4193 7.4343,47.5069 9.8639,45.0773 C15.1684,39.7728 25.6683,37.401 35.9832,37.4038 Z ")
-                    })
-                }
-                
-                items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: currentOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                
-                items.append(AuthorizationLayoutItem(node: self.codeInputView, size: codeFieldSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 40.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                
-                items.append(AuthorizationLayoutItem(node: self.currentOptionInfoNode, size: currentOptionInfoSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 60.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                
-                items.append(AuthorizationLayoutItem(node: self.nextOptionButtonNode, size: nextOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 50.0, maxValue: 120.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-            default:
-                items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: currentOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                
-                var canReset = false
-                var pendingDate: Int32?
-                if case let .email(_, _, resetPeriod, pendingDateValue, _, setup) = codeType, !setup {
-                    if resetPeriod != nil {
-                        canReset = true
-                    } else if pendingDateValue != nil {
-                        pendingDate = pendingDateValue
-                    }
-                }
-                
-                switch codeType {
-                case .word, .phrase:
-                    self.codeInputView.isHidden = true
-                    self.textField.isHidden = false
-                    self.textSeparatorNode.isHidden = false
-                    items.append(AuthorizationLayoutItem(node: self.textField, size: CGSize(width: maximumWidth - 88.0, height: 44.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                    items.append(AuthorizationLayoutItem(node: self.textSeparatorNode, size: CGSize(width: maximumWidth - 48.0, height: UIScreenPixel), spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                default:
-                    self.codeInputView.isHidden = false
-                    self.textField.isHidden = true
-                    self.textSeparatorNode.isHidden = true
-                    items.append(AuthorizationLayoutItem(node: self.codeInputView, size: codeFieldSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 30.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: canReset || pendingDate != nil ? 0.0 : 104.0, maxValue: canReset ? 0.0 : 104.0)))
-                }
-                
-                if canReset {
-                    self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.Login_Email_CantAccess, font: Font.regular(17.0), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
-                    let resetSize = self.resetNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-                    
-                    self.resetTextNode.isHidden = true
-                    self.resetNode.isHidden = false
-                    items.append(AuthorizationLayoutItem(node: self.resetNode, size: resetSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 36.0, maxValue: 36.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 104.0, maxValue: 104.0)))
-                } else if let pendingDate {
-                    self.resetNode.setAttributedTitle(NSAttributedString(string: self.strings.Login_Email_ResetNowViaSMS, font: Font.regular(17.0), textColor: self.theme.list.itemAccentColor, paragraphAlignment: .center), for: [])
-                    let resetSize = self.resetNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-                    
-                    let currentTime = Int32(CFAbsoluteTimeGetCurrent() + kCFAbsoluteTimeIntervalSince1970)
-                    let resetText: String
-                    let interval = pendingDate - currentTime
-                    if interval <= 0 {
-                        resetText = self.strings.Login_Email_ResetingNow
-                    } else if interval < 60 * 60 * 24 {
-                        let minutes = interval / 60
-                        let seconds = interval % 60
-                        let timeString = String(format: "%d:%.02d", Int(minutes), Int(seconds))
-                        resetText = self.strings.Login_Email_ElapsedTime(timeString).string
-                    } else {
-                        resetText = unmuteIntervalString(strings: self.strings, value: interval)
-                    }
-                                        
-                    self.resetTextNode.attributedText = NSAttributedString(string: self.strings.Login_Email_WillBeResetIn(resetText).string, font: Font.regular(16.0), textColor: self.theme.list.itemSecondaryTextColor, paragraphAlignment: .center)
-                    let resetTextSize = self.resetTextNode.updateLayout(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
-                   
-                    if !self.resetNode.isHidden && self.resetTextNode.isHidden {
-                        self.resetTextNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
-                    }
-                    
-                    self.resetTextNode.isHidden = false
-                    items.append(AuthorizationLayoutItem(node: self.resetTextNode, size: resetTextSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 36.0, maxValue: 36.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                    
-                    self.resetNode.isHidden = false
-                    items.append(AuthorizationLayoutItem(node: self.resetNode, size: resetSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 20.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 104.0, maxValue: 104.0)))
-                } else {
-                    self.resetTextNode.isHidden = true
-                    self.resetNode.isHidden = true
-                }
-
-                let inset: CGFloat = 24.0
-                if case .fragment = codeType {
-                    self.proceedNode.isHidden = false
-                    let buttonFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize)
-                    transition.updateFrame(node: self.proceedNode, frame: buttonFrame)
-                } else if self.appleSignInAllowed, let signInWithAppleButton = self.signInWithAppleButton {
-                    additionalBottomInset = 80.0
-                    
-                    self.nextOptionButtonNode.isHidden = true
-                    signInWithAppleButton.isHidden = false
-                    self.proceedNode.isHidden = true
-
-                    let buttonSize = CGSize(width: layout.size.width - inset * 2.0, height: 50.0)
-                    transition.updateFrame(view: signInWithAppleButton, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - buttonSize.width) / 2.0), y: layout.size.height - insets.bottom - buttonSize.height - inset), size: buttonSize))
-                    
-                    let dividerSize = self.dividerNode.updateLayout(width: layout.size.width)
-                    transition.updateFrame(node: self.dividerNode, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - dividerSize.width) / 2.0), y: layout.size.height - insets.bottom - buttonSize.height - inset - dividerSize.height), size: dividerSize))
-                } else {
-                    self.signInWithAppleButton?.isHidden = true
-                    self.dividerNode.isHidden = true
-                    
-                    switch codeType {
-                    case .word, .phrase:
-                        additionalBottomInset = 100.0
-                        
-                        self.nextOptionButtonNode.isHidden = false
-                        items.append(AuthorizationLayoutItem(node: self.nextOptionButtonNode, size: nextOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 50.0, maxValue: 120.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                        if layout.size.width > 320.0 {
-                            self.proceedNode.isHidden = false
-                        } else {
-                            self.proceedNode.isHidden = true
-                        }
-                        
-                        let buttonFrame = CGRect(origin: CGPoint(x: floorToScreenPixels((layout.size.width - proceedSize.width) / 2.0), y: layout.size.height - insets.bottom - proceedSize.height - inset), size: proceedSize)
-                        transition.updateFrame(node: self.proceedNode, frame: buttonFrame)
-                    case .email:
-                        self.nextOptionButtonNode.isHidden = true
-                        self.proceedNode.isHidden = true
-                    default:
-                        self.nextOptionButtonNode.isHidden = false
-                        self.proceedNode.isHidden = true
-                        items.append(AuthorizationLayoutItem(node: self.nextOptionButtonNode, size: nextOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 50.0, maxValue: 120.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-                    }
-                }
             }
-        } else {
-            self.titleIconNode.isHidden = true
-            items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-            items.append(AuthorizationLayoutItem(node: self.currentOptionNode, size: currentOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+
+            let _ = layoutAuthorizationItems(bounds: contentBounds, items: items, transition: transition, failIfDoesNotFit: false)
             
-            items.append(AuthorizationLayoutItem(node: self.codeInputView, size: codeFieldSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 40.0, maxValue: 100.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-            
-            items.append(AuthorizationLayoutItem(node: self.nextOptionButtonNode, size: nextOptionSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 50.0, maxValue: 120.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
+            let proceedHeight = self.proceedNode.updateLayout(width: maximumWidth - inset * 2.0, transition: transition)
+            let proceedSize = CGSize(width: maximumWidth - inset * 2.0, height: proceedHeight)
+            let proceedFrame = CGRect(
+                origin: CGPoint(x: floorToScreenPixels((layout.size.width - proceedSize.width) / 2.0), y: layout.size.height - (layout.inputHeight ?? 0.0) - proceedSize.height - inset),
+                size: proceedSize
+            )
+            transition.updateFrame(node: self.proceedNode, frame: proceedFrame)
+
+            self.titleActivateAreaNode.frame = self.titleNode.frame
+            self.currentOptionActivateAreaNode.frame = self.currentOptionNode.frame
+            self.currentOptionInfoActivateAreaNode.frame = self.currentOptionInfoNode.frame
         }
         
         let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: 0.0, y: insets.top), size: CGSize(width: layout.size.width, height: layout.size.height - insets.top - insets.bottom - additionalBottomInset)), items: items, transition: transition, failIfDoesNotFit: false)
