@@ -126,12 +126,51 @@ func _internal_getEvents(account: Account) -> Signal<[EventModel]?, NoError> {
 }
 
 private func getEventModel(_ shortEvent: Api.event.Short?) -> EventModel? {
-    if case let .short(_, id, _, title, coverPhoto, eventDate, eventTime, _, eventType, _, _, _) = shortEvent {
+    if case let .short(_, id, creator, title, coverPhoto, eventDate, eventTime, _, eventType, _, _, _) = shortEvent {
+        var creatorName: String? = nil
+        var userPhoto: Api.UserProfilePhoto? = nil
         
-        var coverPhotoId: TelegramMediaImage? = nil
-        if case let .photo(photo, _) = coverPhoto {
-            coverPhotoId = telegramMediaImageFromApiPhoto(photo)
+        if case let .user(innerUser)? = creator {
+            if case let .user(_, _, firstName, _, _, _, photo, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) = innerUser {
+                creatorName = firstName
+                userPhoto = photo
+            }
         }
+        
+        var coverPhotoTM: TelegramMediaImage? = nil
+        if case let .photo(photo, _) = coverPhoto {
+            coverPhotoTM = telegramMediaImageFromApiPhoto(photo)
+        }
+        
+        var creatorPhoto: TelegramMediaImage? = nil
+        if let photo = userPhoto {
+            if case let .userProfilePhoto(_, photoId, strippedThumb, dcId) = photo {
+                
+                let representation = TelegramMediaImageRepresentation(
+                    dimensions: PixelDimensions(width: 640, height: 640),
+                    resource: CloudPhotoSizeMediaResource(
+                        datacenterId: dcId,
+                        photoId: photoId,
+                        accessHash: 0,
+                        sizeSpec: "a",
+                        size: nil,
+                        fileReference: nil
+                    ),
+                    progressiveSizes: [],
+                    immediateThumbnailData: strippedThumb?.makeData()
+                )
+                
+                creatorPhoto = TelegramMediaImage(
+                    imageId: MediaId(namespace: Namespaces.Media.CloudImage, id: photoId),
+                    representations: [representation],
+                    immediateThumbnailData: strippedThumb?.makeData(),
+                    reference: nil,
+                    partialReference: nil,
+                    flags: []
+                )
+            }
+        }
+        
         var eventTypeTitle: String? = nil
         if case let .eventType(_, title) = eventType {
             eventTypeTitle = title
@@ -143,8 +182,10 @@ private func getEventModel(_ shortEvent: Api.event.Short?) -> EventModel? {
             description: title,
             eventDate: eventDate,
             eventTime: eventTime,
-            coverPhotoId: coverPhotoId,
-            eventType: eventTypeTitle
+            coverPhoto: coverPhotoTM,
+            eventType: eventTypeTitle,
+            creatorName: creatorName,
+            creatorPhoto: creatorPhoto
         )
     } else {
         return nil
@@ -155,9 +196,9 @@ private func getEventModel(_ fullEvent: Api.event.Event?) -> EventModel? {
     
     if case let .event(_, id, _, title, description, coverPhoto, eventDate, eventTime, _, eventType, _, _, _, gallery, _, _, _, _) = fullEvent {
         
-        var coverPhotoId: TelegramMediaImage? = nil
+        var coverPhotoTM: TelegramMediaImage? = nil
         if case let .photo(photo, _) = coverPhoto {
-            coverPhotoId = telegramMediaImageFromApiPhoto(photo)
+            coverPhotoTM = telegramMediaImageFromApiPhoto(photo)
         }
         var eventTypeTitle: String? = nil
         if case let .eventType(_, title) = eventType {
@@ -177,7 +218,7 @@ private func getEventModel(_ fullEvent: Api.event.Event?) -> EventModel? {
             description: description,
             eventDate: eventDate,
             eventTime: eventTime,
-            coverPhotoId: coverPhotoId,
+            coverPhoto: coverPhotoTM,
             eventType: eventTypeTitle,
             gallery: galleryPhotos
         )

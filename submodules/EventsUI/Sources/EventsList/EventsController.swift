@@ -109,9 +109,10 @@ public final class EventsController: TelegramBaseController {
                         subtitle: model.title,
                         imageName: "Components/Model",
                         profileImageName: "Components/Model",
-                        profileName: "@nyfw",
+                        profileName: "@" + (model.creatorName ?? ""),
                         timeRemaining: String(datePartPrefix),
-                        coverPhotoId: model.coverPhotoId
+                        coverPhoto: model.coverPhoto,
+                        profilePhoto: model.creatorPhoto
                     )
                 }
                 

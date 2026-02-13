@@ -20,9 +20,9 @@ func _internal_getWorkHistory(account: Account, peer: Peer?) -> Signal<[WorkExpe
             case .workHistory(_, let experiences):
                 
                 let eventModels: [WorkExperienceModel] = experiences.compactMap { shortEvent in
-                    if case let .workExperience(_, id, _, agency, startDate, endDate) = shortEvent {
+                    if case let .workExperience(_, id, _, agency, startDate, endDate, photo) = shortEvent {
                         var companyName = "agency"
-                        if case let .agency(_, _, agencyName, _, _, _/*photo*/, _) = agency {
+                        if case let .agency(_, _, agencyName, _, _, _, _) = agency {
                             companyName = agencyName
                         }
                         
@@ -30,11 +30,17 @@ func _internal_getWorkHistory(account: Account, peer: Peer?) -> Signal<[WorkExpe
                         if startDate > 0 {
                             period = formatExperiencePeriod(startDate: startDate, endDate: endDate)
                         }
+                        
+                        var photoImage: TelegramMediaImage? = nil
+                        if let photo = photo {
+                            photoImage = telegramMediaImageFromApiPhoto(photo)
+                        }
+                        
                         return WorkExperienceModel(
                             id: Int(id),
                             companyName: companyName,
                             period: period,
-                            logoName: nil
+                            logoName: photoImage
                         )
                     }
                     return nil
@@ -92,7 +98,7 @@ private func formatExperiencePeriod(startDate: Int32, endDate: Int32?) -> String
     return "\(startString) - \(endString) · \(durationString)"
 }
 
-func _internal_createWorkExperience(account: Account, agencyName: String, startDate: Int32, endDate: Int32?) -> Signal<String?, NoError> {
+func _internal_createWorkExperience(account: Account, agencyName: String, startDate: Int32, endDate: Int32?, photoId: Int64?) -> Signal<String?, NoError> {
     print("⛳️", "post _internal_createWorkExperience")
     
     var flags: Int32 = 0
@@ -109,7 +115,7 @@ func _internal_createWorkExperience(account: Account, agencyName: String, startD
             agency: agency,
             startDate: startDate,
             endDate: endDate,
-            photo: nil
+            photoId: photoId
         )
     )
     |> map(Optional.init)

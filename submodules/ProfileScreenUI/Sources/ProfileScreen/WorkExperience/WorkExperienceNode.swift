@@ -158,7 +158,7 @@ extension WorkExperience: UICollectionViewDataSource, UICollectionViewDelegateFl
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ExperienceCell", for: indexPath) as! ExperienceCell
         cell.delegate = self
-        cell.configure(with: items[indexPath.item])
+        cell.configure(with: items[indexPath.item], context: context)
         return cell
     }
     

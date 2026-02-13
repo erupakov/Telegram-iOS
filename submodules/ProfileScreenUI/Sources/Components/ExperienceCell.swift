@@ -14,7 +14,7 @@ struct WorkExperienceItem {
     let id: Int
     let companyName: String
     let period: String
-    let logoName: String?
+    let logoName: TelegramMediaImage?
 }
 
 protocol ExperienceCellDelegate: AnyObject {
@@ -88,14 +88,34 @@ final class ExperienceCell: UICollectionViewCell {
         ])
     }
     
-    func configure(with item: WorkExperienceItem) {
+    func configure(with item: WorkExperienceItem, context: AccountContext) {
         titleLabel.text = item.companyName
         dateLabel.text = item.period
         if let logo = item.logoName {
-            iconImageView.image = UIImage(named: logo)
+            loadImage(logo, context)
         } else {
             iconImageView.image = UIImage(bundleImageName: "Models/DefWork")
         }
+    }
+    
+    public func loadImage(_ image: TelegramMediaImage, _ context: AccountContext) {
+        guard let representation = largestImageRepresentation(image.representations) else { return }
+        let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
+        let _ = (resourceData |> deliverOnMainQueue).start(next: { data in
+            if data.complete {
+                if let uiImage = UIImage(contentsOfFile: data.path) {
+                    UIView.transition(with: self.iconImageView,
+                                      duration: 0.3,
+                                      options: .transitionCrossDissolve,
+                                      animations: {
+                        
+                        self.iconImageView.image = uiImage
+                    }, completion: nil)
+                }
+            } else {
+                let _ = context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
+            }
+        })
     }
     
     @objc private func handleOptionsTap(_ sender: UIButton) {

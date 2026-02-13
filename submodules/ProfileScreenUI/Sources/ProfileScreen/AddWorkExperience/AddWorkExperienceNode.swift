@@ -244,21 +244,47 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     @objc private func applyButtonTapped() {
         print("applyButton Tapped!")
         
+        guard startTime > 0 else {
+            self.showAlert?("Please fill in the start date")
+            return
+        }
+        
+        
+        if let currentPhoto = currentPhoto {
+            let _ = uploadPhotoToCloud(context: context, image: currentPhoto).start(next: { id in
+                if let id = id {
+                    self.createWorkExperience(photoId: id)
+                }
+            })
+        } else {
+            createWorkExperience()
+        }
+    }
+    
+    private func createWorkExperience(photoId: Int64? = nil) {
         let startTimestamp = TimeInterval(startTime)
         let endTimestamp = TimeInterval(endTime)
-        
+        let agencyName = nameEventTextField.textField.text ?? ""
         let supportPeer = Promise<String?>()
         supportPeer.set(context.engine.profileEngine.createWorkExperience(
-            agencyName: nameEventTextField.textField.text ?? "",
+            agencyName: agencyName,
             startDate: Int32(startTimestamp),
-            endDate: endTimestamp > 0 ? Int32(endTimestamp) : nil
+            endDate: endTimestamp > 0 ? Int32(endTimestamp) : nil,
+            photoId: photoId
         ))
         self.createWorkExperienceDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { peerId in
             print("🔕 createWorkExperienceDisposable", peerId ?? "")
             self.showAlert?("WorkExperience Added")
         }))
     }
-    
+    private func uploadPhotoToCloud(context: AccountContext, image: UIImage) -> Signal<Int64?, NoError> {
+        guard let data = image.jpegData(compressionQuality: 0.9) else {
+            return .single(nil)
+        }
+        
+        return context.engine.engineDivo.uploadedPhoto(resource: data)
+    }
+
     @objc private func currentlyWorkingTapped() {
         self.currentlyWorkingCheckbox.isSelected.toggle()
         endTimeLabel.isHidden = currentlyWorkingCheckbox.isSelected

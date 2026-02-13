@@ -30,7 +30,7 @@ func _internal_updateSocialLinks(
     )
     |> map(Optional.init)
     |> `catch` { _ in
-        return Signal<Api.User?, NoError>.single(nil)
+        return Signal<Api.UserProfile?, NoError>.single(nil)
     }
     |> mapToSignal { user -> Signal<String?, NoError> in
         if let user = user {
@@ -233,28 +233,7 @@ func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfi
                         website: website
                     )
                 }
-                var finalPhysical: PhysicalParams? = nil
-                if let p = physicalParams, case let .physicalParams(flags, age, height, waist, hips, shoeSize, hairLength, hairColor, eyeColor, skinColor, breastSize) = p {
-                    
-                    let unwrapRange: (Api.Range?) -> Int? = { range in
-                        guard let range = range, case let .range(_, _, val) = range else { return nil }
-                        return val.map(Int.init)
-                    }
-                    
-                    finalPhysical = PhysicalParams(
-                        flags: Int(flags),
-                        age: age.flatMap { if case let .range(_, _, v) = $0 { return v.map(Int.init) }; return nil },
-                        height: unwrapRange(height),
-                        waist: unwrapRange(waist),
-                        hips: unwrapRange(hips),
-                        shoeSize: unwrapRange(shoeSize),
-                        hairLength: unwrapRange(hairLength),
-                        hairColor: hairColor,
-                        eyeColor: eyeColor,
-                        skinColor: skinColor,
-                        breastSize: breastSize
-                    )
-                }
+                let finalPhysical: PhysicalParams? = getPhysicalParams(physicalParams)
                 
                 var backgroundImage: TelegramMediaImage? = nil
                 if let background = background {
@@ -285,6 +264,27 @@ func _internal_getUserProfile(account: Account, peer: Peer?) -> Signal<UserProfi
         }
     }
     return .single(nil)
+}
+
+private func getPhysicalParams(_ physicalParams: Api.profile.PhysicalParams?) -> PhysicalParams? {
+    if let p = physicalParams, case let .physicalParams(flags, age, height, waist, hips, shoeSize, hairLength, hairColor, eyeColor, skinColor, breastSize) = p {
+        
+        return PhysicalParams(
+            flags: Int(flags),
+            age: Int(age ?? 0),
+            height: Int(height ?? 0),
+            waist: Int(waist ?? 0),
+            hips: Int(hips ?? 0),
+            shoeSize: Int(shoeSize ?? 0),
+            hairLength: Int(hairLength ?? 0),
+            hairColor: hairColor,
+            eyeColor: eyeColor,
+            skinColor: skinColor,
+            breastSize: breastSize
+        )
+    } else {
+        return nil
+    }
 }
 
 func _internal_getFullUser(account: Account, peer: Peer?) -> Signal<String?, NoError> {

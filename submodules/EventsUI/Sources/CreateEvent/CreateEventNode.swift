@@ -294,7 +294,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
             description: aboutEventTextField.text,
             eventDate: formattedDate,
             eventTime: formattedTime,
-            coverPhotoId: nil,
+            coverPhoto: nil,
             enabledParameterKeys: [])
         
         if let currentPhoto = currentPhoto {

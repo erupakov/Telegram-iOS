@@ -109,40 +109,48 @@ public extension Api {
 }
 public extension Api {
     enum Range: TypeConstructorDescription {
-        case range(flags: Int32, max: Int32?, value: Int32?)
+        case range(flags: Int32, value: Int64?, minValue: Int64?, maxValue: Int64?, avgValue: Int64?)
 
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
-                case .range(let flags, let max, let value):
+                case .range(let flags, let value, let minValue, let maxValue, let avgValue):
                     if boxed {
-                        buffer.appendInt32(913743377)
+                        buffer.appendInt32(-1325288322)
                     }
                     serializeInt32(flags, buffer: buffer, boxed: false)
-                    if Int(flags) & Int(1 << 2) != 0 {serializeInt32(max!, buffer: buffer, boxed: false)}
-                    if Int(flags) & Int(1 << 3) != 0 {serializeInt32(value!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 1) != 0 {serializeInt64(value!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 2) != 0 {serializeInt64(minValue!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 3) != 0 {serializeInt64(maxValue!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 4) != 0 {serializeInt64(avgValue!, buffer: buffer, boxed: false)}
                     break
             }
         }
         
         public func descriptionFields() -> (String, [(String, Any)]) {
             switch self {
-                case .range(let flags, let max, let value):
-                return ("range", [("flags", String(describing: flags)), ("max", String(describing: max)), ("value", String(describing: value))])
+                case .range(let flags, let value, let minValue, let maxValue, let avgValue):
+                return ("range", [("flags", String(describing: flags)), ("value", String(describing: value)), ("minValue", String(describing: minValue)), ("maxValue", String(describing: maxValue)), ("avgValue", String(describing: avgValue))])
             }
         }
 
         public static func parse_range(_ reader: BufferReader) -> Range? {
             var _1: Int32?
             _1 = reader.readInt32()
-            var _2: Int32?
-            if Int(_1!) & Int(1 << 2) != 0 {_2 = reader.readInt32() }
-            var _3: Int32?
-            if Int(_1!) & Int(1 << 3) != 0 {_3 = reader.readInt32() }
+            var _2: Int64?
+            if Int(_1!) & Int(1 << 1) != 0 {_2 = reader.readInt64() }
+            var _3: Int64?
+            if Int(_1!) & Int(1 << 2) != 0 {_3 = reader.readInt64() }
+            var _4: Int64?
+            if Int(_1!) & Int(1 << 3) != 0 {_4 = reader.readInt64() }
+            var _5: Int64?
+            if Int(_1!) & Int(1 << 4) != 0 {_5 = reader.readInt64() }
             let _c1 = _1 != nil
-            let _c2 = (Int(_1!) & Int(1 << 2) == 0) || _2 != nil
-            let _c3 = (Int(_1!) & Int(1 << 3) == 0) || _3 != nil
-            if _c1 && _c2 && _c3 {
-                return Api.Range.range(flags: _1!, max: _2, value: _3)
+            let _c2 = (Int(_1!) & Int(1 << 1) == 0) || _2 != nil
+            let _c3 = (Int(_1!) & Int(1 << 2) == 0) || _3 != nil
+            let _c4 = (Int(_1!) & Int(1 << 3) == 0) || _4 != nil
+            let _c5 = (Int(_1!) & Int(1 << 4) == 0) || _5 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 {
+                return Api.Range.range(flags: _1!, value: _2, minValue: _3, maxValue: _4, avgValue: _5)
             }
             else {
                 return nil

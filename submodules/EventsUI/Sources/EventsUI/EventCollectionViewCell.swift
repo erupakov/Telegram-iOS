@@ -136,13 +136,12 @@ final class EventCollectionViewCell: UICollectionViewCell {
     }
     
     func configure(with event: EventData, context: AccountContext) {
-        profileImageView.image = UIImage(named: event.profileImageName)
         profileNameLabel.text = event.profileName
         titleLabel.text = event.title
         subtitleLabel.text = event.subtitle
         timeRemainingLabel.text = event.timeRemaining
         
-        if let image = event.coverPhotoId {
+        if let image = event.coverPhoto {
             guard let representation = largestImageRepresentation(image.representations) else {
                 return
             }
@@ -166,6 +165,32 @@ final class EventCollectionViewCell: UICollectionViewCell {
             })
         } else {
             imageView.image = UIImage(named: event.imageName)
+        }
+        
+        if let image = event.profilePhoto {
+            guard let representation = largestImageRepresentation(image.representations) else {
+                return
+            }
+            
+            let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
+            let _ = (resourceData
+                     |> deliverOnMainQueue).start(next: { data in
+                if data.complete {
+                    if let uiImage = UIImage(contentsOfFile: data.path) {
+                        UIView.transition(with: self.profileImageView,
+                                          duration: 0.3,
+                                          options: .transitionCrossDissolve,
+                                          animations: {
+                            self.profileImageView.image = uiImage
+                        }, completion: nil)
+                    }
+                    
+                } else {
+                    let _ = context.account.postbox.mediaBox.fetchedResource(representation.resource, parameters: nil).start()
+                }
+            })
+        } else {
+            profileImageView.image = UIImage(named: event.profileImageName)
         }
     }
 }

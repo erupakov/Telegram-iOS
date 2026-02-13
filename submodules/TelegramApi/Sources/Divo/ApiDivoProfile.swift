@@ -292,21 +292,21 @@ public extension Api.profile {
 }
 public extension Api.profile {
     enum PhysicalParams: TypeConstructorDescription {
-        case physicalParams(flags: Int32, age: Api.Range?, height: Api.Range?, waist: Api.Range?, hips: Api.Range?, shoeSize: Api.Range?, hairLength: Api.Range?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?)
+        case physicalParams(flags: Int32, age: Int64?, height: Int64?, waist: Int64?, hips: Int64?, shoeSize: Int64?, hairLength: Int64?, hairColor: String?, eyeColor: String?, skinColor: String?, breastSize: String?)
 
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
                 case .physicalParams(let flags, let age, let height, let waist, let hips, let shoeSize, let hairLength, let hairColor, let eyeColor, let skinColor, let breastSize):
                     if boxed {
-                        buffer.appendInt32(-1563497716)
+                        buffer.appendInt32(1215939547)
                     }
                     serializeInt32(flags, buffer: buffer, boxed: false)
-                    if Int(flags) & Int(1 << 0) != 0 {age!.serialize(buffer, true)}
-                    if Int(flags) & Int(1 << 1) != 0 {height!.serialize(buffer, true)}
-                    if Int(flags) & Int(1 << 2) != 0 {waist!.serialize(buffer, true)}
-                    if Int(flags) & Int(1 << 3) != 0 {hips!.serialize(buffer, true)}
-                    if Int(flags) & Int(1 << 4) != 0 {shoeSize!.serialize(buffer, true)}
-                    if Int(flags) & Int(1 << 5) != 0 {hairLength!.serialize(buffer, true)}
+                    if Int(flags) & Int(1 << 0) != 0 {serializeInt64(age!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 1) != 0 {serializeInt64(height!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 2) != 0 {serializeInt64(waist!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 3) != 0 {serializeInt64(hips!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 4) != 0 {serializeInt64(shoeSize!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 5) != 0 {serializeInt64(hairLength!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 6) != 0 {serializeString(hairColor!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 7) != 0 {serializeString(eyeColor!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 8) != 0 {serializeString(skinColor!, buffer: buffer, boxed: false)}
@@ -325,30 +325,18 @@ public extension Api.profile {
         public static func parse_physicalParams(_ reader: BufferReader) -> PhysicalParams? {
             var _1: Int32?
             _1 = reader.readInt32()
-            var _2: Api.Range?
-            if Int(_1!) & Int(1 << 0) != 0 {if let signature = reader.readInt32() {
-                _2 = Api.parse(reader, signature: signature) as? Api.Range
-            } }
-            var _3: Api.Range?
-            if Int(_1!) & Int(1 << 1) != 0 {if let signature = reader.readInt32() {
-                _3 = Api.parse(reader, signature: signature) as? Api.Range
-            } }
-            var _4: Api.Range?
-            if Int(_1!) & Int(1 << 2) != 0 {if let signature = reader.readInt32() {
-                _4 = Api.parse(reader, signature: signature) as? Api.Range
-            } }
-            var _5: Api.Range?
-            if Int(_1!) & Int(1 << 3) != 0 {if let signature = reader.readInt32() {
-                _5 = Api.parse(reader, signature: signature) as? Api.Range
-            } }
-            var _6: Api.Range?
-            if Int(_1!) & Int(1 << 4) != 0 {if let signature = reader.readInt32() {
-                _6 = Api.parse(reader, signature: signature) as? Api.Range
-            } }
-            var _7: Api.Range?
-            if Int(_1!) & Int(1 << 5) != 0 {if let signature = reader.readInt32() {
-                _7 = Api.parse(reader, signature: signature) as? Api.Range
-            } }
+            var _2: Int64?
+            if Int(_1!) & Int(1 << 0) != 0 {_2 = reader.readInt64() }
+            var _3: Int64?
+            if Int(_1!) & Int(1 << 1) != 0 {_3 = reader.readInt64() }
+            var _4: Int64?
+            if Int(_1!) & Int(1 << 2) != 0 {_4 = reader.readInt64() }
+            var _5: Int64?
+            if Int(_1!) & Int(1 << 3) != 0 {_5 = reader.readInt64() }
+            var _6: Int64?
+            if Int(_1!) & Int(1 << 4) != 0 {_6 = reader.readInt64() }
+            var _7: Int64?
+            if Int(_1!) & Int(1 << 5) != 0 {_7 = reader.readInt64() }
             var _8: String?
             if Int(_1!) & Int(1 << 6) != 0 {_8 = parseString(reader) }
             var _9: String?
@@ -774,13 +762,13 @@ public extension Api.profile {
 }
 public extension Api.profile {
     enum WorkExperience: TypeConstructorDescription {
-        case workExperience(flags: Int32, id: Int64, userId: Int64, agency: Api.profile.Agency, startDate: Int32, endDate: Int32?)
+        case workExperience(flags: Int32, id: Int64, userId: Int64, agency: Api.profile.Agency, startDate: Int32, endDate: Int32?, photo: Api.Photo?)
 
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
-                case .workExperience(let flags, let id, let userId, let agency, let startDate, let endDate):
+                case .workExperience(let flags, let id, let userId, let agency, let startDate, let endDate, let photo):
                     if boxed {
-                        buffer.appendInt32(861847011)
+                        buffer.appendInt32(2016442193)
                     }
                     serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeInt64(id, buffer: buffer, boxed: false)
@@ -788,14 +776,15 @@ public extension Api.profile {
                     agency.serialize(buffer, true)
                     serializeInt32(startDate, buffer: buffer, boxed: false)
                     if Int(flags) & Int(1 << 0) != 0 {serializeInt32(endDate!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 2) != 0 {photo!.serialize(buffer, true)}
                     break
             }
         }
         
         public func descriptionFields() -> (String, [(String, Any)]) {
             switch self {
-                case .workExperience(let flags, let id, let userId, let agency, let startDate, let endDate):
-                return ("workExperience", [("flags", String(describing: flags)), ("id", String(describing: id)), ("userId", String(describing: userId)), ("agency", String(describing: agency)), ("startDate", String(describing: startDate)), ("endDate", String(describing: endDate))])
+                case .workExperience(let flags, let id, let userId, let agency, let startDate, let endDate, let photo):
+                return ("workExperience", [("flags", String(describing: flags)), ("id", String(describing: id)), ("userId", String(describing: userId)), ("agency", String(describing: agency)), ("startDate", String(describing: startDate)), ("endDate", String(describing: endDate)), ("photo", String(describing: photo))])
             }
         }
 
@@ -814,14 +803,19 @@ public extension Api.profile {
             _5 = reader.readInt32()
             var _6: Int32?
             if Int(_1!) & Int(1 << 0) != 0 {_6 = reader.readInt32() }
+            var _7: Api.Photo?
+            if Int(_1!) & Int(1 << 2) != 0 {if let signature = reader.readInt32() {
+                _7 = Api.parse(reader, signature: signature) as? Api.Photo
+            } }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = _3 != nil
             let _c4 = _4 != nil
             let _c5 = _5 != nil
             let _c6 = (Int(_1!) & Int(1 << 0) == 0) || _6 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 {
-                return Api.profile.WorkExperience.workExperience(flags: _1!, id: _2!, userId: _3!, agency: _4!, startDate: _5!, endDate: _6)
+            let _c7 = (Int(_1!) & Int(1 << 2) == 0) || _7 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 {
+                return Api.profile.WorkExperience.workExperience(flags: _1!, id: _2!, userId: _3!, agency: _4!, startDate: _5!, endDate: _6, photo: _7)
             }
             else {
                 return nil

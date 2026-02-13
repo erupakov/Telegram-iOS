@@ -517,7 +517,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     func updateEventData(_ newEventData: EventData) {
         self.eventData = newEventData
         
-        if let image = newEventData.coverPhotoId {
+        if let image = newEventData.coverPhoto {
             guard let representation = largestImageRepresentation(image.representations) else {
                 return
             }

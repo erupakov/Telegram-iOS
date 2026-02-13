@@ -11,7 +11,8 @@ struct EventData {
     let profileName: String
     let timeRemaining: String
     let type: String
-    let coverPhotoId: TelegramMediaImage?
+    let coverPhoto: TelegramMediaImage?
+    let profilePhoto: TelegramMediaImage?
     
     init(
         id: Int = 0,
@@ -22,7 +23,8 @@ struct EventData {
         profileName: String,
         timeRemaining: String,
         type: String = "",
-        coverPhotoId: TelegramMediaImage? = nil
+        coverPhoto: TelegramMediaImage? = nil,
+        profilePhoto: TelegramMediaImage? = nil
     ) {
         self.id = id
         self.title = title
@@ -32,6 +34,7 @@ struct EventData {
         self.profileName = profileName
         self.timeRemaining = timeRemaining
         self.type = type
-        self.coverPhotoId = coverPhotoId
+        self.coverPhoto = coverPhoto
+        self.profilePhoto = profilePhoto
     }
 }

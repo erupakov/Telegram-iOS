@@ -15,8 +15,8 @@ public extension TelegramEngine {
             _internal_getWorkHistory(account: account, peer: peer)
         }
         
-        public func createWorkExperience(agencyName: String, startDate: Int32, endDate: Int32?) -> Signal<String?, NoError> {
-            _internal_createWorkExperience(account: account, agencyName: agencyName, startDate: startDate, endDate: endDate)
+        public func createWorkExperience(agencyName: String, startDate: Int32, endDate: Int32?, photoId: Int64?) -> Signal<String?, NoError> {
+            _internal_createWorkExperience(account: account, agencyName: agencyName, startDate: startDate, endDate: endDate, photoId: photoId)
         }
         
         public func deleteWorkExperience(id: Int64) -> Signal<Bool?, NoError> {

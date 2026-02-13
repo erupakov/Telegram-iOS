@@ -47,6 +47,100 @@ public extension Api.event {
     }
 }
 public extension Api.event {
+    enum AvailableParameters: TypeConstructorDescription {
+        case availableParameters(data: [Api.event.AvailableParameter], count: Int32)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+                case .availableParameters(let data, let count):
+                    if boxed {
+                        buffer.appendInt32(1920007037)
+                    }
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(data.count))
+                    for item in data {
+                        item.serialize(buffer, true)
+                    }
+                    serializeInt32(count, buffer: buffer, boxed: false)
+                    break
+            }
+        }
+        
+        public func descriptionFields() -> (String, [(String, Any)]) {
+            switch self {
+                case .availableParameters(let data, let count):
+                return ("availableParameters", [("data", String(describing: data)), ("count", String(describing: count))])
+            }
+        }
+
+        public static func parse_availableParameters(_ reader: BufferReader) -> AvailableParameters? {
+            var _1: [Api.event.AvailableParameter]?
+            if let _ = reader.readInt32() {
+                _1 = Api.parseVector(reader, elementSignature: 0, elementType: Api.event.AvailableParameter.self)
+            }
+            var _2: Int32?
+            _2 = reader.readInt32()
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            if _c1 && _c2 {
+                return Api.event.AvailableParameters.availableParameters(data: _1!, count: _2!)
+            }
+            else {
+                return nil
+            }
+        }
+
+    }
+}
+
+public extension Api.event {
+    enum EventTypes: TypeConstructorDescription {
+        case eventTypes(data: [Api.event.EventType], count: Int32)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+                case .eventTypes(let data, let count):
+                    if boxed {
+                        buffer.appendInt32(-1083294774)
+                    }
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(data.count))
+                    for item in data {
+                        item.serialize(buffer, true)
+                    }
+                    serializeInt32(count, buffer: buffer, boxed: false)
+                    break
+            }
+        }
+        
+        public func descriptionFields() -> (String, [(String, Any)]) {
+            switch self {
+                case .eventTypes(let data, let count):
+                return ("eventTypes", [("data", String(describing: data)), ("count", String(describing: count))])
+            }
+        }
+
+        public static func parse_eventTypes(_ reader: BufferReader) -> EventTypes? {
+            var _1: [Api.event.EventType]?
+            if let _ = reader.readInt32() {
+                _1 = Api.parseVector(reader, elementSignature: 0, elementType: Api.event.EventType.self)
+            }
+            var _2: Int32?
+            _2 = reader.readInt32()
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            if _c1 && _c2 {
+                return Api.event.EventTypes.eventTypes(data: _1!, count: _2!)
+            }
+            else {
+                return nil
+            }
+        }
+
+    }
+}
+
+public extension Api.event {
     enum City: TypeConstructorDescription {
         case city(cityId: Int32, city: String)
 
@@ -903,32 +997,210 @@ public extension Api.event {
 }
 public extension Api.event {
     enum User: TypeConstructorDescription {
-        case user(user: Int64)
-        
+        case user(user: Api.User)
+
         public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
             switch self {
-            case .user(let user):
-                if boxed {
-                    buffer.appendInt32(1569760113)
-                }
-                serializeInt64(user, buffer: buffer, boxed: false)
-                break
+                case .user(let user):
+                    if boxed {
+                        buffer.appendInt32(2016712066)
+                    }
+                    user.serialize(buffer, true)
+                    break
             }
         }
         
         public func descriptionFields() -> (String, [(String, Any)]) {
             switch self {
-            case .user(let user):
+                case .user(let user):
                 return ("user", [("user", String(describing: user))])
             }
         }
 
         public static func parse_user(_ reader: BufferReader) -> User? {
-            var _1: Int64?
-            _1 = reader.readInt64()
+            var _1: Api.User?
+            if let signature = reader.readInt32() {
+                _1 = Api.parse(reader, signature: signature) as? Api.User
+            }
             let _c1 = _1 != nil
             if _c1 {
                 return Api.event.User.user(user: _1!)
+            }
+            else {
+                return nil
+            }
+        }
+
+    }
+}
+
+public extension Api.event {
+    enum Requirements: TypeConstructorDescription {
+        case requirements(flags: Int32, genders: [String]?, age: Api.Range?, height: Api.Range?, waist: Api.Range?, hips: Api.Range?, shoeSize: Api.Range?, hairColors: [String]?, hairLength: Api.Range?)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+                case .requirements(let flags, let genders, let age, let height, let waist, let hips, let shoeSize, let hairColors, let hairLength):
+                    if boxed {
+                        buffer.appendInt32(1004564716)
+                    }
+                    serializeInt32(flags, buffer: buffer, boxed: false)
+                    if Int(flags) & Int(1 << 0) != 0 {buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(genders!.count))
+                    for item in genders! {
+                        serializeString(item, buffer: buffer, boxed: false)
+                    }}
+                    if Int(flags) & Int(1 << 1) != 0 {age!.serialize(buffer, true)}
+                    if Int(flags) & Int(1 << 2) != 0 {height!.serialize(buffer, true)}
+                    if Int(flags) & Int(1 << 3) != 0 {waist!.serialize(buffer, true)}
+                    if Int(flags) & Int(1 << 4) != 0 {hips!.serialize(buffer, true)}
+                    if Int(flags) & Int(1 << 5) != 0 {shoeSize!.serialize(buffer, true)}
+                    if Int(flags) & Int(1 << 6) != 0 {buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(hairColors!.count))
+                    for item in hairColors! {
+                        serializeString(item, buffer: buffer, boxed: false)
+                    }}
+                    if Int(flags) & Int(1 << 7) != 0 {hairLength!.serialize(buffer, true)}
+                    break
+            }
+        }
+        
+        public func descriptionFields() -> (String, [(String, Any)]) {
+            switch self {
+                case .requirements(let flags, let genders, let age, let height, let waist, let hips, let shoeSize, let hairColors, let hairLength):
+                return ("requirements", [("flags", String(describing: flags)), ("genders", String(describing: genders)), ("age", String(describing: age)), ("height", String(describing: height)), ("waist", String(describing: waist)), ("hips", String(describing: hips)), ("shoeSize", String(describing: shoeSize)), ("hairColors", String(describing: hairColors)), ("hairLength", String(describing: hairLength))])
+            }
+        }
+
+        public static func parse_requirements(_ reader: BufferReader) -> Requirements? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: [String]?
+            if Int(_1!) & Int(1 << 0) != 0 {if let _ = reader.readInt32() {
+                _2 = Api.parseVector(reader, elementSignature: -1255641564, elementType: String.self)
+            } }
+            var _3: Api.Range?
+            if Int(_1!) & Int(1 << 1) != 0 {if let signature = reader.readInt32() {
+                _3 = Api.parse(reader, signature: signature) as? Api.Range
+            } }
+            var _4: Api.Range?
+            if Int(_1!) & Int(1 << 2) != 0 {if let signature = reader.readInt32() {
+                _4 = Api.parse(reader, signature: signature) as? Api.Range
+            } }
+            var _5: Api.Range?
+            if Int(_1!) & Int(1 << 3) != 0 {if let signature = reader.readInt32() {
+                _5 = Api.parse(reader, signature: signature) as? Api.Range
+            } }
+            var _6: Api.Range?
+            if Int(_1!) & Int(1 << 4) != 0 {if let signature = reader.readInt32() {
+                _6 = Api.parse(reader, signature: signature) as? Api.Range
+            } }
+            var _7: Api.Range?
+            if Int(_1!) & Int(1 << 5) != 0 {if let signature = reader.readInt32() {
+                _7 = Api.parse(reader, signature: signature) as? Api.Range
+            } }
+            var _8: [String]?
+            if Int(_1!) & Int(1 << 6) != 0 {if let _ = reader.readInt32() {
+                _8 = Api.parseVector(reader, elementSignature: -1255641564, elementType: String.self)
+            } }
+            var _9: Api.Range?
+            if Int(_1!) & Int(1 << 7) != 0 {if let signature = reader.readInt32() {
+                _9 = Api.parse(reader, signature: signature) as? Api.Range
+            } }
+            let _c1 = _1 != nil
+            let _c2 = (Int(_1!) & Int(1 << 0) == 0) || _2 != nil
+            let _c3 = (Int(_1!) & Int(1 << 1) == 0) || _3 != nil
+            let _c4 = (Int(_1!) & Int(1 << 2) == 0) || _4 != nil
+            let _c5 = (Int(_1!) & Int(1 << 3) == 0) || _5 != nil
+            let _c6 = (Int(_1!) & Int(1 << 4) == 0) || _6 != nil
+            let _c7 = (Int(_1!) & Int(1 << 5) == 0) || _7 != nil
+            let _c8 = (Int(_1!) & Int(1 << 6) == 0) || _8 != nil
+            let _c9 = (Int(_1!) & Int(1 << 7) == 0) || _9 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 {
+                return Api.event.Requirements.requirements(flags: _1!, genders: _2, age: _3, height: _4, waist: _5, hips: _6, shoeSize: _7, hairColors: _8, hairLength: _9)
+            }
+            else {
+                return nil
+            }
+        }
+
+    }
+}
+
+public extension Api.event {
+    enum ShareEventData: TypeConstructorDescription {
+        case shareEventData(id: Int64, link: String)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+                case .shareEventData(let id, let link):
+                    if boxed {
+                        buffer.appendInt32(-1602841549)
+                    }
+                    serializeInt64(id, buffer: buffer, boxed: false)
+                    serializeString(link, buffer: buffer, boxed: false)
+                    break
+            }
+        }
+        
+        public func descriptionFields() -> (String, [(String, Any)]) {
+            switch self {
+                case .shareEventData(let id, let link):
+                return ("shareEventData", [("id", String(describing: id)), ("link", String(describing: link))])
+            }
+        }
+
+        public static func parse_shareEventData(_ reader: BufferReader) -> ShareEventData? {
+            var _1: Int64?
+            _1 = reader.readInt64()
+            var _2: String?
+            _2 = parseString(reader)
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            if _c1 && _c2 {
+                return Api.event.ShareEventData.shareEventData(id: _1!, link: _2!)
+            }
+            else {
+                return nil
+            }
+        }
+
+    }
+}
+public extension Api.event {
+    enum ShareEvents: TypeConstructorDescription {
+        case shareEvents(events: [Api.event.ShareEventData])
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+                case .shareEvents(let events):
+                    if boxed {
+                        buffer.appendInt32(639414799)
+                    }
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(events.count))
+                    for item in events {
+                        item.serialize(buffer, true)
+                    }
+                    break
+            }
+        }
+        
+        public func descriptionFields() -> (String, [(String, Any)]) {
+            switch self {
+                case .shareEvents(let events):
+                return ("shareEvents", [("events", String(describing: events))])
+            }
+        }
+
+        public static func parse_shareEvents(_ reader: BufferReader) -> ShareEvents? {
+            var _1: [Api.event.ShareEventData]?
+            if let _ = reader.readInt32() {
+                _1 = Api.parseVector(reader, elementSignature: 0, elementType: Api.event.ShareEventData.self)
+            }
+            let _c1 = _1 != nil
+            if _c1 {
+                return Api.event.ShareEvents.shareEvents(events: _1!)
             }
             else {
                 return nil

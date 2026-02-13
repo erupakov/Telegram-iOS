@@ -1,13 +1,13 @@
 public extension Api.functions.profile {
-    static func createWorkExperience(flags: Int32, agency: Api.profile.Agency, startDate: Int32, endDate: Int32?, photo: Api.Photo?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.profile.WorkExperience>) {
+    static func createWorkExperience(flags: Int32, agency: Api.profile.Agency, startDate: Int32, endDate: Int32?, photoId: Int64?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.profile.WorkExperience>) {
         let buffer = Buffer()
-        buffer.appendInt32(-488936109)
+        buffer.appendInt32(2045881312)
         serializeInt32(flags, buffer: buffer, boxed: false)
         agency.serialize(buffer, true)
         serializeInt32(startDate, buffer: buffer, boxed: false)
         if Int(flags) & Int(1 << 1) != 0 {serializeInt32(endDate!, buffer: buffer, boxed: false)}
-        if Int(flags) & Int(1 << 2) != 0 {photo!.serialize(buffer, true)}
-        return (FunctionDescription(name: "profile.createWorkExperience", parameters: [("flags", String(describing: flags)), ("agency", String(describing: agency)), ("startDate", String(describing: startDate)), ("endDate", String(describing: endDate)), ("photo", String(describing: photo))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.profile.WorkExperience? in
+        if Int(flags) & Int(1 << 2) != 0 {serializeInt64(photoId!, buffer: buffer, boxed: false)}
+        return (FunctionDescription(name: "profile.createWorkExperience", parameters: [("flags", String(describing: flags)), ("agency", String(describing: agency)), ("startDate", String(describing: startDate)), ("endDate", String(describing: endDate)), ("photoId", String(describing: photoId))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.profile.WorkExperience? in
             let reader = BufferReader(buffer)
             var result: Api.profile.WorkExperience?
             if let signature = reader.readInt32() {
@@ -305,19 +305,19 @@ public extension Api.functions.profile {
     }
 }
 public extension Api.functions.profile {
-    static func updateSocialLinks(flags: Int32, instagram: String?, tiktok: String?, youtube: String?, website: String?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.User>) {
+    static func updateSocialLinks(flags: Int32, instagram: String?, tiktok: String?, youtube: String?, website: String?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.UserProfile>) {
         let buffer = Buffer()
-        buffer.appendInt32(926083405)
+        buffer.appendInt32(-329193826)
         serializeInt32(flags, buffer: buffer, boxed: false)
         if Int(flags) & Int(1 << 0) != 0 {serializeString(instagram!, buffer: buffer, boxed: false)}
         if Int(flags) & Int(1 << 1) != 0 {serializeString(tiktok!, buffer: buffer, boxed: false)}
         if Int(flags) & Int(1 << 2) != 0 {serializeString(youtube!, buffer: buffer, boxed: false)}
         if Int(flags) & Int(1 << 3) != 0 {serializeString(website!, buffer: buffer, boxed: false)}
-        return (FunctionDescription(name: "profile.updateSocialLinks", parameters: [("flags", String(describing: flags)), ("instagram", String(describing: instagram)), ("tiktok", String(describing: tiktok)), ("youtube", String(describing: youtube)), ("website", String(describing: website))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.User? in
+        return (FunctionDescription(name: "profile.updateSocialLinks", parameters: [("flags", String(describing: flags)), ("instagram", String(describing: instagram)), ("tiktok", String(describing: tiktok)), ("youtube", String(describing: youtube)), ("website", String(describing: website))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.UserProfile? in
             let reader = BufferReader(buffer)
-            var result: Api.User?
+            var result: Api.UserProfile?
             if let signature = reader.readInt32() {
-                result = Api.parse(reader, signature: signature) as? Api.User
+                result = Api.parse(reader, signature: signature) as? Api.UserProfile
             }
             return result
         })

@@ -149,7 +149,7 @@ public final class EventDetailController: TelegramBaseController {
                     profileName: "@nyfw",
                     timeRemaining: String(datePartPrefix),
                     type: eventModel.eventType ?? "",
-                    coverPhotoId: eventModel.coverPhotoId
+                    coverPhoto: eventModel.coverPhoto
                 )
                 self.controllerNode.updateEventData(data)
                 print("🔕", eventModel)
