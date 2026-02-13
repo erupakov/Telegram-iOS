@@ -27,6 +27,8 @@ public final class ProfileScreenController: TelegramBaseController {
     private var userProfileData: UserProfileData? = nil
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
+    private let getPortfoliorDisposable = MetaDisposable()
+    private let uploadPortfolioDisposable = MetaDisposable()
     private let supportBackground = MetaDisposable()
     private let getFullUserDisposable = MetaDisposable()
     private var peerDisposable: MetaDisposable?
@@ -64,6 +66,8 @@ public final class ProfileScreenController: TelegramBaseController {
     
     deinit {
         self.supportPeerDisposable.dispose()
+        self.getPortfoliorDisposable.dispose()
+        self.uploadPortfolioDisposable.dispose()
         self.supportBackground.dispose()
         self.getFullUserDisposable.dispose()
         self.peerDisposable?.dispose()
@@ -75,7 +79,7 @@ public final class ProfileScreenController: TelegramBaseController {
     
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
-
+        
         let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Contact List/EditActionIcon"), color: .white)
         let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.showMenu))
         
@@ -116,6 +120,11 @@ public final class ProfileScreenController: TelegramBaseController {
         items.append(.action(ContextMenuActionItem(text: "Manage Work Experience", icon: { _ in return nil }, action: { [weak self] _, f in
             f(.default)
             self?.editWorkExperience()
+        })))
+        
+        items.append(.action(ContextMenuActionItem(text: "uploadPortfolioItem Test", icon: { _ in return nil }, action: { [weak self] _, f in
+            f(.default)
+            self?.uploadPortfolioItem()
         })))
 
         let contextController = ContextController(
@@ -363,6 +372,7 @@ public final class ProfileScreenController: TelegramBaseController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         getUserProfile()
+        getPortfolio()
     }
     
     private func getUserProfile() {
@@ -403,6 +413,53 @@ public final class ProfileScreenController: TelegramBaseController {
         }))
     }
     
+    private func getPortfolio() {
+        
+        let supportPeer = Promise<String?>()
+        
+        supportPeer.set(context.engine.profileEngine.getPortfolio(peer: peer, tab: "image", offset: 0, limit: 0))
+        self.getPortfoliorDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { _ in
+            print("✈️ getPortfolio")
+        }))
+    }
+    
+    private func uploadPortfolioItem() {
+        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
+        let theme = self.presentationData.theme
+        
+        presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
+            self.view.endEditing(true)
+            self.present(c, in: .window(.root), with: a)
+        }, openCurrent: nil, completion: { [weak self] image in
+            guard let self = self, let data = image.jpegData(compressionQuality: 0.9) else { return }
+            
+            self.controllerNode.toggleSpinner(active: true)
+            
+            let inputFileSignal = self.context.engine.engineDivo.getInputFile(resource: data)
+            
+            let finalSignal = inputFileSignal
+            |> mapToSignal { [weak self] inputFile -> Signal<String?, NoError> in
+                guard let self = self, let inputFile = inputFile else {
+                    return .single(nil)
+                }
+                
+                return self.context.engine.profileEngine.uploadPortfolioItem(file: inputFile, type: "photo")
+            }
+//            2020845164448190464
+            self.uploadPortfolioDisposable.set((finalSignal |> deliverOnMainQueue).startStrict(next: { [weak self] result in
+                guard let self = self else { return }
+                self.controllerNode.toggleSpinner(active: false)
+                
+                if let response = result {
+                    print("✈️ uploadPortfolioItem success: \(response)")
+                    self.getPortfolio()
+                } else {
+                    print("❌ uploadPortfolioItem failed (nil result)")
+                }
+            }))
+            
+        }, videoCompletion: { _, _, _ in })
+    }
 }
 
 final class MenuSource: ContextReferenceContentSource {

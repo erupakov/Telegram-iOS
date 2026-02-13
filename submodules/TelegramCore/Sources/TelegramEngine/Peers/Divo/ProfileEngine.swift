@@ -50,6 +50,14 @@ public extension TelegramEngine {
             _internal_getUserProfile(account: account, peer: peer)
         }
         
+        public func uploadPortfolioItem(file: Api.InputFile, type: String) -> Signal<String?, NoError> {
+            _internal_uploadPortfolioItem(account: account, file: file, type: type)
+        }
+        
+        public func getPortfolio(peer: Peer?, tab: String, offset: Int32, limit: Int32) -> Signal<String?, NoError> {
+            _internal_getPortfolio(account: account, peer: peer, tab: tab, offset: offset, limit: limit)
+        }
+        
         // MARK: - OLD
         public func updateProfileNameAndBio(data: ProfileParametersData) -> Signal<String?, NoError> {
             _internal_updateProfileNameAndBio(account: account, data: data)

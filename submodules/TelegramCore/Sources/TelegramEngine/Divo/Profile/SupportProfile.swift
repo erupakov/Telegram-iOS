@@ -311,3 +311,41 @@ func _internal_getFullUser(account: Account, peer: Peer?) -> Signal<String?, NoE
     }
     return .single(nil)
 }
+
+func _internal_uploadPortfolioItem(account: Account, file: Api.InputFile, type: String) -> Signal<String?, NoError> {
+    print("⛳️", "post _internal_uploadPortfolioItem")
+    
+    let fileNew = Api.InputFile.inputFile(id: 2020845164448190464, parts: 26, name: "file.jpg", md5Checksum: "")
+    return account.network.request(
+        Api.functions.profile.uploadPortfolioItem(file: fileNew, type: type)
+    )
+    |> map(Optional.init)
+    |> `catch` { _ in
+        return Signal<Api.profile.PortfolioItem?, NoError>.single(nil)
+    }
+    |> mapToSignal { user -> Signal<String?, NoError> in
+        if let user = user {
+            print("👌 _internal_uploadPortfolioItem: ", user)
+        }
+        return .single(nil)
+    }
+}
+
+func _internal_getPortfolio(account: Account, peer: Peer?, tab: String, offset: Int32, limit: Int32) -> Signal<String?, NoError> {
+    print("⛳️", "_internal_getPortfolio")
+
+    if let peer = peer, let inputUser = apiInputUser(peer) {
+        return account.network.request(Api.functions.profile.getPortfolio(userId: inputUser, tab: tab, offset: offset, limit: limit))
+        |> map(Optional.init)
+        |> `catch` { _ in
+            return Signal<Api.profile.Portfolio?, NoError>.single(nil)
+        }
+        |> mapToSignal { userProfile -> Signal<String?, NoError> in
+            if let user = userProfile {
+                print("👌 _internal_getPortfolio: ", user)
+            }
+            return .single(nil)
+        }
+    }
+    return .single(nil)
+}

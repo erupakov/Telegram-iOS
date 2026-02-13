@@ -62,3 +62,33 @@ func _internal_uploadedPhoto(account: Account, resource: Data) -> Signal<Int64?,
     |> filter { $0 != nil }
     |> take(1)
 }
+
+func _internal_getInputFile(account: Account, resource: Data) -> Signal<Api.InputFile?, NoError> {
+    let upload = multipartUpload(
+        network: account.network,
+        postbox: account.postbox,
+        source: .data(resource),
+        encrypt: false,
+        tag: TelegramMediaResourceFetchTag(statsCategory: .image, userContentType: .image),
+        hintFileSize: Int64(resource.count),
+        hintFileIsLarge: false,
+        forceNoBigParts: false
+    )
+    
+    return Signal { subscriber in
+        return upload.start(next: { result in
+            switch result {
+            case let .inputFile(inputFile):
+                subscriber.putNext(inputFile)
+                subscriber.putCompletion()
+            case .progress:
+                break
+            default:
+                subscriber.putCompletion()
+            }
+        }, error: { _ in
+            subscriber.putNext(nil)
+            subscriber.putCompletion()
+        })
+    }
+}
