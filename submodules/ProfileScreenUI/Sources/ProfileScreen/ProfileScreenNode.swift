@@ -268,8 +268,6 @@ final class ProfileScreenNode: ASDisplayNode {
         self.scrollView.scrollIndicatorInsets = scrollIndicatorInsets
         
         applyGradientBlurMask()
-        
-        // Используем новый метод
         updateGalleryHeight()
         
         self.view.setNeedsLayout()
@@ -449,17 +447,31 @@ final class ProfileScreenNode: ASDisplayNode {
         }
     }
     
-    func addTempUploadingPhoto(_ image: UIImage) {
-        self.localPhotos.insert(.uploading(image), at: 0)
+//    func addTempUploadingPhoto(_ image: UIImage) {
+//        self.localPhotos.insert(.uploading(image), at: 0)
+//        self.galleryCollectionView.isHidden = false
+//        self.emptyPhotosWrapper.isHidden = true
+//        self.galleryCollectionView.reloadData()
+//        updateGalleryHeight()
+//        
+//        UIView.animate(withDuration: 0.3) {
+//            self.view.layoutIfNeeded()
+//        }
+//    }
+    
+    func addTempUploadingPhotos(_ images: [UIImage]) {
+        let newItems = images.map { PhotoItem.uploading($0) }
+        self.localPhotos.insert(contentsOf: newItems, at: 0)
+        
         self.galleryCollectionView.isHidden = false
         self.emptyPhotosWrapper.isHidden = true
+        
         self.galleryCollectionView.reloadData()
-        updateGalleryHeight()
+        self.updateGalleryHeight()
         
         UIView.animate(withDuration: 0.3) {
             self.view.layoutIfNeeded()
         }
-        
     }
     
     private func updateGalleryHeight() {

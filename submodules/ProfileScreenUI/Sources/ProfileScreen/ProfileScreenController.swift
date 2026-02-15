@@ -463,30 +463,30 @@ public final class ProfileScreenController: TelegramBaseController {
         }))
     }
     
-    private func uploadPortfolioItem() {
-        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
-        let theme = self.presentationData.theme
-        
-        presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
-            self.view.endEditing(true)
-            self.present(c, in: .window(.root), with: a)
-        }, openCurrent: nil, completion: { [weak self] image in
-            guard let self = self else { return }
-            
-            self.controllerNode.addTempUploadingPhoto(image)
-            
-            let _ = self.uploadPhotoToCloud(context: self.context, image: image).start(next: { [weak self] id in
-                guard let self = self, let id = id else { return }
-                
-                let uploadSignal = self.context.engine.profileEngine.uploadPortfolioItem(fileId: id, type: "photo")
-                
-                self.uploadPortfolioDisposable.set((uploadSignal |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
-                    self?.getPortfolio()
-                }))
-            })
-        }, videoCompletion: { _, _, _ in
-        })
-    }
+//    private func uploadPortfolioItem() {
+//        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
+//        let theme = self.presentationData.theme
+//        
+//        presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
+//            self.view.endEditing(true)
+//            self.present(c, in: .window(.root), with: a)
+//        }, openCurrent: nil, completion: { [weak self] image in
+//            guard let self = self else { return }
+//            
+//            self.controllerNode.addTempUploadingPhoto(image)
+//            
+//            let _ = self.uploadPhotoToCloud(context: self.context, image: image).start(next: { [weak self] id in
+//                guard let self = self, let id = id else { return }
+//                
+//                let uploadSignal = self.context.engine.profileEngine.uploadPortfolioItem(fileId: id, type: "photo")
+//                
+//                self.uploadPortfolioDisposable.set((uploadSignal |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+//                    self?.getPortfolio()
+//                }))
+//            })
+//        }, videoCompletion: { _, _, _ in
+//        })
+//    }
     
     func openNativeMultiplePhotoPicker() {
         if #available(iOS 14.0, *) {
@@ -531,46 +531,35 @@ extension ProfileScreenController: PHPickerViewControllerDelegate {
     public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         picker.dismiss(animated: true)
         
-        var uploadSignals: [Signal<Void, NoError>] = []
-
+        let group = DispatchGroup()
+        var pickedImages: [UIImage] = []
+        
         for result in results {
             if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
-                let imageSignal = Signal<Void, NoError> { [weak self] subscriber in
-                    guard let self = self else {
-                        subscriber.putCompletion()
-                        return EmptyDisposable
+                group.enter()
+                result.itemProvider.loadObject(ofClass: UIImage.self) { (image, _) in
+                    if let image = image as? UIImage {
+                        pickedImages.append(image)
                     }
-                    
-                    result.itemProvider.loadObject(ofClass: UIImage.self) { (image, error) in
-                        guard let image = image as? UIImage else {
-                            subscriber.putCompletion()
-                            return
-                        }
-                        
-                        Queue.mainQueue().async {
-                            self.controllerNode.addTempUploadingPhoto(image)
-                            
-                            let upload = self.uploadPhotoToCloud(context: self.context, image: image)
-                            |> mapToSignal { id -> Signal<Void, NoError> in
-                                guard let id = id else {
-                                    return .complete()
-                                }
-                                return self.context.engine.profileEngine.uploadPortfolioItem(fileId: id, type: "photo")
-                                    |> map { _ in Void() }
-                            }
-                            
-                            let _ = upload.start(completed: {
-                                subscriber.putCompletion()
-                            })
-                        }
-                    }
-                    return EmptyDisposable
+                    group.leave()
                 }
-                uploadSignals.append(imageSignal)
             }
         }
-
-        if !uploadSignals.isEmpty {
+        
+        group.notify(queue: .main) { [weak self] in
+            guard let self = self, !pickedImages.isEmpty else { return }
+            
+            self.controllerNode.addTempUploadingPhotos(pickedImages)
+            
+            let uploadSignals = pickedImages.map { image in
+                return self.uploadPhotoToCloud(context: self.context, image: image)
+                |> mapToSignal { id -> Signal<Void, NoError> in
+                    guard let id = id else { return .complete() }
+                    return self.context.engine.profileEngine.uploadPortfolioItem(fileId: id, type: "photo")
+                    |> map { _ in Void() }
+                }
+            }
+            
             self.uploadPortfolioDisposable.set(
                 (combineLatest(uploadSignals)
                 |> deliverOnMainQueue).start(completed: { [weak self] in
