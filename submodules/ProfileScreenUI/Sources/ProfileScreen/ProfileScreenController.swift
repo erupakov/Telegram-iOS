@@ -14,6 +14,8 @@ import Postbox
 import MapResourceToAvatarSizes
 import ContextUI
 import GalleryUI
+import MediaPickerUI
+import PhotosUI
 
 public final class ProfileScreenController: TelegramBaseController {
     
@@ -32,6 +34,7 @@ public final class ProfileScreenController: TelegramBaseController {
     private let supportBackground = MetaDisposable()
     private let getFullUserDisposable = MetaDisposable()
     private var peerDisposable: MetaDisposable?
+    private var galleryController: GalleryController? = nil
     
     private var presentationData: PresentationData
     
@@ -131,6 +134,33 @@ public final class ProfileScreenController: TelegramBaseController {
         self.present(contextController, in: .window(.root))
     }
     
+    @objc func showGalleryMenu() {
+        let presentationData = self.presentationData
+        let barHeight: CGFloat = 44.0
+        let screenWidth = self.view.bounds.width
+        
+        if self.contextSourceNode.supernode == nil {
+            self.view.addSubnode(self.contextSourceNode)
+        }
+        
+        self.contextSourceNode.frame = CGRect(x: screenWidth - 50, y: 50, width: 40, height: barHeight)
+        self.contextSourceNode.isUserInteractionEnabled = false
+        
+        var items: [ContextMenuItem] = []
+        items.append(.action(ContextMenuActionItem(text: "Delete Photo", textColor: .destructive, icon: { _ in return nil }, action: { [weak self] _, f in
+            f(.default)
+            self?.deletePhoto()
+        })))
+        
+        let contextController = ContextController(
+            presentationData: presentationData,
+            source: .reference(MenuSource(controller: self, sourceNode: self.contextSourceNode)),
+            items: .single(ContextController.Items(content: .list(items)))
+        )
+        
+        self.present(contextController, in: .window(.root))
+    }
+    
     func uploadPhotoToCloud(context: AccountContext, image: UIImage) -> Signal<Int64?, NoError> {
         guard let data = image.jpegData(compressionQuality: 0.9) else {
             return .single(nil)
@@ -206,6 +236,10 @@ public final class ProfileScreenController: TelegramBaseController {
         }
     }
     
+    private func deletePhoto() {
+        self.galleryController?.dismiss(completion: nil)
+    }
+    
     override public func loadDisplayNode() {
         self.displayNode = ProfileScreenNode(
             controller: self,
@@ -216,7 +250,8 @@ public final class ProfileScreenController: TelegramBaseController {
                 self?.uploadAvatar()
             },
             uploadPortfolioItem: { [weak self] in
-                self?.uploadPortfolioItem()
+//                self?.uploadPortfolioItem()
+                self?.openNativeMultiplePhotoPicker()
             },
             openEditLink: {
                 self.editSocialLinks()
@@ -338,10 +373,18 @@ public final class ProfileScreenController: TelegramBaseController {
             replaceRootController: { _, _ in },
             baseNavigationController: self.navigationController as? NavigationController
         )
+        galleryController = controller
+        let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/More"), color: .white)
+        let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.showGalleryMenu))
+        
+        controller.onDidAppear = { [weak controller] in
+            controller?.navigationItem.rightBarButtonItems = [editButton]
+        }
         
         controller.centralItemUpdated = { [weak controller] messageId in
             guard let controller = controller else { return }
             controller.navigationItem.titleView = nil
+            controller.navigationItem.rightBarButtonItems = [editButton]
             if let index = messages.firstIndex(where: { $0.id == messageId }) {
                 controller.title = "\(index + 1) из \(totalCount)"
             }
@@ -448,6 +491,19 @@ public final class ProfileScreenController: TelegramBaseController {
         }, videoCompletion: { _, _, _ in
         })
     }
+    
+    func openNativeMultiplePhotoPicker() {
+        if #available(iOS 14.0, *) {
+            var configuration = PHPickerConfiguration()
+            configuration.filter = .images
+            configuration.selectionLimit = 0
+            
+            let picker = PHPickerViewController(configuration: configuration)
+            picker.delegate = self
+            self.present(picker, animated: true)
+        }
+    }
+    
 }
 
 final class MenuSource: ContextReferenceContentSource {
@@ -461,5 +517,60 @@ final class MenuSource: ContextReferenceContentSource {
 
     func transitionInfo() -> ContextControllerReferenceViewInfo? {
         return ContextControllerReferenceViewInfo(referenceView: self.sourceNode.view, contentAreaInScreenSpace: UIScreen.main.bounds)
+    }
+}
+
+extension ProfileScreenController: PHPickerViewControllerDelegate {
+    @available(iOS 14.0, *)
+    public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        
+        var uploadSignals: [Signal<Void, NoError>] = []
+
+        for result in results {
+            if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                let imageSignal = Signal<Void, NoError> { [weak self] subscriber in
+                    guard let self = self else {
+                        subscriber.putCompletion()
+                        return EmptyDisposable
+                    }
+                    
+                    result.itemProvider.loadObject(ofClass: UIImage.self) { (image, error) in
+                        guard let image = image as? UIImage else {
+                            subscriber.putCompletion()
+                            return
+                        }
+                        
+                        Queue.mainQueue().async {
+                            self.controllerNode.addTempUploadingPhoto(image)
+                            
+                            let upload = self.uploadPhotoToCloud(context: self.context, image: image)
+                            |> mapToSignal { id -> Signal<Void, NoError> in
+                                guard let id = id else {
+                                    return .complete()
+                                }
+                                return self.context.engine.profileEngine.uploadPortfolioItem(fileId: id, type: "photo")
+                                    |> map { _ in Void() }
+                            }
+                            
+                            let _ = upload.start(completed: {
+                                subscriber.putCompletion()
+                            })
+                        }
+                    }
+                    return EmptyDisposable
+                }
+                uploadSignals.append(imageSignal)
+            }
+        }
+
+        if !uploadSignals.isEmpty {
+            self.uploadPortfolioDisposable.set(
+                (combineLatest(uploadSignals)
+                |> deliverOnMainQueue).start(completed: { [weak self] in
+                    self?.getPortfolio()
+                })
+            )
+        }
     }
 }

@@ -259,7 +259,6 @@ final class ProfileScreenNode: ASDisplayNode {
         self.containerLayout = (layout, navigationBarHeight)
         
         let bounds = CGRect(origin: .zero, size: layout.size)
-        
         transition.updateFrame(view: scrollView, frame: bounds)
         
         let contentInset = UIEdgeInsets(top: 0, left: 0, bottom: layout.insets(options: []).bottom, right: 0)
@@ -270,25 +269,11 @@ final class ProfileScreenNode: ASDisplayNode {
         
         applyGradientBlurMask()
         
-        if let flowLayout = galleryCollectionView.collectionViewLayout as? UICollectionViewFlowLayout {
-            let itemsPerRow: CGFloat = 3
-            let spacing: CGFloat = 1
-            let totalWidth = layout.size.width
-            let itemWidth = (totalWidth - 2 * spacing) / itemsPerRow
-            
-            let totalItems = CGFloat(!localPhotos.isEmpty ? localPhotos.count : model.galleryImageNames.count)
-            let rowCount = ceil(totalItems / itemsPerRow)
-            
-            let galleryHeight = rowCount * itemWidth + (max(0, rowCount - 1)) * spacing
-            
-            galleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
-            galleryCollectionView.heightAnchor.constraint(equalToConstant: galleryHeight).isActive = true
-            
-            flowLayout.itemSize = CGSize(width: itemWidth, height: itemWidth)
-            galleryCollectionView.collectionViewLayout.invalidateLayout()
-        }
+        // Используем новый метод
+        updateGalleryHeight()
         
-        self.layoutIfNeeded()
+        self.view.setNeedsLayout()
+        self.view.layoutIfNeeded()
     }
     
     override func layout() {
@@ -454,12 +439,13 @@ final class ProfileScreenNode: ASDisplayNode {
         
         if hasPhotos {
             self.galleryCollectionView.reloadData()
-        }
-        
-        self.setNeedsLayout()
-        
-        UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
+            
+            updateGalleryHeight()
+            
+            self.setNeedsLayout()
+            UIView.animate(withDuration: 0.3) {
+                self.view.layoutIfNeeded()
+            }
         }
     }
     
@@ -468,7 +454,41 @@ final class ProfileScreenNode: ASDisplayNode {
         self.galleryCollectionView.isHidden = false
         self.emptyPhotosWrapper.isHidden = true
         self.galleryCollectionView.reloadData()
+        updateGalleryHeight()
+        
+        UIView.animate(withDuration: 0.3) {
+            self.view.layoutIfNeeded()
+        }
+        
     }
+    
+    private func updateGalleryHeight() {
+        guard let (layout, _) = self.containerLayout,
+              let flowLayout = galleryCollectionView.collectionViewLayout as? UICollectionViewFlowLayout else {
+            return
+        }
+        
+        let itemsPerRow: CGFloat = 3
+        let spacing: CGFloat = 1
+        let totalWidth = layout.size.width
+        let itemWidth = (totalWidth - (2 * spacing)) / itemsPerRow
+        
+        let totalItems = CGFloat(!localPhotos.isEmpty ? localPhotos.count : model.galleryImageNames.count)
+        let rowCount = ceil(totalItems / itemsPerRow)
+        let galleryHeight = (rowCount * itemWidth) + max(0, (rowCount - 1) * spacing)
+        
+        galleryCollectionView.constraints.filter { $0.firstAttribute == .height }.forEach {
+            galleryCollectionView.removeConstraint($0)
+        }
+        
+        let heightConstraint = galleryCollectionView.heightAnchor.constraint(equalToConstant: galleryHeight)
+        heightConstraint.priority = .required
+        heightConstraint.isActive = true
+        
+        flowLayout.itemSize = CGSize(width: itemWidth, height: itemWidth)
+        galleryCollectionView.collectionViewLayout.invalidateLayout()
+    }
+
     
     private func setupBiographyBlock() {
         let wrapperView = UIView()
@@ -518,10 +538,22 @@ final class ProfileScreenNode: ASDisplayNode {
     }
     
     private func setupGallery() {
+        let galleryWrapper = UIView()
+        galleryWrapper.translatesAutoresizingMaskIntoConstraints = false
+        galleryWrapper.addSubview(galleryCollectionView)
+        
+        NSLayoutConstraint.activate([
+            galleryCollectionView.topAnchor.constraint(equalTo: galleryWrapper.topAnchor),
+            galleryCollectionView.bottomAnchor.constraint(equalTo: galleryWrapper.bottomAnchor),
+            galleryCollectionView.leadingAnchor.constraint(equalTo: galleryWrapper.leadingAnchor, constant: 0),
+            galleryCollectionView.trailingAnchor.constraint(equalTo: galleryWrapper.trailingAnchor, constant: 0)
+        ])
+        
         emptyPhotosWrapper.translatesAutoresizingMaskIntoConstraints = false
         emptyPhotosWrapper.addSubview(emptyPhotosView)
         emptyPhotosView.translatesAutoresizingMaskIntoConstraints = false
         emptyPhotosWrapper.isHidden = true
+        
         NSLayoutConstraint.activate([
             emptyPhotosView.topAnchor.constraint(equalTo: emptyPhotosWrapper.topAnchor, constant: 24),
             emptyPhotosView.bottomAnchor.constraint(equalTo: emptyPhotosWrapper.bottomAnchor),
@@ -530,7 +562,7 @@ final class ProfileScreenNode: ASDisplayNode {
         ])
         
         contentViewStack.addArrangedSubview(emptyPhotosWrapper)
-        contentViewStack.addArrangedSubview(galleryCollectionView)
+        contentViewStack.addArrangedSubview(galleryWrapper)
     }
     
     private func createStatusBadge(text: String, iconName: String) -> UIView {
