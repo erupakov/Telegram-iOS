@@ -57,6 +57,9 @@ public extension TelegramEngine {
         public func getPortfolio(peer: Peer?, tab: String, offset: Int32, limit: Int32) -> Signal<[TelegramMediaImage]?, NoError> {
             _internal_getPortfolio(account: account, peer: peer, tab: tab, offset: offset, limit: limit)
         }
+        public func deletePortfolioItem(id: Int64) -> Signal<Bool?, NoError> {
+            _internal_deletePortfolioItem(account: account, id: id)
+        }
         
         // MARK: - OLD
         public func updateProfileNameAndBio(data: ProfileParametersData) -> Signal<String?, NoError> {

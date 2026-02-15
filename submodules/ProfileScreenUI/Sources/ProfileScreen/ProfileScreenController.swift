@@ -149,7 +149,7 @@ public final class ProfileScreenController: TelegramBaseController {
         var items: [ContextMenuItem] = []
         items.append(.action(ContextMenuActionItem(text: "Delete Photo", textColor: .destructive, icon: { _ in return nil }, action: { [weak self] _, f in
             f(.default)
-            self?.deletePhoto()
+            self?.deletePortfolioItem(id: 22)
         })))
         
         let contextController = ContextController(
@@ -234,10 +234,6 @@ public final class ProfileScreenController: TelegramBaseController {
         if let navigationController = context.sharedContext.mainWindow?.viewController as? NavigationController {
             navigationController.pushViewController(controller)
         }
-    }
-    
-    private func deletePhoto() {
-        self.galleryController?.dismiss(completion: nil)
     }
     
     override public func loadDisplayNode() {
@@ -504,6 +500,16 @@ public final class ProfileScreenController: TelegramBaseController {
         }
     }
     
+    private func deletePortfolioItem(id: Int64) {
+        self.galleryController?.dismiss(completion: nil)
+//        let supportPeer = Promise<Bool?>()
+//        
+//        supportPeer.set(context.engine.profileEngine.deletePortfolioItem(id: id))
+//        self.getPortfoliorDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { res in
+//            self.galleryController?.dismiss(completion: nil)
+//            print("🌉 res")
+//        }))
+    }
 }
 
 final class MenuSource: ContextReferenceContentSource {

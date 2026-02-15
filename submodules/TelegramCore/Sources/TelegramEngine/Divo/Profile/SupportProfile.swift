@@ -358,3 +358,19 @@ func _internal_getPortfolio(account: Account, peer: Peer?, tab: String, offset: 
     }
     return .single(nil)
 }
+
+func _internal_deletePortfolioItem(account: Account, id: Int64) -> Signal<Bool?, NoError> {
+    print("⛳️", "_internal_deletePortfolioItem")
+    
+    return account.network.request(Api.functions.profile.deletePortfolioItem(id: id))
+    |> map(Optional.init)
+    |> `catch` { _ in
+        return Signal<Api.Bool?, NoError>.single(nil)
+    }
+    |> mapToSignal { res -> Signal<Bool?, NoError> in
+        if let res = res {
+            print("🔕 _internal_deletePortfolioItem res", res)
+        }
+        return .single(true)
+    }
+}
