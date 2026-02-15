@@ -344,12 +344,12 @@ public extension Api.functions.profile {
     }
 }
 public extension Api.functions.profile {
-    static func uploadPortfolioItem(file: Api.InputFile, type: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.profile.PortfolioItem>) {
+    static func uploadPortfolioItem(fileId: Int64, type: String) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.profile.PortfolioItem>) {
         let buffer = Buffer()
-        buffer.appendInt32(-1558106417)
-        file.serialize(buffer, true)
+        buffer.appendInt32(-566173129)
+        serializeInt64(fileId, buffer: buffer, boxed: false)
         serializeString(type, buffer: buffer, boxed: false)
-        return (FunctionDescription(name: "profile.uploadPortfolioItem", parameters: [("file", String(describing: file)), ("type", String(describing: type))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.profile.PortfolioItem? in
+        return (FunctionDescription(name: "profile.uploadPortfolioItem", parameters: [("fileId", String(describing: fileId)), ("type", String(describing: type))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.profile.PortfolioItem? in
             let reader = BufferReader(buffer)
             var result: Api.profile.PortfolioItem?
             if let signature = reader.readInt32() {

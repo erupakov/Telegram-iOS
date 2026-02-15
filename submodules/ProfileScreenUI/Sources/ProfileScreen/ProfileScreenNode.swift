@@ -22,7 +22,8 @@ final class ProfileScreenNode: ASDisplayNode {
     
     private let iconPlaceholder = "HeartActionIcon"
     
-    private let addPhoto: () -> Void
+    private let uploadAvatar: () -> Void
+    private let uploadPortfolioItem: () -> Void
     private let openEditLink: () -> Void
     
     private let openGallery: (Int) -> Void
@@ -30,8 +31,9 @@ final class ProfileScreenNode: ASDisplayNode {
     private let scrollView = UIScrollView()
     
     enum PhotoItem {
-        case telegram(TelegramPeerPhoto)
+        case telegram(TelegramMediaImage)
         case local(UIImage, Date)
+        case uploading(UIImage)
     }
     
     var localPhotos: [PhotoItem] = []
@@ -86,6 +88,7 @@ final class ProfileScreenNode: ASDisplayNode {
         iv.layer.borderWidth = 3
         iv.layer.borderColor = UIColor.white.cgColor
         iv.backgroundColor = .systemGray
+        iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -160,6 +163,7 @@ final class ProfileScreenNode: ASDisplayNode {
         layout.minimumInteritemSpacing = 1
         layout.minimumLineSpacing = 1
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.isHidden = true
         collectionView.backgroundColor = .clear
         collectionView.register(GalleryCell.self, forCellWithReuseIdentifier: "GalleryCell")
         collectionView.delegate = self
@@ -171,12 +175,50 @@ final class ProfileScreenNode: ASDisplayNode {
     
     private var profileInfoView: ProfileInfoView
     
+    private lazy var emptyPhotosView: UIButton = {
+        let button = UIButton(type: .custom)
+        button.backgroundColor = UIColor.white.withAlphaComponent(0.12)
+        button.layer.cornerRadius = 12
+        
+        let icon = UIImageView(image: UIImage(bundleImageName: "Avatar/AddAvatarIconLarge"))
+        icon.tintColor = .white
+        icon.contentMode = .scaleAspectFit
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        
+        let label = UILabel()
+        label.text = "Upload your photos"
+        label.textColor = .white
+        label.font = UIFont.systemFont(ofSize: 16)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+        let stack = UIStackView(arrangedSubviews: [icon, label])
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.alignment = .center
+        stack.isUserInteractionEnabled = false
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        
+        button.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 40),
+            icon.heightAnchor.constraint(equalToConstant: 40),
+            button.heightAnchor.constraint(equalToConstant: 90)
+        ])
+        
+        button.addTarget(self, action: #selector(dmButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    private let emptyPhotosWrapper = UIView()
+    
     init(
         controller: ViewController,
         context: AccountContext,
         presentationData: PresentationData,
         model: ProfileModel,
-        addPhoto: @escaping () -> Void,
+        uploadAvatar: @escaping () -> Void,
+        uploadPortfolioItem: @escaping () -> Void,
         openEditLink: @escaping () -> Void,
         openGallery: @escaping (Int) -> Void
     ) {
@@ -184,7 +226,8 @@ final class ProfileScreenNode: ASDisplayNode {
             self.context = context
             self.presentationData = presentationData
             self.model = model
-            self.addPhoto = addPhoto
+            self.uploadAvatar = uploadAvatar
+            self.uploadPortfolioItem = uploadPortfolioItem
             self.openEditLink = openEditLink
             self.openGallery = openGallery
             
@@ -203,10 +246,9 @@ final class ProfileScreenNode: ASDisplayNode {
             scrollView.contentInsetAdjustmentBehavior = .never
             scrollView.addSubview(contentViewStack)
             
-            localPhotos = model.photos.map { PhotoItem.telegram($0) }
-            
             setupContent()
             configureNodes()
+            updateLocalPhotos([])
         }
     
     required init?(coder: NSCoder) {
@@ -403,16 +445,31 @@ final class ProfileScreenNode: ASDisplayNode {
         }
     }
     
-    func addPhotoToCollection() {
-        if let currentPhoto = currentPhoto {
-            let newItem = PhotoItem.local(currentPhoto, Date())
-            self.localPhotos.insert(newItem, at: 0)
-            self.galleryCollectionView.performBatchUpdates({
-                self.galleryCollectionView.insertItems(at: [IndexPath(item: 0, section: 0)])
-            })
+    func updateLocalPhotos(_ photos: [TelegramMediaImage]) {
+        self.localPhotos = photos.map { PhotoItem.telegram($0) }
+        let hasPhotos = !localPhotos.isEmpty
+        
+        self.emptyPhotosWrapper.isHidden = hasPhotos
+        self.galleryCollectionView.isHidden = !hasPhotos
+        
+        if hasPhotos {
+            self.galleryCollectionView.reloadData()
+        }
+        
+        self.setNeedsLayout()
+        
+        UIView.animate(withDuration: 0.3) {
+            self.view.layoutIfNeeded()
         }
     }
-
+    
+    func addTempUploadingPhoto(_ image: UIImage) {
+        self.localPhotos.insert(.uploading(image), at: 0)
+        self.galleryCollectionView.isHidden = false
+        self.emptyPhotosWrapper.isHidden = true
+        self.galleryCollectionView.reloadData()
+    }
+    
     private func setupBiographyBlock() {
         let wrapperView = UIView()
         wrapperView.translatesAutoresizingMaskIntoConstraints = false
@@ -461,6 +518,18 @@ final class ProfileScreenNode: ASDisplayNode {
     }
     
     private func setupGallery() {
+        emptyPhotosWrapper.translatesAutoresizingMaskIntoConstraints = false
+        emptyPhotosWrapper.addSubview(emptyPhotosView)
+        emptyPhotosView.translatesAutoresizingMaskIntoConstraints = false
+        emptyPhotosWrapper.isHidden = true
+        NSLayoutConstraint.activate([
+            emptyPhotosView.topAnchor.constraint(equalTo: emptyPhotosWrapper.topAnchor, constant: 24),
+            emptyPhotosView.bottomAnchor.constraint(equalTo: emptyPhotosWrapper.bottomAnchor),
+            emptyPhotosView.leadingAnchor.constraint(equalTo: emptyPhotosWrapper.leadingAnchor, constant: 16),
+            emptyPhotosView.trailingAnchor.constraint(equalTo: emptyPhotosWrapper.trailingAnchor, constant: -16)
+        ])
+        
+        contentViewStack.addArrangedSubview(emptyPhotosWrapper)
         contentViewStack.addArrangedSubview(galleryCollectionView)
     }
     
@@ -532,6 +601,8 @@ final class ProfileScreenNode: ASDisplayNode {
         if model.isMyProfile {
             dmButton.addTarget(self, action: #selector(dmButtonTapped), for: .touchUpInside)
         }
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(avatarTapped))
+        avatarImageView.addGestureRecognizer(tapGesture)
     }
     
     private func setupCounterView(_ container: UIView, count: String, name: String, iconName: String) {
@@ -619,8 +690,12 @@ final class ProfileScreenNode: ASDisplayNode {
         return button
     }
     
+    @objc private func avatarTapped() {
+        self.uploadAvatar()
+    }
+    
     @objc private func dmButtonTapped() {
-        self.addPhoto()
+        self.uploadPortfolioItem()
     }
     
     private func configureNodes() {
@@ -799,8 +874,7 @@ extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegat
         if !localPhotos.isEmpty {
             let item = localPhotos[indexPath.item]
             switch item {
-            case .telegram(let peerPhoto):
-                let image = peerPhoto.image
+            case .telegram(let image):
                 guard let representation = largestImageRepresentation(image.representations) else { return cell }
                 let resourceData = context.account.postbox.mediaBox.resourceData(representation.resource)
                 let _ = (resourceData |> deliverOnMainQueue).start(next: { data in
@@ -814,6 +888,8 @@ extension ProfileScreenNode: UICollectionViewDataSource, UICollectionViewDelegat
                 })
             case .local(let uiImage, _):
                 cell.configure(with: uiImage)
+            case .uploading(let uiImage):
+                cell.configure(with: uiImage, isUploading: true)
             }
             return cell
         }

@@ -244,27 +244,28 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     @objc private func applyButtonTapped() {
         print("applyButton Tapped!")
         
+        let agencyName = nameEventTextField.textField.text ?? ""
+        
         guard startTime > 0 else {
             self.showAlert?("Please fill in the start date")
             return
         }
         
-        
         if let currentPhoto = currentPhoto {
-            let _ = uploadPhotoToCloud(context: context, image: currentPhoto).start(next: { id in
+            let _ = uploadPhotoToCloud(context: context, image: currentPhoto).start(next: { [weak self] id in
                 if let id = id {
-                    self.createWorkExperience(photoId: id)
+                    self?.createWorkExperience(agencyName: agencyName, photoId: id)
                 }
             })
         } else {
-            createWorkExperience()
+            createWorkExperience(agencyName: agencyName)
         }
     }
     
-    private func createWorkExperience(photoId: Int64? = nil) {
+    private func createWorkExperience(agencyName: String, photoId: Int64? = nil) {
         let startTimestamp = TimeInterval(startTime)
         let endTimestamp = TimeInterval(endTime)
-        let agencyName = nameEventTextField.textField.text ?? ""
+        
         let supportPeer = Promise<String?>()
         supportPeer.set(context.engine.profileEngine.createWorkExperience(
             agencyName: agencyName,
@@ -277,6 +278,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             self.showAlert?("WorkExperience Added")
         }))
     }
+    
     private func uploadPhotoToCloud(context: AccountContext, image: UIImage) -> Signal<Int64?, NoError> {
         guard let data = image.jpegData(compressionQuality: 0.9) else {
             return .single(nil)

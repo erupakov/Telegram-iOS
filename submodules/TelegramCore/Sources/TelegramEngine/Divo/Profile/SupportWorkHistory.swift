@@ -107,8 +107,11 @@ func _internal_createWorkExperience(account: Account, agencyName: String, startD
     if endDate != nil {
         flags |= 1 << 1
     }
+    if photoId != nil {
+        flags |= 1 << 2
+    }
 
-    let agency: Api.profile.Agency = .agency(flags: 0, id: 0, name: agencyName, description: nil, website: nil, photo: nil, peer: nil)
+    let agency: Api.profile.Agency = .agency(flags: 0, id: Int64(startDate), name: agencyName, description: nil, website: nil, photo: nil, peer: nil)
     return account.network.request(
         Api.functions.profile.createWorkExperience(
             flags: flags,

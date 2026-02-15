@@ -122,11 +122,6 @@ public final class ProfileScreenController: TelegramBaseController {
             self?.editWorkExperience()
         })))
         
-        items.append(.action(ContextMenuActionItem(text: "uploadPortfolioItem Test", icon: { _ in return nil }, action: { [weak self] _, f in
-            f(.default)
-            self?.uploadPortfolioItem()
-        })))
-
         let contextController = ContextController(
             presentationData: presentationData,
             source: .reference(MenuSource(controller: self, sourceNode: self.contextSourceNode)),
@@ -185,7 +180,6 @@ public final class ProfileScreenController: TelegramBaseController {
     private func editProfile() {
         let controller = EditProfileController(context: self.context, model: self.model, updatePhoto: { [weak self] image in
             self?.controllerNode.currentPhoto = image
-            self?.controllerNode.addPhotoToCollection()
         })
         if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
             navigationController.pushViewController(controller)
@@ -213,51 +207,16 @@ public final class ProfileScreenController: TelegramBaseController {
     }
     
     override public func loadDisplayNode() {
-        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
-        let theme = self.presentationData.theme
-        
         self.displayNode = ProfileScreenNode(
             controller: self,
             context: self.context,
             presentationData: self.presentationData,
             model: model,
-            addPhoto: { [weak self] in
-                presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
-                    self?.view.endEditing(true)
-                    self?.present(c, in: .window(.root), with: a)
-                }, openCurrent: nil, completion: { image in
-                    self?.controllerNode.currentPhoto = image
-                    self?.controllerNode.toggleSpinner(active: true)
-                    
-                    let tempFile = TempBox.shared.tempFile(fileName: "avatar.jpg")
-                    guard let data = image.jpegData(compressionQuality: 0.9), let context = self?.context else { return }
-                    try? data.write(to: URL(fileURLWithPath: tempFile.path))
-                    
-                    let resource = LocalFileReferenceMediaResource(localFilePath: tempFile.path, randomId: Int64.random(in: Int64.min ... Int64.max))
-                    
-                    let uploadedPeerPhoto = context.engine.peers.uploadedPeerPhoto(resource: resource)
-                    let postbox = context.account.postbox
-                    let signal = context.engine.peers.updatePeerPhoto(
-                        peerId: context.account.peerId,
-                        photo: uploadedPeerPhoto,
-                        video: nil,
-                        videoStartTimestamp: nil,
-                        markup: nil,
-                        mapResourceToAvatarSizes: { resource, representations in
-                            return mapResourceToAvatarSizes(postbox: postbox, resource: resource, representations: representations)
-                        }
-                    )
-                    
-                    let _ = (signal |> deliverOnMainQueue).start(next: { status in
-                        if case .complete = status {
-                            self?.controllerNode.toggleSpinner(active: false)
-                            self?.controllerNode.addPhotoToCollection()
-                        }
-                    }, error: { error in
-                        self?.controllerNode.toggleSpinner(active: false)
-                    })
-                }, videoCompletion: { _, _, _ in
-                })
+            uploadAvatar: { [weak self] in
+                self?.uploadAvatar()
+            },
+            uploadPortfolioItem: { [weak self] in
+                self?.uploadPortfolioItem()
             },
             openEditLink: {
                 self.editSocialLinks()
@@ -270,8 +229,50 @@ public final class ProfileScreenController: TelegramBaseController {
         self.displayNodeDidLoad()
     }
     
+    private func uploadAvatar() {
+        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
+        let theme = self.presentationData.theme
+        
+        presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
+            self.view.endEditing(true)
+            self.present(c, in: .window(.root), with: a)
+        }, openCurrent: nil, completion: { image in
+            self.controllerNode.currentPhoto = image
+            self.controllerNode.toggleSpinner(active: true)
+            
+            let tempFile = TempBox.shared.tempFile(fileName: "avatar.jpg")
+            guard let data = image.jpegData(compressionQuality: 0.9) else { return }
+            let context = self.context
+            try? data.write(to: URL(fileURLWithPath: tempFile.path))
+            
+            let resource = LocalFileReferenceMediaResource(localFilePath: tempFile.path, randomId: Int64.random(in: Int64.min ... Int64.max))
+            
+            let uploadedPeerPhoto = context.engine.peers.uploadedPeerPhoto(resource: resource)
+            let postbox = context.account.postbox
+            let signal = context.engine.peers.updatePeerPhoto(
+                peerId: context.account.peerId,
+                photo: uploadedPeerPhoto,
+                video: nil,
+                videoStartTimestamp: nil,
+                markup: nil,
+                mapResourceToAvatarSizes: { resource, representations in
+                    return mapResourceToAvatarSizes(postbox: postbox, resource: resource, representations: representations)
+                }
+            )
+            
+            let _ = (signal |> deliverOnMainQueue).start(next: { status in
+                if case .complete = status {
+                    self.controllerNode.toggleSpinner(active: false)
+                }
+            }, error: { error in
+                self.controllerNode.toggleSpinner(active: false)
+            })
+        }, videoCompletion: { _, _, _ in
+        })
+    }
+    
     private func openGallery(at index: Int) {
-        let photos: [TelegramPeerPhoto] = self.controllerNode.localPhotos.compactMap { item in
+        let photos: [TelegramMediaImage] = self.controllerNode.localPhotos.compactMap { item in
             switch item {
             case let .telegram(photo): return photo
             default: return nil
@@ -310,7 +311,7 @@ public final class ProfileScreenController: TelegramBaseController {
                 author: nil,
                 text: "",
                 attributes: [],
-                media: [photo.image],
+                media: [photo],
                 peers: SimpleDictionary(),
                 associatedMessages: SimpleDictionary(),
                 associatedMessageIds: [],
@@ -415,11 +416,11 @@ public final class ProfileScreenController: TelegramBaseController {
     
     private func getPortfolio() {
         
-        let supportPeer = Promise<String?>()
+        let supportPeer = Promise<[TelegramMediaImage]?>()
         
-        supportPeer.set(context.engine.profileEngine.getPortfolio(peer: peer, tab: "image", offset: 0, limit: 0))
-        self.getPortfoliorDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { _ in
-            print("✈️ getPortfolio")
+        supportPeer.set(context.engine.profileEngine.getPortfolio(peer: peer, tab: "photo", offset: 0, limit: 0))
+        self.getPortfoliorDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { portfolio in
+            self.controllerNode.updateLocalPhotos(portfolio ?? [])
         }))
     }
     
@@ -431,34 +432,21 @@ public final class ProfileScreenController: TelegramBaseController {
             self.view.endEditing(true)
             self.present(c, in: .window(.root), with: a)
         }, openCurrent: nil, completion: { [weak self] image in
-            guard let self = self, let data = image.jpegData(compressionQuality: 0.9) else { return }
+            guard let self = self else { return }
             
-            self.controllerNode.toggleSpinner(active: true)
+            self.controllerNode.addTempUploadingPhoto(image)
             
-            let inputFileSignal = self.context.engine.engineDivo.getInputFile(resource: data)
-            
-            let finalSignal = inputFileSignal
-            |> mapToSignal { [weak self] inputFile -> Signal<String?, NoError> in
-                guard let self = self, let inputFile = inputFile else {
-                    return .single(nil)
-                }
+            let _ = self.uploadPhotoToCloud(context: self.context, image: image).start(next: { [weak self] id in
+                guard let self = self, let id = id else { return }
                 
-                return self.context.engine.profileEngine.uploadPortfolioItem(file: inputFile, type: "photo")
-            }
-//            2020845164448190464
-            self.uploadPortfolioDisposable.set((finalSignal |> deliverOnMainQueue).startStrict(next: { [weak self] result in
-                guard let self = self else { return }
-                self.controllerNode.toggleSpinner(active: false)
+                let uploadSignal = self.context.engine.profileEngine.uploadPortfolioItem(fileId: id, type: "photo")
                 
-                if let response = result {
-                    print("✈️ uploadPortfolioItem success: \(response)")
-                    self.getPortfolio()
-                } else {
-                    print("❌ uploadPortfolioItem failed (nil result)")
-                }
-            }))
-            
-        }, videoCompletion: { _, _, _ in })
+                self.uploadPortfolioDisposable.set((uploadSignal |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
+                    self?.getPortfolio()
+                }))
+            })
+        }, videoCompletion: { _, _, _ in
+        })
     }
 }
 
