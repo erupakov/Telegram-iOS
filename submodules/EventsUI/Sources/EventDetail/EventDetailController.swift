@@ -146,10 +146,11 @@ public final class EventDetailController: TelegramBaseController {
                     subtitle: eventModel.description,
                     imageName: "Components/Model",
                     profileImageName: "Components/Model",
-                    profileName: "@nyfw",
+                    profileName: "@" + (eventModel.creatorName ?? ""),
                     timeRemaining: String(datePartPrefix),
                     type: eventModel.eventType ?? "",
-                    coverPhoto: eventModel.coverPhoto
+                    coverPhoto: eventModel.coverPhoto,
+                    profilePhoto: eventModel.creatorPhoto
                 )
                 self.controllerNode.updateEventData(data)
                 print("🔕", eventModel)

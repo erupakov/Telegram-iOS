@@ -517,7 +517,20 @@ final class EventDetailControllerNode: ASDisplayNode {
     func updateEventData(_ newEventData: EventData) {
         self.eventData = newEventData
         
-        if let image = newEventData.coverPhoto {
+        setImage(newEventData.coverPhoto, for: backgroundImageView)
+        
+        eventTitleLabel.text = newEventData.title
+        eventSubtitleLabel.text = newEventData.timeRemaining
+        castingBadgeLabel.text = newEventData.type
+        aboutDescriptionLabel.text = newEventData.subtitle
+        
+        profileNameLabel.text = newEventData.profileName
+        
+        setImage(newEventData.profilePhoto, for: profileImageView)
+    }
+    
+    private func setImage(_ image: TelegramMediaImage?, for imageView: UIImageView) {
+        if let image = image {
             guard let representation = largestImageRepresentation(image.representations) else {
                 return
             }
@@ -527,11 +540,11 @@ final class EventDetailControllerNode: ASDisplayNode {
                      |> deliverOnMainQueue).start(next: { data in
                 if data.complete {
                     if let uiImage = UIImage(contentsOfFile: data.path) {
-                        UIView.transition(with: self.backgroundImageView,
+                        UIView.transition(with: imageView,
                                           duration: 0.3,
                                           options: .transitionCrossDissolve,
                                           animations: {
-                            self.backgroundImageView.image = uiImage
+                            imageView.image = uiImage
                         }, completion: nil)
                     }
                     
@@ -540,13 +553,8 @@ final class EventDetailControllerNode: ASDisplayNode {
                 }
             })
         } else {
-            backgroundImageView.image = UIImage(bundleImageName: newEventData.imageName)
+            imageView.image = UIImage(bundleImageName: "Components/Model")
         }
-        
-        eventTitleLabel.text = newEventData.title
-        eventSubtitleLabel.text = newEventData.timeRemaining
-        castingBadgeLabel.text = newEventData.type
-        aboutDescriptionLabel.text = newEventData.subtitle
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
