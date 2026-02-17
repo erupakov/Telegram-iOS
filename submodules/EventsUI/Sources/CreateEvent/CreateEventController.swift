@@ -121,24 +121,40 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             }
         }
         
-        self.createEventNode.scheduleTimeController = { [weak self] in
-            self?.scheduleTimeController()
+        self.createEventNode.scheduleTimeController = { [weak self] mode in
+            self?.scheduleTimeController(mode: mode)
         }
+        self.createEventNode.showAlert = { [weak self] text in
+            self?.showAlert(text: text)
+        }
+        
         self.displayNodeDidLoad()
     }
     
-    private func scheduleTimeController() {
+    private func showAlert(text: String) {
+        
+        let alertController = textAlertController(
+            context: context, title: nil,
+            text: text, actions: [
+                TextAlertAction(type: .genericAction, title: "Ok", action: {
+                    print("ok")
+                })
+            ])
+        present(alertController, in: .window(.root))
+    }
+    
+    private func scheduleTimeController(mode: TimeControllerMode) {
         let peerId = PeerId(0)
-        let controller = ChatScheduleTimeController(
+        let controller = TimeController(
             context: context,
             updatedPresentationData: nil,
             peerId: peerId,
-            mode: .reminders,
+            mode: mode,
             style: .default,
             currentTime: nil,
             minimalTime: nil,
             completion: { [weak self] time in
-                self?.createEventNode.updateTime(time)
+                self?.createEventNode.updateTime(time, mode)
             })
         present(controller, in: .window(.root))
     }

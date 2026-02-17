@@ -474,8 +474,8 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             var apiEnvironment = MTApiEnvironment(deviceModelName: arguments.deviceModelName)
             
             apiEnvironment.apiId = arguments.apiId
-            apiEnvironment.langPack = arguments.languagesCategory
-            apiEnvironment.layer = NSNumber(value: Int(serialization.currentLayer()))
+            apiEnvironment.langPack = arguments.languagesCategory//
+            apiEnvironment.layer = NSNumber(value: Int(serialization.currentLayer()))///
             apiEnvironment.disableUpdates = supplementary
             apiEnvironment = apiEnvironment.withUpdatedLangPackCode(languageCode ?? "en")
             
@@ -530,16 +530,14 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             if testingEnvironment {
                 seedAddressList = [
-//                    1: ["91.98.140.47"]
-                    1: ["13.41.235.60"]
+                    1: ["65.108.31.244"]
                     // 1: ["149.154.175.10"],
                     // 2: ["149.154.167.40"],
                     // 3: ["149.154.175.117"]
                 ]
             } else {
                 seedAddressList = [
-                    1: ["13.41.235.60"]
-//                    1: ["91.98.140.47"]
+                    1: ["65.108.31.244"]
                     // 1: ["149.154.175.50", "2001:b28:f23d:f001::a"],
                     // 2: ["149.154.167.50", "95.161.76.100", "2001:67c:4e8:f002::a"],
                     // 3: ["149.154.175.100", "2001:b28:f23d:f003::a"],

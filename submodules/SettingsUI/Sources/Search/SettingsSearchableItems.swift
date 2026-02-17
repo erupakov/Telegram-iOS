@@ -1057,15 +1057,27 @@ func settingsSearchableItems(context: AccountContext, notificationExceptionsList
             allItems.append(passport)
         }
                 
-        let support = SettingsSearchableItem(id: .support(0), title: strings.Settings_Support, alternate: synonyms(strings.SettingsSearch_Synonyms_Support), icon: .support, breadcrumbs: [], present: { context, _, present in
+        let getCountries = SettingsSearchableItem(id: .support(0), title: "getCountries", alternate: ["getCountries"], icon: .support, breadcrumbs: [], present: { context, _, present in
             let _ = (context.engine.peers.supportPeerId()
-            |> deliverOnMainQueue).start(next: { peerId in
-                if let peerId = peerId {
-                    present(.push, context.sharedContext.makeChatController(context: context, chatLocation: .peer(id: peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil))
-                }
+            |> deliverOnMainQueue).start(next: { _ in
             })
         })
-        allItems.append(support)
+        allItems.append(getCountries)
+        
+        let getEvents = SettingsSearchableItem(id: .support(1), title: "getEvents", alternate: ["getEvents"], icon: .support, breadcrumbs: [], present: { context, _, present in
+            let _ = (context.engine.peers.supportPeerId()
+            |> deliverOnMainQueue).start(next: { _ in
+            })
+        })
+        allItems.append(getEvents)
+        
+        
+        let eventTypes = SettingsSearchableItem(id: .support(2), title: "EventTypes", alternate: ["getEvents"], icon: .support, breadcrumbs: [], present: { context, _, present in
+            let _ = (context.engine.peers.supportGetEventTypes()
+            |> deliverOnMainQueue).start(next: { _ in
+            })
+        })
+        allItems.append(eventTypes)
         
         let faq = SettingsSearchableItem(id: .faq(0), title: strings.Settings_FAQ, alternate: synonyms(strings.SettingsSearch_Synonyms_FAQ), icon: .faq, breadcrumbs: [], present: { context, navigationController, present in
             let _ = (cachedFaqInstantPage(context: context)

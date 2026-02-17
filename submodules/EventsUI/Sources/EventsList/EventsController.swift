@@ -21,10 +21,12 @@ public final class EventsController: TelegramBaseController {
     
     private let _ready = Promise<Bool>(false)
     override public var ready: Promise<Bool> {
+//        getEvents()
         return self._ready
     }
     
     private let context: AccountContext
+    private let supportPeerDisposable = MetaDisposable()
     
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
@@ -86,6 +88,39 @@ public final class EventsController: TelegramBaseController {
     public func updateContentOffset(offset: CGPoint) {
     }
 
+    override public func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        getEvents()
+    }
+    
+    private func getEvents() {
+        //        displayNode.
+        let supportPeer = Promise<[EventModel]?>()
+        supportPeer.set(context.engine.eventsEngine.getEvents())
+        self.supportPeerDisposable.set((supportPeer.get() |> take(1) |> deliverOnMainQueue).startStrict(next: { events in
+            print("🔕", events ?? "")//displayNode
+            if let events = events {
+                let eventDataArray: [EventData] = events.map { model in
+                    let datePartPrefix = model.eventDate.prefix(while: { $0 != "T" })
+                    
+                    return EventData(
+                        id: model.id,
+                        title: model.title,
+                        subtitle: model.title,
+                        imageName: "Components/Model",
+                        profileImageName: "Components/Model",
+                        profileName: "@" + (model.creatorName ?? ""),
+                        timeRemaining: String(datePartPrefix),
+                        coverPhoto: model.coverPhoto,
+                        profilePhoto: model.creatorPhoto
+                    )
+                }
+                
+                self.controllerNode.reloadEvents(events: eventDataArray)
+            }
+        }))
+    }
+    
     @objc private func searchPressed() {
         let controller = EventsSearchController(context: context)
         
@@ -113,11 +148,23 @@ public final class EventsController: TelegramBaseController {
         self.presentationDataDisposable?.dispose()
         self.peerViewDisposable.dispose()
         self.clearDisposable.dispose()
+        self.supportPeerDisposable.dispose()
     }
     
     override public func loadDisplayNode() {
         self.displayNode = EventsControllerNode(controller: self, context: self.context, presentationData: self.presentationData)
         self.displayNodeDidLoad()
+        
+        
+//        self._ready.set(combineLatest(queue: .mainQueue(),
+////            self.contactsNode.contactListNode.ready,
+////            self.contactsNode.storiesReady.get()
+//        )
+//        |> filter { a, b in
+//            return a && b
+//        }
+//        |> take(1)
+//        |> map { _ -> Bool in true })
     }
     
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {

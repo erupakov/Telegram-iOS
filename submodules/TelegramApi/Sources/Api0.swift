@@ -21,6 +21,10 @@ public enum Api {
     public enum updates {}
     public enum upload {}
     public enum users {}
+    //MARK: - NEW Divo -
+    public enum event {}
+    public enum profile {}
+    
     public enum functions {
         public enum account {}
         public enum auth {}
@@ -44,6 +48,9 @@ public enum Api {
         public enum updates {}
         public enum upload {}
         public enum users {}
+        //MARK: - NEW Divo -
+        public enum event {}
+        public enum profile {}
     }
 }
 
@@ -1140,7 +1147,11 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1886646706] = { return Api.UrlAuthResult.parse_urlAuthResultAccepted($0) }
     dict[-1445536993] = { return Api.UrlAuthResult.parse_urlAuthResultDefault($0) }
     dict[-1831650802] = { return Api.UrlAuthResult.parse_urlAuthResultRequest($0) }
-    dict[34280482] = { return Api.User.parse_user($0) }
+    //MARK: - NEW Divo -
+    dict[-1459900508] = { return Api.User.parse_user($0) }
+    dict[-271849932] = { return Api.UserProfile.parse_userProfile($0) }
+    //MARK: - NEW Divo -
+    
     dict[-742634630] = { return Api.User.parse_userEmpty($0) }
     dict[-769438048] = { return Api.UserFull.parse_userFull($0) }
     dict[-2100168954] = { return Api.UserProfilePhoto.parse_userProfilePhoto($0) }
@@ -1462,6 +1473,61 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[828000628] = { return Api.users.Users.parse_usersSlice($0) }
     dict[1974795807] = { return Api.ModelInfo.parse_modelInfo($0) }
     dict[1187678708] = { return Api.auth.Authorization.parse_signUp($0) }
+    //MARK: - NEW Divo -
+//    dict[593489812] = { return Api.Update.parse_update($0) }
+//    dict[553287311] = { return Api.Update.parse_updateApplicationApproved($0) }
+//    dict[706653339] = { return Api.Update.parse_updateApplicationRejected($0) }
+//    dict[88932760] = { return Api.Update.parse_updateEventLiked($0) }
+//    dict[925133019] = { return Api.Update.parse_updateNewApplicant($0) }
+    dict[-1217837952] = { return Api.event.AvailableParameter.parse_availableParameter($0) }
+    dict[1920007037] = { return Api.event.AvailableParameters.parse_availableParameters($0) }
+    dict[774760486] = { return Api.event.City.parse_city($0) }
+    dict[1618197693] = { return Api.event.Country.parse_country($0) }
+    dict[-2081385980] = { return Api.event.Error.parse_error($0) }
+    dict[710088095] = { return Api.event.Event.parse_event($0) }
+    dict[1872847863] = { return Api.event.EventParameter.parse_eventParameter($0) }
+    dict[405950179] = { return Api.event.EventType.parse_eventType($0) }
+    dict[-1083294774] = { return Api.event.EventTypes.parse_eventTypes($0) }
+    dict[-2018520751] = { return Api.event.Events.parse_events($0) }
+    dict[17917205] = { return Api.event.Filter.parse_filter($0) }
+    dict[-1713480390] = { return Api.event.Location.parse_location($0) }
+    dict[1698376519] = { return Api.event.MemberTypeFilter.parse_memberTypeFilter($0) }
+    dict[1540388111] = { return Api.event.Members.parse_members($0) }
+    dict[-1200681466] = { return Api.event.Photo.parse_photo($0) }
+    dict[1004564716] = { return Api.event.Requirements.parse_requirements($0) }
+    dict[-1602841549] = { return Api.event.ShareEventData.parse_shareEventData($0) }
+    dict[639414799] = { return Api.event.ShareEvents.parse_shareEvents($0) }
+    dict[1899462038] = { return Api.event.Short.parse_short($0) }
+    dict[1322901220] = { return Api.event.Stats.parse_stats($0) }
+    dict[-1742876116] = { return Api.event.Success.parse_success($0) }
+    dict[2016712066] = { return Api.event.User.parse_user($0) }
+    
+    dict[179446145] = { return Api.AgencyRole.parse_agencyRoleAgent($0) }
+    dict[-2032480205] = { return Api.AgencyRole.parse_agencyRoleAll($0) }
+    dict[-675920387] = { return Api.AgencyRole.parse_agencyRoleBooker($0) }
+    dict[2015587456] = { return Api.AgencyRole.parse_agencyRoleOwner($0) }
+    dict[1021882952] = { return Api.AgencyRole.parse_agencyRoleScout($0) }
+    dict[-694027777] = { return Api.Gender.parse_genderFemale($0) }
+    dict[1534712458] = { return Api.Gender.parse_genderMale($0) }
+    dict[-1325288322] = { return Api.Range.parse_range($0) }
+    
+    dict[892775356] = { return Api.profile.Agency.parse_agency($0) }
+    dict[-1238686816] = { return Api.profile.FoundAgencies.parse_foundAgencies($0) }
+    dict[-1159652644] = { return Api.profile.FoundUsers.parse_foundUsers($0) }
+    dict[460711454] = { return Api.profile.KeyVal.parse_keyVal($0) }
+    dict[1107222402] = { return Api.profile.ModelInfo.parse_modelInfo($0) }
+    dict[-2391709] = { return Api.profile.Option.parse_option($0) }
+    dict[1215939547] = { return Api.profile.PhysicalParams.parse_physicalParams($0) }
+    dict[657486946] = { return Api.profile.Portfolio.parse_portfolio($0) }
+    dict[77281858] = { return Api.profile.PortfolioItem.parse_portfolioItem($0) }
+    dict[-817810613] = { return Api.profile.RangeLimits.parse_rangeLimits($0) }
+    dict[-1956061324] = { return Api.profile.SearchConfig.parse_searchConfig($0) }
+    dict[1499661675] = { return Api.profile.SocialLinks.parse_socialLinks($0) }
+    dict[-1946315564] = { return Api.profile.Stats.parse_stats($0) }
+    dict[2104542426] = { return Api.profile.UsersList.parse_usersList($0) }
+    dict[2016442193] = { return Api.profile.WorkExperience.parse_workExperience($0) }
+    dict[-1178167755] = { return Api.profile.WorkHistory.parse_workHistory($0) }
+    
     return dict
 }()
 
@@ -2584,6 +2650,77 @@ public extension Api {
             case let _1 as Api.users.UserFull:
                 _1.serialize(buffer, boxed)
             case let _1 as Api.users.Users:
+                _1.serialize(buffer, boxed)
+
+            //MARK: - NEW Divo -
+            case let _1 as Api.event.AvailableParameter:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.City:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Country:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Error:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Event:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.EventParameter:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.EventType:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Events:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Filter:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Location:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.MemberTypeFilter:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Members:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Photo:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Short:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Stats:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.Success:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.event.User:
+                _1.serialize(buffer, boxed)
+            
+            case let _1 as Api.profile.Agency:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.FoundAgencies:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.FoundUsers:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.KeyVal:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.ModelInfo:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.Option:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.PhysicalParams:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.Portfolio:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.PortfolioItem:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.RangeLimits:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.SearchConfig:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.SocialLinks:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.Stats:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.UsersList:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.WorkExperience:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.profile.WorkHistory:
+                _1.serialize(buffer, boxed)
+            case let _1 as Api.UserProfile:
                 _1.serialize(buffer, boxed)
             default:
                 break
