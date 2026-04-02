@@ -387,7 +387,10 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     func populate(with detail: EventFullDetailData) {
-        
+
+        // Меняем текст кнопки на "Сохранить изменения" для режима редактирования
+        (self.applyButton as? ButtonWithIconNode)?.setTitle(DivoStrings.saveChanges)
+
         // 1. Основная информация
         nameEventTextField.textField.text = detail.title
         aboutEventTextField.setText(detail.description ?? "")
@@ -439,7 +442,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
             if let skinColor = attrs.skinColor, !skinColor.isEmpty { paramsToActivate.insert(.skinColor) }
             
             // Активируем нужные UI элементы (вызовет перестроение интерфейса)
-            self.updateSelectedParameters(paramsToActivate)
+            self.updateSelectedParameters(paramsToActivate, animated: false)
             
             // Заполняем слайдеры значениями
             if let age = attrs.age, let min = age.from, let max = age.to {
@@ -790,7 +793,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         self.genderDropdown?.options = dict.data.map { $0.title }
     }
     
-    func updateSelectedParameters(_ params: Set<EventParameter>) {
+    func updateSelectedParameters(_ params: Set<EventParameter>, animated: Bool = true) {
         self.selectedParameters = params
 
         let allParametersSet = Set(EventParameter.allCases)
@@ -838,7 +841,8 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         }
 
         if let (layout, navHeight, actualNavHeight) = self.currentLayoutData {
-            self.containerLayoutUpdated(layout, navigationBarHeight: navHeight, actualNavigationBarHeight: actualNavHeight, transition: .animated(duration: 0.3, curve: .spring))
+            let transition: ContainedViewLayoutTransition = animated ? .animated(duration: 0.3, curve: .spring) : .immediate
+            self.containerLayoutUpdated(layout, navigationBarHeight: navHeight, actualNavigationBarHeight: actualNavHeight, transition: transition)
         }
     }
 
