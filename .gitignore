@@ -63,6 +63,11 @@ xcodeproj.bazelrc
 */*.swp
 *.swp
 build-input/*
+!build-input/configuration-repository/
+!build-input/configuration-repository/variables.bzl
+!build-input/configuration-repository/provisioning/
+!build-input/configuration-repository/provisioning/BUILD
+build-input/configuration-repository/provisioning/*.mobileprovision
 **/*.pyc
 *.pyc
 submodules/OpusBinding/SharedHeaders/*
