@@ -70,6 +70,11 @@ public final class DivoSettingsController: TelegramBaseController {
         self.navigationItem.leftBarButtonItem = qrButton
 
         self.navigationItem.rightBarButtonItem = makeEditButton()
+        NotificationCenter.default.addObserver(forName: DivoConfig.tokenDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self = self else { return }
+            (self.displayNode as? DivoSettingsNode)?.reloadProfile()
+        }
+
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             self.tabBarItem.title = DivoStrings.tabSettings
@@ -443,6 +448,11 @@ private final class DivoSettingsNode: ASDisplayNode {
     // MARK: - Data loading
 
     private var isProfileLoaded = false
+
+    func reloadProfile() {
+        isProfileLoaded = false
+        loadProfile()
+    }
 
     func loadProfile() {
         guard !isProfileLoaded else { return }

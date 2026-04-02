@@ -51,6 +51,8 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
 
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 
+        NotificationCenter.default.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+
         self.title = ""
 
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
@@ -79,12 +81,33 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
     }
 
     deinit {
+        NotificationCenter.default.removeObserver(self)
         self.presentationDataDisposable?.dispose()
+    }
+
+    private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
+        let theme = NavigationBarTheme(
+            overallDarkAppearance: true,
+            buttonColor: .black,
+            disabledButtonColor: UIColor(rgb: 0x525252),
+            primaryTextColor: .white,
+            backgroundColor: .clear,
+            opaqueBackgroundColor: .clear,
+            enableBackgroundBlur: false,
+            separatorColor: .clear,
+            badgeBackgroundColor: .clear,
+            badgeStrokeColor: .clear,
+            badgeTextColor: .clear)
+        return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
+    }
+
+    @objc private func handleWillEnterForeground() {
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
     }
 
     private func updateThemeAndStrings() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData), transition: .immediate)
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
 
         self.searchContentNode?.updateThemeAndPlaceholder(theme: self.presentationData.theme, placeholder: self.presentationData.strings.Common_Search)
 
@@ -137,6 +160,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
     }
 
     override public func viewDidDisappear(_ animated: Bool) {

@@ -59,27 +59,35 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 
-        self.title = DivoStrings.createEvent
+        NotificationCenter.default.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
 
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
 
-        let createFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
-        let buttonTitle = isEditMode ? DivoStrings.save : DivoStrings.createEventButton
-        let createButton = UIBarButtonItem(
-            title: buttonTitle,
+        let titleLabel = UILabel()
+        titleLabel.attributedText = Font.helveticaNeue(
+            isEditMode ? "EDIT EVENT" : "CREATE EVENT",
+            20,
+            .black
+        )
+        titleLabel.sizeToFit()
+        self.navigationItem.titleView = titleLabel
+
+        let navFont = UIFont.systemFont(ofSize: 17, weight: .regular)
+        let navFontAttributes: [NSAttributedString.Key: Any] = [.font: navFont, .kern: -0.4]
+
+        let createItem = UIBarButtonItem(
+            title: isEditMode ? "Save" : "Create",
             style: .plain,
             target: self,
             action: #selector(createPressed)
         )
-        createButton.setTitleTextAttributes([
-            .foregroundColor: copperColor,
-            .font: createFont
-        ], for: .normal)
-        createButton.setTitleTextAttributes([
-            .foregroundColor: copperColor.withAlphaComponent(0.5),
-            .font: createFont
-        ], for: .highlighted)
-        self.navigationItem.rightBarButtonItem = createButton
+        createItem.tintColor = copperColor
+        createItem.setTitleTextAttributes(navFontAttributes, for: .normal)
+        createItem.setTitleTextAttributes(navFontAttributes, for: .highlighted)
+        self.navigationItem.rightBarButtonItem = createItem
+
+        self.navigationItem.backBarButtonItem?.setTitleTextAttributes(navFontAttributes, for: .normal)
+        self.navigationItem.backBarButtonItem?.setTitleTextAttributes(navFontAttributes, for: .highlighted)
 
         self.presentationDataDisposable = (context.sharedContext.presentationData
                                            |> deliverOnMainQueue).start(next: { [weak self] presentationData in
@@ -101,14 +109,34 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     }
 
     deinit {
+        NotificationCenter.default.removeObserver(self)
         self.presentationDataDisposable?.dispose()
+    }
+
+    private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
+        let copperColor = UIColor(hexString: "#BF7A54") ?? .black
+        let theme = NavigationBarTheme(
+            overallDarkAppearance: true,
+            buttonColor: copperColor,
+            disabledButtonColor: copperColor.withAlphaComponent(0.4),
+            primaryTextColor: .white,
+            backgroundColor: .clear,
+            opaqueBackgroundColor: .clear,
+            enableBackgroundBlur: false,
+            separatorColor: .black,
+            badgeBackgroundColor: .clear,
+            badgeStrokeColor: .clear,
+            badgeTextColor: .clear)
+        return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
+    }
+
+    @objc private func handleWillEnterForeground() {
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
     }
 
     private func updateThemeAndStrings() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData), transition: .immediate)
-
-        self.title = DivoStrings.createEvent
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
 
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
     }
@@ -175,6 +203,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
         if isEditMode, let eventId = self.eventId {
             self.loadEventData(eventId: eventId)
         }

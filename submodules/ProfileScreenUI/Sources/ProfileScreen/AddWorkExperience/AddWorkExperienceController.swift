@@ -54,6 +54,8 @@ public class AddWorkExperienceController: ViewController, UINavigationController
 
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 
+        NotificationCenter.default.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
 
         let titleLabel = UILabel()
@@ -96,12 +98,34 @@ public class AddWorkExperienceController: ViewController, UINavigationController
     }
 
     deinit {
+        NotificationCenter.default.removeObserver(self)
         self.presentationDataDisposable?.dispose()
+    }
+
+    private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
+        let brownColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
+        let theme = NavigationBarTheme(
+            overallDarkAppearance: true,
+            buttonColor: brownColor,
+            disabledButtonColor: UIColor(rgb: 0x525252),
+            primaryTextColor: .black,
+            backgroundColor: .white,
+            opaqueBackgroundColor: .white,
+            enableBackgroundBlur: false,
+            separatorColor: UIColor(rgb: 0xE5E5E5),
+            badgeBackgroundColor: .clear,
+            badgeStrokeColor: .clear,
+            badgeTextColor: .clear)
+        return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
+    }
+
+    @objc private func handleWillEnterForeground() {
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
     }
 
     private func updateThemeAndStrings() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(presentationData: self.presentationData), transition: .immediate)
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
 
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
     }
@@ -172,6 +196,7 @@ public class AddWorkExperienceController: ViewController, UINavigationController
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
     }
 
     override public func viewDidDisappear(_ animated: Bool) {
