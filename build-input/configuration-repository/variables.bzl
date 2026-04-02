@@ -1,0 +1,16 @@
+telegram_bazel_path = "/opt/homebrew/bin/bazel"
+telegram_use_xcode_managed_codesigning = False
+telegram_bundle_id = "app.divo.fashion"
+telegram_api_id = "39101169"
+telegram_api_hash = "b6c7a591f80a14728012b35a6fb83955"
+telegram_team_id = "9DTLH63S7N"
+telegram_app_center_id = "0"
+telegram_is_internal_build = "false"
+telegram_is_appstore_build = "true"
+telegram_appstore_id = "686449807"
+telegram_app_specific_url_scheme = "tg"
+telegram_premium_iap_product_id = "org.telegram.telegramPremium.monthly"
+telegram_aps_environment = "development"
+telegram_enable_siri = True
+telegram_enable_icloud = True
+telegram_enable_watch = True
