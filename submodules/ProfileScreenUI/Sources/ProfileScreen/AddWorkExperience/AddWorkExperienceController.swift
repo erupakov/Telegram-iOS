@@ -60,16 +60,17 @@ public class AddWorkExperienceController: ViewController, UINavigationController
 
         let titleLabel = UILabel()
         titleLabel.attributedText = Font.helveticaNeue(
-            editItem != nil ? "EDIT EXPERIENCE" : "CREATE EXPERIENCE",
+            editItem != nil ? DivoStrings.navEditExperience : DivoStrings.navCreateExperience,
             20,
             .black
         )
+        titleLabel.sizeToFit()
         self.navigationItem.titleView = titleLabel
 
         let navFont = UIFont.systemFont(ofSize: 17, weight: .regular)
         let navFontAttributes: [NSAttributedString.Key: Any] = [.font: navFont, .kern: -0.4]
 
-        let createItem = UIBarButtonItem(title: "Create", style: .plain, target: self, action: #selector(createPressed))
+        let createItem = UIBarButtonItem(title: DivoStrings.create, style: .plain, target: self, action: #selector(createPressed))
         createItem.tintColor = brownColor
         createItem.setTitleTextAttributes(navFontAttributes, for: .normal)
         createItem.setTitleTextAttributes(navFontAttributes, for: .highlighted)

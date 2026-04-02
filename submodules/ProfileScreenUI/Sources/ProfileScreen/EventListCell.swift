@@ -58,6 +58,7 @@ final class EventListCell: UICollectionViewCell {
         button.layer.cornerRadius = 6
         button.clipsToBounds = true
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()

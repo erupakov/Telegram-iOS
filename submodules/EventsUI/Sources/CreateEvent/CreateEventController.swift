@@ -44,11 +44,11 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             overallDarkAppearance: true,
             buttonColor: copperColor,
             disabledButtonColor: copperColor.withAlphaComponent(0.4),
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
+            primaryTextColor: .black,
+            backgroundColor: .white,
+            opaqueBackgroundColor: .white,
             enableBackgroundBlur: false,
-            separatorColor: .black,
+            separatorColor: UIColor(rgb: 0xE5E5E5),
             badgeBackgroundColor: .clear,
             badgeStrokeColor: .clear,
             badgeTextColor: .clear)
@@ -65,7 +65,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
         let titleLabel = UILabel()
         titleLabel.attributedText = Font.helveticaNeue(
-            isEditMode ? "EDIT EVENT" : "CREATE EVENT",
+            isEditMode ? DivoStrings.navEditEvent : DivoStrings.navCreateEvent,
             20,
             .black
         )
@@ -76,7 +76,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         let navFontAttributes: [NSAttributedString.Key: Any] = [.font: navFont, .kern: -0.4]
 
         let createItem = UIBarButtonItem(
-            title: isEditMode ? "Save" : "Create",
+            title: isEditMode ? DivoStrings.save : DivoStrings.create,
             style: .plain,
             target: self,
             action: #selector(createPressed)

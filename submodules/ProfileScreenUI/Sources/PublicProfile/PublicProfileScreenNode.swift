@@ -1858,6 +1858,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
         
         UIView.performWithoutAnimation {
+            let jobIcon: UserProfileViewModel.Job
+            switch self.modelRole {
+            case .model:   jobIcon = .model
+            case .agency:  jobIcon = .agency
+            case .newFace: jobIcon = .talent
+            }
+
             if self.modelRole == .agency {
                 let viewModel = UserProfileViewModel(
                     name: detail.agency?.title ?? DivoStrings.noName,
@@ -1865,6 +1872,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     location: detail.agency?.address?.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.agency?.address?.city?.countryCode),
                     jobTitle: self.modelRole.title,
+                    jobIcon: jobIcon,
                     avatarImage: nil,
                     isPremium: true,
                     isOnline: true
@@ -1878,6 +1886,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     location: detail.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.city?.countryCode),
                     jobTitle: self.modelRole.title,
+                    jobIcon: jobIcon,
                     avatarImage: nil,
                     isPremium: true,
                     isOnline: true

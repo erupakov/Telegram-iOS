@@ -99,6 +99,10 @@ public enum DivoStrings {
     public static var navEvents: String { L(en: "EVENTS", ru: "СОБЫТИЯ", es: "EVENTOS", pt: "EVENTOS", zh: "活动") }
     public static var back: String { L(en: "Back", ru: "Назад", es: "Atrás", pt: "Voltar", zh: "返回") }
     public static var close: String { L(en: "Close", ru: "Закрыть", es: "Cerrar", pt: "Fechar", zh: "关闭") }
+    public static var navCreateExperience: String { L(en: "CREATE EXPERIENCE", ru: "ДОБАВИТЬ ОПЫТ", es: "CREAR EXPERIENCIA", pt: "CRIAR EXPERIÊNCIA", zh: "创建经历") }
+    public static var navEditExperience: String { L(en: "EDIT EXPERIENCE", ru: "РЕДАКТИРОВАТЬ ОПЫТ", es: "EDITAR EXPERIENCIA", pt: "EDITAR EXPERIÊNCIA", zh: "编辑经历") }
+    public static var navCreateEvent: String { L(en: "CREATE EVENT", ru: "ДОБАВИТЬ СОБЫТИЕ", es: "CREAR EVENTO", pt: "CRIAR EVENTO", zh: "创建活动") }
+    public static var navEditEvent: String { L(en: "EDIT EVENT", ru: "РЕДАКТИРОВАТЬ СОБЫТИЕ", es: "EDITAR EVENTO", pt: "EDITAR EVENTO", zh: "编辑活动") }
 
     // MARK: - Feed Segments
 
@@ -187,6 +191,7 @@ public enum DivoStrings {
     public static var error: String { L(en: "Error", ru: "Ошибка", es: "Error", pt: "Erro", zh: "错误") }
     public static var search: String { L(en: "Search", ru: "Поиск", es: "Buscar", pt: "Buscar", zh: "搜索") }
     public static var apply: String { L(en: "Apply", ru: "Подать заявку", es: "Aplicar", pt: "Aplicar", zh: "申请") }
+    public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...") }
     public static var continueButton: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }
 
