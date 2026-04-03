@@ -54,9 +54,11 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close))
         
         super.init(navigationBarPresentationData: navigationBarData)
-        
+
         self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-        
+
+        NotificationCenter.default.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
+
         self.title = DivoStrings.editSocialLinks
         
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
@@ -81,26 +83,34 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
     }
     
     deinit {
+        NotificationCenter.default.removeObserver(self)
         (self.presentationDataDisposable as? Disposable)?.dispose()
     }
-    
+
+    private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
+        let theme = NavigationBarTheme(
+            overallDarkAppearance: true,
+            buttonColor: .white,
+            disabledButtonColor: UIColor(rgb: 0x525252),
+            primaryTextColor: .white,
+            backgroundColor: .clear,
+            opaqueBackgroundColor: .clear,
+            enableBackgroundBlur: false,
+            separatorColor: .clear,
+            badgeBackgroundColor: .clear,
+            badgeStrokeColor: .clear,
+            badgeTextColor: .clear)
+        return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close))
+    }
+
+    @objc private func handleWillEnterForeground() {
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
+    }
+
     private func updateThemeAndStrings() {
         self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-        let navTheme = NavigationBarTheme(
-            overallDarkAppearance: true, 
-            buttonColor: .white, 
-            disabledButtonColor: UIColor(rgb: 0x525252), 
-            primaryTextColor: .white, 
-            backgroundColor: .clear, 
-            opaqueBackgroundColor: .clear, 
-            enableBackgroundBlur: false, 
-            separatorColor: .clear, 
-            badgeBackgroundColor: .clear, 
-            badgeStrokeColor: .clear, 
-            badgeTextColor: .clear
-        )
-        self.navigationBar?.updatePresentationData(NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close)), transition: .immediate)
-        
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
+
         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
     }
     
@@ -183,6 +193,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
     }
     
     override public func viewDidDisappear(_ animated: Bool) {

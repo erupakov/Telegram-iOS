@@ -75,7 +75,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     var currentPhoto: UIImage? = nil {
         didSet {
             if let currentPhoto = self.currentPhoto {
-                self.currentPhotoNode.image = generateImage(CGSize(width: 94.0, height: 94.0), contextGenerator: { size, context in
+                self.currentPhotoNode.image = generateImage(CGSize(width: 110.0, height: 110.0), contextGenerator: { size, context in
                     context.clear(CGRect(origin: CGPoint(), size: size))
                     context.setBlendMode(.copy)
                     context.draw(currentPhoto.cgImage!, in: CGRect(origin: CGPoint(), size: size))
@@ -103,16 +103,13 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         let iconColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
 
         self.addPhotoButton = HighlightableButtonNode()
-        if let originalImage = UIImage(bundleImageName: "Avatar/AddAvatarIconLarge"),
-           let tinted = generateTintedImage(image: originalImage, color: iconColor) {
-            let renderer = UIGraphicsImageRenderer(size: CGSize(width: 24, height: 24))
-            let resized = renderer.image { _ in
-                tinted.draw(in: CGRect(origin: .zero, size: CGSize(width: 24, height: 24)))
-            }
-            self.addPhotoButton.setImage(resized, for: .normal)
-        }
+        self.addPhotoButton.setImage(
+            generateTintedImage(
+                image: UIImage(bundleImageName: "Profile/AddPhotoIcon"),
+                color: iconColor),
+            for: .normal)
 
-        let buttonDiameter: CGFloat = 94.0
+        let buttonDiameter: CGFloat = 110.0
 
         self.addPhotoButton.setBackgroundImage(
             generateFilledCircleImage(diameter: buttonDiameter,
@@ -412,7 +409,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
 
-        let avatarSize: CGSize = CGSize(width: 94.0, height: 94.0)
+        let avatarSize: CGSize = CGSize(width: 100.0, height: 100.0)
 
         let avatarX: CGFloat = floor((layout.size.width - avatarSize.width) / 2.0)
         self.addPhotoButton.frame = CGRect(origin: CGPoint(x: avatarX, y: 20), size: avatarSize)
@@ -427,7 +424,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
         self.scrollNode.frame = CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: layout.size.width, height: layout.size.height - topInset))
 
-        var currentY: CGFloat = 120.0
+        var currentY: CGFloat = 140.0
 
         let eventInfoBySize = self.eventInfoLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
         self.eventInfoLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: eventInfoBySize)

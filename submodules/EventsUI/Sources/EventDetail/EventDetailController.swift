@@ -139,18 +139,18 @@ public final class EventDetailController: TelegramBaseController {
     private func getEvent() {
         Task {
             do {
-                let response: EventDetailResponse = try await DivoAPIClient.shared.request(
+                let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/event/\(eventData.id)"
                 )
-                let item = response.data
+                guard let item = response.data else { return }
                 let dateString = item.date?.prefix(while: { $0 != "T" }).description ?? ""
                 let coverURL = item.files?.first?.fullUrl
-                let avatarURL = item.user?.avatar?.fullUrl
+                let avatarURL = item.creator?.avatar?.fullUrl
                 let data = EventData(
                     id: item.id,
-                    title: item.title,
+                    title: item.title ?? "",
                     subtitle: item.description ?? "",
-                    profileName: "@" + (item.user?.fullName ?? ""),
+                    profileName: "@" + (item.creator?.fullName ?? ""),
                     timeRemaining: dateString,
                     type: item.type?.title ?? "",
                     coverPhotoURL: coverURL,

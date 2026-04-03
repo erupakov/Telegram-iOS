@@ -1,6 +1,7 @@
 import UIKit
 import AsyncDisplayKit
 import Display
+import TelegramCore
 
 final class DropdownNode: ASDisplayNode {
 
@@ -14,7 +15,7 @@ final class DropdownNode: ASDisplayNode {
     private let placeholderColor: UIColor?
     private let title: String
     private let titleColor: UIColor?
-    
+
     var showsSearchBar: Bool = false
     var allowsMultipleSelection: Bool = false
 
@@ -100,22 +101,22 @@ final class DropdownNode: ASDisplayNode {
     private func updateTitleText() {
         let text: String
         if isLoading {
-            text = "Loading..."
+            text = DivoStrings.loading
         } else if allowsMultipleSelection {
             if selectedValues.isEmpty {
                 text = placeholder
             } else if selectedValues.count == 1 {
                 text = selectedValues[0]
             } else {
-                text = "\(selectedValues.count) selected"
+                text = DivoStrings.nSelected(selectedValues.count)
             }
         } else {
             text = selectedValue ?? placeholder
         }
-
+        
         let hasValue = allowsMultipleSelection ? !selectedValues.isEmpty : (selectedValue != nil)
-        let color: UIColor = (isLoading || !hasValue) ? placeholderColor! : titleColor!
-
+        let color: UIColor = (isLoading || !hasValue) ? (placeholderColor ?? .gray) : (titleColor ?? .white)
+        
         titleNode.attributedText = NSAttributedString(string: text, font: Font.regular(16.0), textColor: color)
         setNeedsLayout()
     }
@@ -159,7 +160,6 @@ final class DropdownNode: ASDisplayNode {
 
         let bounds = self.bounds
 
-
         let apperTitleSize = apperTitleNode.measure(CGSize(width: bounds.width, height: .greatestFiniteMagnitude))
         apperTitleNode.frame = CGRect(
             x: 0,
@@ -172,7 +172,6 @@ final class DropdownNode: ASDisplayNode {
 
         let backgroundY = apperTitleNode.frame.maxY + spacing
         let backgroundHeight = bounds.height - backgroundY
-
 
         backgroundNode.frame = CGRect(
             x: 0,
@@ -204,8 +203,8 @@ final class DropdownListSheetController: UIViewController, UITableViewDelegate, 
     private var allOptions: [String]
     private var filteredOptions: [String]
 
-    private let selectedValue: String?
-    private let selectedValues: [String]
+    private var selectedValue: String?
+    private var selectedValues: [String]
     private let allowsMultipleSelection: Bool
     private var selectedIndices: Set<Int> = []
     
@@ -263,6 +262,20 @@ final class DropdownListSheetController: UIViewController, UITableViewDelegate, 
 
             self.allOptions = newOptions
 
+            // Пересчитываем selectedIndices по актуальным строкам, чтобы не было десинхронизации
+            self.selectedIndices = []
+            if self.allowsMultipleSelection {
+                for (index, option) in self.allOptions.enumerated() {
+                    if self.selectedValues.contains(option) {
+                        self.selectedIndices.insert(index)
+                    }
+                }
+            } else {
+                if let sv = self.selectedValue, let index = self.allOptions.firstIndex(of: sv) {
+                    self.selectedIndices.insert(index)
+                }
+            }
+
             let searchText = self.searchBar.text ?? ""
 
             if searchText.isEmpty {
@@ -310,7 +323,7 @@ final class DropdownListSheetController: UIViewController, UITableViewDelegate, 
 
         if showsSearchBar {
             searchBar.searchBarStyle = .minimal
-            searchBar.placeholder = "Search..."
+            searchBar.placeholder = DivoStrings.searchPlaceholder
             searchBar.delegate = self
             searchBar.barStyle = .black
             searchBar.translatesAutoresizingMaskIntoConstraints = false

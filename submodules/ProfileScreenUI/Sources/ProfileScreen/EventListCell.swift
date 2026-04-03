@@ -11,18 +11,25 @@ struct EventItem {
     let countryFlag: String
     let city: String
     let customAvatarURL: String?
+    let originalDate: String? // Оригинальная дата для сортировки
+    let eventId: Int? // ID события для редактирования
 }
 
 final class EventListCell: UICollectionViewCell {
     static let reuseIdentifier = "EventListCell"
+    
+    // Callback для нажатия на кнопку
+    var onButtonTap: ((Int?) -> Void)?
+    private var currentEventId: Int?
 
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 30
-        iv.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        iv.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
         iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.tintColor = .lightGray
         return iv
     }()
 
@@ -50,9 +57,13 @@ final class EventListCell: UICollectionViewCell {
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 6
         button.clipsToBounds = true
+        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
+    
+    private var isMyProfile: Bool = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -70,6 +81,9 @@ final class EventListCell: UICollectionViewCell {
         contentView.addSubview(nameLabel)
         contentView.addSubview(infoLabel)
         contentView.addSubview(applyButton)
+        
+        // Добавляем action на кнопку
+        applyButton.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
             avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -88,17 +102,26 @@ final class EventListCell: UICollectionViewCell {
             applyButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
             applyButton.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
             applyButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
-            applyButton.widthAnchor.constraint(equalToConstant: 68)
+            applyButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 68)
         ])
+    }
+    
+    @objc private func buttonTapped() {
+        onButtonTap?(currentEventId)
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
         avatarImageView.cancelImageLoad()
         avatarImageView.image = nil
+        currentEventId = nil
+        onButtonTap = nil
     }
 
-    func configure(with item: EventItem, context: AccountContext) {
+    func configure(with item: EventItem, context: AccountContext, isMyProfile: Bool) {
+        self.isMyProfile = isMyProfile
+        self.currentEventId = item.eventId
+        
         nameLabel.text = item.name
         var infoParts: [String] = []
         if !item.data.isEmpty { infoParts.append(item.data) }
@@ -110,6 +133,10 @@ final class EventListCell: UICollectionViewCell {
         if let urlString = item.customAvatarURL, let url = URL(string: urlString) {
             avatarImageView.loadImage(from: url)
         }
+        
+        // Обновляем текст кнопки в зависимости от профиля
+        let buttonTitle = isMyProfile ? DivoStrings.edit : DivoStrings.apply
+        applyButton.setTitle(buttonTitle, for: .normal)
     }
 }
 

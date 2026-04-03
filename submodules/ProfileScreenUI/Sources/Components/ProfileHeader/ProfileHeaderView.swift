@@ -222,14 +222,14 @@ class ProfileHeaderView: UIView {
             tagContainer.heightAnchor.constraint(equalToConstant: 24),
             tagContainer.centerYAnchor.constraint(equalTo: infoLabel.centerYAnchor),
             
-            tagIcon.leadingAnchor.constraint(equalTo: tagContainer.leadingAnchor, constant: 4),
+            tagIcon.leadingAnchor.constraint(equalTo: tagContainer.leadingAnchor, constant: 8),
             tagIcon.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor),
             tagIcon.widthAnchor.constraint(equalToConstant: 16),
             tagIcon.heightAnchor.constraint(equalToConstant: 16),
-            
-            tagLabel.leadingAnchor.constraint(equalTo: tagIcon.trailingAnchor, constant: 3),
-            tagLabel.trailingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: -6),
-            tagLabel.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor, constant: 1),
+
+            tagLabel.leadingAnchor.constraint(equalTo: tagIcon.trailingAnchor, constant: 4),
+            tagLabel.trailingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: -8),
+            tagLabel.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor),
             
             tagContainer.topAnchor.constraint(equalTo: crownIconView.bottomAnchor, constant: 10),
             infoLabel.leadingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: 10),

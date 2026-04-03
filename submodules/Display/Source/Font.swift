@@ -281,7 +281,7 @@ public struct Font {
     }
     
     public static func helveticaNeue(_ size: CGFloat) -> UIFont {
-        UIFont(name: "HelveticaNeueLTCom-BdCn", size: size) ?? Font.bold(size)
+        UIFont(name: "HelveticaNeue-CondensedBold", size: size) ?? Font.bold(size)
     }
     
     public static func helveticaNeue(_ text: String, _ size: CGFloat, _ color: UIColor = .white, alignment: NSTextAlignment = .center) -> NSAttributedString {
