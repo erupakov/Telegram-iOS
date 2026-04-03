@@ -632,6 +632,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
             return self.website.rawValue
         }
     }
+
+    var onAddModelTapped: (() -> Void)?
+    private let emptyModelsPlaceholderNode: EmptyModelsPlaceholderNode
     
     
     // MARK: - Init
@@ -641,6 +644,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.context = context
         self.presentationData = presentationData
         self.model = model
+        self.emptyModelsPlaceholderNode = EmptyModelsPlaceholderNode(theme: presentationData.theme)
 
         super.init()
         
@@ -1070,6 +1074,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         modelTabContainer.addSubview(modelGalleryStatusView)
         modelTabContainer.addSubview(modelGalleryCollectionView)
+
+        emptyModelsPlaceholderNode.view.translatesAutoresizingMaskIntoConstraints = false
+        modelTabContainer.addSubview(emptyModelsPlaceholderNode.view)
+
         NSLayoutConstraint.activate([
             modelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             modelGalleryStatusView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
@@ -1078,12 +1086,20 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             modelGalleryCollectionView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
             modelGalleryCollectionView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
-            modelGalleryCollectionView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor)
+            modelGalleryCollectionView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
+
+            emptyModelsPlaceholderNode.view.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
+            emptyModelsPlaceholderNode.view.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
+            emptyModelsPlaceholderNode.view.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
+            emptyModelsPlaceholderNode.view.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
         ])
         modelGalleryCollectionView.isHidden = true
+        emptyModelsPlaceholderNode.isHidden = true
         modelGalleryStatusView.isHidden = false
         modelGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingModels, isMyProfile: false)
         
+        emptyModelsPlaceholderNode.addButton.addTarget(self, action: #selector(addModelBtnTapped), forControlEvents: .touchUpInside)
+
         // --- EVENTS ---
         // ЗАМЕНА: Сохраняем констрейнт высоты
         eventHeightConstraint = eventGalleryCollectionView.heightAnchor.constraint(equalToConstant: 1)
@@ -1861,7 +1877,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     age: nil,
                     location: detail.agency?.address?.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.agency?.address?.city?.countryCode),
-                    jobTitle: self.modelRole.title,
+                    role: self.modelRole,
                     avatarImage: nil,
                     isPremium: true,
                     isOnline: true
@@ -1874,7 +1890,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     age: age,
                     location: detail.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.city?.countryCode),
-                    jobTitle: self.modelRole.title,
+                    role: self.modelRole,
                     avatarImage: nil,
                     isPremium: true,
                     isOnline: true
@@ -2466,16 +2482,35 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func updateModelsList(_ items:[ModelItem]) {
         self.modelGalleryItems = items
         let hasItems = !items.isEmpty
-        self.modelGalleryStatusView.isHidden = hasItems
+        
         self.modelGalleryCollectionView.isHidden = !hasItems
-        if !hasItems {
-            self.modelGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? DivoStrings.addModel : DivoStrings.noModelsYet, isMyProfile: model.isMyProfile)
+        
+        if !hasItems && model.isMyProfile && modelRole == .agency {
+            self.modelGalleryStatusView.isHidden = true
+            self.emptyModelsPlaceholderNode.isHidden = false
+        } else {
+            self.emptyModelsPlaceholderNode.isHidden = true
+            self.modelGalleryStatusView.isHidden = hasItems
+            if !hasItems {
+                self.modelGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? "Add model" : "No models yet", isMyProfile: model.isMyProfile)
+            }
         }
+        
         self.modelGalleryCollectionView.reloadData()
         
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            if self.currentTabIndex == 2 { self.updateCollectionsContainerHeight(animated: true) }
+            if self.currentTabIndex == 2 {
+                self.updateCollectionsContainerHeight(animated: true)
+                
+                if !hasItems && model.isMyProfile && modelRole == .agency {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                        guard let self = self else { return }
+                        let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
+                        self.scrollView.setContentOffset(bottomOffset, animated: true)
+                    }
+                }
+            }
         }
     }
     
@@ -2564,45 +2599,56 @@ final class PublicProfileScreenNode: ASDisplayNode {
         eventHeightConstraint.constant = max(eHeight, 1.0)
     }
     
-    private func updateCollectionsContainerHeight(animated: Bool = true) {
-        func heightFor(isEmpty: Bool, constraint: NSLayoutConstraint) -> CGFloat {
-            if isEmpty { return 160 }
+    private func calculateCollectionsContainerHeight() -> CGFloat {
+        guard let (layout, navBarHeight) = self.containerLayout else { return 160 }
+        
+        let emptyPlaceholderHeight = max(160, layout.size.height - navBarHeight - self.segmentedBarHeight)
+        
+        func heightFor(isEmpty: Bool, constraint: NSLayoutConstraint, isModelTab: Bool = false) -> CGFloat {
+            if isEmpty {
+                return (isModelTab && model.isMyProfile && modelRole == .agency) ? emptyPlaceholderHeight : 160
+            }
             return constraint.constant
         }
         
-        let newHeight: CGFloat
-        
         if isMyModelProfile {
             switch currentTabIndex {
-            case 0: newHeight = heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
-            case 1: newHeight = heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
-            default: newHeight = 160
+            case 0: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
+            case 1: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
+            default: return 160
             }
         } else if (modelRole == .model || modelRole == .newFace) && !model.isMyProfile {
             switch currentTabIndex {
-            case 0: newHeight = heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
-            case 1: newHeight = heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
-            case 2: newHeight = heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
-            default: newHeight = 160
+            case 0: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
+            case 1: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
+            case 2: return heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
+            default: return 160
             }
         } else {
             switch currentTabIndex {
-            case 0: newHeight = heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
-            case 1: newHeight = heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
-            case 2: newHeight = heightFor(isEmpty: modelGalleryItems.isEmpty, constraint: modelHeightConstraint)
-            case 3: newHeight = heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
-            case 4: newHeight = heightFor(isEmpty: eventGalleryItems.isEmpty, constraint: eventHeightConstraint)
-            default: newHeight = 160
+            case 0: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
+            case 1: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
+            case 2: return heightFor(isEmpty: modelGalleryItems.isEmpty, constraint: modelHeightConstraint, isModelTab: true)
+            case 3: return heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
+            case 4: return heightFor(isEmpty: eventGalleryItems.isEmpty, constraint: eventHeightConstraint)
+            default: return 160
             }
         }
+    }
+    
+    private func updateCollectionsContainerHeight(animated: Bool = true) {
+        collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
         
-        collectionsContainerHeightConstraint.constant = newHeight
-        
-        // Мы отключили анимацию, если пользователь активно скроллит (чтобы не было рывков)
         if animated && !scrollView.isDragging && !scrollView.isDecelerating {
             UIView.animate(withDuration: 0.3) {
                 self.contentViewStack.layoutIfNeeded()
                 self.view.layoutIfNeeded()
+                
+                // Плавно подтягиваем скролл, если контент стал меньше
+                let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
+                if self.scrollView.contentOffset.y > maxOffset {
+                    self.scrollView.contentOffset.y = maxOffset
+                }
             }
         } else {
             UIView.performWithoutAnimation {
@@ -2616,6 +2662,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     
     // MARK: - @objc
+
+    @objc private func addModelBtnTapped() {
+        onAddModelTapped?()
+    }
     
     @objc private func dmButtonTapped() {
         
@@ -2968,7 +3018,6 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
     
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int) {
         guard index != currentTabIndex else { return }
-        // debug: removed
         
         let isSlidingLeft = index > currentTabIndex
         let screenWidth = self.view.bounds.width
@@ -2983,17 +3032,36 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
         loadDataForTab(index: index)
         
         currentTabIndex = index
-        updateCollectionsContainerHeight(animated: false)
         
+        // 1. Устанавливаем новую высоту (вычисляем через наш новый метод)
+        collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
+        
+        // 2. Анимируем всё вместе: сдвиг, изменение высоты и корректировку скролла
         UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseInOut, animations: {
             oldContainer.transform = CGAffineTransform(translationX: -offset, y: 0)
             newContainer.transform = .identity
             
-            self.contentViewStack.layoutIfNeeded()
+            // Плавно применяем новую высоту к Layout
+            self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
-        }, completion: { _ in
+            
+            // Если новый таб короче, и мы находились в самом низу, скролл должен плавно подняться
+            let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
+            if self.scrollView.contentOffset.y > maxOffset {
+                self.scrollView.contentOffset.y = maxOffset
+            }
+            
+        }, completion: {[weak self] _ in
+            guard let self = self else { return }
             oldContainer.isHidden = true
             oldContainer.transform = .identity
+            
+            // Логика автоматического скролла вниз для ПУСТОГО окна добавления моделей
+            let hasItems = !self.modelGalleryItems.isEmpty
+            if index == 2 && self.model.isMyProfile && self.modelRole == .agency && !hasItems {
+                let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
+                self.scrollView.setContentOffset(bottomOffset, animated: true)
+            }
         })
     }
     

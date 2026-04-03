@@ -32,6 +32,10 @@ swift_library(
         "//submodules/TelegramAnimatedStickerNode:TelegramAnimatedStickerNode",
         "//submodules/TelegramUI/Components/ChatScheduleTimeController",
         "//submodules/MediaPickerUI",
+        "//submodules/AttachmentUI",
+        "//submodules/TelegramUI/Components/MediaEditorScreen",
+        "//submodules/TelegramUI/Components/CameraScreen",
+        "//submodules/Camera:Camera",
     ],
     visibility = [
         "//visibility:public",

@@ -20,8 +20,7 @@ struct UserProfileViewModel {
     let age: Int?
     let location: String
     let countryFlag: String
-    let jobTitle: String
-    var jobIcon: Job = .model
+    let role: Role
     let avatarImage: UIImage?
     let isPremium: Bool
     let isOnline: Bool
@@ -31,7 +30,7 @@ struct UserProfileViewModel {
         age: Int?,
         location: String,
         countryFlag: String,
-        jobTitle: String,
+        role: Role,
         avatarImage: UIImage?,
         isPremium: Bool,
         isOnline: Bool
@@ -40,17 +39,7 @@ struct UserProfileViewModel {
         self.age = age
         self.location = location
         self.countryFlag = countryFlag
-        self.jobTitle = jobTitle
-        switch jobTitle {
-        case "model":
-            self.jobIcon = .model
-        case "agency":
-            self.jobIcon = .agency
-        case "new face":
-            self.jobIcon = .talent
-        default:
-            self.jobIcon = .model
-        }
+        self.role = role
         self.avatarImage = avatarImage
         self.isPremium = isPremium
         self.isOnline = isOnline
@@ -136,12 +125,13 @@ class ProfileHeaderView: UIView {
         return iv
     }()
     
-    private let tagLabel: UILabel = {
-        let label = UILabel()
+    private let tagLabel: PaddedLabel = { 
+        let label = PaddedLabel()
+        label.textInsets = UIEdgeInsets(top: 1, left: 0, bottom: 0, right: 0) 
         label.font = Font.helveticaNeue(10)
         label.textColor = .white
+        label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.setContentCompressionResistancePriority(.required, for: .horizontal)
         return label
     }()
     
@@ -262,8 +252,8 @@ class ProfileHeaderView: UIView {
             .baselineOffset: -2.0
         ]
         nameLabel.attributedText = NSAttributedString(string: text, attributes: attributes)
-        tagLabel.text = viewModel.jobTitle
-        switch viewModel.jobIcon {
+        tagLabel.text = viewModel.role.title
+        switch viewModel.role {
         case .model:
             tagIcon.image = UIImage(bundleImageName: "Profile/Role/Model")
             tagContainer.apply(style: .bronzeGradient)
@@ -274,7 +264,7 @@ class ProfileHeaderView: UIView {
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black
             tagLabel.textColor = .black
-        case .talent:
+        case .newFace:
             tagIcon.image = UIImage(bundleImageName: "Profile/Role/NewTalent")
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black

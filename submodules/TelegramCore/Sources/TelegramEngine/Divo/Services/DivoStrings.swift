@@ -182,6 +182,7 @@ public enum DivoStrings {
     public static var ok: String { L(en: "OK", ru: "OK", es: "OK", pt: "OK", zh: "好的") }
     public static var cancel: String { L(en: "Cancel", ru: "Отмена", es: "Cancelar", pt: "Cancelar", zh: "取消") }
     public static var save: String { L(en: "Save", ru: "Сохранить", es: "Guardar", pt: "Salvar", zh: "保存") }
+    public static var nextStep: String { L(en: "Next Step", ru: "Следующий шаг", es: "Siguiente Paso", pt: "Próximo Passo", zh: "下一步") }
     public static var delete: String { L(en: "Delete", ru: "Удалить", es: "Eliminar", pt: "Excluir", zh: "删除") }
     public static var edit: String { L(en: "Edit", ru: "Редактировать", es: "Editar", pt: "Editar", zh: "编辑") }
     public static var error: String { L(en: "Error", ru: "Ошибка", es: "Error", pt: "Erro", zh: "错误") }
@@ -352,6 +353,15 @@ public enum DivoStrings {
     public static var onboardingTitle1: String { L(en: "STEP INTO THE FASHION WORLD", ru: "ВОЙДИ В МИР МОДЫ", es: "ENTRA EN EL MUNDO DE LA MODA", pt: "ENTRE NO MUNDO DA MODA", zh: "踏入时尚世界") }
     public static var onboardingTitle2: String { L(en: "FROM SELFIE TO SPOTLIGHT", ru: "ОТ СЕЛФИ ДО ПОДИУМА", es: "DEL SELFIE AL ESCENARIO", pt: "DE SELFIE AO PALCO", zh: "从自拍到聚光灯") }
     public static var onboardingTitle3: String { L(en: "WHERE NEW MODELS ARE BORN", ru: "ГДЕ РОЖДАЮТСЯ НОВЫЕ МОДЕЛИ", es: "DONDE NACEN NUEVOS MODELOS", pt: "ONDE NOVOS MODELOS NASCEM", zh: "新模特诞生之地") }
+    
+    // MARK: - Add Model Agency
+
+    public static var linkModel: String { L(en: "Link on profile in Divo", ru: "Ссылка на профиль в Divo", es: "Enlace en el perfil en Divo", pt: "Link no perfil em Divo", zh: "Divo个人资料连结") }
+    public static var titleAddModel: String { L(en: "ADD A NEW MODEL", ru: "ДОБАВЬТЕ НОВУЮ МОДЕЛЬ", es: "AGREGAR UN NUEVO MODELO", pt: "ADICIONAR UM NOVO MODELO", zh: "添加新模型") }
+    public static var subTitleAddModel: String { L(en: "Fill out the model's details to add\nthem to your agency. You can\nupdate this information anytime.", ru: "Заполните данные модели, чтобы добавить\nих в свое агентство. Вы можете\nобновить эту информацию в любое время.", es: "Complete los detalles del modelo para agregarlos\na su agencia. Puede\nactualizar esta información en cualquier momento.", pt: "Preencha os detalhes do modelo para adicionar\nà sua agência. Você pode\natualizar essas informações a qualquer momento.", zh: "填写模型的详细信息以将\n添加到您的代理机构。您可以随时\n更新此信息。") }
+    public static var parametersAddModel: String { L(en: "Your parameters", ru: "Ваши параметры", es: "Sus parámetros", pt: "Os seus parâmetros", zh: "您的参数") }
+    public static var emptyTitleAddModel: String { L(en: "THERE ARE NO MODELS\nFROM YOUR AGENCY YET.", ru: "ТЕКУЩИХ МОДЕЛЕЙ\nОТ ВАШЕГО АГЕНТСТВА ПОКА НЕТ.", es: "NO HAY MODELOS\nDE SU AGENCIA TODAVÍA.", pt: "AINDA NÃO HÁ MODELOS\nDA SUA AGÊNCIA.", zh: "目前还没有\n贵机构的模特。") }
+    public static var emptySubTitleAddModel: String { L(en: "Click the button below\nto add your model", ru: "НАЖМИТЕ КНОПКУ НИЖЕ,\nЧТОБЫ ДОБАВИТЬ МОДЕЛЬ", es: "Haz clic en el botón de abajo\npara añadir tu modelo", pt: "Clique no botão abaixo\npara adicionar seu modelo", zh: "点击下方按钮\n添加您的模特") }
 
     // MARK: - Debug Screen
 

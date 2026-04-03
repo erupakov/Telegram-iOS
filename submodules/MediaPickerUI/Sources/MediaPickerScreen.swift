@@ -660,7 +660,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
             var useModernCamera = false
             if case .assets(nil, .default) = controller.subject {
                 useLegacyCamera = true
-            } else if case .assets(nil, let mode) = controller.subject, [.createSticker, .createAvatar].contains(mode) {
+            } else if case .assets(nil, let mode) = controller.subject, [.createSticker, .createAvatar, .addImage].contains(mode) {
                 useModernCamera = true
             }
             
@@ -987,19 +987,22 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                     if !controller.didSetupGroups {
                         controller.didSetupGroups = true
                         Queue.concurrentDefaultQueue().after(0.4) {
-                            var isCreateSticker = false
-                            if case .assets(_, .createSticker) = controller.subject {
-                                isCreateSticker = true
+                            
+                            var fetchOptions: PHFetchOptions?
+                            if case let .assets(_, mode) = controller.subject, [.createSticker, .createAvatar, .addImage, .wallpaper, .cover].contains(mode) {
+                                fetchOptions = PHFetchOptions()
+                                fetchOptions?.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.image.rawValue)
                             }
+                            
                             controller.groupsPromise.set(
                                 combineLatest(
                                     self.mediaAssetsContext.fetchAssetsCollections(.album),
                                     self.mediaAssetsContext.fetchAssetsCollections(.smartAlbum)
                                 )
                                 |> map { albums, smartAlbums -> [MediaGroupItem] in
-                                    var collections: [PHAssetCollection] = []
+                                    var collections:[PHAssetCollection] = []
                                     smartAlbums.enumerateObjects { collection, _, _ in
-                                        if [.smartAlbumUserLibrary, .smartAlbumFavorites].contains(collection.assetCollectionSubtype) {
+                                        if[.smartAlbumUserLibrary, .smartAlbumFavorites].contains(collection.assetCollectionSubtype) {
                                             collections.append(collection)
                                         }
                                     }
@@ -1020,7 +1023,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                                             supportedAlbums.append(.smartAlbumLivePhotos)
                                         }
                                         
-                                        if isCreateSticker {
+                                        if fetchOptions != nil {
                                             supportedAlbums = supportedAlbums.filter { type in
                                                 if type == .smartAlbumSlomoVideos || type == .smartAlbumTimelapses || type == .smartAlbumVideos {
                                                     return false
@@ -1030,14 +1033,14 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                                         }
                                         
                                         if supportedAlbums.contains(collection.assetCollectionSubtype) {
-                                            let result = PHAsset.fetchAssets(in: collection, options: nil)
+                                            let result = PHAsset.fetchAssets(in: collection, options: fetchOptions)
                                             if result.count > 0 {
                                                 collections.append(collection)
                                             }
                                         }
                                     }
                                     albums.enumerateObjects(options: [.reverse]) { collection, _, _ in
-                                        let result = PHAsset.fetchAssets(in: collection, options: nil)
+                                        let result = PHAsset.fetchAssets(in: collection, options: fetchOptions)
                                         if result.count > 0 {
                                             collections.append(collection)
                                         }
@@ -1045,7 +1048,7 @@ public final class MediaPickerScreenImpl: ViewController, MediaPickerScreen, Att
                                     
                                     var items: [MediaGroupItem] = []
                                     for collection in collections {
-                                        let result = PHAsset.fetchAssets(in: collection, options: nil)
+                                        let result = PHAsset.fetchAssets(in: collection, options: fetchOptions)
                                         let firstItem: PHAsset?
                                         if [.smartAlbumUserLibrary, .smartAlbumFavorites].contains(collection.assetCollectionSubtype) {
                                             firstItem = result.lastObject
