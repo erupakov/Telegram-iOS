@@ -198,13 +198,6 @@ private final class WindowRootViewController: UIViewController, UIWindowSceneDel
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
-        super.motionEnded(motion, with: event)
-        if motion == .motionShake {
-            NotificationCenter.default.post(name: Notification.Name("DivoDebugShake"), object: nil)
-        }
-    }
-
     deinit {
         if let voiceOverStatusObserver = self.voiceOverStatusObserver {
             NotificationCenter.default.removeObserver(voiceOverStatusObserver)
@@ -245,6 +238,13 @@ private final class WindowRootViewController: UIViewController, UIWindowSceneDel
 }
 
 private final class NativeWindow: UIWindow, WindowHost {
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        super.motionEnded(motion, with: event)
+        if motion == .motionShake {
+            NotificationCenter.default.post(name: Notification.Name("DivoDebugShake"), object: nil)
+        }
+    }
+
     var updateSize: ((CGSize) -> Void)?
     var layoutSubviewsEvent: (() -> Void)?
     var updateIsUpdatingOrientationLayout: ((Bool) -> Void)?
