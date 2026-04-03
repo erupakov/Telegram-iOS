@@ -388,7 +388,14 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     self.navigationItem.rightBarButtonItem?.isEnabled = true
                     print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
                     let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
-                    self.showAlert(text: failMsg + ": \(error.localizedDescription)")
+                    var detail = error.localizedDescription
+                    if case let DivoAPIError.httpError(_, body) = error,
+                       let data = body.data(using: .utf8),
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let message = json["message"] as? String, !message.isEmpty {
+                        detail = message
+                    }
+                    self.showAlert(text: failMsg + ": \(detail)")
                 }
             }
 
@@ -399,6 +406,17 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     
     private func scheduleTimeController(mode: TimeControllerMode) {
         let peerId = PeerId(0)
+        let minimalTime: Int32?
+        switch mode {
+        case .date:
+            minimalTime = Int32(Date().timeIntervalSince1970)
+        case .time:
+            if Calendar.current.isDateInToday(Date(timeIntervalSince1970: TimeInterval(self.createEventNode.eventDate))) {
+                minimalTime = Int32(Date().addingTimeInterval(3600).timeIntervalSince1970)
+            } else {
+                minimalTime = nil
+            }
+        }
         let controller = TimeController(
             context: context,
             updatedPresentationData: nil,
@@ -406,7 +424,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             mode: mode,
             style: .media,
             currentTime: nil,
-            minimalTime: nil,
+            minimalTime: minimalTime,
             completion: { [weak self] time in
                 self?.createEventNode.updateTime(time, mode)
             })

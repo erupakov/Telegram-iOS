@@ -39,6 +39,10 @@ public final class EventsController: TelegramBaseController {
     private let createActionDisposable = MetaDisposable()
     private let clearDisposable = MetaDisposable()
 
+    private var isAgency: Bool = false
+    private var didLoadEvents: Bool = false
+    private var cachedItems: [EventListItem] = []
+
     public init(context: AccountContext) {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
@@ -66,11 +70,12 @@ public final class EventsController: TelegramBaseController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            self?.fetchUserRole()
             self?.getEvents()
         }
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.tabBarItem.title = DivoStrings.tabEvents
-            self?.getEvents()
+            self?.renderCachedItems()
         }
     }
 
@@ -82,10 +87,15 @@ public final class EventsController: TelegramBaseController {
         let searchIcon = generateTintedImage(image: PresentationResourcesRootController.navigationSearchIcon(self.presentationData.theme), color: copperColor)
         let searchButton = UIBarButtonItem(image: searchIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.searchPressed))
 
-        let addIcon = generateTintedImage(image: PresentationResourcesRootController.navigationAddIcon(self.presentationData.theme), color: copperColor)
-        let addButton = UIBarButtonItem(image: addIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.addPressed))
+        var rightItems = [searchButton]
 
-        self.navigationItem.rightBarButtonItems = [addButton, searchButton]
+        if self.isAgency {
+            let addIcon = generateTintedImage(image: PresentationResourcesRootController.navigationAddIcon(self.presentationData.theme), color: copperColor)
+            let addButton = UIBarButtonItem(image: addIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.addPressed))
+            rightItems.insert(addButton, at: 0)
+        }
+
+        self.navigationItem.rightBarButtonItems = rightItems
 
         self.navigationItem.titleView = UIView()
     }
@@ -97,10 +107,35 @@ public final class EventsController: TelegramBaseController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        getEvents()
+        if !didLoadEvents {
+            fetchUserRole()
+            getEvents()
+        }
+    }
+
+    private func fetchUserRole() {
+        Task {
+            do {
+                let response: UserDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/info",
+                    method: "GET"
+                )
+                let role = response.data.role ?? ""
+                await MainActor.run {
+                    let wasAgency = self.isAgency
+                    self.isAgency = role == "agency" || role == "agency_employee"
+                    if wasAgency != self.isAgency {
+                        self.updateNavigation()
+                    }
+                }
+            } catch {
+                print("⚠️ fetchUserRole failed: \(error)")
+            }
+        }
     }
 
     private func getEvents() {
+        self.controllerNode.beginLoading()
         let body = EventListRequest(offset: 0, limit: 30)
         Task {
             do {
@@ -109,99 +144,97 @@ public final class EventsController: TelegramBaseController {
                     method: "POST",
                     body: body
                 )
-                let items = response.data.items
-                if !items.isEmpty {
-                    let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
-                    let datePartFormatter: DateFormatter = {
-                        let f = DateFormatter()
-                        f.locale = divoLocale
-                        f.setLocalizedDateFormatFromTemplate("MMM d")
-                        return f
-                    }()
-                    let timePartFormatter: DateFormatter = {
-                        let f = DateFormatter()
-                        f.locale = divoLocale
-                        f.timeStyle = .short
-                        f.dateStyle = .none
-                        return f
-                    }()
-                    let isoFormatter: DateFormatter = {
-                        let f = DateFormatter()
-                        f.locale = Locale(identifier: "en_US_POSIX")
-                        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-                        return f
-                    }()
-                    let eventDataArray: [EventData] = items.map { item in
-                        let dateString: String
-                        if let raw = item.date {
-                            // API может вернуть "2026-05-27 17:00:00" или "2026-05-27T17:00:00"
-                            let normalized = raw.replacingOccurrences(of: " ", with: "T")
-                            if let date = isoFormatter.date(from: normalized) {
-                                dateString = datePartFormatter.string(from: date) + " · " + timePartFormatter.string(from: date)
-                            } else {
-                                dateString = raw
-                            }
-                        } else {
-                            dateString = ""
-                        }
-                        let timeRemaining: String
-                        if let raw = item.date, let date = isoFormatter.date(from: raw.replacingOccurrences(of: " ", with: "T")), date > Date() {
-                            let f = DateComponentsFormatter()
-                            f.unitsStyle = .abbreviated
-                            f.allowedUnits = [.day, .hour, .minute]
-                            f.calendar = Calendar.current
-                            f.calendar?.locale = divoLocale
-                            timeRemaining = f.string(from: Date(), to: date) ?? ""
-                        } else {
-                            timeRemaining = ""
-                        }
-                        let coverURL = item.files?.first?.fullUrl
-                        let avatarURL = item.eventCreator?.avatar?.fullUrl
-                        let cityName = item.address?.city?.title ?? ""
-                        return EventData(
-                            id: item.id,
-                            title: item.title,
-                            subtitle: item.type?.title ?? "",
-                            profileName: "@" + (item.eventCreator?.fullName ?? ""),
-                            timeRemaining: timeRemaining,
-                            type: item.type?.title ?? "",
-                            coverPhotoURL: coverURL,
-                            profilePhotoURL: avatarURL,
-                            location: cityName,
-                            eventDateFormatted: dateString
-                        )
-                    }
-                    await MainActor.run {
-                        self.controllerNode.reloadEvents(events: eventDataArray)
-                    }
-                    return
+                await MainActor.run {
+                    self.cachedItems = response.data.items
+                    self.didLoadEvents = true
+                    self.renderCachedItems()
                 }
-            } catch {
-                // API failed or empty — fall through to mocks
-            }
-            // Show mocks when API returns empty or fails
+                return
+            } catch {}
             await MainActor.run {
-                self.controllerNode.reloadEvents(events: EventData.mockEvents())
+                self.cachedItems = []
+                self.didLoadEvents = true
+                self.renderCachedItems()
             }
         }
+    }
+
+    private func renderCachedItems() {
+        let items = self.cachedItems
+        guard !items.isEmpty else {
+            self.controllerNode.reloadEvents(events: [])
+            return
+        }
+        let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
+        let datePartFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.locale = divoLocale
+            f.setLocalizedDateFormatFromTemplate("MMM d")
+            return f
+        }()
+        let timePartFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.locale = divoLocale
+            f.timeStyle = .short
+            f.dateStyle = .none
+            return f
+        }()
+        let isoFormatter: DateFormatter = {
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_US_POSIX")
+            f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            return f
+        }()
+        let eventDataArray: [EventData] = items.map { item in
+            let dateString: String
+            if let raw = item.date {
+                let normalized = raw.replacingOccurrences(of: " ", with: "T")
+                if let date = isoFormatter.date(from: normalized) {
+                    dateString = datePartFormatter.string(from: date) + " · " + timePartFormatter.string(from: date)
+                } else {
+                    dateString = raw
+                }
+            } else {
+                dateString = ""
+            }
+            let timeRemaining: String
+            if let raw = item.date, let date = isoFormatter.date(from: raw.replacingOccurrences(of: " ", with: "T")), date > Date() {
+                let f = DateComponentsFormatter()
+                f.unitsStyle = .abbreviated
+                f.allowedUnits = [.day, .hour, .minute]
+                f.calendar = Calendar.current
+                f.calendar?.locale = divoLocale
+                timeRemaining = f.string(from: Date(), to: date) ?? ""
+            } else {
+                timeRemaining = ""
+            }
+            let coverURL = item.files?.first?.fullUrl
+            let avatarURL = item.eventCreator?.avatar?.fullUrl
+            let cityName = item.address?.city?.title ?? ""
+            return EventData(
+                id: item.id,
+                title: item.title,
+                subtitle: item.type?.title ?? "",
+                profileName: "@" + (item.eventCreator?.fullName ?? ""),
+                timeRemaining: timeRemaining,
+                type: item.type?.title ?? "",
+                coverPhotoURL: coverURL,
+                profilePhotoURL: avatarURL,
+                location: cityName,
+                eventDateFormatted: dateString
+            )
+        }
+        self.controllerNode.reloadEvents(events: eventDataArray)
     }
 
     @objc private func searchPressed() {
         let controller = EventsSearchController(context: context)
-
-        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-            navigationController.pushViewController(controller)
-        }
+        self.push(controller)
     }
 
     @objc private func addPressed() {
         let controller = CreateEventController(context: context)
-
-        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-            navigationController.pushViewController(controller)
-        }
-
-        print("Add button pressed")
+        self.push(controller)
     }
 
     required public init(coder aDecoder: NSCoder) {

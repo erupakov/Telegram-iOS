@@ -251,7 +251,6 @@ public struct CreateEventRequest: Codable {
     public let date: String
     public let dateTo: String
     public let address: EventAddressRequest
-    public let measuringSystem: String
     public let files: [EventFileRequest]
 
     public let paymentType: Int?
@@ -279,7 +278,6 @@ public struct CreateEventRequest: Codable {
         date: String,
         dateTo: String,
         address: EventAddressRequest,
-        measuringSystem: String,
         files: [EventFileRequest],
         paymentType: Int?,
         paymentFrequency: Int?,
@@ -304,7 +302,6 @@ public struct CreateEventRequest: Codable {
         self.date = date
         self.dateTo = dateTo
         self.address = address
-        self.measuringSystem = measuringSystem
         self.files = files
         self.paymentType = paymentType
         self.paymentFrequency = paymentFrequency

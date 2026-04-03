@@ -51,7 +51,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
 
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
-    private var eventDate: Int32 = 0
+    private(set) var eventDate: Int32 = 0
     private var eventTime: Int32 = 0
 
     private var presentationData: PresentationData
@@ -526,9 +526,10 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                             let item = EventGalleryItem(image: image, isUploading: false, fileUuid: fileUuid)
                             self.galleryItems.append(item)
                             self.galleryCollectionView.reloadData()
-                            
-                            // Вызываем перерасчет UI, чтобы сетка раздвинулась
-                            self.triggerLayoutUpdate()
+
+                            if let (layout, navHeight, actualNavHeight) = self.currentLayoutData {
+                                self.containerLayoutUpdated(layout, navigationBarHeight: navHeight, actualNavigationBarHeight: actualNavHeight, transition: .immediate)
+                            }
                         }
                     } catch { }
                 }
@@ -563,14 +564,10 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         
         if wasEmpty {
             galleryCollectionView.isHidden = false
-            galleryCollectionView.reloadData()
-            triggerLayoutUpdate()
-        } else {
-            let indexPath = IndexPath(item: galleryItems.count - 1, section: 0)
-            galleryCollectionView.performBatchUpdates({
-                galleryCollectionView.insertItems(at: [indexPath])
-                triggerLayoutUpdate()
-            }, completion: nil)
+        }
+        galleryCollectionView.reloadData()
+        if let (layout, navHeight, actualNavHeight) = self.currentLayoutData {
+            self.containerLayoutUpdated(layout, navigationBarHeight: navHeight, actualNavigationBarHeight: actualNavHeight, transition: .immediate)
         }
         return item
     }
@@ -709,14 +706,15 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         var paramsStartY = currentY + paramLabelSize.height + itemSpacing
 
         if !self.addParametersButton.isHidden {
+            let buttonSize = self.addParametersButton.measure(CGSize(width: fullWidth, height: .greatestFiniteMagnitude))
             if !self.selectedParameters.isEmpty {
                 let addParamsButtonHeight: CGFloat = 28.0
-                let addParamsButtonWidth: CGFloat = 70.0
+                let addParamsButtonWidth = max(buttonSize.width + 24.0, 70.0)
                 let buttonX = layout.size.width - sidePadding - addParamsButtonWidth
                 let buttonY = currentY + (paramLabelSize.height - addParamsButtonHeight) / 2.0
                 transition.updateFrame(node: self.addParametersButton, frame: CGRect(x: buttonX, y: buttonY, width: addParamsButtonWidth, height: addParamsButtonHeight))
             } else {
-                let addParamsButtonWidth: CGFloat = 160.0
+                let addParamsButtonWidth = max(buttonSize.width + 32.0, 160.0)
                 let addParamsButtonHeight: CGFloat = 35.0
                 transition.updateFrame(node: self.addParametersButton, frame: CGRect(origin: CGPoint(x: sidePadding, y: paramsStartY), size: CGSize(width: addParamsButtonWidth, height: addParamsButtonHeight)))
                 paramsStartY += addParamsButtonHeight + sectionSpacing
@@ -757,12 +755,12 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         } else {
             galleryCollectionView.isHidden = false
             dashedUploadNode.isHidden = false
-            
-            let itemWidth = floor(layout.size.width / 3.0)
+
+            let itemWidth = floor(fullWidth / 3.0)
             let rows = ceil(CGFloat(galleryItems.count) / 3.0)
             let collectionHeight = (rows * itemWidth) + ((rows - 1) * 4.0)
-            
-            transition.updateFrame(view: self.galleryCollectionView, frame: CGRect(x: 0, y: currentY, width: layout.size.width, height: collectionHeight))
+
+            transition.updateFrame(view: self.galleryCollectionView, frame: CGRect(x: sidePadding, y: currentY, width: fullWidth, height: collectionHeight))
             currentY += collectionHeight + 12
             
             transition.updateFrame(node: self.dashedUploadNode, frame: CGRect(x: sidePadding, y: currentY, width: fullWidth, height: 100))
@@ -810,21 +808,25 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
             }
         }
 
+        var newNodes: [ASDisplayNode] = []
+
         for param in params {
             let node = getOrCreateNode(for: param)
             if node.supernode == nil {
                 self.scrollNode.addSubnode(node)
+                newNodes.append(node)
             }
-            
+
             if deleteButtons[param] == nil {
                 deleteButtons[param] = makeDeleteButton(for: param)
             }
             let deleteButton = deleteButtons[param]!
             if deleteButton.supernode == nil {
                 self.scrollNode.addSubnode(deleteButton)
+                newNodes.append(deleteButton)
             }
         }
-        
+
         for (param, button) in deleteButtons {
             if !params.contains(param) {
                 button.removeFromSupernode()
@@ -841,8 +843,20 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         }
 
         if let (layout, navHeight, actualNavHeight) = self.currentLayoutData {
-            let transition: ContainedViewLayoutTransition = animated ? .animated(duration: 0.3, curve: .spring) : .immediate
-            self.containerLayoutUpdated(layout, navigationBarHeight: navHeight, actualNavigationBarHeight: actualNavHeight, transition: transition)
+            if animated && !newNodes.isEmpty {
+                for node in newNodes {
+                    node.alpha = 0.0
+                }
+                self.containerLayoutUpdated(layout, navigationBarHeight: navHeight, actualNavigationBarHeight: actualNavHeight, transition: .immediate)
+                UIView.animate(withDuration: 0.3) {
+                    for node in newNodes {
+                        node.alpha = 1.0
+                    }
+                }
+            } else {
+                let transition: ContainedViewLayoutTransition = animated ? .animated(duration: 0.3, curve: .spring) : .immediate
+                self.containerLayoutUpdated(layout, navigationBarHeight: navHeight, actualNavigationBarHeight: actualNavHeight, transition: transition)
+            }
         }
     }
 
@@ -884,7 +898,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     maximumValue: 45,
                     configuration: .light
                 )
-                setupSliderTouchHandling(for: ageSlider!)
+
             }
             return ageSlider!
         case .height:
@@ -897,7 +911,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     maximumValue: 2.50,
                     configuration: .light
                 )
-                setupSliderTouchHandling(for: heightSlider!)
+
             }
             return heightSlider!
         case .weight:
@@ -910,7 +924,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     maximumValue: 90,
                     configuration: .light
                 )
-                setupSliderTouchHandling(for: weightSlider!)
+
             }
             return weightSlider!
         case .breast:
@@ -923,7 +937,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     maximumValue: 110,
                     configuration: .light
                 )
-                setupSliderTouchHandling(for: breastSlider!)
+
             }
             return breastSlider!
         case .waist:
@@ -936,7 +950,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     maximumValue: 90,
                     configuration: .light
                 )
-                setupSliderTouchHandling(for: waistSlider!)
+
             }
             return waistSlider!
         case .hips:
@@ -949,7 +963,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     maximumValue: 110,
                     configuration: .light
                 )
-                setupSliderTouchHandling(for: hipsSlider!)
+
             }
             return hipsSlider!
         case .shoeSize:
@@ -962,7 +976,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     maximumValue: 46,
                     configuration: .light
                 )
-                setupSliderTouchHandling(for: shoeSizeSlider!)
+
             }
             return shoeSizeSlider!
             
@@ -1045,19 +1059,6 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         return button
     }
 
-    private func setupSliderTouchHandling(for node: ASDisplayNode) {
-        let touchGesture = UITapGestureRecognizer(target: self, action: #selector(self.sliderTouchBegan(_:)))
-        touchGesture.cancelsTouchesInView = false
-        
-        let panGesture = UIPanGestureRecognizer(target: self, action: #selector(self.sliderPanGesture(_:)))
-        panGesture.cancelsTouchesInView = false
-        panGesture.delaysTouchesBegan = false
-        panGesture.delaysTouchesEnded = false
-        
-        node.view.addGestureRecognizer(touchGesture)
-        node.view.addGestureRecognizer(panGesture)
-    }
-
     private func loadMoreEventTypesIfNeeded() {
         guard !self.isLoadingEventTypes && self.hasMoreEventTypes else { return }
         
@@ -1110,7 +1111,8 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         let dateToObj = calendar.date(byAdding: .hour, value: 2, to: finalDate) ?? finalDate
         let dateToString = formatter.string(from: dateToObj)
         
-        let cityId = Int(self.countryId) ?? 0
+        // TODO: DIVO — city picker not implemented, using 1 as hardcoded stub
+        let cityId = Int(self.countryId) ?? 1
         let address = EventAddressRequest(
             street: nil,
             house: nil,
@@ -1236,7 +1238,6 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
             date: dateString,
             dateTo: dateToString,
             address: address,
-            measuringSystem: "metric",
             files: eventFiles,
             paymentType: 1,
             paymentFrequency: 1,
@@ -1322,9 +1323,9 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         
         if let addButton = self.addParametersButton as? ButtonWithIconNode {
             if self.selectedParameters.isEmpty {
-                addButton.setTitle("+ Add parameters")
+                addButton.setTitle(DivoStrings.addParameters)
             } else {
-                addButton.setTitle("+ Add")
+                addButton.setTitle(DivoStrings.addShort)
             }
         }
 
@@ -1333,20 +1334,6 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         }
     }
 
-    @objc private func sliderTouchBegan(_ gesture: UITapGestureRecognizer) {
-        if gesture.state == .began {
-            self.scrollNode.view.isScrollEnabled = false
-        }
-    }
-
-    @objc private func sliderPanGesture(_ gesture: UIPanGestureRecognizer) {
-        switch gesture.state {
-        case .ended, .cancelled, .failed:
-            self.scrollNode.view.isScrollEnabled = true
-        default:
-            break
-        }
-    }
 }
 
 

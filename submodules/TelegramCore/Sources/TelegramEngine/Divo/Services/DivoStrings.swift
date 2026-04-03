@@ -138,6 +138,7 @@ public enum DivoStrings {
     public static var noChannelsYet: String { L(en: "No channels yet", ru: "Каналов пока нет", es: "Sin canales aún", pt: "Sem canais ainda", zh: "暂无频道") }
     public static var noModelsYet: String { L(en: "No models yet", ru: "Моделей пока нет", es: "Sin modelos aún", pt: "Sem modelos ainda", zh: "暂无模特") }
     public static var noEventsYet: String { L(en: "No events yet", ru: "Событий пока нет", es: "Sin eventos aún", pt: "Sem eventos ainda", zh: "暂无活动") }
+    public static var noUpcomingEventsSubtitle: String { L(en: "There are no upcoming events at the moment", ru: "На данный момент ближайших событий нет", es: "No hay eventos próximos en este momento", pt: "Não há eventos próximos no momento", zh: "目前没有即将举行的活动") }
     public static var addChannel: String { L(en: "Add channel", ru: "Добавить канал", es: "Agregar canal", pt: "Adicionar canal", zh: "添加频道") }
     public static var addModel: String { L(en: "Add model", ru: "Добавить модель", es: "Agregar modelo", pt: "Adicionar modelo", zh: "添加模特") }
     public static var addEvent: String { L(en: "Add event", ru: "Добавить событие", es: "Agregar evento", pt: "Adicionar evento", zh: "添加活动") }

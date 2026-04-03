@@ -152,6 +152,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
     }
 
     func configure(with event: EventData, context: AccountContext) {
+        applyButton.setTitle(DivoStrings.apply, for: .normal)
         profileNameLabel.text = event.profileName
         titleLabel.text = event.title
         timeRemainingLabel.text = event.timeRemaining

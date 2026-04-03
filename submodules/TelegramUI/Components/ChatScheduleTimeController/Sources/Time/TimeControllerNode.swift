@@ -227,14 +227,10 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
     }
     
     private func updateMinimumDate(currentTime: Int32? = nil) {
-//        let calendar = Calendar.current
-//        if let minDate = calendar.date(byAdding: .year, value: -100, to: Date()) {
-//            self.pickerView?.minimumDate = minDate
-//        }
-//        if let maxDate = calendar.date(byAdding: .year, value: 100, to: Date()) {
-//            self.pickerView?.maximumDate = maxDate
-//        }
-        
+        if let minimalTime = self.minimalTime {
+            self.pickerView?.minimumDate = Date(timeIntervalSince1970: Double(minimalTime))
+        }
+
         if let currentTime = currentTime {
             self.pickerView?.date = Date(timeIntervalSince1970: Double(currentTime))
         }
