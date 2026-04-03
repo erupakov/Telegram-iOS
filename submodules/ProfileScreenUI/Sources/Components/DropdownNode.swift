@@ -11,7 +11,9 @@ final class DropdownNode: ASDisplayNode {
     
     var options: [String]
     private let placeholder: String
+    private let placeholderColor: UIColor?
     private let title: String
+    private let titleColor: UIColor?
     
     var onSelect: ((String) -> Void)?
     var selectedValue: String? {
@@ -20,13 +22,25 @@ final class DropdownNode: ASDisplayNode {
         }
     }
     
-    init(title: String, placeholder: String, options: [String]) {
+    init(
+        title: String, 
+        placeholder: String, 
+        options: [String], 
+        backgroundColor: UIColor? = nil, 
+        placeholderColor: UIColor? = .white.withAlphaComponent(0.6), 
+        titleColor: UIColor? = .white, 
+        arrowColor: UIColor? = .white, 
+        apperTitleColor: UIColor? = .white
+    ) {
         self.title = title
+        self.titleColor = titleColor
         self.placeholder = placeholder
+        self.placeholderColor = placeholderColor
         self.options = options
         
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.borderWidth = 1.0
+        self.backgroundNode.backgroundColor = backgroundColor != nil ? backgroundColor : .clear
         self.backgroundNode.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
         self.backgroundNode.cornerRadius = 10.0
         
@@ -34,12 +48,16 @@ final class DropdownNode: ASDisplayNode {
         self.titleNode.maximumNumberOfLines = 1
         
         self.arrowNode = ASImageNode()
-        self.arrowNode.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/InlineTextDownArrow"), color: .white)
+        self.arrowNode.image = generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/InlineTextDownArrow"), color: arrowColor ?? .white)
         self.arrowNode.contentMode = .center
         
         self.apperTitleNode = ASTextNode()
         self.apperTitleNode.maximumNumberOfLines = 1
-        self.apperTitleNode.attributedText = NSAttributedString(string: title, font: Font.regular(14.0), textColor: .white.withAlphaComponent(0.6))
+        self.apperTitleNode.attributedText = NSAttributedString(
+            string: title,
+            font: Font.regular(16.0),
+            textColor: apperTitleColor ?? .white
+        )
         
         super.init()
         
@@ -60,7 +78,7 @@ final class DropdownNode: ASDisplayNode {
     
     private func updateTitleText() {
         let text = selectedValue ?? placeholder
-        let color: UIColor = selectedValue == nil ? UIColor.white.withAlphaComponent(0.4) : .white
+        let color: UIColor = selectedValue == nil ? placeholderColor! : titleColor!
         titleNode.attributedText = NSAttributedString(string: text, font: Font.regular(16.0), textColor: color)
         setNeedsLayout()
     }
@@ -93,25 +111,44 @@ final class DropdownNode: ASDisplayNode {
     
     override func layout() {
         super.layout()
-        backgroundNode.frame = bounds
+        
+        let bounds = self.bounds
+        
+        let apperTitleSize = apperTitleNode.measure(CGSize(width: bounds.width, height: .greatestFiniteMagnitude))
+        apperTitleNode.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: apperTitleSize.width,
+            height: apperTitleSize.height
+        )
+        
+        let spacing: CGFloat = 10.0
+        
+        let backgroundY = apperTitleNode.frame.maxY + spacing
+        let backgroundHeight = bounds.height - backgroundY
+        
+        backgroundNode.frame = CGRect(
+            x: 0,
+            y: backgroundY,
+            width: bounds.width,
+            height: backgroundHeight
+        )
         
         let arrowSize = CGSize(width: 20, height: 20)
-        arrowNode.frame = CGRect(x: bounds.width - 16 - arrowSize.width,
-                                 y: (bounds.height - arrowSize.height) / 2.0,
-                                 width: arrowSize.width,
-                                 height: arrowSize.height)
+        arrowNode.frame = CGRect(
+            x: backgroundNode.frame.maxX - 16 - arrowSize.width,
+            y: backgroundNode.frame.minY + (backgroundHeight - arrowSize.height) / 2.0,
+            width: arrowSize.width,
+            height: arrowSize.height
+        )
         
         let titleSize = titleNode.measure(CGSize(width: bounds.width - 32 - arrowSize.width - 10, height: .greatestFiniteMagnitude))
-        titleNode.frame = CGRect(x: 16,
-                                 y: (bounds.height - titleSize.height) / 2.0,
-                                 width: titleSize.width,
-                                 height: titleSize.height)
-        
-        let apperTitleSize = apperTitleNode.measure(CGSize(width: bounds.width - 32 - arrowSize.width - 10, height: .greatestFiniteMagnitude))
-        apperTitleNode.frame = CGRect(x: bounds.width - 16 - arrowSize.width - apperTitleSize.width,
-                                 y: (bounds.height - apperTitleSize.height) / 2.0,
-                                 width: apperTitleSize.width,
-                                 height: apperTitleSize.height)
+        titleNode.frame = CGRect(
+            x: backgroundNode.frame.minX + 16,
+            y: backgroundNode.frame.minY + (backgroundHeight - titleSize.height) / 2.0,
+            width: titleSize.width,
+            height: titleSize.height
+        )
     }
 }
 

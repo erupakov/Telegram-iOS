@@ -859,7 +859,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         )
         transition.updateFrame(node: self.noticeNode, frame: noticeFrame)
         
-        if let divoFont = UIFont(name: "HelveticaNeueLTCom-BdCn", size: 20.0) {
+        if let divoFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 20.0) {
             self.proceedNode.titleNode.attributedText = NSAttributedString(string: self.strings.Login_Continue, attributes: [
                 .font: divoFont,
                 .foregroundColor: UIColor.white,

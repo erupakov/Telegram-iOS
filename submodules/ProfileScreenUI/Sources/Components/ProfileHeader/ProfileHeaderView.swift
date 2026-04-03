@@ -32,6 +32,7 @@ struct UserProfileViewModel {
         location: String,
         countryFlag: String,
         jobTitle: String,
+        jobIcon: Job,
         avatarImage: UIImage?,
         isPremium: Bool,
         isOnline: Bool
@@ -41,16 +42,7 @@ struct UserProfileViewModel {
         self.location = location
         self.countryFlag = countryFlag
         self.jobTitle = jobTitle
-        switch jobTitle {
-        case "model":
-            self.jobIcon = .model
-        case "agency":
-            self.jobIcon = .agency
-        case "new face":
-            self.jobIcon = .talent
-        default:
-            self.jobIcon = .model
-        }
+        self.jobIcon = jobIcon
         self.avatarImage = avatarImage
         self.isPremium = isPremium
         self.isOnline = isOnline
@@ -232,14 +224,14 @@ class ProfileHeaderView: UIView {
             tagContainer.heightAnchor.constraint(equalToConstant: 24),
             tagContainer.centerYAnchor.constraint(equalTo: infoLabel.centerYAnchor),
             
-            tagIcon.leadingAnchor.constraint(equalTo: tagContainer.leadingAnchor, constant: 4),
+            tagIcon.leadingAnchor.constraint(equalTo: tagContainer.leadingAnchor, constant: 8),
             tagIcon.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor),
             tagIcon.widthAnchor.constraint(equalToConstant: 16),
             tagIcon.heightAnchor.constraint(equalToConstant: 16),
-            
-            tagLabel.leadingAnchor.constraint(equalTo: tagIcon.trailingAnchor, constant: 3),
-            tagLabel.trailingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: -6),
-            tagLabel.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor, constant: 1),
+
+            tagLabel.leadingAnchor.constraint(equalTo: tagIcon.trailingAnchor, constant: 4),
+            tagLabel.trailingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: -8),
+            tagLabel.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor),
             
             tagContainer.topAnchor.constraint(equalTo: crownIconView.bottomAnchor, constant: 10),
             infoLabel.leadingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: 10),

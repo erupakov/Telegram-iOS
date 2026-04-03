@@ -273,13 +273,60 @@ final class EditProfileNode: ASDisplayNode {
         self.genderDropdown = DropdownNode(title: DivoStrings.gender, placeholder: DivoStrings.selectGender, options: [currentGender])
         self.genderDropdown.selectedValue = self.model?.gender?.title
         
-        self.ageSlider = AgeSliderNode(title: DivoStrings.ageYo, type: "y.o", defaultValue: 17, minimumValue: 14, maximumValue: 45)
-        self.heightSlider = AgeSliderNode(title: DivoStrings.heightCm, type: "cm", defaultValue: model?.model?.appearance?.height ?? 1.68, minimumValue: 1.68, maximumValue: 2.50)
-        self.weightSlider = AgeSliderNode(title: DivoStrings.weightKg, type: "kg", defaultValue: model?.model?.appearance?.weight ?? 50, minimumValue: 48, maximumValue: 90)
-        self.waistSlider = AgeSliderNode(title: DivoStrings.waistCm, type: "cm", defaultValue: model?.model?.appearance?.waist ?? 60, minimumValue: 48, maximumValue: 90)
-        self.hipsSlider = AgeSliderNode(title: DivoStrings.hipsCm, type: "cm", defaultValue: model?.model?.appearance?.hips ?? 91, minimumValue: 80, maximumValue: 110)
-        self.shoeSizeSlider = AgeSliderNode(title: DivoStrings.shoeSizeEU, type: "", defaultValue: model?.model?.appearance?.shoesSize ?? 37, minimumValue: 36, maximumValue: 42)
-        
+        self.ageSlider = AgeSliderNode<Int>(
+            title: DivoStrings.ageYo,
+            type: "y.o",
+            mode: .single(value: 17),
+            minimumValue: 14,
+            maximumValue: 45,
+            configuration: .default
+        )
+
+        self.heightSlider = AgeSliderNode<Double>(
+            title: DivoStrings.heightCm,
+            type: "cm",
+            mode: .single(value: Float(model?.model?.appearance?.height ?? 1.68)),
+            minimumValue: 1.68,
+            maximumValue: 2.50,
+            configuration: .default
+        )
+
+        self.weightSlider = AgeSliderNode<Double>(
+            title: DivoStrings.weightKg,
+            type: "kg",
+            mode: .single(value: Float(model?.model?.appearance?.weight ?? 50)),
+            minimumValue: 48,
+            maximumValue: 90,
+            configuration: .default
+        )
+
+        self.waistSlider = AgeSliderNode<Double>(
+            title: DivoStrings.waistCm,
+            type: "cm",
+            mode: .single(value: Float(model?.model?.appearance?.waist ?? 60)),
+            minimumValue: 48,
+            maximumValue: 90,
+            configuration: .default
+        )
+
+        self.hipsSlider = AgeSliderNode<Double>(
+            title: DivoStrings.hipsCm,
+            type: "cm",
+            mode: .single(value: Float(model?.model?.appearance?.hips ?? 91)),
+            minimumValue: 80,
+            maximumValue: 110,
+            configuration: .default
+        )
+
+        self.shoeSizeSlider = AgeSliderNode<Double>(
+            title: DivoStrings.shoeSizeEU,
+            type: "",
+            mode: .single(value: Float(model?.model?.appearance?.shoesSize ?? 37)),
+            minimumValue: 36,
+            maximumValue: 42,
+            configuration: .default
+        )
+
         let currentHairLength = model?.model?.appearance?.hairLength?.title ?? DivoStrings.loading
         let currentHairColor = model?.model?.appearance?.hairColor?.title ?? DivoStrings.loading
         let currentEyeColor = model?.model?.appearance?.eyeColor?.title ?? DivoStrings.loading
@@ -302,8 +349,14 @@ final class EditProfileNode: ASDisplayNode {
         
         super.init()
         
-        self.ageSlider = AgeSliderNode(title: "Age (y.o)", type: "y.o", defaultValue: calculateAge(from: model?.birthday ?? ""), minimumValue: 14, maximumValue: 45)
-        
+        self.ageSlider = AgeSliderNode<Int>(
+            title: "Age (y.o)",
+            type: "y.o",
+            mode: .single(value: Float(calculateAge(from: model?.birthday ?? ""))),
+            minimumValue: 14,
+            maximumValue: 45,
+            configuration: .default
+        )
         
         self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
     }
@@ -593,7 +646,7 @@ final class EditProfileNode: ASDisplayNode {
             node.view.widthAnchor.constraint(equalTo: appearanceStackView.widthAnchor).isActive = true
             
             if node is DropdownNode {
-                node.view.heightAnchor.constraint(equalToConstant: 48).isActive = true
+                node.view.heightAnchor.constraint(equalToConstant: 80).isActive = true
             } else {
                 node.view.heightAnchor.constraint(equalToConstant: 80).isActive = true
             }

@@ -611,8 +611,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onEditLinksTapped: (() -> Void)?
     var onAddPhotoTapped: (() -> Void)?
     var onAddVideoTapped: (() -> Void)?
+    var onAddEventTapped: (() -> Void)?
     var onGalleryItemTapped: ((Int, Int) -> Void)? 
     var onSocialLinkTapped: ((String) -> Void)?
+    var onEventButtonTapped: ((Int) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -907,9 +909,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
             addWorkHistoryContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor, constant: -16),
             addWorkHistoryContainer.heightAnchor.constraint(equalToConstant: 36),
             addWorkHistoryButton.leadingAnchor.constraint(equalTo: addWorkHistoryContainer.leadingAnchor),
+            addWorkHistoryButton.trailingAnchor.constraint(lessThanOrEqualTo: addWorkHistoryContainer.trailingAnchor),
             addWorkHistoryButton.centerYAnchor.constraint(equalTo: addWorkHistoryContainer.centerYAnchor),
             addWorkHistoryButton.heightAnchor.constraint(equalToConstant: 36),
-            addWorkHistoryButton.widthAnchor.constraint(equalToConstant: 160),
         ])
         
         addWorkHistoryButton.addTarget(self, action: #selector(addWorkHistoryTapped), for: .touchUpInside)
@@ -1104,6 +1106,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         eventGalleryCollectionView.isHidden = true
         eventGalleryStatusView.isHidden = false
         eventGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingEvents, isMyProfile: false)
+        eventGalleryStatusView.addTarget(self, action: #selector(eventGalleryStatusTapped), for: .touchUpInside)
     }
     
     private func setupSimilarProfiles() {
@@ -1855,6 +1858,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
         
         UIView.performWithoutAnimation {
+            let jobIcon: UserProfileViewModel.Job
+            switch self.modelRole {
+            case .model:   jobIcon = .model
+            case .agency:  jobIcon = .agency
+            case .newFace: jobIcon = .talent
+            }
+
             if self.modelRole == .agency {
                 let viewModel = UserProfileViewModel(
                     name: detail.agency?.title ?? DivoStrings.noName,
@@ -1862,6 +1872,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     location: detail.agency?.address?.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.agency?.address?.city?.countryCode),
                     jobTitle: self.modelRole.title,
+                    jobIcon: jobIcon,
                     avatarImage: nil,
                     isPremium: true,
                     isOnline: true
@@ -1875,6 +1886,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     location: detail.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.city?.countryCode),
                     jobTitle: self.modelRole.title,
+                    jobIcon: jobIcon,
                     avatarImage: nil,
                     isPremium: true,
                     isOnline: true
@@ -2664,6 +2676,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     @objc private func videoGalleryStatusTapped() {
         onAddVideoTapped?()
     }
+
+    @objc private func eventGalleryStatusTapped() {
+        onAddEventTapped?()
+    }
 }
 
 
@@ -2746,7 +2762,12 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
                 return UICollectionViewCell()
             }
             let item = eventGalleryItems[indexPath.item]
-            cell.configure(with: item, context: self.context)
+            cell.configure(with: item, context: self.context, isMyProfile: self.model.isMyProfile)
+            cell.onButtonTap = { [weak self] eventId in
+                if let eventId = eventId {
+                    self?.onEventButtonTapped?(eventId)
+                }
+            }
             return cell
         }
         return UICollectionViewCell()

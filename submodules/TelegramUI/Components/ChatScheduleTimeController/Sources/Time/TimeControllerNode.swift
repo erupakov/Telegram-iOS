@@ -78,9 +78,9 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
                 blurStyle = self.presentationData.theme.actionSheet.backgroundType == .light ? .light : .dark
             case .media:
                 backgroundColor = UIColor(rgb: 0x1c1c1e)
-                textColor = .white
-                accentColor = self.presentationData.theme.actionSheet.controlAccentColor
-                buttonColor = UIColor(rgb: 0x2b2b2f)
+                textColor = UIColor(hexString: "#BF7A54") ?? .white
+                accentColor = UIColor(hexString: "#BF7A54") ?? .white
+                buttonColor = UIColor(hexString: "#BF7A54") ?? .white
                 buttonTextColor = .white
                 blurStyle = .dark
         }
@@ -104,7 +104,7 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
         self.cancelButton.accessibilityLabel = self.presentationData.strings.Common_Cancel
         self.cancelButton.accessibilityTraits = [.button]
         
-        self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(theme: self.presentationData.theme), height: 52.0, cornerRadius: 11.0, isShimmering: false)
+        self.doneButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: buttonColor, foregroundColor: buttonTextColor), height: 52.0, cornerRadius: 11.0, isShimmering: false)
         
         self.onlineButton = SolidRoundedButtonNode(theme: SolidRoundedButtonTheme(backgroundColor: buttonColor, foregroundColor: buttonTextColor), font: .regular, height: 52.0, cornerRadius: 11.0, isShimmering: false)
         self.onlineButton.title = self.presentationData.strings.Conversation_ScheduleMessage_SendWhenOnline
@@ -227,14 +227,10 @@ class TimeControllerNode: ViewControllerTracingNode, ASScrollViewDelegate {
     }
     
     private func updateMinimumDate(currentTime: Int32? = nil) {
-//        let calendar = Calendar.current
-//        if let minDate = calendar.date(byAdding: .year, value: -100, to: Date()) {
-//            self.pickerView?.minimumDate = minDate
-//        }
-//        if let maxDate = calendar.date(byAdding: .year, value: 100, to: Date()) {
-//            self.pickerView?.maximumDate = maxDate
-//        }
-        
+        if let minimalTime = self.minimalTime {
+            self.pickerView?.minimumDate = Date(timeIntervalSince1970: Double(minimalTime))
+        }
+
         if let currentTime = currentTime {
             self.pickerView?.date = Date(timeIntervalSince1970: Double(currentTime))
         }

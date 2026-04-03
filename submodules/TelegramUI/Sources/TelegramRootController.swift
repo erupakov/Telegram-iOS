@@ -199,9 +199,8 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.modelsFeedNode?.tabBarItem.title = DivoStrings.tabModels
         self.eventsController?.tabBarItem.title = DivoStrings.tabEvents
         self.divoSettingsController?.tabBarItem.title = DivoStrings.tabSettings
-        if let tabController = self.rootTabController {
-            let index = tabController.selectedIndex
-            tabController.selectedIndex = index
+        if let tabController = self.rootTabController as? TabBarControllerImpl {
+            tabController.setControllers(tabController.controllers, selectedIndex: nil)
         }
         self.popToRoot(animated: false)
     }

@@ -205,9 +205,7 @@ class AgeSliderNode<T: SliderValue>: ASDisplayNode {
         self.maxAgeNode.displaysAsynchronously = false
         
         super.init()
-        
-        print("AgeSliderNode.init: mode = \(mode), isRangeSlider = \(isRangeSlider)")
-        
+
         if isRangeSlider {
             let rangeValues: (lower: Float, upper: Float)
             switch mode {
@@ -338,8 +336,10 @@ class RangeSliderView: UIView {
     private var upperThumbFrame: CGRect = .zero
     private var trackRect: CGRect = .zero
 
-    private var isDraggingLowerThumb: Bool = false
-    private var isDraggingUpperThumb: Bool = false
+    private let thumbHitInset: CGFloat = -22
+
+    private enum ActiveDragging { case lower, upper }
+    private var activeDragging: ActiveDragging?
 
     init(
         minimumValue: Float,
@@ -356,7 +356,7 @@ class RangeSliderView: UIView {
         self.lowerValue = lowerValue
         self.upperValue = upperValue
         super.init(frame: .zero)
-        
+
         self.backgroundColor = .clear
         self.isUserInteractionEnabled = true
         self.contentMode = .redraw
@@ -364,6 +364,60 @@ class RangeSliderView: UIView {
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        let expandedLower = lowerThumbFrame.insetBy(dx: thumbHitInset, dy: thumbHitInset)
+        let expandedUpper = upperThumbFrame.insetBy(dx: thumbHitInset, dy: thumbHitInset)
+        return expandedLower.contains(point) || expandedUpper.contains(point)
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+
+        let expandedLower = lowerThumbFrame.insetBy(dx: thumbHitInset, dy: thumbHitInset)
+        let expandedUpper = upperThumbFrame.insetBy(dx: thumbHitInset, dy: thumbHitInset)
+
+        if expandedLower.contains(location) {
+            activeDragging = .lower
+        } else if expandedUpper.contains(location) {
+            activeDragging = .upper
+        }
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first, activeDragging != nil else { return }
+        let location = touch.location(in: self)
+
+        switch activeDragging {
+        case .lower:
+            let newValue = valueForPosition(location.x)
+            let clampedValue = max(minimumValue, min(newValue, upperValue - step))
+            if clampedValue != lowerValue {
+                lowerValue = clampedValue
+                updateThumbFrames()
+                onRangeChange?(lowerValue, upperValue)
+            }
+        case .upper:
+            let newValue = valueForPosition(location.x)
+            let clampedValue = min(maximumValue, max(newValue, lowerValue + step))
+            if clampedValue != upperValue {
+                upperValue = clampedValue
+                updateThumbFrames()
+                onRangeChange?(lowerValue, upperValue)
+            }
+        case nil:
+            break
+        }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        activeDragging = nil
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        activeDragging = nil
     }
 
     override func layoutSubviews() {
@@ -375,7 +429,7 @@ class RangeSliderView: UIView {
         let thumbSize = configuration.thumbSize
         let trackHeight: CGFloat = 4.0
         let trackY = (bounds.height - trackHeight) / 2.0
-        
+
         trackRect = CGRect(x: thumbSize / 2.0, y: trackY, width: bounds.width - thumbSize, height: trackHeight)
 
         let lowerX = positionForValue(lowerValue) - thumbSize / 2.0
@@ -383,7 +437,7 @@ class RangeSliderView: UIView {
 
         lowerThumbFrame = CGRect(x: lowerX, y: (bounds.height - thumbSize) / 2.0, width: thumbSize, height: thumbSize)
         upperThumbFrame = CGRect(x: upperX, y: (bounds.height - thumbSize) / 2.0, width: thumbSize, height: thumbSize)
-        
+
         setNeedsDisplay()
     }
 
@@ -391,23 +445,23 @@ class RangeSliderView: UIView {
         let range = maximumValue - minimumValue
         let thumbSize = configuration.thumbSize
         if range == 0 { return thumbSize / 2.0 }
-        
+
         let normalizedValue = (value - minimumValue) / range
         let usableWidth = bounds.width - thumbSize
-        
+
         return thumbSize / 2.0 + CGFloat(normalizedValue) * usableWidth
     }
 
     private func valueForPosition(_ position: CGFloat) -> Float {
         let thumbSize = configuration.thumbSize
         let usableWidth = bounds.width - thumbSize
-        
+
         var normalizedPosition = position - thumbSize / 2.0
         normalizedPosition = max(0, min(normalizedPosition, usableWidth))
-        
+
         let normalizedValue = Float(normalizedPosition / usableWidth)
         let value = minimumValue + normalizedValue * (maximumValue - minimumValue)
-        
+
         return round(value / step) * step
     }
 
@@ -435,7 +489,7 @@ class RangeSliderView: UIView {
     private func drawThumb(frame: CGRect, in context: CGContext) {
         let borderRect = frame.insetBy(dx: 1, dy: 1)
         let path = UIBezierPath(ovalIn: borderRect)
-        
+
         context.setStrokeColor(configuration.thumbBorderColor.cgColor)
         context.setLineWidth(configuration.borderWidth)
         context.addPath(path.cgPath)
@@ -443,65 +497,10 @@ class RangeSliderView: UIView {
 
         let innerRect = frame.insetBy(dx: configuration.borderWidth, dy: configuration.borderWidth)
         let innerPath = UIBezierPath(ovalIn: innerRect)
-        
+
         context.setFillColor(configuration.thumbInnerColor.cgColor)
         context.addPath(innerPath.cgPath)
         context.fillPath()
-    }
-
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
-
-        let expandedLower = lowerThumbFrame.insetBy(dx: -15, dy: -15)
-        let expandedUpper = upperThumbFrame.insetBy(dx: -15, dy: -15)
-
-        if expandedLower.contains(location) {
-            isDraggingLowerThumb = true
-        } else if expandedUpper.contains(location) {
-            isDraggingUpperThumb = true
-        } else {
-            let lowerDistance = abs(location.x - lowerThumbFrame.midX)
-            let upperDistance = abs(location.x - upperThumbFrame.midX)
-            if lowerDistance < upperDistance {
-                isDraggingLowerThumb = true
-            } else {
-                isDraggingUpperThumb = true
-            }
-        }
-    }
-
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
-
-        if isDraggingLowerThumb {
-            let newValue = valueForPosition(location.x)
-            let clampedValue = max(minimumValue, min(newValue, upperValue - step))
-            if clampedValue != lowerValue {
-                lowerValue = clampedValue
-                updateThumbFrames()
-                onRangeChange?(lowerValue, upperValue)
-            }
-        } else if isDraggingUpperThumb {
-            let newValue = valueForPosition(location.x)
-            let clampedValue = min(maximumValue, max(newValue, lowerValue + step))
-            if clampedValue != upperValue {
-                upperValue = clampedValue
-                updateThumbFrames()
-                onRangeChange?(lowerValue, upperValue)
-            }
-        }
-    }
-
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        isDraggingLowerThumb = false
-        isDraggingUpperThumb = false
-    }
-
-    override func touchesCancelled(_ touches: Set<UITouch>?, with event: UIEvent?) {
-        isDraggingLowerThumb = false
-        isDraggingUpperThumb = false
     }
 
     func setRange(lower: Float, upper: Float) {

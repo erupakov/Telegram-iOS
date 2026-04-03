@@ -32,6 +32,7 @@ swift_library(
         "//submodules/TelegramAnimatedStickerNode:TelegramAnimatedStickerNode",
         "//submodules/TelegramUI/Components/ChatScheduleTimeController",
         "//submodules/MediaPickerUI",
+        "//submodules/EventsUI:EventsUI",
     ],
     visibility = [
         "//visibility:public",
