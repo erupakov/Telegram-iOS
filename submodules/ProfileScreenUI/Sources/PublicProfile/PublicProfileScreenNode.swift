@@ -1874,13 +1874,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
         
         UIView.performWithoutAnimation {
-            let jobIcon: UserProfileViewModel.Job
-            switch self.modelRole {
-            case .model:   jobIcon = .model
-            case .agency:  jobIcon = .agency
-            case .newFace: jobIcon = .talent
-            }
-
             if self.modelRole == .agency {
                 let viewModel = UserProfileViewModel(
                     name: detail.agency?.title ?? DivoStrings.noName,

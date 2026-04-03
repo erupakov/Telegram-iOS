@@ -230,12 +230,12 @@ final class AddModelNode: ASDisplayNode {
         let currentGender = DivoStrings.loading
         self.genderDropdown = DropdownNode(title: DivoStrings.gender, placeholder:  DivoStrings.selectGender, options: [currentGender])
 
-        self.ageSlider = AgeSliderNode(title: DivoStrings.ageYo, type: "y.o", defaultValue: 17, minimumValue: 14, maximumValue: 45)
-        self.heightSlider = AgeSliderNode(title: DivoStrings.heightCm, type: "cm", defaultValue: 1.68, minimumValue: 1.68, maximumValue: 2.50)
-        self.weightSlider = AgeSliderNode(title: DivoStrings.weightKg, type: "kg", defaultValue: 50, minimumValue: 48, maximumValue: 90)
-        self.waistSlider = AgeSliderNode(title: DivoStrings.waistCm, type: "cm", defaultValue: 60, minimumValue: 48, maximumValue: 90)
-        self.hipsSlider = AgeSliderNode(title: DivoStrings.hipsCm, type: "cm", defaultValue: 91, minimumValue: 80, maximumValue: 110)
-        self.shoeSizeSlider = AgeSliderNode(title: DivoStrings.shoeSizeEU, type: "", defaultValue: 37, minimumValue: 36, maximumValue: 42)        
+        self.ageSlider = AgeSliderNode(title: DivoStrings.ageYo, type: "y.o", mode: .single(value: 17), minimumValue: 14, maximumValue: 45)
+        self.heightSlider = AgeSliderNode(title: DivoStrings.heightCm, type: "cm", mode: .single(value: 1.68), minimumValue: 1.68, maximumValue: 2.50)
+        self.weightSlider = AgeSliderNode(title: DivoStrings.weightKg, type: "kg", mode: .single(value: 50), minimumValue: 48, maximumValue: 90)
+        self.waistSlider = AgeSliderNode(title: DivoStrings.waistCm, type: "cm", mode: .single(value: 60), minimumValue: 48, maximumValue: 90)
+        self.hipsSlider = AgeSliderNode(title: DivoStrings.hipsCm, type: "cm", mode: .single(value: 91), minimumValue: 80, maximumValue: 110)
+        self.shoeSizeSlider = AgeSliderNode(title: DivoStrings.shoeSizeEU, type: "", mode: .single(value: 37), minimumValue: 36, maximumValue: 42)
 
         self.hairLengthDropdown = DropdownNode(title:DivoStrings.hairLength, placeholder: DivoStrings.chooseHairLength, options: [])
         self.hairColorDropdown = DropdownNode(title: DivoStrings.hairColor, placeholder: DivoStrings.chooseHairColor, options: [])
