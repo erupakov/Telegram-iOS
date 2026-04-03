@@ -645,11 +645,7 @@ final class EditProfileNode: ASDisplayNode {
             
             node.view.widthAnchor.constraint(equalTo: appearanceStackView.widthAnchor).isActive = true
             
-            if node is DropdownNode {
-                node.view.heightAnchor.constraint(equalToConstant: 80).isActive = true
-            } else {
-                node.view.heightAnchor.constraint(equalToConstant: 80).isActive = true
-            }
+            node.view.heightAnchor.constraint(equalToConstant: 80).isActive = true
         }
         
         appearanceStackView.setCustomSpacing(24, after: genderDropdown.view)

@@ -166,6 +166,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self?.navigateToManageExperience()
             }))
         } else {
+            items.append(.init(title: DivoStrings.addModel, action: { [weak self] in
+                self?.navigateToAddModel()
+            }))
             items.append(.init(title: DivoStrings.createEvent, action: { [weak self] in
                 self?.navigateToCreateEvent()
             }))
@@ -295,6 +298,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.push(historyController)
     }
 
+    private func navigateToAddModel() {
+        let addModelController = AddModelController(context: self.context, presentationData: self.presentationData)
+        self.push(addModelController)
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = PublicProfileScreenNode(
             controller: self,
@@ -349,6 +357,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onSocialLinkTapped = { [weak self] url in
             self?.openSocialLink(url)
+        }
+
+        self.controllerNode.onAddModelTapped = { [weak self] in
+            self?.navigateToAddModel()
         }
         
         self.displayNodeDidLoad()
