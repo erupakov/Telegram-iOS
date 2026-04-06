@@ -32,6 +32,7 @@ public final class DivoAPIClient {
         request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(DivoConfig.appPlatform, forHTTPHeaderField: "app-platform")
         request.setValue(DivoConfig.appVersion, forHTTPHeaderField: "app-version")
+        request.setValue(DivoStrings.current.rawValue, forHTTPHeaderField: "Accept-Language")
 
         var requestBodyString: String?
         if let body = body {
@@ -101,6 +102,7 @@ public final class DivoAPIClient {
         request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(DivoConfig.appPlatform, forHTTPHeaderField: "app-platform")
         request.setValue(DivoConfig.appVersion, forHTTPHeaderField: "app-version")
+        request.setValue(DivoStrings.current.rawValue, forHTTPHeaderField: "Accept-Language")
 
         var requestBodyString: String?
         if let body = body {
@@ -172,6 +174,7 @@ public final class DivoAPIClient {
         request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(DivoConfig.appPlatform, forHTTPHeaderField: "app-platform")
         request.setValue(DivoConfig.appVersion, forHTTPHeaderField: "app-version")
+        request.setValue(DivoStrings.current.rawValue, forHTTPHeaderField: "Accept-Language")
 
         var body = Data()
 
