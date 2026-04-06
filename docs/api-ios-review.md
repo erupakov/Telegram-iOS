@@ -226,6 +226,9 @@
 | Проблема | Серьёзность |
 |----------|-------------|
 | Хардкод `offset: 0, limit: 50` — нет пагинации, если моделей больше 50 | Высокая |
+| Хардкод `role: "Model"` — роль не берётся из ответа API | Средняя |
+| Хардкод `isPremium: false` — премиум-статус не берётся из ответа API | Средняя |
+| Нет `userId` в `ModelItem` — нельзя перейти в профиль модели по тапу | Высокая |
 
 ---
 
@@ -239,6 +242,154 @@
 | AddWorkExperienceNode: дата форматируется без учёта timezone — возможен сдвиг на день | Средняя |
 | AddWorkExperienceNode: raw-ошибка API показывается пользователю | Средняя |
 | `agencyId: nil` всегда — хардкод | Средняя |
+
+---
+
+## Проблемы, требующие доработок Backend API
+
+### 9. POST /event/types — совпадение структуры с /agency/list случайное
+
+**Серьёзность:** Средняя
+
+Для загрузки типов событий клиент использует модели от эндпоинта агентств — `AgencyListRequest` и `AgencyListResponse` / `AgencyItem`:
+```swift
+let request = AgencyListRequest(offset: offset, limit: limit, title: nil)
+let response: AgencyListResponse = try await DivoAPIClient.shared.request(
+    path: "/event/types",
+    method: "POST",
+    body: request
+)
+```
+
+Это работает только потому, что оба ответа случайно имеют одинаковую структуру (`{ id, title }`). Но:
+- В body всегда отправляется лишнее поле `title: null` (от `AgencyListRequest`), которое к типам событий не относится
+- Если бэкенд добавит поля в ответ `/agency/list` или `/event/types` (например `description`, `icon`, `parentId`) — второй эндпоинт сломается, т.к. оба парсятся одной моделью
+
+**Что нужно от бэкенда:**
+- Задокументировать контракт `/event/types` отдельно от `/agency/list`
+- Если это справочник (14 элементов, меняется редко) — перенести в `GET /dictionary/event-types` и отдавать без пагинации, как `/dictionary/gender`
+
+---
+
+### 10. POST /feedline/list — нет пагинации в ответе и нет excludeUserId
+
+**Серьёзность:** Средняя
+
+1. Ответ содержит только `items`, без `pagination` / `totalCount`. Клиент определяет наличие следующей страницы как `items.count >= limit` — на последней странице, если элементов ровно `limit`, делается лишний запрос, возвращающий пустой массив.
+
+2. Для блока «Похожие профили» в профиле клиент фильтрует ответ, убирая текущего пользователя:
+```swift
+guard item.user.id != currentUserId else { return nil }
+```
+
+**Что нужно от бэкенда:**
+- Добавить `pagination` с `totalCount` в ответ (как в `/user-gallery/list`)
+- Добавить параметр `excludeUserId`
+
+---
+
+### 11. GET /model-work-history — не возвращает agencyPhoto
+
+**Серьёзность:** Средняя
+
+Клиентская модель `WorkHistoryItem` содержит поле `agencyPhoto: UserFile?`, по дизайну у каждой записи должен быть логотип агентства. Но бэкенд это поле не возвращает:
+```json
+{ "id": 17, "agencyId": null, "agencyName": "test", "agencyDisplayName": "test", "startDate": "2026-03-25", "endDate": null, "isCurrent": true }
+```
+
+**Что нужно от бэкенда:**
+- Добавить `agencyPhoto` в ответ `/model-work-history`
+- Заполнять `agencyId` если агентство существует в базе
+
+---
+
+### 12. POST /publication/create — обязательные поля без UI
+
+**Серьёзность:** Средняя
+
+При загрузке видео в галерею клиент отправляет хардкоды:
+```swift
+title: "My Video",
+description: "Video description",
+type: "educational"
+```
+Пользователь не вводит ни заголовок, ни описание, ни тип — он просто добавляет видео в галерею.
+
+**Что нужно от бэкенда (одно из):**
+- Сделать `title`, `description`, `type` опциональными с дефолтами на сервере
+- Или добавить поддержку видео в `/user-gallery/add`
+
+---
+
+### 13. POST /event/create — ответ без data, хардкоды, нет geo-интеграции
+
+**Серьёзность:** Высокая
+
+1. Ответ `CreateEventResponse` содержит только `message` и `errors`, без `data` — клиент не знает ID созданного события
+2. Хардкоды: `paymentType: 1`, `paymentFrequency: 1`, `cost: "0"`, `role: ["model"]` — нет UI для этих полей
+3. `cityId: 1` — хардкод-заглушка. Используется Telegram-овский пикер стран вместо `/geo/search-by-address-name`
+4. `address.latitude` и `address.longitude` всегда `null`
+5. `dateTo` автоматически = `date + 2 часа`, нет UI для выбора конца
+6. `measuringSystem` не передаётся — бэкенд не знает в какой системе размеры
+
+**Что нужно от бэкенда:**
+- Возвращать `data` с ID созданного события в ответе
+- Сделать `paymentType`, `paymentFrequency`, `cost`, `dateTo` опциональными с дефолтами
+- Документировать: может ли бэкенд определить `cityId` по координатам или `formatted`-адресу
+- Документировать ожидаемую систему измерений для размеров
+
+---
+
+### 14. POST /file/upload-file — осиротевшие файлы
+
+**Серьёзность:** Средняя
+
+Двухшаговый процесс: сначала `POST /file/upload-file` (получает uuid), потом привязка через `/user-gallery/add`, `/publication/create`, `/user/update-profile` и т.д. Если второй запрос упадёт — файл остаётся на сервере без привязки.
+
+**Что нужно от бэкенда:**
+- Механизм TTL / автоочистки неприкреплённых файлов (например, удалять через 24 часа)
+- Или эндпоинт `DELETE /file/{uuid}` для явного удаления клиентом при отмене операции
+
+---
+
+### 15. Неконсистентный формат ошибок между эндпоинтами
+
+**Серьёзность:** Низкая
+
+| Эндпоинт | Тип `errors` |
+|----------|-------------|
+| `POST /user-gallery/add` | `String?` |
+| `POST /user-gallery/list` | `[String]?` |
+| `DELETE /user-gallery/{id}` | `[String]?` |
+| `POST /event/create` | `[String]?` |
+| `POST /publication/create` | `String?` |
+
+**Что нужно от бэкенда:**
+Унифицировать формат ошибок — везде `[String]?` или везде `String?`.
+
+---
+
+### Сводная таблица
+
+| # | Проблема | Эндпоинт | Серьёзность |
+|---|----------|----------|-------------|
+| 1 | Нет фильтрации событий по userId | POST /event/list | Критическая |
+| 2 | N+1 запросов на детали событий | POST /event/list + GET /event/{id} | Критическая |
+| 3 | Нет фильтрации по типу медиа | POST /publication/list | Высокая |
+| 4 | Нет summary-эндпоинта для engagement | GET /user/engagement | Средняя |
+| 5 | Нет серверной сортировки | POST /event/list | Средняя |
+| 6 | Один эндпоинт для разных обновлений | POST /user/update-profile | Средняя |
+| 7 | Непоследовательная структура изображений в feedline | POST /feedline/list | Средняя |
+| 8 | Upload не возвращает созданный объект | POST /user-gallery/add, /publication/create | Низкая |
+| 9 | Совпадение структуры /event/types и /agency/list случайное | POST /event/types | Средняя |
+| 10 | Нет pagination и excludeUserId | POST /feedline/list | Средняя |
+| 11 | Нет agencyPhoto в ответе | GET /model-work-history | Средняя |
+| 12 | Обязательные поля без UI (title, description, type) | POST /publication/create | Средняя |
+| 13 | Ответ без data, хардкоды, нет geo | POST /event/create | Высокая |
+| 14 | Осиротевшие файлы без TTL | POST /file/upload-file | Средняя |
+| 15 | Разный формат errors (String vs [String]) | Несколько эндпоинтов | Низкая |
+
+Подробности пунктов 1-8 — см. [api-backend-needs.md](api-backend-needs.md)
 
 ---
 
