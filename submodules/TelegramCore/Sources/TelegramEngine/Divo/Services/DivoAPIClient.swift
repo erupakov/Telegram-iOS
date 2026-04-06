@@ -51,7 +51,7 @@ public final class DivoAPIClient {
             let (data, response) = try await session.data(for: request)
             let duration = CFAbsoluteTimeGetCurrent() - start
             let http = response as? HTTPURLResponse
-            let responseString = String(data: data.prefix(4096), encoding: .utf8)
+            let responseString = String(data: data, encoding: .utf8)
 
             logger.log(
                 method: method,
@@ -128,7 +128,7 @@ public final class DivoAPIClient {
                 statusCode: http?.statusCode,
                 duration: duration,
                 requestBody: requestBodyString,
-                responseBody: String(data: data.prefix(4096), encoding: .utf8)
+                responseBody: String(data: data, encoding: .utf8)
             )
 
             guard let http = http else {
@@ -206,7 +206,7 @@ public final class DivoAPIClient {
                 statusCode: http?.statusCode,
                 duration: duration,
                 requestBody: "\(fileName) (\(fileData.count) bytes)",
-                responseBody: String(data: data.prefix(4096), encoding: .utf8)
+                responseBody: String(data: data, encoding: .utf8)
             )
 
             guard let http = http else {
