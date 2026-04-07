@@ -3,6 +3,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import DivoCore
 import TelegramPresentationData
 import TelegramStringFormatting
 import AppBundle

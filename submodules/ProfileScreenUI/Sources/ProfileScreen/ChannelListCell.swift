@@ -1,6 +1,7 @@
 import UIKit
 import Display
 import TelegramCore
+import DivoCore
 import AccountContext
 
 struct ProfileChannelItem {

@@ -3,6 +3,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -18,6 +19,10 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     private let scrollView: UIScrollView!
     private let contentView: UIView!
+
+    var coverImage: UIImage? {
+        return backgroundImageView.image
+    }
 
     private let backgroundImageView = UIImageView()
     private let gradientOverlayView = GradientView()

@@ -1,10 +1,12 @@
 import UIKit
 import Display
 import TelegramCore
+import DivoCore
 
 protocol CardCellDelegate: AnyObject {
     func cardCell(_ cell: CardCollectionViewCell, didTapReaction reaction: ReactionType, for cardName: String, isSelected: Bool)
     func cardCell(_ cell: CardCollectionViewCell, didTapFollowForUserId userId: Int, isFollowed: Bool)
+    func cardCell(_ cell: CardCollectionViewCell, didTapShareForUserId userId: Int)
 }
 
 final class CardCollectionViewCell: UICollectionViewCell {
@@ -13,6 +15,10 @@ final class CardCollectionViewCell: UICollectionViewCell {
     private var currentCardName: String?
     private var currentUserId: Int?
     private var currentIsFollowed: Bool = false
+
+    var coverImage: UIImage? {
+        return mainImageView.image
+    }
 
     private let mainImageView: UIImageView = {
         let imageView = UIImageView()
@@ -193,11 +199,17 @@ final class CardCollectionViewCell: UICollectionViewCell {
         previewScrollView.addSubview(previewStackView)
 
         setupDmButtonContent()
+        shareButton.addTarget(self, action: #selector(shareButtonTapped), for: .touchUpInside)
         saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
         reactionsStackView.addArrangedSubview(createReactionButton(symbol: "👍", count: 11, reactionType: .like, isSelected: false))
         reactionsStackView.addArrangedSubview(createReactionButton(symbol: "❤️", count: 8, reactionType: .heart, isSelected: false))
         reactionsStackView.addArrangedSubview(createReactionButton(symbol: "👎", count: 4, reactionType: .dislike, isSelected: false))
         reactionsStackView.addArrangedSubview(createReactionButton(symbol: "🔥", count: 18, reactionType: .fire, isSelected: false))
+    }
+
+    @objc private func shareButtonTapped() {
+        guard let userId = currentUserId else { return }
+        delegate?.cardCell(self, didTapShareForUserId: userId)
     }
 
     @objc private func saveButtonTapped() {

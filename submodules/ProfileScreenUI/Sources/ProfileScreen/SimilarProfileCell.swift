@@ -8,6 +8,7 @@
 import UIKit
 import Display
 import TelegramCore
+import DivoCore
 
 final class SimilarProfileCell: UICollectionViewCell {
     static let reuseIdentifier = "SimilarProfileCell"

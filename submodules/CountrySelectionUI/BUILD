@@ -23,6 +23,7 @@ swift_library(
         "//submodules/TelegramUI/Components/EdgeEffect",
         "//submodules/TelegramUI/Components/GlassBarButtonComponent",
         "//submodules/TelegramUI/Components/SearchInputPanelComponent",
+        "//submodules/DivoCore:DivoCore",
     ],
     visibility = [
         "//visibility:public",

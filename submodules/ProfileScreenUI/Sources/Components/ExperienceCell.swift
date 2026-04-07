@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import Display
 import TelegramCore
+import DivoCore
 import AppBundle
 
 struct WorkExperienceItem {
