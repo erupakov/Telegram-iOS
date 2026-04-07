@@ -110,7 +110,13 @@ public enum DivoStrings {
     public static var feedAllUsers: String { L(en: "ALL USERS", ru: "ВСЕ ПОЛЬЗОВАТЕЛИ", es: "TODOS LOS USUARIOS", pt: "TODOS OS USUÁRIOS", zh: "所有用户") }
     public static var feedAgencies: String { L(en: "AGENCIES & PRO MEMBERS", ru: "АГЕНТСТВА И PRO", es: "AGENCIAS Y PRO", pt: "AGÊNCIAS E PRO", zh: "经纪公司和专业会员") }
     public static var addStory: String { L(en: "Add Story", ru: "Добавить", es: "Añadir", pt: "Adicionar", zh: "添加动态") }
-
+    public static var feedSearchPlaceholder: String { L(en: "Search by name or @handle", ru: "Поиск по имени или @handle", es: "Buscar por nombre o @ identificador", pt: "Procurar por nome ou @ identificador", zh: "按名称或@handle搜索") }
+    public static var feedSearchNoFound: String { L(en: "NO RESULTS FOUND", ru: "НИКАКИХ РЕЗУЛЬТАТОВ НАЙДЕНО НЕ БЫЛО", es: "NO SE HAN ENCONTRADO RESULTADOS", pt: "NÃO FORAM ENCONTRADOS RESULTADOS", zh: "未找到结果") }
+    public static var feedSearchNoFilters: String { L(en: "Try adjusting your filters", ru: "Попробуйте настроить свои фильтры", es: "Intenta ajustar tus filtros", pt: "Tente ajustar seus filtros", zh: "尝试调整过滤器") }
+    public static func feedSearchCount(_ totalCount: Int, _ query: String) -> String {
+        L(en: "\(totalCount) results for \"\(query)\"", ru: "\(totalCount) результаты для \"\(query)\"", es: "\(totalCount) resultados para \"\(query)\"", pt: "\(totalCount) resultados para \"\(query)\"", zh: "\(totalCount) 结果为 \"\(query)\"")
+    }
+    
     // MARK: - Roles
 
     public static var roleModel: String { L(en: "model", ru: "модель", es: "modelo", pt: "modelo", zh: "模特") }
