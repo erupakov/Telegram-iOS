@@ -9,6 +9,7 @@ import Markdown
 import SolidRoundedButtonNode
 import AuthorizationUtils
 import TelegramCore
+import DivoCore
 
 private enum TypeOfRole: String {
     case talent = "TALENT"

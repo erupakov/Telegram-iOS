@@ -8,6 +8,7 @@ import TelegramStringFormatting
 import SearchBarNode
 import AppBundle
 import TelegramCore
+import DivoCore
 import ComponentFlow
 import BundleIconComponent
 import GlassBarButtonComponent

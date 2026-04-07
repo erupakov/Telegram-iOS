@@ -6,6 +6,7 @@ import AccountContext
 import TelegramPresentationData
 import TelegramBaseController
 import TelegramCore
+import DivoCore
 import AppBundle
 import ProfileScreenUI
 

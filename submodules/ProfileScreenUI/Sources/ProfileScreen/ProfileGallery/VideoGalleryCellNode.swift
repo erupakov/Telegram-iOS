@@ -5,6 +5,7 @@ import AVKit
 import Display
 import AsyncDisplayKit
 import TelegramCore
+import DivoCore
 import TelegramPresentationData
 import AccountContext
 import PhotoResources

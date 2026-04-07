@@ -19,6 +19,7 @@ swift_library(
         "//submodules/ItemListUI:ItemListUI",
         "//submodules/PresentationDataUtils:PresentationDataUtils",
         "//submodules/AppBundle:AppBundle",
+        "//submodules/DivoCore:DivoCore",
     ],
     visibility = [
         "//visibility:public",

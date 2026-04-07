@@ -49,6 +49,7 @@ swift_library(
         "//submodules/Utils/DeviceModel",
         "//submodules/PresentationDataUtils",
         "//submodules/OnboardingUI:OnboardingUI",
+        "//submodules/DivoCore:DivoCore",
     ],
     visibility = [
         "//visibility:public",
