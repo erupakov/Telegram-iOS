@@ -116,7 +116,14 @@ public enum DivoStrings {
     public static func feedSearchCount(_ totalCount: Int, _ query: String) -> String {
         L(en: "\(totalCount) results for \"\(query)\"", ru: "\(totalCount) результаты для \"\(query)\"", es: "\(totalCount) resultados para \"\(query)\"", pt: "\(totalCount) resultados para \"\(query)\"", zh: "\(totalCount) 结果为 \"\(query)\"")
     }
-    
+    public static var feedSearchFilter: String { L(en: "Filter", ru: "Фильтр", es: "Filtro", pt: "Filtro", zh: "过滤器") }
+    public static var feedSearchReset: String { L(en: "Reset", ru: "Сбросить", es: "Restablecer", pt: "Redefinir", zh: "重置") }
+    public static var feedSearchApplyFilter: String { L(en: "Apply filter", ru: "Применить фильтр", es: "Aplicar filtro", pt: "Aplicar filtro", zh: "应用筛选") }
+    public static var feedSearchAllRoles: String { L(en: "All roles", ru: "Все роли", es: "Todos los roles", pt: "Todos as funções", zh: "所有角色") }
+    public static var feedSearchAllGenders: String { L(en: "All genders", ru: "Все гендеры", es: "Todos los géneros", pt: "Todos os gêneros", zh: "所有性别") }
+    public static var feedSearchCountry: String { L(en: "Search by country", ru: "Поиск по стране", es: "Buscar por país", pt: "Pesquisar por país", zh: "按国家搜索") }
+    public static var feedSearchAllCountries: String { L(en: "All countries", ru: "Все страны", es: "Todos los países", pt: "Todos os países", zh: "所有国家") }
+
     // MARK: - Roles
 
     public static var roleModel: String { L(en: "model", ru: "модель", es: "modelo", pt: "modelo", zh: "模特") }
@@ -389,6 +396,7 @@ public enum DivoStrings {
     public static var debugImageCache: String { L(en: "Image cache", ru: "Кеш изображений", es: "Caché de imágenes", pt: "Cache de imagens", zh: "图片缓存") }
     public static var debugInfo: String { L(en: "INFO", ru: "ИНФОРМАЦИЯ", es: "INFORMACIÓN", pt: "INFORMAÇÃO", zh: "信息") }
     public static var debugAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司") }
+    public static var debugNewTalent: String { L(en: "New talent", ru: "Новый талант", es: "Nuevo talento", pt: "Novo talento", zh: "新人才") }
     public static var debugModel: String { L(en: "Model", ru: "Модель", es: "Modelo", pt: "Modelo", zh: "模特") }
     public static var debugCustom: String { L(en: "Custom", ru: "Свой", es: "Personalizado", pt: "Personalizado", zh: "自定义") }
     public static var debugOff: String { L(en: "Off", ru: "Выкл", es: "Apagado", pt: "Desligado", zh: "关闭") }

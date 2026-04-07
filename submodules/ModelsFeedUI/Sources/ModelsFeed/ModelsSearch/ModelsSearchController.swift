@@ -13,6 +13,7 @@ import SwiftSignalKit
 import TelegramCore
 import TelegramPresentationData
 import AccountContext
+import CountrySelectionUI
 
 public class ModelsSearchController: ViewController {
     private let context: AccountContext
@@ -30,6 +31,9 @@ public class ModelsSearchController: ViewController {
     private var hasMoreGridResults = true
     private var gridOffset = 0
     private let gridLimit = 20
+    
+    private var currentFilters = SearchFilterState()
+    private var preloadedGenders: [FilterOptionItem] = []
     
     public init(context: AccountContext) {
         self.context = context
@@ -54,6 +58,8 @@ public class ModelsSearchController: ViewController {
     }
     
     override public func loadDisplayNode() {
+        self.loadGenderDictionary()
+        
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
         
         // MARK: - Bindings (Связь UI и Логики)
@@ -66,22 +72,19 @@ public class ModelsSearchController: ViewController {
             }
         }
         
-        self.searchNode.onFilterPressed = {
-            print("Filter button tapped - Open Filters")
+        self.searchNode.onFilterPressed = { [weak self] in
+            self?.openFilters()
         }
         
-        // Запрос подсказок (Срабатывает через таймер из Node)
         self.searchNode.requestAutocomplete = {[weak self] query in
             self?.fetchAutocompleteResults(for: query)
         }
         
-        // Запрос сетки (Нажат Return)
         self.searchNode.requestGridSearch = { [weak self] query in
             self?.currentQuery = query
             self?.fetchGridResults(isFirstPage: true)
         }
         
-        // Пагинация сетки (Доскроллили до конца)
         self.searchNode.loadMoreGridResults = { [weak self] in
             self?.fetchGridResults(isFirstPage: false)
         }
@@ -94,7 +97,51 @@ public class ModelsSearchController: ViewController {
         self.navigationBar?.isHidden = true
     }
     
+    private func openFilters() {
+        let filterVC = SearchFilterController(currentFilters: self.currentFilters)
+        filterVC.genderOptions = self.preloadedGenders
+
+        filterVC.onApply = { [weak self] newFilters in
+            guard let self = self else { return }
+            self.currentFilters = newFilters
+            self.gridOffset = 0
+            self.hasMoreGridResults = true
+            self.fetchGridResults(isFirstPage: true)
+        }
+
+        let navVC = UINavigationController(rootViewController: filterVC)
+        if #available(iOS 15.0, *) {
+            if let sheet = navVC.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = 24
+            }
+        }
+        self.view.window?.rootViewController?.present(navVC, animated: true)
+    }
+    
     // MARK: - Network Requests
+    
+    private func loadGenderDictionary() {
+        Task { @MainActor in
+            do {
+                let response: GenderResponse = try await DivoAPIClient.shared.request(
+                    path: "/dictionary/gender",
+                    method: "GET"
+                )
+                
+                self.preloadedGenders = response.data.map {
+                    FilterOptionItem(id: $0.id, title: $0.title)
+                }
+            } catch {
+                print("❌ Error loading gender dictionary: \(error)")
+                self.preloadedGenders = [
+                    FilterOptionItem(id: "male", title: "Male"),
+                    FilterOptionItem(id: "female", title: "Female")
+                ]
+            }
+        }
+    }
     
     private func buildRequest(limit: Int, offset: Int, query: String) -> ModelsSearchRequest {
         return ModelsSearchRequest(
