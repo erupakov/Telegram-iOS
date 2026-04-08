@@ -80,6 +80,15 @@ final class ModelsSearchNode: ASDisplayNode {
         return button
     }()
     
+    private let filterButtonLoader: UIActivityIndicatorView = {
+        let loader = UIActivityIndicatorView(style: .medium)
+        loader.color = UIColor(hexString: "#FF772D")
+        loader.hidesWhenStopped = true
+        loader.translatesAutoresizingMaskIntoConstraints = false
+        loader.isHidden = true
+        return loader
+    }()
+    
     private let closeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
@@ -320,6 +329,12 @@ final class ModelsSearchNode: ASDisplayNode {
             filterButton.heightAnchor.constraint(equalToConstant: elementHeight)
         ])
         
+        filterButton.addSubview(filterButtonLoader)
+        NSLayoutConstraint.activate([
+            filterButtonLoader.centerXAnchor.constraint(equalTo: filterButton.centerXAnchor),
+            filterButtonLoader.centerYAnchor.constraint(equalTo: filterButton.centerYAnchor)
+        ])
+        
         NSLayoutConstraint.activate([
             searchFieldContainer.leadingAnchor.constraint(equalTo: topBarContainer.leadingAnchor, constant: sidePadding),
             searchFieldContainer.trailingAnchor.constraint(equalTo: filterButton.leadingAnchor, constant: -spacing),
@@ -466,6 +481,28 @@ final class ModelsSearchNode: ASDisplayNode {
             floatingActionButton.widthAnchor.constraint(equalToConstant: 52),
             floatingActionButton.heightAnchor.constraint(equalToConstant: 52)
         ])
+    }
+    
+    
+    // MARK: - Internal
+
+    func setFiltersButtonEnabled(_ isEnabled: Bool) {
+        filterButton.isEnabled = isEnabled
+        filterButton.alpha = isEnabled ? 1.0 : 0.5
+    }
+
+    func showFiltersButtonLoading() {
+        filterButton.isEnabled = false
+        filterButton.setImage(nil, for: .normal)
+        filterButtonLoader.isHidden = false
+        filterButtonLoader.startAnimating()
+    }
+
+    func hideFiltersButtonLoading() {
+        filterButton.isEnabled = true
+        filterButton.setImage(UIImage(bundleImageName: "FilterIcon"), for: .normal)
+        filterButtonLoader.stopAnimating()
+        filterButtonLoader.isHidden = true
     }
     
     func showAutocompleteLoading() {

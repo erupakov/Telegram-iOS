@@ -13,6 +13,11 @@ struct FilterOptionItem {
     let title: String
 }
 
+struct FilterOptionApperanceItem {
+    let id: Int
+    let title: String
+}
+
 struct SearchFilterState {
     var roleIds: [String] = []
     var roleTitles: [String] = []
@@ -24,9 +29,26 @@ struct SearchFilterState {
     var countryTitles: [String] = []
 
     var city: String?
+    
+    // Appearance filters
+    var gender: String?
+    var ageRange: ClosedRange<Double>?
+    var heightRange: ClosedRange<Double>?
+    var weightRange: ClosedRange<Double>?
+    var waistRange: ClosedRange<Double>?
+    var hipsRange: ClosedRange<Double>?
+    var shoeSizeRange: ClosedRange<Double>?
+    var hairLength: [String]?
+    var hairColor: [String]?
+    var eyeColor: [String]?
+    var skinColor: [String]?
 
     var hasActiveFilters: Bool {
-        return !roleIds.isEmpty || !genderIds.isEmpty || !countryIds.isEmpty || !(city?.isEmpty ?? true)
+        return !roleIds.isEmpty || !genderIds.isEmpty || !countryIds.isEmpty ||
+               !(city?.isEmpty ?? true) || !(gender?.isEmpty ?? true) || ageRange != nil ||
+               heightRange != nil || weightRange != nil || waistRange != nil ||
+               hipsRange != nil || shoeSizeRange != nil || !(hairLength?.isEmpty ?? true) ||
+               !(hairColor?.isEmpty ?? true) || !(eyeColor?.isEmpty ?? true) || !(skinColor?.isEmpty ?? true)
     }
 
     mutating func reset() {
@@ -37,6 +59,17 @@ struct SearchFilterState {
         countryIds = []
         countryTitles = []
         city = nil
+        gender = nil
+        ageRange = nil
+        heightRange = nil
+        weightRange = nil
+        waistRange = nil
+        hipsRange = nil
+        shoeSizeRange = nil
+        hairLength = []
+        hairColor = []
+        eyeColor = []
+        skinColor = []
     }
 
     var apiRoles: [String] {

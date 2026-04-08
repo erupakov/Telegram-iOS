@@ -123,6 +123,9 @@ public enum DivoStrings {
     public static var feedSearchAllGenders: String { L(en: "All genders", ru: "Все гендеры", es: "Todos los géneros", pt: "Todos os gêneros", zh: "所有性别") }
     public static var feedSearchCountry: String { L(en: "Search by country", ru: "Поиск по стране", es: "Buscar por país", pt: "Pesquisar por país", zh: "按国家搜索") }
     public static var feedSearchAllCountries: String { L(en: "All countries", ru: "Все страны", es: "Todos los países", pt: "Todos os países", zh: "所有国家") }
+    public static var feedSearchDeleteParameter: String { L(en: "Delete parameter", ru: "Удалить параметр", es: "Eliminar parámetro", pt: "Excluir parâmetro", zh: "删除参数") }
+    public static var feedSearchMoreFilters: String { L(en: "More filters", ru: "Больше фильтров", es: "Más filtros", pt: "Mais filtros", zh: "更多筛选") }
+    public static var feedSearchLessFilters: String { L(en: "Less filters", ru: "Меньше фильтров", es: "Menos filtros", pt: "Menos filtros", zh: "更少筛选") }
 
     // MARK: - Roles
 
@@ -409,6 +412,8 @@ public enum DivoStrings {
     public static var debugNetworkDelayMessage: String { L(en: "Artificial delay before each request", ru: "Искусственная задержка перед каждым запросом", es: "Retraso artificial antes de cada solicitud", pt: "Atraso artificial antes de cada requisição", zh: "每次请求前的人工延迟") }
     public static var debugClearCache: String { L(en: "Clear cache?", ru: "Очистить кеш?", es: "¿Limpiar caché?", pt: "Limpar cache?", zh: "清除缓存？") }
     public static var debugClear: String { L(en: "Clear", ru: "Очистить", es: "Limpiar", pt: "Limpar", zh: "清除") }
+    public static var debugAll: String { L(en: "All", ru: "Все", es: "Todos", pt: "Todos", zh: "全部") }
+    public static var debugAny: String { L(en: "Any", ru: "Любой", es: "Cualquiera", pt: "Qualquer", zh: "任意") }
 
     public static func debugCurrentSize(_ size: String) -> String {
         L(en: "Current size: \(size)", ru: "Текущий размер: \(size)", es: "Tamaño actual: \(size)", pt: "Tamanho atual: \(size)", zh: "当前大小：\(size)")

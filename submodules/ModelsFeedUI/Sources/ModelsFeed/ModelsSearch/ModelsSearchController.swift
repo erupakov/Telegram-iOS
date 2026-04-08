@@ -34,6 +34,13 @@ public class ModelsSearchController: ViewController {
     
     private var currentFilters = SearchFilterState()
     private var preloadedGenders: [FilterOptionItem] = []
+    private var preloadedHairLength: [FilterOptionApperanceItem] = []
+    private var preloadedHairColor: [FilterOptionApperanceItem] = []
+    private var preloadedEyeColor: [FilterOptionApperanceItem] = []
+    private var preloadedSkinColor: [FilterOptionApperanceItem] = []
+    
+    private let dictionaryLoadGroup = DispatchGroup()
+    private var isDictionaryReady = false
     
     public init(context: AccountContext) {
         self.context = context
@@ -47,6 +54,9 @@ public class ModelsSearchController: ViewController {
                 strongSelf.presentationData = presentationData
             }
         }).strict()
+        
+        loadGenderDictionary()
+        loadAppearanceDictionary()
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -58,9 +68,18 @@ public class ModelsSearchController: ViewController {
     }
     
     override public func loadDisplayNode() {
-        self.loadGenderDictionary()
         
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
+        
+        self.searchNode.setFiltersButtonEnabled(false)
+        self.searchNode.showFiltersButtonLoading()
+        
+        dictionaryLoadGroup.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.isDictionaryReady = true
+            self.searchNode.hideFiltersButtonLoading()
+            self.searchNode.setFiltersButtonEnabled(true)
+        }
         
         // MARK: - Bindings (Связь UI и Логики)
         
@@ -98,8 +117,18 @@ public class ModelsSearchController: ViewController {
     }
     
     private func openFilters() {
+        
+        guard isDictionaryReady else {
+            print("Filters not ready yet")
+            return
+        }
+        
         let filterVC = SearchFilterController(currentFilters: self.currentFilters)
         filterVC.genderOptions = self.preloadedGenders
+        filterVC.hairLengthOptions = self.preloadedHairLength
+        filterVC.hairColorOptions = self.preloadedHairColor
+        filterVC.eyeColorOptions = self.preloadedEyeColor
+        filterVC.skinColorOptions = self.preloadedSkinColor
 
         filterVC.onApply = { [weak self] newFilters in
             guard let self = self else { return }
@@ -139,6 +168,33 @@ public class ModelsSearchController: ViewController {
                     FilterOptionItem(id: "male", title: "Male"),
                     FilterOptionItem(id: "female", title: "Female")
                 ]
+            }
+        }
+    }
+    
+    private func loadAppearanceDictionary() {
+        Task { @MainActor in
+            do {
+                let response: AppearanceDictionaryResponse = try await DivoAPIClient.shared.request(
+                    path: "/dictionary/appearances",
+                    method: "GET"
+                )
+                
+                self.preloadedHairLength = response.data.hairLength.map {
+                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                }
+                self.preloadedHairColor = response.data.hairColor.map {
+                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                }
+                self.preloadedEyeColor = response.data.eyeColor.map {
+                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                }
+                self.preloadedSkinColor = response.data.skinColor.map {
+                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                }
+                
+            } catch {
+                print("❌ Error loading appearance dictionary: \(error)")
             }
         }
     }
