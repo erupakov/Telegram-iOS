@@ -14,33 +14,46 @@ import AppBundle
 final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, CardCellDelegate {
     private final class PaginationShimmerCell: UICollectionViewCell {
         private let cardShimmer = ShimmerView()
-        private let avatarShimmer = ShimmerView()
-        private let nameLine1 = ShimmerView()
-        private let nameLine2 = ShimmerView()
-        private let actionLine = ShimmerView()
+        private let nameLine = ShimmerView()
+        private let badgeLine = ShimmerView()
+        private let stat1 = ShimmerView()
+        private let stat2 = ShimmerView()
+        private let stat3 = ShimmerView()
+        private let preview1 = ShimmerView()
+        private let preview2 = ShimmerView()
+        private let preview3 = ShimmerView()
+        private let preview4 = ShimmerView()
+
+        private var allShimmers: [ShimmerView] {
+            [cardShimmer, nameLine, badgeLine, stat1, stat2, stat3, preview1, preview2, preview3, preview4]
+        }
 
         override init(frame: CGRect) {
             super.init(frame: frame)
             backgroundColor = .white
+            layer.cornerRadius = 32
+            layer.masksToBounds = true
 
             cardShimmer.layer.cornerRadius = 0
             addSubview(cardShimmer)
 
-            avatarShimmer.layer.cornerRadius = 35
-            avatarShimmer.layer.masksToBounds = true
-            addSubview(avatarShimmer)
+            for line in [nameLine, badgeLine] {
+                line.layer.cornerRadius = 6
+                line.layer.masksToBounds = true
+                addSubview(line)
+            }
 
-            nameLine1.layer.cornerRadius = 6
-            nameLine1.layer.masksToBounds = true
-            addSubview(nameLine1)
+            for stat in [stat1, stat2, stat3] {
+                stat.layer.cornerRadius = 14
+                stat.layer.masksToBounds = true
+                addSubview(stat)
+            }
 
-            nameLine2.layer.cornerRadius = 6
-            nameLine2.layer.masksToBounds = true
-            addSubview(nameLine2)
-
-            actionLine.layer.cornerRadius = 10
-            actionLine.layer.masksToBounds = true
-            addSubview(actionLine)
+            for pv in [preview1, preview2, preview3, preview4] {
+                pv.layer.cornerRadius = 8
+                pv.layer.masksToBounds = true
+                addSubview(pv)
+            }
         }
 
         required init?(coder: NSCoder) {
@@ -52,23 +65,66 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             let w = bounds.width
             let h = bounds.height
             cardShimmer.frame = bounds
-            avatarShimmer.frame = CGRect(x: 15, y: h - 200, width: 70, height: 70)
-            nameLine1.frame = CGRect(x: 95, y: h - 195, width: w * 0.45, height: 18)
-            nameLine2.frame = CGRect(x: 95, y: h - 170, width: w * 0.3, height: 18)
-            actionLine.frame = CGRect(x: 15, y: h - 110, width: 100, height: 36)
+
+            // Name + badge (top-left)
+            nameLine.frame = CGRect(x: 15, y: 15, width: w * 0.5, height: 22)
+            badgeLine.frame = CGRect(x: 15, y: 45, width: w * 0.35, height: 18)
+
+            // Stats (top-right)
+            let statX = w - 15 - 70
+            stat1.frame = CGRect(x: statX, y: 15, width: 70, height: 28)
+            stat2.frame = CGRect(x: statX, y: 51, width: 70, height: 28)
+            stat3.frame = CGRect(x: statX, y: 87, width: 70, height: 28)
+
+            // Previews (bottom)
+            let pvY = h - 15 - 100
+            let pvSize: CGFloat = 100
+            let pvSpacing: CGFloat = 5
+            preview1.frame = CGRect(x: 15, y: pvY, width: pvSize, height: pvSize)
+            preview2.frame = CGRect(x: 15 + pvSize + pvSpacing, y: pvY, width: pvSize, height: pvSize)
+            preview3.frame = CGRect(x: 15 + (pvSize + pvSpacing) * 2, y: pvY, width: pvSize, height: pvSize)
+            preview4.frame = CGRect(x: 15 + (pvSize + pvSpacing) * 3, y: pvY, width: pvSize, height: pvSize)
         }
 
         override func prepareForReuse() {
             super.prepareForReuse()
-            [cardShimmer, avatarShimmer, nameLine1, nameLine2, actionLine].forEach { $0.stopShimmer() }
+            allShimmers.forEach { $0.stopShimmer() }
         }
 
         func setLoading(_ isLoading: Bool) {
-            if isLoading {
-                [cardShimmer, avatarShimmer, nameLine1, nameLine2, actionLine].forEach { $0.startShimmer() }
-            } else {
-                [cardShimmer, avatarShimmer, nameLine1, nameLine2, actionLine].forEach { $0.stopShimmer() }
-            }
+            allShimmers.forEach { isLoading ? $0.startShimmer() : $0.stopShimmer() }
+        }
+    }
+
+    private final class PaginationRetryCell: UICollectionViewCell {
+        private let retryButton: UIButton = {
+            let button = UIButton(type: .system)
+            let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
+            button.setImage(UIImage(systemName: "arrow.clockwise", withConfiguration: config), for: .normal)
+            button.tintColor = UIColor(white: 0.4, alpha: 1.0)
+            return button
+        }()
+
+        var onRetry: (() -> Void)?
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+            backgroundColor = .white
+            addSubview(retryButton)
+            retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        @objc private func retryTapped() {
+            onRetry?()
+        }
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            retryButton.frame = CGRect(x: (bounds.width - 50) / 2, y: (bounds.height - 50) / 2, width: 50, height: 50)
         }
     }
 
@@ -78,7 +134,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private let navBackgroundView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoGlassColors.screenBackground
         return view
     }()
 
@@ -119,42 +175,48 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private var tabTitles: [String] { [DivoStrings.feedSubscribed, DivoStrings.feedAllUsers, DivoStrings.feedAgencies] }
     private var selectedTabIndex = 0
 
-    private let tabsScrollView: UIScrollView = {
-        let sv = UIScrollView()
-        sv.showsHorizontalScrollIndicator = false
-        sv.showsVerticalScrollIndicator = false
-        sv.backgroundColor = .white
-        return sv
-    }()
-
-    private let tabsStackView: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.spacing = 40
-        stack.alignment = .center
-        return stack
-    }()
-
-    private let tabIndicatorView: UIView = {
+    private let tabsContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .black
-        view.layer.cornerRadius = 4
-        view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+        view.backgroundColor = DivoGlassColors.screenBackground
+        return view
+    }()
+
+    private let segmentedBackground: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
         view.layer.masksToBounds = true
         return view
     }()
 
+    private let segmentIndicator: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoGlassColors.screenBackground
+        view.layer.masksToBounds = true
+        return view
+    }()
+
+    private var tabButtons: [UIButton] = []
+
     private var loadingPlaceholderView: UIView?
+    private var spinnerLoadingView: UIView?
+    private var errorBannerView: UIView?
     private var errorView: UIView?
     private var emptyStateView: UIView?
 
     var showNetworkError: Bool = false {
         didSet {
             if showNetworkError && cards.isEmpty {
-                showErrorView()
+                showErrorBanner()
             } else {
-                hideErrorView()
+                hideErrorBanner()
             }
+        }
+    }
+
+    var hasPaginationError: Bool = false {
+        didSet {
+            guard oldValue != hasPaginationError else { return }
+            mainCollectionView.reloadData()
         }
     }
 
@@ -168,10 +230,20 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     var isLoading: Bool = false {
         didSet {
             if isLoading && cards.isEmpty {
-                showLoadingPlaceholder()
+                showSpinnerLoading()
                 hideEmptyState()
             } else {
-                hideLoadingPlaceholder()
+                hideSpinnerLoading()
+            }
+        }
+    }
+
+    var isSpinnerLoading: Bool = false {
+        didSet {
+            if isSpinnerLoading {
+                showSpinnerLoading()
+            } else {
+                hideSpinnerLoading()
             }
         }
     }
@@ -179,6 +251,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     var showProfile: ((CardModel) -> Void)?
     var loadMore: (() -> Void)?
     var onTabSelected: ((Int) -> Void)?
+    var onRetry: (() -> Void)?
 
     func updateCards(_ newCards: [CardModel], animated: Bool = false) {
         self.cards = newCards
@@ -231,7 +304,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         storiesFlowLayout.estimatedItemSize = CGSize(width: 70, height: 90)
 
         self.storiesCollectionView = UICollectionView(frame: .zero, collectionViewLayout: storiesFlowLayout)
-        self.storiesCollectionView.backgroundColor = .white
+        self.storiesCollectionView.backgroundColor = DivoGlassColors.screenBackground
         self.storiesCollectionView.dataSource = self
         self.storiesCollectionView.delegate = self
         self.storiesCollectionView.showsHorizontalScrollIndicator = false
@@ -245,7 +318,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let mainFlowLayout = UICollectionViewFlowLayout()
 
         self.mainCollectionView = UICollectionView(frame: .zero, collectionViewLayout: mainFlowLayout)
-        self.mainCollectionView.backgroundColor = .white
+        self.mainCollectionView.backgroundColor = DivoGlassColors.screenBackground
         self.mainCollectionView.dataSource = self
         self.mainCollectionView.delegate = self
         self.mainCollectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -254,7 +327,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         self.mainCollectionView.register(CardCollectionViewCell.self, forCellWithReuseIdentifier: "CardCell")
         self.mainCollectionView.register(PaginationShimmerCell.self, forCellWithReuseIdentifier: "PaginationShimmerCell")
-
+        self.mainCollectionView.register(PaginationRetryCell.self, forCellWithReuseIdentifier: "PaginationRetryCell")
 
         self.titleLabel.text = DivoStrings.navModels
 
@@ -290,22 +363,22 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.view.addSubview(self.mainCollectionView)
         self.view.addSubview(self.navBackgroundView)
         self.view.addSubview(self.storiesCollectionView)
-        self.view.addSubview(self.tabsScrollView)
+        self.view.addSubview(self.tabsContainerView)
         for av in floatingAvatars { self.view.addSubview(av) }
         for lbl in floatingNames { self.view.addSubview(lbl) }
         self.navBackgroundView.addSubview(self.titleLabel)
-        self.tabsScrollView.addSubview(self.tabsStackView)
-        self.tabsScrollView.addSubview(self.tabIndicatorView)
+
+        // Segmented control tabs
+        tabsContainerView.addSubview(segmentedBackground)
+        segmentedBackground.addSubview(segmentIndicator)
 
         for (index, title) in tabTitles.enumerated() {
-            let button = UIButton(type: .system)
-            button.setTitle(title, for: .normal)
-            button.titleLabel?.font = Font.helveticaNeue(12)
-            button.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
-            button.setTitleColor(index == 0 ? .black : UIColor(white: 0.5, alpha: 1.0), for: .normal)
+            let button = UIButton(type: .custom)
+            button.setAttributedTitle(Self.tabAttributedTitle(title, active: index == 0), for: .normal)
             button.tag = index
             button.addTarget(self, action: #selector(tabButtonTapped(_:)), for: .touchUpInside)
-            tabsStackView.addArrangedSubview(button)
+            segmentedBackground.addSubview(button)
+            tabButtons.append(button)
         }
 
         self.storiesCollectionView.reloadData()
@@ -316,9 +389,10 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             self.titleLabel.text = DivoStrings.navModels
-            for (index, view) in self.tabsStackView.arrangedSubviews.enumerated() {
-                if let button = view as? UIButton, index < self.tabTitles.count {
-                    button.setTitle(self.tabTitles[index], for: .normal)
+            for (index, button) in self.tabButtons.enumerated() {
+                if index < self.tabTitles.count {
+                    let title = self.tabTitles[index]
+                    button.setAttributedTitle(Self.tabAttributedTitle(title, active: index == self.selectedTabIndex), for: .normal)
                 }
             }
             if let (layout, navigationBarHeight) = self.containerLayout {
@@ -329,61 +403,67 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
+    private static func tabAttributedTitle(_ title: String, active: Bool) -> NSAttributedString {
+        let font = UIFont(name: "HelveticaNeue-CondensedBold", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .bold)
+        let color: UIColor = active ? .black : UIColor(white: 0.45, alpha: 1.0)
+        return NSAttributedString(string: title.uppercased(), attributes: [
+            .font: font,
+            .foregroundColor: color,
+            .kern: 0.5
+        ])
+    }
+
     @objc private func tabButtonTapped(_ sender: UIButton) {
         let index = sender.tag
         guard index != selectedTabIndex else { return }
         selectedTabIndex = index
 
-        UIView.animate(withDuration: 0.35, delay: 0, options: [.curveEaseOut]) {
-            for case let button as UIButton in self.tabsStackView.arrangedSubviews {
-                let isSelected = button.tag == index
-                button.setTitleColor(isSelected ? .black : UIColor(white: 0.5, alpha: 1.0), for: .normal)
+        let haptic = UIImpactFeedbackGenerator(style: .light)
+        haptic.impactOccurred()
+
+        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+            self.layoutSegmentIndicator()
+        }
+        for button in self.tabButtons {
+            let isSelected = button.tag == index
+            let title = self.tabTitles[button.tag]
+            let attributed = Self.tabAttributedTitle(title, active: isSelected)
+            UIView.transition(with: button, duration: 0.2, options: [.transitionCrossDissolve, .allowUserInteraction]) {
+                button.setAttributedTitle(attributed, for: .normal)
             }
         }
-        UIView.animate(withDuration: 0.45, delay: 0, usingSpringWithDamping: 0.65, initialSpringVelocity: 0.3, options: []) {
-            self.layoutTabIndicator()
-            self.scrollTabToVisible(index: index)
+        if let label = spinnerLoadingView?.viewWithTag(201) as? UILabel {
+            label.text = loadingTextForCurrentTab()
         }
         hideEmptyState()
         onTabSelected?(index)
     }
 
-    private func scrollTabToVisible(index: Int) {
-        guard index < tabsStackView.arrangedSubviews.count else { return }
-        let button = tabsStackView.arrangedSubviews[index]
-        let buttonFrame = button.convert(button.bounds, to: tabsScrollView)
-        let scrollWidth = tabsScrollView.bounds.width
-        let targetX = buttonFrame.midX - scrollWidth / 2.0
-        let maxOffsetX = max(tabsScrollView.contentSize.width - scrollWidth, 0)
-        let clampedX = min(max(targetX, 0), maxOffsetX)
-        tabsScrollView.contentOffset = CGPoint(x: clampedX, y: 0)
-    }
+    private func layoutSegmentIndicator() {
+        guard selectedTabIndex < tabButtons.count else { return }
+        let segBounds = segmentedBackground.bounds
+        let tabCount = CGFloat(tabButtons.count)
+        let padding: CGFloat = 2
+        let segmentWidth = (segBounds.width - padding * 2) / tabCount
+        let indicatorX = padding + CGFloat(selectedTabIndex) * segmentWidth
 
-    private func layoutTabIndicator() {
-        guard selectedTabIndex < tabsStackView.arrangedSubviews.count,
-              let selectedButton = tabsStackView.arrangedSubviews[selectedTabIndex] as? UIButton else { return }
-
-        tabsStackView.layoutIfNeeded()
-
-        let indicatorHeight: CGFloat = 2
-        let textSize: CGSize
-        if let title = selectedButton.title(for: .normal), let font = selectedButton.titleLabel?.font {
-            textSize = (title as NSString).size(withAttributes: [.font: font])
-        } else {
-            textSize = selectedButton.bounds.size
-        }
-
-        let buttonFrame = selectedButton.convert(selectedButton.bounds, to: tabsScrollView)
-        let indicatorWidth = ceil(textSize.width) + 4
-        let indicatorX = buttonFrame.midX - indicatorWidth / 2.0
-
-        tabIndicatorView.frame = CGRect(
-            x: floor(indicatorX),
-            y: tabsHeight - indicatorHeight,
-            width: indicatorWidth,
+        let indicatorHeight = segBounds.height - padding * 2
+        segmentIndicator.frame = CGRect(
+            x: indicatorX,
+            y: padding,
+            width: segmentWidth,
             height: indicatorHeight
         )
-        tabsScrollView.bringSubviewToFront(tabIndicatorView)
+        segmentIndicator.layer.cornerRadius = indicatorHeight / 2
+
+        for (i, button) in tabButtons.enumerated() {
+            button.frame = CGRect(
+                x: padding + CGFloat(i) * segmentWidth,
+                y: 0,
+                width: segmentWidth,
+                height: segBounds.height
+            )
+        }
     }
 
     override func layout() {
@@ -394,13 +474,13 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     }
 
     private let storiesHeight: CGFloat = 90
-    private let tabsHeight: CGFloat = 36
+    private let tabsHeight: CGFloat = 40
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
 
         if let emptyStateView = self.emptyStateView {
-            let topOffset = navigationBarHeight + 90 + 36
+            let topOffset = navigationBarHeight + storiesHeight + tabsHeight
             emptyStateView.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
         }
 
@@ -415,34 +495,33 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.storiesCollectionView.contentInset = .zero
         self.storiesCollectionView.scrollIndicatorInsets = .zero
 
-        var buttonsWidth: CGFloat = 0
-        for view in tabsStackView.arrangedSubviews {
-            buttonsWidth += view.intrinsicContentSize.width
-        }
-        let spacing = tabsStackView.spacing * CGFloat(max(tabsStackView.arrangedSubviews.count - 1, 0))
-        let stackWidth = ceil(buttonsWidth + spacing)
-        tabsStackView.frame = CGRect(x: 16, y: 0, width: stackWidth, height: tabsHeight - 2)
-        tabsScrollView.contentSize = CGSize(width: stackWidth + 32, height: tabsHeight)
+        let segmentHPadding: CGFloat = 16 + layout.safeInsets.left
+        let segmentWidth = layout.size.width - segmentHPadding * 2
+        let segmentHeight = tabsHeight - 8
+        segmentedBackground.frame = CGRect(x: segmentHPadding, y: 4, width: segmentWidth, height: segmentHeight)
+        segmentedBackground.layer.cornerRadius = segmentHeight / 2
+        layoutSegmentIndicator()
 
         let headerHeight = navigationBarHeight + storiesHeight + tabsHeight
-        let collapsedHeaderHeight = navigationBarHeight + tabsHeight
 
         if let mainFlowLayout = self.mainCollectionView.collectionViewLayout as? UICollectionViewFlowLayout {
-            mainFlowLayout.sectionInset = UIEdgeInsets(top: headerHeight,
-                                                       left: safeAreaInsets.left,
-                                                       bottom: insets.bottom,
-                                                       right: safeAreaInsets.right)
+            let cardHPadding: CGFloat = 16
+            mainFlowLayout.sectionInset = UIEdgeInsets(top: headerHeight + 8,
+                                                       left: safeAreaInsets.left + cardHPadding,
+                                                       bottom: insets.bottom + 16,
+                                                       right: safeAreaInsets.right + cardHPadding)
 
-            let cardWidth = layout.size.width - safeAreaInsets.left - safeAreaInsets.right
-            let cardHeight = layout.size.height - collapsedHeaderHeight - insets.bottom
-            mainFlowLayout.itemSize = CGSize(width: cardWidth, height: cardHeight)
-            mainFlowLayout.minimumLineSpacing = 0
+            let cardWidth = layout.size.width - safeAreaInsets.left - safeAreaInsets.right - cardHPadding * 2
+            mainFlowLayout.itemSize = CGSize(width: cardWidth, height: 512)
+            mainFlowLayout.minimumLineSpacing = 10
         }
 
         self.mainCollectionView.contentInset = .zero
 
         updateHeaderLayout()
         layoutLoadingPlaceholder()
+        layoutSpinnerLoading()
+        layoutErrorBanner()
     }
 
     private func updateHeaderLayout() {
@@ -566,14 +645,12 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         // --- Tabs: stick to navbar bottom ---
         let tabsY = max(navigationBarHeight, navigationBarHeight + storiesHeight - scrollOffset)
-        tabsScrollView.frame = CGRect(
+        tabsContainerView.frame = CGRect(
             x: 0,
             y: tabsY,
             width: layout.size.width,
             height: tabsHeight
         )
-
-        layoutTabIndicator()
     }
 
     func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -584,7 +661,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         if collectionView === storiesCollectionView {
             return stories.count
         } else if collectionView === mainCollectionView {
-            return cards.count + (isPaginating ? 1 : 0)
+            let extra = isPaginating || hasPaginationError ? 1 : 0
+            return cards.count + extra
         }
         return 0
     }
@@ -599,12 +677,22 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             return cell
 
         } else if collectionView === mainCollectionView {
-            if isPaginating && indexPath.item == cards.count {
-                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationShimmerCell", for: indexPath) as? PaginationShimmerCell else {
-                    fatalError("Unable to dequeue PaginationShimmerCell")
+            if indexPath.item == cards.count {
+                if hasPaginationError {
+                    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationRetryCell", for: indexPath) as? PaginationRetryCell else {
+                        fatalError("Unable to dequeue PaginationRetryCell")
+                    }
+                    cell.onRetry = { [weak self] in
+                        self?.loadMore?()
+                    }
+                    return cell
+                } else {
+                    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationShimmerCell", for: indexPath) as? PaginationShimmerCell else {
+                        fatalError("Unable to dequeue PaginationShimmerCell")
+                    }
+                    cell.setLoading(true)
+                    return cell
                 }
-                cell.setLoading(true)
-                return cell
             }
 
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CardCell", for: indexPath) as? CardCollectionViewCell else {
@@ -659,30 +747,34 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
-    func cardCell(_ cell: CardCollectionViewCell, didTapReaction reaction: ReactionType, for cardName: String, isSelected: Bool) {
+    func cardCell(_ cell: CardCollectionViewCell, didTapSaveForUserId userId: Int, isSaved: Bool) {
         guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
         let idx = indexPath.item
         guard idx < self.cards.count else { return }
-        var card = self.cards[idx]
+        self.cards[idx].isFollowed = isSaved
 
-        if isSelected {
-             card.userReaction = reaction
-         } else {
-             card.userReaction = nil
-         }
+        let path = isSaved ? "/follower/follow" : "/follower/unfollow"
+        let body = FollowRequest(id: userId)
 
-        switch reaction {
-        case .like:
-            print("👍 didSelectItemAt 'Like': \(cardName)")
-        case .heart:
-            print("❤️ didSelectItemAt 'Heart': \(cardName)")
-        case .dislike:
-            print("👎 didSelectItemAt 'Dislike': \(cardName)")
-        case .fire:
-            print("🔥 didSelectItemAt 'Fire': \(cardName)")
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+                if !isSaved && self.selectedTabIndex == 0 {
+                    self.cards.remove(at: idx)
+                    self.mainCollectionView.deleteItems(at: [indexPath])
+                }
+            } catch {
+                self.cards[idx].isFollowed = !isSaved
+                if let cell = self.mainCollectionView.cellForItem(at: indexPath) as? CardCollectionViewCell {
+                    cell.configure(with: self.cards[idx], delegate: self)
+                }
+                print("❌ [SAVE] Error: \(error)")
+            }
         }
-
-        self.cards[idx] = card
     }
 
     func cardCell(_ cell: CardCollectionViewCell, didTapShareForUserId userId: Int) {
@@ -702,42 +794,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         controller?.view.window?.rootViewController?.present(activityVC, animated: true)
     }
 
-    func cardCell(_ cell: CardCollectionViewCell, didTapFollowForUserId userId: Int, isFollowed: Bool) {
-        guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
-        let idx = indexPath.item
-        guard idx < self.cards.count else { return }
-        self.cards[idx].isFollowed = isFollowed
-
-        let path = isFollowed ? "/follower/follow" : "/follower/unfollow"
-        let body = FollowRequest(id: userId)
-
-        Task { @MainActor in
-            do {
-                let _: FollowResponse = try await DivoAPIClient.shared.request(
-                    path: path,
-                    method: "POST",
-                    body: body
-                )
-                if !isFollowed && self.selectedTabIndex == 0 {
-                    self.cards.remove(at: idx)
-                    self.mainCollectionView.deleteItems(at: [indexPath])
-                } else {
-                    let message = isFollowed ? DivoStrings.subscribed : DivoStrings.unsubscribed
-                    let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.controller?.view.window?.rootViewController?.present(alert, animated: true)
-                }
-            } catch {
-                self.cards[idx].isFollowed = !isFollowed
-                if let cell = self.mainCollectionView.cellForItem(at: indexPath) as? CardCollectionViewCell {
-                    cell.configure(with: self.cards[idx], delegate: self)
-                }
-                print("❌ [FOLLOW] Error: \(error)")
-            }
-        }
-    }
-
-    // MARK: - Loading Placeholder
+    // MARK: - Loading Placeholder (Skeleton Shimmer)
 
     private func showLoadingPlaceholder() {
         guard loadingPlaceholderView == nil else { return }
@@ -745,35 +802,45 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let placeholder = UIView()
         placeholder.backgroundColor = .white
         placeholder.clipsToBounds = true
+        placeholder.layer.cornerRadius = 32
 
         let cardShimmer = ShimmerView()
         cardShimmer.layer.cornerRadius = 0
+        cardShimmer.layer.masksToBounds = true
         cardShimmer.tag = 100
         placeholder.addSubview(cardShimmer)
 
-        let avatarShimmer = ShimmerView()
-        avatarShimmer.layer.cornerRadius = 35
-        avatarShimmer.layer.masksToBounds = true
-        avatarShimmer.tag = 101
-        placeholder.addSubview(avatarShimmer)
+        // Name line (top-left)
+        let nameLine = ShimmerView()
+        nameLine.layer.cornerRadius = 6
+        nameLine.layer.masksToBounds = true
+        nameLine.tag = 101
+        placeholder.addSubview(nameLine)
 
-        let nameLine1 = ShimmerView()
-        nameLine1.layer.cornerRadius = 6
-        nameLine1.layer.masksToBounds = true
-        nameLine1.tag = 102
-        placeholder.addSubview(nameLine1)
+        // Badge line (below name)
+        let badgeLine = ShimmerView()
+        badgeLine.layer.cornerRadius = 6
+        badgeLine.layer.masksToBounds = true
+        badgeLine.tag = 102
+        placeholder.addSubview(badgeLine)
 
-        let nameLine2 = ShimmerView()
-        nameLine2.layer.cornerRadius = 6
-        nameLine2.layer.masksToBounds = true
-        nameLine2.tag = 103
-        placeholder.addSubview(nameLine2)
+        // Stat pills (top-right)
+        for i in 0..<3 {
+            let stat = ShimmerView()
+            stat.layer.cornerRadius = 14
+            stat.layer.masksToBounds = true
+            stat.tag = 110 + i
+            placeholder.addSubview(stat)
+        }
 
-        let actionLine = ShimmerView()
-        actionLine.layer.cornerRadius = 10
-        actionLine.layer.masksToBounds = true
-        actionLine.tag = 104
-        placeholder.addSubview(actionLine)
+        // Preview images (bottom)
+        for i in 0..<4 {
+            let pv = ShimmerView()
+            pv.layer.cornerRadius = 8
+            pv.layer.masksToBounds = true
+            pv.tag = 120 + i
+            placeholder.addSubview(pv)
+        }
 
         self.view.addSubview(placeholder)
         loadingPlaceholderView = placeholder
@@ -794,88 +861,187 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         loadingPlaceholderView = nil
     }
 
-    private func showErrorView() {
-        guard errorView == nil else { return }
+    // MARK: - Spinner Loading
 
-        let container = UIView()
-        container.backgroundColor = .white
-
-        let iconLabel = UILabel()
-        iconLabel.text = "⚠️"
-        iconLabel.font = .systemFont(ofSize: 40)
-        iconLabel.textAlignment = .center
-
-        let titleLabel = UILabel()
-        titleLabel.text = DivoStrings.serverUnavailable
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textColor = UIColor(white: 0.1, alpha: 1)
-        titleLabel.textAlignment = .center
-
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = DivoStrings.serverUnavailableSubtitle
-        subtitleLabel.font = .systemFont(ofSize: 14)
-        subtitleLabel.textColor = UIColor(white: 0.5, alpha: 1)
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-
-        [iconLabel, titleLabel, subtitleLabel].forEach {
-            container.addSubview($0)
-            $0.translatesAutoresizingMaskIntoConstraints = false
-        }
-
-        NSLayoutConstraint.activate([
-            iconLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            iconLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -40),
-
-            titleLabel.topAnchor.constraint(equalTo: iconLabel.bottomAnchor, constant: 12),
-            titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            subtitleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
-            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
-        ])
-
-        self.view.addSubview(container)
-        errorView = container
-
-        if let (layout, navigationBarHeight) = containerLayout {
-            let topOffset = navigationBarHeight + 90 + 36
-            container.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+    private func loadingTextForCurrentTab() -> String {
+        switch selectedTabIndex {
+        case 1: return DivoStrings.loadingTalentsList
+        case 2: return DivoStrings.loadingAgenciesList
+        default: return DivoStrings.loadingModelsList
         }
     }
 
+    private func showSpinnerLoading() {
+        guard spinnerLoadingView == nil else { return }
+
+        let container = UIView()
+        container.backgroundColor = DivoGlassColors.screenBackground
+
+        let spinnerView = DivoSegmentedSpinner(frame: CGRect(x: 0, y: 0, width: 32, height: 32))
+        spinnerView.tag = 200
+        container.addSubview(spinnerView)
+
+        let label = UILabel()
+        label.text = loadingTextForCurrentTab()
+        label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 13) ?? UIFont.systemFont(ofSize: 13, weight: .bold)
+        label.textColor = UIColor(white: 0.2, alpha: 1.0)
+        label.textAlignment = .center
+        label.tag = 201
+        container.addSubview(label)
+
+        self.view.addSubview(container)
+        spinnerLoadingView = container
+
+        layoutSpinnerLoading()
+
+        spinnerView.startAnimating()
+    }
+
+    private func hideSpinnerLoading() {
+        guard let spinner = spinnerLoadingView else { return }
+        UIView.animate(withDuration: 0.25, animations: {
+            spinner.alpha = 0
+        }, completion: { _ in
+            (spinner.viewWithTag(200) as? DivoSegmentedSpinner)?.stopAnimating()
+            spinner.removeFromSuperview()
+        })
+        spinnerLoadingView = nil
+    }
+
+    private func layoutSpinnerLoading() {
+        guard let spinner = spinnerLoadingView,
+              let (layout, navigationBarHeight) = containerLayout else { return }
+        let topOffset = navigationBarHeight + storiesHeight + tabsHeight
+        spinner.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+        let bottomInset = layout.intrinsicInsets.bottom
+        let visibleCenterY = (spinner.bounds.height - bottomInset) / 2.0
+        if let icon = spinner.viewWithTag(200) {
+            icon.bounds = CGRect(x: 0, y: 0, width: 32, height: 32)
+            icon.center = CGPoint(x: spinner.bounds.midX, y: visibleCenterY - 12)
+        }
+        if let label = spinner.viewWithTag(201) as? UILabel {
+            label.sizeToFit()
+            label.frame = CGRect(x: 0, y: visibleCenterY + 24, width: spinner.bounds.width, height: 20)
+        }
+    }
+
+    // MARK: - Error Banner (red bar at bottom)
+
+    private func showErrorBanner() {
+        guard errorBannerView == nil else { return }
+
+        let banner = UIView()
+        banner.backgroundColor = UIColor(red: 0.85, green: 0.18, blue: 0.18, alpha: 1.0)
+
+        let titleLabel = UILabel()
+        titleLabel.text = DivoStrings.serverUnavailable
+        titleLabel.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        titleLabel.textColor = .white
+        titleLabel.tag = 300
+        banner.addSubview(titleLabel)
+
+        let retryButton = UIButton(type: .system)
+        retryButton.setTitle(DivoStrings.retry, for: .normal)
+        retryButton.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .bold)
+        retryButton.setTitleColor(.white, for: .normal)
+        retryButton.tag = 301
+        retryButton.addTarget(self, action: #selector(errorBannerRetryTapped), for: .touchUpInside)
+        banner.addSubview(retryButton)
+
+        self.view.addSubview(banner)
+        errorBannerView = banner
+
+        // Also show shimmer skeleton behind the banner
+        showLoadingPlaceholder()
+
+        layoutErrorBanner()
+
+        // Animate in from bottom
+        banner.transform = CGAffineTransform(translationX: 0, y: 60)
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: []) {
+            banner.transform = .identity
+        }
+    }
+
+    private func hideErrorBanner() {
+        guard let banner = errorBannerView else { return }
+        errorBannerView = nil
+        UIView.animate(withDuration: 0.2, animations: {
+            banner.alpha = 0
+        }, completion: { _ in
+            banner.removeFromSuperview()
+        })
+    }
+
+    @objc private func errorBannerRetryTapped() {
+        onRetry?()
+    }
+
+    private func layoutErrorBanner() {
+        guard let banner = errorBannerView,
+              let (layout, _) = containerLayout else { return }
+        let insets = layout.insets(options: [.input])
+        let bannerHeight: CGFloat = 50
+        let bottomY = layout.size.height - insets.bottom - bannerHeight
+        banner.frame = CGRect(x: 0, y: bottomY, width: layout.size.width, height: bannerHeight)
+
+        if let title = banner.viewWithTag(300) {
+            title.frame = CGRect(x: 16, y: 0, width: banner.bounds.width - 100, height: bannerHeight)
+        }
+        if let retry = banner.viewWithTag(301) {
+            retry.frame = CGRect(x: banner.bounds.width - 80, y: 0, width: 64, height: bannerHeight)
+        }
+    }
+
+    // MARK: - Legacy Error View (kept for compatibility)
+
+    private func showErrorView() {
+        showErrorBanner()
+    }
+
     private func hideErrorView() {
-        errorView?.removeFromSuperview()
-        errorView = nil
+        hideErrorBanner()
     }
 
     private func layoutLoadingPlaceholder() {
         guard let placeholder = loadingPlaceholderView,
               let (layout, navigationBarHeight) = containerLayout else { return }
 
-        let topOffset = navigationBarHeight + 90 + 36
-        placeholder.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+        let topOffset = navigationBarHeight + storiesHeight + tabsHeight + 8
+        let cardHPadding: CGFloat = 16
+        let width = layout.size.width - layout.safeInsets.left - layout.safeInsets.right - cardHPadding * 2
+        placeholder.frame = CGRect(x: layout.safeInsets.left + cardHPadding, y: topOffset, width: width, height: 512)
 
         let w = placeholder.bounds.width
         let h = placeholder.bounds.height
 
+        // Card background
         if let cardShimmer = placeholder.viewWithTag(100) {
             cardShimmer.frame = placeholder.bounds
         }
-        if let avatar = placeholder.viewWithTag(101) {
-            avatar.frame = CGRect(x: 15, y: h - 200, width: 70, height: 70)
+        // Name (top-left)
+        if let name = placeholder.viewWithTag(101) {
+            name.frame = CGRect(x: 15, y: 15, width: w * 0.5, height: 22)
         }
-        if let line1 = placeholder.viewWithTag(102) {
-            line1.frame = CGRect(x: 95, y: h - 195, width: w * 0.45, height: 18)
+        // Badge (below name)
+        if let badge = placeholder.viewWithTag(102) {
+            badge.frame = CGRect(x: 15, y: 45, width: w * 0.35, height: 18)
         }
-        if let line2 = placeholder.viewWithTag(103) {
-            line2.frame = CGRect(x: 95, y: h - 170, width: w * 0.3, height: 18)
+        // Stat pills (top-right)
+        let statX = w - 15 - 70
+        for i in 0..<3 {
+            if let stat = placeholder.viewWithTag(110 + i) {
+                stat.frame = CGRect(x: statX, y: 15 + CGFloat(i) * 36, width: 70, height: 28)
+            }
         }
-        if let action = placeholder.viewWithTag(104) {
-            action.frame = CGRect(x: 15, y: h - 110, width: 100, height: 36)
+        // Preview images (bottom)
+        let pvY = h - 15 - 100
+        let pvSize: CGFloat = 100
+        let pvSpacing: CGFloat = 5
+        for i in 0..<4 {
+            if let pv = placeholder.viewWithTag(120 + i) {
+                pv.frame = CGRect(x: 15 + CGFloat(i) * (pvSize + pvSpacing), y: pvY, width: pvSize, height: pvSize)
+            }
         }
     }
 
@@ -953,7 +1119,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         emptyStateView = container
 
         if let (layout, navigationBarHeight) = containerLayout {
-            let topOffset = navigationBarHeight + 90 + 36
+            let topOffset = navigationBarHeight + storiesHeight + tabsHeight
             container.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
         }
 
@@ -985,5 +1151,91 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }, completion: { _ in
             empty.removeFromSuperview()
         })
+    }
+}
+
+// MARK: - Segmented Spinner
+
+private final class DivoSegmentedSpinner: UIView {
+
+    private var isAnimating = false
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        setupSegments()
+        NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func setupSegments() {
+        let count = 8
+        let segmentSize = CGSize(width: 3, height: 10)
+        let innerRadius: CGFloat = 5.5
+        let center = CGPoint(x: 16, y: 16)
+        let cornerRadius: CGFloat = 1.0
+        let opacities: [CGFloat] = [1.0, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125]
+
+        for i in 0..<count {
+            let angle = CGFloat(i) * (.pi * 2.0 / CGFloat(count)) - .pi / 2.0
+            let dist = innerRadius + segmentSize.height / 2.0
+
+            let seg = CALayer()
+            seg.bounds = CGRect(origin: .zero, size: segmentSize)
+            seg.position = CGPoint(
+                x: center.x + dist * cos(angle),
+                y: center.y + dist * sin(angle)
+            )
+            seg.cornerRadius = cornerRadius
+            seg.backgroundColor = UIColor.black.withAlphaComponent(opacities[i]).cgColor
+            seg.transform = CATransform3DMakeRotation(angle + .pi / 2.0, 0, 0, 1)
+            layer.addSublayer(seg)
+        }
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil && isAnimating {
+            applyAnimation()
+        }
+    }
+
+    @objc private func appDidBecomeActive() {
+        if isAnimating {
+            applyAnimation()
+        }
+    }
+
+    func startAnimating() {
+        isAnimating = true
+        applyAnimation()
+    }
+
+    func stopAnimating() {
+        isAnimating = false
+        layer.removeAllAnimations()
+    }
+
+    private func applyAnimation() {
+        layer.removeAllAnimations()
+        let animation = CAKeyframeAnimation(keyPath: "transform.rotation.z")
+        let count = 8
+        var values: [Double] = []
+        for i in 0...count {
+            values.append(Double(i) * .pi * 2.0 / Double(count))
+        }
+        animation.values = values
+        animation.keyTimes = (0...count).map { NSNumber(value: Double($0) / Double(count)) }
+        animation.duration = 0.8
+        animation.repeatCount = .infinity
+        animation.calculationMode = .discrete
+        layer.add(animation, forKey: "spin")
     }
 }

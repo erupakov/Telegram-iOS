@@ -1,6 +1,7 @@
 import UIKit
 
 public enum DivoGlassColors {
+    public static let screenBackground = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
     public static let background = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.0)
     public static let primaryText: UIColor = .white
     public static let disabledButton = UIColor(red: 0.322, green: 0.322, blue: 0.322, alpha: 1.0)

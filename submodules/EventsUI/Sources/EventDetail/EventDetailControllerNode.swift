@@ -103,7 +103,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
 
     private func setupUI() {
-        self.backgroundColor = .white
+        self.backgroundColor = DivoGlassColors.screenBackground
 
         imageGalleryCollectionView.backgroundColor = .clear
         imageGalleryCollectionView.dataSource = self

@@ -32,7 +32,7 @@ final class EventsControllerNode: ASDisplayNode {
 
     private let navBackgroundView: UIView = {
         let v = UIView()
-        v.backgroundColor = .white
+        v.backgroundColor = DivoGlassColors.screenBackground
         return v
     }()
 
@@ -50,7 +50,7 @@ final class EventsControllerNode: ASDisplayNode {
 
         super.init()
 
-        self.view.backgroundColor = .white
+        self.view.backgroundColor = DivoGlassColors.screenBackground
 
         titleLabel.text = DivoStrings.navEvents
         let flowLayout = UICollectionViewFlowLayout()

@@ -90,10 +90,8 @@ public final class ModelsFeedController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 
-        let copperColor = UIColor(rgb: 0xBF7A54)
-        let originalIcon = PresentationResourcesRootController.navigationSearchIcon(self.presentationData.theme)
-        let tintedIcon = generateTintedImage(image: originalIcon, color: copperColor)
-        let searchButton = UIBarButtonItem(image: tintedIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.searchPressed))
+        let searchIcon = UIImage(bundleImageName: "Divo/DivoSearchIcon")?.withRenderingMode(.alwaysOriginal)
+        let searchButton = UIBarButtonItem(image: searchIcon, style: .plain, target: self, action: #selector(self.searchPressed))
         self.navigationItem.rightBarButtonItems = [searchButton]
 
         self.navigationItem.titleView = UIView()
@@ -119,14 +117,14 @@ public final class ModelsFeedController: TelegramBaseController {
     private func showProfile(_ model: CardModel) {
         let profileModel = ProfileModel(
             name: model.name,
-            age: 0,
-            location: "",
+            age: model.age ?? 0,
+            location: model.country ?? "",
             mainImageName: model.mainImageName,
             avatarImageName: model.avatarImageName,
             isVerified: false,
             likesCount: "\(model.likesCount)",
-            viewsCount: "0",
-            savesCount: "0",
+            viewsCount: "\(model.viewsCount)",
+            savesCount: "\(model.savesCount)",
             biography: "",
             socialMediaHandles: [],
             galleryImageNames: [],
@@ -164,6 +162,11 @@ public final class ModelsFeedController: TelegramBaseController {
         }
         self.controllerNode.onTabSelected = { [weak self] index in
             self?.switchToTab(index)
+        }
+        self.controllerNode.onRetry = { [weak self] in
+            guard let self = self else { return }
+            self.controllerNode.showNetworkError = false
+            self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
 
         self.displayNodeDidLoad()
@@ -206,8 +209,6 @@ public final class ModelsFeedController: TelegramBaseController {
 
     private func requestBody(tabIndex: Int, offset: Int, limit: Int) -> FeedlineListRequest {
         switch tabIndex {
-        case 0:
-            return FeedlineListRequest(offset: offset, limit: limit, subscribedOnly: true)
         case 2:
             return FeedlineListRequest(offset: offset, limit: limit, modelsOnly: true)
         default:
@@ -294,6 +295,7 @@ public final class ModelsFeedController: TelegramBaseController {
             name: item.title,
             userId: item.user.id,
             role: item.user.role,
+            roleLabel: item.user.roleLabel,
             mainImageURL: mainURL,
             avatarImageURL: avatarURL,
             previewImageURLs: previewURLs,
