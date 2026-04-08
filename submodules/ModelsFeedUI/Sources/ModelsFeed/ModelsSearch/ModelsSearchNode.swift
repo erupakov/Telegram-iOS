@@ -145,7 +145,6 @@ final class ModelsSearchNode: ASDisplayNode {
         return button
     }()
     
-    
     private let resultsCountLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 16, weight: .bold)
@@ -221,6 +220,7 @@ final class ModelsSearchNode: ASDisplayNode {
         label.font = Font.helveticaNeue(26)
         label.textColor = UIColor(hexString: "#222222")
         label.textAlignment = .center
+        label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -233,6 +233,46 @@ final class ModelsSearchNode: ASDisplayNode {
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+    
+    private let activeFiltersContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 18
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.08
+        view.layer.shadowOffset = CGSize(width: 0, height: 4)
+        view.layer.shadowRadius = 12
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let activeFiltersLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(14)
+        label.textColor = UIColor(hexString: "#222222")
+        label.textAlignment = .center
+        
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private let resultFilterStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.distribution = .fill
+        stackView.alignment = .fill
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
+    
+    private let stackSpacer: UIView = {
+        let view = UIView()
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
     
     private var currentResults:[SearchUserItem] = []
@@ -251,13 +291,14 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private var searchTimer: Timer?
     
-    private enum SearchMode {
+    enum SearchMode {
         case idle
         case autocomplete
         case grid
     }
 
-    private var mode: SearchMode = .idle
+    var mode: SearchMode = .idle
+    
     private var currentTask: Task<Void, Never>?
     
     init(context: AccountContext, presentationData: PresentationData) {
@@ -287,8 +328,8 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private func setupUI() {
         setupTopContainer()
-        setupResultsContainer()
         setupGridContainer()
+        setupResultsContainer()
         setupEmptyStateContainer()
         setupFloatingActionButton()
     }
@@ -388,7 +429,7 @@ final class ModelsSearchNode: ASDisplayNode {
         NSLayoutConstraint.activate([
             resultsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
             resultsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
-            resultsContainer.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor, constant: 16)
+            resultsContainer.topAnchor.constraint(equalTo: resultFilterStackView.bottomAnchor, constant: 12)
         ])
         
         resultsContainerHeightConstraint = resultsContainer.heightAnchor.constraint(equalToConstant: 0)
@@ -408,7 +449,14 @@ final class ModelsSearchNode: ASDisplayNode {
         
         view.addSubview(gridCenterLoader)
         
-        view.addSubview(resultsCountLabel)
+        resultFilterStackView.addArrangedSubview(resultsCountLabel)
+        resultFilterStackView.addArrangedSubview(stackSpacer)
+        resultFilterStackView.addArrangedSubview(activeFiltersContainer)
+        
+        view.addSubview(resultFilterStackView)
+
+        activeFiltersContainer.addSubview(activeFiltersLabel)
+                
         view.addSubview(gridCollectionView)
         
         NSLayoutConstraint.activate([
@@ -417,13 +465,21 @@ final class ModelsSearchNode: ASDisplayNode {
         ])
         
         NSLayoutConstraint.activate([
-            resultsCountLabel.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor, constant: 16),
-            resultsCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
-            resultsCountLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding)
+            resultFilterStackView.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor, constant: 10),
+            resultFilterStackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
+            resultFilterStackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
         ])
         
         NSLayoutConstraint.activate([
-            gridCollectionView.topAnchor.constraint(equalTo: resultsCountLabel.bottomAnchor, constant: 16),
+            activeFiltersLabel.leadingAnchor.constraint(equalTo: activeFiltersContainer.leadingAnchor, constant: 12),
+            activeFiltersLabel.trailingAnchor.constraint(equalTo: activeFiltersContainer.trailingAnchor, constant: -12),
+            activeFiltersLabel.centerYAnchor.constraint(equalTo: activeFiltersContainer.centerYAnchor),
+            
+            activeFiltersContainer.heightAnchor.constraint(equalToConstant: 36),
+        ])
+        
+        NSLayoutConstraint.activate([
+            gridCollectionView.topAnchor.constraint(equalTo: resultFilterStackView.bottomAnchor, constant: 12),
             gridCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
             gridCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
             gridCollectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -460,12 +516,23 @@ final class ModelsSearchNode: ASDisplayNode {
             emptyStateTitle.topAnchor.constraint(equalTo: emptyStateIconContainer.bottomAnchor, constant: 24),
             emptyStateTitle.leadingAnchor.constraint(equalTo: emptyStateContainer.leadingAnchor),
             emptyStateTitle.trailingAnchor.constraint(equalTo: emptyStateContainer.trailingAnchor),
+            emptyStateTitle.bottomAnchor.constraint(equalTo: emptyStateSubtitle.topAnchor, constant: -8),
             
             emptyStateSubtitle.topAnchor.constraint(equalTo: emptyStateTitle.bottomAnchor, constant: 8),
             emptyStateSubtitle.leadingAnchor.constraint(equalTo: emptyStateContainer.leadingAnchor),
             emptyStateSubtitle.trailingAnchor.constraint(equalTo: emptyStateContainer.trailingAnchor),
             emptyStateSubtitle.bottomAnchor.constraint(equalTo: emptyStateContainer.bottomAnchor)
         ])
+    }
+    
+    private func updateResultFilterStackVisibility() {
+        let shouldHide = resultsCountLabel.isHidden && activeFiltersContainer.isHidden
+        resultFilterStackView.isHidden = shouldHide
+        stackSpacer.isHidden = shouldHide
+
+        UIView.animate(withDuration: 0.2) {
+            self.view.layoutIfNeeded()
+        }
     }
     
     private func setupFloatingActionButton() {
@@ -485,7 +552,43 @@ final class ModelsSearchNode: ASDisplayNode {
     
     
     // MARK: - Internal
-
+    
+    func updateActiveFiltersCount(_ count: Int) {
+        if count > 0 {
+            let baseString = "Filter by: "
+            let numberString = "\(count)"
+            
+            let attrString = NSMutableAttributedString(string: baseString + numberString)
+            let baseRange = NSRange(location: 0, length: baseString.count)
+            let numberRange = NSRange(location: baseString.count, length: numberString.count)
+            
+            attrString.addAttribute(.font, value: Font.medium(12), range: baseRange)
+            attrString.addAttribute(.foregroundColor, value: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6) ?? .black, range: baseRange)
+            
+            attrString.addAttribute(.font, value: Font.medium(12), range: numberRange)
+            attrString.addAttribute(.foregroundColor, value: UIColor(hexString: "#222222") ?? .black, range: numberRange)
+            
+            activeFiltersLabel.attributedText = attrString
+            
+            if activeFiltersContainer.isHidden {
+                activeFiltersContainer.alpha = 0
+                activeFiltersContainer.isHidden = false
+                UIView.animate(withDuration: 0.3) {
+                    self.activeFiltersContainer.alpha = 1
+                }
+            }
+        } else {
+            if !activeFiltersContainer.isHidden {
+                UIView.animate(withDuration: 0.3, animations: {
+                    self.activeFiltersContainer.alpha = 0
+                }) { _ in
+                    self.activeFiltersContainer.isHidden = true
+                }
+            }
+        }
+        updateResultFilterStackVisibility()
+    }
+    
     func setFiltersButtonEnabled(_ isEnabled: Bool) {
         filterButton.isEnabled = isEnabled
         filterButton.alpha = isEnabled ? 1.0 : 0.5
@@ -518,9 +621,22 @@ final class ModelsSearchNode: ASDisplayNode {
     }
     
     func showGridLoading(isFirstPage: Bool) {
+        self.mode = .grid
+        self.searchTimer?.invalidate()
+        self.currentTask?.cancel()
+        
+        self.currentAutocompleteResults = []
+        self.resultsTableView.reloadData()
+        self.resultsContainer.isHidden = true
+        self.resultsContainerHeightConstraint?.constant = 0
+        self.autocompleteLoader.stopAnimating()
+        
         if isFirstPage {
             gridCollectionView.isHidden = true
             resultsCountLabel.isHidden = true
+            emptyStateContainer.isHidden = true
+            updateResultFilterStackVisibility()
+            
             gridCenterLoader.startAnimating()
         }
     }
@@ -566,10 +682,11 @@ final class ModelsSearchNode: ASDisplayNode {
                 gridCollectionView.isHidden = false
                 resultsCountLabel.isHidden = false
                 
-                resultsCountLabel.text = DivoStrings.feedSearchCount(totalCount, query)
+                resultsCountLabel.text = query.isEmpty ? DivoStrings.feedSearchCountNoQuery(totalCount) : DivoStrings.feedSearchCount(totalCount, query)
                 gridCollectionView.reloadData()
             }
             
+            updateResultFilterStackVisibility()
         } else {
             let start = currentGridResults.count
             let end = start + results.count
@@ -610,9 +727,10 @@ final class ModelsSearchNode: ASDisplayNode {
         resultsCountLabel.isHidden = true
         gridCollectionView.isHidden = true
         emptyStateContainer.isHidden = true
+        updateResultFilterStackVisibility()
         
         if text.isEmpty {
-            mode = .idle
+            mode = .autocomplete
             updateAutocomplete(results: [])
             return
         }

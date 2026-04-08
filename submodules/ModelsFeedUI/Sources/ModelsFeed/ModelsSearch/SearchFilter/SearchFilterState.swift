@@ -30,22 +30,20 @@ struct SearchFilterState {
 
     var city: String?
     
-    // Appearance filters
-    var gender: String?
-    var ageRange: ClosedRange<Double>?
+    var ageRange: ClosedRange<Int>?
     var heightRange: ClosedRange<Double>?
     var weightRange: ClosedRange<Double>?
     var waistRange: ClosedRange<Double>?
     var hipsRange: ClosedRange<Double>?
     var shoeSizeRange: ClosedRange<Double>?
-    var hairLength: [String]?
-    var hairColor: [String]?
-    var eyeColor: [String]?
-    var skinColor: [String]?
+    var hairLength: [Int]?
+    var hairColor: [Int]?
+    var eyeColor: [Int]?
+    var skinColor: [Int]?
 
     var hasActiveFilters: Bool {
         return !roleIds.isEmpty || !genderIds.isEmpty || !countryIds.isEmpty ||
-               !(city?.isEmpty ?? true) || !(gender?.isEmpty ?? true) || ageRange != nil ||
+               !(city?.isEmpty ?? true) || ageRange != nil ||
                heightRange != nil || weightRange != nil || waistRange != nil ||
                hipsRange != nil || shoeSizeRange != nil || !(hairLength?.isEmpty ?? true) ||
                !(hairColor?.isEmpty ?? true) || !(eyeColor?.isEmpty ?? true) || !(skinColor?.isEmpty ?? true)
@@ -59,17 +57,16 @@ struct SearchFilterState {
         countryIds = []
         countryTitles = []
         city = nil
-        gender = nil
         ageRange = nil
         heightRange = nil
         weightRange = nil
         waistRange = nil
         hipsRange = nil
         shoeSizeRange = nil
-        hairLength = []
-        hairColor = []
-        eyeColor = []
-        skinColor = []
+        hairLength = nil
+        hairColor = nil
+        eyeColor = nil
+        skinColor = nil
     }
 
     var apiRoles: [String] {
@@ -91,5 +88,28 @@ struct SearchFilterState {
             return countryIds
         }
         return nil
+    }
+    
+    var activeFilterCount: Int {
+        var count = 0
+        
+        if !roleIds.isEmpty { count += 1 }
+        if !genderIds.isEmpty { count += 1 }
+        
+        if !countryIds.isEmpty { count += 1 }
+        if let city = city, !city.isEmpty { count += 1 }
+        
+        if ageRange != nil { count += 1 }
+        if heightRange != nil { count += 1 }
+        if weightRange != nil { count += 1 }
+        if waistRange != nil { count += 1 }
+        if hipsRange != nil { count += 1 }
+        if shoeSizeRange != nil { count += 1 }
+        if hairLength != nil { count += 1 }
+        if hairColor != nil { count += 1 }
+        if eyeColor != nil { count += 1 }
+        if skinColor != nil { count += 1 }
+        
+        return count
     }
 }

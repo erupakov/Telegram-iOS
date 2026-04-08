@@ -116,6 +116,9 @@ public enum DivoStrings {
     public static func feedSearchCount(_ totalCount: Int, _ query: String) -> String {
         L(en: "\(totalCount) results for \"\(query)\"", ru: "\(totalCount) результаты для \"\(query)\"", es: "\(totalCount) resultados para \"\(query)\"", pt: "\(totalCount) resultados para \"\(query)\"", zh: "\(totalCount) 结果为 \"\(query)\"")
     }
+    public static func feedSearchCountNoQuery(_ totalCount: Int) -> String {
+        L(en: "\(totalCount) results", ru: "\(totalCount) результатов", es: "\(totalCount) resultados", pt: "\(totalCount) resultados", zh: "\(totalCount)个结果")
+    }
     public static var feedSearchFilter: String { L(en: "Filter", ru: "Фильтр", es: "Filtro", pt: "Filtro", zh: "过滤器") }
     public static var feedSearchReset: String { L(en: "Reset", ru: "Сбросить", es: "Restablecer", pt: "Redefinir", zh: "重置") }
     public static var feedSearchApplyFilter: String { L(en: "Apply filter", ru: "Применить фильтр", es: "Aplicar filtro", pt: "Aplicar filtro", zh: "应用筛选") }

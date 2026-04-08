@@ -10,7 +10,7 @@ import Foundation
 public struct ModelsSearchRequest: Encodable {
     public let offset: Int
     public let limit: Int
-    public let query: String
+    public let query: String?
     public let role: [String]?
     public let isSkills: Bool?
     public let isEvents: Bool?
@@ -24,7 +24,7 @@ public struct ModelsSearchRequest: Encodable {
     public init(
         offset: Int,
         limit: Int,
-        query: String,
+        query: String? = nil,
         role: [String]? = nil,
         isSkills: Bool? = nil,
         isEvents: Bool? = nil,
@@ -53,32 +53,32 @@ public struct ModelsSearchRequest: Encodable {
 public struct ModelSearchParameters: Encodable {
     public let gender: [String]?
     public let geoCityId: Int?
-    public let age: RangeParam?
-    public let weight: RangeParam?
-    public let height: RangeParam?
-    public let breastSize: RangeParam?
-    public let waist: RangeParam?
-    public let shoesSize: RangeParam?
-    public let hips: RangeParam?
+    public let age: RangeParamInt?
+    public let weight: RangeParamDouble?
+    public let height: RangeParamDouble?
+    public let breastSize: RangeParamDouble?
+    public let waist: RangeParamDouble?
+    public let shoesSize: RangeParamDouble?
+    public let hips: RangeParamDouble?
     public let eyeColor: [Int]?
     public let skinColor: [Int]?
     public let hairColor: [Int]?
     public let hairLength: [Int]?
     
     public init(
-        gender: [String]?,
-        geoCityId: Int?,
-        age: RangeParam?,
-        weight: RangeParam?,
-        height: RangeParam?,
-        breastSize: RangeParam?,
-        waist: RangeParam?,
-        shoesSize: RangeParam?,
-        hips: RangeParam?,
-        eyeColor: [Int]?,
-        skinColor: [Int]?,
-        hairColor: [Int]?,
-        hairLength: [Int]?
+        gender: [String]? = nil,
+        geoCityId: Int? = nil,
+        age: RangeParamInt? = nil,
+        weight: RangeParamDouble? = nil,
+        height: RangeParamDouble? = nil,
+        breastSize: RangeParamDouble? = nil,
+        waist: RangeParamDouble? = nil,
+        shoesSize: RangeParamDouble? = nil,
+        hips: RangeParamDouble? = nil,
+        eyeColor: [Int]? = nil,
+        skinColor: [Int]? = nil,
+        hairColor: [Int]? = nil,
+        hairLength: [Int]? = nil
     ) {
         self.gender = gender
         self.geoCityId = geoCityId
@@ -96,11 +96,21 @@ public struct ModelSearchParameters: Encodable {
     }
 }
 
-public struct RangeParam: Encodable {
-    public let from: Int
-    public let to: Int
+public struct RangeParamDouble: Encodable {
+    public let from: Double?
+    public let to: Double?
     
-    public init(from: Int, to: Int) {
+    public init(from: Double?, to: Double?) {
+        self.from = from
+        self.to = to
+    }
+}
+
+public struct RangeParamInt: Encodable {
+    public let from: Int?
+    public let to: Int?
+    
+    public init(from: Int?, to: Int?) {
         self.from = from
         self.to = to
     }

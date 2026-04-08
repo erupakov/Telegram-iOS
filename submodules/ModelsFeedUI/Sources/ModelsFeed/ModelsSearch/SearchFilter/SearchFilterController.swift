@@ -32,6 +32,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }()
     
     var onApply: ((SearchFilterState) -> Void)?
+    var onClose: ((SearchFilterState) -> Void)?
     var onSelectCountry: ((@escaping (String, String) -> Void) -> Void)?
     
     private struct AppearanceFilterItem {
@@ -245,32 +246,68 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             AppearanceFilterItem(
                 title: DivoStrings.hairLength,
                 getValue: { [weak self] in
-                    guard let self = self, let hairLength = self.currentFilters.hairLength, !hairLength.isEmpty else { return DivoStrings.debugAll }
-                    return hairLength.joined(separator: ", ")
+                    guard let self = self,
+                          let selectedIds = self.currentFilters.hairLength,
+                          !selectedIds.isEmpty else {
+                        return DivoStrings.debugAll
+                    }
+                    
+                    let selectedTitles = self.hairLengthOptions
+                        .filter { selectedIds.contains($0.id) }
+                        .map { $0.title }
+                    
+                    return selectedTitles.joined(separator: ", ")
                 },
                 onTap: { [weak self] in self?.showHairLengthFilter() }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hairColor,
                 getValue: { [weak self] in
-                    guard let self = self, let hairColor = self.currentFilters.hairColor, !hairColor.isEmpty else { return DivoStrings.debugAll }
-                    return hairColor.joined(separator: ", ")
+                    guard let self = self,
+                          let selectedIds = self.currentFilters.hairColor,
+                          !selectedIds.isEmpty else {
+                        return DivoStrings.debugAll
+                    }
+                    
+                    let selectedTitles = self.hairColorOptions
+                        .filter { selectedIds.contains($0.id) }
+                        .map { $0.title }
+                    
+                    return selectedTitles.joined(separator: ", ")
                 },
                 onTap: { [weak self] in self?.showHairColorFilter() }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.eyeColor,
                 getValue: { [weak self] in
-                    guard let self = self, let eyeColor = self.currentFilters.eyeColor, !eyeColor.isEmpty else { return DivoStrings.debugAll }
-                    return eyeColor.joined(separator: ", ")
+                    guard let self = self,
+                          let selectedIds = self.currentFilters.eyeColor,
+                          !selectedIds.isEmpty else {
+                        return DivoStrings.debugAll
+                    }
+                    
+                    let selectedTitles = self.eyeColorOptions
+                        .filter { selectedIds.contains($0.id) }
+                        .map { $0.title }
+                    
+                    return selectedTitles.joined(separator: ", ")
                 },
                 onTap: { [weak self] in self?.showEyeColorFilter() }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.skinColor,
                 getValue: { [weak self] in
-                    guard let self = self, let skinColor = self.currentFilters.skinColor, !skinColor.isEmpty else { return DivoStrings.debugAll }
-                    return skinColor.joined(separator: ", ")
+                    guard let self = self,
+                          let selectedIds = self.currentFilters.skinColor,
+                          !selectedIds.isEmpty else {
+                        return DivoStrings.debugAll
+                    }
+                    
+                    let selectedTitles = self.skinColorOptions
+                        .filter { selectedIds.contains($0.id) }
+                        .map { $0.title }
+                    
+                    return selectedTitles.joined(separator: ", ")
                 },
                 onTap: { [weak self] in self?.showSkinColorFilter() }
             )
@@ -491,27 +528,21 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         applyButton.isEnabled = hasFilters
         applyButton.backgroundColor = hasFilters ? UIColor(hexString: "#FF772D") : UIColor(hexString: "#E4E4E4")
     }
-   
-    private func showAgeFilter() {
-        // TODO: Implement age range filter with slider
-        print("Age filter tapped")
-    }
-    
-    private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T, unit: String) where T: BinaryFloatingPoint {
+
+    private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T, unit: String) where T: RangeFilterable {
         
-        // 1. ИСПРАВЛЕНИЕ: Безопасно извлекаем значения
         var currentMin: Double? = nil
         var currentMax: Double? = nil
         
         if let currentRange = self.currentFilters[keyPath: keyPath] {
-            currentMin = Double(currentRange.lowerBound)
-            currentMax = Double(currentRange.upperBound)
+            currentMin = currentRange.lowerBound.doubleValue
+            currentMax = currentRange.upperBound.doubleValue
         }
         
         let vc = RangeFilterController(
             title: title,
-            min: Double(min),
-            max: Double(max),
+            min: min.doubleValue,
+            max: max.doubleValue,
             unit: unit,
             currentLower: currentMin,
             currentUpper: currentMax
@@ -534,7 +565,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         var displayOptions = [FilterOptionItem(id: "all", title: DivoStrings.debugAll)]
         displayOptions.append(contentsOf: hairLengthOptions.map { FilterOptionItem(id: String($0.id), title: $0.title) })
         
-        let selectedIds = currentFilters.hairLength ?? []
+        let selectedIds = (currentFilters.hairLength ?? []).map { String($0) }
+        
         let vc = FilterOptionsController(
             title: DivoStrings.paramHairLength,
             options: displayOptions,
@@ -544,10 +576,10 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         )
         
         vc.onSelectMulti = { [weak self] selectedItems in
-            if selectedItems.isEmpty || selectedItems.first?.id == "all" {
-                self?.currentFilters.hairLength = []
+            if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
+                self?.currentFilters.hairLength = nil
             } else {
-                self?.currentFilters.hairLength = selectedItems.map { $0.id }
+                self?.currentFilters.hairLength = selectedItems.compactMap { Int($0.id) }
             }
             self?.updateUI()
         }
@@ -559,7 +591,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         var displayOptions = [FilterOptionItem(id: "all", title: DivoStrings.debugAll)]
         displayOptions.append(contentsOf: hairColorOptions.map { FilterOptionItem(id: String($0.id), title: $0.title) })
         
-        let selectedIds = currentFilters.hairColor ?? []
+        let selectedIds = (currentFilters.hairColor ?? []).map { String($0) }
+        
         let vc = FilterOptionsController(
             title: DivoStrings.paramHairColor,
             options: displayOptions,
@@ -569,10 +602,10 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         )
         
         vc.onSelectMulti = { [weak self] selectedItems in
-            if selectedItems.isEmpty || selectedItems.first?.id == "all" {
-                self?.currentFilters.hairColor = []
+            if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
+                self?.currentFilters.hairColor = nil
             } else {
-                self?.currentFilters.hairColor = selectedItems.map { $0.id }
+                self?.currentFilters.hairColor = selectedItems.compactMap { Int($0.id) }
             }
             self?.updateUI()
         }
@@ -584,7 +617,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         var displayOptions = [FilterOptionItem(id: "all", title: DivoStrings.debugAll)]
         displayOptions.append(contentsOf: eyeColorOptions.map { FilterOptionItem(id: String($0.id), title: $0.title) })
         
-        let selectedIds = currentFilters.eyeColor ?? []
+        let selectedIds = (currentFilters.eyeColor ?? []).map { String($0) }
+        
         let vc = FilterOptionsController(
             title: DivoStrings.paramEyeColor,
             options: displayOptions,
@@ -594,10 +628,10 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         )
         
         vc.onSelectMulti = { [weak self] selectedItems in
-            if selectedItems.isEmpty || selectedItems.first?.id == "all" {
-                self?.currentFilters.eyeColor = []
+            if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
+                self?.currentFilters.eyeColor = nil
             } else {
-                self?.currentFilters.eyeColor = selectedItems.map { $0.id }
+                self?.currentFilters.eyeColor = selectedItems.compactMap { Int($0.id) }
             }
             self?.updateUI()
         }
@@ -609,7 +643,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         var displayOptions = [FilterOptionItem(id: "all", title: DivoStrings.debugAll)]
         displayOptions.append(contentsOf: skinColorOptions.map { FilterOptionItem(id: String($0.id), title: $0.title) })
         
-        let selectedIds = currentFilters.skinColor ?? []
+        let selectedIds = (currentFilters.skinColor ?? []).map { String($0) }
+        
         let vc = FilterOptionsController(
             title: DivoStrings.paramSkinColor,
             options: displayOptions,
@@ -619,10 +654,10 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         )
         
         vc.onSelectMulti = { [weak self] selectedItems in
-            if selectedItems.isEmpty || selectedItems.first?.id == "all" {
-                self?.currentFilters.skinColor = []
+            if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
+                self?.currentFilters.skinColor = nil
             } else {
-                self?.currentFilters.skinColor = selectedItems.map { $0.id }
+                self?.currentFilters.skinColor = selectedItems.compactMap { Int($0.id) }
             }
             self?.updateUI()
         }
@@ -644,7 +679,10 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         appearanceFilterItems[index].onTap()
     }
 
-    @objc private func closeTapped() { dismiss(animated: true) }
+    @objc private func closeTapped() {
+        onClose?(currentFilters)
+        dismiss(animated: true)
+    }
     
     @objc private func resetTapped() {
         currentFilters.reset()
@@ -762,4 +800,25 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             sender.transform = .identity
         })
     }
+}
+
+// 1. Создаем общий протокол для фильтров
+protocol RangeFilterable: Comparable {
+    var doubleValue: Double { get }
+    init(_ value: Double)
+}
+
+// 2. Учим Int работать с этим протоколом
+extension Int: RangeFilterable {
+    var doubleValue: Double { return Double(self) }
+}
+
+// 3. Учим Double работать с этим протоколом
+extension Double: RangeFilterable {
+    var doubleValue: Double { return self }
+}
+
+// Если где-то используете Float или CGFloat, можно добавить и их:
+extension Float: RangeFilterable {
+    var doubleValue: Double { return Double(self) }
 }

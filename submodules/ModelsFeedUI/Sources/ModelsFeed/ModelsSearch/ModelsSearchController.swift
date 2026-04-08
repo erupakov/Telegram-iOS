@@ -42,6 +42,8 @@ public class ModelsSearchController: ViewController {
     private let dictionaryLoadGroup = DispatchGroup()
     private var isDictionaryReady = false
     
+    private var currentSearchTask: Task<Void, Never>?
+    
     public init(context: AccountContext) {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
@@ -101,6 +103,7 @@ public class ModelsSearchController: ViewController {
         
         self.searchNode.requestGridSearch = { [weak self] query in
             self?.currentQuery = query
+            self?.hasMoreGridResults = true
             self?.fetchGridResults(isFirstPage: true)
         }
         
@@ -129,15 +132,25 @@ public class ModelsSearchController: ViewController {
         filterVC.hairColorOptions = self.preloadedHairColor
         filterVC.eyeColorOptions = self.preloadedEyeColor
         filterVC.skinColorOptions = self.preloadedSkinColor
-
+        
         filterVC.onApply = { [weak self] newFilters in
             guard let self = self else { return }
             self.currentFilters = newFilters
             self.gridOffset = 0
             self.hasMoreGridResults = true
+            self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
             self.fetchGridResults(isFirstPage: true)
         }
-
+        
+        filterVC.onClose = { [weak self] newFilters in
+            guard let self = self else { return }
+            self.currentFilters = newFilters
+            self.gridOffset = 0
+            self.hasMoreGridResults = true
+            self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
+            self.fetchGridResults(isFirstPage: true)
+        }
+        
         let navVC = UINavigationController(rootViewController: filterVC)
         if #available(iOS 15.0, *) {
             if let sheet = navVC.sheetPresentationController {
@@ -152,7 +165,9 @@ public class ModelsSearchController: ViewController {
     // MARK: - Network Requests
     
     private func loadGenderDictionary() {
+        dictionaryLoadGroup.enter()
         Task { @MainActor in
+            defer { dictionaryLoadGroup.leave() }
             do {
                 let response: GenderResponse = try await DivoAPIClient.shared.request(
                     path: "/dictionary/gender",
@@ -173,7 +188,9 @@ public class ModelsSearchController: ViewController {
     }
     
     private func loadAppearanceDictionary() {
+        dictionaryLoadGroup.enter()
         Task { @MainActor in
+            defer { dictionaryLoadGroup.leave() }
             do {
                 let response: AppearanceDictionaryResponse = try await DivoAPIClient.shared.request(
                     path: "/dictionary/appearances",
@@ -199,19 +216,43 @@ public class ModelsSearchController: ViewController {
         }
     }
     
-    private func buildRequest(limit: Int, offset: Int, query: String) -> ModelsSearchRequest {
+    private func buildRequest(limit: Int, offset: Int, query: String? = nil) -> ModelsSearchRequest {
+        
+        let age = self.currentFilters.ageRange?.upperBound == nil ? nil : RangeParamInt(from: self.currentFilters.ageRange?.lowerBound, to: self.currentFilters.ageRange?.upperBound)
+        let weight = self.currentFilters.weightRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.weightRange?.lowerBound, to: self.currentFilters.weightRange?.upperBound)
+        let height = self.currentFilters.heightRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.heightRange?.lowerBound, to: self.currentFilters.heightRange?.upperBound)
+        let waist = self.currentFilters.waistRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.waistRange?.lowerBound, to: self.currentFilters.waistRange?.upperBound)
+        let shoesSize = self.currentFilters.shoeSizeRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.shoeSizeRange?.lowerBound, to: self.currentFilters.shoeSizeRange?.upperBound)
+        let hips = self.currentFilters.hipsRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.hipsRange?.lowerBound, to: self.currentFilters.hipsRange?.upperBound)
+        
         return ModelsSearchRequest(
             offset: offset,
             limit: limit,
-            query: query
+            query: query,
+            modelParameters: ModelSearchParameters(
+                gender: self.currentFilters.genderIds,
+                age: age,
+                weight: weight,
+                height: height,
+                waist: waist,
+                shoesSize: shoesSize,
+                hips: hips,
+                eyeColor: self.currentFilters.eyeColor,
+                skinColor: self.currentFilters.skinColor,
+                hairColor: self.currentFilters.hairColor,
+                hairLength: self.currentFilters.hairLength
+            )
         )
     }
-
+    
     private func fetchAutocompleteResults(for query: String) {
         self.currentQuery = query
-        Task { @MainActor in
+        
+        currentSearchTask?.cancel()
+        
+        currentSearchTask = Task { @MainActor in
             do {
-                let request = buildRequest(limit: 5, offset: 0, query: query)
+                let request = buildRequest(limit: 5, offset: 0, query: self.currentQuery.isEmpty ? nil : self.currentQuery)
                 
                 let response: ModelsSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/feedline/search",
@@ -219,33 +260,42 @@ public class ModelsSearchController: ViewController {
                     body: request
                 )
                 
+                guard !Task.isCancelled else { return }
+                
                 self.searchNode.updateAutocomplete(results: response.data.items)
             } catch {
-                print("Autocomplete error: \(error)")
+                if !Task.isCancelled { print("Autocomplete error: \(error)") }
             }
         }
     }
     
     private func fetchGridResults(isFirstPage: Bool) {
         guard !isFetchingGrid && hasMoreGridResults else { return }
+        
+        currentSearchTask?.cancel()
+        
         isFetchingGrid = true
         
         if isFirstPage {
             gridOffset = 0
             hasMoreGridResults = true
+            self.searchNode.mode = .grid // ЯВНО устанавливаем режим в Node
+            self.searchNode.showGridLoading(isFirstPage: true)
         }
         
-        Task { @MainActor in
+        currentSearchTask = Task { @MainActor in
             defer { isFetchingGrid = false }
             
             do {
-                let request = buildRequest(limit: gridLimit, offset: gridOffset, query: self.currentQuery)
-
+                let request = buildRequest(limit: gridLimit, offset: gridOffset, query: self.currentQuery.isEmpty ? nil : self.currentQuery)
+                
                 let response: ModelsSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/feedline/search",
                     method: "POST",
                     body: request
                 )
+                
+                guard !Task.isCancelled else { return }
                 
                 let totalCount = response.data.pagination.meta.totalCount
                 
@@ -260,7 +310,7 @@ public class ModelsSearchController: ViewController {
                 self.hasMoreGridResults = self.gridOffset < totalCount
                 
             } catch {
-                print("Grid fetch error: \(error)")
+                if !Task.isCancelled { print("Grid fetch error: \(error)") }
             }
         }
     }
