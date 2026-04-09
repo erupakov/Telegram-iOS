@@ -94,7 +94,7 @@ final class ExperienceCell: UICollectionViewCell {
         dateLabel.numberOfLines = 2
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let moreImage = UIImage(bundleImageName: "Contact List/moreIcon")?.withRenderingMode(.alwaysTemplate)
+        let moreImage = UIImage(bundleImageName: "Components/moreIcon")?.withRenderingMode(.alwaysTemplate)
         optionsButton.setImage(moreImage, for: .normal)
         optionsButton.tintColor = UIColor(rgb: 0x8E8E93)
         optionsButton.translatesAutoresizingMaskIntoConstraints = false
@@ -148,7 +148,7 @@ final class ExperienceCell: UICollectionViewCell {
         titleLabel.text = item.companyName
         dateLabel.text = item.period
         optionsButton.isHidden = !showOptions
-        iconImageView.loadImage(from: item.logoURL, placeholder: UIImage(bundleImageName: "Models/DefWork"))
+        iconImageView.loadImage(from: item.logoURL, placeholder: UIImage(bundleImageName: "Components/DefWork"))
     }
 
     func configureAsShimmer() {

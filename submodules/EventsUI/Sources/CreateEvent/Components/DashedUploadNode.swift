@@ -13,7 +13,7 @@ final class DashedUploadNode: ASControlNode {
         
         let copperColor = UIColor(hexString: "#BF7A54") ?? .black
         
-        let plusImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/Plus"), color: copperColor)
+        let plusImg = generateTintedImage(image: UIImage(bundleImageName: "Components/Plus"), color: copperColor)
         iconNode.image = plusImg
         
         iconNode.contentMode = .center

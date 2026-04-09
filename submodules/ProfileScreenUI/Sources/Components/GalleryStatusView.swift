@@ -31,7 +31,7 @@ final class GalleryStatusView: UIControl {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .white
-        imageView.image = UIImage(bundleImageName: "Profile/AddPhotoIcon")
+        imageView.image = UIImage(bundleImageName: "Components/AddPhotoIcon")
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isUserInteractionEnabled = false
         return imageView

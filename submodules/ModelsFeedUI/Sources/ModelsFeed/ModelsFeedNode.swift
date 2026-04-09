@@ -163,7 +163,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private var stories: [StoryModel] {
         [
             StoryModel(name: DivoStrings.addStory, avatarName: "Components/AddStoryAvatar", isLive: false, isAdd: true),
-            StoryModel(name: "Jack D.", avatarName: "Models/image5", isLive: false, isAdd: false),
+            StoryModel(name: "Jack D.", avatarName: "Components/image5", isLive: false, isAdd: false),
             StoryModel(name: "Joshua", avatarName: "", isLive: false, isAdd: false),
             StoryModel(name: "waggles", avatarName: "", isLive: true, isAdd: false),
             StoryModel(name: "steve.loves", avatarName: "", isLive: true, isAdd: false),

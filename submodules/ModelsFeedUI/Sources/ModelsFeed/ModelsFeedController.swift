@@ -59,7 +59,7 @@ public final class ModelsFeedController: TelegramBaseController {
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
         let icon: UIImage?
-        icon = UIImage(bundleImageName: "Models/IconModels")
+        icon = UIImage(bundleImageName: "Components/IconModels")
         self.tabBarItem.title = DivoStrings.tabModels
         self.tabBarItem.image = icon
         self.tabBarItem.selectedImage = icon

@@ -68,7 +68,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         tagContainer.addSubview(tagLabel)
         
         
-        likesButton.setImage(UIImage(bundleImageName: "Contact List/HeartActionIcon"), for: .normal)
+        likesButton.setImage(UIImage(bundleImageName: "Components/HeartActionIcon"), for: .normal)
         likesButton.tintColor = .white
         likesButton.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(likesButton)
@@ -78,7 +78,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         likesLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(likesLabel)
         
-        optionsButton.setImage(UIImage(bundleImageName: "Contact List/moreIcon"), for: .normal)
+        optionsButton.setImage(UIImage(bundleImageName: "Components/moreIcon"), for: .normal)
         optionsButton.tintColor = .white
         optionsButton.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(optionsButton)

@@ -246,7 +246,7 @@
 //     field.clipsToBounds = true
 
 //     if showChevron {
-//         let iconView = UIImageView(image: UIImage(bundleImageName: "Models/chevron-down"))
+//         let iconView = UIImageView(image: UIImage(bundleImageName: "Components/chevron-down"))
 //         iconView.contentMode = .center
 
 //         let padding: CGFloat = 10.0

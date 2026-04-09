@@ -52,7 +52,7 @@ public final class EventsController: TelegramBaseController {
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
         let icon: UIImage?
-        icon = UIImage(bundleImageName: "Chat List/Tabs/IconEvents")
+        icon = UIImage(bundleImageName: "Components/IconEvents")
         self.tabBarItem.title = DivoStrings.tabEvents
         self.tabBarItem.image = icon
         self.tabBarItem.selectedImage = icon

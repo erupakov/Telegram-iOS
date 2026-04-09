@@ -84,7 +84,7 @@
 //     private func updateNavigation() {
 //         self.statusBar.statusBarStyle = .White
         
-//         let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Contact List/EditActionIcon"), color: .white)
+//         let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/ContactEditAction"), color: .white)
 //         let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.showMenu))
         
 //         self.navigationItem.rightBarButtonItems = [editButton]
