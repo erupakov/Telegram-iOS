@@ -18,92 +18,108 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 
-public class OnboardingScreenController: UIViewController {
+public class OnboardingScreenController: UIViewController, UIScrollViewDelegate {
     
     private let pagesData: [OnboardingPage] = [
-        OnboardingPage(imageName: "Onboarding/OnboardingFirst", title: DivoStrings.onboardingTitle1),
-        OnboardingPage(imageName: "Onboarding/OnboardingSecond", title: DivoStrings.onboardingTitle2),
-        OnboardingPage(imageName: "Onboarding/OnboardingThird", title: DivoStrings.onboardingTitle3)
+        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingFirst") ?? UIImage(named: "Onboarding/OnboardingFirst"), title: DivoStrings.onboardingTitle1, subtitle: DivoStrings.onboardingSubTitle1),
+        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingSecond") ?? UIImage(named: "Onboarding/OnboardingSecond"), title: DivoStrings.onboardingTitle2, subtitle: DivoStrings.onboardingSubTitle2),
+        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingThird") ?? UIImage(named: "Onboarding/OnboardingThird"), title: DivoStrings.onboardingTitle3, subtitle: DivoStrings.onboardingSubTitle3)
     ]
     
     public var onFinish: (() -> Void)?
-
-    public override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
-        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-    }
-
-    public required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
     
-    private lazy var collectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .horizontal
-        layout.minimumLineSpacing = 0
-        layout.minimumInteritemSpacing = 0
-        
-        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        cv.isPagingEnabled = true
-        cv.showsHorizontalScrollIndicator = false
-        cv.backgroundColor = .black
-        cv.contentInsetAdjustmentBehavior = .never
-        cv.register(OnboardingCell.self, forCellWithReuseIdentifier: OnboardingCell.reuseIdentifier)
-        cv.dataSource = self
-        cv.delegate = self
-        return cv
+    private lazy var scrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.isPagingEnabled = true
+        sv.showsHorizontalScrollIndicator = false
+        sv.backgroundColor = .black
+        sv.contentInsetAdjustmentBehavior = .never
+        sv.delegate = self
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
     }()
     
-    private let pageControlStackView = UIStackView()
+    private let pagesStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.distribution = .fillEqually
+        stack.alignment = .fill
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
+    private let pageControlStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 8
+        stack.distribution = .fill
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
     private var indicatorViews = [UIView]()
     private var indicatorWidthConstraints = [NSLayoutConstraint]()
     
-    private let continueButton = UIButton(type: .system)
+    private let continueButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle(DivoStrings.continueButton, for: .normal)
+        btn.setTitleColor(.white, for: .normal)
+        btn.setTitleColor(UIColor(hexString: "#AFAFB1"), for: .disabled)
+        btn.titleLabel?.font = Font.helveticaNeue(20)
+        btn.backgroundColor = UIColor(hexString: "#FF772D")
+        btn.layer.cornerRadius = 28
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
     
-    private let brandColor = UIColor(hex: "#BF7A54")
+    private let brandColor = UIColor(hexString: "#FF772D")
     
     public override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        updateIndicators(currentIndex: 0)
+        updateIndicatorsContinuously(progress: 0.0)
     }
-
+    
     public override var preferredStatusBarStyle: UIStatusBarStyle {
         return .lightContent
     }
-
     
     // MARK: - UI Setup
     private func setupUI() {
         view.backgroundColor = .black
         
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(collectionView)
-        
-        pageControlStackView.axis = .horizontal
-        pageControlStackView.spacing = 8
-        pageControlStackView.distribution = .fill
-        pageControlStackView.alignment = .center
-        pageControlStackView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scrollView)
+        scrollView.addSubview(pagesStackView)
         view.addSubview(pageControlStackView)
+        view.addSubview(continueButton)
+        
+        continueButton.addTarget(self, action: #selector(continueButtonTapped), for: .touchUpInside)
+        
+        for pageData in pagesData {
+            let pageView = OnboardingPageView()
+            pageView.configure(image: pageData.image, title: pageData.title, subtitle: pageData.subtitle)
+            pagesStackView.addArrangedSubview(pageView)
+            
+            pageView.widthAnchor.constraint(equalTo: view.widthAnchor).isActive = true
+        }
         
         setupIndicators()
         
-        continueButton.setTitle(DivoStrings.continueButton, for: .normal)
-        continueButton.titleLabel?.font = Font.helveticaNeue(20)
-        continueButton.backgroundColor = brandColor
-        continueButton.setTitleColor(.white, for: .normal)
-        continueButton.layer.cornerRadius = 6
-        continueButton.addTarget(self, action: #selector(continueButtonTapped), for: .touchUpInside)
-        continueButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(continueButton)
-        
         NSLayoutConstraint.activate([
-            collectionView.topAnchor.constraint(equalTo: view.topAnchor),
-            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             
-            continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            pagesStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            pagesStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            pagesStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            pagesStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            pagesStackView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
+            
+            continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
             continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             continueButton.heightAnchor.constraint(equalToConstant: 56),
@@ -112,19 +128,16 @@ public class OnboardingScreenController: UIViewController {
             pageControlStackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             pageControlStackView.heightAnchor.constraint(equalToConstant: 10)
         ])
-        
-        view.layoutIfNeeded()
     }
     
     private func setupIndicators() {
         for _ in 0..<pagesData.count {
             let view = UIView()
-            view.backgroundColor = .white.withAlphaComponent(0.5)
+            view.backgroundColor = .white.withAlphaComponent(0.6)
             view.layer.cornerRadius = 4
             view.translatesAutoresizingMaskIntoConstraints = false
             
             view.heightAnchor.constraint(equalToConstant: 8).isActive = true
-            
             let widthConstraint = view.widthAnchor.constraint(equalToConstant: 8)
             widthConstraint.isActive = true
             indicatorWidthConstraints.append(widthConstraint)
@@ -134,19 +147,15 @@ public class OnboardingScreenController: UIViewController {
         }
     }
     
-    
     // MARK: - Actions & Logic
     
     @objc private func continueButtonTapped() {
-        let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
-        let visiblePoint = CGPoint(x: visibleRect.midX, y: visibleRect.midY)
-        
-        guard let indexPath = collectionView.indexPathForItem(at: visiblePoint) else { return }
-        
-        let nextIndex = indexPath.item + 1
+        let currentIndex = Int(round(scrollView.contentOffset.x / view.bounds.width))
+        let nextIndex = currentIndex + 1
         
         if nextIndex < pagesData.count {
-            collectionView.scrollToItem(at: IndexPath(item: nextIndex, section: 0), at: .centeredHorizontally, animated: true)
+            let offsetX = CGFloat(nextIndex) * view.bounds.width
+            scrollView.setContentOffset(CGPoint(x: offsetX, y: 0), animated: true)
         } else {
             finishOnboarding()
         }
@@ -158,62 +167,49 @@ public class OnboardingScreenController: UIViewController {
         onFinish?()
     }
     
+    // MARK: - Continuous Indicator Animation Logic
     
-    // MARK: - Indicator Animation Logic
+    private func updateIndicatorsContinuously(progress: CGFloat) {
+        for (index, view) in indicatorViews.enumerated() {
+            let distance = abs(progress - CGFloat(index))
+            
+            let activeRatio = max(0, 1.0 - distance)
+            
+            let minWidth: CGFloat = 8.0
+            let maxWidth: CGFloat = 24.0
+            let newWidth = minWidth + (maxWidth - minWidth) * activeRatio
+            
+            indicatorWidthConstraints[index].constant = newWidth
+            
+            let inactiveColor = UIColor.white.withAlphaComponent(0.6)
+            view.backgroundColor = blendColor(from: inactiveColor, to: brandColor ?? .white, percentage: activeRatio)
+        }
+        
+        self.pageControlStackView.layoutIfNeeded()
+    }
+
+    private func blendColor(from color1: UIColor, to color2: UIColor, percentage: CGFloat) -> UIColor {
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        
+        color1.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        color2.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        
+        let r = r1 + (r2 - r1) * percentage
+        let g = g1 + (g2 - g1) * percentage
+        let b = b1 + (b2 - b1) * percentage
+        let a = a1 + (a2 - a1) * percentage
+        
+        return UIColor(red: r, green: g, blue: b, alpha: a)
+    }
     
-    private func updateIndicators(currentIndex: Int) {
-        for (index, _) in indicatorViews.enumerated() {
-            indicatorWidthConstraints[index].constant = (index == currentIndex) ? 24 : 8
-        }
-        UIView.animate(withDuration: 0.3) {
-            for (index, view) in self.indicatorViews.enumerated() {
-                view.backgroundColor = (index == currentIndex) ? self.brandColor : .white.withAlphaComponent(0.5)
-            }
-            self.pageControlStackView.layoutIfNeeded()
-        }
-    }
-}
-
-
-// MARK: - UICollectionView DataSource & Delegate
-extension OnboardingScreenController: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    // MARK: - UIScrollViewDelegate
     
-    public func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return pagesData.count
-    }
-
-    public func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: OnboardingCell.reuseIdentifier, for: indexPath) as? OnboardingCell else {
-            return UICollectionViewCell()
-        }
-
-        let data = pagesData[indexPath.item]
-        cell.configure(imageName: data.imageName, title: data.title)
-        return cell
-    }
-
-    public func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        return collectionView.frame.size
-    }
-
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let centerPoint = CGPoint(x: scrollView.contentOffset.x + scrollView.frame.width / 2, y: scrollView.frame.height / 2)
-
-        if let indexPath = collectionView.indexPathForItem(at: centerPoint) {
-            updateIndicators(currentIndex: indexPath.item)
+        guard scrollView.bounds.width > 0 else { return }
+        
+        let progress = scrollView.contentOffset.x / scrollView.bounds.width
+        
+        updateIndicatorsContinuously(progress: progress)
         }
-    }
-}
-
-private extension UIColor {
-    convenience init(hex: String) {
-        var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        if hexString.hasPrefix("#") { hexString.removeFirst() }
-        var rgb: UInt64 = 0
-        Scanner(string: hexString).scanHexInt64(&rgb)
-        let r = CGFloat((rgb >> 16) & 0xFF) / 255.0
-        let g = CGFloat((rgb >> 8) & 0xFF) / 255.0
-        let b = CGFloat(rgb & 0xFF) / 255.0
-        self.init(red: r, green: g, blue: b, alpha: 1.0)
-    }
 }

@@ -8,18 +8,18 @@
 import UIKit
 
 struct OnboardingPage {
-    let imageName: String
+    let image: UIImage?
     let title: String
+    let subtitle: String
 }
 
 class OnboardingScreenNode: UIViewController {
 
     private let backgroundImageView = UIImageView()
-    private let gradientLayer = CAGradientLayer()
     
     init(page: OnboardingPage) {
         super.init(nibName: nil, bundle: nil)
-        backgroundImageView.image = UIImage(bundleImageName: page.imageName)
+        backgroundImageView.image = page.image
     }
     
     required init?(coder: NSCoder) {
@@ -29,12 +29,10 @@ class OnboardingScreenNode: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupBackground()
-        setupGradient()
     }
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        gradientLayer.frame = view.bounds
     }
     
     private func setupBackground() {
@@ -48,15 +46,5 @@ class OnboardingScreenNode: UIViewController {
             backgroundImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             backgroundImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
-    }
-    
-    private func setupGradient() {
-        gradientLayer.colors = [
-            UIColor.black.withAlphaComponent(0.1).cgColor,
-            UIColor.black.withAlphaComponent(0.6).cgColor,
-            UIColor.black.withAlphaComponent(0.9).cgColor
-        ]
-        gradientLayer.locations = [0.0, 0.7, 1.0]
-        view.layer.insertSublayer(gradientLayer, at: 1)
     }
 }
