@@ -86,6 +86,10 @@ public enum DivoStrings {
         }
     }
 
+    // MARK: - Login
+
+    public static var loginEulaAgreement: String { L(en: "By using DIVO, you agree to Apple's end User License Agreement and our Terms of Service and Privacy Policy.", ru: "Используя DIVO, вы соглашаетесь с Лицензионным соглашением Apple и нашими Условиями использования и Политикой конфиденциальности.", es: "Al usar DIVO, aceptas el Acuerdo de licencia de usuario final de Apple y nuestros Términos de servicio y Política de privacidad.", pt: "Ao usar o DIVO, você concorda com o Contrato de licença de usuário final da Apple e nossos Termos de serviço e Política de privacidade.", zh: "使用 DIVO 即表示您同意 Apple 的最终用户许可协议以及我们的服务条款和隐私政策。") }
+
     // MARK: - Tab Bar
 
     public static var tabModels: String { L(en: "Models", ru: "Модели", es: "Modelos", pt: "Modelos", zh: "模特") }

@@ -330,14 +330,14 @@ private final class EulaCheckboxNode: ASDisplayNode {
         self.textNode = ImmediateTextNode()
         self.textNode.maximumNumberOfLines = 0
         self.textNode.attributedText = NSAttributedString(
-            string: strings.Login_EulaAgreement,
+            string: DivoStrings.loginEulaAgreement,
             font: Font.regular(13.0),
             textColor: .white
         )
         
         self.tapNode = AccessibilityAreaNode()
         self.tapNode.accessibilityTraits = [.button]
-        self.tapNode.accessibilityLabel = strings.Login_EulaAgreement
+        self.tapNode.accessibilityLabel = DivoStrings.loginEulaAgreement
         
         super.init()
         
