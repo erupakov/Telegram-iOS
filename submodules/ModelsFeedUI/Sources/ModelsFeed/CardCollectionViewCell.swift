@@ -31,12 +31,25 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     private let topGradientView: GradientView = {
         let view = GradientView()
-        let colors: [UIColor] = [
+        view.isOpaque = false
+        view.backgroundColor = .clear
+        view.configure(colors: [
             UIColor.black.withAlphaComponent(0.6),
             UIColor.black.withAlphaComponent(0.3),
             .clear
-        ]
-        view.configure(colors: colors, direction: .vertical)
+        ], direction: .vertical)
+        return view
+    }()
+
+    private let bottomGradientView: GradientView = {
+        let view = GradientView()
+        view.isOpaque = false
+        view.backgroundColor = .clear
+        view.configure(colors: [
+            .clear,
+            UIColor.black.withAlphaComponent(0.3),
+            UIColor.black.withAlphaComponent(0.6)
+        ], direction: .vertical)
         return view
     }()
 
@@ -45,7 +58,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.textColor = .white
-        label.font = UIFont.systemFont(ofSize: 24, weight: .bold)
+        label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? UIFont.boldSystemFont(ofSize: 20)
         label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
         return label
@@ -55,25 +68,16 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     private let roleBadgeView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 0.22, green: 0.45, blue: 0.87, alpha: 1.0)
-        view.layer.cornerRadius = 12
+        view.backgroundColor = UIColor(red: 34/255.0, green: 98/255.0, blue: 216/255.0, alpha: 1.0)
+        view.layer.cornerRadius = 11
         view.layer.masksToBounds = true
         return view
-    }()
-
-    private let roleBadgeIcon: UIImageView = {
-        let iv = UIImageView()
-        iv.tintColor = .white
-        iv.contentMode = .scaleAspectFit
-        let config = UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
-        iv.image = UIImage(systemName: "person.2.fill", withConfiguration: config)
-        return iv
     }()
 
     private let roleBadgeLabel: UILabel = {
         let label = UILabel()
         label.textColor = .white
-        label.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
+        label.font = UIFont(name: "HelveticaNeue", size: 11) ?? UIFont.systemFont(ofSize: 11, weight: .regular)
         return label
     }()
 
@@ -82,7 +86,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
     private let infoLabel: UILabel = {
         let label = UILabel()
         label.textColor = .white
-        label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        label.font = UIFont(name: "HelveticaNeue", size: 14) ?? UIFont.systemFont(ofSize: 14, weight: .regular)
         return label
     }()
 
@@ -92,14 +96,14 @@ final class CardCollectionViewCell: UICollectionViewCell {
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 8
-        stack.alignment = .trailing
+        stack.alignment = .fill
         return stack
     }()
 
-    private let likesPill = StatPillView(iconName: "heart.fill", tintColor: .white)
-    private let viewsPill = StatPillView(iconName: "eye.fill", tintColor: .white)
+    private let likesPill = StatPillView(assetName: "Components/StatLike")
+    private let viewsPill = StatPillView(assetName: "Components/StatView")
     private let savesPill: StatPillView = {
-        let pill = StatPillView(iconName: "bookmark.fill", tintColor: .white)
+        let pill = StatPillView(assetName: "Components/StatSave")
         pill.isUserInteractionEnabled = true
         return pill
     }()
@@ -149,7 +153,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.distribution = .fill
-        stack.spacing = 5
+        stack.spacing = 6
         return stack
     }()
 
@@ -171,10 +175,10 @@ final class CardCollectionViewCell: UICollectionViewCell {
     private func setupViews() {
         contentView.addSubview(mainImageView)
         contentView.addSubview(topGradientView)
+        contentView.addSubview(bottomGradientView)
 
         contentView.addSubview(nameLabel)
         contentView.addSubview(roleBadgeView)
-        roleBadgeView.addSubview(roleBadgeIcon)
         roleBadgeView.addSubview(roleBadgeLabel)
         contentView.addSubview(infoLabel)
 
@@ -236,52 +240,58 @@ final class CardCollectionViewCell: UICollectionViewCell {
         super.layoutSubviews()
 
         let bounds = contentView.bounds
-        let sidePadding: CGFloat = 15
-        let topPadding: CGFloat = 15
+        let sidePadding: CGFloat = 22
+        let topPadding: CGFloat = 24
 
         mainImageView.frame = bounds
 
-        let gradientHeight: CGFloat = bounds.height * 0.35
-        topGradientView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: gradientHeight)
+        // Bottom gradient — bottom 1/3 of the card
+        let bottomGradientHeight = floor(bounds.height / 3)
+        bottomGradientView.frame = CGRect(x: 0, y: bounds.height - bottomGradientHeight, width: bounds.width, height: bottomGradientHeight)
 
-        // Name
-        let maxNameWidth = bounds.width - sidePadding * 2 - 100
-        nameLabel.frame = CGRect(x: sidePadding, y: topPadding, width: maxNameWidth, height: 30)
-
-        // Role badge
-        let badgeY = nameLabel.frame.maxY + 6
-        roleBadgeIcon.frame = CGRect(x: 8, y: 4, width: 16, height: 16)
-        let badgeLabelSize = roleBadgeLabel.sizeThatFits(CGSize(width: 200, height: 24))
-        roleBadgeLabel.frame = CGRect(x: 28, y: 4, width: ceil(badgeLabelSize.width), height: 16)
-        let badgeWidth = 28 + ceil(badgeLabelSize.width) + 8
-        roleBadgeView.frame = CGRect(x: sidePadding, y: badgeY, width: badgeWidth, height: 24)
-
-        // Info label (age + country)
-        let infoX = roleBadgeView.frame.maxX + 8
-        let infoWidth = bounds.width - infoX - sidePadding - 100
-        infoLabel.frame = CGRect(x: infoX, y: badgeY, width: max(infoWidth, 0), height: 24)
-
-        // Stats pills (right side)
-        let statsWidth: CGFloat = 80
+        // Stats pills (right side) — calculate first to derive name/info widths
+        let statsRightPadding: CGFloat = 16
+        let statsWidth: CGFloat = 64
         statsStackView.frame = CGRect(
-            x: bounds.width - sidePadding - statsWidth,
+            x: bounds.width - statsRightPadding - statsWidth,
             y: topPadding,
             width: statsWidth,
             height: 110
         )
 
-        // Preview images
+        // Name
+        let maxNameWidth = statsStackView.frame.minX - 10 - sidePadding
+        nameLabel.frame = CGRect(x: sidePadding, y: topPadding, width: maxNameWidth, height: 24)
+
+        // Top gradient — fixed 62pt
+        topGradientView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 62)
+
+        // Role badge (no icon, text only)
+        let badgeY = nameLabel.frame.maxY + 6
+        let badgeLabelSize = roleBadgeLabel.sizeThatFits(CGSize(width: 200, height: 22))
+        roleBadgeLabel.frame = CGRect(x: 8, y: 0, width: ceil(badgeLabelSize.width), height: 22)
+        let badgeWidth = 8 + ceil(badgeLabelSize.width) + 8
+        roleBadgeView.frame = CGRect(x: sidePadding, y: badgeY, width: badgeWidth, height: 22)
+
+        // Info label (age + country)
+        let infoX = roleBadgeView.frame.maxX + 10
+        let infoWidth = statsStackView.frame.minX - 10 - infoX
+        infoLabel.frame = CGRect(x: infoX, y: badgeY, width: max(infoWidth, 0), height: 22)
+
+        // Preview images (carousel)
         let hasPreviews = previewStackView.arrangedSubviews.count > 0
-        let previewHeight: CGFloat = 100
+        let previewImageWidth: CGFloat = 93
+        let previewImageHeight: CGFloat = 100
+        let previewLeftPadding: CGFloat = 16
+        let previewBottomPadding: CGFloat = 16
         if hasPreviews {
-            let previewY = bounds.height - sidePadding - previewHeight
-            previewScrollView.frame = CGRect(x: sidePadding, y: previewY, width: bounds.width - 2 * sidePadding, height: previewHeight)
-            let imageSize: CGFloat = 100
-            let imageSpacing: CGFloat = 5
+            let previewY = bounds.height - previewBottomPadding - previewImageHeight
+            previewScrollView.frame = CGRect(x: previewLeftPadding, y: previewY, width: bounds.width - previewLeftPadding, height: previewImageHeight)
+            let imageSpacing: CGFloat = 6
             let count = CGFloat(previewStackView.arrangedSubviews.count)
-            let stackWidth = count * imageSize + max(0, count - 1) * imageSpacing
-            previewStackView.frame = CGRect(x: 0, y: 0, width: stackWidth, height: previewHeight)
-            previewScrollView.contentSize = CGSize(width: stackWidth, height: previewHeight)
+            let stackWidth = count * previewImageWidth + max(0, count - 1) * imageSpacing
+            previewStackView.frame = CGRect(x: 0, y: 0, width: stackWidth, height: previewImageHeight)
+            previewScrollView.contentSize = CGSize(width: stackWidth, height: previewImageHeight)
         } else {
             previewScrollView.frame = .zero
             previewStackView.frame = .zero
@@ -390,7 +400,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         imageView.backgroundColor = UIColor(white: 0.92, alpha: 1.0)
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
-        imageView.widthAnchor.constraint(equalToConstant: 100).isActive = true
+        imageView.widthAnchor.constraint(equalToConstant: 93).isActive = true
         return imageView
     }
 
@@ -403,17 +413,25 @@ final class CardCollectionViewCell: UICollectionViewCell {
         imageView.image = UIImage(named: imageName)
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
-        imageView.widthAnchor.constraint(equalToConstant: 100).isActive = true
+        imageView.widthAnchor.constraint(equalToConstant: 93).isActive = true
         return imageView
     }
 
+    /// Formats count to max 4 characters: 999 → "999", 1000 → "1K", 288888 → "288K", 1000000 → "1M", 1500000 → "1.5M"
     static func formatCount(_ count: Int) -> String {
         if count >= 1_000_000 {
             let value = Double(count) / 1_000_000.0
-            return String(format: "%.1fM", value)
+            if value >= 10 {
+                return "\(Int(value))M"       // 10M, 99M
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))M"       // 1M, 2M
+            }
+            return "\(formatted)M"            // 1.5M
         } else if count >= 1_000 {
-            let value = Double(count) / 1_000.0
-            return String(format: "%.0fK", value)
+            let value = Int(count / 1_000)
+            return "\(value)K"                // 1K, 28K, 288K
         }
         return "\(count)"
     }
@@ -446,25 +464,26 @@ final class StatPillView: UIView {
     private let countLabel: UILabel = {
         let label = UILabel()
         label.textColor = .white
-        label.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+        label.font = UIFont(name: "HelveticaNeue", size: 12) ?? UIFont.systemFont(ofSize: 12, weight: .regular)
         return label
     }()
 
-    init(iconName: String, tintColor: UIColor) {
+    init(assetName: String) {
         super.init(frame: .zero)
-        backgroundColor = UIColor.white.withAlphaComponent(0.25)
-        layer.cornerRadius = 14
+        backgroundColor = DivoGlassColors.statPillBackground
+        layer.cornerRadius = 15
         layer.masksToBounds = true
+        layer.borderWidth = 0.5
+        layer.borderColor = DivoGlassColors.statPillBorder.cgColor
 
-        let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-        iconView.image = UIImage(systemName: iconName, withConfiguration: config)
-        iconView.tintColor = tintColor
+        iconView.image = UIImage(bundleImageName: assetName)?.withRenderingMode(.alwaysTemplate)
 
         addSubview(iconView)
         addSubview(countLabel)
 
         translatesAutoresizingMaskIntoConstraints = false
-        heightAnchor.constraint(equalToConstant: 28).isActive = true
+        widthAnchor.constraint(equalToConstant: 64).isActive = true
+        heightAnchor.constraint(equalToConstant: 30).isActive = true
     }
 
     required init?(coder: NSCoder) {
@@ -478,15 +497,17 @@ final class StatPillView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        iconView.frame = CGRect(x: 8, y: 6, width: 16, height: 16)
-        let labelX: CGFloat = 28
-        let labelWidth = bounds.width - labelX - 8
+        let iconSize: CGFloat = 20
+        let iconX: CGFloat = 6
+        let iconY: CGFloat = (bounds.height - iconSize) / 2
+        iconView.frame = CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)
+        let labelX: CGFloat = iconX + iconSize + 2
+        let labelWidth = bounds.width - labelX - 4
         countLabel.frame = CGRect(x: labelX, y: 0, width: max(labelWidth, 0), height: bounds.height)
     }
 
     override var intrinsicContentSize: CGSize {
-        let labelSize = countLabel.sizeThatFits(CGSize(width: 200, height: 28))
-        return CGSize(width: 28 + ceil(labelSize.width) + 8, height: 28)
+        return CGSize(width: 64, height: 30)
     }
 
     override func sizeThatFits(_ size: CGSize) -> CGSize {

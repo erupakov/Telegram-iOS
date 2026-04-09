@@ -10,4 +10,8 @@ public enum DivoGlassColors {
     public static let inputFill = UIColor.white.withAlphaComponent(0.1)
     public static let inputIcon = UIColor.white.withAlphaComponent(0.5)
     public static let sectionIndex: UIColor = .white
+
+    // Stat pills on model cards
+    public static let statPillBackground = UIColor.white.withAlphaComponent(0.2)
+    public static let statPillBorder = UIColor.white.withAlphaComponent(0.4)
 }

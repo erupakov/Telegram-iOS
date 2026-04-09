@@ -90,8 +90,9 @@ public final class ModelsFeedController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 
-        let searchIcon = UIImage(bundleImageName: "Divo/DivoSearchIcon")?.withRenderingMode(.alwaysOriginal)
+        let searchIcon = UIImage(bundleImageName: "Components/DivoSearchIcon")?.withRenderingMode(.alwaysTemplate)
         let searchButton = UIBarButtonItem(image: searchIcon, style: .plain, target: self, action: #selector(self.searchPressed))
+        searchButton.tintColor = .black
         self.navigationItem.rightBarButtonItems = [searchButton]
 
         self.navigationItem.titleView = UIView()

@@ -162,7 +162,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private var stories: [StoryModel] {
         [
-            StoryModel(name: DivoStrings.addStory, avatarName: "Chat List/AddIcon", isLive: false, isAdd: true),
+            StoryModel(name: DivoStrings.addStory, avatarName: "Components/AddStoryAvatar", isLive: false, isAdd: true),
             StoryModel(name: "Jack D.", avatarName: "Models/image5", isLive: false, isAdd: false),
             StoryModel(name: "Joshua", avatarName: "", isLive: false, isAdd: false),
             StoryModel(name: "waggles", avatarName: "", isLive: true, isAdd: false),
@@ -324,6 +324,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.mainCollectionView.translatesAutoresizingMaskIntoConstraints = false
         self.mainCollectionView.delaysContentTouches = false
         self.mainCollectionView.canCancelContentTouches = true
+        self.mainCollectionView.showsVerticalScrollIndicator = false
 
         self.mainCollectionView.register(CardCollectionViewCell.self, forCellWithReuseIdentifier: "CardCell")
         self.mainCollectionView.register(PaginationShimmerCell.self, forCellWithReuseIdentifier: "PaginationShimmerCell")

@@ -62,10 +62,11 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     }
     
     func configure(with model: StoryModel) {
-        if let image = UIImage(named: model.avatarName) {
+        let image = UIImage(named: model.avatarName) ?? UIImage(bundleImageName: model.avatarName)
+        if let image = image {
             if let isAdd = model.isAdd, isAdd {
-                avatarImageView.image = image.resized(to: CGSize(width: 30, height: 30))
-                avatarImageView.contentMode = .center
+                avatarImageView.image = image
+                avatarImageView.contentMode = .scaleAspectFit
             } else {
                 avatarImageView.image = image
             }
