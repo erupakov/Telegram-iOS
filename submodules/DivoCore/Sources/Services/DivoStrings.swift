@@ -359,11 +359,14 @@ public enum DivoStrings {
     public static var goToMyProfile: String { L(en: "Go to my profile", ru: "Перейти в мой профиль", es: "Ir a mi perfil", pt: "Ir para meu perfil", zh: "前往我的资料") }
 
     // MARK: - Onboarding
-
-    public static var onboardingTitle1: String { L(en: "STEP INTO THE FASHION WORLD", ru: "ВОЙДИ В МИР МОДЫ", es: "ENTRA EN EL MUNDO DE LA MODA", pt: "ENTRE NO MUNDO DA MODA", zh: "踏入时尚世界") }
-    public static var onboardingTitle2: String { L(en: "FROM SELFIE TO SPOTLIGHT", ru: "ОТ СЕЛФИ ДО ПОДИУМА", es: "DEL SELFIE AL ESCENARIO", pt: "DE SELFIE AO PALCO", zh: "从自拍到聚光灯") }
-    public static var onboardingTitle3: String { L(en: "WHERE NEW MODELS ARE BORN", ru: "ГДЕ РОЖДАЮТСЯ НОВЫЕ МОДЕЛИ", es: "DONDE NACEN NUEVOS MODELOS", pt: "ONDE NOVOS MODELOS NASCEM", zh: "新模特诞生之地") }
     
+    public static var onboardingTitle1: String { L(en: "GET SEEN BY THE RIGHT PEOPLE.", ru: "ПОКАЖИТЕСЬ НУЖНЫМ ЛЮДЯМ.", es: "HAZTE VER POR LAS PERSONAS ADECUADAS.", pt: "SEJA VISTO PELAS PESSOAS CERTAS.", zh: "让对的人看到你。") }
+    public static var onboardingSubTitle1: String { L(en: "A professional profile that puts you in front of agencies and brands actively looking for talent", ru: "Профессиональный профиль, который показывает вас агентствам и брендам, активно ищущим таланты", es: "Un perfil profesional que te pone frente a agencias y marcas que buscan talento activamente", pt: "Um perfil profissional que coloca você diante de agências e marcas que buscam talentos ativamente", zh: "打造专业档案，让正在寻找人才的机构和品牌主动找到你。") }
+    public static var onboardingTitle2: String { L(en: "REAL CASTINGS.\nREAL OPPORTUNITIES.", ru: "РЕАЛЬНЫЕ КАСТИНГИ.\nРЕАЛЬНЫЕ ВОЗМОЖНОСТИ.", es: "CASTINGS REALES.\nOPORTUNIDADES REALES.", pt: "CASTINGS REAIS.\nOPORTUNIDADES REAIS.", zh: "真实的试镜。\n真实的机会。") }
+    public static var onboardingSubTitle2: String { L(en: "Apply to verified jobs from agencies and brands — no middlemen, no guesswork.", ru: "Откликайтесь на проверенные вакансии от агентств и брендов — без посредников и догадок.", es: "Postula a trabajos verificados de agencias y marcas — sin intermediarios, sin conjeturas.", pt: "Candidate-se a vagas verificadas de agências e marcas — sem intermediários, sem adivinhações.", zh: "直接申请来自机构和品牌的已验证工作——没有中间商，不靠猜测。") }
+    public static var onboardingTitle3: String { L(en: "DISCOVERED FASTER\nWITH AI.", ru: "НАХОДИТЕ БЫСТРЕЕ\nС ИИ.", es: "DESCUBIERTO MÁS RÁPIDO\nCON IA.", pt: "DESCOBERTO MAIS RÁPIDO\nCOM IA.", zh: "通过AI\n更快被发现。") }
+    public static var onboardingSubTitle3: String { L(en: "DIVO's AI finds the best match between talent and brands — so opportunities come to you.", ru: "ИИ DIVO находит идеальное соответствие между талантами и брендами — и возможности приходят к вам сами.", es: "La IA de DIVO encuentra la mejor coincidencia entre el talento y las marcas — para que las oportunidades lleguen a ti.", pt: "A IA da DIVO encontra a melhor combinação entre talentos e marcas — para que as oportunidades cheguem até você.", zh: "DIVO的人工智能精准匹配才华与品牌——让机会主动找上你。") }
+
     // MARK: - Add Model Agency
 
     public static var linkModel: String { L(en: "Link on profile in Divo", ru: "Ссылка на профиль в Divo", es: "Enlace en el perfil en Divo", pt: "Link no perfil em Divo", zh: "Divo个人资料连结") }
