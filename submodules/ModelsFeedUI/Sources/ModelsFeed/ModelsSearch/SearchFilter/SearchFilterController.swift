@@ -383,12 +383,16 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         NSLayoutConstraint.activate([cityTextField.heightAnchor.constraint(equalToConstant: 46)])
         stackView.addArrangedSubview(cityTextField)
         
+        let isAgency = DivoConfig.currentUserRole == .agency
+        
         moreFiltersButton.addTarget(self, action: #selector(moreFiltersTapped), for: .touchUpInside)
         
         stackView.addArrangedSubview(moreFiltersButton)
         NSLayoutConstraint.activate([
             moreFiltersButton.heightAnchor.constraint(equalToConstant: 22),
         ])
+        
+        moreFiltersButton.isHidden = !isAgency
         
         stackView.addArrangedSubview(appearanceBackgroundView)
         appearanceBackgroundView.addSubview(appearanceContainerStack)
@@ -575,7 +579,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             showSearch: false
         )
         
-        vc.onSelectMulti = { [weak self] selectedItems in
+        vc.onSave = { [weak self] selectedItems in
             if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
                 self?.currentFilters.hairLength = nil
             } else {
@@ -601,7 +605,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             showSearch: false
         )
         
-        vc.onSelectMulti = { [weak self] selectedItems in
+        vc.onSave = { [weak self] selectedItems in
             if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
                 self?.currentFilters.hairColor = nil
             } else {
@@ -627,7 +631,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             showSearch: false
         )
         
-        vc.onSelectMulti = { [weak self] selectedItems in
+        vc.onSave = { [weak self] selectedItems in
             if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
                 self?.currentFilters.eyeColor = nil
             } else {
@@ -653,7 +657,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             showSearch: false
         )
         
-        vc.onSelectMulti = { [weak self] selectedItems in
+        vc.onSave = { [weak self] selectedItems in
             if selectedItems.isEmpty || selectedItems.contains(where: { $0.id == "all" }) {
                 self?.currentFilters.skinColor = nil
             } else {
@@ -739,7 +743,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let selectedIds = currentFilters.roleIds
         let vc = FilterOptionsController(title: DivoStrings.debugRole, options: roleOptions, selectedOptionIds: selectedIds, isMultiSelect: true)
         
-        vc.onSelectMulti = {[weak self] selectedItems in
+        vc.onSave = {[weak self] selectedItems in
             self?.currentFilters.roleIds = selectedItems.map { $0.id }
             self?.currentFilters.roleTitles = selectedItems.map { $0.title }
             self?.updateUI()
@@ -754,7 +758,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let selectedIds = currentFilters.genderIds
         let vc = FilterOptionsController(title: DivoStrings.paramGender, options: displayOptions, selectedOptionIds: selectedIds, isMultiSelect: true)
         
-        vc.onSelectMulti = { [weak self] selectedItems in
+        vc.onSave = { [weak self] selectedItems in
             self?.currentFilters.genderIds = selectedItems.map { $0.id }
             self?.currentFilters.genderTitles = selectedItems.map { $0.title }
             self?.updateUI()
@@ -773,7 +777,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             showSearch: true
         )
 
-        vc.onSelectMulti = { [weak self] selectedItems in
+        vc.onSave = { [weak self] selectedItems in
             if selectedItems.isEmpty {
                 self?.currentFilters.countryIds = []
                 self?.currentFilters.countryTitles = []

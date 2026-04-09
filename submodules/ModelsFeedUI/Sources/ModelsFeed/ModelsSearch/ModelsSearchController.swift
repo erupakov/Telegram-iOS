@@ -117,6 +117,7 @@ public class ModelsSearchController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
+        self.fetchGridResults(isFirstPage: true)
     }
     
     private func openFilters() {
@@ -224,11 +225,13 @@ public class ModelsSearchController: ViewController {
         let waist = self.currentFilters.waistRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.waistRange?.lowerBound, to: self.currentFilters.waistRange?.upperBound)
         let shoesSize = self.currentFilters.shoeSizeRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.shoeSizeRange?.lowerBound, to: self.currentFilters.shoeSizeRange?.upperBound)
         let hips = self.currentFilters.hipsRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.hipsRange?.lowerBound, to: self.currentFilters.hipsRange?.upperBound)
+        let role = self.currentFilters.roleIds.isEmpty ? nil : self.currentFilters.roleIds
         
         return ModelsSearchRequest(
             offset: offset,
             limit: limit,
             query: query,
+            role: role,
             modelParameters: ModelSearchParameters(
                 gender: self.currentFilters.genderIds,
                 age: age,
@@ -279,7 +282,7 @@ public class ModelsSearchController: ViewController {
         if isFirstPage {
             gridOffset = 0
             hasMoreGridResults = true
-            self.searchNode.mode = .grid // ЯВНО устанавливаем режим в Node
+            self.searchNode.mode = .grid
             self.searchNode.showGridLoading(isFirstPage: true)
         }
         

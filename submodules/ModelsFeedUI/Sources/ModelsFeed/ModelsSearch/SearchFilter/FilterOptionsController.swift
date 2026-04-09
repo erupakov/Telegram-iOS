@@ -16,8 +16,8 @@ final class FilterOptionsController: UIViewController {
     private var selectedOptionIds: Set<String>
     private let isMultiSelect: Bool
     private let showSearch: Bool
-    
-    var onSelectMulti: (([FilterOptionItem]) -> Void)?
+        
+    var onSave: (([FilterOptionItem]) -> Void)?
     
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -113,6 +113,35 @@ final class FilterOptionsController: UIViewController {
         return container
     }()
     
+    private let saveButton: UIButton = {
+        let saveButton = UIButton(type: .custom)
+        saveButton.backgroundColor = UIColor(hexString: "#FF772D")
+        saveButton.layer.cornerRadius = 20
+        saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
+        saveButton.tintColor = .white
+        saveButton.layer.shadowColor = UIColor.black.cgColor
+        saveButton.layer.shadowOpacity = 0.08
+        saveButton.layer.shadowOffset = CGSize(width: 0, height: 4)
+        saveButton.layer.shadowRadius = 12
+        saveButton.translatesAutoresizingMaskIntoConstraints = false
+        return saveButton
+    }()
+    
+    private let deleteButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.backgroundColor = UIColor(hexString: "#343434")
+        button.layer.cornerRadius = 20
+        button.setImage(UIImage(systemName: "trash"), for: .normal)
+        button.tintColor = .white
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.08
+        button.layer.shadowOffset = CGSize(width: 0, height: 4)
+        button.layer.shadowRadius = 12
+        button.layer.masksToBounds = false
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
     init(title: String, options: [FilterOptionItem], selectedOptionIds: [String], isMultiSelect: Bool = false, showSearch: Bool = false) {
         self.titleLabel.text = title
         self.allOptions = options
@@ -141,6 +170,14 @@ final class FilterOptionsController: UIViewController {
         closeButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
         closeButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         
+        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        saveButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        saveButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        
+        deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
+        deleteButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        deleteButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        
         reloadOptions()
     }
     
@@ -148,6 +185,8 @@ final class FilterOptionsController: UIViewController {
         view.addSubview(customNavBar)
         customNavBar.addSubview(closeButton)
         customNavBar.addSubview(titleLabel)
+        customNavBar.addSubview(saveButton)
+        customNavBar.addSubview(deleteButton)
     }
     
     private func setupSearchField() {
@@ -192,6 +231,16 @@ final class FilterOptionsController: UIViewController {
             
             titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+            
+            saveButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -8),
+            saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+            saveButton.widthAnchor.constraint(equalToConstant: 40),
+            saveButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            deleteButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
+            deleteButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+            deleteButton.widthAnchor.constraint(equalToConstant: 40),
+            deleteButton.heightAnchor.constraint(equalToConstant: 40),
         ])
         
         if showSearch {
@@ -302,23 +351,16 @@ final class FilterOptionsController: UIViewController {
         if isMultiSelect {
             if option.id == allOptionId {
                 selectedOptionIds.removeAll()
-                onSelectMulti?([])
-                navigationController?.popViewController(animated: true)
             } else {
                 if selectedOptionIds.contains(option.id) {
                     selectedOptionIds.remove(option.id)
                 } else {
                     selectedOptionIds.insert(option.id)
                 }
-                
-                let selectedItems = allOptions.filter { selectedOptionIds.contains($0.id) }
-                onSelectMulti?(selectedItems)
-                reloadOptions()
             }
+            reloadOptions()
         } else {
             selectedOptionIds = [option.id]
-            onSelectMulti?([option])
-            navigationController?.popViewController(animated: true)
         }
     }
     
@@ -350,6 +392,21 @@ final class FilterOptionsController: UIViewController {
             sender.alpha = 1.0
             sender.transform = .identity
         })
+    }
+    
+    @objc private func saveTapped() {
+        if selectedOptionIds.isEmpty {
+            onSave?([])
+        } else {
+            let selectedItems = allOptions.filter { selectedOptionIds.contains($0.id) }
+            onSave?(selectedItems)
+        }
+        navigationController?.popViewController(animated: true)
+    }
+    
+    @objc private func deleteTapped() {
+        onSave?([])
+        navigationController?.popViewController(animated: true)
     }
 }
 

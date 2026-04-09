@@ -64,7 +64,7 @@ final class ModelsSearchNode: ASDisplayNode {
         field.translatesAutoresizingMaskIntoConstraints = false
         return field
     }()
-    
+        
     private let filterButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
@@ -129,11 +129,24 @@ final class ModelsSearchNode: ASDisplayNode {
         return tableView
     }()
     
-    private let floatingActionButton: UIButton = {
+    // На будущее
+//    private let floatingActionButton: UIButton = {
+//        let button = UIButton(type: .custom)
+//        button.backgroundColor = .white
+//        button.layer.cornerRadius = 19
+//        let image = UIImage(bundleImageName: "Ai") ?? UIImage(systemName: "sparkles")
+//        button.setImage(image, for: .normal)
+//        button.tintColor = UIColor(hexString: "#BF7A54")
+//        button.layer.masksToBounds = false
+//        button.translatesAutoresizingMaskIntoConstraints = false
+//        return button
+//    }()
+    
+    private let faceScanButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = UIColor(hexString: "#FF772D")
         button.layer.cornerRadius = 26
-        let image = UIImage(bundleImageName: "Ai") ?? UIImage(systemName: "sparkles")
+        let image = UIImage(bundleImageName: "FaceScan") ?? UIImage(systemName: "person.fill.viewfinder")
         button.setImage(image, for: .normal)
         button.tintColor = UIColor(hexString: "#BF7A54")
         button.layer.shadowColor = UIColor.black.cgColor
@@ -166,6 +179,12 @@ final class ModelsSearchNode: ASDisplayNode {
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.showsVerticalScrollIndicator = false
         return cv
+    }()
+    
+    private let bottomBlurOverlay: GradientBlurView = {
+        let view = GradientBlurView(isTop: false)
+        view.isHidden = true
+        return view
     }()
     
     private let autocompleteLoader: UIActivityIndicatorView = {
@@ -278,7 +297,7 @@ final class ModelsSearchNode: ASDisplayNode {
     private var currentResults:[SearchUserItem] = []
     
     private var resultsContainerHeightConstraint: NSLayoutConstraint?
-    private var fabBottomConstraint: NSLayoutConstraint?
+    private var faceScanButtonBottomConstraint: NSLayoutConstraint?
     
     private var currentAutocompleteResults: [SearchUserDTO] = []
     private var currentGridResults: [SearchUserDTO] = []
@@ -331,7 +350,7 @@ final class ModelsSearchNode: ASDisplayNode {
         setupGridContainer()
         setupResultsContainer()
         setupEmptyStateContainer()
-        setupFloatingActionButton()
+        setupFaceScanActionButton()
     }
     
     private func setupTopContainer() {
@@ -344,6 +363,8 @@ final class ModelsSearchNode: ASDisplayNode {
         topBarContainer.addSubview(searchFieldContainer)
         searchFieldContainer.addSubview(searchIcon)
         searchFieldContainer.addSubview(searchTextField)
+        // На будущее
+//        searchFieldContainer.addSubview(floatingActionButton)
         topBarContainer.addSubview(filterButton)
         topBarContainer.addSubview(closeButton)
         
@@ -392,13 +413,27 @@ final class ModelsSearchNode: ASDisplayNode {
         
         NSLayoutConstraint.activate([
             searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: 8),
-            searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -14),
+            // На будущее
+//            searchTextField.trailingAnchor.constraint(equalTo: floatingActionButton.leadingAnchor, constant: -6),
+            searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -6),
             searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
             searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor)
         ])
         
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
+        
+        // На будущее
+//        NSLayoutConstraint.activate([
+//            floatingActionButton.leadingAnchor.constraint(equalTo: searchTextField.trailingAnchor, constant: 8),
+//            floatingActionButton.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -1),
+//            floatingActionButton.centerYAnchor.constraint(equalTo: searchFieldContainer.centerYAnchor),
+//            floatingActionButton.widthAnchor.constraint(equalToConstant: 38),
+//            floatingActionButton.heightAnchor.constraint(equalToConstant: 38)
+//        ])
+//        
+//        floatingActionButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+//        floatingActionButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         
         filterButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
         filterButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
@@ -454,10 +489,11 @@ final class ModelsSearchNode: ASDisplayNode {
         resultFilterStackView.addArrangedSubview(activeFiltersContainer)
         
         view.addSubview(resultFilterStackView)
-
         activeFiltersContainer.addSubview(activeFiltersLabel)
-                
+        
         view.addSubview(gridCollectionView)
+        
+        view.addSubview(bottomBlurOverlay)
         
         NSLayoutConstraint.activate([
             gridCenterLoader.centerXAnchor.constraint(equalTo: view.centerXAnchor),
@@ -482,8 +518,15 @@ final class ModelsSearchNode: ASDisplayNode {
             gridCollectionView.topAnchor.constraint(equalTo: resultFilterStackView.bottomAnchor, constant: 12),
             gridCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
             gridCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
-            gridCollectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            gridCollectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            bottomBlurOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomBlurOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomBlurOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomBlurOverlay.heightAnchor.constraint(equalToConstant: 100)
         ])
+        
+        gridCollectionView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 70, right: 0)
         
         gridCollectionView.delegate = self
         gridCollectionView.dataSource = self
@@ -535,18 +578,18 @@ final class ModelsSearchNode: ASDisplayNode {
         }
     }
     
-    private func setupFloatingActionButton() {
+    private func setupFaceScanActionButton() {
         let safeArea = view.safeAreaLayoutGuide
         
-        view.addSubview(floatingActionButton)
+        view.addSubview(faceScanButton)
         
-        fabBottomConstraint = floatingActionButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -16)
-        fabBottomConstraint?.isActive = true
+        faceScanButtonBottomConstraint = faceScanButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -16)
+        faceScanButtonBottomConstraint?.isActive = true
         
         NSLayoutConstraint.activate([
-            floatingActionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            floatingActionButton.widthAnchor.constraint(equalToConstant: 52),
-            floatingActionButton.heightAnchor.constraint(equalToConstant: 52)
+            faceScanButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            faceScanButton.widthAnchor.constraint(equalToConstant: 52),
+            faceScanButton.heightAnchor.constraint(equalToConstant: 52)
         ])
     }
     
@@ -633,6 +676,7 @@ final class ModelsSearchNode: ASDisplayNode {
         
         if isFirstPage {
             gridCollectionView.isHidden = true
+            bottomBlurOverlay.isHidden = true
             resultsCountLabel.isHidden = true
             emptyStateContainer.isHidden = true
             updateResultFilterStackVisibility()
@@ -676,10 +720,12 @@ final class ModelsSearchNode: ASDisplayNode {
             if results.isEmpty {
                 emptyStateContainer.isHidden = false
                 gridCollectionView.isHidden = true
+                bottomBlurOverlay.isHidden = true
                 resultsCountLabel.isHidden = true
             } else {
                 emptyStateContainer.isHidden = true
                 gridCollectionView.isHidden = false
+                bottomBlurOverlay.isHidden = false
                 resultsCountLabel.isHidden = false
                 
                 resultsCountLabel.text = query.isEmpty ? DivoStrings.feedSearchCountNoQuery(totalCount) : DivoStrings.feedSearchCount(totalCount, query)
@@ -726,6 +772,7 @@ final class ModelsSearchNode: ASDisplayNode {
         
         resultsCountLabel.isHidden = true
         gridCollectionView.isHidden = true
+        bottomBlurOverlay.isHidden = true
         emptyStateContainer.isHidden = true
         updateResultFilterStackVisibility()
         
@@ -763,14 +810,14 @@ final class ModelsSearchNode: ASDisplayNode {
         
         UIView.animate(withDuration: 0.3) {
             let safeAreaBottom = self.view.safeAreaInsets.bottom
-            self.fabBottomConstraint?.constant = -(keyboardFrame.height - safeAreaBottom + 16)
+            self.faceScanButtonBottomConstraint?.constant = -(keyboardFrame.height - safeAreaBottom + 16)
             self.view.layoutIfNeeded()
         }
     }
     
     @objc private func keyboardWillHide(notification: NSNotification) {
         UIView.animate(withDuration: 0.3) {
-            self.fabBottomConstraint?.constant = -16
+            self.faceScanButtonBottomConstraint?.constant = -16
             self.view.layoutIfNeeded()
         }
     }
