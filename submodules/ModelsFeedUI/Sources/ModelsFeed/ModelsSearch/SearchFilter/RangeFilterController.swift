@@ -21,17 +21,31 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
     private let customNavBar = UIView()
     
     private let closeButton: UIButton = {
-        let closeButton = UIButton(type: .custom)
-        closeButton.backgroundColor = .white
-        closeButton.layer.cornerRadius = 20
-        closeButton.setImage(UIImage(bundleImageName: "CloseIcon") ?? UIImage(systemName: "xmark"), for: .normal)
-        closeButton.tintColor = .black
-        closeButton.layer.shadowColor = UIColor.black.cgColor
-        closeButton.layer.shadowOpacity = 0.08
-        closeButton.layer.shadowOffset = CGSize(width: 0, height: 4)
-        closeButton.layer.shadowRadius = 12
-        closeButton.translatesAutoresizingMaskIntoConstraints = false
-        return closeButton
+        let button = UIButton(type: .custom)
+        button.backgroundColor = .white
+        button.layer.cornerRadius = 20
+        
+        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
+        button.setImage(image, for: .normal)
+        button.tintColor = UIColor(hexString: "#222222")
+        
+        button.setTitle(DivoStrings.back, for: .normal)
+        button.setTitleColor(UIColor(hexString: "#222222"), for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
+        button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)
+        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 20)
+        
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.08
+        button.layer.shadowOffset = CGSize(width: 0, height: 4)
+        button.layer.shadowRadius = 12
+        button.layer.masksToBounds = false
+        
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
     
     private let titleLabel: UILabel = {
@@ -73,7 +87,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
     
     private let deleteButton: UIButton = {
         let deleteButton = UIButton(type: .system)
-        deleteButton.setTitle(DivoStrings.feedSearchDeleteParameter, for: .normal)
+        deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
         deleteButton.setTitleColor(.white, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
         deleteButton.backgroundColor = UIColor(hexString: "#343434")
@@ -100,7 +114,8 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .white
+
+        view.backgroundColor = UIColor(hexString: "#F0F0F0")
         
         setupNavBar()
         setupUI()
@@ -135,7 +150,6 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
             
             closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 16),
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-            closeButton.widthAnchor.constraint(equalToConstant: 40),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
             
             titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
@@ -150,6 +164,9 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
     
     private func setupUI() {
         let container = UIView()
+        container.backgroundColor = .white
+        container.layer.cornerRadius = 16
+        container.clipsToBounds = true
         container.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(container)
         
@@ -169,30 +186,30 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         container.addSubview(rangeSlider)
         
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
-        container.addSubview(deleteButton)
+        view.addSubview(deleteButton)
         
         NSLayoutConstraint.activate([
-            container.topAnchor.constraint(equalTo: customNavBar.bottomAnchor),
-            container.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            container.bottomAnchor.constraint(equalTo: deleteButton.bottomAnchor, constant: 24),
+            container.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 16),
+            container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            container.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            container.bottomAnchor.constraint(equalTo: rangeSlider.bottomAnchor, constant: 20),
             
             minTextField.widthAnchor.constraint(equalTo: maxTextField.widthAnchor),
             minTextField.heightAnchor.constraint(equalToConstant: 46),
             maxTextField.heightAnchor.constraint(equalToConstant: 46),
             
-            textFieldsStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 24),
+            textFieldsStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
             textFieldsStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
             textFieldsStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
             
-            rangeSlider.topAnchor.constraint(equalTo: textFieldsStack.bottomAnchor, constant: 24),
+            rangeSlider.topAnchor.constraint(equalTo: textFieldsStack.bottomAnchor, constant: 20),
             rangeSlider.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
             rangeSlider.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
             rangeSlider.heightAnchor.constraint(equalToConstant: 28),
             
-            deleteButton.topAnchor.constraint(equalTo: rangeSlider.bottomAnchor, constant: 32),
-            deleteButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            deleteButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            deleteButton.topAnchor.constraint(equalTo: container.bottomAnchor, constant: 32),
+            deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             deleteButton.heightAnchor.constraint(equalToConstant: 48)
         ])
     }

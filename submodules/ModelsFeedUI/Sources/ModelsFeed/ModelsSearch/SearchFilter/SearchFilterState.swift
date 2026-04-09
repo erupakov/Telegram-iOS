@@ -18,7 +18,7 @@ struct FilterOptionApperanceItem {
     let title: String
 }
 
-struct SearchFilterState {
+struct SearchFilterState: Equatable {
     var roleIds: [String] = []
     var roleTitles: [String] = []
 

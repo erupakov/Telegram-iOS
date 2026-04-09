@@ -37,7 +37,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     private struct AppearanceFilterItem {
         let title: String
-        let getValue: () -> String
+        let getValues: () -> [String]
+        let emptyTitle: String
         let onTap: () -> Void
     }
     
@@ -197,118 +198,143 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         appearanceFilterItems = [
             AppearanceFilterItem(
                 title: DivoStrings.ageYo,
-                getValue: { [weak self] in
-                    guard let range = self?.currentFilters.ageRange else { return DivoStrings.debugAny }
-                    return "\(Int(range.lowerBound))-\(Int(range.upperBound))"
+                getValues: { [weak self] in
+                    guard let range = self?.currentFilters.ageRange else { return [] }
+                    return["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramAge, keyPath: \.ageRange, min: 15, max: 40, unit: "y.o") }
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showRangeFilter(
+                        title: DivoStrings.ageYo,
+                        keyPath: \.ageRange,
+                        min: 14,
+                        max: 100,
+                        unit: ""
+                    )
+                }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.heightCm,
-                getValue: { [weak self] in
-                    guard let range = self?.currentFilters.heightRange else { return DivoStrings.debugAny }
-                    return "\(Int(range.lowerBound))-\(Int(range.upperBound))"
+                getValues: { [weak self] in
+                    guard let range = self?.currentFilters.heightRange else { return [] }
+                    return["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHeight, keyPath: \.heightRange, min: 150, max: 200, unit: "cm") }
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showRangeFilter(
+                        title: DivoStrings.ageYo,
+                        keyPath: \.heightRange,
+                        min: 150,
+                        max: 200,
+                        unit: "cm"
+                    )
+                }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.weightKg,
-                getValue: { [weak self] in
-                    guard let range = self?.currentFilters.weightRange else { return DivoStrings.debugAny }
-                    return "\(Int(range.lowerBound))-\(Int(range.upperBound))"
+                getValues: { [weak self] in
+                    guard let range = self?.currentFilters.weightRange else { return [] }
+                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramWeight, keyPath: \.weightRange, min: 40, max: 120, unit: "kg") }
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showRangeFilter(
+                        title: DivoStrings.paramWeight,
+                        keyPath: \.weightRange,
+                        min: 40,
+                        max: 120,
+                        unit: "kg"
+                    )
+                }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.waistCm,
-                getValue: { [weak self] in
-                    guard let range = self?.currentFilters.waistRange else { return DivoStrings.debugAny }
-                    return "\(Int(range.lowerBound))-\(Int(range.upperBound))"
+                getValues: { [weak self] in
+                    guard let range = self?.currentFilters.waistRange else { return [] }
+                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramWaist, keyPath: \.waistRange, min: 50, max: 120, unit: "cm") }
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showRangeFilter(
+                        title: DivoStrings.paramWaist,
+                        keyPath: \.waistRange,
+                        min: 50,
+                        max: 120,
+                        unit: "cm"
+                    ) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hipsCm,
-                getValue: { [weak self] in
-                    guard let range = self?.currentFilters.hipsRange else { return DivoStrings.debugAny }
-                    return "\(Int(range.lowerBound))-\(Int(range.upperBound))"
+                getValues: { [weak self] in
+                    guard let range = self?.currentFilters.hipsRange else { return []}
+                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
+                emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHips, keyPath: \.hipsRange, min: 70, max: 130, unit: "cm") }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.shoeSizeEU,
-                getValue: { [weak self] in
-                    guard let range = self?.currentFilters.shoeSizeRange else { return DivoStrings.debugAny }
-                    return "\(Int(range.lowerBound))-\(Int(range.upperBound))"
+                getValues: { [weak self] in
+                    guard let range = self?.currentFilters.shoeSizeRange else { return []}
+                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
+                emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramShoeSize, keyPath: \.shoeSizeRange, min: 35, max: 46, unit: "") }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hairLength,
-                getValue: { [weak self] in
-                    guard let self = self,
-                          let selectedIds = self.currentFilters.hairLength,
-                          !selectedIds.isEmpty else {
-                        return DivoStrings.debugAll
+                getValues: { [weak self] in
+                    guard let self = self, let selectedIds = self.currentFilters.hairLength, !selectedIds.isEmpty else {
+                        return[]
                     }
-                    
                     let selectedTitles = self.hairLengthOptions
                         .filter { selectedIds.contains($0.id) }
                         .map { $0.title }
-                    
-                    return selectedTitles.joined(separator: ", ")
+                    return selectedTitles
                 },
+                emptyTitle: DivoStrings.debugAll,
                 onTap: { [weak self] in self?.showHairLengthFilter() }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hairColor,
-                getValue: { [weak self] in
-                    guard let self = self,
-                          let selectedIds = self.currentFilters.hairColor,
-                          !selectedIds.isEmpty else {
-                        return DivoStrings.debugAll
+                getValues: { [weak self] in
+                    guard let self = self, let selectedIds = self.currentFilters.hairColor, !selectedIds.isEmpty else {
+                        return[]
                     }
-                    
                     let selectedTitles = self.hairColorOptions
                         .filter { selectedIds.contains($0.id) }
                         .map { $0.title }
-                    
-                    return selectedTitles.joined(separator: ", ")
+                    return selectedTitles
                 },
+                emptyTitle: DivoStrings.debugAll,
                 onTap: { [weak self] in self?.showHairColorFilter() }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.eyeColor,
-                getValue: { [weak self] in
-                    guard let self = self,
-                          let selectedIds = self.currentFilters.eyeColor,
-                          !selectedIds.isEmpty else {
-                        return DivoStrings.debugAll
+                getValues: { [weak self] in
+                    guard let self = self, let selectedIds = self.currentFilters.eyeColor, !selectedIds.isEmpty else {
+                        return[]
                     }
-                    
                     let selectedTitles = self.eyeColorOptions
                         .filter { selectedIds.contains($0.id) }
                         .map { $0.title }
-                    
-                    return selectedTitles.joined(separator: ", ")
+                    return selectedTitles
                 },
+                emptyTitle: DivoStrings.debugAll,
                 onTap: { [weak self] in self?.showEyeColorFilter() }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.skinColor,
-                getValue: { [weak self] in
-                    guard let self = self,
-                          let selectedIds = self.currentFilters.skinColor,
-                          !selectedIds.isEmpty else {
-                        return DivoStrings.debugAll
+                getValues: { [weak self] in
+                    guard let self = self, let selectedIds = self.currentFilters.skinColor, !selectedIds.isEmpty else {
+                        return[]
                     }
-                    
                     let selectedTitles = self.skinColorOptions
                         .filter { selectedIds.contains($0.id) }
                         .map { $0.title }
-                    
-                    return selectedTitles.joined(separator: ", ")
+                    return selectedTitles
                 },
+                emptyTitle: DivoStrings.debugAll,
                 onTap: { [weak self] in self?.showSkinColorFilter() }
             )
         ]
@@ -432,11 +458,10 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         
         for (index, item) in appearanceFilterItems.enumerated() {
             let isLast = index == appearanceFilterItems.count - 1
-            let cell = createAppearanceCell(
-                title: item.title,
-                value: item.getValue(),
-                isLast: isLast
-            )
+            
+            let cell = AppearanceFilterRowView(title: item.title, isLast: isLast)
+            
+            cell.setItems(item.getValues(), emptyTitle: item.emptyTitle)
             
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(appearanceCellTapped(_:)))
             cell.addGestureRecognizer(tapGesture)
@@ -506,31 +531,21 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     private func updateAppearanceValues() {
         for (index, item) in appearanceFilterItems.enumerated() {
-            if index < appearanceContainerStack.arrangedSubviews.count {
-                let cell = appearanceContainerStack.arrangedSubviews[index]
-                let valueLabel = cell.subviews.first(where: { $0 is UILabel && ($0 as? UILabel)?.textAlignment == .right }) as? UILabel
-                valueLabel?.text = item.getValue()
+            if index < appearanceContainerStack.arrangedSubviews.count,
+               let cell = appearanceContainerStack.arrangedSubviews[index] as? AppearanceFilterRowView {
+                cell.setItems(item.getValues(), emptyTitle: item.emptyTitle)
             }
         }
     }
     
     private func updateUI() {
-        let roleText = currentFilters.roleTitles.isEmpty ? DivoStrings.feedSearchAllRoles : currentFilters.roleTitles.joined(separator: ", ")
-        roleRow.setValue(roleText)
-
-        let genderText = currentFilters.genderTitles.isEmpty ? DivoStrings.feedSearchAllGenders : currentFilters.genderTitles.joined(separator: ", ")
-        genderRow.setValue(genderText)
-
-        let countryText = currentFilters.countryTitles.isEmpty ? DivoStrings.feedSearchAllCountries : currentFilters.countryTitles.joined(separator: ", ")
-        countryRow.setValue(countryText)
+        roleRow.setItems(currentFilters.roleTitles, emptyTitle: DivoStrings.feedSearchAllRoles)
+        genderRow.setItems(currentFilters.genderTitles, emptyTitle: DivoStrings.feedSearchAllGenders)
+        countryRow.setItems(currentFilters.countryTitles, emptyTitle: DivoStrings.feedSearchAllCountries)
 
         cityTextField.text = currentFilters.city
         
         updateAppearanceValues()
-
-        let hasFilters = currentFilters.hasActiveFilters
-        applyButton.isEnabled = hasFilters
-        applyButton.backgroundColor = hasFilters ? UIColor(hexString: "#FF772D") : UIColor(hexString: "#E4E4E4")
     }
 
     private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T, unit: String) where T: RangeFilterable {

@@ -117,7 +117,6 @@ public class ModelsSearchController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
-        self.fetchGridResults(isFirstPage: true)
     }
     
     private func openFilters() {
@@ -145,11 +144,22 @@ public class ModelsSearchController: ViewController {
         
         filterVC.onClose = { [weak self] newFilters in
             guard let self = self else { return }
-            self.currentFilters = newFilters
-            self.gridOffset = 0
-            self.hasMoreGridResults = true
-            self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
-            self.fetchGridResults(isFirstPage: true)
+            
+            if self.currentFilters != newFilters {
+                
+                print("Фильтры изменились при закрытии. Обновляем данные...")
+                
+                self.currentFilters = newFilters
+                
+                self.gridOffset = 0
+                self.hasMoreGridResults = true
+                self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
+                
+                self.fetchGridResults(isFirstPage: true)
+                
+            } else {
+                print("Фильтры не изменились. Пропускаем запрос.")
+            }
         }
         
         let navVC = UINavigationController(rootViewController: filterVC)

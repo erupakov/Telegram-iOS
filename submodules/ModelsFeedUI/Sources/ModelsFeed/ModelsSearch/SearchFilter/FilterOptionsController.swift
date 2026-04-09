@@ -57,14 +57,26 @@ final class FilterOptionsController: UIViewController {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
-        let image = UIImage(bundleImageName: "CloseIcon") ?? UIImage(systemName: "xmark")
+        
+        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
         button.setImage(image, for: .normal)
-        button.tintColor = .black
+        button.tintColor = UIColor(hexString: "#222222")
+        
+        button.setTitle(DivoStrings.back, for: .normal)
+        button.setTitleColor(UIColor(hexString: "#222222"), for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
+        button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)
+        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 20)
+        
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOpacity = 0.08
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
         button.layer.masksToBounds = false
+        
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -103,16 +115,7 @@ final class FilterOptionsController: UIViewController {
         field.translatesAutoresizingMaskIntoConstraints = false
         return field
     }()
-    
-    private let containerView: UIView = {
-        let container = UIView()
-        container.backgroundColor = .white
-        container.layer.cornerRadius = 16
-        container.clipsToBounds = true
-        container.translatesAutoresizingMaskIntoConstraints = false
-        return container
-    }()
-    
+        
     private let saveButton: UIButton = {
         let saveButton = UIButton(type: .custom)
         saveButton.backgroundColor = UIColor(hexString: "#FF772D")
@@ -128,18 +131,14 @@ final class FilterOptionsController: UIViewController {
     }()
     
     private let deleteButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.backgroundColor = UIColor(hexString: "#343434")
-        button.layer.cornerRadius = 20
-        button.setImage(UIImage(systemName: "trash"), for: .normal)
-        button.tintColor = .white
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.08
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 12
-        button.layer.masksToBounds = false
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+        let deleteButton = UIButton(type: .system)
+        deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
+        deleteButton.setTitleColor(.white, for: .normal)
+        deleteButton.titleLabel?.font = Font.helveticaNeue(18)
+        deleteButton.backgroundColor = UIColor(hexString: "#343434")
+        deleteButton.layer.cornerRadius = 24
+        deleteButton.translatesAutoresizingMaskIntoConstraints = false
+        return deleteButton
     }()
     
     init(title: String, options: [FilterOptionItem], selectedOptionIds: [String], isMultiSelect: Bool = false, showSearch: Bool = false) {
@@ -186,7 +185,6 @@ final class FilterOptionsController: UIViewController {
         customNavBar.addSubview(closeButton)
         customNavBar.addSubview(titleLabel)
         customNavBar.addSubview(saveButton)
-        customNavBar.addSubview(deleteButton)
     }
     
     private func setupSearchField() {
@@ -200,6 +198,7 @@ final class FilterOptionsController: UIViewController {
     private func setupScrollView() {
         view.addSubview(scrollView)
         scrollView.addSubview(stackView)
+        scrollView.addSubview(deleteButton)
         
         let backgroundView = UIView()
         backgroundView.backgroundColor = .white
@@ -226,21 +225,15 @@ final class FilterOptionsController: UIViewController {
             
             closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 16),
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-            closeButton.widthAnchor.constraint(equalToConstant: 40),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
             
             titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             
-            saveButton.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -8),
+            saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
             saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             saveButton.widthAnchor.constraint(equalToConstant: 40),
             saveButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            deleteButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
-            deleteButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-            deleteButton.widthAnchor.constraint(equalToConstant: 40),
-            deleteButton.heightAnchor.constraint(equalToConstant: 40),
         ])
         
         if showSearch {
@@ -271,7 +264,12 @@ final class FilterOptionsController: UIViewController {
             stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            
+            deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 32),
+            deleteButton.leadingAnchor.constraint(equalTo: stackView.leadingAnchor),
+            deleteButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor),
+            deleteButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            deleteButton.heightAnchor.constraint(equalToConstant: 48)
         ])
     }
     

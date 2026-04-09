@@ -49,15 +49,6 @@ final class SearchResultGridCell: UICollectionViewCell {
         return view
     }()
     
-    private let roleIcon: UIImageView = {
-        let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "PersonHeart") ?? UIImage(systemName: "person.fill")
-        iv.tintColor = .white
-        iv.contentMode = .scaleAspectFit
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-    
     private let roleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(11)
@@ -187,7 +178,6 @@ final class SearchResultGridCell: UICollectionViewCell {
         setupProgressiveBlurWithGradient()
         
         contentView.addSubview(roleContainer)
-        roleContainer.addSubview(roleIcon)
         roleContainer.addSubview(roleLabel)
         
         contentView.addSubview(actionsContainer)
@@ -228,12 +218,7 @@ final class SearchResultGridCell: UICollectionViewCell {
             roleContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 9),
             roleContainer.heightAnchor.constraint(equalToConstant: 24),
             
-            roleIcon.leadingAnchor.constraint(equalTo: roleContainer.leadingAnchor, constant: 6),
-            roleIcon.centerYAnchor.constraint(equalTo: roleContainer.centerYAnchor),
-            roleIcon.widthAnchor.constraint(equalToConstant: 16),
-            roleIcon.heightAnchor.constraint(equalToConstant: 16),
-            
-            roleLabel.leadingAnchor.constraint(equalTo: roleIcon.trailingAnchor, constant: 4),
+            roleLabel.leadingAnchor.constraint(equalTo: roleContainer.leadingAnchor, constant: 6),
             roleLabel.trailingAnchor.constraint(equalTo: roleContainer.trailingAnchor, constant: -6),
             roleLabel.centerYAnchor.constraint(equalTo: roleContainer.centerYAnchor),
             
