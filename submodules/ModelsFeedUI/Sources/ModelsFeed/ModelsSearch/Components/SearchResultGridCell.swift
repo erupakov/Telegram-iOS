@@ -7,7 +7,7 @@
 
 import UIKit
 import Display
-import TelegramCore
+import DivoCore
 
 struct FullSearchItem {
     let id = UUID()

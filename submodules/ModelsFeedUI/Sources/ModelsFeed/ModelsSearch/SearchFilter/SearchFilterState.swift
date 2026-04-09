@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import TelegramCore
+import DivoCore
 
 struct FilterOptionItem {
     let id: String

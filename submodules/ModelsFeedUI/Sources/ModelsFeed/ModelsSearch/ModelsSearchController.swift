@@ -10,7 +10,7 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import SwiftSignalKit
-import TelegramCore
+import DivoCore
 import TelegramPresentationData
 import AccountContext
 import CountrySelectionUI

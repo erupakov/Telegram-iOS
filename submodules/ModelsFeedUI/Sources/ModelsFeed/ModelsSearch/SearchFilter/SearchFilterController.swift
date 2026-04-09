@@ -7,7 +7,7 @@
 
 import Display
 import UIKit
-import TelegramCore
+import DivoCore
 
 final class SearchFilterController: UIViewController, UITextFieldDelegate {
     

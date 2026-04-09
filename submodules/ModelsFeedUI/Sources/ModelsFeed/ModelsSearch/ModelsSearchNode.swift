@@ -11,7 +11,7 @@ import AsyncDisplayKit
 import Display
 import TelegramPresentationData
 import AccountContext
-import TelegramCore
+import DivoCore
 
 struct SearchUserItem {
     let name: String

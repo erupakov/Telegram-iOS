@@ -7,7 +7,7 @@
 
 import Foundation
 import UIKit
-import TelegramCore
+import DivoCore
 
 final class SearchUserCell: UITableViewCell {
     
