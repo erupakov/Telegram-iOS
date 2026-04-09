@@ -8,7 +8,6 @@ import TelegramBaseController
 import TelegramCore
 import DivoCore
 import AppBundle
-import ProfileScreenUI
 
 public final class DivoSettingsController: TelegramBaseController {
 
