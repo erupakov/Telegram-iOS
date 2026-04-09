@@ -8,6 +8,7 @@ import TelegramStringFormatting
 import SearchBarNode
 import AppBundle
 import TelegramCore
+import DivoCore
 import ComponentFlow
 import BundleIconComponent
 import GlassBarButtonComponent
@@ -31,7 +32,7 @@ private func loadCountryCodes() -> [Country] {
 
     var currentLocation = data.startIndex
 
-    let locale = Locale(identifier: "en-US")
+    let locale = Locale(identifier: DivoStrings.current.localeIdentifier)
 
     while true {
         guard let codeRange = data.range(of: delimiter, options: [], range: currentLocation ..< data.endIndex) else {
@@ -54,7 +55,7 @@ private func loadCountryCodes() -> [Country] {
 
         let maybeNameRange = data.range(of: endOfLine, options: [], range: patternRange.upperBound ..< data.endIndex)
 
-        let countryName = locale.localizedString(forIdentifier: countryId) ?? ""
+        let countryName = locale.localizedString(forRegionCode: countryId) ?? locale.localizedString(forIdentifier: countryId) ?? ""
         if let _ = Int(countryCode) {
             let code = Country.CountryCode(code: countryCode, prefixes: [], patterns: !pattern.isEmpty ? [pattern] : [])
             let country = Country(id: countryId, name: countryName, localizedName: nil, countryCodes: [code], hidden: false)
@@ -81,6 +82,13 @@ private func loadCountryCodes() -> [Country] {
 
 private var countryCodes: [Country] = loadCountryCodes()
 private var countryCodesByPrefix: [String: (Country, Country.CountryCode)] = [:]
+
+private var countryCodesLanguageObserverToken: Any? = {
+    return NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { _ in
+        countryCodes = loadCountryCodes()
+        countryCodesByPrefix = [:]
+    }
+}()
 
 public func loadServerCountryCodes(accountManager: AccountManager<TelegramAccountManagerTypes>, engine: TelegramEngineUnauthorized, completion: @escaping () -> Void) {
     let _ = (engine.localization.getCountriesList(accountManager: accountManager, langCode: nil)

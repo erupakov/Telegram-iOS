@@ -2,6 +2,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -19,13 +20,13 @@ public final class EventDetailController: TelegramBaseController {
     private let getEventDisposable = MetaDisposable()
     private var customBackSwipeGestureRecognizer: UIScreenEdgePanGestureRecognizer?
 
-    private let eventData: EventData
+    private var eventData: EventData
     private let context: AccountContext
     private var presentationData: PresentationData
 
     private var navigationBarIsTransparent = true
 
-    init(context: AccountContext, eventData: EventData) {
+    public init(context: AccountContext, eventData: EventData) {
         self.context = context
         self.eventData = eventData
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
@@ -113,7 +114,15 @@ public final class EventDetailController: TelegramBaseController {
     }
 
     @objc private func sharePressed() {
-        print("Share button pressed")
+        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/event/\(eventData.id)")!
+        let shareItem = DivoShareItemSource(
+            url: shareURL,
+            title: eventData.title,
+            subtitle: eventData.type,
+            image: controllerNode.coverImage
+        )
+        let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
+        self.present(activityVC, animated: true)
     }
 
     @objc private func bookmarkPressed() {
@@ -157,6 +166,7 @@ public final class EventDetailController: TelegramBaseController {
                     profilePhotoURL: avatarURL
                 )
                 await MainActor.run {
+                    self.eventData = data
                     self.controllerNode.updateEventData(data)
                 }
             } catch {

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import DivoCore
 
 class ProfileHeaderShimmerView: UIView {
     

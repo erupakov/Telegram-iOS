@@ -37,6 +37,7 @@ swift_library(
         "//submodules/TelegramUI/Components/CameraScreen",
         "//submodules/Camera:Camera",
         "//submodules/EventsUI:EventsUI",
+        "//submodules/DivoCore:DivoCore",
     ],
     visibility = [
         "//visibility:public",

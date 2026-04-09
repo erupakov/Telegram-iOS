@@ -3,6 +3,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import DivoCore
 import TelegramPresentationData
 import TelegramStringFormatting
 import AppBundle
@@ -69,7 +70,7 @@ private func loadCountryCodes() -> [(String, Int)] {
 private let countryCodes: [(String, Int)] = loadCountryCodes()
 
 public func localizedCountryNamesAndCodes(strings: PresentationStrings) -> [((String, String), String, [Int])] {
-    let locale = localeWithStrings(strings)
+    let locale = Locale(identifier: DivoStrings.current.localeIdentifier)
     var result: [((String, String), String, [Int])] = []
     
     let serverCountries = AuthorizationSequenceCountrySelectionController.countries()

@@ -1,5 +1,6 @@
 import UIKit
 import TelegramCore
+import DivoCore
 
 final class MyProfilePlaceholderCell: UICollectionViewCell {
 

@@ -1,8 +1,9 @@
 import Foundation
 import UIKit
 import TelegramCore
+import DivoCore
 
-struct EventData {
+public struct EventData {
     let id: Int
     let title: String
     let subtitle: String
@@ -18,7 +19,7 @@ struct EventData {
     let location: String
     let eventDateFormatted: String
 
-    init(
+    public init(
         id: Int = 0,
         title: String,
         subtitle: String,

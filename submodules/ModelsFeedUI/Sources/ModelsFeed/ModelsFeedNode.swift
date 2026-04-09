@@ -3,6 +3,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -168,6 +169,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         didSet {
             if isLoading && cards.isEmpty {
                 showLoadingPlaceholder()
+                hideEmptyState()
             } else {
                 hideLoadingPlaceholder()
             }
@@ -396,6 +398,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
+
+        if let emptyStateView = self.emptyStateView {
+            let topOffset = navigationBarHeight + 90 + 36
+            emptyStateView.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+        }
 
         let insets = layout.insets(options: [.input])
         let safeAreaInsets = layout.safeInsets
@@ -676,6 +683,23 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
 
         self.cards[idx] = card
+    }
+
+    func cardCell(_ cell: CardCollectionViewCell, didTapShareForUserId userId: Int) {
+        guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
+        let idx = indexPath.item
+        guard idx < self.cards.count else { return }
+        let card = self.cards[idx]
+
+        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(userId)")!
+        let shareItem = DivoShareItemSource(
+            url: shareURL,
+            title: card.name,
+            subtitle: card.role ?? "",
+            image: cell.coverImage
+        )
+        let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
+        controller?.view.window?.rootViewController?.present(activityVC, animated: true)
     }
 
     func cardCell(_ cell: CardCollectionViewCell, didTapFollowForUserId userId: Int, isFollowed: Bool) {

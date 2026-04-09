@@ -6,6 +6,7 @@ import TelegramUIPreferences
 import SwiftSignalKit
 import Postbox
 import TelegramCore
+import DivoCore
 import Display
 import LegacyComponents
 import DeviceAccess
@@ -33,6 +34,8 @@ import PhoneNumberFormat
 import AttachmentUI
 import MinimizedContainer
 import BrowserUI
+import ProfileScreenUI
+import EventsUI
 
 final class UnauthorizedApplicationContext {
     let sharedContext: SharedAccountContextImpl
@@ -925,12 +928,71 @@ final class AuthorizedApplicationContext {
     
     func openUrl(_ url: URL) {
         if self.rootController.rootTabController != nil {
+            if handleDivoUniversalLink(url) {
+                return
+            }
             let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
             self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: url.absoluteString, forceExternal: false, presentationData: presentationData, navigationController: self.rootController, dismissInput: { [weak self] in
                 self?.rootController.view.endEditing(true)
             })
         } else {
             self.scheduledOpenExternalUrl = url
+        }
+    }
+
+    private func handleDivoUniversalLink(_ url: URL) -> Bool {
+        guard let host = url.host?.lowercased(),
+              (host == DivoConfig.shareHost || host == "divo.fashion") else {
+            return false
+        }
+
+        let pathComponents = url.pathComponents.filter { $0 != "/" }
+        guard pathComponents.count == 2,
+              let idString = pathComponents.last,
+              let id = Int(idString) else {
+            return false
+        }
+
+        let type = pathComponents[0].lowercased()
+        let navigationController = self.rootController
+
+        switch type {
+        case "profile":
+            self.rootController.rootTabController?.selectedIndex = 0
+            let profileModel = ProfileModel(
+                name: "",
+                age: 0,
+                location: "",
+                mainImageName: "",
+                avatarImageName: "",
+                isVerified: false,
+                likesCount: "0",
+                viewsCount: "0",
+                savesCount: "0",
+                biography: "",
+                socialMediaHandles: [],
+                galleryImageNames: [],
+                userId: id
+            )
+            let controller = PublicProfileScreenController(context: self.context, model: profileModel)
+            navigationController.pushViewController(controller, animated: true)
+            return true
+
+        case "event":
+            self.rootController.rootTabController?.selectedIndex = 1
+            let eventData = EventData(
+                id: id,
+                title: "",
+                subtitle: "",
+                profileName: "",
+                timeRemaining: ""
+            )
+            let controller = EventDetailController(context: self.context, eventData: eventData)
+            navigationController.pushViewController(controller, animated: true)
+            return true
+
+        default:
+            return false
         }
     }
     

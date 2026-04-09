@@ -86,4 +86,7 @@ public enum DivoConfig {
 
     public static let appPlatform = "ios"
     public static let appVersion = "1.1.1 (912)"
+
+    public static let shareBaseURL = "https://api.divo.fashion"
+    public static let shareHost = "api.divo.fashion"
 }

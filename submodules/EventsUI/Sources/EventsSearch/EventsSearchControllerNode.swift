@@ -3,6 +3,7 @@ import UIKit
 import AsyncDisplayKit
 import UIKit
 import TelegramCore
+import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences

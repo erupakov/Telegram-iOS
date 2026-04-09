@@ -2,6 +2,7 @@ import UIKit
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI

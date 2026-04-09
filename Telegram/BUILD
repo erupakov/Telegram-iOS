@@ -479,7 +479,15 @@ official_carplay_fragment = """
 """
 carplay_fragment = official_carplay_fragment if telegram_bundle_id in official_bundle_ids else ""
 
-associated_domains_fragment = "" if telegram_bundle_id not in official_bundle_ids else """
+divo_associated_domains_fragment = """
+<key>com.apple.developer.associated-domains</key>
+<array>
+    <string>applinks:api.divo.fashion</string>
+    <string>applinks:divo.fashion</string>
+</array>
+"""
+
+official_associated_domains_fragment = """
 <key>com.apple.developer.associated-domains</key>
 <array>
     <string>applinks:telegram.me</string>
@@ -489,6 +497,8 @@ associated_domains_fragment = "" if telegram_bundle_id not in official_bundle_id
     <string>webcredentials:telegram.org</string>
 </array>
 """
+
+associated_domains_fragment = divo_associated_domains_fragment if telegram_bundle_id == "app.divo.fashion" else (official_associated_domains_fragment if telegram_bundle_id in official_bundle_ids else "")
 
 aps_fragment = "" if telegram_aps_environment == "" else """
 <key>aps-environment</key>

@@ -1,6 +1,7 @@
 import AsyncDisplayKit
 import Display
 import TelegramCore
+import DivoCore
 
 final class DashedUploadNode: ASControlNode {
     private let titleNode = ASTextNode()

@@ -4,6 +4,7 @@ import AVFoundation
 import Display
 import TelegramBaseController
 import TelegramCore
+import DivoCore
 import TelegramPresentationData
 import AccountContext
 

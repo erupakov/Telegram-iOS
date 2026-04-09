@@ -2,6 +2,7 @@ import UIKit
 import Display
 import AccountContext
 import TelegramCore
+import DivoCore
 
 struct ModelItem {
     let name: String

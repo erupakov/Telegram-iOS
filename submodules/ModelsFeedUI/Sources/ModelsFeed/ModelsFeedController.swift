@@ -3,6 +3,7 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import TelegramCore
+import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -170,6 +171,14 @@ public final class ModelsFeedController: TelegramBaseController {
         self.displayNodeDidLoad()
         self._ready.set(.single(true))
         loadFeedline(tabIndex: 0, reset: true)
+    }
+
+    override public func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        let state = tabStates[selectedTabIndex]
+        if !state.isLoaded && !state.isLoading {
+            loadFeedline(tabIndex: selectedTabIndex, reset: true)
+        }
     }
 
     private func switchToTab(_ index: Int) {

@@ -32,6 +32,7 @@ public final class DivoAPIClient {
         request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(DivoConfig.appPlatform, forHTTPHeaderField: "app-platform")
         request.setValue(DivoConfig.appVersion, forHTTPHeaderField: "app-version")
+        request.setValue(DivoStrings.current.rawValue, forHTTPHeaderField: "Accept-Language")
 
         var requestBodyString: String?
         if let body = body {
@@ -50,7 +51,7 @@ public final class DivoAPIClient {
             let (data, response) = try await session.data(for: request)
             let duration = CFAbsoluteTimeGetCurrent() - start
             let http = response as? HTTPURLResponse
-            let responseString = String(data: data.prefix(4096), encoding: .utf8)
+            let responseString = String(data: data, encoding: .utf8)
 
             logger.log(
                 method: method,
@@ -101,6 +102,7 @@ public final class DivoAPIClient {
         request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(DivoConfig.appPlatform, forHTTPHeaderField: "app-platform")
         request.setValue(DivoConfig.appVersion, forHTTPHeaderField: "app-version")
+        request.setValue(DivoStrings.current.rawValue, forHTTPHeaderField: "Accept-Language")
 
         var requestBodyString: String?
         if let body = body {
@@ -126,7 +128,7 @@ public final class DivoAPIClient {
                 statusCode: http?.statusCode,
                 duration: duration,
                 requestBody: requestBodyString,
-                responseBody: String(data: data.prefix(4096), encoding: .utf8)
+                responseBody: String(data: data, encoding: .utf8)
             )
 
             guard let http = http else {
@@ -172,6 +174,7 @@ public final class DivoAPIClient {
         request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(DivoConfig.appPlatform, forHTTPHeaderField: "app-platform")
         request.setValue(DivoConfig.appVersion, forHTTPHeaderField: "app-version")
+        request.setValue(DivoStrings.current.rawValue, forHTTPHeaderField: "Accept-Language")
 
         var body = Data()
 
@@ -203,7 +206,7 @@ public final class DivoAPIClient {
                 statusCode: http?.statusCode,
                 duration: duration,
                 requestBody: "\(fileName) (\(fileData.count) bytes)",
-                responseBody: String(data: data.prefix(4096), encoding: .utf8)
+                responseBody: String(data: data, encoding: .utf8)
             )
 
             guard let http = http else {

@@ -1,5 +1,6 @@
 import UIKit
 import TelegramCore
+import DivoCore
 import Display
 
 public final class DivoNetworkOverlay {

@@ -3,6 +3,7 @@ import AVKit
 import AVFoundation
 import Display
 import TelegramCore
+import DivoCore
 
 final class VideoGalleryCell: UICollectionViewCell {
     static let reuseIdentifier = "VideoGalleryCell"

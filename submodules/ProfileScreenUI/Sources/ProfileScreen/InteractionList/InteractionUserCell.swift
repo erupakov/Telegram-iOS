@@ -1,6 +1,7 @@
 import UIKit
 import Display
 import TelegramCore
+import DivoCore
 
 final class InteractionUserCell: UITableViewCell {
     static let reuseIdentifier = "InteractionUserCell"
