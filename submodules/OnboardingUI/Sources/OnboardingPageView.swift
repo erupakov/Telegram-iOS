@@ -17,6 +17,12 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 
+struct OnboardingPage {
+    let image: UIImage?
+    let title: String
+    let subtitle: String
+}
+
 class OnboardingPageView: UIView {
     
     private let backgroundImageView = UIImageView()

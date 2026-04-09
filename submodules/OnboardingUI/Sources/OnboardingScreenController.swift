@@ -21,9 +21,9 @@ import AppBundle
 public class OnboardingScreenController: UIViewController, UIScrollViewDelegate {
     
     private let pagesData: [OnboardingPage] = [
-        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingFirst") ?? UIImage(named: "Onboarding/OnboardingFirst"), title: DivoStrings.onboardingTitle1, subtitle: DivoStrings.onboardingSubTitle1),
-        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingSecond") ?? UIImage(named: "Onboarding/OnboardingSecond"), title: DivoStrings.onboardingTitle2, subtitle: DivoStrings.onboardingSubTitle2),
-        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingThird") ?? UIImage(named: "Onboarding/OnboardingThird"), title: DivoStrings.onboardingTitle3, subtitle: DivoStrings.onboardingSubTitle3)
+        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingFirst"), title: DivoStrings.onboardingTitle1, subtitle: DivoStrings.onboardingSubTitle1),
+        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingSecond"), title: DivoStrings.onboardingTitle2, subtitle: DivoStrings.onboardingSubTitle2),
+        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingThird"), title: DivoStrings.onboardingTitle3, subtitle: DivoStrings.onboardingSubTitle3)
     ]
     
     public var onFinish: (() -> Void)?
@@ -62,19 +62,12 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     private var indicatorViews = [UIView]()
     private var indicatorWidthConstraints = [NSLayoutConstraint]()
     
-    private let continueButton: UIButton = {
-        let btn = UIButton(type: .system)
+    private lazy var continueButton: DivoBrandButton = {
+        let btn = DivoBrandButton()
         btn.setTitle(DivoStrings.continueButton, for: .normal)
-        btn.setTitleColor(.white, for: .normal)
-        btn.setTitleColor(UIColor(hexString: "#AFAFB1"), for: .disabled)
-        btn.titleLabel?.font = Font.helveticaNeue(20)
-        btn.backgroundColor = UIColor(hexString: "#FF772D")
-        btn.layer.cornerRadius = 28
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
-    
-    private let brandColor = UIColor(hexString: "#FF772D")
     
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -182,7 +175,7 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
             indicatorWidthConstraints[index].constant = newWidth
             
             let inactiveColor = UIColor.white.withAlphaComponent(0.6)
-            view.backgroundColor = blendColor(from: inactiveColor, to: brandColor ?? .white, percentage: activeRatio)
+            view.backgroundColor = blendColor(from: inactiveColor, to: DivoColors.brand, percentage: activeRatio)
         }
         
         self.pageControlStackView.layoutIfNeeded()
@@ -207,9 +200,9 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView.bounds.width > 0 else { return }
-        
+
         let progress = scrollView.contentOffset.x / scrollView.bounds.width
-        
+
         updateIndicatorsContinuously(progress: progress)
-        }
+    }
 }
