@@ -30,7 +30,7 @@ final class EmptyModelsPlaceholderNode: ASDisplayNode {
     private let tagIcon: UIImageView = {
         let iv = UIImageView()
         let config = UIImage.SymbolConfiguration(pointSize: 34, weight: .regular)
-        iv.image = UIImage(bundleImageName: "Models/AssociatedModels")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(bundleImageName: "Components/AssociatedModels")?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = .white
         iv.contentMode = .center
         return iv

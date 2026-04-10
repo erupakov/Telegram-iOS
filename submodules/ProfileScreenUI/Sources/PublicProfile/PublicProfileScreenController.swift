@@ -128,11 +128,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
 
-        let moreButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/MoreActionIcon"), color: .white)
+        let moreButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/MoreActionIcon"), color: .white)
         let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
 
         if isMyProfile {
-            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/EditActionIcon"), color: .white)
+            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/ProfileEditAction"), color: .white)
             
             let editButton = UIBarButtonItem(
                 image: editButtonImg,

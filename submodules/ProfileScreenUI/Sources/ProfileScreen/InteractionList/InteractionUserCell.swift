@@ -28,7 +28,7 @@ final class InteractionUserCell: UITableViewCell {
 
     private let premiumBadge: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Profile/CrownPremium")
+        iv.image = UIImage(bundleImageName: "Components/CrownPremium")
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv

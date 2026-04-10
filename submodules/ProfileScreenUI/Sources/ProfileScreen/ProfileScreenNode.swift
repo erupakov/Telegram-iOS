@@ -20,7 +20,7 @@
 
 //     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
-//     private let iconPlaceholder = "Contact List/HeartActionIcon"
+//     private let iconPlaceholder = "Components/HeartActionIcon"
     
 //     private let uploadAvatar: () -> Void
 //     private let uploadPortfolioItem: () -> Void

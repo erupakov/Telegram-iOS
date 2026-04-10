@@ -110,9 +110,9 @@ public enum DivoStrings {
 
     // MARK: - Feed Segments
 
-    public static var feedSubscribed: String { L(en: "SUBSCRIBED MODELS", ru: "ПОДПИСКИ", es: "MODELOS SUSCRITOS", pt: "MODELOS INSCRITOS", zh: "已订阅模特") }
-    public static var feedAllUsers: String { L(en: "ALL USERS", ru: "ВСЕ ПОЛЬЗОВАТЕЛИ", es: "TODOS LOS USUARIOS", pt: "TODOS OS USUÁRIOS", zh: "所有用户") }
-    public static var feedAgencies: String { L(en: "AGENCIES & PRO MEMBERS", ru: "АГЕНТСТВА И PRO", es: "AGENCIAS Y PRO", pt: "AGÊNCIAS E PRO", zh: "经纪公司和专业会员") }
+    public static var feedSubscribed: String { L(en: "MODELS", ru: "МОДЕЛИ", es: "MODELOS", pt: "MODELOS", zh: "模特") }
+    public static var feedAllUsers: String { L(en: "NEW TALENTS", ru: "ТАЛАНТЫ", es: "NUEVOS TALENTOS", pt: "NOVOS TALENTOS", zh: "新人才") }
+    public static var feedAgencies: String { L(en: "AGENCIES", ru: "АГЕНТСТВА", es: "AGENCIAS", pt: "AGÊNCIAS", zh: "经纪公司") }
     public static var addStory: String { L(en: "Add Story", ru: "Добавить", es: "Añadir", pt: "Adicionar", zh: "添加动态") }
 
     // MARK: - Roles
@@ -347,6 +347,12 @@ public enum DivoStrings {
 
     public static var subscribed: String { L(en: "Subscribed!", ru: "Подписка оформлена!", es: "¡Suscrito!", pt: "Inscrito!", zh: "已订阅！") }
     public static var unsubscribed: String { L(en: "Unsubscribed", ru: "Подписка отменена", es: "Desuscrito", pt: "Desinscrito", zh: "已取消订阅") }
+    public static var subscribeFailed: String { L(en: "Failed to subscribe", ru: "Не удалось подписаться", es: "Error al suscribirse", pt: "Falha ao inscrever", zh: "订阅失败") }
+    public static var unsubscribeFailed: String { L(en: "Failed to unsubscribe", ru: "Не удалось отписаться", es: "Error al desuscribirse", pt: "Falha ao desinscrever", zh: "取消订阅失败") }
+    public static var liked: String { L(en: "Liked!", ru: "Нравится!", es: "¡Me gusta!", pt: "Curtido!", zh: "已点赞！") }
+    public static var unliked: String { L(en: "Like removed", ru: "Лайк убран", es: "Me gusta eliminado", pt: "Curtida removida", zh: "已取消点赞") }
+    public static var likeFailed: String { L(en: "Failed to like", ru: "Не удалось поставить лайк", es: "Error al dar me gusta", pt: "Falha ao curtir", zh: "点赞失败") }
+    public static var unlikeFailed: String { L(en: "Failed to unlike", ru: "Не удалось убрать лайк", es: "Error al quitar me gusta", pt: "Falha ao descurtir", zh: "取消点赞失败") }
     public static var serverUnavailable: String { L(en: "Server Unavailable", ru: "Сервер недоступен", es: "Servidor no disponible", pt: "Servidor indisponível", zh: "服务器不可用") }
     public static var serverUnavailableSubtitle: String { L(en: "Unable to connect to the server.\nTry toggling your VPN on or off.", ru: "Не удалось подключиться к серверу.\nПопробуйте включить или выключить VPN.", es: "No se pudo conectar al servidor.\nIntente activar o desactivar su VPN.", pt: "Não foi possível conectar ao servidor.\nTente ativar ou desativar a VPN.", zh: "无法连接到服务器。\n请尝试开启或关闭VPN。") }
     public static var noSubscriptionsYet: String { L(en: "No Subscriptions Yet", ru: "Пока нет подписок", es: "Sin suscripciones aún", pt: "Sem inscrições ainda", zh: "暂无订阅") }
@@ -356,6 +362,13 @@ public enum DivoStrings {
     public static var noUsersFound: String { L(en: "No Users Found", ru: "Пользователи не найдены", es: "No se encontraron usuarios", pt: "Nenhum usuário encontrado", zh: "未找到用户") }
     public static var noUsersFoundSubtitle: String { L(en: "There are no users\nto display right now.", ru: "Сейчас нет пользователей\nдля отображения.", es: "No hay usuarios\npara mostrar ahora.", pt: "Não há usuários\npara exibir agora.", zh: "当前没有\n可显示的用户。") }
     public static var sendDM: String { L(en: "Send DM", ru: "Написать", es: "Enviar MD", pt: "Enviar MD", zh: "发私信") }
+    public static var loadingModelsList: String { L(en: "LOADING MODELS LIST...", ru: "ЗАГРУЗКА СПИСКА МОДЕЛЕЙ...", es: "CARGANDO LISTA DE MODELOS...", pt: "CARREGANDO LISTA DE MODELOS...", zh: "加载模特列表...") }
+    public static var loadingTalentsList: String { L(en: "LOADING TALENTS...", ru: "ЗАГРУЗКА ТАЛАНТОВ...", es: "CARGANDO TALENTOS...", pt: "CARREGANDO TALENTOS...", zh: "加载新人才...") }
+    public static var loadingAgenciesList: String { L(en: "LOADING AGENCIES...", ru: "ЗАГРУЗКА АГЕНТСТВ...", es: "CARGANDO AGENCIAS...", pt: "CARREGANDO AGÊNCIAS...", zh: "加载经纪公司...") }
+    public static var retry: String { L(en: "Retry", ru: "Повторить", es: "Reintentar", pt: "Tentar novamente", zh: "重试") }
+    public static var profileSaved: String { L(en: "Saved", ru: "Сохранено", es: "Guardado", pt: "Salvo", zh: "已保存") }
+    public static var viewAction: String { L(en: "View", ru: "Смотреть", es: "Ver", pt: "Ver", zh: "查看") }
+    public static var yearsOld: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }
     public static var goToMyProfile: String { L(en: "Go to my profile", ru: "Перейти в мой профиль", es: "Ir a mi perfil", pt: "Ir para meu perfil", zh: "前往我的资料") }
 
     // MARK: - Onboarding

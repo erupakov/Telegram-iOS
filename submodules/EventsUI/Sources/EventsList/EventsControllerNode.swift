@@ -32,7 +32,7 @@ final class EventsControllerNode: ASDisplayNode {
 
     private let navBackgroundView: UIView = {
         let v = UIView()
-        v.backgroundColor = .white
+        v.backgroundColor = DivoGlassColors.screenBackground
         return v
     }()
 
@@ -50,7 +50,7 @@ final class EventsControllerNode: ASDisplayNode {
 
         super.init()
 
-        self.view.backgroundColor = .white
+        self.view.backgroundColor = DivoGlassColors.screenBackground
 
         titleLabel.text = DivoStrings.navEvents
         let flowLayout = UICollectionViewFlowLayout()
@@ -184,7 +184,7 @@ final class EventsControllerNode: ASDisplayNode {
         container.addSubview(circleView)
 
         let iconImageView = UIImageView()
-        iconImageView.image = UIImage(bundleImageName: "Chat List/Tabs/IconEvents")?.withRenderingMode(.alwaysTemplate)
+        iconImageView.image = UIImage(bundleImageName: "Components/IconEvents")?.withRenderingMode(.alwaysTemplate)
         iconImageView.tintColor = theme.list.itemSecondaryTextColor
         iconImageView.contentMode = .scaleAspectFit
         iconImageView.translatesAutoresizingMaskIntoConstraints = false

@@ -620,11 +620,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var socialLinksMap: [UIButton: String] = [:]
 
     private enum SocialIcon: String {
-        case instagram = "Models/instaIcon"
-        case tiktok = "Models/TikTokIcon"
-        case youtube = "Models/youtubeIcon"
-        case telegram = "Models/telegramIcon"
-        case website = "Models/webIcon"
+        case instagram = "Components/instaIcon"
+        case tiktok = "Components/TikTokIcon"
+        case youtube = "Components/youtubeIcon"
+        case telegram = "Components/telegramIcon"
+        case website = "Components/webIcon"
         
         static func icon(for urlString: String) -> String {
             let lowercased = urlString.lowercased()

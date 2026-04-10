@@ -39,22 +39,22 @@ final class ProfileSegmentedBar: UIView {
     private var indicatorWidthConstraint: NSLayoutConstraint!
     
     private let myProfileIconNames: [String] = [
-        "Models/GridIcon",
-        "Models/FilmstripIcon"
+        "Components/GridIcon",
+        "Components/FilmstripIcon"
     ]
     
     private let modelIconNames: [String] = [
-        "Models/GridIcon",
-        "Models/FilmstripIcon",
-        "Models/SaveMedia"
+        "Components/GridIcon",
+        "Components/FilmstripIcon",
+        "Components/SaveMedia"
     ]
     
     private let agencyIconNames: [String] = [
-        "Models/GridIcon",
-        "Models/FilmstripIcon",
-        "Models/AssociatedModels",
-        "Models/SaveMedia",
-        "Models/EventsAgency"
+        "Components/GridIcon",
+        "Components/FilmstripIcon",
+        "Components/AssociatedModels",
+        "Components/SaveMedia",
+        "Components/EventsAgency"
     ]
     
     private var imageViews: [UIImageView] = []
