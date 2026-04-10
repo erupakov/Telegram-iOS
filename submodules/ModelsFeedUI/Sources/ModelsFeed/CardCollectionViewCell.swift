@@ -109,9 +109,6 @@ final class CardCollectionViewCell: UICollectionViewCell {
         return pill
     }()
 
-    // MARK: - Saved Toast
-
-
     // MARK: - Preview Gallery
 
     private let previewScrollView: UIScrollView = {
@@ -347,7 +344,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
             }
         } else {
             for (index, imageName) in model.previewImagesName.enumerated() {
-                let imageView = createPreviewImage(imageName, index: index)
+                let imageView = createPreviewImageView(index: index, imageName: imageName)
                 previewStackView.addArrangedSubview(imageView)
             }
         }
@@ -360,7 +357,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     // MARK: - Helpers
 
-    private func createPreviewImageView(index: Int) -> UIImageView {
+    private func createPreviewImageView(index: Int, imageName: String? = nil) -> UIImageView {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.layer.masksToBounds = true
@@ -372,22 +369,9 @@ final class CardCollectionViewCell: UICollectionViewCell {
         imageView.isUserInteractionEnabled = true
         imageView.tag = index
         imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(previewImageTapped(_:))))
-        return imageView
-    }
-
-    private func createPreviewImage(_ imageName: String, index: Int) -> UIImageView {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.layer.masksToBounds = true
-        imageView.layer.cornerRadius = 8
-        imageView.backgroundColor = .systemGray
-        imageView.image = UIImage(named: imageName)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
-        imageView.widthAnchor.constraint(equalToConstant: 93).isActive = true
-        imageView.isUserInteractionEnabled = true
-        imageView.tag = index
-        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(previewImageTapped(_:))))
+        if let imageName {
+            imageView.image = UIImage(named: imageName)
+        }
         return imageView
     }
 

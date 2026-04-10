@@ -211,7 +211,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     style: .error,
                     retryAction: { [weak self] in
                         self?.onRetry?()
-                    }
+                    },
+                    persistent: true
                 )
             } else {
                 hideLoadingPlaceholder()
@@ -757,10 +758,16 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
+    private func cardIndex(forUserId userId: Int) -> Int? {
+        cards.firstIndex(where: { $0.userId == userId })
+    }
+
+    private func cardIndex(forFeedId feedId: Int) -> Int? {
+        cards.firstIndex(where: { $0.feedId == feedId })
+    }
+
     func cardCell(_ cell: CardCollectionViewCell, didTapSaveForUserId userId: Int, isSaved: Bool) {
-        guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
-        let idx = indexPath.item
-        guard idx < self.cards.count else { return }
+        guard let idx = cardIndex(forUserId: userId) else { return }
 
         let removeFromFeed = !isSaved && self.selectedTabIndex == 0
         var removedCard: CardModel?
@@ -771,7 +778,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         if removeFromFeed {
             removedCard = self.cards[idx]
             self.cards.remove(at: idx)
-            self.mainCollectionView.deleteItems(at: [indexPath])
+            self.mainCollectionView.deleteItems(at: [IndexPath(item: idx, section: 0)])
         }
 
         let path = isSaved ? "/follower/follow" : "/follower/unfollow"
@@ -795,18 +802,23 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     let insertIdx = min(idx, self.cards.count)
                     self.cards.insert(card, at: insertIdx)
                     self.mainCollectionView.insertItems(at: [IndexPath(item: insertIdx, section: 0)])
-                } else {
-                    self.cards[idx].isFollowed = !isSaved
-                    self.cards[idx].savesCount = max(0, self.cards[idx].savesCount + (isSaved ? -1 : 1))
-                    if let cell = self.mainCollectionView.cellForItem(at: indexPath) as? CardCollectionViewCell {
-                        cell.rollbackSave(isSaved: !isSaved, savesCount: self.cards[idx].savesCount)
+                } else if let currentIdx = self.cardIndex(forUserId: userId) {
+                    self.cards[currentIdx].isFollowed = !isSaved
+                    self.cards[currentIdx].savesCount = max(0, self.cards[currentIdx].savesCount + (isSaved ? -1 : 1))
+                    let ip = IndexPath(item: currentIdx, section: 0)
+                    if let cell = self.mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
+                        cell.rollbackSave(isSaved: !isSaved, savesCount: self.cards[currentIdx].savesCount)
                     }
                 }
                 self.showSnackbar(
                     message: isSaved ? DivoStrings.subscribeFailed : DivoStrings.unsubscribeFailed,
                     style: .error,
                     retryAction: { [weak self] in
-                        self?.cardCell(cell, didTapSaveForUserId: userId, isSaved: isSaved)
+                        guard let self, let currentIdx = self.cardIndex(forUserId: userId) else { return }
+                        let ip = IndexPath(item: currentIdx, section: 0)
+                        if let cell = self.mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
+                            self.cardCell(cell, didTapSaveForUserId: userId, isSaved: isSaved)
+                        }
                     }
                 )
             }
@@ -814,13 +826,12 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     }
 
     func cardCell(_ cell: CardCollectionViewCell, didTapLikeForFeedId feedId: Int, isLiked: Bool) {
-        guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
-        let idx = indexPath.item
-        guard idx < self.cards.count else { return }
+        guard let idx = cardIndex(forFeedId: feedId) else { return }
         self.cards[idx].isLiked = isLiked
         self.cards[idx].likesCount = max(0, self.cards[idx].likesCount + (isLiked ? 1 : -1))
 
         let path = isLiked ? "/feedline/like" : "/feedline/unlike"
+        // FollowRequest reused: like API expects same {id} body format
         let body = FollowRequest(id: feedId)
 
         Task { @MainActor in
@@ -835,16 +846,23 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     style: .success
                 )
             } catch {
-                self.cards[idx].isLiked = !isLiked
-                self.cards[idx].likesCount = max(0, self.cards[idx].likesCount + (isLiked ? -1 : 1))
-                if let cell = self.mainCollectionView.cellForItem(at: indexPath) as? CardCollectionViewCell {
-                    cell.rollbackLike(isLiked: !isLiked, likesCount: self.cards[idx].likesCount)
+                if let currentIdx = self.cardIndex(forFeedId: feedId) {
+                    self.cards[currentIdx].isLiked = !isLiked
+                    self.cards[currentIdx].likesCount = max(0, self.cards[currentIdx].likesCount + (isLiked ? -1 : 1))
+                    let ip = IndexPath(item: currentIdx, section: 0)
+                    if let cell = self.mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
+                        cell.rollbackLike(isLiked: !isLiked, likesCount: self.cards[currentIdx].likesCount)
+                    }
                 }
                 self.showSnackbar(
                     message: isLiked ? DivoStrings.likeFailed : DivoStrings.unlikeFailed,
                     style: .error,
                     retryAction: { [weak self] in
-                        self?.cardCell(cell, didTapLikeForFeedId: feedId, isLiked: isLiked)
+                        guard let self, let currentIdx = self.cardIndex(forFeedId: feedId) else { return }
+                        let ip = IndexPath(item: currentIdx, section: 0)
+                        if let cell = self.mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
+                            self.cardCell(cell, didTapLikeForFeedId: feedId, isLiked: isLiked)
+                        }
                     }
                 )
             }
@@ -1023,7 +1041,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         case error
     }
 
-    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil) {
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
         hideSnackbar(animated: false)
 
         let snack = UIView()
@@ -1069,8 +1087,10 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
 
         snackbarHideTimer?.invalidate()
-        snackbarHideTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
-            self?.hideSnackbar(animated: true)
+        if !persistent {
+            snackbarHideTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                self?.hideSnackbar(animated: true)
+            }
         }
     }
 
