@@ -83,7 +83,10 @@ public final class ModelsFeedController: TelegramBaseController {
             self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.tabBarItem.title = DivoStrings.tabModels
+            guard let self = self else { return }
+            self.tabBarItem.title = DivoStrings.tabModels
+            self.tabStates = [TabState(), TabState(), TabState()]
+            self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
     }
 
