@@ -31,37 +31,54 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
         addSubnode(fieldNode)
     }
     
+    // MARK: - Auto Layout
+    override func didLoad() {
+        super.didLoad()
+        
+        fieldNode.view.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            fieldNode.view.topAnchor.constraint(equalTo: self.view.topAnchor),
+            fieldNode.view.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            fieldNode.view.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            fieldNode.view.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            
+            self.view.heightAnchor.constraint(equalToConstant: 46.0)
+        ])
+    }
+    
+    // MARK: - Setup
     private func setup(title: String) {
         fieldNode.textField.delegate = self
         fieldNode.textField.font = Font.regular(16.0)
-        fieldNode.textField.textColor = .white
+        fieldNode.textField.textColor = UIColor(hexString: "#222222")
         fieldNode.textField.autocapitalizationType = .none
         fieldNode.textField.autocorrectionType = .no
         fieldNode.textField.returnKeyType = .done
         
-        fieldNode.borderWidth = 1.0
-        fieldNode.borderColor = UIColor(white: 1.0, alpha: 0.4).cgColor
-        fieldNode.cornerRadius = 11.0
+        fieldNode.backgroundColor = .white
+        fieldNode.cornerRadius = 23.0
         fieldNode.clipsToBounds = true
-        fieldNode.padding = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+        fieldNode.padding = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
 
         updateText(userText: title)
     }
     
+    // MARK: - Logic
     private func updateText(userText: String) {
         guard let prefix = prefix else { return }
         
         let fullString = NSMutableAttributedString()
         
         let prefixAttr: [NSAttributedString.Key: Any] = [
-            .font: Font.bold(16.0),
-            .foregroundColor: UIColor(white: 1.0, alpha: 1.0)
+            .font: Font.regular(16.0),
+            .foregroundColor: UIColor(hexString: "#222222") ?? .black
         ]
         fullString.append(NSAttributedString(string: prefix, attributes: prefixAttr))
         
         let userAttr: [NSAttributedString.Key: Any] = [
             .font: Font.regular(16.0),
-            .foregroundColor: UIColor.white
+            .foregroundColor: UIColor(hexString: "#222222") ?? .black
         ]
         fullString.append(NSAttributedString(string: userText, attributes: userAttr))
         
@@ -95,7 +112,14 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
     }
     
     func textFieldDidBeginEditing(_ textField: UITextField) {
+        fieldNode.borderWidth = 1.0
+        fieldNode.borderColor = UIColor(hexString: "#FF772D")?.cgColor
+        
         onBeginEditing?()
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        fieldNode.borderWidth = 0.0
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -105,14 +129,5 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
             textField.resignFirstResponder()
         }
         return false
-    }
-    
-    override func layout() {
-        super.layout()
-        fieldNode.frame = self.bounds
-    }
-    
-    override func calculateSizeThatFits(_ constrainedSize: CGSize) -> CGSize {
-        return CGSize(width: constrainedSize.width, height: 48.0)
     }
 }
