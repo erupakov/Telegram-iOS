@@ -344,10 +344,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             iv.backgroundColor = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.00)
             iv.alpha = 0
             if let isAdd = story.isAdd, isAdd {
-                if let img = UIImage(named: story.avatarName) {
-                    iv.image = img.resized(to: CGSize(width: 30, height: 30))
-                    iv.contentMode = .center
-                }
+                iv.backgroundColor = .white
+                iv.contentMode = .center
+                let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                iv.image = UIImage(systemName: "plus", withConfiguration: config)
+                iv.tintColor = .black
             } else if let img = UIImage(named: story.avatarName) {
                 iv.image = img
             }
@@ -548,7 +549,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             width: layout.size.width,
             height: storiesHeight
         )
-        storiesCollectionView.alpha = max(1 - p * 10, 0)  // gone by 10%
+        storiesCollectionView.alpha = max(1 - p * 20, 0)  // gone by 5%
 
         // --- Two-phase floating avatar animation ---
         // Phase 1 (p 0→0.5): all 5 shrink to ~82%, spacing 10→0, names fade, cluster together
@@ -584,7 +585,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         // Indices that survive to navbar: 1, 2, 3 (Jack D., Joshua, waggles)
         let survivors: Set<Int> = [1, 2, 3]
 
-        let floatingVisible = min(p * 10, 1.0)  // visible by 10%
+        let floatingVisible = min(max((p - 0.05) * 20, 0), 1.0)  // visible after 5%, full by 10%
 
         var survivorIdx = 0
         for (i, av) in floatingAvatars.enumerated() {

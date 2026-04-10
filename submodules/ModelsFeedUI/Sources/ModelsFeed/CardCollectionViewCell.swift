@@ -27,31 +27,22 @@ final class CardCollectionViewCell: UICollectionViewCell {
         return imageView
     }()
 
-    // MARK: - Top Gradient
+    // MARK: - Glass Blur Overlays
 
-    private let topGradientView: GradientView = {
-        let view = GradientView()
-        view.isOpaque = false
-        view.backgroundColor = .clear
-        view.configure(colors: [
-            UIColor.black.withAlphaComponent(0.6),
-            UIColor.black.withAlphaComponent(0.3),
-            .clear
-        ], direction: .vertical)
+    private let topGlassView: UIVisualEffectView = {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        view.isUserInteractionEnabled = false
         return view
     }()
 
-    private let bottomGradientView: GradientView = {
-        let view = GradientView()
-        view.isOpaque = false
-        view.backgroundColor = .clear
-        view.configure(colors: [
-            .clear,
-            UIColor.black.withAlphaComponent(0.3),
-            UIColor.black.withAlphaComponent(0.6)
-        ], direction: .vertical)
+    private let bottomGlassView: UIVisualEffectView = {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        view.isUserInteractionEnabled = false
         return view
     }()
+
+    private let topGlassMask = CAGradientLayer()
+    private let bottomGlassMask = CAGradientLayer()
 
     // MARK: - Name
 
@@ -100,10 +91,10 @@ final class CardCollectionViewCell: UICollectionViewCell {
         return stack
     }()
 
-    private let likesPill = StatPillView(assetName: "Components/StatLike")
-    private let viewsPill = StatPillView(assetName: "Components/StatView")
+    private let likesPill = StatPillView(iconName: "Components/StatLike")
+    private let viewsPill = StatPillView(iconName: "Components/StatView")
     private let savesPill: StatPillView = {
-        let pill = StatPillView(assetName: "Components/StatSave")
+        let pill = StatPillView(iconName: "Components/StatSave")
         pill.isUserInteractionEnabled = true
         return pill
     }()
@@ -174,8 +165,10 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     private func setupViews() {
         contentView.addSubview(mainImageView)
-        contentView.addSubview(topGradientView)
-        contentView.addSubview(bottomGradientView)
+        contentView.addSubview(topGlassView)
+        contentView.addSubview(bottomGlassView)
+        topGlassView.layer.mask = topGlassMask
+        bottomGlassView.layer.mask = bottomGlassMask
 
         contentView.addSubview(nameLabel)
         contentView.addSubview(roleBadgeView)
@@ -245,26 +238,37 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
         mainImageView.frame = bounds
 
-        // Bottom gradient — bottom 1/3 of the card
-        let bottomGradientHeight = floor(bounds.height / 3)
-        bottomGradientView.frame = CGRect(x: 0, y: bounds.height - bottomGradientHeight, width: bounds.width, height: bottomGradientHeight)
+        // Glass blur: top (light) + bottom (dark), tight edge transitions
+        let topGlassHeight: CGFloat = 120
+        topGlassView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: topGlassHeight)
+        topGlassMask.frame = topGlassView.bounds
+        topGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
+        topGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
+        topGlassMask.colors = [UIColor.white.cgColor, UIColor.white.cgColor, UIColor(white: 1, alpha: 0).cgColor]
+        topGlassMask.locations = [0, 0.3, 1.0]
+
+        let bottomGlassHeight: CGFloat = min(350, bounds.height * 0.55)
+        bottomGlassView.frame = CGRect(x: 0, y: bounds.height - bottomGlassHeight, width: bounds.width, height: bottomGlassHeight)
+        bottomGlassMask.frame = bottomGlassView.bounds
+        bottomGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
+        bottomGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
+        bottomGlassMask.colors = [UIColor(white: 1, alpha: 0).cgColor, UIColor.white.cgColor, UIColor.white.cgColor]
+        bottomGlassMask.locations = [0, 0.75, 1.0]
 
         // Stats pills (right side) — calculate first to derive name/info widths
         let statsRightPadding: CGFloat = 16
         let statsWidth: CGFloat = 64
+        let statsHeight: CGFloat = 30 * 3 + 8 * 2  // 106
         statsStackView.frame = CGRect(
             x: bounds.width - statsRightPadding - statsWidth,
             y: topPadding,
             width: statsWidth,
-            height: 110
+            height: statsHeight
         )
 
         // Name
         let maxNameWidth = statsStackView.frame.minX - 10 - sidePadding
         nameLabel.frame = CGRect(x: sidePadding, y: topPadding, width: maxNameWidth, height: 24)
-
-        // Top gradient — fixed 62pt
-        topGradientView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 62)
 
         // Role badge (no icon, text only)
         let badgeY = nameLabel.frame.maxY + 6
@@ -417,21 +421,30 @@ final class CardCollectionViewCell: UICollectionViewCell {
         return imageView
     }
 
-    /// Formats count to max 4 characters: 999 → "999", 1000 → "1K", 288888 → "288K", 1000000 → "1M", 1500000 → "1.5M"
+    /// Formats count to max 4 characters: 999 → "999", 1K, 288K, 1.5M, 10M, 1.5B
     static func formatCount(_ count: Int) -> String {
-        if count >= 1_000_000 {
-            let value = Double(count) / 1_000_000.0
+        if count >= 1_000_000_000 {
+            let value = Double(count) / 1_000_000_000.0
             if value >= 10 {
-                return "\(Int(value))M"       // 10M, 99M
+                return "\(Int(value))B"
             }
             let formatted = String(format: "%.1f", value)
             if formatted.hasSuffix(".0") {
-                return "\(Int(value))M"       // 1M, 2M
+                return "\(Int(value))B"
             }
-            return "\(formatted)M"            // 1.5M
+            return "\(formatted)B"
+        } else if count >= 1_000_000 {
+            let value = Double(count) / 1_000_000.0
+            if value >= 10 {
+                return "\(Int(value))M"
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))M"
+            }
+            return "\(formatted)M"
         } else if count >= 1_000 {
-            let value = Int(count / 1_000)
-            return "\(value)K"                // 1K, 28K, 288K
+            return "\(count / 1_000)K"
         }
         return "\(count)"
     }
@@ -456,7 +469,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
 final class StatPillView: UIView {
     private let iconView: UIImageView = {
         let iv = UIImageView()
-        iv.contentMode = .scaleAspectFit
+        iv.contentMode = .center
         iv.tintColor = .white
         return iv
     }()
@@ -465,10 +478,12 @@ final class StatPillView: UIView {
         let label = UILabel()
         label.textColor = .white
         label.font = UIFont(name: "HelveticaNeue", size: 12) ?? UIFont.systemFont(ofSize: 12, weight: .regular)
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
         return label
     }()
 
-    init(assetName: String) {
+    init(iconName: String) {
         super.init(frame: .zero)
         backgroundColor = DivoGlassColors.statPillBackground
         layer.cornerRadius = 15
@@ -476,13 +491,12 @@ final class StatPillView: UIView {
         layer.borderWidth = 0.5
         layer.borderColor = DivoGlassColors.statPillBorder.cgColor
 
-        iconView.image = UIImage(bundleImageName: assetName)?.withRenderingMode(.alwaysTemplate)
+        iconView.image = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
 
         addSubview(iconView)
         addSubview(countLabel)
 
         translatesAutoresizingMaskIntoConstraints = false
-        widthAnchor.constraint(equalToConstant: 64).isActive = true
         heightAnchor.constraint(equalToConstant: 30).isActive = true
     }
 
@@ -497,8 +511,8 @@ final class StatPillView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let iconSize: CGFloat = 20
-        let iconX: CGFloat = 6
+        let iconSize: CGFloat = 16
+        let iconX: CGFloat = 8
         let iconY: CGFloat = (bounds.height - iconSize) / 2
         iconView.frame = CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)
         let labelX: CGFloat = iconX + iconSize + 2

@@ -38,6 +38,13 @@ final class StoryCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        addOverlay.removeFromSuperview()
+        avatarImageView.image = nil
+        avatarImageView.backgroundColor = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.00)
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         
@@ -61,20 +68,49 @@ final class StoryCollectionViewCell: UICollectionViewCell {
         statusIndicator.layer.cornerRadius = indicatorSize / 2
     }
     
+    private lazy var addOverlay: UIView = {
+        let circle = UIView()
+        circle.backgroundColor = .white
+        circle.layer.shadowColor = UIColor.black.cgColor
+        circle.layer.shadowOpacity = 0.1
+        circle.layer.shadowOffset = CGSize(width: 0, height: 2)
+        circle.layer.shadowRadius = 4
+        circle.isUserInteractionEnabled = false
+
+        let plusIcon = UIImageView()
+        plusIcon.tintColor = .black
+        plusIcon.contentMode = .scaleAspectFit
+        plusIcon.tag = 100
+        circle.addSubview(plusIcon)
+        return circle
+    }()
+
     func configure(with model: StoryModel) {
-        let image = UIImage(named: model.avatarName) ?? UIImage(bundleImageName: model.avatarName)
-        if let image = image {
-            if let isAdd = model.isAdd, isAdd {
-                avatarImageView.image = image
-                avatarImageView.contentMode = .scaleAspectFit
-            } else {
-                avatarImageView.image = image
+        addOverlay.removeFromSuperview()
+
+        if let isAdd = model.isAdd, isAdd {
+            // Programmatic circle + plus
+            avatarImageView.image = nil
+            avatarImageView.backgroundColor = .clear
+            let size: CGFloat = 54
+            addOverlay.frame = CGRect(x: (contentView.bounds.width - size) / 2, y: 0, width: size, height: size)
+            addOverlay.layer.cornerRadius = size / 2
+            if let plusIcon = addOverlay.viewWithTag(100) as? UIImageView {
+                let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                plusIcon.image = UIImage(systemName: "plus", withConfiguration: config)
+                let iconSize: CGFloat = 18
+                plusIcon.frame = CGRect(x: (size - iconSize) / 2, y: (size - iconSize) / 2, width: iconSize, height: iconSize)
             }
+            contentView.addSubview(addOverlay)
         } else {
+            let image = UIImage(named: model.avatarName) ?? UIImage(bundleImageName: model.avatarName)
+            if let image = image {
+                avatarImageView.image = image
+                avatarImageView.contentMode = .scaleAspectFill
+            }
             avatarImageView.backgroundColor = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.00)
         }
-        
-        avatarImageView.backgroundColor = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.00)
+
         nameLabel.text = model.name
         statusIndicator.isHidden = !model.isLive
     }
