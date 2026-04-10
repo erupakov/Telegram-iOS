@@ -5,14 +5,20 @@ import DivoCore
 
 protocol CardCellDelegate: AnyObject {
     func cardCell(_ cell: CardCollectionViewCell, didTapSaveForUserId userId: Int, isSaved: Bool)
+    func cardCell(_ cell: CardCollectionViewCell, didTapLikeForFeedId feedId: Int, isLiked: Bool)
     func cardCell(_ cell: CardCollectionViewCell, didTapShareForUserId userId: Int)
+    func cardCell(_ cell: CardCollectionViewCell, didTapPreviewAtIndex index: Int)
 }
 
 final class CardCollectionViewCell: UICollectionViewCell {
 
     weak var delegate: CardCellDelegate?
     private var currentUserId: Int?
+    private var currentFeedId: Int?
     private var currentIsSaved: Bool = false
+    private var currentIsLiked: Bool = false
+    private var currentLikesCount: Int = 0
+    private var currentSavesCount: Int = 0
 
     var coverImage: UIImage? {
         return mainImageView.image
@@ -91,44 +97,20 @@ final class CardCollectionViewCell: UICollectionViewCell {
         return stack
     }()
 
-    private let likesPill = StatPillView(iconName: "Components/StatLike")
+    private let likesPill: StatPillView = {
+        let pill = StatPillView(iconName: "Components/StatLike", filledIconName: "Components/StatLikeFilled")
+        pill.isUserInteractionEnabled = true
+        return pill
+    }()
     private let viewsPill = StatPillView(iconName: "Components/StatView")
     private let savesPill: StatPillView = {
-        let pill = StatPillView(iconName: "Components/StatSave")
+        let pill = StatPillView(iconName: "Components/StatSave", filledIconName: "Components/StatSaveFilled")
         pill.isUserInteractionEnabled = true
         return pill
     }()
 
     // MARK: - Saved Toast
 
-    private let savedToastView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.isHidden = true
-        return view
-    }()
-
-    private let savedToastIcon: UIImageView = {
-        let iv = UIImageView()
-        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-        iv.image = UIImage(systemName: "bookmark.fill", withConfiguration: config)
-        iv.tintColor = .black
-        return iv
-    }()
-
-    private let savedToastLabel: UILabel = {
-        let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        label.textColor = .black
-        return label
-    }()
-
-    private let savedToastViewButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .bold)
-        button.setTitleColor(UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0), for: .normal)
-        return button
-    }()
 
     // MARK: - Preview Gallery
 
@@ -180,51 +162,47 @@ final class CardCollectionViewCell: UICollectionViewCell {
         statsStackView.addArrangedSubview(viewsPill)
         statsStackView.addArrangedSubview(savesPill)
 
+        let likeTap = UITapGestureRecognizer(target: self, action: #selector(likesPillTapped))
+        likesPill.addGestureRecognizer(likeTap)
+
         let saveTap = UITapGestureRecognizer(target: self, action: #selector(savesPillTapped))
         savesPill.addGestureRecognizer(saveTap)
 
         contentView.addSubview(previewScrollView)
         previewScrollView.addSubview(previewStackView)
 
-        // Saved toast
-        contentView.addSubview(savedToastView)
-        savedToastView.addSubview(savedToastIcon)
-        savedToastView.addSubview(savedToastLabel)
-        savedToastView.addSubview(savedToastViewButton)
-        savedToastViewButton.addTarget(self, action: #selector(savedToastViewTapped), for: .touchUpInside)
+    }
+
+    @objc private func likesPillTapped() {
+        guard let feedId = currentFeedId else { return }
+        currentIsLiked.toggle()
+        currentLikesCount = max(0, currentLikesCount + (currentIsLiked ? 1 : -1))
+        likesPill.setActive(currentIsLiked, animated: true)
+        likesPill.setValue(Self.formatCount(currentLikesCount))
+        delegate?.cardCell(self, didTapLikeForFeedId: feedId, isLiked: currentIsLiked)
     }
 
     @objc private func savesPillTapped() {
         guard let userId = currentUserId else { return }
         currentIsSaved.toggle()
+        currentSavesCount = max(0, currentSavesCount + (currentIsSaved ? 1 : -1))
+        savesPill.setActive(currentIsSaved, animated: true)
+        savesPill.setValue(Self.formatCount(currentSavesCount))
         delegate?.cardCell(self, didTapSaveForUserId: userId, isSaved: currentIsSaved)
-        if currentIsSaved {
-            showSavedToast()
-        } else {
-            hideSavedToast()
-        }
     }
 
-    @objc private func savedToastViewTapped() {
-        // Delegate to show profile — handled by didSelectItem in collection view
+    func rollbackLike(isLiked: Bool, likesCount: Int) {
+        currentIsLiked = isLiked
+        currentLikesCount = likesCount
+        likesPill.setActive(isLiked, animated: true)
+        likesPill.setValue(Self.formatCount(likesCount))
     }
 
-    private func showSavedToast() {
-        savedToastView.isHidden = false
-        savedToastView.alpha = 0
-        savedToastView.transform = CGAffineTransform(translationX: 0, y: 20)
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: []) {
-            self.savedToastView.alpha = 1
-            self.savedToastView.transform = .identity
-        }
-    }
-
-    private func hideSavedToast() {
-        UIView.animate(withDuration: 0.2, animations: {
-            self.savedToastView.alpha = 0
-        }, completion: { _ in
-            self.savedToastView.isHidden = true
-        })
+    func rollbackSave(isSaved: Bool, savesCount: Int) {
+        currentIsSaved = isSaved
+        currentSavesCount = savesCount
+        savesPill.setActive(isSaved, animated: true)
+        savesPill.setValue(Self.formatCount(savesCount))
     }
 
     // MARK: - Layout
@@ -302,22 +280,6 @@ final class CardCollectionViewCell: UICollectionViewCell {
             previewScrollView.contentSize = .zero
         }
 
-        // Saved toast (bottom of card)
-        let toastHeight: CGFloat = 44
-        let toastY: CGFloat
-        if hasPreviews {
-            toastY = previewScrollView.frame.maxY + 8
-        } else {
-            toastY = bounds.height - toastHeight
-        }
-        savedToastView.frame = CGRect(x: 0, y: toastY, width: bounds.width, height: toastHeight)
-        savedToastIcon.frame = CGRect(x: sidePadding, y: (toastHeight - 18) / 2, width: 18, height: 18)
-        savedToastLabel.text = DivoStrings.profileSaved
-        savedToastLabel.sizeToFit()
-        savedToastLabel.frame = CGRect(x: sidePadding + 24, y: (toastHeight - 20) / 2, width: savedToastLabel.frame.width, height: 20)
-        savedToastViewButton.setTitle(DivoStrings.viewAction, for: .normal)
-        savedToastViewButton.sizeToFit()
-        savedToastViewButton.frame = CGRect(x: bounds.width - sidePadding - savedToastViewButton.frame.width, y: (toastHeight - 20) / 2, width: savedToastViewButton.frame.width, height: 20)
     }
 
     // MARK: - Configure
@@ -325,7 +287,11 @@ final class CardCollectionViewCell: UICollectionViewCell {
     func configure(with model: CardModel, delegate: CardCellDelegate) {
         self.delegate = delegate
         self.currentUserId = model.userId
-        self.currentIsSaved = model.isFavorite
+        self.currentFeedId = model.feedId
+        self.currentIsSaved = model.isFollowed
+        self.currentIsLiked = model.isLiked
+        self.currentLikesCount = model.likesCount
+        self.currentSavesCount = model.savesCount
 
         let placeholderColor = UIColor(white: 0.92, alpha: 1.0)
 
@@ -366,20 +332,22 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
         // Stats
         likesPill.setValue(Self.formatCount(model.likesCount))
+        likesPill.setActive(model.isLiked)
         viewsPill.setValue(Self.formatCount(model.viewsCount))
         savesPill.setValue(Self.formatCount(model.savesCount))
+        savesPill.setActive(model.isFollowed)
 
         // Preview images
         previewStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         if !model.previewImageURLs.isEmpty {
-            for url in model.previewImageURLs {
-                let imageView = createPreviewImageView()
+            for (index, url) in model.previewImageURLs.enumerated() {
+                let imageView = createPreviewImageView(index: index)
                 imageView.loadImage(from: url)
                 previewStackView.addArrangedSubview(imageView)
             }
         } else {
-            for imageName in model.previewImagesName {
-                let imageView = createPreviewImage(imageName)
+            for (index, imageName) in model.previewImagesName.enumerated() {
+                let imageView = createPreviewImage(imageName, index: index)
                 previewStackView.addArrangedSubview(imageView)
             }
         }
@@ -387,16 +355,12 @@ final class CardCollectionViewCell: UICollectionViewCell {
         previewScrollView.isHidden = !hasPreviews
         previewScrollView.contentOffset = .zero
 
-        // Saved toast initial state
-        savedToastView.isHidden = !model.isFavorite
-        savedToastView.alpha = model.isFavorite ? 1 : 0
-
         setNeedsLayout()
     }
 
     // MARK: - Helpers
 
-    private func createPreviewImageView() -> UIImageView {
+    private func createPreviewImageView(index: Int) -> UIImageView {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.layer.masksToBounds = true
@@ -405,10 +369,13 @@ final class CardCollectionViewCell: UICollectionViewCell {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
         imageView.widthAnchor.constraint(equalToConstant: 93).isActive = true
+        imageView.isUserInteractionEnabled = true
+        imageView.tag = index
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(previewImageTapped(_:))))
         return imageView
     }
 
-    private func createPreviewImage(_ imageName: String) -> UIImageView {
+    private func createPreviewImage(_ imageName: String, index: Int) -> UIImageView {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.layer.masksToBounds = true
@@ -418,7 +385,15 @@ final class CardCollectionViewCell: UICollectionViewCell {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
         imageView.widthAnchor.constraint(equalToConstant: 93).isActive = true
+        imageView.isUserInteractionEnabled = true
+        imageView.tag = index
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(previewImageTapped(_:))))
         return imageView
+    }
+
+    @objc private func previewImageTapped(_ gesture: UITapGestureRecognizer) {
+        guard let view = gesture.view else { return }
+        delegate?.cardCell(self, didTapPreviewAtIndex: view.tag)
     }
 
     /// Formats count to max 4 characters: 999 → "999", 1K, 288K, 1.5M, 10M, 1.5B
@@ -459,8 +434,6 @@ final class CardCollectionViewCell: UICollectionViewCell {
             ($0 as? UIImageView)?.cancelImageLoad()
             $0.removeFromSuperview()
         }
-        savedToastView.isHidden = true
-        savedToastView.alpha = 0
     }
 }
 
@@ -483,7 +456,16 @@ final class StatPillView: UIView {
         return label
     }()
 
-    init(iconName: String) {
+    private let normalIcon: UIImage?
+    private let filledIcon: UIImage?
+
+    init(iconName: String, filledIconName: String? = nil) {
+        self.normalIcon = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
+        if let filledIconName {
+            self.filledIcon = UIImage(bundleImageName: filledIconName)?.withRenderingMode(.alwaysTemplate)
+        } else {
+            self.filledIcon = nil
+        }
         super.init(frame: .zero)
         backgroundColor = DivoGlassColors.statPillBackground
         layer.cornerRadius = 15
@@ -491,7 +473,7 @@ final class StatPillView: UIView {
         layer.borderWidth = 0.5
         layer.borderColor = DivoGlassColors.statPillBorder.cgColor
 
-        iconView.image = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
+        iconView.image = normalIcon
 
         addSubview(iconView)
         addSubview(countLabel)
@@ -509,13 +491,38 @@ final class StatPillView: UIView {
         setNeedsLayout()
     }
 
+    func setActive(_ active: Bool, animated: Bool = false) {
+        let change = {
+            if active {
+                self.backgroundColor = .white
+                self.layer.borderColor = UIColor.white.cgColor
+                self.iconView.tintColor = .black
+                self.countLabel.textColor = .black
+                if let filled = self.filledIcon {
+                    self.iconView.image = filled
+                }
+            } else {
+                self.backgroundColor = DivoGlassColors.statPillBackground
+                self.layer.borderColor = DivoGlassColors.statPillBorder.cgColor
+                self.iconView.tintColor = .white
+                self.countLabel.textColor = .white
+                self.iconView.image = self.normalIcon
+            }
+        }
+        if animated {
+            UIView.animate(withDuration: 0.2, animations: change)
+        } else {
+            change()
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         let iconSize: CGFloat = 16
         let iconX: CGFloat = 8
         let iconY: CGFloat = (bounds.height - iconSize) / 2
         iconView.frame = CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)
-        let labelX: CGFloat = iconX + iconSize + 2
+        let labelX: CGFloat = iconX + iconSize + 4
         let labelWidth = bounds.width - labelX - 4
         countLabel.frame = CGRect(x: labelX, y: 0, width: max(labelWidth, 0), height: bounds.height)
     }

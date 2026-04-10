@@ -21,11 +21,13 @@ struct CardModel {
     let mainImageURL: URL?
     let avatarImageURL: URL?
     let previewImageURLs: [URL]
-    let likesCount: Int
+    var likesCount: Int
     let viewsCount: Int
-    let savesCount: Int
+    var savesCount: Int
     let isFavorite: Bool
     var isFollowed: Bool
+    let feedId: Int?
+    var isLiked: Bool
     let age: Int?
     let country: String?
     let countryFlag: String?
@@ -47,6 +49,8 @@ struct CardModel {
         savesCount: Int = 0,
         isFavorite: Bool = false,
         isFollowed: Bool = false,
+        feedId: Int? = nil,
+        isLiked: Bool = false,
         age: Int? = nil,
         country: String? = nil,
         countryFlag: String? = nil
@@ -67,6 +71,8 @@ struct CardModel {
         self.savesCount = savesCount
         self.isFavorite = isFavorite
         self.isFollowed = isFollowed
+        self.feedId = feedId
+        self.isLiked = isLiked
         self.age = age
         self.country = country
         self.countryFlag = countryFlag

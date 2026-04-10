@@ -162,6 +162,40 @@ public final class ModelsFeedController: TelegramBaseController {
         }
     }
 
+    private func openGallery(_ model: CardModel, initialIndex: Int) {
+        var allURLs: [URL] = []
+        if let mainURL = model.mainImageURL {
+            allURLs.append(mainURL)
+        }
+        allURLs.append(contentsOf: model.previewImageURLs)
+
+        guard !allURLs.isEmpty else { return }
+
+        let photos: [UserPhoto] = allURLs.enumerated().map { index, url in
+            let file = UserFile(
+                fileName: url.lastPathComponent,
+                fullUrl: url.absoluteString,
+                fileExtension: url.pathExtension,
+                fileUuid: nil
+            )
+            return UserPhoto(id: index, photo: file, likesCount: nil, isLikedByUser: false, preview: nil)
+        }
+
+        // Preview images start after main image, so offset by 1
+        let galleryIndex = model.mainImageURL != nil ? initialIndex + 1 : initialIndex
+        let clampedIndex = min(galleryIndex, photos.count - 1)
+
+        let galleryController = ProfileGalleryController(
+            context: self.context,
+            photos: photos,
+            initialIndex: clampedIndex,
+            isOwnProfile: false
+        )
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(galleryController, animated: true)
+        }
+    }
+
     deinit {
         self.createActionDisposable.dispose()
         self.presentationDataDisposable?.dispose()
@@ -176,6 +210,9 @@ public final class ModelsFeedController: TelegramBaseController {
         self.displayNode = ModelsFeedNode(controller: self, context: self.context, presentationData: self.presentationData)
         self.controllerNode.showProfile = { [weak self] model in
             self?.showProfile(model)
+        }
+        self.controllerNode.showGallery = { [weak self] model, index in
+            self?.openGallery(model, initialIndex: index)
         }
         self.controllerNode.loadMore = { [weak self] in
             self?.loadNextPage()
@@ -321,7 +358,12 @@ public final class ModelsFeedController: TelegramBaseController {
             previewImageURLs: previewURLs,
             likesCount: item.likesCount,
             isFavorite: item.isFavoriteByUser,
-            isFollowed: isFollowed
+            isFollowed: isFollowed,
+            feedId: item.feedId,
+            isLiked: item.isLikedByUser,
+            age: 24,
+            country: "Moscow",
+            countryFlag: "🇷🇺"
         )
     }
 

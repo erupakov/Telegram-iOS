@@ -199,16 +199,23 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private var loadingPlaceholderView: UIView?
     private var spinnerLoadingView: UIView?
-    private var errorBannerView: UIView?
     private var errorView: UIView?
     private var emptyStateView: UIView?
 
     var showNetworkError: Bool = false {
         didSet {
             if showNetworkError && cards.isEmpty {
-                showErrorBanner()
+                showLoadingPlaceholder()
+                showSnackbar(
+                    message: DivoStrings.serverUnavailable,
+                    style: .error,
+                    retryAction: { [weak self] in
+                        self?.onRetry?()
+                    }
+                )
             } else {
-                hideErrorBanner()
+                hideLoadingPlaceholder()
+                hideSnackbar(animated: true)
             }
         }
     }
@@ -249,6 +256,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     }
 
     var showProfile: ((CardModel) -> Void)?
+    var showGallery: ((CardModel, Int) -> Void)?
     var loadMore: (() -> Void)?
     var onTabSelected: ((Int) -> Void)?
     var onRetry: (() -> Void)?
@@ -523,7 +531,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         updateHeaderLayout()
         layoutLoadingPlaceholder()
         layoutSpinnerLoading()
-        layoutErrorBanner()
+        layoutSnackbar()
     }
 
     private func updateHeaderLayout() {
@@ -753,7 +761,18 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
         let idx = indexPath.item
         guard idx < self.cards.count else { return }
+
+        let removeFromFeed = !isSaved && self.selectedTabIndex == 0
+        var removedCard: CardModel?
+
         self.cards[idx].isFollowed = isSaved
+        self.cards[idx].savesCount = max(0, self.cards[idx].savesCount + (isSaved ? 1 : -1))
+
+        if removeFromFeed {
+            removedCard = self.cards[idx]
+            self.cards.remove(at: idx)
+            self.mainCollectionView.deleteItems(at: [indexPath])
+        }
 
         let path = isSaved ? "/follower/follow" : "/follower/unfollow"
         let body = FollowRequest(id: userId)
@@ -765,16 +784,69 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     method: "POST",
                     body: body
                 )
-                if !isSaved && self.selectedTabIndex == 0 {
-                    self.cards.remove(at: idx)
-                    self.mainCollectionView.deleteItems(at: [indexPath])
-                }
+                self.showSnackbar(
+                    message: isSaved ? DivoStrings.subscribed : DivoStrings.unsubscribed,
+                    style: .success
+                )
             } catch {
-                self.cards[idx].isFollowed = !isSaved
-                if let cell = self.mainCollectionView.cellForItem(at: indexPath) as? CardCollectionViewCell {
-                    cell.configure(with: self.cards[idx], delegate: self)
+                if removeFromFeed, var card = removedCard {
+                    card.isFollowed = true
+                    card.savesCount = max(0, card.savesCount + 1)
+                    let insertIdx = min(idx, self.cards.count)
+                    self.cards.insert(card, at: insertIdx)
+                    self.mainCollectionView.insertItems(at: [IndexPath(item: insertIdx, section: 0)])
+                } else {
+                    self.cards[idx].isFollowed = !isSaved
+                    self.cards[idx].savesCount = max(0, self.cards[idx].savesCount + (isSaved ? -1 : 1))
+                    if let cell = self.mainCollectionView.cellForItem(at: indexPath) as? CardCollectionViewCell {
+                        cell.rollbackSave(isSaved: !isSaved, savesCount: self.cards[idx].savesCount)
+                    }
                 }
-                print("❌ [SAVE] Error: \(error)")
+                self.showSnackbar(
+                    message: isSaved ? DivoStrings.subscribeFailed : DivoStrings.unsubscribeFailed,
+                    style: .error,
+                    retryAction: { [weak self] in
+                        self?.cardCell(cell, didTapSaveForUserId: userId, isSaved: isSaved)
+                    }
+                )
+            }
+        }
+    }
+
+    func cardCell(_ cell: CardCollectionViewCell, didTapLikeForFeedId feedId: Int, isLiked: Bool) {
+        guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
+        let idx = indexPath.item
+        guard idx < self.cards.count else { return }
+        self.cards[idx].isLiked = isLiked
+        self.cards[idx].likesCount = max(0, self.cards[idx].likesCount + (isLiked ? 1 : -1))
+
+        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
+        let body = FollowRequest(id: feedId)
+
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+                self.showSnackbar(
+                    message: isLiked ? DivoStrings.liked : DivoStrings.unliked,
+                    style: .success
+                )
+            } catch {
+                self.cards[idx].isLiked = !isLiked
+                self.cards[idx].likesCount = max(0, self.cards[idx].likesCount + (isLiked ? -1 : 1))
+                if let cell = self.mainCollectionView.cellForItem(at: indexPath) as? CardCollectionViewCell {
+                    cell.rollbackLike(isLiked: !isLiked, likesCount: self.cards[idx].likesCount)
+                }
+                self.showSnackbar(
+                    message: isLiked ? DivoStrings.likeFailed : DivoStrings.unlikeFailed,
+                    style: .error,
+                    retryAction: { [weak self] in
+                        self?.cardCell(cell, didTapLikeForFeedId: feedId, isLiked: isLiked)
+                    }
+                )
             }
         }
     }
@@ -794,6 +866,13 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         )
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
         controller?.view.window?.rootViewController?.present(activityVC, animated: true)
+    }
+
+    func cardCell(_ cell: CardCollectionViewCell, didTapPreviewAtIndex index: Int) {
+        guard let indexPath = mainCollectionView.indexPath(for: cell) else { return }
+        let idx = indexPath.item
+        guard idx < cards.count else { return }
+        showGallery?(cards[idx], index)
     }
 
     // MARK: - Loading Placeholder (Skeleton Shimmer)
@@ -850,6 +929,10 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         layoutLoadingPlaceholder()
 
         placeholder.subviews.compactMap { $0 as? ShimmerView }.forEach { $0.startShimmer() }
+
+        if let snack = snackbarView {
+            self.view.bringSubviewToFront(snack)
+        }
     }
 
     private func hideLoadingPlaceholder() {
@@ -927,82 +1010,124 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
-    // MARK: - Error Banner (red bar at bottom)
 
-    private func showErrorBanner() {
-        guard errorBannerView == nil else { return }
 
-        let banner = UIView()
-        banner.backgroundColor = UIColor(red: 0.85, green: 0.18, blue: 0.18, alpha: 1.0)
+    // MARK: - Snackbar
+
+    private var snackbarView: UIView?
+    private var snackbarHideTimer: Foundation.Timer?
+    private var snackbarRetryAction: (() -> Void)?
+
+    enum SnackbarStyle {
+        case success
+        case error
+    }
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil) {
+        hideSnackbar(animated: false)
+
+        let snack = UIView()
+        snack.backgroundColor = style == .error
+            ? UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)
+            : UIColor(red: 12/255, green: 138/255, blue: 81/255, alpha: 1)
+        snack.layer.cornerRadius = 8
+        snack.layer.masksToBounds = true
 
         let titleLabel = UILabel()
-        titleLabel.text = DivoStrings.serverUnavailable
-        titleLabel.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        titleLabel.text = message
+        titleLabel.font = UIFont(name: "HelveticaNeue", size: 14) ?? UIFont.systemFont(ofSize: 14)
         titleLabel.textColor = .white
-        titleLabel.tag = 300
-        banner.addSubview(titleLabel)
+        titleLabel.textAlignment = .center
+        titleLabel.tag = 400
+        snack.addSubview(titleLabel)
 
-        let retryButton = UIButton(type: .system)
-        retryButton.setTitle(DivoStrings.retry, for: .normal)
-        retryButton.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .bold)
-        retryButton.setTitleColor(.white, for: .normal)
-        retryButton.tag = 301
-        retryButton.addTarget(self, action: #selector(errorBannerRetryTapped), for: .touchUpInside)
-        banner.addSubview(retryButton)
+        if style == .error, retryAction != nil {
+            let retryButton = UIButton(type: .system)
+            retryButton.setTitle(DivoStrings.retry, for: .normal)
+            retryButton.titleLabel?.font = UIFont(name: "HelveticaNeue-Bold", size: 14) ?? UIFont.boldSystemFont(ofSize: 14)
+            retryButton.setTitleColor(.white, for: .normal)
+            retryButton.tag = 401
+            retryButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+            retryButton.addTarget(self, action: #selector(snackbarRetryTapped), for: .touchUpInside)
+            snack.addSubview(retryButton)
+        }
 
-        self.view.addSubview(banner)
-        errorBannerView = banner
+        let tap = UITapGestureRecognizer(target: self, action: #selector(snackbarTapped))
+        snack.addGestureRecognizer(tap)
 
-        // Also show shimmer skeleton behind the banner
-        showLoadingPlaceholder()
+        self.snackbarRetryAction = retryAction
+        self.view.addSubview(snack)
+        self.view.bringSubviewToFront(snack)
+        snackbarView = snack
+        layoutSnackbar()
 
-        layoutErrorBanner()
-
-        // Animate in from bottom
-        banner.transform = CGAffineTransform(translationX: 0, y: 60)
+        snack.alpha = 0
+        snack.transform = CGAffineTransform(translationX: 0, y: 30)
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: []) {
-            banner.transform = .identity
+            snack.alpha = 1
+            snack.transform = .identity
+        }
+
+        snackbarHideTimer?.invalidate()
+        snackbarHideTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+            self?.hideSnackbar(animated: true)
         }
     }
 
-    private func hideErrorBanner() {
-        guard let banner = errorBannerView else { return }
-        errorBannerView = nil
-        UIView.animate(withDuration: 0.2, animations: {
-            banner.alpha = 0
-        }, completion: { _ in
-            banner.removeFromSuperview()
-        })
+    private func hideSnackbar(animated: Bool) {
+        snackbarHideTimer?.invalidate()
+        snackbarHideTimer = nil
+        guard let snack = snackbarView else { return }
+        snackbarView = nil
+        snackbarRetryAction = nil
+        if animated {
+            UIView.animate(withDuration: 0.2, animations: {
+                snack.alpha = 0
+                snack.transform = CGAffineTransform(translationX: 0, y: 20)
+            }, completion: { _ in
+                snack.removeFromSuperview()
+            })
+        } else {
+            snack.removeFromSuperview()
+        }
     }
 
-    @objc private func errorBannerRetryTapped() {
-        onRetry?()
+    @objc private func snackbarTapped() {
+        hideSnackbar(animated: true)
     }
 
-    private func layoutErrorBanner() {
-        guard let banner = errorBannerView,
+    @objc private func snackbarRetryTapped() {
+        let action = snackbarRetryAction
+        hideSnackbar(animated: true)
+        action?()
+    }
+
+    private func layoutSnackbar() {
+        guard let snack = snackbarView,
               let (layout, _) = containerLayout else { return }
-        let insets = layout.insets(options: [.input])
-        let bannerHeight: CGFloat = 50
-        let bottomY = layout.size.height - insets.bottom - bannerHeight
-        banner.frame = CGRect(x: 0, y: bottomY, width: layout.size.width, height: bannerHeight)
+        let tabBarHeight = layout.intrinsicInsets.bottom
+        let sidePadding: CGFloat = 8
+        let snackHeight: CGFloat = 50
+        let viewWidth = self.view.bounds.width
+        let bottomY = self.view.bounds.height - tabBarHeight - 16 - snackHeight
+        snack.frame = CGRect(x: sidePadding, y: bottomY, width: viewWidth - sidePadding * 2, height: snackHeight)
+        self.view.bringSubviewToFront(snack)
 
-        if let title = banner.viewWithTag(300) {
-            title.frame = CGRect(x: 16, y: 0, width: banner.bounds.width - 100, height: bannerHeight)
+        if let retryButton = snack.viewWithTag(401) as? UIButton {
+            retryButton.sizeToFit()
+            let retryWidth = retryButton.frame.width + 24 // contentEdgeInsets
+            retryButton.frame = CGRect(x: snack.bounds.width - retryWidth - 4, y: 0, width: retryWidth, height: snackHeight)
+
+            if let title = snack.viewWithTag(400) as? UILabel {
+                title.frame = CGRect(x: 16, y: 0, width: snack.bounds.width - retryWidth - 24, height: snackHeight)
+                title.textAlignment = .left
+            }
+        } else {
+            if let title = snack.viewWithTag(400) as? UILabel {
+                title.frame = CGRect(x: 16, y: 0, width: snack.bounds.width - 32, height: snackHeight)
+                title.textAlignment = .left
+            }
         }
-        if let retry = banner.viewWithTag(301) {
-            retry.frame = CGRect(x: banner.bounds.width - 80, y: 0, width: 64, height: bannerHeight)
-        }
-    }
-
-    // MARK: - Legacy Error View (kept for compatibility)
-
-    private func showErrorView() {
-        showErrorBanner()
-    }
-
-    private func hideErrorView() {
-        hideErrorBanner()
     }
 
     private func layoutLoadingPlaceholder() {
