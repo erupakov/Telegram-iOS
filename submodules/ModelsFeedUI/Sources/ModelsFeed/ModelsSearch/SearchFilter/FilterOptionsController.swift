@@ -57,8 +57,8 @@ final class FilterOptionsController: UIViewController {
     private let closeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
-        button.layer.cornerRadius = 20
-        
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         let image = UIImage(systemName: "chevron.left", withConfiguration: config)
         button.setImage(image, for: .normal)
@@ -67,30 +67,22 @@ final class FilterOptionsController: UIViewController {
         button.setTitle(DivoStrings.back, for: .normal)
         button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-        
+
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
         button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 20)
-        
-        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        button.layer.shadowOpacity = 0.08
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 12
-        button.layer.masksToBounds = false
-        
+
+        button.layer.applyDivoShadow()
+
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
+
     private let searchFieldContainer: UIView = {
         let view = UIView()
         view.backgroundColor = .white
-        view.layer.cornerRadius = 20
-        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        view.layer.shadowOpacity = 0.08
-        view.layer.shadowOffset = CGSize(width: 0, height: 4)
-        view.layer.shadowRadius = 12
-        view.layer.masksToBounds = false
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.layer.applyDivoShadow()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -120,13 +112,10 @@ final class FilterOptionsController: UIViewController {
     private let saveButton: UIButton = {
         let saveButton = UIButton(type: .custom)
         saveButton.backgroundColor = DivoColorPalette.accent
-        saveButton.layer.cornerRadius = 20
+        saveButton.layer.cornerRadius = DivoDesignTokens.Radius.pill
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
         saveButton.tintColor = .white
-        saveButton.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        saveButton.layer.shadowOpacity = 0.08
-        saveButton.layer.shadowOffset = CGSize(width: 0, height: 4)
-        saveButton.layer.shadowRadius = 12
+        saveButton.layer.applyDivoShadow()
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         return saveButton
     }()
@@ -137,7 +126,7 @@ final class FilterOptionsController: UIViewController {
         deleteButton.setTitleColor(.white, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
         deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
-        deleteButton.layer.cornerRadius = 24
+        deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         return deleteButton
     }()
@@ -203,7 +192,7 @@ final class FilterOptionsController: UIViewController {
         
         let backgroundView = UIView()
         backgroundView.backgroundColor = .white
-        backgroundView.layer.cornerRadius = 16
+        backgroundView.layer.cornerRadius = DivoDesignTokens.Radius.l
         backgroundView.clipsToBounds = true
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
         backgroundView.tag = 999

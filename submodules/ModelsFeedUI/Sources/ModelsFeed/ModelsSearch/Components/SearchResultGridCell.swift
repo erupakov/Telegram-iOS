@@ -45,7 +45,7 @@ final class SearchResultGridCell: UICollectionViewCell {
     private let roleContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.roleBadgeBlue
-        view.layer.cornerRadius = 12
+        view.layer.cornerRadius = DivoDesignTokens.Radius.m
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -60,7 +60,7 @@ final class SearchResultGridCell: UICollectionViewCell {
     
     private let actionsContainer: UIVisualEffectView = {
         let ve = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
-        ve.layer.cornerRadius = 12
+        ve.layer.cornerRadius = DivoDesignTokens.Radius.m
         ve.clipsToBounds = true
         ve.translatesAutoresizingMaskIntoConstraints = false
         return ve
@@ -84,7 +84,7 @@ final class SearchResultGridCell: UICollectionViewCell {
     
     private let likesContainer: UIVisualEffectView = {
         let ve = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
-        ve.layer.cornerRadius = 12
+        ve.layer.cornerRadius = DivoDesignTokens.Radius.m
         ve.clipsToBounds = true
         ve.translatesAutoresizingMaskIntoConstraints = false
         return ve
@@ -166,7 +166,7 @@ final class SearchResultGridCell: UICollectionViewCell {
     }
     
     private func setupUI() {
-        contentView.layer.cornerRadius = 16
+        contentView.layer.cornerRadius = DivoDesignTokens.Radius.l
         contentView.clipsToBounds = true
         
         contentView.addSubview(backgroundImageView)

@@ -1,10 +1,11 @@
 import UIKit
+import DivoUIKit
 
 final class HighlightableReactionButton: UIButton {
 
     private let backgroundContainer: UIView = {
         let view = UIView()
-        view.layer.cornerRadius = 20
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.layer.masksToBounds = true
         view.isUserInteractionEnabled = false
         return view
