@@ -6,8 +6,8 @@ public final class ShimmerView: UIView {
         let layer = CAGradientLayer()
         layer.startPoint = CGPoint(x: 0, y: 0.5)
         layer.endPoint = CGPoint(x: 1, y: 0.5)
-        let base = UIColor(white: 0.88, alpha: 1.0).cgColor
-        let highlight = UIColor(white: 0.96, alpha: 1.0).cgColor
+        let base = DivoColorPalette.shimmerDivoBase.cgColor
+        let highlight = DivoColorPalette.shimmerDivoHighlight.cgColor
         layer.colors = [base, highlight, base]
         layer.locations = [0, 0.5, 1]
         return layer
@@ -16,7 +16,7 @@ public final class ShimmerView: UIView {
     public override init(frame: CGRect) {
         super.init(frame: frame)
         layer.addSublayer(gradientLayer)
-        backgroundColor = UIColor(white: 0.88, alpha: 1.0)
+        backgroundColor = DivoColorPalette.shimmerDivoBase
     }
 
     public convenience init() {
