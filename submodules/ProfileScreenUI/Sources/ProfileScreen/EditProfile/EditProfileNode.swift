@@ -171,7 +171,7 @@ final class EditProfileNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = UIColor(hexString: "#BF7A54")
         button.translatesAutoresizingMaskIntoConstraints = false
-        let image = UIImage(bundleImageName: "Profile/AddPhotoIcon")
+        let image = UIImage(bundleImageName: "Components/AddPhotoIcon")
         button.setImage(image, for: .normal)
         button.tintColor = .white
         button.layer.cornerRadius = 16

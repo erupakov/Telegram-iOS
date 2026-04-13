@@ -103,7 +103,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
 
     private func setupUI() {
-        self.backgroundColor = .white
+        self.backgroundColor = DivoGlassColors.screenBackground
 
         imageGalleryCollectionView.backgroundColor = .clear
         imageGalleryCollectionView.dataSource = self
@@ -210,7 +210,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         heightValueLabel.text = "1,72 - 2,1 cm"
         heightValueLabel.font = .systemFont(ofSize: 14)
         heightValueLabel.textColor = .black
-        heightIcon.image = UIImage(bundleImageName: "Chat/heightIcon")
+        heightIcon.image = UIImage(bundleImageName: "Components/heightIcon")
         heightIcon.tintColor = .black
 
         ageLabel.text = DivoStrings.age
@@ -219,7 +219,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         ageValueLabel.text = "20-25 y.o"
         ageValueLabel.font = .systemFont(ofSize: 14)
         ageValueLabel.textColor = .black
-        ageIcon.image = UIImage(bundleImageName: "Chat/ageIcon")
+        ageIcon.image = UIImage(bundleImageName: "Components/ageIcon")
         ageIcon.tintColor = .black
 
         genderLabel.text = DivoStrings.gender
@@ -228,7 +228,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         genderValueLabel.text = "Only womans"
         genderValueLabel.font = .systemFont(ofSize: 14)
         genderValueLabel.textColor = .black
-        genderIcon.image = UIImage(bundleImageName: "Chat/genderIcon")
+        genderIcon.image = UIImage(bundleImageName: "Components/genderIcon")
         genderIcon.contentMode = .scaleAspectFit
         genderIcon.tintColor = .black
 

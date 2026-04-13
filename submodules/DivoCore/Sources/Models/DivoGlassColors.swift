@@ -1,6 +1,7 @@
 import UIKit
 
 public enum DivoGlassColors {
+    public static let screenBackground = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
     public static let background = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.0)
     public static let primaryText: UIColor = .white
     public static let disabledButton = UIColor(red: 0.322, green: 0.322, blue: 0.322, alpha: 1.0)
@@ -9,4 +10,8 @@ public enum DivoGlassColors {
     public static let inputFill = UIColor.white.withAlphaComponent(0.1)
     public static let inputIcon = UIColor.white.withAlphaComponent(0.5)
     public static let sectionIndex: UIColor = .white
+
+    // Stat pills on model cards
+    public static let statPillBackground = UIColor.white.withAlphaComponent(0.2)
+    public static let statPillBorder = UIColor.white.withAlphaComponent(0.4)
 }

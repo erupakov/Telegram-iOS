@@ -8,7 +8,6 @@ import TelegramBaseController
 import TelegramCore
 import DivoCore
 import AppBundle
-import ProfileScreenUI
 
 public final class DivoSettingsController: TelegramBaseController {
 
@@ -31,8 +30,8 @@ public final class DivoSettingsController: TelegramBaseController {
             buttonColor: copperColor,
             disabledButtonColor: copperColor.withAlphaComponent(0.4),
             primaryTextColor: .black,
-            backgroundColor: .white,
-            opaqueBackgroundColor: .white,
+            backgroundColor: DivoGlassColors.screenBackground,
+            opaqueBackgroundColor: DivoGlassColors.screenBackground,
             enableBackgroundBlur: false,
             separatorColor: .clear,
             badgeBackgroundColor: .clear,
@@ -250,7 +249,7 @@ private final class DivoSettingsNode: ASDisplayNode {
     init(context: AccountContext) {
         self.context = context
         super.init()
-        self.backgroundColor = .white
+        self.backgroundColor = DivoGlassColors.screenBackground
         setupUI()
     }
 
@@ -263,7 +262,7 @@ private final class DivoSettingsNode: ASDisplayNode {
         self.view.addSubview(scrollView)
 
         // MARK: Profile section
-        profileContainer.backgroundColor = .white
+        profileContainer.backgroundColor = DivoGlassColors.screenBackground
         let profileTap = UITapGestureRecognizer(target: self, action: #selector(profileTapped))
         profileContainer.addGestureRecognizer(profileTap)
         scrollView.addSubview(profileContainer)
@@ -293,7 +292,7 @@ private final class DivoSettingsNode: ASDisplayNode {
         scrollView.addSubview(separator1)
 
         // MARK: Set Username section
-        usernameContainer.backgroundColor = .white
+        usernameContainer.backgroundColor = DivoGlassColors.screenBackground
         let usernameTap = UITapGestureRecognizer(target: self, action: #selector(usernameTapped))
         usernameContainer.addGestureRecognizer(usernameTap)
         scrollView.addSubview(usernameContainer)

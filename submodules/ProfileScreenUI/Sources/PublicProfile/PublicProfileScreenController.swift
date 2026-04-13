@@ -128,11 +128,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
 
-        let moreButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/MoreActionIcon"), color: .white)
+        let moreButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/MoreActionIcon"), color: .white)
         let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
 
         if isMyProfile {
-            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/EditActionIcon"), color: .white)
+            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/ProfileEditAction"), color: .white)
             
             let editButton = UIBarButtonItem(
                 image: editButtonImg,
@@ -324,8 +324,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.presentInteractionSheet(type: .saves)
         }
 
-        self.controllerNode.onGalleryItemTapped = { [weak self] tabIndex, itemIndex in
-            self?.openFullScreenGallery(tabIndex: tabIndex, itemIndex: itemIndex)
+        self.controllerNode.onGalleryItemTapped = { [weak self] tab, itemIndex in
+            self?.openFullScreenGallery(tab: tab, itemIndex: itemIndex)
         }
 
         self.controllerNode.onEditLinksTapped = { [weak self] in
@@ -534,15 +534,16 @@ extension PublicProfileScreenController {
     }
     
     // Открытие галереи на полный экран
-    private func openFullScreenGallery(tabIndex: Int, itemIndex: Int) {
-        print("🖼️ [GALLERY] Opening full-screen gallery, tabIndex=\(tabIndex), itemIndex=\(itemIndex)")
-        
+    private func openFullScreenGallery(tab: ProfileTab, itemIndex: Int) {
+        print("🖼️ [GALLERY] Opening full-screen gallery, tab=\(tab), itemIndex=\(itemIndex)")
+
         guard itemIndex >= 0 else { return }
         let galleryController: ProfileGalleryController
-        
-        if tabIndex == 0 {
+
+        switch tab {
+        case .photo:
             guard !currentGalleryPhotos.isEmpty, itemIndex < currentGalleryPhotos.count else { return }
-            
+
             galleryController = ProfileGalleryController(
                 context: self.context,
                 photos: currentGalleryPhotos,
@@ -550,9 +551,9 @@ extension PublicProfileScreenController {
                 isVideoGallery: false,
                 isOwnProfile: self.isMyProfile
             )
-        } else if tabIndex == 1 {
+        case .video:
             guard !currentGalleryVideos.isEmpty, itemIndex < currentGalleryVideos.count else { return }
-            
+
             galleryController = ProfileGalleryController(
                 context: self.context,
                 videos: currentGalleryVideos,
@@ -560,31 +561,32 @@ extension PublicProfileScreenController {
                 isVideoGallery: true,
                 isOwnProfile: self.isMyProfile
             )
-        } else {
+        case .models, .channels, .events:
             return
         }
-        
+
         galleryController.requestMoreData = { [weak self] in
             guard let self = self else { return }
-            if tabIndex == 0 {
-                self.controllerNode.loadNextGalleryPage()
-            } else if tabIndex == 1 {
-                self.controllerNode.loadNextVideoGalleryPage()
+            switch tab {
+            case .photo: self.controllerNode.loadNextGalleryPage()
+            case .video: self.controllerNode.loadNextVideoGalleryPage()
+            case .models, .channels, .events: break
             }
         }
-        
+
         galleryController.onDeletePublication = { [weak self] deletedId in
             guard let self = self else { return }
-            if tabIndex == 0 {
+            switch tab {
+            case .photo:
                 self.currentGalleryPhotos.removeAll { $0.id == deletedId }
                 self.controllerNode.removePhoto(withId: deletedId)
-                
-            } else if tabIndex == 1 {
+            case .video:
                 self.currentGalleryVideos.removeAll { $0.id == deletedId }
                 self.controllerNode.removeVideo(withId: deletedId)
+            case .models, .channels, .events: break
             }
         }
-        
+
         self.activeGalleryController = galleryController
         self.push(galleryController)
     }

@@ -86,6 +86,10 @@ public enum DivoStrings {
         }
     }
 
+    // MARK: - Login
+
+    public static var loginEulaAgreement: String { L(en: "By using DIVO, you agree to Apple's end User License Agreement and our Terms of Service and Privacy Policy.", ru: "Используя DIVO, вы соглашаетесь с Лицензионным соглашением Apple и нашими Условиями использования и Политикой конфиденциальности.", es: "Al usar DIVO, aceptas el Acuerdo de licencia de usuario final de Apple y nuestros Términos de servicio y Política de privacidad.", pt: "Ao usar o DIVO, você concorda com o Contrato de licença de usuário final da Apple e nossos Termos de serviço e Política de privacidade.", zh: "使用 DIVO 即表示您同意 Apple 的最终用户许可协议以及我们的服务条款和隐私政策。") }
+
     // MARK: - Tab Bar
 
     public static var tabModels: String { L(en: "Models", ru: "Модели", es: "Modelos", pt: "Modelos", zh: "模特") }
@@ -106,9 +110,9 @@ public enum DivoStrings {
 
     // MARK: - Feed Segments
 
-    public static var feedSubscribed: String { L(en: "SUBSCRIBED MODELS", ru: "ПОДПИСКИ", es: "MODELOS SUSCRITOS", pt: "MODELOS INSCRITOS", zh: "已订阅模特") }
-    public static var feedAllUsers: String { L(en: "ALL USERS", ru: "ВСЕ ПОЛЬЗОВАТЕЛИ", es: "TODOS LOS USUARIOS", pt: "TODOS OS USUÁRIOS", zh: "所有用户") }
-    public static var feedAgencies: String { L(en: "AGENCIES & PRO MEMBERS", ru: "АГЕНТСТВА И PRO", es: "AGENCIAS Y PRO", pt: "AGÊNCIAS E PRO", zh: "经纪公司和专业会员") }
+    public static var feedSubscribed: String { L(en: "MODELS", ru: "МОДЕЛИ", es: "MODELOS", pt: "MODELOS", zh: "模特") }
+    public static var feedAllUsers: String { L(en: "NEW TALENTS", ru: "ТАЛАНТЫ", es: "NUEVOS TALENTOS", pt: "NOVOS TALENTOS", zh: "新人才") }
+    public static var feedAgencies: String { L(en: "AGENCIES", ru: "АГЕНТСТВА", es: "AGENCIAS", pt: "AGÊNCIAS", zh: "经纪公司") }
     public static var addStory: String { L(en: "Add Story", ru: "Добавить", es: "Añadir", pt: "Adicionar", zh: "添加动态") }
     public static var feedSearchPlaceholder: String { L(en: "Search by name or @handle", ru: "Поиск по имени или @handle", es: "Buscar por nombre o @ identificador", pt: "Procurar por nome ou @ identificador", zh: "按名称或@handle搜索") }
     public static var feedSearchNoFound: String { L(en: "NO RESULTS FOUND", ru: "НИКАКИХ РЕЗУЛЬТАТОВ НАЙДЕНО НЕ БЫЛО", es: "NO SE HAN ENCONTRADO RESULTADOS", pt: "NÃO FORAM ENCONTRADOS RESULTADOS", zh: "未找到结果") }
@@ -362,6 +366,12 @@ public enum DivoStrings {
 
     public static var subscribed: String { L(en: "Subscribed!", ru: "Подписка оформлена!", es: "¡Suscrito!", pt: "Inscrito!", zh: "已订阅！") }
     public static var unsubscribed: String { L(en: "Unsubscribed", ru: "Подписка отменена", es: "Desuscrito", pt: "Desinscrito", zh: "已取消订阅") }
+    public static var subscribeFailed: String { L(en: "Failed to subscribe", ru: "Не удалось подписаться", es: "Error al suscribirse", pt: "Falha ao inscrever", zh: "订阅失败") }
+    public static var unsubscribeFailed: String { L(en: "Failed to unsubscribe", ru: "Не удалось отписаться", es: "Error al desuscribirse", pt: "Falha ao desinscrever", zh: "取消订阅失败") }
+    public static var liked: String { L(en: "Liked!", ru: "Нравится!", es: "¡Me gusta!", pt: "Curtido!", zh: "已点赞！") }
+    public static var unliked: String { L(en: "Like removed", ru: "Лайк убран", es: "Me gusta eliminado", pt: "Curtida removida", zh: "已取消点赞") }
+    public static var likeFailed: String { L(en: "Failed to like", ru: "Не удалось поставить лайк", es: "Error al dar me gusta", pt: "Falha ao curtir", zh: "点赞失败") }
+    public static var unlikeFailed: String { L(en: "Failed to unlike", ru: "Не удалось убрать лайк", es: "Error al quitar me gusta", pt: "Falha ao descurtir", zh: "取消点赞失败") }
     public static var serverUnavailable: String { L(en: "Server Unavailable", ru: "Сервер недоступен", es: "Servidor no disponible", pt: "Servidor indisponível", zh: "服务器不可用") }
     public static var serverUnavailableSubtitle: String { L(en: "Unable to connect to the server.\nTry toggling your VPN on or off.", ru: "Не удалось подключиться к серверу.\nПопробуйте включить или выключить VPN.", es: "No se pudo conectar al servidor.\nIntente activar o desactivar su VPN.", pt: "Não foi possível conectar ao servidor.\nTente ativar ou desativar a VPN.", zh: "无法连接到服务器。\n请尝试开启或关闭VPN。") }
     public static var noSubscriptionsYet: String { L(en: "No Subscriptions Yet", ru: "Пока нет подписок", es: "Sin suscripciones aún", pt: "Sem inscrições ainda", zh: "暂无订阅") }
@@ -371,14 +381,24 @@ public enum DivoStrings {
     public static var noUsersFound: String { L(en: "No Users Found", ru: "Пользователи не найдены", es: "No se encontraron usuarios", pt: "Nenhum usuário encontrado", zh: "未找到用户") }
     public static var noUsersFoundSubtitle: String { L(en: "There are no users\nto display right now.", ru: "Сейчас нет пользователей\nдля отображения.", es: "No hay usuarios\npara mostrar ahora.", pt: "Não há usuários\npara exibir agora.", zh: "当前没有\n可显示的用户。") }
     public static var sendDM: String { L(en: "Send DM", ru: "Написать", es: "Enviar MD", pt: "Enviar MD", zh: "发私信") }
+    public static var loadingModelsList: String { L(en: "LOADING MODELS LIST...", ru: "ЗАГРУЗКА СПИСКА МОДЕЛЕЙ...", es: "CARGANDO LISTA DE MODELOS...", pt: "CARREGANDO LISTA DE MODELOS...", zh: "加载模特列表...") }
+    public static var loadingTalentsList: String { L(en: "LOADING TALENTS...", ru: "ЗАГРУЗКА ТАЛАНТОВ...", es: "CARGANDO TALENTOS...", pt: "CARREGANDO TALENTOS...", zh: "加载新人才...") }
+    public static var loadingAgenciesList: String { L(en: "LOADING AGENCIES...", ru: "ЗАГРУЗКА АГЕНТСТВ...", es: "CARGANDO AGENCIAS...", pt: "CARREGANDO AGÊNCIAS...", zh: "加载经纪公司...") }
+    public static var retry: String { L(en: "Retry", ru: "Повторить", es: "Reintentar", pt: "Tentar novamente", zh: "重试") }
+    public static var profileSaved: String { L(en: "Saved", ru: "Сохранено", es: "Guardado", pt: "Salvo", zh: "已保存") }
+    public static var viewAction: String { L(en: "View", ru: "Смотреть", es: "Ver", pt: "Ver", zh: "查看") }
+    public static var yearsOld: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }
     public static var goToMyProfile: String { L(en: "Go to my profile", ru: "Перейти в мой профиль", es: "Ir a mi perfil", pt: "Ir para meu perfil", zh: "前往我的资料") }
 
     // MARK: - Onboarding
-
-    public static var onboardingTitle1: String { L(en: "STEP INTO THE FASHION WORLD", ru: "ВОЙДИ В МИР МОДЫ", es: "ENTRA EN EL MUNDO DE LA MODA", pt: "ENTRE NO MUNDO DA MODA", zh: "踏入时尚世界") }
-    public static var onboardingTitle2: String { L(en: "FROM SELFIE TO SPOTLIGHT", ru: "ОТ СЕЛФИ ДО ПОДИУМА", es: "DEL SELFIE AL ESCENARIO", pt: "DE SELFIE AO PALCO", zh: "从自拍到聚光灯") }
-    public static var onboardingTitle3: String { L(en: "WHERE NEW MODELS ARE BORN", ru: "ГДЕ РОЖДАЮТСЯ НОВЫЕ МОДЕЛИ", es: "DONDE NACEN NUEVOS MODELOS", pt: "ONDE NOVOS MODELOS NASCEM", zh: "新模特诞生之地") }
     
+    public static var onboardingTitle1: String { L(en: "GET SEEN BY THE RIGHT PEOPLE.", ru: "ПОКАЖИТЕСЬ НУЖНЫМ ЛЮДЯМ.", es: "HAZTE VER POR LAS PERSONAS ADECUADAS.", pt: "SEJA VISTO PELAS PESSOAS CERTAS.", zh: "让对的人看到你。") }
+    public static var onboardingSubTitle1: String { L(en: "A professional profile that puts you in front of agencies and brands actively looking for talent", ru: "Профессиональный профиль, который показывает вас агентствам и брендам, активно ищущим таланты", es: "Un perfil profesional que te pone frente a agencias y marcas que buscan talento activamente", pt: "Um perfil profissional que coloca você diante de agências e marcas que buscam talentos ativamente", zh: "打造专业档案，让正在寻找人才的机构和品牌主动找到你。") }
+    public static var onboardingTitle2: String { L(en: "REAL CASTINGS.\nREAL OPPORTUNITIES.", ru: "РЕАЛЬНЫЕ КАСТИНГИ.\nРЕАЛЬНЫЕ ВОЗМОЖНОСТИ.", es: "CASTINGS REALES.\nOPORTUNIDADES REALES.", pt: "CASTINGS REAIS.\nOPORTUNIDADES REAIS.", zh: "真实的试镜。\n真实的机会。") }
+    public static var onboardingSubTitle2: String { L(en: "Apply to verified jobs from agencies and brands — no middlemen, no guesswork.", ru: "Откликайтесь на проверенные вакансии от агентств и брендов — без посредников и догадок.", es: "Postula a trabajos verificados de agencias y marcas — sin intermediarios, sin conjeturas.", pt: "Candidate-se a vagas verificadas de agências e marcas — sem intermediários, sem adivinhações.", zh: "直接申请来自机构和品牌的已验证工作——没有中间商，不靠猜测。") }
+    public static var onboardingTitle3: String { L(en: "DISCOVERED FASTER\nWITH AI.", ru: "НАХОДИТЕ БЫСТРЕЕ\nС ИИ.", es: "DESCUBIERTO MÁS RÁPIDO\nCON IA.", pt: "DESCOBERTO MAIS RÁPIDO\nCOM IA.", zh: "通过AI\n更快被发现。") }
+    public static var onboardingSubTitle3: String { L(en: "DIVO's AI finds the best match between talent and brands — so opportunities come to you.", ru: "ИИ DIVO находит идеальное соответствие между талантами и брендами — и возможности приходят к вам сами.", es: "La IA de DIVO encuentra la mejor coincidencia entre el talento y las marcas — para que las oportunidades lleguen a ti.", pt: "A IA da DIVO encontra a melhor combinação entre talentos e marcas — para que as oportunidades cheguem até você.", zh: "DIVO的人工智能精准匹配才华与品牌——让机会主动找上你。") }
+
     // MARK: - Add Model Agency
 
     public static var linkModel: String { L(en: "Link on profile in Divo", ru: "Ссылка на профиль в Divo", es: "Enlace en el perfil en Divo", pt: "Link no perfil em Divo", zh: "Divo个人资料连结") }

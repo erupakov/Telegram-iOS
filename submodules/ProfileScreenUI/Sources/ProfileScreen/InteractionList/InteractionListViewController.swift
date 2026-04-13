@@ -124,7 +124,7 @@ final class InteractionListViewController: UIViewController {
     }
 
     private func setupUI() {
-        view.backgroundColor = .white
+        view.backgroundColor = DivoGlassColors.screenBackground
         titleLabel.text = listType.title
 
         view.addSubview(emptyContainer)

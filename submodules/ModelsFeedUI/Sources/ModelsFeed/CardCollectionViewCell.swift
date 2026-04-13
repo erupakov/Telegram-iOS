@@ -4,21 +4,27 @@ import TelegramCore
 import DivoCore
 
 protocol CardCellDelegate: AnyObject {
-    func cardCell(_ cell: CardCollectionViewCell, didTapReaction reaction: ReactionType, for cardName: String, isSelected: Bool)
-    func cardCell(_ cell: CardCollectionViewCell, didTapFollowForUserId userId: Int, isFollowed: Bool)
+    func cardCell(_ cell: CardCollectionViewCell, didTapSaveForUserId userId: Int, isSaved: Bool)
+    func cardCell(_ cell: CardCollectionViewCell, didTapLikeForFeedId feedId: Int, isLiked: Bool)
     func cardCell(_ cell: CardCollectionViewCell, didTapShareForUserId userId: Int)
+    func cardCell(_ cell: CardCollectionViewCell, didTapPreviewAtIndex index: Int)
 }
 
 final class CardCollectionViewCell: UICollectionViewCell {
 
     weak var delegate: CardCellDelegate?
-    private var currentCardName: String?
     private var currentUserId: Int?
-    private var currentIsFollowed: Bool = false
+    private var currentFeedId: Int?
+    private var currentIsSaved: Bool = false
+    private var currentIsLiked: Bool = false
+    private var currentLikesCount: Int = 0
+    private var currentSavesCount: Int = 0
 
     var coverImage: UIImage? {
         return mainImageView.image
     }
+
+    // MARK: - Main Image
 
     private let mainImageView: UIImageView = {
         let imageView = UIImageView()
@@ -27,133 +33,83 @@ final class CardCollectionViewCell: UICollectionViewCell {
         return imageView
     }()
 
-    private let gradientView: GradientView = {
-        let view = GradientView()
-        let colors: [UIColor] = [
-            .clear,
-            .clear,
-            UIColor.black.withAlphaComponent(0.6)
-        ]
-        view.configure(colors: colors, direction: .vertical)
+    // MARK: - Glass Blur Overlays
+
+    private let topGlassView: UIVisualEffectView = {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        view.isUserInteractionEnabled = false
         return view
     }()
 
-    private let reactionsStackView: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .vertical
-        stack.spacing = 15
-        stack.alignment = .center
-        return stack
+    private let bottomGlassView: UIVisualEffectView = {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        view.isUserInteractionEnabled = false
+        return view
     }()
 
-    private func createReactionButton(symbol: String, count: Int, reactionType: ReactionType, isSelected: Bool) -> UIButton {
+    private let topGlassMask = CAGradientLayer()
+    private let bottomGlassMask = CAGradientLayer()
 
-        let button = HighlightableReactionButton(type: .custom)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        button.reactionType = reactionType
-        button.isCurrentlySelected = isSelected
-        button.updateAppearance(forPress: false)
-
-        let label = UILabel()
-        label.text = symbol
-        label.font = UIFont.systemFont(ofSize: 20)
-        label.textAlignment = .center
-
-        let countLabel = UILabel() //TODO:
-        countLabel.text = String(count)
-        countLabel.textColor = .white
-        countLabel.font = UIFont.boldSystemFont(ofSize: 12)
-        countLabel.textAlignment = .center
-
-        let stack = UIStackView(arrangedSubviews: [label, countLabel])
-        stack.axis = .horizontal
-        stack.alignment = .center
-        stack.spacing = 2
-        stack.isUserInteractionEnabled = false
-
-        button.addSubview(stack)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            stack.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            stack.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-        ])
-
-        let buttonSize: CGFloat = 40
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 70),
-            button.heightAnchor.constraint(equalToConstant: buttonSize)
-        ])
-
-        button.tag = reactionType.rawValue
-
-        button.addTarget(self, action: #selector(reactionButtonTapped(_:)), for: .touchUpInside)
-
-        return button
-    }
-
-    private let avatarImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.layer.masksToBounds = true
-        imageView.layer.borderWidth = 3
-        imageView.layer.borderColor = UIColor.white.cgColor
-        return imageView
-    }()
+    // MARK: - Name
 
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.textColor = .white
-        label.font = Font.helveticaNeue(34)
-        label.numberOfLines = 2
+        label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? UIFont.boldSystemFont(ofSize: 20)
+        label.numberOfLines = 1
         label.lineBreakMode = .byTruncatingTail
         return label
     }()
 
-    private let dmButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.backgroundColor = UIColor.white.withAlphaComponent(0.15)
-        button.layer.cornerRadius = 12
-        return button
-    }()
+    // MARK: - Role Badge
 
-    private let shareButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.tintColor = .white
-        button.backgroundColor = .clear
-
-        let image = UIImage(bundleImageName: "Chat/Input/Accessory Panels/MessageSelectionAction")
-        button.setImage(image, for: .normal)
-
-        return button
-    }()
-
-    private let saveButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.tintColor = .white
-        button.backgroundColor = .clear
-
-        let image = UIImage(bundleImageName: "Instant View/Bookmark")
-        button.setImage(image, for: .normal)
-
-        return button
-    }()
-
-    private let secondaryActionsBackgroundView: UIView = {
+    private let roleBadgeView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor.white.withAlphaComponent(0.15)
-        view.layer.cornerRadius = 12
+        view.backgroundColor = UIColor(red: 34/255.0, green: 98/255.0, blue: 216/255.0, alpha: 1.0)
+        view.layer.cornerRadius = 11
         view.layer.masksToBounds = true
         return view
     }()
 
-    private let statusLabel: UILabel = {//TODO:
+    private let roleBadgeLabel: UILabel = {
         let label = UILabel()
         label.textColor = .white
-        label.text = DivoStrings.statusModel
-        label.font = UIFont.systemFont(ofSize: 14)
+        label.font = UIFont(name: "HelveticaNeue", size: 11) ?? UIFont.systemFont(ofSize: 11, weight: .regular)
         return label
     }()
+
+    // MARK: - Info Line (age + country)
+
+    private let infoLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .white
+        label.font = UIFont(name: "HelveticaNeue", size: 14) ?? UIFont.systemFont(ofSize: 14, weight: .regular)
+        return label
+    }()
+
+    // MARK: - Stat Pills (right side)
+
+    private let statsStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.alignment = .fill
+        return stack
+    }()
+
+    private let likesPill: StatPillView = {
+        let pill = StatPillView(iconName: "Components/StatLike", filledIconName: "Components/StatLikeFilled")
+        pill.isUserInteractionEnabled = true
+        return pill
+    }()
+    private let viewsPill = StatPillView(iconName: "Components/StatView")
+    private let savesPill: StatPillView = {
+        let pill = StatPillView(iconName: "Components/StatSave", filledIconName: "Components/StatSaveFilled")
+        pill.isUserInteractionEnabled = true
+        return pill
+    }()
+
+    // MARK: - Preview Gallery
 
     private let previewScrollView: UIScrollView = {
         let sv = UIScrollView()
@@ -167,262 +123,176 @@ final class CardCollectionViewCell: UICollectionViewCell {
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.distribution = .fill
-        stack.spacing = 5
+        stack.spacing = 6
         return stack
     }()
+
+    // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
-        self.layer.masksToBounds = true
+        contentView.layer.cornerRadius = 32
+        contentView.layer.masksToBounds = true
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: - Setup
+
     private func setupViews() {
         contentView.addSubview(mainImageView)
-        contentView.addSubview(gradientView)
-        contentView.addSubview(reactionsStackView)
+        contentView.addSubview(topGlassView)
+        contentView.addSubview(bottomGlassView)
+        topGlassView.layer.mask = topGlassMask
+        bottomGlassView.layer.mask = bottomGlassMask
 
-        contentView.addSubview(avatarImageView)
         contentView.addSubview(nameLabel)
-//        contentView.addSubview(statusLabel)
+        contentView.addSubview(roleBadgeView)
+        roleBadgeView.addSubview(roleBadgeLabel)
+        contentView.addSubview(infoLabel)
 
-        contentView.addSubview(dmButton)
-        contentView.addSubview(secondaryActionsBackgroundView)
-        secondaryActionsBackgroundView.addSubview(shareButton)
-        secondaryActionsBackgroundView.addSubview(saveButton)
+        contentView.addSubview(statsStackView)
+        statsStackView.addArrangedSubview(likesPill)
+        statsStackView.addArrangedSubview(viewsPill)
+        statsStackView.addArrangedSubview(savesPill)
+
+        let likeTap = UITapGestureRecognizer(target: self, action: #selector(likesPillTapped))
+        likesPill.addGestureRecognizer(likeTap)
+
+        let saveTap = UITapGestureRecognizer(target: self, action: #selector(savesPillTapped))
+        savesPill.addGestureRecognizer(saveTap)
 
         contentView.addSubview(previewScrollView)
         previewScrollView.addSubview(previewStackView)
 
-        setupDmButtonContent()
-        shareButton.addTarget(self, action: #selector(shareButtonTapped), for: .touchUpInside)
-        saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "👍", count: 11, reactionType: .like, isSelected: false))
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "❤️", count: 8, reactionType: .heart, isSelected: false))
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "👎", count: 4, reactionType: .dislike, isSelected: false))
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "🔥", count: 18, reactionType: .fire, isSelected: false))
     }
 
-    @objc private func shareButtonTapped() {
+    @objc private func likesPillTapped() {
+        guard let feedId = currentFeedId else { return }
+        currentIsLiked.toggle()
+        currentLikesCount = max(0, currentLikesCount + (currentIsLiked ? 1 : -1))
+        likesPill.setActive(currentIsLiked, animated: true)
+        likesPill.setValue(Self.formatCount(currentLikesCount))
+        delegate?.cardCell(self, didTapLikeForFeedId: feedId, isLiked: currentIsLiked)
+    }
+
+    @objc private func savesPillTapped() {
         guard let userId = currentUserId else { return }
-        delegate?.cardCell(self, didTapShareForUserId: userId)
+        currentIsSaved.toggle()
+        currentSavesCount = max(0, currentSavesCount + (currentIsSaved ? 1 : -1))
+        savesPill.setActive(currentIsSaved, animated: true)
+        savesPill.setValue(Self.formatCount(currentSavesCount))
+        delegate?.cardCell(self, didTapSaveForUserId: userId, isSaved: currentIsSaved)
     }
 
-    @objc private func saveButtonTapped() {
-        guard let userId = currentUserId else { return }
-        currentIsFollowed.toggle()
-        updateSaveButtonAppearance()
-        delegate?.cardCell(self, didTapFollowForUserId: userId, isFollowed: currentIsFollowed)
+    func rollbackLike(isLiked: Bool, likesCount: Int) {
+        currentIsLiked = isLiked
+        currentLikesCount = likesCount
+        likesPill.setActive(isLiked, animated: true)
+        likesPill.setValue(Self.formatCount(likesCount))
     }
 
-    private func updateSaveButtonAppearance() {
-        let color: UIColor = currentIsFollowed ? UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0) : .white
-        saveButton.tintColor = color
+    func rollbackSave(isSaved: Bool, savesCount: Int) {
+        currentIsSaved = isSaved
+        currentSavesCount = savesCount
+        savesPill.setActive(isSaved, animated: true)
+        savesPill.setValue(Self.formatCount(savesCount))
     }
 
-    @objc private func reactionButtonTapped(_ sender: UIButton) {
-        guard let reactionButton = sender as? HighlightableReactionButton,
-              let reactionType = ReactionType(rawValue: sender.tag),
-              let cardName = currentCardName else {
-            print("reactionButtonTapped")
-            return
-        }
-
-        let newSelectedState = !reactionButton.isCurrentlySelected
-        reactionButton.isCurrentlySelected = newSelectedState
-
-        delegate?.cardCell(self, didTapReaction: reactionType, for: cardName, isSelected: newSelectedState)
-    }
-
-    private func setupDmButtonContent() {//TODO:
-        let iconImageView: UIImageView = {
-            let imageView = UIImageView()
-            imageView.image = UIImage(bundleImageName: "Chat/Context Menu/MessageBubble")
-            imageView.tintColor = .white
-            imageView.contentMode = .scaleAspectFit
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            return imageView
-        }()
-
-        let label: UILabel = {
-            let label = UILabel()
-            label.text = DivoStrings.sendDM
-            label.textColor = .white
-            label.font = Font.helveticaNeue(13)
-            label.translatesAutoresizingMaskIntoConstraints = false
-            return label
-        }()
-
-        let stackView: UIStackView = {
-            let stack = UIStackView(arrangedSubviews: [iconImageView, label])
-            stack.axis = .horizontal
-            stack.spacing = 4
-            stack.alignment = .center
-            stack.isUserInteractionEnabled = false
-            stack.translatesAutoresizingMaskIntoConstraints = false
-            return stack
-        }()
-
-        dmButton.addSubview(stackView)
-
-        NSLayoutConstraint.activate([
-            stackView.centerXAnchor.constraint(equalTo: dmButton.centerXAnchor),
-            stackView.centerYAnchor.constraint(equalTo: dmButton.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 20),
-            iconImageView.heightAnchor.constraint(equalToConstant: 20),
-            label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24)
-        ])
-    }
-
-    private func createIconActionButton(systemName: String) -> UIButton {
-        let button = UIButton(type: .system)
-        let image = UIImage(bundleImageName: systemName)
-
-        button.setImage(image, for: .normal)
-        button.tintColor = .white
-        button.backgroundColor = .clear
-        button.layer.cornerRadius = 0
-
-        let size: CGFloat = 40
-        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
-        button.heightAnchor.constraint(equalToConstant: size).isActive = true
-        button.widthAnchor.constraint(equalToConstant: size).isActive = true
-
-
-        return button
-    }
-
-    private func createPreviewImageView() -> UIImageView {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.layer.masksToBounds = true
-        imageView.layer.cornerRadius = 5
-        imageView.backgroundColor = UIColor(white: 0.92, alpha: 1.0)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
-        imageView.widthAnchor.constraint(equalToConstant: 100).isActive = true
-        return imageView
-    }
-
-    private func createPreviewImage(_ imageName: String) -> UIImageView {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.layer.masksToBounds = true
-        imageView.layer.cornerRadius = 5
-        imageView.backgroundColor = .systemGray
-        imageView.image = UIImage(named: imageName)
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
-        imageView.widthAnchor.constraint(equalToConstant: 100).isActive = true
-        return imageView
-    }
+    // MARK: - Layout
 
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        mainImageView.frame = contentView.bounds
-        gradientView.frame = contentView.bounds
-
         let bounds = contentView.bounds
-        let sidePadding: CGFloat = 15
-        let actionsHeight: CGFloat = 40
-        let buttonSize: CGFloat = actionsHeight
-        let spacing: CGFloat = 10
-        let backgroundPadding: CGFloat = 8
+        let sidePadding: CGFloat = 22
+        let topPadding: CGFloat = 24
 
-        let reactionsWidth: CGFloat = 65
-        let reactionsHeight: CGFloat = 210
-        reactionsStackView.frame = CGRect(x: bounds.width - sidePadding - reactionsWidth,
-                                          y: 20,
-                                          width: reactionsWidth,
-                                          height: reactionsHeight)
+        mainImageView.frame = bounds
 
+        // Glass blur: top (light) + bottom (dark), tight edge transitions
+        let topGlassHeight: CGFloat = 120
+        topGlassView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: topGlassHeight)
+        topGlassMask.frame = topGlassView.bounds
+        topGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
+        topGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
+        topGlassMask.colors = [UIColor.white.cgColor, UIColor.white.cgColor, UIColor(white: 1, alpha: 0).cgColor]
+        topGlassMask.locations = [0, 0.3, 1.0]
+
+        let bottomGlassHeight: CGFloat = min(350, bounds.height * 0.55)
+        bottomGlassView.frame = CGRect(x: 0, y: bounds.height - bottomGlassHeight, width: bounds.width, height: bottomGlassHeight)
+        bottomGlassMask.frame = bottomGlassView.bounds
+        bottomGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
+        bottomGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
+        bottomGlassMask.colors = [UIColor(white: 1, alpha: 0).cgColor, UIColor.white.cgColor, UIColor.white.cgColor]
+        bottomGlassMask.locations = [0, 0.75, 1.0]
+
+        // Stats pills (right side) — calculate first to derive name/info widths
+        let statsRightPadding: CGFloat = 16
+        let statsWidth: CGFloat = 64
+        let statsHeight: CGFloat = 30 * 3 + 8 * 2  // 106
+        statsStackView.frame = CGRect(
+            x: bounds.width - statsRightPadding - statsWidth,
+            y: topPadding,
+            width: statsWidth,
+            height: statsHeight
+        )
+
+        // Name
+        let maxNameWidth = statsStackView.frame.minX - 10 - sidePadding
+        nameLabel.frame = CGRect(x: sidePadding, y: topPadding, width: maxNameWidth, height: 24)
+
+        // Role badge (no icon, text only)
+        let badgeY = nameLabel.frame.maxY + 6
+        let badgeLabelSize = roleBadgeLabel.sizeThatFits(CGSize(width: 200, height: 22))
+        roleBadgeLabel.frame = CGRect(x: 8, y: 0, width: ceil(badgeLabelSize.width), height: 22)
+        let badgeWidth = 8 + ceil(badgeLabelSize.width) + 8
+        roleBadgeView.frame = CGRect(x: sidePadding, y: badgeY, width: badgeWidth, height: 22)
+
+        // Info label (age + country)
+        let infoX = roleBadgeView.frame.maxX + 10
+        let infoWidth = statsStackView.frame.minX - 10 - infoX
+        infoLabel.frame = CGRect(x: infoX, y: badgeY, width: max(infoWidth, 0), height: 22)
+
+        // Preview images (carousel)
         let hasPreviews = previewStackView.arrangedSubviews.count > 0
-
-        let previewHeight: CGFloat = 100
+        let previewImageWidth: CGFloat = 93
+        let previewImageHeight: CGFloat = 100
+        let previewLeftPadding: CGFloat = 16
+        let previewBottomPadding: CGFloat = 16
         if hasPreviews {
-            let previewY = bounds.height - sidePadding - previewHeight
-            previewScrollView.frame = CGRect(x: sidePadding,
-                                             y: previewY,
-                                             width: bounds.width - 2 * sidePadding,
-                                             height: previewHeight)
-            let imageSize: CGFloat = 100
-            let imageSpacing: CGFloat = 5
+            let previewY = bounds.height - previewBottomPadding - previewImageHeight
+            previewScrollView.frame = CGRect(x: previewLeftPadding, y: previewY, width: bounds.width - previewLeftPadding, height: previewImageHeight)
+            let imageSpacing: CGFloat = 6
             let count = CGFloat(previewStackView.arrangedSubviews.count)
-            let stackWidth = count * imageSize + max(0, count - 1) * imageSpacing
-            previewStackView.frame = CGRect(x: 0, y: 0, width: stackWidth, height: previewHeight)
-            previewScrollView.contentSize = CGSize(width: stackWidth, height: previewHeight)
+            let stackWidth = count * previewImageWidth + max(0, count - 1) * imageSpacing
+            previewStackView.frame = CGRect(x: 0, y: 0, width: stackWidth, height: previewImageHeight)
+            previewScrollView.contentSize = CGSize(width: stackWidth, height: previewImageHeight)
         } else {
             previewScrollView.frame = .zero
-            previewStackView.frame = CGRect(x: 0, y: 0, width: 0, height: 0)
+            previewStackView.frame = .zero
             previewScrollView.contentSize = .zero
         }
 
-        let actionsY: CGFloat
-        if hasPreviews {
-            actionsY = previewScrollView.frame.minY - spacing - actionsHeight
-        } else {
-            actionsY = bounds.height - sidePadding - actionsHeight
-        }
-
-        let dmButtonWidth: CGFloat = 100
-        dmButton.frame = CGRect(x: sidePadding,
-                                y: actionsY,
-                                width: dmButtonWidth,
-                                height: actionsHeight)
-
-        let backgroundWidth: CGFloat = 100.0
-        secondaryActionsBackgroundView.frame = CGRect(x: bounds.width - sidePadding - backgroundWidth,
-                                                      y: actionsY,
-                                                      width: backgroundWidth,
-                                                      height: actionsHeight)
-
-        shareButton.frame = CGRect(x: backgroundPadding,
-                                   y: 0,
-                                   width: buttonSize,
-                                   height: buttonSize)
-
-        saveButton.frame = CGRect(x: backgroundPadding + buttonSize + spacing,
-                                  y: 0,
-                                  width: buttonSize,
-                                  height: buttonSize)
-
-        let avatarSize: CGFloat = 80
-        let avatarY = actionsY - 15 - avatarSize
-        avatarImageView.frame = CGRect(x: sidePadding,
-                                       y: avatarY,
-                                       width: avatarSize,
-                                       height: avatarSize)
-        avatarImageView.layer.cornerRadius = avatarSize / 2
-
-        let textX = avatarImageView.frame.maxX + 10
-        let maxTextRight = reactionsStackView.frame.minX - 10
-        let textWidth = max(0, maxTextRight - textX)
-        let fittingSize = nameLabel.sizeThatFits(CGSize(width: textWidth, height: .greatestFiniteMagnitude))
-        let textHeight = min(fittingSize.height, 82)
-        nameLabel.frame = CGRect(x: textX,
-                                 y: avatarImageView.frame.midY - textHeight / 2,
-                                 width: textWidth,
-                                 height: textHeight)
     }
+
+    // MARK: - Configure
 
     func configure(with model: CardModel, delegate: CardCellDelegate) {
         self.delegate = delegate
-        self.currentCardName = model.name
         self.currentUserId = model.userId
-        self.currentIsFollowed = model.isFollowed
-        updateSaveButtonAppearance()
-
-        let userReaction = model.userReaction
-
-        reactionsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        self.currentFeedId = model.feedId
+        self.currentIsSaved = model.isFollowed
+        self.currentIsLiked = model.isLiked
+        self.currentLikesCount = model.likesCount
+        self.currentSavesCount = model.savesCount
 
         let placeholderColor = UIColor(white: 0.92, alpha: 1.0)
 
+        // Main image
         if let url = model.mainImageURL {
             mainImageView.backgroundColor = placeholderColor
             mainImageView.loadImage(from: url)
@@ -432,59 +302,220 @@ final class CardCollectionViewCell: UICollectionViewCell {
             mainImageView.backgroundColor = placeholderColor
         }
 
-        if let url = model.avatarImageURL {
-            avatarImageView.backgroundColor = placeholderColor
-            avatarImageView.loadImage(from: url) { [weak self] image in
-                guard let self else { return }
-                self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-            }
-        } else {
-            avatarImageView.image = UIImage(named: model.avatarImageName)
-            avatarImageView.applyAvatarTopCropIfNeeded(image: avatarImageView.image)
-        }
-
-        avatarImageView.backgroundColor = .white
-
+        // Name
         nameLabel.text = model.name
 
-        reactionsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        // Role badge
+        let roleText = model.roleLabel ?? model.role ?? ""
+        if roleText.isEmpty {
+            roleBadgeView.isHidden = true
+        } else {
+            roleBadgeView.isHidden = false
+            roleBadgeLabel.text = roleText.capitalized
+        }
 
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "👍", count: 11, reactionType: .like, isSelected: userReaction == .like))
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "❤️", count: 8, reactionType: .heart, isSelected: userReaction == .heart))
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "👎", count: 4, reactionType: .dislike, isSelected: userReaction == .dislike))
-        reactionsStackView.addArrangedSubview(createReactionButton(symbol: "🔥", count: 18, reactionType: .fire, isSelected: userReaction == .fire))
+        // Info line
+        var infoParts: [String] = []
+        if let age = model.age, age > 0 {
+            infoParts.append("\(age) \(DivoStrings.yearsOld)")
+        }
+        if let flag = model.countryFlag, let country = model.country {
+            infoParts.append("\(flag) \(country)")
+        } else if let country = model.country {
+            infoParts.append(country)
+        }
+        infoLabel.text = infoParts.joined(separator: " · ")
+        infoLabel.isHidden = infoParts.isEmpty
 
+        // Stats
+        likesPill.setValue(Self.formatCount(model.likesCount))
+        likesPill.setActive(model.isLiked)
+        viewsPill.setValue(Self.formatCount(model.viewsCount))
+        savesPill.setValue(Self.formatCount(model.savesCount))
+        savesPill.setActive(model.isFollowed)
+
+        // Preview images
         previewStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-
         if !model.previewImageURLs.isEmpty {
-            for url in model.previewImageURLs {
-                let imageView = createPreviewImageView()
+            for (index, url) in model.previewImageURLs.enumerated() {
+                let imageView = createPreviewImageView(index: index)
                 imageView.loadImage(from: url)
                 previewStackView.addArrangedSubview(imageView)
             }
         } else {
-            for imageName in model.previewImagesName {
-                let imageView = createPreviewImage(imageName)
+            for (index, imageName) in model.previewImagesName.enumerated() {
+                let imageView = createPreviewImageView(index: index, imageName: imageName)
                 previewStackView.addArrangedSubview(imageView)
             }
         }
         let hasPreviews = !model.previewImagesName.isEmpty || !model.previewImageURLs.isEmpty
-
         previewScrollView.isHidden = !hasPreviews
         previewScrollView.contentOffset = .zero
+
         setNeedsLayout()
     }
+
+    // MARK: - Helpers
+
+    private func createPreviewImageView(index: Int, imageName: String? = nil) -> UIImageView {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.layer.masksToBounds = true
+        imageView.layer.cornerRadius = 8
+        imageView.backgroundColor = UIColor(white: 0.92, alpha: 1.0)
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
+        imageView.widthAnchor.constraint(equalToConstant: 93).isActive = true
+        imageView.isUserInteractionEnabled = true
+        imageView.tag = index
+        imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(previewImageTapped(_:))))
+        if let imageName {
+            imageView.image = UIImage(named: imageName)
+        }
+        return imageView
+    }
+
+    @objc private func previewImageTapped(_ gesture: UITapGestureRecognizer) {
+        guard let view = gesture.view else { return }
+        delegate?.cardCell(self, didTapPreviewAtIndex: view.tag)
+    }
+
+    /// Formats count to max 4 characters: 999 → "999", 1K, 288K, 1.5M, 10M, 1.5B
+    static func formatCount(_ count: Int) -> String {
+        if count >= 1_000_000_000 {
+            let value = Double(count) / 1_000_000_000.0
+            if value >= 10 {
+                return "\(Int(value))B"
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))B"
+            }
+            return "\(formatted)B"
+        } else if count >= 1_000_000 {
+            let value = Double(count) / 1_000_000.0
+            if value >= 10 {
+                return "\(Int(value))M"
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))M"
+            }
+            return "\(formatted)M"
+        } else if count >= 1_000 {
+            return "\(count / 1_000)K"
+        }
+        return "\(count)"
+    }
+
+    // MARK: - Reuse
 
     override func prepareForReuse() {
         super.prepareForReuse()
         mainImageView.cancelImageLoad()
         mainImageView.image = nil
-        avatarImageView.cancelImageLoad()
-        avatarImageView.image = nil
-        avatarImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         previewStackView.arrangedSubviews.forEach {
             ($0 as? UIImageView)?.cancelImageLoad()
             $0.removeFromSuperview()
         }
+    }
+}
+
+// MARK: - StatPillView
+
+final class StatPillView: UIView {
+    private let iconView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .center
+        iv.tintColor = .white
+        return iv
+    }()
+
+    private let countLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .white
+        label.font = UIFont(name: "HelveticaNeue", size: 12) ?? UIFont.systemFont(ofSize: 12, weight: .regular)
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+        return label
+    }()
+
+    private let normalIcon: UIImage?
+    private let filledIcon: UIImage?
+
+    init(iconName: String, filledIconName: String? = nil) {
+        self.normalIcon = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
+        if let filledIconName {
+            self.filledIcon = UIImage(bundleImageName: filledIconName)?.withRenderingMode(.alwaysTemplate)
+        } else {
+            self.filledIcon = nil
+        }
+        super.init(frame: .zero)
+        backgroundColor = DivoGlassColors.statPillBackground
+        layer.cornerRadius = 15
+        layer.masksToBounds = true
+        layer.borderWidth = 0.5
+        layer.borderColor = DivoGlassColors.statPillBorder.cgColor
+
+        iconView.image = normalIcon
+
+        addSubview(iconView)
+        addSubview(countLabel)
+
+        translatesAutoresizingMaskIntoConstraints = false
+        heightAnchor.constraint(equalToConstant: 30).isActive = true
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func setValue(_ text: String) {
+        countLabel.text = text
+        setNeedsLayout()
+    }
+
+    func setActive(_ active: Bool, animated: Bool = false) {
+        let change = {
+            if active {
+                self.backgroundColor = .white
+                self.layer.borderColor = UIColor.white.cgColor
+                self.iconView.tintColor = .black
+                self.countLabel.textColor = .black
+                if let filled = self.filledIcon {
+                    self.iconView.image = filled
+                }
+            } else {
+                self.backgroundColor = DivoGlassColors.statPillBackground
+                self.layer.borderColor = DivoGlassColors.statPillBorder.cgColor
+                self.iconView.tintColor = .white
+                self.countLabel.textColor = .white
+                self.iconView.image = self.normalIcon
+            }
+        }
+        if animated {
+            UIView.animate(withDuration: 0.2, animations: change)
+        } else {
+            change()
+        }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let iconSize: CGFloat = 16
+        let iconX: CGFloat = 8
+        let iconY: CGFloat = (bounds.height - iconSize) / 2
+        iconView.frame = CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)
+        let labelX: CGFloat = iconX + iconSize + 4
+        let labelWidth = bounds.width - labelX - 4
+        countLabel.frame = CGRect(x: labelX, y: 0, width: max(labelWidth, 0), height: bounds.height)
+    }
+
+    override var intrinsicContentSize: CGSize {
+        return CGSize(width: 64, height: 30)
+    }
+
+    override func sizeThatFits(_ size: CGSize) -> CGSize {
+        return intrinsicContentSize
     }
 }

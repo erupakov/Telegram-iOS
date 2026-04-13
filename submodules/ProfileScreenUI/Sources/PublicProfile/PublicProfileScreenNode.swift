@@ -374,7 +374,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var modelHeightConstraint: NSLayoutConstraint!
     private var eventHeightConstraint: NSLayoutConstraint!
     
-    private var currentTabIndex: Int = 0
+    private var currentTab: ProfileTab = .photo
     private var collectionsContainerHeightConstraint: NSLayoutConstraint!
     
     private let photoTabContainer: UIView = {
@@ -613,18 +613,18 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onAddPhotoTapped: (() -> Void)?
     var onAddVideoTapped: (() -> Void)?
     var onAddEventTapped: (() -> Void)?
-    var onGalleryItemTapped: ((Int, Int) -> Void)? 
+    var onGalleryItemTapped: ((ProfileTab, Int) -> Void)?
     var onSocialLinkTapped: ((String) -> Void)?
     var onEventButtonTapped: ((Int) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
     private enum SocialIcon: String {
-        case instagram = "Models/instaIcon"
-        case tiktok = "Models/TikTokIcon"
-        case youtube = "Models/youtubeIcon"
-        case telegram = "Models/telegramIcon"
-        case website = "Models/webIcon"
+        case instagram = "Components/instaIcon"
+        case tiktok = "Components/TikTokIcon"
+        case youtube = "Components/youtubeIcon"
+        case telegram = "Components/telegramIcon"
+        case website = "Components/webIcon"
         
         static func icon(for urlString: String) -> String {
             let lowercased = urlString.lowercased()
@@ -1946,7 +1946,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             if let layout = self.containerLayout?.0 {
                 self.updateAllCollectionViewHeights(layout: layout)
-                if self.currentTabIndex == 0 { self.updateCollectionsContainerHeight(animated: false) }
+                if self.currentTab == .photo { self.updateCollectionsContainerHeight(animated: false) }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                 self?.checkAndLoadMoreGalleryPhotos()
@@ -1957,7 +1957,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.galleryCollectionView.insertItems(at: newIndices)
                 if let layout = self.containerLayout?.0 {
                     self.updateAllCollectionViewHeights(layout: layout)
-                    if self.currentTabIndex == 0 { self.updateCollectionsContainerHeight(animated: true) }
+                    if self.currentTab == .photo { self.updateCollectionsContainerHeight(animated: true) }
                 }
             }, completion: { [weak self] _ in
                 self?.checkAndLoadMoreGalleryPhotos()
@@ -2007,14 +2007,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
             galleryCollectionView.reloadData()
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
             }
         } else {
             galleryCollectionView.performBatchUpdates({
                 galleryCollectionView.insertItems(at: [IndexPath(item: 0, section: 0)])
                 if let layout = self.containerLayout?.0 {
                     updateAllCollectionViewHeights(layout: layout)
-                    if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                    if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
                 }
             }, completion: { _ in
                 self.galleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
@@ -2039,7 +2039,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             galleryCollectionView.deleteItems(at: [IndexPath(item: 0, section: 0)])
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
             }
         }, completion: { [weak self] _ in
             guard let self = self else { return }
@@ -2065,7 +2065,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
             }
         } else {
             galleryCollectionView.performBatchUpdates({
@@ -2074,7 +2074,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
                 if let layout = self.containerLayout?.0 {
                     updateAllCollectionViewHeights(layout: layout)
-                    if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                    if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
                 }
             }, completion: { _ in
                 self.galleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
@@ -2096,7 +2096,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             // Пересчитываем высоту коллекции, если ряд исчез
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
             }
         }, completion: {[weak self] _ in
             guard let self = self else { return }
@@ -2232,7 +2232,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             if let layout = self.containerLayout?.0 {
                 self.updateAllCollectionViewHeights(layout: layout)
-                if self.currentTabIndex == 1 { self.updateCollectionsContainerHeight(animated: true) }
+                if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
             }
         } else if !uniquePhotoItems.isEmpty {
             let newIndices = (previousCount..<(previousCount + uniquePhotoItems.count)).map { IndexPath(item: $0, section: 0) }
@@ -2240,7 +2240,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.videoGalleryCollectionView.insertItems(at: newIndices)
                 if let layout = self.containerLayout?.0 {
                     self.updateAllCollectionViewHeights(layout: layout)
-                    if self.currentTabIndex == 1 { self.updateCollectionsContainerHeight(animated: true) }
+                    if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
                 }
             }, completion: nil)
         }
@@ -2282,14 +2282,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
             videoGalleryCollectionView.reloadData()
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 1 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
             }
         } else {
             videoGalleryCollectionView.performBatchUpdates({
                 videoGalleryCollectionView.insertItems(at: [IndexPath(item: 0, section: 0)])
                 if let layout = self.containerLayout?.0 {
                     updateAllCollectionViewHeights(layout: layout)
-                    if currentTabIndex == 1 { updateCollectionsContainerHeight(animated: true) }
+                    if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
                 }
             }, completion: { _ in
                 self.videoGalleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
@@ -2314,7 +2314,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             videoGalleryCollectionView.deleteItems(at: [IndexPath(item: 0, section: 0)])
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 1 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
             }
         }, completion: { [weak self] _ in
             guard let self = self else { return }
@@ -2339,7 +2339,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
             }
         } else {
             videoGalleryCollectionView.performBatchUpdates({
@@ -2348,7 +2348,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
                 if let layout = self.containerLayout?.0 {
                     updateAllCollectionViewHeights(layout: layout)
-                    if currentTabIndex == 0 { updateCollectionsContainerHeight(animated: true) }
+                    if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
                 }
             }, completion: { _ in
                 self.videoGalleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
@@ -2369,7 +2369,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTabIndex == 1 { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
             }
         }, completion: { [weak self] _ in
             guard let self = self else { return }
@@ -2452,9 +2452,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            // Индекс каналов зависит от роли
-            let channelIndex = (modelRole == .model) ? 2 : 3
-            if self.currentTabIndex == channelIndex { self.updateCollectionsContainerHeight(animated: true) }
+            if self.currentTab == .channels { self.updateCollectionsContainerHeight(animated: true) }
         }
     }
     
@@ -2504,9 +2502,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            if self.currentTabIndex == 2 {
+            if self.currentTab == .models {
                 self.updateCollectionsContainerHeight(animated: true)
-                
+
                 if !hasItems && model.isMyProfile && modelRole == .agency {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                         guard let self = self else { return }
@@ -2555,7 +2553,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            if self.currentTabIndex == 4 { self.updateCollectionsContainerHeight(animated: true) }
+            if self.currentTab == .events { self.updateCollectionsContainerHeight(animated: true) }
         }
     }
     
@@ -2615,28 +2613,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
             return constraint.constant
         }
         
-        if isMyModelProfile {
-            switch currentTabIndex {
-            case 0: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
-            case 1: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
-            default: return 160
-            }
-        } else if (modelRole == .model || modelRole == .newFace) && !model.isMyProfile {
-            switch currentTabIndex {
-            case 0: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
-            case 1: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
-            case 2: return heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
-            default: return 160
-            }
-        } else {
-            switch currentTabIndex {
-            case 0: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
-            case 1: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
-            case 2: return heightFor(isEmpty: modelGalleryItems.isEmpty, constraint: modelHeightConstraint, isModelTab: true)
-            case 3: return heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
-            case 4: return heightFor(isEmpty: eventGalleryItems.isEmpty, constraint: eventHeightConstraint)
-            default: return 160
-            }
+        switch currentTab {
+        case .photo: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
+        case .video: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
+        case .models: return heightFor(isEmpty: modelGalleryItems.isEmpty, constraint: modelHeightConstraint, isModelTab: true)
+        case .channels: return heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
+        case .events: return heightFor(isEmpty: eventGalleryItems.isEmpty, constraint: eventHeightConstraint)
         }
     }
     
@@ -2828,10 +2810,10 @@ extension PublicProfileScreenNode: UICollectionViewDelegate {
             // handleSimilarProfileTap(profile)
         } else if collectionView == galleryCollectionView {
             guard galleryPhotos[indexPath.item].id != -1 else { return }
-            onGalleryItemTapped?(0, indexPath.item)
+            onGalleryItemTapped?(.photo, indexPath.item)
         } else if collectionView == videoGalleryCollectionView {
             guard videoGalleryItems[indexPath.item].id != -1 else { return }
-            onGalleryItemTapped?(1, indexPath.item)
+            onGalleryItemTapped?(.video, indexPath.item)
         }
     }
 
@@ -2957,31 +2939,15 @@ extension PublicProfileScreenNode: UIScrollViewDelegate {
     
     // Менеджер загрузки для текущей вкладки
     private func triggerLoadMoreForActiveTab() {
-        if isMyModelProfile {
-            switch currentTabIndex {
-            case 0:
-                if galleryHasMore && !galleryIsLoading { loadNextGalleryPage() }
-            case 1:
-                if videoGalleryHasMore && !videoGalleryIsLoading { loadNextVideoGalleryPage() }
-            default: break
-            }
-        } else if (modelRole == .model || modelRole == .newFace) && !model.isMyProfile {
-            switch currentTabIndex {
-            case 0:
-                if galleryHasMore && !galleryIsLoading { loadNextGalleryPage() }
-            case 1:
-                if videoGalleryHasMore && !videoGalleryIsLoading { loadNextVideoGalleryPage() }
-            default: break
-            }
-        } else {
-            switch currentTabIndex {
-            case 0:
-                if galleryHasMore && !galleryIsLoading { loadNextGalleryPage() }
-            case 1:
-                if videoGalleryHasMore && !videoGalleryIsLoading { loadNextVideoGalleryPage() }
-                // Модели, каналы, эвенты - добавить пагинацию по аналогии
-            default: break
-            }
+        switch currentTab {
+        case .photo:
+            if galleryHasMore && !galleryIsLoading { loadNextGalleryPage() }
+        case .video:
+            if videoGalleryHasMore && !videoGalleryIsLoading { loadNextVideoGalleryPage() }
+        // TODO: добавить пагинацию по аналогии
+        case .models: break
+        case .channels: break
+        case .events: break
         }
     }
 }
@@ -3003,92 +2969,89 @@ extension PublicProfileScreenNode: ProfileInfoViewDelegate {
 
 extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
     
-    private func getTabContainer(for index: Int) -> UIView {
+    private func profileTab(forSegmentIndex index: Int) -> ProfileTab? {
+        let tabs: [ProfileTab]
         if isMyModelProfile {
-            switch index {
-            case 0: return photoTabContainer
-            case 1: return videoTabContainer
-            default: return photoTabContainer
-            }
+            tabs = [.photo, .video]
         } else if (modelRole == .model || modelRole == .newFace) && !model.isMyProfile {
-            switch index {
-            case 0: return photoTabContainer
-            case 1: return videoTabContainer
-            case 2: return channelTabContainer
-            default: return photoTabContainer
-            }
+            tabs = [.photo, .video, .channels]
         } else {
-            switch index {
-            case 0: return photoTabContainer
-            case 1: return videoTabContainer
-            case 2: return modelTabContainer
-            case 3: return channelTabContainer
-            case 4: return eventTabContainer
-            default: return photoTabContainer
-            }
+            tabs = [.photo, .video, .models, .channels, .events]
+        }
+        guard index >= 0 && index < tabs.count else { return nil }
+        return tabs[index]
+    }
+
+    private func getTabContainer(for tab: ProfileTab) -> UIView {
+        switch tab {
+        case .photo: return photoTabContainer
+        case .video: return videoTabContainer
+        case .models: return modelTabContainer
+        case .channels: return channelTabContainer
+        case .events: return eventTabContainer
         }
     }
     
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int) {
-        guard index != currentTabIndex else { return }
-        
-        let isSlidingLeft = index > currentTabIndex
+        guard let newTab = profileTab(forSegmentIndex: index), newTab != currentTab else { return }
+
+        let isSlidingLeft = newTab.rawValue > currentTab.rawValue
         let screenWidth = self.view.bounds.width
         let offset = isSlidingLeft ? screenWidth : -screenWidth
-        
-        let oldContainer = getTabContainer(for: currentTabIndex)
-        let newContainer = getTabContainer(for: index)
-        
+
+        let oldContainer = getTabContainer(for: currentTab)
+        let newContainer = getTabContainer(for: newTab)
+
         newContainer.transform = CGAffineTransform(translationX: offset, y: 0)
         newContainer.isHidden = false
-        
-        loadDataForTab(index: index)
-        
-        currentTabIndex = index
-        
+
+        loadDataForTab(newTab)
+
+        currentTab = newTab
+
         // 1. Устанавливаем новую высоту (вычисляем через наш новый метод)
         collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
-        
+
         // 2. Анимируем всё вместе: сдвиг, изменение высоты и корректировку скролла
         UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseInOut, animations: {
             oldContainer.transform = CGAffineTransform(translationX: -offset, y: 0)
             newContainer.transform = .identity
-            
+
             // Плавно применяем новую высоту к Layout
             self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
-            
+
             // Если новый таб короче, и мы находились в самом низу, скролл должен плавно подняться
             let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
             if self.scrollView.contentOffset.y > maxOffset {
                 self.scrollView.contentOffset.y = maxOffset
             }
-            
+
         }, completion: {[weak self] _ in
             guard let self = self else { return }
             oldContainer.isHidden = true
             oldContainer.transform = .identity
-            
+
             // Логика автоматического скролла вниз для ПУСТОГО окна добавления моделей
             let hasItems = !self.modelGalleryItems.isEmpty
-            if index == 2 && self.model.isMyProfile && self.modelRole == .agency && !hasItems {
+            if newTab == .models && self.model.isMyProfile && self.modelRole == .agency && !hasItems {
                 let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
                 self.scrollView.setContentOffset(bottomOffset, animated: true)
             }
         })
     }
     
-    private func loadDataForTab(index: Int) {
-        if isMyModelProfile {
-            if index == 1 && !videoGalleryInitialized { videoGalleryInitialized = true; loadVideoGallery() }
-        } else if (modelRole == .model || modelRole == .newFace) && !model.isMyProfile {
-            if index == 1 && !videoGalleryInitialized { videoGalleryInitialized = true; loadVideoGallery() }
-            else if index == 2 && !channelGalleryInitialized { channelGalleryInitialized = true; loadChannelGallery() }
-        } else {
-            if index == 1 && !videoGalleryInitialized { videoGalleryInitialized = true; loadVideoGallery() }
-            else if index == 2 && !modelGalleryInitialized { modelGalleryInitialized = true; loadModelGallery() }
-            else if index == 3 && !channelGalleryInitialized { channelGalleryInitialized = true; loadChannelGallery() }
-            else if index == 4 && !eventGalleryInitialized { eventGalleryInitialized = true; loadEventGallery() }
+    private func loadDataForTab(_ tab: ProfileTab) {
+        switch tab {
+        case .photo: break
+        case .video:
+            if !videoGalleryInitialized { videoGalleryInitialized = true; loadVideoGallery() }
+        case .models:
+            if !modelGalleryInitialized { modelGalleryInitialized = true; loadModelGallery() }
+        case .channels:
+            if !channelGalleryInitialized { channelGalleryInitialized = true; loadChannelGallery() }
+        case .events:
+            if !eventGalleryInitialized { eventGalleryInitialized = true; loadEventGallery() }
         }
     }
 }

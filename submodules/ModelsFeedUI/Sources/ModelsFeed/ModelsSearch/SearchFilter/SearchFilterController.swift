@@ -143,7 +143,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
-        let image = UIImage(bundleImageName: "CloseIcon") ?? UIImage(systemName: "xmark")
+        let image = UIImage(bundleImageName: "SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
         button.layer.shadowColor = UIColor.black.cgColor

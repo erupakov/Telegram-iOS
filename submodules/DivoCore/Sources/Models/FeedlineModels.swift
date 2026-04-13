@@ -39,7 +39,8 @@ public struct FeedlineItem: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case id, feedId, title, description, entity, type
-        case likesCount, isLikedByUser, isFavoriteByUser
+        case likesCount
+        case isLikedByUser, isFavoriteByUser
         case user, files, searchImage
     }
 

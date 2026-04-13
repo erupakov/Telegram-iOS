@@ -45,7 +45,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let searchIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(bundleImageName: "SearchIcon") ?? UIImage(systemName: "magnifyingglass")
+        imageView.image = UIImage(bundleImageName: "SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
         imageView.tintColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.6)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -93,7 +93,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
-        let image = UIImage(bundleImageName: "CloseIcon") ?? UIImage(systemName: "xmark")
+        let image = UIImage(bundleImageName: "SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
         button.layer.shadowColor = UIColor.black.cgColor
