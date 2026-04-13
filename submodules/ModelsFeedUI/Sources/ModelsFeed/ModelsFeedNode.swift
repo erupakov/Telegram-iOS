@@ -533,7 +533,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         updateHeaderLayout()
         layoutLoadingPlaceholder()
         layoutSpinnerLoading()
-        layoutSnackbar()
+        snackbar.updateBottomInset(layout.intrinsicInsets.bottom + 16)
     }
 
     private func updateHeaderLayout() {
@@ -949,9 +949,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         placeholder.subviews.compactMap { $0 as? ShimmerView }.forEach { $0.startShimmer() }
 
-        if let snack = snackbarView {
-            self.view.bringSubviewToFront(snack)
-        }
+        snackbar.bringToFront()
     }
 
     private func hideLoadingPlaceholder() {
@@ -1032,124 +1030,26 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
 
     // MARK: - Snackbar
-    // TODO: [DivoUIKit] унифицировать со snackbar в ModelsSearchNode — дубликат до выноса в DivoUIKit
 
-    private var snackbarView: UIView?
-    private var snackbarHideTimer: Foundation.Timer?
-    private var snackbarRetryAction: (() -> Void)?
+    typealias SnackbarStyle = DivoSnackbar.Style
 
-    enum SnackbarStyle {
-        case success
-        case error
-    }
+    private let snackbar = DivoSnackbar()
 
     func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
-        hideSnackbar(animated: false)
-
-        let snack = UIView()
-        snack.backgroundColor = style == .error
-            ? UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)
-            : UIColor(red: 12/255, green: 138/255, blue: 81/255, alpha: 1)
-        snack.layer.cornerRadius = 8
-        snack.layer.masksToBounds = true
-
-        let titleLabel = UILabel()
-        titleLabel.text = message
-        titleLabel.font = UIFont(name: "HelveticaNeue", size: 14) ?? UIFont.systemFont(ofSize: 14)
-        titleLabel.textColor = .white
-        titleLabel.textAlignment = .center
-        titleLabel.tag = 400
-        snack.addSubview(titleLabel)
-
-        if style == .error, retryAction != nil {
-            let retryButton = UIButton(type: .system)
-            retryButton.setTitle(DivoStrings.retry, for: .normal)
-            retryButton.titleLabel?.font = UIFont(name: "HelveticaNeue-Bold", size: 14) ?? UIFont.boldSystemFont(ofSize: 14)
-            retryButton.setTitleColor(.white, for: .normal)
-            retryButton.tag = 401
-            retryButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
-            retryButton.addTarget(self, action: #selector(snackbarRetryTapped), for: .touchUpInside)
-            snack.addSubview(retryButton)
-        }
-
-        let tap = UITapGestureRecognizer(target: self, action: #selector(snackbarTapped))
-        snack.addGestureRecognizer(tap)
-
-        self.snackbarRetryAction = retryAction
-        self.view.addSubview(snack)
-        self.view.bringSubviewToFront(snack)
-        snackbarView = snack
-        layoutSnackbar()
-
-        snack.alpha = 0
-        snack.transform = CGAffineTransform(translationX: 0, y: 30)
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: []) {
-            snack.alpha = 1
-            snack.transform = .identity
-        }
-
-        snackbarHideTimer?.invalidate()
-        if !persistent {
-            snackbarHideTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
-                self?.hideSnackbar(animated: true)
-            }
-        }
+        let bottomInset = (containerLayout?.0.intrinsicInsets.bottom ?? 0) + 16
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: bottomInset,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
     }
 
     private func hideSnackbar(animated: Bool) {
-        snackbarHideTimer?.invalidate()
-        snackbarHideTimer = nil
-        guard let snack = snackbarView else { return }
-        snackbarView = nil
-        snackbarRetryAction = nil
-        if animated {
-            UIView.animate(withDuration: 0.2, animations: {
-                snack.alpha = 0
-                snack.transform = CGAffineTransform(translationX: 0, y: 20)
-            }, completion: { _ in
-                snack.removeFromSuperview()
-            })
-        } else {
-            snack.removeFromSuperview()
-        }
-    }
-
-    @objc private func snackbarTapped() {
-        hideSnackbar(animated: true)
-    }
-
-    @objc private func snackbarRetryTapped() {
-        let action = snackbarRetryAction
-        hideSnackbar(animated: true)
-        action?()
-    }
-
-    private func layoutSnackbar() {
-        guard let snack = snackbarView,
-              let (layout, _) = containerLayout else { return }
-        let tabBarHeight = layout.intrinsicInsets.bottom
-        let sidePadding: CGFloat = 8
-        let snackHeight: CGFloat = 50
-        let viewWidth = self.view.bounds.width
-        let bottomY = self.view.bounds.height - tabBarHeight - 16 - snackHeight
-        snack.frame = CGRect(x: sidePadding, y: bottomY, width: viewWidth - sidePadding * 2, height: snackHeight)
-        self.view.bringSubviewToFront(snack)
-
-        if let retryButton = snack.viewWithTag(401) as? UIButton {
-            retryButton.sizeToFit()
-            let retryWidth = retryButton.frame.width + 24 // contentEdgeInsets
-            retryButton.frame = CGRect(x: snack.bounds.width - retryWidth - 4, y: 0, width: retryWidth, height: snackHeight)
-
-            if let title = snack.viewWithTag(400) as? UILabel {
-                title.frame = CGRect(x: 16, y: 0, width: snack.bounds.width - retryWidth - 24, height: snackHeight)
-                title.textAlignment = .left
-            }
-        } else {
-            if let title = snack.viewWithTag(400) as? UILabel {
-                title.frame = CGRect(x: 16, y: 0, width: snack.bounds.width - 32, height: snackHeight)
-                title.textAlignment = .left
-            }
-        }
+        snackbar.hide(animated: animated)
     }
 
     private func layoutLoadingPlaceholder() {
