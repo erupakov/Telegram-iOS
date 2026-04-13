@@ -129,19 +129,6 @@ final class ModelsSearchNode: ASDisplayNode {
         return tableView
     }()
     
-    // На будущее
-//    private let floatingActionButton: UIButton = {
-//        let button = UIButton(type: .custom)
-//        button.backgroundColor = .white
-//        button.layer.cornerRadius = 19
-//        let image = UIImage(bundleImageName: "Ai") ?? UIImage(systemName: "sparkles")
-//        button.setImage(image, for: .normal)
-//        button.tintColor = UIColor(hexString: "#BF7A54")
-//        button.layer.masksToBounds = false
-//        button.translatesAutoresizingMaskIntoConstraints = false
-//        return button
-//    }()
-    
     private let faceScanButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = UIColor(hexString: "#FF772D")
@@ -363,8 +350,6 @@ final class ModelsSearchNode: ASDisplayNode {
         topBarContainer.addSubview(searchFieldContainer)
         searchFieldContainer.addSubview(searchIcon)
         searchFieldContainer.addSubview(searchTextField)
-        // На будущее
-//        searchFieldContainer.addSubview(floatingActionButton)
         topBarContainer.addSubview(filterButton)
         topBarContainer.addSubview(closeButton)
         
@@ -413,28 +398,14 @@ final class ModelsSearchNode: ASDisplayNode {
         
         NSLayoutConstraint.activate([
             searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: 8),
-            // На будущее
-//            searchTextField.trailingAnchor.constraint(equalTo: floatingActionButton.leadingAnchor, constant: -6),
             searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -6),
             searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
             searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor)
         ])
-        
+
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
-        
-        // На будущее
-//        NSLayoutConstraint.activate([
-//            floatingActionButton.leadingAnchor.constraint(equalTo: searchTextField.trailingAnchor, constant: 8),
-//            floatingActionButton.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -1),
-//            floatingActionButton.centerYAnchor.constraint(equalTo: searchFieldContainer.centerYAnchor),
-//            floatingActionButton.widthAnchor.constraint(equalToConstant: 38),
-//            floatingActionButton.heightAnchor.constraint(equalToConstant: 38)
-//        ])
-//        
-//        floatingActionButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-//        floatingActionButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        
+
         filterButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
         filterButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         closeButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
@@ -598,7 +569,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     func updateActiveFiltersCount(_ count: Int) {
         if count > 0 {
-            let baseString = "Filter by: "
+            let baseString = DivoStrings.filterBy + " "
             let numberString = "\(count)"
             
             let attrString = NSMutableAttributedString(string: baseString + numberString)
@@ -827,6 +798,126 @@ final class ModelsSearchNode: ASDisplayNode {
         return code.uppercased().unicodeScalars.reduce("") { result, scalar in
             result + String(UnicodeScalar(127397 + scalar.value)!)
         }
+    }
+
+    // MARK: - Snackbar
+    // TODO: [DivoUIKit] унифицировать со snackbar в ModelsFeedNode — дубликат до выноса в DivoUIKit
+
+    enum SnackbarStyle {
+        case success
+        case error
+    }
+
+    private var snackbarView: UIView?
+    private var snackbarHideTimer: Foundation.Timer?
+    private var snackbarRetryAction: (() -> Void)?
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        hideSnackbar(animated: false)
+
+        let snack = UIView()
+        snack.backgroundColor = style == .error
+            ? UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)
+            : UIColor(red: 12/255, green: 138/255, blue: 81/255, alpha: 1)
+        snack.layer.cornerRadius = 8
+        snack.layer.masksToBounds = true
+        snack.translatesAutoresizingMaskIntoConstraints = false
+
+        let titleLabel = UILabel()
+        titleLabel.text = message
+        titleLabel.font = UIFont(name: "HelveticaNeue", size: 14) ?? UIFont.systemFont(ofSize: 14)
+        titleLabel.textColor = .white
+        titleLabel.textAlignment = .left
+        titleLabel.numberOfLines = 2
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        snack.addSubview(titleLabel)
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(snackbarTapped))
+        snack.addGestureRecognizer(tap)
+
+        self.snackbarRetryAction = retryAction
+        self.view.addSubview(snack)
+        self.view.bringSubviewToFront(snack)
+        snackbarView = snack
+
+        let safeArea = view.safeAreaLayoutGuide
+        NSLayoutConstraint.activate([
+            snack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
+            snack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            snack.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -16),
+            snack.heightAnchor.constraint(equalToConstant: 50)
+        ])
+
+        if style == .error, retryAction != nil {
+            let retryButton = UIButton(type: .system)
+            retryButton.setTitle(DivoStrings.retry, for: .normal)
+            retryButton.titleLabel?.font = UIFont(name: "HelveticaNeue-Bold", size: 14) ?? UIFont.boldSystemFont(ofSize: 14)
+            retryButton.setTitleColor(.white, for: .normal)
+            retryButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+            retryButton.addTarget(self, action: #selector(snackbarRetryTapped), for: .touchUpInside)
+            retryButton.translatesAutoresizingMaskIntoConstraints = false
+            snack.addSubview(retryButton)
+
+            NSLayoutConstraint.activate([
+                retryButton.trailingAnchor.constraint(equalTo: snack.trailingAnchor, constant: -4),
+                retryButton.topAnchor.constraint(equalTo: snack.topAnchor),
+                retryButton.bottomAnchor.constraint(equalTo: snack.bottomAnchor),
+
+                titleLabel.leadingAnchor.constraint(equalTo: snack.leadingAnchor, constant: 16),
+                titleLabel.trailingAnchor.constraint(equalTo: retryButton.leadingAnchor, constant: -8),
+                titleLabel.topAnchor.constraint(equalTo: snack.topAnchor),
+                titleLabel.bottomAnchor.constraint(equalTo: snack.bottomAnchor)
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                titleLabel.leadingAnchor.constraint(equalTo: snack.leadingAnchor, constant: 16),
+                titleLabel.trailingAnchor.constraint(equalTo: snack.trailingAnchor, constant: -16),
+                titleLabel.topAnchor.constraint(equalTo: snack.topAnchor),
+                titleLabel.bottomAnchor.constraint(equalTo: snack.bottomAnchor)
+            ])
+        }
+
+        snack.alpha = 0
+        snack.transform = CGAffineTransform(translationX: 0, y: 30)
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: []) {
+            snack.alpha = 1
+            snack.transform = .identity
+        }
+
+        snackbarHideTimer?.invalidate()
+        if !persistent {
+            snackbarHideTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                self?.hideSnackbar(animated: true)
+            }
+        }
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbarHideTimer?.invalidate()
+        snackbarHideTimer = nil
+        guard let snack = snackbarView else { return }
+        snackbarView = nil
+        snackbarRetryAction = nil
+        if animated {
+            UIView.animate(withDuration: 0.2, animations: {
+                snack.alpha = 0
+                snack.transform = CGAffineTransform(translationX: 0, y: 20)
+            }, completion: { _ in
+                snack.removeFromSuperview()
+            })
+        } else {
+            snack.removeFromSuperview()
+        }
+    }
+
+    @objc private func snackbarTapped() {
+        hideSnackbar(animated: true)
+    }
+
+    @objc private func snackbarRetryTapped() {
+        let action = snackbarRetryAction
+        hideSnackbar(animated: true)
+        action?()
     }
 }
 

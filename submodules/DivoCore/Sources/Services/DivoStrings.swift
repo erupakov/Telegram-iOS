@@ -133,6 +133,8 @@ public enum DivoStrings {
     public static var feedSearchResetParameter: String { L(en: "Reset parameter", ru: "Сбросить параметр", es: "Restablecer parámetro", pt: "Redefinir parâmetro", zh: "重置参数") }
     public static var feedSearchMoreFilters: String { L(en: "More filters", ru: "Больше фильтров", es: "Más filtros", pt: "Mais filtros", zh: "更多筛选") }
     public static var feedSearchLessFilters: String { L(en: "Less filters", ru: "Меньше фильтров", es: "Menos filtros", pt: "Menos filtros", zh: "更少筛选") }
+    public static var feedSearchFiltersLoadFailed: String { L(en: "Failed to load filters", ru: "Не удалось загрузить фильтры", es: "Error al cargar filtros", pt: "Falha ao carregar filtros", zh: "加载筛选器失败") }
+    public static var feedSearchResultsLoadFailed: String { L(en: "Failed to load search results", ru: "Не удалось загрузить результаты поиска", es: "Error al cargar resultados", pt: "Falha ao carregar resultados", zh: "加载搜索结果失败") }
 
     // MARK: - Roles
 

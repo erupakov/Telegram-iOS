@@ -39,26 +39,24 @@ public class ModelsSearchController: ViewController {
     private var preloadedEyeColor: [FilterOptionApperanceItem] = []
     private var preloadedSkinColor: [FilterOptionApperanceItem] = []
     
-    private let dictionaryLoadGroup = DispatchGroup()
+    private var dictionaryLoadGroup = DispatchGroup()
     private var isDictionaryReady = false
-    
+    private var dictionaryLoadFailed = false
+
     private var currentSearchTask: Task<Void, Never>?
-    
+
     public init(context: AccountContext) {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
-        
+
         super.init(navigationBarPresentationData: nil)
-        
+
         self.presentationDataDisposable = (context.sharedContext.presentationData
                                            |> deliverOnMainQueue).start(next: { [weak self] presentationData in
             if let strongSelf = self {
                 strongSelf.presentationData = presentationData
             }
         }).strict()
-        
-        loadGenderDictionary()
-        loadAppearanceDictionary()
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -70,19 +68,11 @@ public class ModelsSearchController: ViewController {
     }
     
     override public func loadDisplayNode() {
-        
+
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
-        
-        self.searchNode.setFiltersButtonEnabled(false)
-        self.searchNode.showFiltersButtonLoading()
-        
-        dictionaryLoadGroup.notify(queue: .main) { [weak self] in
-            guard let self = self else { return }
-            self.isDictionaryReady = true
-            self.searchNode.hideFiltersButtonLoading()
-            self.searchNode.setFiltersButtonEnabled(true)
-        }
-        
+
+        loadDictionaries()
+
         // MARK: - Bindings (Связь UI и Логики)
         
         self.searchNode.onClosePressed = { [weak self] in
@@ -174,7 +164,40 @@ public class ModelsSearchController: ViewController {
     }
     
     // MARK: - Network Requests
-    
+
+    private func loadDictionaries() {
+        self.dictionaryLoadFailed = false
+        self.isDictionaryReady = false
+        self.dictionaryLoadGroup = DispatchGroup()
+
+        self.searchNode.setFiltersButtonEnabled(false)
+        self.searchNode.showFiltersButtonLoading()
+
+        loadGenderDictionary()
+        loadAppearanceDictionary()
+
+        self.dictionaryLoadGroup.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.searchNode.hideFiltersButtonLoading()
+
+            if self.dictionaryLoadFailed {
+                self.isDictionaryReady = false
+                self.searchNode.setFiltersButtonEnabled(false)
+                self.searchNode.showSnackbar(
+                    message: DivoStrings.feedSearchFiltersLoadFailed,
+                    style: .error,
+                    retryAction: { [weak self] in
+                        self?.loadDictionaries()
+                    },
+                    persistent: true
+                )
+            } else {
+                self.isDictionaryReady = true
+                self.searchNode.setFiltersButtonEnabled(true)
+            }
+        }
+    }
+
     private func loadGenderDictionary() {
         dictionaryLoadGroup.enter()
         Task { @MainActor in
@@ -184,20 +207,17 @@ public class ModelsSearchController: ViewController {
                     path: "/dictionary/gender",
                     method: "GET"
                 )
-                
+
                 self.preloadedGenders = response.data.map {
                     FilterOptionItem(id: $0.id, title: $0.title)
                 }
             } catch {
                 print("❌ Error loading gender dictionary: \(error)")
-                self.preloadedGenders = [
-                    FilterOptionItem(id: "male", title: "Male"),
-                    FilterOptionItem(id: "female", title: "Female")
-                ]
+                self.dictionaryLoadFailed = true
             }
         }
     }
-    
+
     private func loadAppearanceDictionary() {
         dictionaryLoadGroup.enter()
         Task { @MainActor in
@@ -207,7 +227,7 @@ public class ModelsSearchController: ViewController {
                     path: "/dictionary/appearances",
                     method: "GET"
                 )
-                
+
                 self.preloadedHairLength = response.data.hairLength.map {
                     FilterOptionApperanceItem(id: $0.id, title: $0.title)
                 }
@@ -220,9 +240,10 @@ public class ModelsSearchController: ViewController {
                 self.preloadedSkinColor = response.data.skinColor.map {
                     FilterOptionApperanceItem(id: $0.id, title: $0.title)
                 }
-                
+
             } catch {
                 print("❌ Error loading appearance dictionary: \(error)")
+                self.dictionaryLoadFailed = true
             }
         }
     }
@@ -277,7 +298,13 @@ public class ModelsSearchController: ViewController {
                 
                 self.searchNode.updateAutocomplete(results: response.data.items)
             } catch {
-                if !Task.isCancelled { print("Autocomplete error: \(error)") }
+                if !Task.isCancelled {
+                    print("Autocomplete error: \(error)")
+                    self.searchNode.showSnackbar(
+                        message: DivoStrings.feedSearchResultsLoadFailed,
+                        style: .error
+                    )
+                }
             }
         }
     }
@@ -321,9 +348,15 @@ public class ModelsSearchController: ViewController {
                 
                 self.gridOffset += response.data.items.count
                 self.hasMoreGridResults = self.gridOffset < totalCount
-                
+
             } catch {
-                if !Task.isCancelled { print("Grid fetch error: \(error)") }
+                if !Task.isCancelled {
+                    print("Grid fetch error: \(error)")
+                    self.searchNode.showSnackbar(
+                        message: DivoStrings.feedSearchResultsLoadFailed,
+                        style: .error
+                    )
+                }
             }
         }
     }

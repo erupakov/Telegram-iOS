@@ -1031,6 +1031,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
 
     // MARK: - Snackbar
+    // TODO: [DivoUIKit] унифицировать со snackbar в ModelsSearchNode — дубликат до выноса в DivoUIKit
 
     private var snackbarView: UIView?
     private var snackbarHideTimer: Foundation.Timer?

@@ -98,7 +98,7 @@ final class SearchUserCell: UITableViewCell {
         if !query.isEmpty {
             let range = (item.title.lowercased() as NSString).range(of: query.lowercased())
             if range.location != NSNotFound {
-                attributedName.addAttribute(.foregroundColor, value: UIColor(hexString: "#BF7A54")!, range: range)
+                attributedName.addAttribute(.foregroundColor, value: UIColor(hexString: "#BF7A54") ?? .systemOrange, range: range)
             }
         }
         nameLabel.attributedText = attributedName
