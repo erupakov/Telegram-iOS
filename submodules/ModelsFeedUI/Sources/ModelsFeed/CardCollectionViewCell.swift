@@ -36,20 +36,8 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     // MARK: - Glass Blur Overlays
 
-    private let topGlassView: UIVisualEffectView = {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-        view.isUserInteractionEnabled = false
-        return view
-    }()
-
-    private let bottomGlassView: UIVisualEffectView = {
-        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-        view.isUserInteractionEnabled = false
-        return view
-    }()
-
-    private let topGlassMask = CAGradientLayer()
-    private let bottomGlassMask = CAGradientLayer()
+    private let topGlassView = DivoGlassBlurView(direction: .top)
+    private let bottomGlassView = DivoGlassBlurView(direction: .bottom)
 
     // MARK: - Name
 
@@ -147,8 +135,6 @@ final class CardCollectionViewCell: UICollectionViewCell {
         contentView.addSubview(mainImageView)
         contentView.addSubview(topGlassView)
         contentView.addSubview(bottomGlassView)
-        topGlassView.layer.mask = topGlassMask
-        bottomGlassView.layer.mask = bottomGlassMask
 
         contentView.addSubview(nameLabel)
         contentView.addSubview(roleBadgeView)
@@ -214,22 +200,12 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
         mainImageView.frame = bounds
 
-        // Glass blur: top (light) + bottom (dark), tight edge transitions
+        // Glass blur: top + bottom overlays, tight edge transitions
         let topGlassHeight: CGFloat = 120
         topGlassView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: topGlassHeight)
-        topGlassMask.frame = topGlassView.bounds
-        topGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
-        topGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
-        topGlassMask.colors = [UIColor.white.cgColor, UIColor.white.cgColor, UIColor.clear.cgColor]
-        topGlassMask.locations = [0, 0.3, 1.0]
 
         let bottomGlassHeight: CGFloat = min(350, bounds.height * 0.55)
         bottomGlassView.frame = CGRect(x: 0, y: bounds.height - bottomGlassHeight, width: bounds.width, height: bottomGlassHeight)
-        bottomGlassMask.frame = bottomGlassView.bounds
-        bottomGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
-        bottomGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
-        bottomGlassMask.colors = [UIColor.clear.cgColor, UIColor.white.cgColor, UIColor.white.cgColor]
-        bottomGlassMask.locations = [0, 0.75, 1.0]
 
         // Stats pills (right side) — calculate first to derive name/info widths
         let statsRightPadding: CGFloat = 16

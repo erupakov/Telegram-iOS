@@ -148,13 +148,18 @@ final class ModelsSearchNode: ASDisplayNode {
         cv.showsVerticalScrollIndicator = false
         return cv
     }()
-    
-    private let bottomBlurOverlay: GradientBlurView = {
-        let view = GradientBlurView(isTop: false)
+
+    private let bottomBlurOverlay: DivoGlassBlurView = {
+        let view = DivoGlassBlurView(
+            direction: .bottom,
+            blurStyle: .systemUltraThinMaterialLight,
+            falloff: .linear
+        )
+        view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         return view
     }()
-    
+
     private let autocompleteLoader: UIActivityIndicatorView = {
         let loader = UIActivityIndicatorView(style: .medium)
         loader.color = DivoColorPalette.accentSecondary
@@ -438,9 +443,8 @@ final class ModelsSearchNode: ASDisplayNode {
         activeFiltersContainer.addSubview(activeFiltersLabel)
         
         view.addSubview(gridCollectionView)
-        
         view.addSubview(bottomBlurOverlay)
-        
+
         NSLayoutConstraint.activate([
             gridCenterLoader.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             gridCenterLoader.centerYAnchor.constraint(equalTo: view.centerYAnchor)
@@ -465,7 +469,7 @@ final class ModelsSearchNode: ASDisplayNode {
             gridCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
             gridCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
             gridCollectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
+
             bottomBlurOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             bottomBlurOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomBlurOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
