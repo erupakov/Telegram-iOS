@@ -205,8 +205,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                         title: DivoStrings.ageYo,
                         keyPath: \.ageRange,
                         min: 14,
-                        max: 100,
-                        unit: ""
+                        max: 100
                     )
                 }
             ),
@@ -222,8 +221,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                         title: DivoStrings.ageYo,
                         keyPath: \.heightRange,
                         min: 150,
-                        max: 200,
-                        unit: "cm"
+                        max: 200
                     )
                 }
             ),
@@ -239,8 +237,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                         title: DivoStrings.paramWeight,
                         keyPath: \.weightRange,
                         min: 40,
-                        max: 120,
-                        unit: "kg"
+                        max: 120
                     )
                 }
             ),
@@ -256,8 +253,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                         title: DivoStrings.paramWaist,
                         keyPath: \.waistRange,
                         min: 50,
-                        max: 120,
-                        unit: "cm"
+                        max: 120
                     ) }
             ),
             AppearanceFilterItem(
@@ -267,7 +263,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                     return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHips, keyPath: \.hipsRange, min: 70, max: 130, unit: "cm") }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHips, keyPath: \.hipsRange, min: 70, max: 130) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.shoeSizeEU,
@@ -276,7 +272,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                     return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramShoeSize, keyPath: \.shoeSizeRange, min: 35, max: 46, unit: "") }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramShoeSize, keyPath: \.shoeSizeRange, min: 35, max: 46) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hairLength,
@@ -545,21 +541,20 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         updateAppearanceValues()
     }
 
-    private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T, unit: String) where T: RangeFilterable {
-        
+    private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T) where T: RangeFilterable {
+
         var currentMin: Double? = nil
         var currentMax: Double? = nil
-        
+
         if let currentRange = self.currentFilters[keyPath: keyPath] {
             currentMin = currentRange.lowerBound.doubleValue
             currentMax = currentRange.upperBound.doubleValue
         }
-        
+
         let vc = RangeFilterController(
             title: title,
             min: min.doubleValue,
             max: max.doubleValue,
-            unit: unit,
             currentLower: currentMin,
             currentUpper: currentMax
         ) { [weak self] newRange in
@@ -786,7 +781,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             options: countryOptions,
             selectedOptionIds: selectedIds,
             isMultiSelect: true,
-            showSearch: true
+            showSearch: true,
+            searchPlaceholder: DivoStrings.feedSearchCountry
         )
 
         vc.onSave = { [weak self] selectedItems in

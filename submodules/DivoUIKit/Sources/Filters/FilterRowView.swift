@@ -9,6 +9,9 @@ import Display
 import UIKit
 import DivoCore
 
+/// Строка фильтра: заголовок слева, значение справа с троеточием/счётчиком «+N», шеврон.
+///
+/// Значение задаётся через `setItems(_:emptyTitle:)`. Если список пуст — показывается `emptyTitle`.
 public final class FilterRowView: UIView {
 
     private let titleLabel: UILabel = {

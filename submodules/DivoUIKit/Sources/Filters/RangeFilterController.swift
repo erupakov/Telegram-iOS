@@ -9,12 +9,15 @@ import UIKit
 import Display
 import DivoCore
 
+/// Экран выбора числового диапазона (возраст, рост, вес и т.п.).
+///
+/// Параметризован значениями `min`/`max` и текущим выбором. Колбэк `onSave` получает
+/// `(lower, upper)` при сохранении и `nil` при сбросе.
 public final class RangeFilterController: UIViewController, UITextFieldDelegate {
 
     private let filterTitle: String
     private let minValue: Double
     private let maxValue: Double
-    private let unit: String
 
     public var onSave: ((Double, Double)?) -> Void
 
@@ -89,11 +92,10 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         return deleteButton
     }()
 
-    public init(title: String, min: Double, max: Double, unit: String, currentLower: Double?, currentUpper: Double?, onSave: @escaping ((Double, Double)?) -> Void) {
+    public init(title: String, min: Double, max: Double, currentLower: Double?, currentUpper: Double?, onSave: @escaping ((Double, Double)?) -> Void) {
         self.filterTitle = title
         self.minValue = min
         self.maxValue = max
-        self.unit = unit
         self.onSave = onSave
         super.init(nibName: nil, bundle: nil)
 

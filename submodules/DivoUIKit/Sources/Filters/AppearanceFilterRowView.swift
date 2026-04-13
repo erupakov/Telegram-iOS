@@ -8,6 +8,10 @@
 import UIKit
 import Display
 
+/// Строка фильтра для компактных контейнеров (прозрачный фон + сепаратор).
+///
+/// Отличается от `FilterRowView` упрощённым визуалом: без скругления/фона, рассчитан на использование
+/// внутри сгруппированного `UIStackView`. `isLast` отключает нижний сепаратор.
 public final class AppearanceFilterRowView: UIView {
 
     private let titleLabel: UILabel = {

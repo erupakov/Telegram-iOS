@@ -9,6 +9,10 @@ import Display
 import UIKit
 import DivoCore
 
+/// Экран выбора из списка опций (одиночный или множественный выбор) с опциональным поиском.
+///
+/// Параметризован `FilterOptionItem` — общим value type DivoUIKit. Колбэк `onSave` получает
+/// массив выбранных опций (пустой массив означает сброс/«все»).
 public final class FilterOptionsController: UIViewController {
 
     private var allOptions: [FilterOptionItem]
@@ -16,6 +20,7 @@ public final class FilterOptionsController: UIViewController {
     private var selectedOptionIds: Set<String>
     private let isMultiSelect: Bool
     private let showSearch: Bool
+    private let searchPlaceholder: String?
 
     public var onSave: (([FilterOptionItem]) -> Void)?
 
@@ -100,7 +105,6 @@ public final class FilterOptionsController: UIViewController {
         field.font = Font.regular(14)
         field.textColor = DivoColorPalette.primaryText
         field.tintColor = DivoColorPalette.accentSecondary
-        field.placeholder = DivoStrings.feedSearchCountry
         field.clearButtonMode = .whileEditing
         field.autocorrectionType = .no
         field.returnKeyType = .search
@@ -130,13 +134,14 @@ public final class FilterOptionsController: UIViewController {
         return deleteButton
     }()
 
-    public init(title: String, options: [FilterOptionItem], selectedOptionIds: [String], isMultiSelect: Bool = false, showSearch: Bool = false) {
+    public init(title: String, options: [FilterOptionItem], selectedOptionIds: [String], isMultiSelect: Bool = false, showSearch: Bool = false, searchPlaceholder: String? = nil) {
         self.titleLabel.text = title
         self.allOptions = options
         self.filteredOptions = options
         self.selectedOptionIds = Set(selectedOptionIds)
         self.isMultiSelect = isMultiSelect
         self.showSearch = showSearch
+        self.searchPlaceholder = searchPlaceholder
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -178,6 +183,7 @@ public final class FilterOptionsController: UIViewController {
 
     private func setupSearchField() {
         if showSearch {
+            searchTextField.placeholder = searchPlaceholder
             view.addSubview(searchFieldContainer)
             searchFieldContainer.addSubview(searchIcon)
             searchFieldContainer.addSubview(searchTextField)
