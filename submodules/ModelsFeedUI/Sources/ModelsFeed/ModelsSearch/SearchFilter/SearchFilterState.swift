@@ -7,11 +7,7 @@
 
 import Foundation
 import DivoCore
-
-struct FilterOptionItem {
-    let id: String
-    let title: String
-}
+import DivoUIKit
 
 struct FilterOptionApperanceItem {
     let id: Int
