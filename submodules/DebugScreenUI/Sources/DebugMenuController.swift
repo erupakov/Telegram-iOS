@@ -120,6 +120,9 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     let c = DebugTokenController(context: self.context)
                     self.onPush?(c)
                 }),
+                Row(icon: "person.badge.key", title: "User Role", subtitle: { DivoConfig.currentUserRole.displayName }, accessory: .chevron, action: { [weak self] in
+                    self?.showRolePicker()
+                }),
                 Row(icon: "list.bullet.rectangle", title: DivoStrings.debugRequestLogs, subtitle: {
                     let count = DivoRequestLogger.shared.getEntries().count
                     return "\(count)"
@@ -290,6 +293,29 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
             popover.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
         }
 
+        if let vc = self.closestViewController {
+            vc.present(alert, animated: true)
+        }
+    }
+
+    private func showRolePicker() {
+        let alert = UIAlertController(title: "User Role", message: "Select the current user role", preferredStyle: .actionSheet)
+        let current = DivoConfig.currentUserRole
+        for role in DivoConfig.UserRole.allCases {
+            let checkmark = (role == current) ? " ✓" : ""
+            alert.addAction(UIAlertAction(title: role.displayName + checkmark, style: .default) { [weak self] _ in
+                DivoConfig.currentUserRole = role
+                self?.buildSections()
+                self?.tableView.reloadData()
+            })
+        }
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = view
+            popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
+        }
+        
         if let vc = self.closestViewController {
             vc.present(alert, animated: true)
         }

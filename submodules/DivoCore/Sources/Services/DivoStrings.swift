@@ -114,6 +114,27 @@ public enum DivoStrings {
     public static var feedAllUsers: String { L(en: "NEW TALENTS", ru: "ТАЛАНТЫ", es: "NUEVOS TALENTOS", pt: "NOVOS TALENTOS", zh: "新人才") }
     public static var feedAgencies: String { L(en: "AGENCIES", ru: "АГЕНТСТВА", es: "AGENCIAS", pt: "AGÊNCIAS", zh: "经纪公司") }
     public static var addStory: String { L(en: "Add Story", ru: "Добавить", es: "Añadir", pt: "Adicionar", zh: "添加动态") }
+    public static var feedSearchPlaceholder: String { L(en: "Search by name or @handle", ru: "Поиск по имени или @handle", es: "Buscar por nombre o @ identificador", pt: "Procurar por nome ou @ identificador", zh: "按名称或@handle搜索") }
+    public static var feedSearchNoFound: String { L(en: "NO RESULTS FOUND", ru: "НИКАКИХ РЕЗУЛЬТАТОВ НАЙДЕНО НЕ БЫЛО", es: "NO SE HAN ENCONTRADO RESULTADOS", pt: "NÃO FORAM ENCONTRADOS RESULTADOS", zh: "未找到结果") }
+    public static var feedSearchNoFilters: String { L(en: "Try adjusting your filters", ru: "Попробуйте настроить свои фильтры", es: "Intenta ajustar tus filtros", pt: "Tente ajustar seus filtros", zh: "尝试调整过滤器") }
+    public static func feedSearchCount(_ totalCount: Int, _ query: String) -> String {
+        L(en: "\(totalCount) results for \"\(query)\"", ru: "\(totalCount) результаты для \"\(query)\"", es: "\(totalCount) resultados para \"\(query)\"", pt: "\(totalCount) resultados para \"\(query)\"", zh: "\(totalCount) 结果为 \"\(query)\"")
+    }
+    public static func feedSearchCountNoQuery(_ totalCount: Int) -> String {
+        L(en: "\(totalCount) results", ru: "\(totalCount) результатов", es: "\(totalCount) resultados", pt: "\(totalCount) resultados", zh: "\(totalCount)个结果")
+    }
+    public static var feedSearchFilter: String { L(en: "Filter", ru: "Фильтр", es: "Filtro", pt: "Filtro", zh: "过滤器") }
+    public static var feedSearchReset: String { L(en: "Reset", ru: "Сбросить", es: "Restablecer", pt: "Redefinir", zh: "重置") }
+    public static var feedSearchApplyFilter: String { L(en: "Apply filter", ru: "Применить фильтр", es: "Aplicar filtro", pt: "Aplicar filtro", zh: "应用筛选") }
+    public static var feedSearchAllRoles: String { L(en: "All roles", ru: "Все роли", es: "Todos los roles", pt: "Todos as funções", zh: "所有角色") }
+    public static var feedSearchAllGenders: String { L(en: "All genders", ru: "Все гендеры", es: "Todos los géneros", pt: "Todos os gêneros", zh: "所有性别") }
+    public static var feedSearchCountry: String { L(en: "Search by country", ru: "Поиск по стране", es: "Buscar por país", pt: "Pesquisar por país", zh: "按国家搜索") }
+    public static var feedSearchAllCountries: String { L(en: "All countries", ru: "Все страны", es: "Todos los países", pt: "Todos os países", zh: "所有国家") }
+    public static var feedSearchResetParameter: String { L(en: "Reset parameter", ru: "Сбросить параметр", es: "Restablecer parámetro", pt: "Redefinir parâmetro", zh: "重置参数") }
+    public static var feedSearchMoreFilters: String { L(en: "More filters", ru: "Больше фильтров", es: "Más filtros", pt: "Mais filtros", zh: "更多筛选") }
+    public static var feedSearchLessFilters: String { L(en: "Less filters", ru: "Меньше фильтров", es: "Menos filtros", pt: "Menos filtros", zh: "更少筛选") }
+    public static var feedSearchFiltersLoadFailed: String { L(en: "Failed to load filters", ru: "Не удалось загрузить фильтры", es: "Error al cargar filtros", pt: "Falha ao carregar filtros", zh: "加载筛选器失败") }
+    public static var feedSearchResultsLoadFailed: String { L(en: "Failed to load search results", ru: "Не удалось загрузить результаты поиска", es: "Error al cargar resultados", pt: "Falha ao carregar resultados", zh: "加载搜索结果失败") }
 
     // MARK: - Roles
 
@@ -403,6 +424,7 @@ public enum DivoStrings {
     public static var debugImageCache: String { L(en: "Image cache", ru: "Кеш изображений", es: "Caché de imágenes", pt: "Cache de imagens", zh: "图片缓存") }
     public static var debugInfo: String { L(en: "INFO", ru: "ИНФОРМАЦИЯ", es: "INFORMACIÓN", pt: "INFORMAÇÃO", zh: "信息") }
     public static var debugAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司") }
+    public static var debugNewTalent: String { L(en: "New talent", ru: "Новый талант", es: "Nuevo talento", pt: "Novo talento", zh: "新人才") }
     public static var debugModel: String { L(en: "Model", ru: "Модель", es: "Modelo", pt: "Modelo", zh: "模特") }
     public static var debugCustom: String { L(en: "Custom", ru: "Свой", es: "Personalizado", pt: "Personalizado", zh: "自定义") }
     public static var debugOff: String { L(en: "Off", ru: "Выкл", es: "Apagado", pt: "Desligado", zh: "关闭") }
@@ -415,6 +437,8 @@ public enum DivoStrings {
     public static var debugNetworkDelayMessage: String { L(en: "Artificial delay before each request", ru: "Искусственная задержка перед каждым запросом", es: "Retraso artificial antes de cada solicitud", pt: "Atraso artificial antes de cada requisição", zh: "每次请求前的人工延迟") }
     public static var debugClearCache: String { L(en: "Clear cache?", ru: "Очистить кеш?", es: "¿Limpiar caché?", pt: "Limpar cache?", zh: "清除缓存？") }
     public static var debugClear: String { L(en: "Clear", ru: "Очистить", es: "Limpiar", pt: "Limpar", zh: "清除") }
+    public static var debugAll: String { L(en: "All", ru: "Все", es: "Todos", pt: "Todos", zh: "全部") }
+    public static var debugAny: String { L(en: "Any", ru: "Любой", es: "Cualquiera", pt: "Qualquer", zh: "任意") }
 
     public static func debugCurrentSize(_ size: String) -> String {
         L(en: "Current size: \(size)", ru: "Текущий размер: \(size)", es: "Tamaño actual: \(size)", pt: "Tamanho atual: \(size)", zh: "当前大小：\(size)")

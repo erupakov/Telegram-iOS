@@ -126,11 +126,13 @@ public final class ModelsFeedController: TelegramBaseController {
     }
 
     @objc private func searchPressed() {
-//        let controller = EventsSearchController(context: context)
-//
-//        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-//            navigationController.pushViewController(controller)
-//        }
+        let searchController = ModelsSearchController(context: self.context)
+    
+        if let navigationController = self.navigationController as? NavigationController {
+            navigationController.pushViewController(searchController, animated: true)
+        } else {
+            (self.context.sharedContext.mainWindow?.viewController as? NavigationController)?.pushViewController(searchController, animated: true)
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
