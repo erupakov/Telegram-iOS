@@ -32,26 +32,26 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         override init(frame: CGRect) {
             super.init(frame: frame)
             backgroundColor = .white
-            layer.cornerRadius = 32
+            layer.cornerRadius = 32 // TODO: DS alignment — не в шкале Radius
             layer.masksToBounds = true
 
             cardShimmer.layer.cornerRadius = 0
             addSubview(cardShimmer)
 
             for line in [nameLine, badgeLine] {
-                line.layer.cornerRadius = 6
+                line.layer.cornerRadius = 6 // TODO: DS alignment — не в шкале Radius
                 line.layer.masksToBounds = true
                 addSubview(line)
             }
 
             for stat in [stat1, stat2, stat3] {
-                stat.layer.cornerRadius = 14
+                stat.layer.cornerRadius = 14 // TODO: DS alignment — не в шкале Radius
                 stat.layer.masksToBounds = true
                 addSubview(stat)
             }
 
             for pv in [preview1, preview2, preview3, preview4] {
-                pv.layer.cornerRadius = 8
+                pv.layer.cornerRadius = DivoDesignTokens.Radius.s
                 pv.layer.masksToBounds = true
                 addSubview(pv)
             }
@@ -902,7 +902,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let placeholder = UIView()
         placeholder.backgroundColor = .white
         placeholder.clipsToBounds = true
-        placeholder.layer.cornerRadius = 32
+        placeholder.layer.cornerRadius = 32 // TODO: DS alignment — не в шкале Radius
 
         let cardShimmer = ShimmerView()
         cardShimmer.layer.cornerRadius = 0
@@ -912,14 +912,14 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         // Name line (top-left)
         let nameLine = ShimmerView()
-        nameLine.layer.cornerRadius = 6
+        nameLine.layer.cornerRadius = 6 // TODO: DS alignment — не в шкале Radius
         nameLine.layer.masksToBounds = true
         nameLine.tag = 101
         placeholder.addSubview(nameLine)
 
         // Badge line (below name)
         let badgeLine = ShimmerView()
-        badgeLine.layer.cornerRadius = 6
+        badgeLine.layer.cornerRadius = 6 // TODO: DS alignment — не в шкале Radius
         badgeLine.layer.masksToBounds = true
         badgeLine.tag = 102
         placeholder.addSubview(badgeLine)
@@ -927,7 +927,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         // Stat pills (top-right)
         for i in 0..<3 {
             let stat = ShimmerView()
-            stat.layer.cornerRadius = 14
+            stat.layer.cornerRadius = 14 // TODO: DS alignment — не в шкале Radius
             stat.layer.masksToBounds = true
             stat.tag = 110 + i
             placeholder.addSubview(stat)
@@ -936,7 +936,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         // Preview images (bottom)
         for i in 0..<4 {
             let pv = ShimmerView()
-            pv.layer.cornerRadius = 8
+            pv.layer.cornerRadius = DivoDesignTokens.Radius.s
             pv.layer.masksToBounds = true
             pv.tag = 120 + i
             placeholder.addSubview(pv)
@@ -1103,9 +1103,10 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         container.backgroundColor = .white
         container.alpha = 0
 
+        let circleSize: CGFloat = 80
         let circleView = UIView()
         circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
-        circleView.layer.cornerRadius = 40
+        circleView.layer.cornerRadius = circleSize / 2
         circleView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(circleView)
 
@@ -1147,8 +1148,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         NSLayoutConstraint.activate([
             circleView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             circleView.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -50),
-            circleView.widthAnchor.constraint(equalToConstant: 80),
-            circleView.heightAnchor.constraint(equalToConstant: 80),
+            circleView.widthAnchor.constraint(equalToConstant: circleSize),
+            circleView.heightAnchor.constraint(equalToConstant: circleSize),
 
             iconLabel.centerXAnchor.constraint(equalTo: circleView.centerXAnchor),
             iconLabel.centerYAnchor.constraint(equalTo: circleView.centerYAnchor),

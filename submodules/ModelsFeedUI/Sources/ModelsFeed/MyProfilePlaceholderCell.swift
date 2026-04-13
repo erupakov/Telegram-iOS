@@ -25,7 +25,7 @@ final class MyProfilePlaceholderCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = DivoColorPalette.placeholderCardBackground
-        layer.cornerRadius = 14
+        layer.cornerRadius = 14 // TODO: DS alignment — не в шкале Radius
         clipsToBounds = true
 
         contentView.addSubview(label)

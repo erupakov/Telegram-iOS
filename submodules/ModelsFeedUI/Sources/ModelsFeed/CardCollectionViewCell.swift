@@ -67,7 +67,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
     private let roleBadgeView: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.roleBadgeBlue
-        view.layer.cornerRadius = 11
+        view.layer.cornerRadius = 11 // TODO: DS alignment — не в шкале Radius
         view.layer.masksToBounds = true
         return view
     }()
@@ -133,7 +133,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
-        contentView.layer.cornerRadius = 32
+        contentView.layer.cornerRadius = 32 // TODO: DS alignment — не в шкале Radius
         contentView.layer.masksToBounds = true
     }
 
@@ -362,7 +362,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.layer.masksToBounds = true
-        imageView.layer.cornerRadius = 8
+        imageView.layer.cornerRadius = DivoDesignTokens.Radius.s
         imageView.backgroundColor = DivoColorPalette.imagePlaceholderLight
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
@@ -453,7 +453,7 @@ final class StatPillView: UIView {
         }
         super.init(frame: .zero)
         backgroundColor = DivoColorPalette.statPillBackground
-        layer.cornerRadius = 15
+        layer.cornerRadius = 15 // TODO: DS alignment — не в шкале Radius
         layer.masksToBounds = true
         layer.borderWidth = 0.5
         layer.borderColor = DivoColorPalette.statPillBorder.cgColor

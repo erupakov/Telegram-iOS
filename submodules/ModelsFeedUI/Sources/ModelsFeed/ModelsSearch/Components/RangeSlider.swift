@@ -104,10 +104,11 @@ final class RangeSlider: UIControl {
     private func setupThumb(_ thumbLayer: CALayer) {
         thumbLayer.backgroundColor = UIColor.white.cgColor
         thumbLayer.cornerRadius = thumbWidth / 2
-        thumbLayer.shadowColor = DivoColorPalette.shadow.cgColor
-        thumbLayer.shadowOffset = CGSize(width: 0, height: 2)
-        thumbLayer.shadowOpacity = 0.15
-        thumbLayer.shadowRadius = 4
+        thumbLayer.applyDivoShadow(
+            opacity: 0.15, // TODO: DS alignment — non-DS opacity
+            radius: DivoDesignTokens.Shadow.thumbRadius,
+            offset: DivoDesignTokens.Shadow.thumbOffset
+        )
         layer.addSublayer(thumbLayer)
     }
     

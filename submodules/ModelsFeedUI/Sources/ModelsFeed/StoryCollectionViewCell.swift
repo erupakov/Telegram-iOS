@@ -20,7 +20,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     private let statusIndicator: UIView = {
         let view = UIView()
         view.backgroundColor = .systemGreen
-        view.layer.cornerRadius = 4
+        view.layer.cornerRadius = DivoDesignTokens.Radius.xs
         view.layer.borderColor = UIColor.black.cgColor
         view.layer.borderWidth = 1.5
         view.isHidden = true
@@ -72,10 +72,11 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     private lazy var addOverlay: UIView = {
         let circle = UIView()
         circle.backgroundColor = .white
-        circle.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        circle.layer.shadowOpacity = 0.1
-        circle.layer.shadowOffset = CGSize(width: 0, height: 2)
-        circle.layer.shadowRadius = 4
+        circle.layer.applyDivoShadow(
+            opacity: DivoDesignTokens.Shadow.opacityMedium,
+            radius: DivoDesignTokens.Shadow.thumbRadius,
+            offset: DivoDesignTokens.Shadow.thumbOffset
+        )
         circle.isUserInteractionEnabled = false
 
         let plusIcon = UIImageView()

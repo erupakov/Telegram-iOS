@@ -61,7 +61,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let tf = UITextField()
         tf.placeholder = DivoStrings.debugCity
         tf.backgroundColor = .white
-        tf.layer.cornerRadius = 23
+        tf.layer.cornerRadius = 23 // TODO: DS alignment — не в шкале Radius (border inset от card=24)
         tf.font = Font.regular(16)
         let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 46))
         tf.leftView = paddingView
@@ -96,7 +96,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let appearanceBackgroundView: UIView = {
         let view = UIView()
         view.backgroundColor = .white
-        view.layer.cornerRadius = 16
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -109,7 +109,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
         btn.backgroundColor = DivoColorPalette.accent
-        btn.layer.cornerRadius = 28
+        btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
@@ -143,15 +143,11 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let closeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
-        button.layer.cornerRadius = 20
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
-        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        button.layer.shadowOpacity = 0.08
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 12
-        button.layer.masksToBounds = false
+        button.layer.applyDivoShadow()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()

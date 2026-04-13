@@ -34,16 +34,12 @@ final class ModelsSearchNode: ASDisplayNode {
     private let searchFieldContainer: UIView = {
         let view = UIView()
         view.backgroundColor = .white
-        view.layer.cornerRadius = 20
-        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        view.layer.shadowOpacity = 0.08
-        view.layer.shadowOffset = CGSize(width: 0, height: 4)
-        view.layer.shadowRadius = 12
-        view.layer.masksToBounds = false
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.layer.applyDivoShadow()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
     private let searchIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(bundleImageName: "Components/Search/SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
@@ -69,18 +65,14 @@ final class ModelsSearchNode: ASDisplayNode {
     private let filterButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
-        button.layer.cornerRadius = 20
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         button.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
         button.tintColor = .black
-        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        button.layer.shadowOpacity = 0.08
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 12
-        button.layer.masksToBounds = false
+        button.layer.applyDivoShadow()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
+
     private let filterButtonLoader: UIActivityIndicatorView = {
         let loader = UIActivityIndicatorView(style: .medium)
         loader.color = DivoColorPalette.accent
@@ -93,29 +85,21 @@ final class ModelsSearchNode: ASDisplayNode {
     private let closeButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
-        button.layer.cornerRadius = 20
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
-        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        button.layer.shadowOpacity = 0.08
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 12
-        button.layer.masksToBounds = false
+        button.layer.applyDivoShadow()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
+
     private let resultsContainer: UIView = {
         let view = UIView()
         view.backgroundColor = .white
-        view.layer.cornerRadius = 24
+        view.layer.cornerRadius = DivoDesignTokens.Radius.card
         view.clipsToBounds = true
-        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        view.layer.shadowOpacity = 0.08
-        view.layer.shadowOffset = CGSize(width: 0, height: 4)
-        view.layer.shadowRadius = 16
-        view.layer.masksToBounds = false
+        view.layer.applyDivoShadow(radius: DivoDesignTokens.Shadow.radiusLarge)
         view.isHidden = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -133,15 +117,11 @@ final class ModelsSearchNode: ASDisplayNode {
     private let faceScanButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = DivoColorPalette.accent
-        button.layer.cornerRadius = 26
+        button.layer.cornerRadius = 26 // TODO: DS alignment — не в шкале Radius
         let image = UIImage(bundleImageName: "Components/Search/FaceScan") ?? UIImage(systemName: "person.fill.viewfinder")
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.accentSecondary
-        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        button.layer.shadowOpacity = 0.1
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 12
-        button.layer.masksToBounds = false
+        button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -203,15 +183,12 @@ final class ModelsSearchNode: ASDisplayNode {
     private let emptyStateIconContainer: UIView = {
         let view = UIView()
         view.backgroundColor = .white
-        view.layer.cornerRadius = 34
-        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        view.layer.shadowOpacity = 0.05
-        view.layer.shadowOffset = CGSize(width: 0, height: 4)
-        view.layer.shadowRadius = 12
+        view.layer.cornerRadius = DivoDesignTokens.Radius.sheet
+        view.layer.applyDivoShadow(opacity: 0.05) // TODO: DS alignment — non-DS opacity
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
     private let emptyStateIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(systemName: "magnifyingglass")
@@ -245,11 +222,8 @@ final class ModelsSearchNode: ASDisplayNode {
     private let activeFiltersContainer: UIView = {
         let view = UIView()
         view.backgroundColor = .white
-        view.layer.cornerRadius = 18
-        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
-        view.layer.shadowOpacity = 0.08
-        view.layer.shadowOffset = CGSize(width: 0, height: 4)
-        view.layer.shadowRadius = 12
+        view.layer.cornerRadius = 18 // TODO: DS alignment — не в шкале Radius
+        view.layer.applyDivoShadow()
         view.isHidden = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view

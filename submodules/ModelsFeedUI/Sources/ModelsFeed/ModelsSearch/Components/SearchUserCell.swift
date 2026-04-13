@@ -11,12 +11,14 @@ import DivoCore
 import DivoUIKit
 
 final class SearchUserCell: UITableViewCell {
-    
+
+    private static let avatarSize: CGFloat = 40
+
     private let avatarView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 20
+        iv.layer.cornerRadius = SearchUserCell.avatarSize / 2
         iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -61,8 +63,8 @@ final class SearchUserCell: UITableViewCell {
         NSLayoutConstraint.activate([
             avatarView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             avatarView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarView.widthAnchor.constraint(equalToConstant: 40),
-            avatarView.heightAnchor.constraint(equalToConstant: 40),
+            avatarView.widthAnchor.constraint(equalToConstant: SearchUserCell.avatarSize),
+            avatarView.heightAnchor.constraint(equalToConstant: SearchUserCell.avatarSize),
             
             nameLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 12),
             nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
