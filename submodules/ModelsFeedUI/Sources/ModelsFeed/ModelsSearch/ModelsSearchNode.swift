@@ -35,7 +35,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let view = UIView()
         view.backgroundColor = .white
         view.layer.cornerRadius = 20
-        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
         view.layer.shadowOpacity = 0.08
         view.layer.shadowOffset = CGSize(width: 0, height: 4)
         view.layer.shadowRadius = 12
@@ -72,7 +72,7 @@ final class ModelsSearchNode: ASDisplayNode {
         button.layer.cornerRadius = 20
         button.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
         button.tintColor = .black
-        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
         button.layer.shadowOpacity = 0.08
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
@@ -97,7 +97,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
-        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
         button.layer.shadowOpacity = 0.08
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
@@ -111,7 +111,7 @@ final class ModelsSearchNode: ASDisplayNode {
         view.backgroundColor = .white
         view.layer.cornerRadius = 24
         view.clipsToBounds = true
-        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
         view.layer.shadowOpacity = 0.08
         view.layer.shadowOffset = CGSize(width: 0, height: 4)
         view.layer.shadowRadius = 16
@@ -137,7 +137,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let image = UIImage(bundleImageName: "Components/Search/FaceScan") ?? UIImage(systemName: "person.fill.viewfinder")
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.accentSecondary
-        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
         button.layer.shadowOpacity = 0.1
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
@@ -204,7 +204,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let view = UIView()
         view.backgroundColor = .white
         view.layer.cornerRadius = 34
-        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
         view.layer.shadowOpacity = 0.05
         view.layer.shadowOffset = CGSize(width: 0, height: 4)
         view.layer.shadowRadius = 12
@@ -215,7 +215,7 @@ final class ModelsSearchNode: ASDisplayNode {
     private let emptyStateIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(systemName: "magnifyingglass")
-        imageView.tintColor = UIColor(red: 142/255, green: 142/255, blue: 147/255, alpha: 1.0)
+        imageView.tintColor = DivoColorPalette.systemLabelTertiary
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -246,7 +246,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let view = UIView()
         view.backgroundColor = .white
         view.layer.cornerRadius = 18
-        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
         view.layer.shadowOpacity = 0.08
         view.layer.shadowOffset = CGSize(width: 0, height: 4)
         view.layer.shadowRadius = 12
@@ -312,7 +312,7 @@ final class ModelsSearchNode: ASDisplayNode {
         self.context = context
         self.presentationData = presentationData
         super.init()
-        self.backgroundColor = UIColor(hexString: "#F0F0F0")
+        self.backgroundColor = DivoColorPalette.screenBackground
     }
     
     override func didLoad() {
@@ -578,7 +578,7 @@ final class ModelsSearchNode: ASDisplayNode {
             let numberRange = NSRange(location: baseString.count, length: numberString.count)
             
             attrString.addAttribute(.font, value: Font.medium(12), range: baseRange)
-            attrString.addAttribute(.foregroundColor, value: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6) ?? .black, range: baseRange)
+            attrString.addAttribute(.foregroundColor, value: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6), range: baseRange)
             
             attrString.addAttribute(.font, value: Font.medium(12), range: numberRange)
             attrString.addAttribute(.foregroundColor, value: DivoColorPalette.primaryText, range: numberRange)

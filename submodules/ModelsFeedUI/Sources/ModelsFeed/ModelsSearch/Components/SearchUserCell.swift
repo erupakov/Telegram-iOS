@@ -17,7 +17,7 @@ final class SearchUserCell: UITableViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 20
-        iv.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -41,7 +41,7 @@ final class SearchUserCell: UITableViewCell {
     private let arrowIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(bundleImageName: "Components/Search/ArrowProfile") ?? UIImage(systemName: "arrow.up.right")
-        imageView.tintColor = UIColor(red: 199/255, green: 199/255, blue: 204/255, alpha: 1.0)
+        imageView.tintColor = DivoColorPalette.systemGray3
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView

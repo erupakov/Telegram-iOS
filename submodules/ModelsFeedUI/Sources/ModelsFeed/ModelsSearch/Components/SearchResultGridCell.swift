@@ -321,7 +321,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         backgroundImageView.cancelImageLoad()
         backgroundImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         backgroundImageView.image = nil
-        backgroundImageView.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        backgroundImageView.backgroundColor = DivoColorPalette.imagePlaceholderDark
         
         resetBlurState()
     }

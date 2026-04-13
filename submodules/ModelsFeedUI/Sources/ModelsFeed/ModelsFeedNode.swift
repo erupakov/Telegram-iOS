@@ -102,7 +102,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             let button = UIButton(type: .system)
             let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
             button.setImage(UIImage(systemName: "arrow.clockwise", withConfiguration: config), for: .normal)
-            button.tintColor = UIColor(white: 0.4, alpha: 1.0)
+            button.tintColor = DivoColorPalette.feedNavIcon
             return button
         }()
 
@@ -351,7 +351,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             iv.layer.masksToBounds = true
             iv.layer.borderColor = UIColor.white.cgColor
             iv.layer.borderWidth = 0
-            iv.backgroundColor = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.00)
+            iv.backgroundColor = DivoColorPalette.avatarPlaceholderCool
             iv.alpha = 0
             if let isAdd = story.isAdd, isAdd {
                 iv.backgroundColor = .white
@@ -417,7 +417,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private static func tabAttributedTitle(_ title: String, active: Bool) -> NSAttributedString {
         let font = UIFont(name: "HelveticaNeue-CondensedBold", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .bold)
-        let color: UIColor = active ? .black : UIColor(white: 0.45, alpha: 1.0)
+        let color: UIColor = active ? .black : DivoColorPalette.feedPillInactive
         return NSAttributedString(string: title.uppercased(), attributes: [
             .font: font,
             .foregroundColor: color,
@@ -986,7 +986,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let label = UILabel()
         label.text = loadingTextForCurrentTab()
         label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 13) ?? UIFont.systemFont(ofSize: 13, weight: .bold)
-        label.textColor = UIColor(white: 0.2, alpha: 1.0)
+        label.textColor = DivoColorPalette.feedTitleText
         label.textAlignment = .center
         label.tag = 201
         container.addSubview(label)
@@ -1104,7 +1104,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         container.alpha = 0
 
         let circleView = UIView()
-        circleView.backgroundColor = UIColor(white: 0.95, alpha: 1.0)
+        circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
         circleView.layer.cornerRadius = 40
         circleView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(circleView)
@@ -1112,21 +1112,21 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let iconLabel = UILabel()
         iconLabel.text = selectedTabIndex == 0 ? "♡" : "☰"
         iconLabel.font = .systemFont(ofSize: 32)
-        iconLabel.textColor = UIColor(white: 0.4, alpha: 1.0)
+        iconLabel.textColor = DivoColorPalette.emptyIconTint
         iconLabel.textAlignment = .center
         iconLabel.translatesAutoresizingMaskIntoConstraints = false
         circleView.addSubview(iconLabel)
 
         let titleLabel = UILabel()
         titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textColor = UIColor(white: 0.1, alpha: 1)
+        titleLabel.textColor = DivoColorPalette.emptyPrimaryDark
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(titleLabel)
 
         let subtitleLabel = UILabel()
         subtitleLabel.font = .systemFont(ofSize: 14)
-        subtitleLabel.textColor = UIColor(white: 0.5, alpha: 1)
+        subtitleLabel.textColor = DivoColorPalette.emptySubtitleLight
         subtitleLabel.textAlignment = .center
         subtitleLabel.numberOfLines = 0
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false

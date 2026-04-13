@@ -39,7 +39,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 20)
         
-        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
         button.layer.shadowOpacity = 0.08
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
@@ -64,7 +64,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         saveButton.layer.cornerRadius = 20
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
         saveButton.tintColor = .white
-        saveButton.layer.shadowColor = UIColor.black.cgColor
+        saveButton.layer.shadowColor = DivoColorPalette.shadow.cgColor
         saveButton.layer.shadowOpacity = 0.08
         saveButton.layer.shadowOffset = CGSize(width: 0, height: 4)
         saveButton.layer.shadowRadius = 12
@@ -91,7 +91,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
         deleteButton.setTitleColor(.white, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
-        deleteButton.backgroundColor = UIColor(hexString: "#343434")
+        deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
         deleteButton.layer.cornerRadius = 24
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         return deleteButton
@@ -116,7 +116,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        view.backgroundColor = UIColor(hexString: "#F0F0F0")
+        view.backgroundColor = DivoColorPalette.screenBackground
         
         setupNavBar()
         setupUI()
@@ -222,7 +222,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         textField.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.2).cgColor
         textField.textAlignment = .center
         textField.font = Font.regular(16)
-        textField.textColor = UIColor(hexString: "#3C3C43")
+        textField.textColor = DivoColorPalette.systemLabelSecondary
         textField.keyboardType = .numberPad
         textField.delegate = self
         textField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)

@@ -106,7 +106,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let btn = UIButton(type: .system)
         btn.setTitle(DivoStrings.feedSearchApplyFilter, for: .normal)
         btn.setTitleColor(.white, for: .normal)
-        btn.setTitleColor(UIColor(hexString: "#AFAFB1"), for: .disabled)
+        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
         btn.backgroundColor = DivoColorPalette.accent
         btn.layer.cornerRadius = 28
@@ -147,7 +147,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
-        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
         button.layer.shadowOpacity = 0.08
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
@@ -179,7 +179,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(hexString: "#F0F0F0")
+        view.backgroundColor = DivoColorPalette.screenBackground
         setupCustomNavBar()
         setupUI()
         updateUI()
@@ -488,7 +488,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let valueLabel = UILabel()
         valueLabel.text = value
         valueLabel.font = Font.regular(14)
-        valueLabel.textColor = UIColor(hexString: "#8E8E93")
+        valueLabel.textColor = DivoColorPalette.systemLabelTertiary
         valueLabel.textAlignment = .right
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(valueLabel)
@@ -501,7 +501,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         
         if !isLast {
             let separator = UIView()
-            separator.backgroundColor = UIColor(hexString: "#E5E5EA")
+            separator.backgroundColor = DivoColorPalette.separatorSystem
             separator.translatesAutoresizingMaskIntoConstraints = false
             cell.addSubview(separator)
             

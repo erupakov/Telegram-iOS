@@ -72,7 +72,7 @@ final class FilterOptionsController: UIViewController {
         button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 20)
         
-        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
         button.layer.shadowOpacity = 0.08
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
@@ -86,7 +86,7 @@ final class FilterOptionsController: UIViewController {
         let view = UIView()
         view.backgroundColor = .white
         view.layer.cornerRadius = 20
-        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowColor = DivoColorPalette.shadow.cgColor
         view.layer.shadowOpacity = 0.08
         view.layer.shadowOffset = CGSize(width: 0, height: 4)
         view.layer.shadowRadius = 12
@@ -123,7 +123,7 @@ final class FilterOptionsController: UIViewController {
         saveButton.layer.cornerRadius = 20
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
         saveButton.tintColor = .white
-        saveButton.layer.shadowColor = UIColor.black.cgColor
+        saveButton.layer.shadowColor = DivoColorPalette.shadow.cgColor
         saveButton.layer.shadowOpacity = 0.08
         saveButton.layer.shadowOffset = CGSize(width: 0, height: 4)
         saveButton.layer.shadowRadius = 12
@@ -136,7 +136,7 @@ final class FilterOptionsController: UIViewController {
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
         deleteButton.setTitleColor(.white, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
-        deleteButton.backgroundColor = UIColor(hexString: "#343434")
+        deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
         deleteButton.layer.cornerRadius = 24
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         return deleteButton
@@ -157,7 +157,7 @@ final class FilterOptionsController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        view.backgroundColor = UIColor(hexString: "#F0F0F0")
+        view.backgroundColor = DivoColorPalette.screenBackground
         
         setupCustomNavBar()
         setupSearchField()
@@ -316,7 +316,7 @@ final class FilterOptionsController: UIViewController {
         
         if !isLast {
             let separator = UIView()
-            separator.backgroundColor = UIColor(hexString: "#E5E5EA")
+            separator.backgroundColor = DivoColorPalette.separatorSystem
             separator.translatesAutoresizingMaskIntoConstraints = false
             cell.addSubview(separator)
             
