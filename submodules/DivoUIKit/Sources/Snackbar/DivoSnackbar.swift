@@ -28,8 +28,8 @@ public final class DivoSnackbar {
 
         let snack = UIView()
         snack.backgroundColor = style == .error
-            ? UIColor(red: 223 / 255, green: 28 / 255, blue: 65 / 255, alpha: 1)
-            : UIColor(red: 12 / 255, green: 138 / 255, blue: 81 / 255, alpha: 1)
+            ? DivoColorPalette.snackbarError
+            : DivoColorPalette.snackbarSuccess
         snack.layer.cornerRadius = 8
         snack.layer.masksToBounds = true
         snack.translatesAutoresizingMaskIntoConstraints = false
