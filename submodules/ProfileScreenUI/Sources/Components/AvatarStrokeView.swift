@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import DivoUIKit
 
 class AvatarStrokeView: UIView {
     
@@ -26,14 +27,14 @@ class AvatarStrokeView: UIView {
     
     private func setupLayers() {
         rightArcLayer.fillColor = UIColor.clear.cgColor
-        rightArcLayer.strokeColor = UIColor(hex: "E2E2E2").cgColor
+        rightArcLayer.strokeColor = DivoColorPalette.avatarStrokeQuiet.cgColor
         rightArcLayer.lineWidth = 3
         rightArcLayer.lineCap = .round
         layer.addSublayer(rightArcLayer)
 
         gradientLayer.colors = [
-            UIColor(hex: "990000").cgColor,
-            UIColor(hex: "000000").cgColor
+            DivoColorPalette.avatarStrokeRedDeep.cgColor,
+            UIColor.black.cgColor
         ]
         gradientLayer.locations = [0.0, 1.0]
         gradientLayer.startPoint = CGPoint(x: 0.0, y: 0.0)

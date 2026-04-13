@@ -4,6 +4,7 @@ import Display
 import TelegramCore
 import DivoCore
 import AccountContext
+import DivoUIKit
 
 struct EventItem {
     let name: String
@@ -28,7 +29,7 @@ final class EventListCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 30
-        iv.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.tintColor = .lightGray
         return iv
@@ -37,7 +38,7 @@ final class EventListCell: UICollectionViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(16)
-        label.textColor = UIColor(hex: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -45,7 +46,7 @@ final class EventListCell: UICollectionViewCell {
     private let infoLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(14)
-        label.textColor = UIColor(hex: "#222222").withAlphaComponent(0.6)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -54,7 +55,7 @@ final class EventListCell: UICollectionViewCell {
         let button = UIButton()
         button.setTitle(DivoStrings.apply, for: .normal)
         button.titleLabel?.font = Font.helveticaNeue(14)
-        button.backgroundColor = UIColor(hex: "#BF7A54")
+        button.backgroundColor = DivoColorPalette.accentSecondary
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 6
         button.clipsToBounds = true

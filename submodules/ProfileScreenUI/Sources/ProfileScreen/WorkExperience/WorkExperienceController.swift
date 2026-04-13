@@ -14,6 +14,7 @@ import LegacyMediaPickerUI
 import Postbox
 import MapResourceToAvatarSizes
 import ContextUI
+import DivoUIKit
 
 public final class WorkExperienceController: TelegramBaseController {
 
@@ -41,8 +42,8 @@ public final class WorkExperienceController: TelegramBaseController {
 
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
-            buttonColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            buttonColor: DivoColorPalette.accentCopperDeep,
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,
@@ -76,7 +77,7 @@ public final class WorkExperienceController: TelegramBaseController {
 
         if model.isMyProfile {
             let addItem = UIBarButtonItem(image: UIImage(bundleImageName: "Components/addIcon"), style: .plain, target: self, action: #selector(self.addPressed))
-            addItem.tintColor = UIColor(rgb: 0xBC8461)
+            addItem.tintColor = DivoColorPalette.accentCopperTint
             self.navigationItem.rightBarButtonItem = addItem
         }
     }

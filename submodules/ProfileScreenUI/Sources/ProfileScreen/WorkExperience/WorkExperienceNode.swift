@@ -10,6 +10,7 @@ import ItemListUI
 import PresentationDataUtils
 import AccountContext
 import AppBundle
+import DivoUIKit
 
 final class WorkExperience: ASDisplayNode {
 
@@ -59,7 +60,7 @@ final class WorkExperience: ASDisplayNode {
         super.init()
 
         self.backgroundColor = .white
-        self.addExperienceButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.addExperienceButton.backgroundColor = DivoColorPalette.accentCopperWarm
 
         self.addSubnode(self.addExperienceButton)
     }

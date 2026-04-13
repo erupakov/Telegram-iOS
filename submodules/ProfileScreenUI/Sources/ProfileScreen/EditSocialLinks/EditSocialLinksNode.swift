@@ -12,6 +12,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
@@ -79,15 +80,15 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         self.websiteTextField.textField.attributedPlaceholder = NSAttributedString(
             string: DivoStrings.enterYourWebsite,
             font: Font.bold(16),
-            textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.5)
+            textColor: DivoColorPalette.overlayInputIcon
         )
         
         self.applyButton = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
         
         super.init()
         
-        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        self.backgroundColor = DivoColorPalette.darkBackground
         
         self.addSubnode(self.scrollNode)
         

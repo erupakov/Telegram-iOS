@@ -9,6 +9,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 struct UserProfileViewModel {
     enum Job {
@@ -84,7 +85,7 @@ class ProfileHeaderView: UIView {
     private let onlineStatusView: UIView = {
         let view = UIView()
         view.backgroundColor = .systemGreen
-        view.layer.borderColor = UIColor(hex: "E2E2E2").cgColor
+        view.layer.borderColor = DivoColorPalette.avatarStrokeQuiet.cgColor
         view.layer.borderWidth = 3
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -104,7 +105,7 @@ class ProfileHeaderView: UIView {
         iv.image = UIImage(bundleImageName: "Components/CrownPremium")
         iv.tintColor = .white
         iv.contentMode = .center
-        iv.backgroundColor = UIColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 0.8)
+        iv.backgroundColor = DivoColorPalette.accentCopperMutedBorder
         iv.layer.borderWidth = 1
         iv.layer.borderColor = UIColor.white.withAlphaComponent(0.5).cgColor
         iv.translatesAutoresizingMaskIntoConstraints = false

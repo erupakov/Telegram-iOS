@@ -16,6 +16,7 @@ import LegacyMediaPickerUI
 import CountrySelectionUI
 import ChatScheduleTimeController
 import Postbox
+import DivoUIKit
 
 public class AddWorkExperienceController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
@@ -34,17 +35,17 @@ public class AddWorkExperienceController: ViewController, UINavigationController
 
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
-        let brownColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
+        let brownColor = DivoColorPalette.accentCopperDeep
 
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: brownColor,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .black,
             backgroundColor: .white,
             opaqueBackgroundColor: .white,
             enableBackgroundBlur: false,
-            separatorColor: UIColor(rgb: 0xE5E5E5),
+            separatorColor: DivoColorPalette.separatorSystem,
             badgeBackgroundColor: .clear,
             badgeStrokeColor: .clear,
             badgeTextColor: .clear)
@@ -105,16 +106,16 @@ public class AddWorkExperienceController: ViewController, UINavigationController
     }
 
     private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
-        let brownColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
+        let brownColor = DivoColorPalette.accentCopperDeep
         let theme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: brownColor,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .black,
             backgroundColor: .white,
             opaqueBackgroundColor: .white,
             enableBackgroundBlur: false,
-            separatorColor: UIColor(rgb: 0xE5E5E5),
+            separatorColor: DivoColorPalette.separatorSystem,
             badgeBackgroundColor: .clear,
             badgeStrokeColor: .clear,
             badgeTextColor: .clear)

@@ -24,7 +24,7 @@ public final class DivoSettingsController: TelegramBaseController {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
-        let copperColor = UIColor(red: 191.0/255.0, green: 122.0/255.0, blue: 84.0/255.0, alpha: 1.0)
+        let copperColor = DivoColorPalette.accentSecondary
 
         let navTheme = NavigationBarTheme(
             overallDarkAppearance: false,
@@ -55,8 +55,8 @@ public final class DivoSettingsController: TelegramBaseController {
         self.navigationItem.titleView = titleLabel
 
         self.tabBarItem.title = DivoStrings.tabSettings
-        let settingsIcon = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Tabs/IconSettings"), color: UIColor(white: 0.55, alpha: 1))
-        let settingsIconSelected = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Tabs/IconSettings"), color: UIColor(white: 0.2, alpha: 1))
+        let settingsIcon = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Tabs/IconSettings"), color: DivoColorPalette.tabInactiveIcon)
+        let settingsIconSelected = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Tabs/IconSettings"), color: DivoColorPalette.tabActiveIcon)
         self.tabBarItem.image = settingsIcon
         self.tabBarItem.selectedImage = settingsIconSelected
 
@@ -91,7 +91,7 @@ public final class DivoSettingsController: TelegramBaseController {
     }
 
     private func makeEditButton() -> UIBarButtonItem {
-        let copperColor = UIColor(red: 191.0/255.0, green: 122.0/255.0, blue: 84.0/255.0, alpha: 1.0)
+        let copperColor = DivoColorPalette.accentSecondary
         let editFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 16) ?? UIFont.systemFont(ofSize: 16, weight: .bold)
         let button = UIBarButtonItem(title: DivoStrings.settingsEdit, style: .plain, target: self, action: #selector(editTapped))
         button.setTitleTextAttributes([.foregroundColor: copperColor, .font: editFont], for: .normal)
@@ -171,8 +171,8 @@ public final class DivoSettingsController: TelegramBaseController {
 
 private extension UIView {
     func startSettingsShimmer() {
-        let shimmerColor = UIColor(white: 0.88, alpha: 1.0).cgColor
-        let highlightColor = UIColor(white: 0.96, alpha: 1.0).cgColor
+        let shimmerColor = DivoColorPalette.shimmerDivoBase.cgColor
+        let highlightColor = DivoColorPalette.shimmerDivoHighlight.cgColor
 
         let gradient = CAGradientLayer()
         gradient.name = "settingsShimmer"
@@ -197,14 +197,6 @@ private extension UIView {
     func stopSettingsShimmer() {
         layer.sublayers?.filter { $0.name == "settingsShimmer" }.forEach { $0.removeFromSuperlayer() }
     }
-}
-
-// MARK: - Colors
-
-private enum DivoSettingsColors {
-    static let accent = UIColor(red: 0.76, green: 0.55, blue: 0.38, alpha: 1.0) // brown/copper
-    static let background = UIColor(red: 0.97, green: 0.97, blue: 0.97, alpha: 1.0)
-    static let separator = UIColor(red: 0.90, green: 0.90, blue: 0.90, alpha: 1.0)
 }
 
 // MARK: - Node
@@ -270,7 +262,7 @@ private final class DivoSettingsNode: ASDisplayNode {
 
         avatarImageView.contentMode = .scaleAspectFill
         avatarImageView.clipsToBounds = true
-        avatarImageView.backgroundColor = UIColor(white: 0.92, alpha: 1)
+        avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderLight
         profileContainer.addSubview(avatarImageView)
 
         nameLabel.font = UIFont.systemFont(ofSize: 22, weight: .bold)
@@ -279,17 +271,17 @@ private final class DivoSettingsNode: ASDisplayNode {
         profileContainer.addSubview(nameLabel)
 
         phoneLabel.font = UIFont.systemFont(ofSize: 15, weight: .regular)
-        phoneLabel.textColor = UIColor(white: 0.45, alpha: 1)
+        phoneLabel.textColor = DivoColorPalette.settingsSecondaryText
         phoneLabel.text = " "
         profileContainer.addSubview(phoneLabel)
 
         profileChevron.image = UIImage(systemName: "chevron.right")
-        profileChevron.tintColor = UIColor(white: 0.75, alpha: 1)
+        profileChevron.tintColor = DivoColorPalette.settingsChevron
         profileChevron.contentMode = .scaleAspectFit
         profileContainer.addSubview(profileChevron)
 
         // Separator
-        separator1.backgroundColor = DivoSettingsColors.separator
+        separator1.backgroundColor = DivoColorPalette.separatorLight
         scrollView.addSubview(separator1)
 
         // MARK: Set Username section
@@ -300,9 +292,9 @@ private final class DivoSettingsNode: ASDisplayNode {
 
         usernameIconView.text = "@"
         usernameIconView.font = UIFont.systemFont(ofSize: 20, weight: .semibold)
-        usernameIconView.textColor = UIColor(white: 0.45, alpha: 1)
+        usernameIconView.textColor = DivoColorPalette.settingsUsernameIconText
         usernameIconView.textAlignment = .center
-        usernameIconView.backgroundColor = UIColor(red: 0.95, green: 0.92, blue: 0.90, alpha: 1)
+        usernameIconView.backgroundColor = DivoColorPalette.roleBadgeCopperTint
         usernameIconView.clipsToBounds = true
         usernameContainer.addSubview(usernameIconView)
 
@@ -312,11 +304,11 @@ private final class DivoSettingsNode: ASDisplayNode {
         usernameContainer.addSubview(usernameLabel)
 
         // Separator
-        separator2.backgroundColor = DivoSettingsColors.separator
+        separator2.backgroundColor = DivoColorPalette.separatorLight
         scrollView.addSubview(separator2)
 
         // MARK: Fill your parameters button
-        parametersButton.backgroundColor = DivoSettingsColors.accent
+        parametersButton.backgroundColor = DivoColorPalette.accentCopperWarm
         parametersButton.setTitle(DivoStrings.settingsFillParameters, for: .normal)
         parametersButton.setTitleColor(.white, for: .normal)
         parametersButton.titleLabel?.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
@@ -325,7 +317,7 @@ private final class DivoSettingsNode: ASDisplayNode {
         scrollView.addSubview(parametersButton)
 
         // MARK: Promo banner
-        bannerContainer.backgroundColor = UIColor(white: 0.15, alpha: 1)
+        bannerContainer.backgroundColor = DivoColorPalette.bannerBackgroundDark
         bannerContainer.layer.cornerRadius = 16
         bannerContainer.clipsToBounds = true
         scrollView.addSubview(bannerContainer)
@@ -336,7 +328,7 @@ private final class DivoSettingsNode: ASDisplayNode {
 
         bannerDivoLabel.text = "DIVO"
         bannerDivoLabel.font = UIFont.systemFont(ofSize: 28, weight: .light)
-        bannerDivoLabel.textColor = DivoSettingsColors.accent.withAlphaComponent(0.7)
+        bannerDivoLabel.textColor = DivoColorPalette.accentCopperWarm.withAlphaComponent(0.7)
         bannerContainer.addSubview(bannerDivoLabel)
 
         bannerTitleLabel.text = DivoStrings.settingsBannerTitle
@@ -347,17 +339,17 @@ private final class DivoSettingsNode: ASDisplayNode {
 
         bannerDescriptionLabel.text = DivoStrings.settingsBannerDescription
         bannerDescriptionLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        bannerDescriptionLabel.textColor = UIColor(white: 0.82, alpha: 1)
+        bannerDescriptionLabel.textColor = DivoColorPalette.settingsBannerSubtitle
         bannerDescriptionLabel.numberOfLines = 0
         bannerContainer.addSubview(bannerDescriptionLabel)
 
         learnMoreButton.setTitle(DivoStrings.settingsLearnMore, for: .normal)
         learnMoreButton.setTitleColor(.white, for: .normal)
         learnMoreButton.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .bold)
-        learnMoreButton.backgroundColor = DivoSettingsColors.accent
+        learnMoreButton.backgroundColor = DivoColorPalette.accentCopperWarm
         learnMoreButton.layer.cornerRadius = 8
         learnMoreButton.layer.borderWidth = 1
-        learnMoreButton.layer.borderColor = DivoSettingsColors.accent.cgColor
+        learnMoreButton.layer.borderColor = DivoColorPalette.accentCopperWarm.cgColor
         learnMoreButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
         learnMoreButton.addTarget(self, action: #selector(learnMoreTapped), for: .touchUpInside)
         bannerContainer.addSubview(learnMoreButton)
@@ -474,7 +466,7 @@ private final class DivoSettingsNode: ASDisplayNode {
     private func startProfileShimmer() {
         nameLabel.text = nil
         phoneLabel.text = nil
-        let placeholderColor = UIColor(white: 0.88, alpha: 1)
+        let placeholderColor = DivoColorPalette.shimmerDivoBase
         nameLabel.backgroundColor = placeholderColor
         nameLabel.layer.cornerRadius = 4
         nameLabel.clipsToBounds = true

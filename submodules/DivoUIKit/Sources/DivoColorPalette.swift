@@ -13,6 +13,8 @@ public enum DivoColorPalette {
     public static let accentCopperDark = UIColor(red: 0.73, green: 0.44, blue: 0.28, alpha: 1.0)
     /// Приглушённый copper border на картинках — 0.6/0.4/0.2 α0.8.
     public static let accentCopperMutedBorder = UIColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 0.8)
+    /// #BC8461 — copper tint иконки «добавить» на nav bar.
+    public static let accentCopperTint = UIColor(hexString: "#BC8461")!
     public static let roleBadgeBlue = UIColor(red: 34/255, green: 98/255, blue: 216/255, alpha: 1)
     public static let roleBadgeCopperTint = UIColor(red: 0.95, green: 0.92, blue: 0.90, alpha: 1)
 
@@ -158,4 +160,17 @@ public enum DivoColorPalette {
     // MARK: - Snackbar
     public static let snackbarError = UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)
     public static let snackbarSuccess = UIColor(red: 12/255, green: 138/255, blue: 81/255, alpha: 1)
+
+    // MARK: - Avatar stroke / online border
+    /// #E2E2E2 — рамка online-индикатора и «тихая» дуга AvatarStrokeView.
+    public static let avatarStrokeQuiet = UIColor(hexString: "#E2E2E2")!
+    /// #990000 — верхний стоп градиента AvatarStrokeView.
+    public static let avatarStrokeRedDeep = UIColor(hexString: "#990000")!
+
+    // MARK: - Bronze tag gradient (6 стопов)
+    public static let bronzeGradientLight = UIColor(hexString: "#BB7148")!
+    public static let bronzeGradientSheen = UIColor(hexString: "#D5B187")!
+    public static let bronzeGradientMid = UIColor(hexString: "#A46B4C")!
+    public static let bronzeGradientDark = UIColor(hexString: "#89503B")!
+    public static let bronzeGradientDeep = UIColor(hexString: "#823F36")!
 }

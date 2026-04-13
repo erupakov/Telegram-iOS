@@ -11,6 +11,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
 
@@ -40,7 +41,7 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
         fieldNode.textField.returnKeyType = .done
         
         fieldNode.borderWidth = 1.0
-        fieldNode.borderColor = UIColor(white: 1.0, alpha: 0.4).cgColor
+        fieldNode.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
         fieldNode.cornerRadius = 11.0
         fieldNode.clipsToBounds = true
         fieldNode.padding = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
@@ -55,7 +56,7 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
         
         let prefixAttr: [NSAttributedString.Key: Any] = [
             .font: Font.bold(16.0),
-            .foregroundColor: UIColor(white: 1.0, alpha: 1.0)
+            .foregroundColor: UIColor.white
         ]
         fullString.append(NSAttributedString(string: prefix, attributes: prefixAttr))
         

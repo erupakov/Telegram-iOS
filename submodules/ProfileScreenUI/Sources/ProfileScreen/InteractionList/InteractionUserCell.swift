@@ -2,6 +2,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 final class InteractionUserCell: UITableViewCell {
     static let reuseIdentifier = "InteractionUserCell"
@@ -11,7 +12,7 @@ final class InteractionUserCell: UITableViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 30
-        iv.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.tintColor = .lightGray
         return iv
@@ -20,7 +21,7 @@ final class InteractionUserCell: UITableViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(16)
-        label.textColor = UIColor(hexString: "222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
         return label
@@ -37,7 +38,7 @@ final class InteractionUserCell: UITableViewCell {
     private let roleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(14)
-        label.textColor = UIColor(hexString: "222222")?.withAlphaComponent(0.6)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
         return label
@@ -57,7 +58,7 @@ final class InteractionUserCell: UITableViewCell {
         avatarImageView.image = nil
         avatarImageView.stopShimmering()
         avatarImageView.alpha = 1.0
-        avatarImageView.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
     }
 
     private func setupViews() {
@@ -120,7 +121,7 @@ final class InteractionUserCell: UITableViewCell {
     private func setDefaultAvatar() {
         avatarImageView.image = UIImage(systemName: "person.crop.circle.fill")
         avatarImageView.tintColor = .lightGray
-        avatarImageView.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
     }
 }
 

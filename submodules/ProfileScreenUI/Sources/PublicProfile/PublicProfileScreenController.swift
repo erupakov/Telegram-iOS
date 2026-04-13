@@ -19,6 +19,7 @@ import MapResourceToAvatarSizes
 import ContextUI
 import GalleryUI
 import EventsUI
+import DivoUIKit
 
 enum MediaFormatValidator {
     static let videoExtensions: Set<String> = ["mp4", "mov", "avi", "mkv", "webm"]
@@ -99,7 +100,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,

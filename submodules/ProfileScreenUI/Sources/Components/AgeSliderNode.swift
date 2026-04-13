@@ -11,6 +11,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 protocol SliderValue: CVarArg, Equatable {
     var floatValue: Float { get }
@@ -68,8 +69,8 @@ struct AgeSliderConfiguration {
         titleColor: .white,
         valueColor: .white,
         labelColor: .white.withAlphaComponent(0.8),
-        sliderTintColor: UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0),
-        thumbBorderColor: UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0),
+        sliderTintColor: DivoColorPalette.accentCopperWarm,
+        thumbBorderColor: DivoColorPalette.accentCopperWarm,
         thumbInnerColor: .white,
         titleFont: Font.regular(16),
         valueFont: Font.bold(16),
@@ -79,13 +80,13 @@ struct AgeSliderConfiguration {
         sideInset: 0.0,
         sliderHeight: 30.0
     )
-    
+
     static var `light` = AgeSliderConfiguration(
-        titleColor: UIColor(hexString: "#3C3C43") ?? .white,
-        valueColor: UIColor(hexString: "#3C3C43") ?? .white,
-        labelColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6) ?? .white,
-        sliderTintColor: UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0),
-        thumbBorderColor: UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0),
+        titleColor: DivoColorPalette.systemLabelSecondary,
+        valueColor: DivoColorPalette.systemLabelSecondary,
+        labelColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+        sliderTintColor: DivoColorPalette.accentCopperWarm,
+        thumbBorderColor: DivoColorPalette.accentCopperWarm,
         thumbInnerColor: .white,
         titleFont: Font.regular(16),
         valueFont: Font.bold(16),
