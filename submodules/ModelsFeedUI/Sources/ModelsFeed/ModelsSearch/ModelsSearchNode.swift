@@ -863,7 +863,9 @@ extension ModelsSearchNode: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "UserCell", for: indexPath) as! SearchUserCell
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "UserCell", for: indexPath) as? SearchUserCell else {
+            return UITableViewCell()
+        }
         let item = currentAutocompleteResults[indexPath.row]
         let query = searchTextField.text ?? ""
         cell.configure(with: item, query: query)
@@ -883,7 +885,9 @@ extension ModelsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GridCell", for: indexPath) as! SearchResultGridCell
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GridCell", for: indexPath) as? SearchResultGridCell else {
+            return UICollectionViewCell()
+        }
         if let countryName = currentGridResults[indexPath.item].user?.city?.countryName {
             cell.configure(
                 with: currentGridResults[indexPath.item],
