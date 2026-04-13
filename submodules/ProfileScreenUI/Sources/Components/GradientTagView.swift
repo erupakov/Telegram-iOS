@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import DivoUIKit
 
 class GradientTagView: UIView {
     
@@ -45,12 +46,12 @@ class GradientTagView: UIView {
         switch style {
         case .bronzeGradient:
             gradientLayer.colors = [
-                UIColor(hex: "BB7148").cgColor,
-                UIColor(hex: "D5B187").cgColor,
-                UIColor(hex: "A46B4C").cgColor,
-                UIColor(hex: "89503B").cgColor,
-                UIColor(hex: "823F36").cgColor,
-                UIColor(hex: "BB7148").cgColor
+                DivoColorPalette.bronzeGradientLight.cgColor,
+                DivoColorPalette.bronzeGradientSheen.cgColor,
+                DivoColorPalette.bronzeGradientMid.cgColor,
+                DivoColorPalette.bronzeGradientDark.cgColor,
+                DivoColorPalette.bronzeGradientDeep.cgColor,
+                DivoColorPalette.bronzeGradientLight.cgColor
             ]
             gradientLayer.locations = [0.0, 0.22, 0.36, 0.66, 0.80, 1.0]
             

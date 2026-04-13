@@ -49,7 +49,7 @@ When migrating code from the dummy repo, apply these transformations:
 - `DivoStubs.swift` is NOT migrated — real Telegram types are used
 
 ## Known Issues
-- `ShimmerView` lives in TelegramCore (not ModelsFeedUI) due to a circular dependency with ImageLoader
+- `ShimmerView` и `ImageLoader` живут в `submodules/DivoUIKit/Sources/Services/`: `ShimmerView` берёт цвета из `DivoColorPalette`, а `ImageLoader.loadImage(...)` сам дёргает `addShimmerOverlay()`/`removeShimmerOverlay()` — поэтому оба класса лежат рядом с палитрой в одном модуле
 - `startShimmering()`/`stopShimmering()` — separate extensions in `ProfileInfoView.swift` (ProfileScreenUI)
 - `DivoConfig` has a hardcoded stage token — this is intentional for now
 - EventsUI: MTProto calls are commented out with `// FIXME DIVO` — need REST replacements

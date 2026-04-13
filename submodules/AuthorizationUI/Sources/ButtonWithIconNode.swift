@@ -8,6 +8,7 @@ import TextFormat
 import Markdown
 import SolidRoundedButtonNode
 import AuthorizationUtils
+import DivoUIKit
 
 class AgeSliderNode: ASDisplayNode {
     private let titleNode: ASTextNode
@@ -32,11 +33,11 @@ class AgeSliderNode: ASDisplayNode {
         self.slider.minimumValue = Float(minimumValue)
         self.slider.maximumValue = Float(maximumValue)
         self.slider.value = Float(defaultValue)
-        self.slider.tintColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.slider.tintColor = DivoColorPalette.accentCopperWarm
 
         // Кастомизация ползунка: меньший размер с цветным border
         let thumbSize: CGFloat = 16.0
-        let borderColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        let borderColor = DivoColorPalette.accentCopperWarm
         let thumbImage = generateImage(CGSize(width: thumbSize, height: thumbSize), rotatedContext: { size, context in
             context.clear(CGRect(origin: CGPoint(), size: size))
             // Рисуем круг с border
@@ -221,7 +222,7 @@ final class DropdownNode: ASDisplayNode {
 
         self.backgroundNode = ASDisplayNode()
         self.backgroundNode.borderWidth = 1.0
-        self.backgroundNode.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
+        self.backgroundNode.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
         self.backgroundNode.cornerRadius = 10.0
 
         self.titleNode = ASTextNode()
@@ -255,7 +256,7 @@ final class DropdownNode: ASDisplayNode {
     
     private func updateTitleText() {
         let text = isLoading ? "Loading..." : (selectedValue ?? placeholder)
-        let color: UIColor = (selectedValue == nil || isLoading) ? UIColor.white.withAlphaComponent(0.4) : .white
+        let color: UIColor = (selectedValue == nil || isLoading) ? DivoColorPalette.overlayDarkFieldBorder : .white
         titleNode.attributedText = NSAttributedString(string: text, font: Font.regular(16.0), textColor: color)
         setNeedsLayout()
     }
@@ -313,7 +314,7 @@ final class DropdownListSheetController: UIViewController, UITableViewDelegate, 
     private let handleView = UIView()
 
     private let cellReuseId = "OptionCell"
-    private let accentColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+    private let accentColor = DivoColorPalette.accentCopperWarm
 
     init(title: String, options: [String], selectedValue: String?, showsSearchBar: Bool = true, onSelect: @escaping (String) -> Void) {
         self.sheetTitle = title
@@ -364,9 +365,9 @@ final class DropdownListSheetController: UIViewController, UITableViewDelegate, 
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 1.0)
+        view.backgroundColor = DivoColorPalette.dropdownBackgroundDark
 
-        handleView.backgroundColor = UIColor.white.withAlphaComponent(0.3)
+        handleView.backgroundColor = DivoColorPalette.handleIndicator
         handleView.layer.cornerRadius = 2.5
         handleView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(handleView)

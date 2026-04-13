@@ -12,6 +12,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 final class AddModelNode: ASDisplayNode {
     
@@ -141,8 +142,8 @@ final class AddModelNode: ASDisplayNode {
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 50
         iv.layer.borderWidth = 1
-        iv.layer.borderColor = UIColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1.0).cgColor
-        iv.backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
+        iv.layer.borderColor = DivoColorPalette.inputBorderDark.cgColor
+        iv.backgroundColor = DivoColorPalette.inputBackgroundDark
         iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         
@@ -248,18 +249,18 @@ final class AddModelNode: ASDisplayNode {
         let imageSize = CGSize(width: 16, height: 12)
         
         self.backNode = ButtonWithIconNode(title: DivoStrings.back, icon: backIcon, theme: presentationData.theme, spacing: 10, imageSize: imageSize)
-        self.backNode.backgroundColor = UIColor(hexString: "#343434")
+        self.backNode.backgroundColor = DivoColorPalette.deleteButtonBackground
         
         self.nextNode = ButtonWithIconNode(title: DivoStrings.nextStep, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: imageSize)
-        self.nextNode.backgroundColor = UIColor(hexString: "#BF7A54")
+        self.nextNode.backgroundColor = DivoColorPalette.accentSecondary
         
         self.saveNode = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: imageSize)
-        self.saveNode.backgroundColor = UIColor(hexString: "#BF7A54")
+        self.saveNode.backgroundColor = DivoColorPalette.accentSecondary
         self.saveNode.isHidden = true
         
         super.init()
         
-        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        self.backgroundColor = DivoColorPalette.darkBackground
 
         headerTitleLabel.text = DivoStrings.titleAddModel
         headerSubtitleLabel.text = DivoStrings.subTitleAddModel
@@ -704,11 +705,11 @@ private func getTextField(title: String) -> TextFieldNode {
     field.textField.font = Font.regular(16.0)
     field.textField.textColor = .white
     field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
     field.borderWidth = 1.0
-    field.borderColor = UIColor(red: 1, green: 1, blue: 1, alpha: 0.4).cgColor
+    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
     field.cornerRadius = 10.0
     field.clipsToBounds = true
     field.padding = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
@@ -721,11 +722,11 @@ private func getChevronTextField(title: String) -> TextFieldNodeWithChevron {
     field.textField.textField.font = Font.regular(16.0)
     field.textField.textField.textColor = .white
     field.textField.textField.textAlignment = .natural
-    field.textField.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+    field.textField.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
     field.textField.textField.autocapitalizationType = .none
     field.textField.textField.autocorrectionType = .no
     field.borderWidth = 1.0
-    field.borderColor = UIColor(red: 1, green: 1, blue: 1, alpha: 0.4).cgColor
+    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
     field.cornerRadius = 10.0
     field.clipsToBounds = true
     field.padding = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)

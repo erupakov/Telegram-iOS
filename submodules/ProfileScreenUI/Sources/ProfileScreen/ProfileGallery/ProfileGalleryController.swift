@@ -7,6 +7,7 @@ import TelegramCore
 import DivoCore
 import TelegramPresentationData
 import AccountContext
+import DivoUIKit
 
 public class ProfileGalleryController: TelegramBaseController {
     private var galleryNode: ProfileGalleryControllerNode {
@@ -51,7 +52,7 @@ public class ProfileGalleryController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: UIColor.black.withAlphaComponent(0.7),
             opaqueBackgroundColor: .black,

@@ -8,20 +8,21 @@
 import Display
 import UIKit
 import DivoCore
+import DivoUIKit
 
 final class FilterRowView: UIView {
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(16)
-        label.textColor = UIColor(hexString: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         return label
     }()
-    
+
     private let valueLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(12)
-        label.textColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.6)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.textAlignment = .right
         label.lineBreakMode = .byTruncatingTail
         return label
@@ -40,7 +41,7 @@ final class FilterRowView: UIView {
         titleLabel.text = title
         
         let chevron = UIImageView(image: UIImage(bundleImageName: "Components/Search/ChevronRight") ?? UIImage(systemName: "chevron.right"))
-        chevron.tintColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.8)
+        chevron.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         chevron.setContentHuggingPriority(.required, for: .horizontal)
         chevron.frame = CGRect(x: 0, y: 0, width: 20, height: 20)
         

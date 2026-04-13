@@ -1,28 +1,29 @@
 import AsyncDisplayKit
 import Display
+import DivoUIKit
 
 final class MultilineTextFieldNode: ASDisplayNode, ASEditableTextNodeDelegate {
     let textNode = ASEditableTextNode()
-    
+
     init(placeholder: String) {
         super.init()
-        
-        self.backgroundColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00)
+
+        self.backgroundColor = DivoColorPalette.fieldBackgroundLight
         self.borderWidth = 1.0
-        self.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
+        self.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
         self.cornerRadius = 11.0
         self.clipsToBounds = true
-        
+
         textNode.typingAttributes = [
             NSAttributedString.Key.font.rawValue: Font.regular(16.0),
-            NSAttributedString.Key.foregroundColor.rawValue: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 1.0)
+            NSAttributedString.Key.foregroundColor.rawValue: DivoColorPalette.systemLabelBody
         ]
-        
+
         textNode.attributedPlaceholderText = NSAttributedString(
             string: placeholder,
             attributes:[
                 .font: Font.regular(16.0),
-                .foregroundColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6)
+                .foregroundColor: DivoColorPalette.systemLabelPlaceholder
             ]
         )
         
@@ -47,7 +48,7 @@ final class MultilineTextFieldNode: ASDisplayNode, ASEditableTextNodeDelegate {
         } else {
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: Font.regular(16.0),
-                .foregroundColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 1.0)
+                .foregroundColor: DivoColorPalette.systemLabelBody
             ]
             
             textNode.attributedText = NSAttributedString(string: newText, attributes: attributes)

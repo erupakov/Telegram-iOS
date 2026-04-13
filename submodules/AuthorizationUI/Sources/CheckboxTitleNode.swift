@@ -8,6 +8,7 @@
 import UIKit
 import AsyncDisplayKit
 import Display
+import DivoUIKit
 
 final class CheckboxTitleNode: ASDisplayNode {
     let circleNode: ASDisplayNode
@@ -17,7 +18,7 @@ final class CheckboxTitleNode: ASDisplayNode {
     var isSelected: Bool = false {
         didSet {
             innerCircleNode.isHidden = !isSelected
-            circleNode.borderColor = isSelected ? UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0).cgColor : UIColor.white.withAlphaComponent(0.6).cgColor
+            circleNode.borderColor = isSelected ? DivoColorPalette.accentCopperWarm.cgColor : DivoColorPalette.overlayDarkMediumLine.cgColor
         }
     }
 
@@ -51,10 +52,10 @@ final class CheckboxTitleNode: ASDisplayNode {
         self.backgroundColor = .clear
         self.isUserInteractionEnabled = true
         circleNode.borderWidth = 2.0
-        circleNode.borderColor = UIColor.white.withAlphaComponent(0.6).cgColor
+        circleNode.borderColor = DivoColorPalette.overlayDarkMediumLine.cgColor
         circleNode.cornerRadius = 12.0
 
-        innerCircleNode.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        innerCircleNode.backgroundColor = DivoColorPalette.accentCopperWarm
         innerCircleNode.cornerRadius = 7.0
 
         textNode.attributedText = Font.helveticaNeue(title, 14, .white, alignment: .left)

@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import DivoUIKit
 
 final class RangeSlider: UIControl {
     var minimumValue: CGFloat = 0 { didSet { updateLayerFrames() } }
@@ -88,11 +89,11 @@ final class RangeSlider: UIControl {
     }
     
     private func setupLayers() {
-        trackLayer.backgroundColor = UIColor(hexString: "#FF772D")?.withAlphaComponent(0.2).cgColor ?? UIColor.systemGray5.cgColor
+        trackLayer.backgroundColor = DivoColorPalette.accent.withAlphaComponent(0.2).cgColor
         trackLayer.cornerRadius = trackHeight / 2
         layer.addSublayer(trackLayer)
-        
-        highlightLayer.backgroundColor = UIColor(hexString: "#FF772D")?.cgColor
+
+        highlightLayer.backgroundColor = DivoColorPalette.accent.cgColor
         highlightLayer.cornerRadius = trackHeight / 2
         layer.addSublayer(highlightLayer)
         
@@ -103,7 +104,7 @@ final class RangeSlider: UIControl {
     private func setupThumb(_ thumbLayer: CALayer) {
         thumbLayer.backgroundColor = UIColor.white.cgColor
         thumbLayer.cornerRadius = thumbWidth / 2
-        thumbLayer.shadowColor = UIColor.black.cgColor
+        thumbLayer.shadowColor = DivoColorPalette.shadow.cgColor
         thumbLayer.shadowOffset = CGSize(width: 0, height: 2)
         thumbLayer.shadowOpacity = 0.15
         thumbLayer.shadowRadius = 4

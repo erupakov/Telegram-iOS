@@ -12,6 +12,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 final class EditProfileNode: ASDisplayNode {
     
@@ -169,7 +170,7 @@ final class EditProfileNode: ASDisplayNode {
     
     private let chancePhotoView: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = UIColor(hexString: "#BF7A54")
+        button.backgroundColor = DivoColorPalette.accentSecondary
         button.translatesAutoresizingMaskIntoConstraints = false
         let image = UIImage(bundleImageName: "Components/AddPhotoIcon")
         button.setImage(image, for: .normal)
@@ -344,9 +345,9 @@ final class EditProfileNode: ASDisplayNode {
         self.skinColorDropdown.selectedValue = model?.model?.appearance?.skinColor?.title
         
         self.applyButton = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
         self.applyButtonAppearance = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButtonAppearance.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.applyButtonAppearance.backgroundColor = DivoColorPalette.accentCopperWarm
         
         super.init()
         
@@ -359,7 +360,7 @@ final class EditProfileNode: ASDisplayNode {
             configuration: .default
         )
         
-        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        self.backgroundColor = DivoColorPalette.darkBackground
     }
     
     override func didLoad() {
@@ -917,11 +918,11 @@ private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldN
     field.textField.font = Font.regular(16.0)
     field.textField.textColor = .white
     field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
     field.borderWidth = 1.0
-    field.borderColor = UIColor(red: 1, green: 1, blue: 1, alpha: 0.4).cgColor
+    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
     field.cornerRadius = 11.0
     field.clipsToBounds = true
     if isMultiline {

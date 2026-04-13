@@ -8,6 +8,7 @@ import TextFormat
 import Markdown
 import SolidRoundedButtonNode
 import AuthorizationUtils
+import DivoUIKit
 
 final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let theme: PresentationTheme
@@ -65,9 +66,9 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         self.contentNode = ASDisplayNode()
 
         let customButtonTheme = SolidRoundedButtonTheme(
-            backgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            backgroundColor: DivoColorPalette.accentCopperDeep,
             foregroundColor: .white,
-            disabledBackgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            disabledBackgroundColor: DivoColorPalette.accentCopperDeep,
             disabledForegroundColor: .white
         )
         
@@ -83,7 +84,7 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         
         self.subtitleNode.attributedText = NSAttributedString(string: "Select the role that your profile will correspond to. The role can be changed at any time", attributes:[
             .font: UIFont.systemFont(ofSize: 16),
-            .foregroundColor: UIColor.white.withAlphaComponent(0.6),
+            .foregroundColor: DivoColorPalette.overlayDarkMediumLine,
             .paragraphStyle: paragraphStyle
         ])
         
@@ -120,7 +121,7 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         super.init()
         
         self.automaticallyManagesSubnodes = true
-        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        self.backgroundColor = DivoColorPalette.darkBackground
         
         self.addSubnode(self.backgroundNode)
         self.addSubnode(self.scrollNode)

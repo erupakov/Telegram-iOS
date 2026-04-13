@@ -2,6 +2,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 protocol CardCellDelegate: AnyObject {
     func cardCell(_ cell: CardCollectionViewCell, didTapSaveForUserId userId: Int, isSaved: Bool)
@@ -65,7 +66,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     private let roleBadgeView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 34/255.0, green: 98/255.0, blue: 216/255.0, alpha: 1.0)
+        view.backgroundColor = DivoColorPalette.roleBadgeBlue
         view.layer.cornerRadius = 11
         view.layer.masksToBounds = true
         return view
@@ -219,7 +220,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         topGlassMask.frame = topGlassView.bounds
         topGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
         topGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
-        topGlassMask.colors = [UIColor.white.cgColor, UIColor.white.cgColor, UIColor(white: 1, alpha: 0).cgColor]
+        topGlassMask.colors = [UIColor.white.cgColor, UIColor.white.cgColor, UIColor.clear.cgColor]
         topGlassMask.locations = [0, 0.3, 1.0]
 
         let bottomGlassHeight: CGFloat = min(350, bounds.height * 0.55)
@@ -227,7 +228,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         bottomGlassMask.frame = bottomGlassView.bounds
         bottomGlassMask.startPoint = CGPoint(x: 0.5, y: 0)
         bottomGlassMask.endPoint = CGPoint(x: 0.5, y: 1)
-        bottomGlassMask.colors = [UIColor(white: 1, alpha: 0).cgColor, UIColor.white.cgColor, UIColor.white.cgColor]
+        bottomGlassMask.colors = [UIColor.clear.cgColor, UIColor.white.cgColor, UIColor.white.cgColor]
         bottomGlassMask.locations = [0, 0.75, 1.0]
 
         // Stats pills (right side) — calculate first to derive name/info widths
@@ -290,7 +291,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         self.currentLikesCount = model.likesCount
         self.currentSavesCount = model.savesCount
 
-        let placeholderColor = UIColor(white: 0.92, alpha: 1.0)
+        let placeholderColor = DivoColorPalette.imagePlaceholderLight
 
         // Main image
         if let url = model.mainImageURL {
@@ -362,7 +363,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         imageView.contentMode = .scaleAspectFill
         imageView.layer.masksToBounds = true
         imageView.layer.cornerRadius = 8
-        imageView.backgroundColor = UIColor(white: 0.92, alpha: 1.0)
+        imageView.backgroundColor = DivoColorPalette.imagePlaceholderLight
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.heightAnchor.constraint(equalToConstant: 100).isActive = true
         imageView.widthAnchor.constraint(equalToConstant: 93).isActive = true
@@ -451,11 +452,11 @@ final class StatPillView: UIView {
             self.filledIcon = nil
         }
         super.init(frame: .zero)
-        backgroundColor = DivoGlassColors.statPillBackground
+        backgroundColor = DivoColorPalette.statPillBackground
         layer.cornerRadius = 15
         layer.masksToBounds = true
         layer.borderWidth = 0.5
-        layer.borderColor = DivoGlassColors.statPillBorder.cgColor
+        layer.borderColor = DivoColorPalette.statPillBorder.cgColor
 
         iconView.image = normalIcon
 
@@ -486,8 +487,8 @@ final class StatPillView: UIView {
                     self.iconView.image = filled
                 }
             } else {
-                self.backgroundColor = DivoGlassColors.statPillBackground
-                self.layer.borderColor = DivoGlassColors.statPillBorder.cgColor
+                self.backgroundColor = DivoColorPalette.statPillBackground
+                self.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
                 self.iconView.tintColor = .white
                 self.countLabel.textColor = .white
                 self.iconView.image = self.normalIcon

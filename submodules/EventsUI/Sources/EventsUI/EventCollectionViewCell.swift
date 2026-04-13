@@ -4,6 +4,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -40,15 +41,15 @@ final class EventCollectionViewCell: UICollectionViewCell {
 
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        imageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         imageView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(imageView)
 
         overlayView.configure(
             colors: [
-                UIColor(white: 0.0, alpha: 0.0),
-                UIColor(white: 0.0, alpha: 0.15),
-                UIColor(white: 0.0, alpha: 0.7)
+                .clear,
+                DivoColorPalette.imageScrimLight,
+                DivoColorPalette.imageScrimHeavy
             ],
             direction: .vertical
         )
@@ -58,7 +59,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         profileImageView.contentMode = .scaleAspectFill
         profileImageView.clipsToBounds = true
         profileImageView.layer.cornerRadius = 14
-        profileImageView.backgroundColor = UIColor(white: 0.8, alpha: 1.0)
+        profileImageView.backgroundColor = DivoColorPalette.avatarPlaceholderWarm
         profileImageView.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(profileImageView)
 
@@ -75,11 +76,11 @@ final class EventCollectionViewCell: UICollectionViewCell {
         contentView.addSubview(titleLabel)
 
         dateLocationLabel.font = .systemFont(ofSize: 9, weight: .regular)
-        dateLocationLabel.textColor = UIColor(white: 0.85, alpha: 1.0)
+        dateLocationLabel.textColor = DivoColorPalette.textOnDarkSecondary
         dateLocationLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(dateLocationLabel)
 
-        timeRemainingContainer.backgroundColor = UIColor(white: 1.0, alpha: 0.25)
+        timeRemainingContainer.backgroundColor = DivoColorPalette.badgeOnImage
         timeRemainingContainer.layer.cornerRadius = 10
         timeRemainingContainer.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(timeRemainingContainer)
@@ -93,7 +94,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         applyButton.setTitle(DivoStrings.apply, for: .normal)
         applyButton.titleLabel?.font = .systemFont(ofSize: 11, weight: .semibold)
         applyButton.setTitleColor(.white, for: .normal)
-        applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
         applyButton.layer.cornerRadius = 10
         applyButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
         applyButton.translatesAutoresizingMaskIntoConstraints = false

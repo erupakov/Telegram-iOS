@@ -2,6 +2,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 struct AppearanceAttribute {
     let title: String
@@ -431,8 +432,8 @@ extension UIView {
         gradient.startPoint = CGPoint(x: 0, y: 0.5)
         gradient.endPoint = CGPoint(x: 1, y: 0.5)
         
-        let baseColor = UIColor(white: 0.85, alpha: 1.0).cgColor
-        let highlightColor = UIColor(white: 0.95, alpha: 1.0).cgColor
+        let baseColor = DivoColorPalette.shimmerBase.cgColor
+        let highlightColor = DivoColorPalette.shimmerHighlight.cgColor
         
         gradient.colors = [baseColor, highlightColor, baseColor]
         gradient.locations = [0.0, 0.5, 1.0]

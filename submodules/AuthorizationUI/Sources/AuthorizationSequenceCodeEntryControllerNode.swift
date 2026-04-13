@@ -15,6 +15,7 @@ import SolidRoundedButtonNode
 import AuthorizationUtils
 import TelegramStringFormatting
 import TextNodeWithEntities
+import DivoUIKit
 
 final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
@@ -261,7 +262,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             return UITracingLayerView()
         })
         
-        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        self.backgroundColor = DivoColorPalette.darkBackground
         
         self.textField.textField.delegate = self
         
@@ -598,7 +599,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         let codeFieldSize = self.codeInputView.update(
             theme: CodeInputView.Theme(
                 inactiveBorder: self.theme.list.itemPlainSeparatorColor.argb,
-                activeBorder: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6).argb,
+                activeBorder: DivoColorPalette.overlayDarkMediumLine.argb,
                 succeedBorder: self.theme.list.itemDisclosureActions.constructive.fillColor.argb,
                 failedBorder: self.theme.list.itemDestructiveColor.argb,
                 foreground: UIColor.white.argb,

@@ -7,21 +7,22 @@
 
 import UIKit
 import Display
+import DivoUIKit
 
 final class AppearanceFilterRowView: UIView {
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(16)
-        label.textColor = UIColor(hexString: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     private let valueLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(14)
-        label.textColor = UIColor(hexString: "#8E8E93")
+        label.textColor = DivoColorPalette.systemLabelTertiary
         label.textAlignment = .right
         label.lineBreakMode = .byTruncatingTail
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -44,13 +45,13 @@ final class AppearanceFilterRowView: UIView {
         
         let chevronImageView = UIImageView()
         chevronImageView.image = UIImage(bundleImageName: "Components/Search/ChevronRight") ?? UIImage(systemName: "chevron.right")
-        chevronImageView.tintColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.8)
+        chevronImageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         chevronImageView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(chevronImageView)
         
         if !isLast {
             let separator = UIView()
-            separator.backgroundColor = UIColor(hexString: "#E5E5EA")
+            separator.backgroundColor = DivoColorPalette.separatorSystem
             separator.translatesAutoresizingMaskIntoConstraints = false
             addSubview(separator)
             

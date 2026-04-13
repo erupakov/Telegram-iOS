@@ -4,6 +4,7 @@ import Display
 import AsyncDisplayKit
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -55,7 +56,7 @@ public final class ModelsFeedController: TelegramBaseController {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
-        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: UIColor(rgb: 0x525252), primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
+        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.disabledButtonBackground, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
         let icon: UIImage?
@@ -107,7 +108,7 @@ public final class ModelsFeedController: TelegramBaseController {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: total, height: total))
         return renderer.image { ctx in
             let gc = ctx.cgContext
-            gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: UIColor(white: 0, alpha: 0.1).cgColor)
+            gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: DivoColorPalette.shadow.withAlphaComponent(0.1).cgColor)
             gc.setFillColor(UIColor.white.cgColor)
             gc.fillEllipse(in: CGRect(x: padding, y: padding, width: circleSize, height: circleSize))
             gc.setShadow(offset: .zero, blur: 0)

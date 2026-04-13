@@ -8,6 +8,7 @@
 import UIKit
 import Display
 import DivoCore
+import DivoUIKit
 
 struct FullSearchItem {
     let id = UUID()
@@ -43,7 +44,7 @@ final class SearchResultGridCell: UICollectionViewCell {
     
     private let roleContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(hexString: "#2262D8")
+        view.backgroundColor = DivoColorPalette.roleBadgeBlue
         view.layer.cornerRadius = 12
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -320,7 +321,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         backgroundImageView.cancelImageLoad()
         backgroundImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         backgroundImageView.image = nil
-        backgroundImageView.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        backgroundImageView.backgroundColor = DivoColorPalette.imagePlaceholderDark
         
         resetBlurState()
     }

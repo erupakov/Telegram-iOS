@@ -9,6 +9,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 // Делегат для обработки нажатия на кнопку
 protocol CurrentAgencyViewDelegate: AnyObject {

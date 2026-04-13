@@ -38,6 +38,7 @@ swift_library(
         "//submodules/Camera:Camera",
         "//submodules/EventsUI:EventsUI",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/DivoUIKit:DivoUIKit",
     ],
     visibility = [
         "//visibility:public",

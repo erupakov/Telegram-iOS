@@ -50,6 +50,7 @@ swift_library(
         "//submodules/PresentationDataUtils",
         "//submodules/OnboardingUI:OnboardingUI",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/DivoUIKit:DivoUIKit",
     ],
     visibility = [
         "//visibility:public",

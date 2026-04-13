@@ -1,6 +1,7 @@
 import UIKit
 import AsyncDisplayKit
 import Display
+import DivoUIKit
 
 final class DropdownNode: ASDisplayNode {
 
@@ -219,7 +220,7 @@ final class DropdownListSheetController: UIViewController, UITableViewDelegate, 
     private let handleView = UIView()
 
     private let cellReuseId = "OptionCell"
-    private let accentColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+    private let accentColor = DivoColorPalette.accentCopperWarm
 
     init(title: String, options: [String], selectedValue: String?, selectedValues: [String], allowsMultipleSelection: Bool, showsSearchBar: Bool = true, onSelect: @escaping ([String]) -> Void) {
         self.sheetTitle = title
@@ -285,9 +286,9 @@ final class DropdownListSheetController: UIViewController, UITableViewDelegate, 
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 0.15, green: 0.15, blue: 0.15, alpha: 1.0)
+        view.backgroundColor = DivoColorPalette.dropdownBackgroundDark
 
-        handleView.backgroundColor = UIColor.white.withAlphaComponent(0.3)
+        handleView.backgroundColor = DivoColorPalette.handleIndicator
         handleView.layer.cornerRadius = 2.5
         handleView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(handleView)

@@ -8,6 +8,7 @@
 import Display
 import UIKit
 import DivoCore
+import DivoUIKit
 
 final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
@@ -74,7 +75,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let moreFiltersButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle(DivoStrings.feedSearchMoreFilters, for: .normal)
-        btn.setTitleColor(UIColor(hexString: "#FF772D"), for: .normal)
+        btn.setTitleColor(DivoColorPalette.accent, for: .normal)
         btn.titleLabel?.font = Font.regular(15)
         btn.contentHorizontalAlignment = .left
         btn.translatesAutoresizingMaskIntoConstraints = false
@@ -105,9 +106,9 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let btn = UIButton(type: .system)
         btn.setTitle(DivoStrings.feedSearchApplyFilter, for: .normal)
         btn.setTitleColor(.white, for: .normal)
-        btn.setTitleColor(UIColor(hexString: "#AFAFB1"), for: .disabled)
+        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
-        btn.backgroundColor = UIColor(hexString: "#FF772D")
+        btn.backgroundColor = DivoColorPalette.accent
         btn.layer.cornerRadius = 28
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
@@ -124,7 +125,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let label = UILabel()
         label.text = DivoStrings.feedSearchFilter
         label.font = Font.medium(16)
-        label.textColor = UIColor(hexString: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -133,7 +134,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let resetButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle(DivoStrings.feedSearchReset, for: .normal)
-        btn.setTitleColor(UIColor(hexString: "#FF772D"), for: .normal)
+        btn.setTitleColor(DivoColorPalette.accent, for: .normal)
         btn.titleLabel?.font = Font.regular(15)
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
@@ -146,7 +147,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
-        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowColor = DivoColorPalette.shadow.cgColor
         button.layer.shadowOpacity = 0.08
         button.layer.shadowOffset = CGSize(width: 0, height: 4)
         button.layer.shadowRadius = 12
@@ -178,7 +179,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(hexString: "#F0F0F0")
+        view.backgroundColor = DivoColorPalette.screenBackground
         setupCustomNavBar()
         setupUI()
         updateUI()
@@ -480,27 +481,27 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let titleLabel = UILabel()
         titleLabel.text = title
         titleLabel.font = Font.regular(16)
-        titleLabel.textColor = UIColor(hexString: "#222222")
+        titleLabel.textColor = DivoColorPalette.primaryText
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(titleLabel)
         
         let valueLabel = UILabel()
         valueLabel.text = value
         valueLabel.font = Font.regular(14)
-        valueLabel.textColor = UIColor(hexString: "#8E8E93")
+        valueLabel.textColor = DivoColorPalette.systemLabelTertiary
         valueLabel.textAlignment = .right
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(valueLabel)
         
         let chevronImageView = UIImageView()
         chevronImageView.image = UIImage(bundleImageName: "Components/Search/ChevronRight") ?? UIImage(systemName: "chevron.right")
-        chevronImageView.tintColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.8)
+        chevronImageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         chevronImageView.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(chevronImageView)
         
         if !isLast {
             let separator = UIView()
-            separator.backgroundColor = UIColor(hexString: "#E5E5EA")
+            separator.backgroundColor = DivoColorPalette.separatorSystem
             separator.translatesAutoresizingMaskIntoConstraints = false
             cell.addSubview(separator)
             

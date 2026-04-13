@@ -14,6 +14,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
 
@@ -80,10 +81,10 @@ final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
         let searchBarNodeTheme = SearchBarNodeTheme(
             background: .white,
             separator: .gray,
-            inputFill: UIColor(red: 0.47, green: 0.47, blue: 0.50, alpha: 0.12),
+            inputFill: DivoColorPalette.searchInputFill,
             primaryText: .black,
-            placeholder: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6),
-            inputIcon: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6),
+            placeholder: DivoColorPalette.systemLabelPlaceholder,
+            inputIcon: DivoColorPalette.systemLabelPlaceholder,
             inputClear: .gray,
             accent: .gray,
             keyboard: .light)
@@ -103,20 +104,20 @@ final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.scrollNode = ASScrollNode()
 
         self.filterByLabel = ASTextNode()
-        self.filterByLabel.attributedText = NSAttributedString(string: DivoStrings.filterBy, font: Font.semibold(12), textColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6))
+        self.filterByLabel.attributedText = NSAttributedString(string: DivoStrings.filterBy, font: Font.semibold(12), textColor: DivoColorPalette.systemLabelPlaceholder)
 
         self.locationLabel = ASTextNode()
-        self.locationLabel.attributedText = NSAttributedString(string: DivoStrings.location, font: Font.semibold(16), textColor: UIColor(red: 0.09, green: 0.09, blue: 0.11, alpha: 1.00))
+        self.locationLabel.attributedText = NSAttributedString(string: DivoStrings.location, font: Font.semibold(16), textColor: DivoColorPalette.systemLabelDark)
 
         self.locationTextField = getTextFiel(title: DivoStrings.chooseCountry)
 
         self.eventTypeLabel = ASTextNode()
-        self.eventTypeLabel.attributedText = NSAttributedString(string: DivoStrings.eventType, font: Font.semibold(16), textColor: UIColor(red: 0.09, green: 0.09, blue: 0.11, alpha: 1.00))
+        self.eventTypeLabel.attributedText = NSAttributedString(string: DivoStrings.eventType, font: Font.semibold(16), textColor: DivoColorPalette.systemLabelDark)
 
         self.eventTypeTextField = getTextFiel(title: DivoStrings.allTypes)
 
         self.dateRangeLabel = ASTextNode()
-        self.dateRangeLabel.attributedText = NSAttributedString(string: DivoStrings.dateRange, font: Font.semibold(16), textColor: UIColor(red: 0.09, green: 0.09, blue: 0.11, alpha: 1.00))
+        self.dateRangeLabel.attributedText = NSAttributedString(string: DivoStrings.dateRange, font: Font.semibold(16), textColor: DivoColorPalette.systemLabelDark)
 
         self.fromDateControl = ASControlNode()
         self.fromDateControl.backgroundColor = .clear
@@ -128,7 +129,7 @@ final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.fromDateValue.attributedText = NSAttributedString(string: "Today, 24 Jun 2025", font: Font.regular(17), textColor: .black)
 
         self.fromDateSeparator = ASControlNode()
-        self.fromDateSeparator.backgroundColor = UIColor(red: 0.33, green: 0.33, blue: 0.34, alpha: 0.34)
+        self.fromDateSeparator.backgroundColor = DivoColorPalette.separatorDarkSheet
 
         self.toDateControl = ASControlNode()
         self.toDateControl.backgroundColor = .clear
@@ -140,10 +141,10 @@ final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.toDateValue.attributedText = NSAttributedString(string: "24 Jul, 2025", font: Font.regular(17), textColor: .black)
 
         self.toDateSeparator = ASControlNode()
-        self.toDateSeparator.backgroundColor = UIColor(red: 0.33, green: 0.33, blue: 0.34, alpha: 0.34)
+        self.toDateSeparator.backgroundColor = DivoColorPalette.separatorDarkSheet
 
         self.applyButton = ButtonWithIconNode(title: DivoStrings.applyFilter, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
 
         super.init()
 
@@ -407,17 +408,17 @@ final class EventsSearchControllerNode: ASDisplayNode, UITextFieldDelegate {
 private func getTextFiel(title: String) -> TextFieldNode {
     let field = TextFieldNode()
     field.textField.font = Font.regular(16.0)
-    field.textField.textColor = UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6)
+    field.textField.textColor = DivoColorPalette.systemLabelPlaceholder
     field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6))
+    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.systemLabelPlaceholder)
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
     //    field.textField.keyboardType = .URL
     field.borderWidth = 1.0
-    field.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
+    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
     field.cornerRadius = 11.0
     field.clipsToBounds = true
     field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
-    field.backgroundColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00)
+    field.backgroundColor = DivoColorPalette.fieldBackgroundLight
     return field
 }

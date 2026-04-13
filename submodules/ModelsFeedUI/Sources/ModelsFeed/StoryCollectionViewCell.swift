@@ -1,4 +1,5 @@
 import UIKit
+import DivoUIKit
 
 final class StoryCollectionViewCell: UICollectionViewCell {
     
@@ -42,7 +43,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
         super.prepareForReuse()
         addOverlay.removeFromSuperview()
         avatarImageView.image = nil
-        avatarImageView.backgroundColor = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.00)
+        avatarImageView.backgroundColor = DivoColorPalette.avatarPlaceholderCool
     }
 
     override func layoutSubviews() {
@@ -71,7 +72,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     private lazy var addOverlay: UIView = {
         let circle = UIView()
         circle.backgroundColor = .white
-        circle.layer.shadowColor = UIColor.black.cgColor
+        circle.layer.shadowColor = DivoColorPalette.shadow.cgColor
         circle.layer.shadowOpacity = 0.1
         circle.layer.shadowOffset = CGSize(width: 0, height: 2)
         circle.layer.shadowRadius = 4
@@ -108,7 +109,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
                 avatarImageView.image = image
                 avatarImageView.contentMode = .scaleAspectFill
             }
-            avatarImageView.backgroundColor = UIColor(red: 0.91, green: 0.91, blue: 0.91, alpha: 1.00)
+            avatarImageView.backgroundColor = DivoColorPalette.avatarPlaceholderCool
         }
 
         nameLabel.text = model.name

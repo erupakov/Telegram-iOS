@@ -10,6 +10,7 @@ import ItemListUI
 import PresentationDataUtils
 import AccountContext
 import AppBundle
+import DivoUIKit
 
 public enum Role {
     case model
@@ -581,7 +582,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let label = UILabel()
         label.text = DivoStrings.similarProfiles
         label.font = Font.helveticaNeue(18)
-        label.textColor = UIColor(hex: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
         return label

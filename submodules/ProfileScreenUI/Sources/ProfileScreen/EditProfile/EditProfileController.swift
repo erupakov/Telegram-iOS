@@ -17,6 +17,7 @@ import CountrySelectionUI
 import ChatScheduleTimeController
 import MapResourceToAvatarSizes
 import PhotosUI
+import DivoUIKit
 
 protocol EditProfileDelegate: AnyObject {
     func didUpdateProfileData()
@@ -46,7 +47,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,
@@ -96,7 +97,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         let theme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,
