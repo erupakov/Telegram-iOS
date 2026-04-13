@@ -1156,13 +1156,13 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
             titleLabel.topAnchor.constraint(equalTo: circleView.bottomAnchor, constant: 20),
             titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
 
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             subtitleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
-            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
+            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
+            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
         ])
 
         self.view.addSubview(container)

@@ -56,25 +56,25 @@ final class AppearanceFilterRowView: UIView {
             addSubview(separator)
             
             NSLayoutConstraint.activate([
-                separator.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-                separator.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+                separator.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                separator.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
                 separator.bottomAnchor.constraint(equalTo: bottomAnchor),
                 separator.heightAnchor.constraint(equalToConstant: 1)
             ])
         }
         
         NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             
-            chevronImageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            chevronImageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             chevronImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
             chevronImageView.widthAnchor.constraint(equalToConstant: 20),
             chevronImageView.heightAnchor.constraint(equalToConstant: 20),
             
-            valueLabel.trailingAnchor.constraint(equalTo: chevronImageView.leadingAnchor, constant: -8),
+            valueLabel.trailingAnchor.constraint(equalTo: chevronImageView.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
             valueLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 16)
+            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.m)
         ])
     }
     

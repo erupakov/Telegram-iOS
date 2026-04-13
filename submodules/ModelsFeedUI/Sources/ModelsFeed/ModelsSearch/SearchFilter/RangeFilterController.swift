@@ -137,19 +137,19 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         customNavBar.addSubview(saveButton)
         
         NSLayoutConstraint.activate([
-            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
             customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             customNavBar.heightAnchor.constraint(equalToConstant: 50),
             
-            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 16),
+            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
             
             titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             
-            saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
+            saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             saveButton.widthAnchor.constraint(equalToConstant: 40),
             saveButton.heightAnchor.constraint(equalToConstant: 40)
@@ -183,9 +183,9 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         view.addSubview(deleteButton)
         
         NSLayoutConstraint.activate([
-            container.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 16),
-            container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            container.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            container.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            container.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            container.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             container.bottomAnchor.constraint(equalTo: rangeSlider.bottomAnchor, constant: 20),
             
             minTextField.widthAnchor.constraint(equalTo: maxTextField.widthAnchor),
@@ -193,17 +193,17 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
             maxTextField.heightAnchor.constraint(equalToConstant: 46),
             
             textFieldsStack.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
-            textFieldsStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            textFieldsStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            textFieldsStack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            textFieldsStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
             rangeSlider.topAnchor.constraint(equalTo: textFieldsStack.bottomAnchor, constant: 20),
-            rangeSlider.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            rangeSlider.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            rangeSlider.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            rangeSlider.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             rangeSlider.heightAnchor.constraint(equalToConstant: 28),
             
-            deleteButton.topAnchor.constraint(equalTo: container.bottomAnchor, constant: 32),
-            deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            deleteButton.topAnchor.constraint(equalTo: container.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
+            deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             deleteButton.heightAnchor.constraint(equalToConstant: 48)
         ])
     }

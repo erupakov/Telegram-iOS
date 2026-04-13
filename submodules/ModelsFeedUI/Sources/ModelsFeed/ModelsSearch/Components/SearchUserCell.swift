@@ -61,20 +61,20 @@ final class SearchUserCell: UITableViewCell {
         contentView.addSubview(arrowIcon)
         
         NSLayoutConstraint.activate([
-            avatarView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            avatarView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             avatarView.widthAnchor.constraint(equalToConstant: SearchUserCell.avatarSize),
             avatarView.heightAnchor.constraint(equalToConstant: SearchUserCell.avatarSize),
             
             nameLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 12),
             nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
-            nameLabel.trailingAnchor.constraint(equalTo: arrowIcon.leadingAnchor, constant: -8),
+            nameLabel.trailingAnchor.constraint(equalTo: arrowIcon.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
             
             usernameLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 12),
             usernameLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
-            usernameLabel.trailingAnchor.constraint(equalTo: arrowIcon.leadingAnchor, constant: -8),
+            usernameLabel.trailingAnchor.constraint(equalTo: arrowIcon.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
             
-            arrowIcon.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            arrowIcon.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             arrowIcon.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             arrowIcon.widthAnchor.constraint(equalToConstant: 16),
             arrowIcon.heightAnchor.constraint(equalToConstant: 16)

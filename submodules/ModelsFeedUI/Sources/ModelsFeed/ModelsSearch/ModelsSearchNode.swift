@@ -329,7 +329,7 @@ final class ModelsSearchNode: ASDisplayNode {
         topBarContainer.addSubview(closeButton)
         
         NSLayoutConstraint.activate([
-            topBarContainer.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: 8),
+            topBarContainer.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: DivoDesignTokens.Spacing.s),
             topBarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             topBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topBarContainer.heightAnchor.constraint(equalToConstant: elementHeight)
@@ -372,7 +372,7 @@ final class ModelsSearchNode: ASDisplayNode {
         ])
         
         NSLayoutConstraint.activate([
-            searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: 8),
+            searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
             searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -6),
             searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
             searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor)
@@ -417,10 +417,10 @@ final class ModelsSearchNode: ASDisplayNode {
         resultsContainerHeightConstraint?.isActive = true
         
         NSLayoutConstraint.activate([
-            resultsTableView.topAnchor.constraint(equalTo: resultsContainer.topAnchor, constant: 8),
+            resultsTableView.topAnchor.constraint(equalTo: resultsContainer.topAnchor, constant: DivoDesignTokens.Spacing.s),
             resultsTableView.leadingAnchor.constraint(equalTo: resultsContainer.leadingAnchor),
             resultsTableView.trailingAnchor.constraint(equalTo: resultsContainer.trailingAnchor),
-            resultsTableView.bottomAnchor.constraint(equalTo: resultsContainer.bottomAnchor, constant: -8)
+            resultsTableView.bottomAnchor.constraint(equalTo: resultsContainer.bottomAnchor, constant: -DivoDesignTokens.Spacing.s)
         ])
         
     }
@@ -489,8 +489,8 @@ final class ModelsSearchNode: ASDisplayNode {
         NSLayoutConstraint.activate([
             emptyStateContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyStateContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
-            emptyStateContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            emptyStateContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            emptyStateContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
+            emptyStateContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
             
             emptyStateIconContainer.centerXAnchor.constraint(equalTo: emptyStateContainer.centerXAnchor),
             emptyStateIconContainer.topAnchor.constraint(equalTo: emptyStateContainer.topAnchor),
@@ -505,9 +505,9 @@ final class ModelsSearchNode: ASDisplayNode {
             emptyStateTitle.topAnchor.constraint(equalTo: emptyStateIconContainer.bottomAnchor, constant: 24),
             emptyStateTitle.leadingAnchor.constraint(equalTo: emptyStateContainer.leadingAnchor),
             emptyStateTitle.trailingAnchor.constraint(equalTo: emptyStateContainer.trailingAnchor),
-            emptyStateTitle.bottomAnchor.constraint(equalTo: emptyStateSubtitle.topAnchor, constant: -8),
+            emptyStateTitle.bottomAnchor.constraint(equalTo: emptyStateSubtitle.topAnchor, constant: -DivoDesignTokens.Spacing.s),
             
-            emptyStateSubtitle.topAnchor.constraint(equalTo: emptyStateTitle.bottomAnchor, constant: 8),
+            emptyStateSubtitle.topAnchor.constraint(equalTo: emptyStateTitle.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             emptyStateSubtitle.leadingAnchor.constraint(equalTo: emptyStateContainer.leadingAnchor),
             emptyStateSubtitle.trailingAnchor.constraint(equalTo: emptyStateContainer.trailingAnchor),
             emptyStateSubtitle.bottomAnchor.constraint(equalTo: emptyStateContainer.bottomAnchor)
@@ -529,11 +529,11 @@ final class ModelsSearchNode: ASDisplayNode {
         
         view.addSubview(faceScanButton)
         
-        faceScanButtonBottomConstraint = faceScanButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -16)
+        faceScanButtonBottomConstraint = faceScanButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
         faceScanButtonBottomConstraint?.isActive = true
         
         NSLayoutConstraint.activate([
-            faceScanButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            faceScanButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             faceScanButton.widthAnchor.constraint(equalToConstant: 52),
             faceScanButton.heightAnchor.constraint(equalToConstant: 52)
         ])

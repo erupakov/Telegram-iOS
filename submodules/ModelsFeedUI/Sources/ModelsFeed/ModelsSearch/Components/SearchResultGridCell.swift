@@ -228,12 +228,12 @@ final class SearchResultGridCell: UICollectionViewCell {
             actionsContainer.heightAnchor.constraint(equalToConstant: 24),
             actionsContainer.widthAnchor.constraint(equalToConstant: 54),
             
-            shareIcon.leadingAnchor.constraint(equalTo: actionsContainer.contentView.leadingAnchor, constant: 8),
+            shareIcon.leadingAnchor.constraint(equalTo: actionsContainer.contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
             shareIcon.centerYAnchor.constraint(equalTo: actionsContainer.centerYAnchor),
             shareIcon.widthAnchor.constraint(equalToConstant: 14),
             shareIcon.heightAnchor.constraint(equalToConstant: 14),
             
-            bookmarkIcon.trailingAnchor.constraint(equalTo: actionsContainer.contentView.trailingAnchor, constant: -8),
+            bookmarkIcon.trailingAnchor.constraint(equalTo: actionsContainer.contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
             bookmarkIcon.centerYAnchor.constraint(equalTo: actionsContainer.centerYAnchor),
             bookmarkIcon.widthAnchor.constraint(equalToConstant: 12),
             bookmarkIcon.heightAnchor.constraint(equalToConstant: 14),
@@ -251,7 +251,7 @@ final class SearchResultGridCell: UICollectionViewCell {
             likesLabel.trailingAnchor.constraint(equalTo: likesContainer.contentView.trailingAnchor, constant: -6),
             likesLabel.centerYAnchor.constraint(equalTo: likesContainer.centerYAnchor),
             
-            infoLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16),
+            infoLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
             infoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             infoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
             

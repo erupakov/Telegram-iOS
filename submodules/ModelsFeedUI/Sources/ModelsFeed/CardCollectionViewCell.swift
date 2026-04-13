@@ -93,7 +93,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
     private let statsStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 8
+        stack.spacing = DivoDesignTokens.Spacing.s
         stack.alignment = .fill
         return stack
     }()

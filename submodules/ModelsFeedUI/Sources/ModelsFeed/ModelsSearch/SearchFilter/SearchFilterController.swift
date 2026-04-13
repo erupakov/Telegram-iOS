@@ -48,7 +48,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let stackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
-        stackView.spacing = 16
+        stackView.spacing = DivoDesignTokens.Spacing.m
         stackView.translatesAutoresizingMaskIntoConstraints = false
         return stackView
     }()
@@ -358,12 +358,12 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         resetButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         
         NSLayoutConstraint.activate([
-            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
             customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             customNavBar.heightAnchor.constraint(equalToConstant: 50),
             
-            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 16),
+            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             closeButton.widthAnchor.constraint(equalToConstant: 40),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
@@ -371,7 +371,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             
-            resetButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
+            resetButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             resetButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor)
         ])
     }
@@ -387,16 +387,16 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             stackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            stackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 16),
-            stackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -16),
+            stackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            stackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             stackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-            stackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -32)
+            stackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -DivoDesignTokens.Spacing.xl)
         ])
 
         let innerStack = UIStackView(arrangedSubviews: [roleRow, genderRow, countryRow])
         innerStack.axis = .vertical
         innerStack.translatesAutoresizingMaskIntoConstraints = false
-        innerStack.spacing = 16
+        innerStack.spacing = DivoDesignTokens.Spacing.m
 
         stackView.addArrangedSubview(innerStack)
 
@@ -437,9 +437,9 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
         
         NSLayoutConstraint.activate([
-            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            applyButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            applyButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
             applyButton.heightAnchor.constraint(equalToConstant: 56)
         ])
         
@@ -502,25 +502,25 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             cell.addSubview(separator)
             
             NSLayoutConstraint.activate([
-                separator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 16),
-                separator.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -16),
+                separator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                separator.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
                 separator.bottomAnchor.constraint(equalTo: cell.bottomAnchor),
                 separator.heightAnchor.constraint(equalToConstant: 1)
             ])
         }
         
         NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 16),
+            titleLabel.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             titleLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
             
-            chevronImageView.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -16),
+            chevronImageView.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             chevronImageView.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
             chevronImageView.widthAnchor.constraint(equalToConstant: 20),
             chevronImageView.heightAnchor.constraint(equalToConstant: 20),
             
-            valueLabel.trailingAnchor.constraint(equalTo: chevronImageView.leadingAnchor, constant: -8),
+            valueLabel.trailingAnchor.constraint(equalTo: chevronImageView.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
             valueLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 16)
+            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.m)
         ])
         
         return cell

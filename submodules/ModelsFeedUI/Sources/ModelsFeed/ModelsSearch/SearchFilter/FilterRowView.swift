@@ -47,14 +47,14 @@ final class FilterRowView: UIView {
         
         let stack = UIStackView(arrangedSubviews:[titleLabel, UIView(), valueLabel, chevron])
         stack.axis = .horizontal
-        stack.spacing = 8
+        stack.spacing = DivoDesignTokens.Spacing.s
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         
         addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             heightAnchor.constraint(equalToConstant: 46)

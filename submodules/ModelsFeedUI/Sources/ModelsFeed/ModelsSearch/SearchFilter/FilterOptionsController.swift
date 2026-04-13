@@ -208,19 +208,19 @@ final class FilterOptionsController: UIViewController {
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
             customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             customNavBar.heightAnchor.constraint(equalToConstant: 50),
             
-            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 16),
+            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
             
             titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             
-            saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
+            saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
             saveButton.widthAnchor.constraint(equalToConstant: 40),
             saveButton.heightAnchor.constraint(equalToConstant: 40),
@@ -229,8 +229,8 @@ final class FilterOptionsController: UIViewController {
         if showSearch {
             NSLayoutConstraint.activate([
                 searchFieldContainer.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 20),
-                searchFieldContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-                searchFieldContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+                searchFieldContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                searchFieldContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
                 searchFieldContainer.heightAnchor.constraint(equalToConstant: 40),
                 
                 searchIcon.leadingAnchor.constraint(equalTo: searchFieldContainer.leadingAnchor, constant: 14),
@@ -238,7 +238,7 @@ final class FilterOptionsController: UIViewController {
                 searchIcon.widthAnchor.constraint(equalToConstant: 20),
                 searchIcon.heightAnchor.constraint(equalToConstant: 20),
                 
-                searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: 8),
+                searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
                 searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -14),
                 searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
                 searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor)
@@ -247,15 +247,15 @@ final class FilterOptionsController: UIViewController {
         
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: showSearch ? searchFieldContainer.bottomAnchor : customNavBar.bottomAnchor, constant: showSearch ? 10.0 : 20.0),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
             stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             
-            deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 32),
+            deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
             deleteButton.leadingAnchor.constraint(equalTo: stackView.leadingAnchor),
             deleteButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor),
             deleteButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
@@ -310,19 +310,19 @@ final class FilterOptionsController: UIViewController {
             cell.addSubview(separator)
             
             NSLayoutConstraint.activate([
-                separator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 16),
-                separator.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -16),
+                separator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                separator.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
                 separator.bottomAnchor.constraint(equalTo: cell.bottomAnchor),
                 separator.heightAnchor.constraint(equalToConstant: 1)
             ])
         }
         
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 16),
+            label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             label.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            label.trailingAnchor.constraint(equalTo: checkmark.leadingAnchor, constant: -8),
+            label.trailingAnchor.constraint(equalTo: checkmark.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
             
-            checkmark.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -16),
+            checkmark.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             checkmark.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
             checkmark.widthAnchor.constraint(equalToConstant: 20),
             checkmark.heightAnchor.constraint(equalToConstant: 20)
