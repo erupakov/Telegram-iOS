@@ -6,125 +6,121 @@ import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
 
-final class DivoTextView: ASDisplayNode, ASEditableTextNodeDelegate {
-    
-    private let backgroundNode = ASDisplayNode()
-    private let titleNode = ASTextNode()
-    private let textNode = ASEditableTextNode()
+final class DivoTextView: UIView, UITextViewDelegate {
 
-    var textView: UITextView {
-        return textNode.textView
-    }
+    private let inactiveBorderColor = UIColor.clear.cgColor
+    private let activeBorderColor = UIColor(hexString: "#FF772D")?.cgColor ?? UIColor.systemOrange.cgColor
     
-    private let title: String
-    private var needsScrollToTop = true
+    // MARK: - UI Elements
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        label.textColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.6) ?? .gray
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private let backgroundContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 16.0
+        view.layer.borderWidth = 1.0
+        view.layer.borderColor = UIColor.clear.cgColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    let textView: UITextView = {
+        let tv = UITextView()
+        tv.font = UIFont.systemFont(ofSize: 16, weight: .regular)
+        tv.textColor = UIColor(hexString: "#222222") ?? .black
+        tv.backgroundColor = .clear
+        tv.isScrollEnabled = true
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.translatesAutoresizingMaskIntoConstraints = false
+        return tv
+    }()
 
+    // MARK: - Properties
+    
     var text: String {
-        get {
-            return textNode.textView.text ?? ""
-        }
+        get { return textView.text }
+        set { textView.text = newValue }
     }
+    
+    var onBeginEditing: (() -> Void)?
+    var onEndEditing: (() -> Void)?
+    var onTextChange: ((String) -> Void)?
+
+    // MARK: - Init
     
     init(title: String, initialText: String = "") {
-        self.title = title
-        super.init()
+        super.init(frame: .zero)
+        self.translatesAutoresizingMaskIntoConstraints = false
         
-        setupNodes()
-        if !initialText.isEmpty {
-            textNode.attributedText = NSAttributedString(
-                string: initialText,
-                attributes: [
-                    .font: Font.regular(16.0),
-                    .foregroundColor: UIColor.white
-                ]
-            )
-        }
+        self.titleLabel.text = title
+        self.textView.text = initialText
+        
+        setupUI()
     }
     
-    private func setupNodes() {
-        backgroundNode.backgroundColor = .clear
-        backgroundNode.borderWidth = 1.0
-        backgroundNode.borderColor = UIColor(white: 1.0, alpha: 0.2).cgColor
-        backgroundNode.cornerRadius = 11.0
-        addSubnode(backgroundNode)
-        
-        titleNode.attributedText = NSAttributedString(
-            string: title,
-            attributes: [
-                .font: Font.regular(14.0),
-                .foregroundColor: UIColor(white: 1.0, alpha: 0.4)
-            ]
-        )
-        addSubnode(titleNode)
-        
-        textNode.delegate = self
-        textNode.textView.font = Font.regular(16.0)
-        textNode.textView.textColor = .white
-        textNode.textView.backgroundColor = .clear
-//        textNode.textView.typingAttributes = [
-//            NSAttributedString.Key.font.rawValue: Font.regular(16.0),
-//            NSAttributedString.Key.foregroundColor.rawValue: UIColor.white
-//        ]
-        
-        textNode.textView.textContainerInset = .zero
-        textNode.textView.textContainer.lineFragmentPadding = 0
-        
-        addSubnode(textNode)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
     
-    override func layout() {
-        super.layout()
+    // MARK: - Setup UI
+    
+    private func setupUI() {
+        addSubview(titleLabel)
+        addSubview(backgroundContainer)
+        backgroundContainer.addSubview(textView)
         
-        let bounds = self.bounds
-        let inset: CGFloat = 12.0
-        let titleHeight: CGFloat = 20.0
+        textView.delegate = self
         
-        backgroundNode.frame = bounds
-        
-        let titleSize = titleNode.measure(CGSize(width: bounds.width - (inset * 2), height: titleHeight))
-        titleNode.frame = CGRect(
-            origin: CGPoint(x: inset, y: 10.0),
-            size: titleSize
-        )
-        
-        let textY = titleNode.frame.maxY + 10.0
-        let textWidth = bounds.width - (inset * 2)
-        let textHeight = bounds.height - textY - 12.0
-        
-        textNode.frame = CGRect(
-            x: inset,
-            y: textY,
-            width: textWidth,
-            height: textHeight
-        )
-        if needsScrollToTop {
-            needsScrollToTop = false
-            DispatchQueue.main.async { [weak self] in
-                self?.textNode.textView.setContentOffset(.zero, animated: false)
-            }
-        }
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: self.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: self.trailingAnchor),
+            
+            backgroundContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            backgroundContainer.leadingAnchor.constraint(equalTo: self.leadingAnchor),
+            backgroundContainer.trailingAnchor.constraint(equalTo: self.trailingAnchor),
+            backgroundContainer.bottomAnchor.constraint(equalTo: self.bottomAnchor),
+            
+            textView.topAnchor.constraint(equalTo: backgroundContainer.topAnchor, constant: 10),
+            textView.bottomAnchor.constraint(equalTo: backgroundContainer.bottomAnchor, constant: -10),
+            textView.leadingAnchor.constraint(equalTo: backgroundContainer.leadingAnchor, constant: 16),
+            textView.trailingAnchor.constraint(equalTo: backgroundContainer.trailingAnchor, constant: -16)
+        ])
     }
     
-    override func calculateSizeThatFits(_ constrainedSize: CGSize) -> CGSize {
-        let inset: CGFloat = 12.0
-        let titleHeight: CGFloat = 20.0
-        let topPadding: CGFloat = 10.0
-        let middlePadding: CGFloat = 4.0
-        let bottomPadding: CGFloat = 12.0
+    // MARK: - Border Animation Helper
+    
+    private func animateBorderColor(to color: CGColor) {
+        let animation = CABasicAnimation(keyPath: "borderColor")
+        animation.fromValue = backgroundContainer.layer.borderColor
+        animation.toValue = color
+        animation.duration = 0.2
         
-        let minHeight: CGFloat = 120.0
-        
-        let textMeasuredSize = textNode.calculateSizeThatFits(
-            CGSize(width: constrainedSize.width - (inset * 2), height: constrainedSize.height)
-        )
-        
-        let calculatedHeight = topPadding + titleHeight + middlePadding + textMeasuredSize.height + bottomPadding
-        
-        return CGSize(width: constrainedSize.width, height: max(minHeight, calculatedHeight))
+        backgroundContainer.layer.borderColor = color
+        backgroundContainer.layer.add(animation, forKey: "borderColor")
     }
     
-    func editableTextNodeDidUpdateText(_ editableTextNode: ASEditableTextNode) {
-        self.setNeedsLayout()
-//        self.relayoutIncludingSubnodes()
+    // MARK: - UITextViewDelegate
+    
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        animateBorderColor(to: activeBorderColor)
+        onBeginEditing?()
+    }
+    
+    func textViewDidEndEditing(_ textView: UITextView) {
+        animateBorderColor(to: inactiveBorderColor)
+        onEndEditing?()
+    }
+    
+    func textViewDidChange(_ textView: UITextView) {
+        onTextChange?(textView.text)
     }
 }

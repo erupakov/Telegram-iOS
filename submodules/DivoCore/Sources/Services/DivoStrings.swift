@@ -208,7 +208,7 @@ public enum DivoStrings {
     // MARK: - Profile
 
     public static var myProfile: String { L(en: "MY PROFILE", ru: "МОЙ ПРОФИЛЬ", es: "MI PERFIL", pt: "MEU PERFIL", zh: "我的个人资料") }
-    public static var agencyProfile: String { L(en: "AGENCY PROFILE", ru: "ПРОФИЛЬ АГЕНТСТВА", es: "PERFIL DE AGENCIA", pt: "PERFIL DA AGÊNCIA", zh: "经纪公司资料") }
+    public static var agencyProfile: String { L(en: "My Agency Profile", ru: "Мой профиль агентства", es: "Mi perfil de agencia", pt: "Meu perfil de agência", zh: "我的机构资料") }
     public static var noBiography: String { L(en: "No biography", ru: "Нет биографии", es: "Sin biografía", pt: "Sem biografia", zh: "暂无简介") }
     public static var fillInInfoAboutYou: String { L(en: "Fill in the information about you", ru: "Заполните информацию о себе", es: "Complete la información sobre usted", pt: "Preencha as informações sobre você", zh: "请填写您的信息") }
     public static var fillInInfoAboutAgency: String { L(en: "Fill in the information about the agency", ru: "Заполните информацию об агентстве", es: "Complete la información sobre la agencia", pt: "Preencha as informações sobre a agência", zh: "请填写经纪公司信息") }
@@ -217,6 +217,8 @@ public enum DivoStrings {
     public static var description_: String { L(en: "DESCRIPTION", ru: "ОПИСАНИЕ", es: "DESCRIPCIÓN", pt: "DESCRIÇÃO", zh: "描述") }
     public static var descriptionTitle: String { L(en: "Description", ru: "Описание", es: "Descripción", pt: "Descrição", zh: "描述") }
     public static var appearance: String { L(en: "APPEARANCE", ru: "ВНЕШНОСТЬ", es: "APARIENCIA", pt: "APARÊNCIA", zh: "外貌") }
+    public static var appearanceTitle: String { L(en: "Appearance", ru: "Внешность", es: "Apariencia", pt: "Aparência", zh: "外貌") }
+    public static var experienceTitle: String { L(en: "Experience", ru: "Опыт", es: "Experiencia", pt: "Experiência", zh: "经验") }
     public static var seeMore: String { L(en: "SEE MORE", ru: "ПОКАЗАТЬ ЕЩЁ", es: "VER MÁS", pt: "VER MAIS", zh: "查看更多") }
     public static var seeLess: String { L(en: "SEE LESS", ru: "СВЕРНУТЬ", es: "VER MENOS", pt: "VER MENOS", zh: "收起") }
     public static var editLinks: String { L(en: "EDIT LINKS", ru: "РЕД. ССЫЛКИ", es: "EDITAR ENLACES", pt: "EDITAR LINKS", zh: "编辑链接") }
@@ -402,6 +404,7 @@ public enum DivoStrings {
     public static var debugNetworkDelayMessage: String { L(en: "Artificial delay before each request", ru: "Искусственная задержка перед каждым запросом", es: "Retraso artificial antes de cada solicitud", pt: "Atraso artificial antes de cada requisição", zh: "每次请求前的人工延迟") }
     public static var debugClearCache: String { L(en: "Clear cache?", ru: "Очистить кеш?", es: "¿Limpiar caché?", pt: "Limpar cache?", zh: "清除缓存？") }
     public static var debugClear: String { L(en: "Clear", ru: "Очистить", es: "Limpiar", pt: "Limpar", zh: "清除") }
+    public static var debugAny: String { L(en: "Any", ru: "Любой", es: "Cualquiera", pt: "Qualquer", zh: "任意") }
 
     public static func debugCurrentSize(_ size: String) -> String {
         L(en: "Current size: \(size)", ru: "Текущий размер: \(size)", es: "Tamaño actual: \(size)", pt: "Tamanho atual: \(size)", zh: "当前大小：\(size)")
