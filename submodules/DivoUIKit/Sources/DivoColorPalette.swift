@@ -81,6 +81,10 @@ public enum DivoColorPalette {
     public static let feedPillInactive = UIColor(white: 0.45, alpha: 1.0)
     /// 0.4 — иконка navigation button фида.
     public static let feedNavIcon = UIColor(white: 0.4, alpha: 1.0)
+    /// Ручка bottom-sheet (grabber) — white 30%.
+    public static let handleIndicator = UIColor.white.withAlphaComponent(0.3)
+    /// Неактивный UISwitch background в Auth — black 30%.
+    public static let switchOffBackground = UIColor.black.withAlphaComponent(0.3)
 
     // MARK: - Translucent overlays (поверх изображений/тёмных подложек)
     public static let overlayHighlight = UIColor.white.withAlphaComponent(0.16)

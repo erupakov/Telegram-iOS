@@ -10,6 +10,7 @@ import SolidRoundedButtonNode
 import AuthorizationUtils
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 private enum TypeOfRole: String {
     case talent = "TALENT"
@@ -36,11 +37,11 @@ private func getTextField(title: String) -> TextFieldNode {
     field.textField.font = Font.regular(16.0)
     field.textField.textColor = .white
     field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
     field.borderWidth = 1.0
-    field.borderColor = UIColor(red: 1, green: 1, blue: 1, alpha: 0.4).cgColor
+    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
     field.cornerRadius = 10.0
     field.clipsToBounds = true
     field.padding = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
@@ -53,11 +54,11 @@ private func getChevronTextField(title: String) -> TextFieldNodeWithChevron {
     field.textField.textField.font = Font.regular(16.0)
     field.textField.textField.textColor = .white
     field.textField.textField.textAlignment = .natural
-    field.textField.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.textField.font, textColor: UIColor(red: 1, green: 1, blue: 1, alpha: 0.4))
+    field.textField.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
     field.textField.textField.autocapitalizationType = .none
     field.textField.textField.autocorrectionType = .no
     field.borderWidth = 1.0
-    field.borderColor = UIColor(red: 1, green: 1, blue: 1, alpha: 0.4).cgColor
+    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
     field.cornerRadius = 10.0
     field.clipsToBounds = true
     field.padding = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
@@ -269,15 +270,15 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.currentPhotoNode.displayWithoutProcessing = true
         
         self.addPhotoButton = HighlightableButtonNode()
-        let iconColor = UIColor(red: 0.6, green: 0.6, blue: 0.6, alpha: 1.0)
+        let iconColor = DivoColorPalette.iconOnDarkMuted
         self.addPhotoButton.setImage(
             generateTintedImage(image: UIImage(bundleImageName: "Avatar/AddAvatarIconLarge"),
                                 color: iconColor),
             for: .normal)
         self.addPhotoButton.setBackgroundImage(generateFilledCircleImage(diameter: 100.0, color: self.theme.list.itemAccentColor.withAlphaComponent(0.1), strokeColor: nil, strokeWidth: nil, backgroundColor: nil), for: .normal)
         
-        let backgroundColor = UIColor(red: 0.2, green: 0.2, blue: 0.2, alpha: 1.0)
-        let borderColor = UIColor(red: 0.4, green: 0.4, blue: 0.4, alpha: 1.0)
+        let backgroundColor = DivoColorPalette.inputBackgroundDark
+        let borderColor = DivoColorPalette.inputBorderDark
         self.addPhotoButton.setBackgroundImage(generateFilledCircleImage(diameter: 110.0, color: backgroundColor, strokeColor: borderColor, strokeWidth: 1.0, backgroundColor: nil), for: .normal)
         
         self.addPhotoButton.addSubnode(self.currentPhotoNode)
@@ -288,10 +289,10 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         
         let imageSize: CGSize = CGSize(width: 16, height: 12)
         self.backNode = ButtonWithIconNode(title: "Back", icon: backIcon, theme: theme, spacing: 10, imageSize: imageSize)
-        self.backNode.backgroundColor = UIColor(hexString: "#343434")
+        self.backNode.backgroundColor = DivoColorPalette.deleteButtonBackground
         
         self.saveNode = ButtonWithIconNode(title: "Save", icon: nil, theme: theme, spacing: 10, imageSize: imageSize)
-        self.saveNode.backgroundColor = UIColor(hexString: "#BF7A54")
+        self.saveNode.backgroundColor = DivoColorPalette.accentSecondary
 
         super.init()
 
@@ -322,7 +323,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         self.websiteField.textField.delegate = self
         self.chooseCountryField.textField.textField.delegate = self
 
-        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        self.backgroundColor = DivoColorPalette.darkBackground
 
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
         self.view.addGestureRecognizer(tapGesture)
