@@ -4,6 +4,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -103,7 +104,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
 
     private func setupUI() {
-        self.backgroundColor = DivoGlassColors.screenBackground
+        self.backgroundColor = DivoColorPalette.screenBackground
 
         imageGalleryCollectionView.backgroundColor = .clear
         imageGalleryCollectionView.dataSource = self

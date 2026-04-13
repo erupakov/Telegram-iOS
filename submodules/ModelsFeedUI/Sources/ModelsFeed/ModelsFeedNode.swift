@@ -135,7 +135,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private let navBackgroundView: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoGlassColors.screenBackground
+        view.backgroundColor = DivoColorPalette.screenBackground
         return view
     }()
 
@@ -178,7 +178,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private let tabsContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoGlassColors.screenBackground
+        view.backgroundColor = DivoColorPalette.screenBackground
         return view
     }()
 
@@ -191,7 +191,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private let segmentIndicator: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoGlassColors.screenBackground
+        view.backgroundColor = DivoColorPalette.screenBackground
         view.layer.masksToBounds = true
         return view
     }()
@@ -314,7 +314,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         storiesFlowLayout.estimatedItemSize = CGSize(width: 70, height: 90)
 
         self.storiesCollectionView = UICollectionView(frame: .zero, collectionViewLayout: storiesFlowLayout)
-        self.storiesCollectionView.backgroundColor = DivoGlassColors.screenBackground
+        self.storiesCollectionView.backgroundColor = DivoColorPalette.screenBackground
         self.storiesCollectionView.dataSource = self
         self.storiesCollectionView.delegate = self
         self.storiesCollectionView.showsHorizontalScrollIndicator = false
@@ -328,7 +328,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let mainFlowLayout = UICollectionViewFlowLayout()
 
         self.mainCollectionView = UICollectionView(frame: .zero, collectionViewLayout: mainFlowLayout)
-        self.mainCollectionView.backgroundColor = DivoGlassColors.screenBackground
+        self.mainCollectionView.backgroundColor = DivoColorPalette.screenBackground
         self.mainCollectionView.dataSource = self
         self.mainCollectionView.delegate = self
         self.mainCollectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -977,7 +977,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         guard spinnerLoadingView == nil else { return }
 
         let container = UIView()
-        container.backgroundColor = DivoGlassColors.screenBackground
+        container.backgroundColor = DivoColorPalette.screenBackground
 
         let spinnerView = DivoSegmentedSpinner(frame: CGRect(x: 0, y: 0, width: 32, height: 32))
         spinnerView.tag = 200

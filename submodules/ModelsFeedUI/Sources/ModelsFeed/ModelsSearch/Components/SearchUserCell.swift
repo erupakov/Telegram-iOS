@@ -8,6 +8,7 @@
 import Foundation
 import UIKit
 import DivoCore
+import DivoUIKit
 
 final class SearchUserCell: UITableViewCell {
     
@@ -32,7 +33,7 @@ final class SearchUserCell: UITableViewCell {
     private let usernameLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        label.textColor = UIColor(red: 153/255, green: 153/255, blue: 153/255, alpha: 1.0)
+        label.textColor = DivoColorPalette.secondaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -98,7 +99,7 @@ final class SearchUserCell: UITableViewCell {
         if !query.isEmpty {
             let range = (item.title.lowercased() as NSString).range(of: query.lowercased())
             if range.location != NSNotFound {
-                attributedName.addAttribute(.foregroundColor, value: UIColor(hexString: "#BF7A54") ?? .systemOrange, range: range)
+                attributedName.addAttribute(.foregroundColor, value: DivoColorPalette.accentSecondary, range: range)
             }
         }
         nameLabel.attributedText = attributedName

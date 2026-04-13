@@ -4,6 +4,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -32,7 +33,7 @@ final class EventsControllerNode: ASDisplayNode {
 
     private let navBackgroundView: UIView = {
         let v = UIView()
-        v.backgroundColor = DivoGlassColors.screenBackground
+        v.backgroundColor = DivoColorPalette.screenBackground
         return v
     }()
 
@@ -50,7 +51,7 @@ final class EventsControllerNode: ASDisplayNode {
 
         super.init()
 
-        self.view.backgroundColor = DivoGlassColors.screenBackground
+        self.view.backgroundColor = DivoColorPalette.screenBackground
 
         titleLabel.text = DivoStrings.navEvents
         let flowLayout = UICollectionViewFlowLayout()

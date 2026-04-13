@@ -11,6 +11,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -175,7 +176,7 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
             indicatorWidthConstraints[index].constant = newWidth
             
             let inactiveColor = UIColor.white.withAlphaComponent(0.6)
-            view.backgroundColor = blendColor(from: inactiveColor, to: DivoColors.brand, percentage: activeRatio)
+            view.backgroundColor = blendColor(from: inactiveColor, to: DivoColorPalette.accent, percentage: activeRatio)
         }
         
         self.pageControlStackView.layoutIfNeeded()

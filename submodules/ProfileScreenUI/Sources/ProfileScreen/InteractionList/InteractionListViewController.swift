@@ -2,6 +2,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 struct InteractionUser {
     let id: Int
@@ -124,7 +125,7 @@ final class InteractionListViewController: UIViewController {
     }
 
     private func setupUI() {
-        view.backgroundColor = DivoGlassColors.screenBackground
+        view.backgroundColor = DivoColorPalette.screenBackground
         titleLabel.text = listType.title
 
         view.addSubview(emptyContainer)

@@ -2,6 +2,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 protocol CardCellDelegate: AnyObject {
     func cardCell(_ cell: CardCollectionViewCell, didTapSaveForUserId userId: Int, isSaved: Bool)
@@ -65,7 +66,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     private let roleBadgeView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(red: 34/255.0, green: 98/255.0, blue: 216/255.0, alpha: 1.0)
+        view.backgroundColor = DivoColorPalette.roleBadgeBlue
         view.layer.cornerRadius = 11
         view.layer.masksToBounds = true
         return view
@@ -451,11 +452,11 @@ final class StatPillView: UIView {
             self.filledIcon = nil
         }
         super.init(frame: .zero)
-        backgroundColor = DivoGlassColors.statPillBackground
+        backgroundColor = DivoColorPalette.statPillBackground
         layer.cornerRadius = 15
         layer.masksToBounds = true
         layer.borderWidth = 0.5
-        layer.borderColor = DivoGlassColors.statPillBorder.cgColor
+        layer.borderColor = DivoColorPalette.statPillBorder.cgColor
 
         iconView.image = normalIcon
 
@@ -486,8 +487,8 @@ final class StatPillView: UIView {
                     self.iconView.image = filled
                 }
             } else {
-                self.backgroundColor = DivoGlassColors.statPillBackground
-                self.layer.borderColor = DivoGlassColors.statPillBorder.cgColor
+                self.backgroundColor = DivoColorPalette.statPillBackground
+                self.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
                 self.iconView.tintColor = .white
                 self.countLabel.textColor = .white
                 self.iconView.image = self.normalIcon

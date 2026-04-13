@@ -8,6 +8,7 @@
 import Display
 import UIKit
 import DivoCore
+import DivoUIKit
 
 final class FilterOptionsController: UIViewController {
     
@@ -47,7 +48,7 @@ final class FilterOptionsController: UIViewController {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.medium(16)
-        label.textColor = UIColor(hexString: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -61,10 +62,10 @@ final class FilterOptionsController: UIViewController {
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         let image = UIImage(systemName: "chevron.left", withConfiguration: config)
         button.setImage(image, for: .normal)
-        button.tintColor = UIColor(hexString: "#222222")
-        
+        button.tintColor = DivoColorPalette.primaryText
+
         button.setTitle(DivoStrings.back, for: .normal)
-        button.setTitleColor(UIColor(hexString: "#222222"), for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
         
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
@@ -97,7 +98,7 @@ final class FilterOptionsController: UIViewController {
     private let searchIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.image = UIImage(bundleImageName: "Components/Search/SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
-        imageView.tintColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.6)
+        imageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -106,8 +107,8 @@ final class FilterOptionsController: UIViewController {
     private let searchTextField: UITextField = {
         let field = UITextField()
         field.font = Font.regular(14)
-        field.textColor = UIColor(hexString: "#222222")
-        field.tintColor = UIColor(hexString: "#BF7A54")
+        field.textColor = DivoColorPalette.primaryText
+        field.tintColor = DivoColorPalette.accentSecondary
         field.placeholder = DivoStrings.feedSearchCountry
         field.clearButtonMode = .whileEditing
         field.autocorrectionType = .no
@@ -118,7 +119,7 @@ final class FilterOptionsController: UIViewController {
         
     private let saveButton: UIButton = {
         let saveButton = UIButton(type: .custom)
-        saveButton.backgroundColor = UIColor(hexString: "#FF772D")
+        saveButton.backgroundColor = DivoColorPalette.accent
         saveButton.layer.cornerRadius = 20
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
         saveButton.tintColor = .white
@@ -308,7 +309,7 @@ final class FilterOptionsController: UIViewController {
         cell.addSubview(label)
         
         let checkmark = UIImageView(image: UIImage(systemName: "checkmark"))
-        checkmark.tintColor = UIColor(hexString: "#FF772D")
+        checkmark.tintColor = DivoColorPalette.accent
         checkmark.translatesAutoresizingMaskIntoConstraints = false
         checkmark.isHidden = !isSelected
         cell.addSubview(checkmark)

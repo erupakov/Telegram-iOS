@@ -8,6 +8,7 @@
 import UIKit
 import Display
 import DivoCore
+import DivoUIKit
 
 final class RangeFilterController: UIViewController, UITextFieldDelegate {
     
@@ -28,10 +29,10 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         let image = UIImage(systemName: "chevron.left", withConfiguration: config)
         button.setImage(image, for: .normal)
-        button.tintColor = UIColor(hexString: "#222222")
-        
+        button.tintColor = DivoColorPalette.primaryText
+
         button.setTitle(DivoStrings.back, for: .normal)
-        button.setTitleColor(UIColor(hexString: "#222222"), for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
         
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
@@ -59,7 +60,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
     
     private let saveButton: UIButton = {
         let saveButton = UIButton(type: .custom)
-        saveButton.backgroundColor = UIColor(hexString: "#FF772D")
+        saveButton.backgroundColor = DivoColorPalette.accent
         saveButton.layer.cornerRadius = 20
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
         saveButton.tintColor = .white
@@ -78,7 +79,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         let dashLabel = UILabel()
         dashLabel.text = "—"
         dashLabel.font = Font.regular(16)
-        dashLabel.textColor = UIColor(hexString: "#222222")
+        dashLabel.textColor = DivoColorPalette.primaryText
         dashLabel.translatesAutoresizingMaskIntoConstraints = false
         return dashLabel
     }()
@@ -218,7 +219,7 @@ final class RangeFilterController: UIViewController, UITextFieldDelegate {
         textField.backgroundColor = .white
         textField.layer.cornerRadius = 23
         textField.layer.borderWidth = 1
-        textField.layer.borderColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.2).cgColor
+        textField.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.2).cgColor
         textField.textAlignment = .center
         textField.font = Font.regular(16)
         textField.textColor = UIColor(hexString: "#3C3C43")

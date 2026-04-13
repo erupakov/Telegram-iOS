@@ -24,6 +24,7 @@ swift_library(
         "//submodules/TelegramUI/Components/GlassBarButtonComponent",
         "//submodules/TelegramUI/Components/SearchInputPanelComponent",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/DivoUIKit:DivoUIKit",
     ],
     visibility = [
         "//visibility:public",
