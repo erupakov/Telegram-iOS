@@ -15,6 +15,7 @@ import AppBundle
 import ItemListUI
 import Postbox
 import ChatScheduleTimeController
+import DivoUIKit
 
 enum EventParameter: String, CaseIterable {
     case gender = "gender"
@@ -191,7 +192,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
 
         self.scrollNode = ASScrollNode()
 
-        let iconColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
+        let iconColor = DivoColorPalette.accentCopperDeep
 
         self.addPhotoButton = HighlightableButtonNode()
         self.addPhotoButton.setImage(
@@ -218,8 +219,8 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         self.currentPhotoNode.displaysAsynchronously = false
         self.currentPhotoNode.displayWithoutProcessing = true
 
-        let headerColor = UIColor(hexString: "#17181C") ?? .white
-        let labelColor = UIColor(hexString: "#3C3C43") ?? .white
+        let headerColor = DivoColorPalette.systemLabelDark
+        let labelColor = DivoColorPalette.systemLabelSecondary
         let regularFont = Font.regular(16)
         let semiboldFont = Font.semibold(16)
 
@@ -240,11 +241,11 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
             title: DivoStrings.eventType,
             placeholder: DivoStrings.chooseEventType,
             options: [],
-            backgroundColor: UIColor(hexString: "#EFEFF0"),
-            placeholderColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-            titleColor: UIColor(hexString: "#3C3C43"),
-            arrowColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-            apperTitleColor: UIColor(hexString: "#3C3C43"),
+            backgroundColor: DivoColorPalette.inputBackgroundMuted,
+            placeholderColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+            titleColor: DivoColorPalette.systemLabelSecondary,
+            arrowColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+            apperTitleColor: DivoColorPalette.systemLabelSecondary,
             allowsMultipleSelection: false
         )
 
@@ -266,12 +267,12 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         self.parametersApplyingLabel.attributedText = NSAttributedString(string: DivoStrings.parametersForApplying, font: semiboldFont, textColor: headerColor)
 
         self.addParametersButton = ButtonWithIconNode(title: DivoStrings.addParameters, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.addParametersButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.addParametersButton.backgroundColor = DivoColorPalette.accentCopperWarm
         self.addParametersButton.cornerRadius = 4.0
         self.addParametersButton.clipsToBounds = true
 
         self.applyButton = ButtonWithIconNode(title: DivoStrings.createEventButton, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
 
         self.eventGalleryLabel = ASTextNode()
         self.eventGalleryLabel.attributedText = NSAttributedString(string: DivoStrings.eventGallery, font: semiboldFont, textColor: headerColor)
@@ -879,11 +880,11 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     title: DivoStrings.gender,
                     placeholder: DivoStrings.selectGender,
                     options: [],
-                    backgroundColor: UIColor(hexString: "#EFEFF0"),
-                    placeholderColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    titleColor: UIColor(hexString: "#3C3C43"),
-                    arrowColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    apperTitleColor: UIColor(hexString: "#3C3C43"),
+                    backgroundColor: DivoColorPalette.inputBackgroundMuted,
+                    placeholderColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    titleColor: DivoColorPalette.systemLabelSecondary,
+                    arrowColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    apperTitleColor: DivoColorPalette.systemLabelSecondary,
                     allowsMultipleSelection: true
                 )
             }
@@ -988,11 +989,11 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     title: DivoStrings.hairLength,
                     placeholder: DivoStrings.chooseHairLength,
                     options: [],
-                    backgroundColor: UIColor(hexString: "#EFEFF0"),
-                    placeholderColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    titleColor: UIColor(hexString: "#3C3C43"),
-                    arrowColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    apperTitleColor: UIColor(hexString: "#3C3C43"),
+                    backgroundColor: DivoColorPalette.inputBackgroundMuted,
+                    placeholderColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    titleColor: DivoColorPalette.systemLabelSecondary,
+                    arrowColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    apperTitleColor: DivoColorPalette.systemLabelSecondary,
                     allowsMultipleSelection: true
                 )
             }
@@ -1004,11 +1005,11 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     title: DivoStrings.hairColor,
                     placeholder: DivoStrings.chooseHairColor,
                     options: [],
-                    backgroundColor: UIColor(hexString: "#EFEFF0"),
-                    placeholderColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    titleColor: UIColor(hexString: "#3C3C43"),
-                    arrowColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    apperTitleColor: UIColor(hexString: "#3C3C43"),
+                    backgroundColor: DivoColorPalette.inputBackgroundMuted,
+                    placeholderColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    titleColor: DivoColorPalette.systemLabelSecondary,
+                    arrowColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    apperTitleColor: DivoColorPalette.systemLabelSecondary,
                     allowsMultipleSelection: true
                 )
             }
@@ -1020,11 +1021,11 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     title: DivoStrings.eyeColor,
                     placeholder: DivoStrings.chooseEyeColor,
                     options: [],
-                    backgroundColor: UIColor(hexString: "#EFEFF0"),
-                    placeholderColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    titleColor: UIColor(hexString: "#3C3C43"),
-                    arrowColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    apperTitleColor: UIColor(hexString: "#3C3C43"),
+                    backgroundColor: DivoColorPalette.inputBackgroundMuted,
+                    placeholderColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    titleColor: DivoColorPalette.systemLabelSecondary,
+                    arrowColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    apperTitleColor: DivoColorPalette.systemLabelSecondary,
                     allowsMultipleSelection: true
                 )
             }
@@ -1036,11 +1037,11 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
                     title: DivoStrings.skinColor,
                     placeholder: DivoStrings.chooseSkinColor,
                     options: [],
-                    backgroundColor: UIColor(hexString: "#EFEFF0"),
-                    placeholderColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    titleColor: UIColor(hexString: "#3C3C43"),
-                    arrowColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6),
-                    apperTitleColor: UIColor(hexString: "#3C3C43"),
+                    backgroundColor: DivoColorPalette.inputBackgroundMuted,
+                    placeholderColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    titleColor: DivoColorPalette.systemLabelSecondary,
+                    arrowColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6),
+                    apperTitleColor: DivoColorPalette.systemLabelSecondary,
                     allowsMultipleSelection: true
                 )
             }
@@ -1053,7 +1054,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         let button = ASButtonNode()
         button.backgroundColor = .clear
 
-        let basketButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/Basket"), color: UIColor(hexString: "#BF7A54") ?? .white)
+        let basketButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/Basket"), color: DivoColorPalette.accentSecondary)
         button.setImage(basketButtonImg, for: .normal)
         button.addTarget(self, action: #selector(self.deleteParameterTapped(_:)), forControlEvents: .touchUpInside)
         
@@ -1367,17 +1368,17 @@ private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldN
     let field = TextFieldNode()
 
     field.textField.font = Font.regular(16.0)
-    field.textField.textColor = UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 1.0)
+    field.textField.textColor = DivoColorPalette.systemLabelBody
     field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6))
+    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.systemLabelPlaceholder)
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
     field.textField.keyboardType = .default
     field.borderWidth = 1.0
-    field.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
+    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
     field.cornerRadius = 11.0
     field.clipsToBounds = true
-    field.backgroundColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00)
+    field.backgroundColor = DivoColorPalette.fieldBackgroundLight
 
     if isMultiline {
         field.padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)

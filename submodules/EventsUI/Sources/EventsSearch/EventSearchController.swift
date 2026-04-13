@@ -14,6 +14,7 @@ import SearchUI
 import CountrySelectionUI
 import ChatScheduleTimeController
 import Postbox
+import DivoUIKit
 
 public class EventsSearchController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
@@ -35,7 +36,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .black,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,
@@ -89,7 +90,7 @@ public class EventsSearchController: ViewController, UINavigationControllerDeleg
         let theme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .black,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,

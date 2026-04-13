@@ -31,6 +31,12 @@ public enum DivoColorPalette {
     public static let systemLabelTertiary = UIColor(hexString: "#8E8E93")!
     /// #C7C7CC — iOS systemGray3, tint у empty-search иконок.
     public static let systemGray3 = UIColor(red: 199/255, green: 199/255, blue: 204/255, alpha: 1.0)
+    /// iOS secondaryLabel-плейсхолдер (0.24/0.24/0.26 α0.6) — EventsSearch filter tint, placeholder.
+    public static let systemLabelPlaceholder = UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6)
+    /// iOS secondaryLabel body (0.24/0.24/0.26 α1.0) — текст Multiline input, CreateEvent field.
+    public static let systemLabelBody = UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 1.0)
+    /// iOS search input fill (systemGray5 @ 12%) — EventsSearch текстовое поле.
+    public static let searchInputFill = UIColor(red: 0.47, green: 0.47, blue: 0.50, alpha: 0.12)
 
     // MARK: - Text on dark surfaces
     public static let textOnDarkMuted = UIColor(red: 0.55, green: 0.55, blue: 0.55, alpha: 1.0)

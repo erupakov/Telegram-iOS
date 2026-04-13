@@ -10,6 +10,7 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 import TelegramBaseController
+import DivoUIKit
 
 public final class EventDetailController: TelegramBaseController {
 
@@ -34,7 +35,7 @@ public final class EventDetailController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,

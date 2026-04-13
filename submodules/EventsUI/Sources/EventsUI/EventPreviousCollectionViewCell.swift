@@ -4,6 +4,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -47,7 +48,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         
         overlayView.configure(
             colors: [
-                UIColor(white: 0.0, alpha: 0.2),
+                DivoColorPalette.imageScrimMedium,
                 UIColor.black
             ],
             direction: .vertical
@@ -91,7 +92,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         contentView.addSubview(titleLabel)
         
         subtitleLabel.font = .systemFont(ofSize: 10, weight: .regular)
-        subtitleLabel.textColor = UIColor(red: 0.55, green: 0.55, blue: 0.55, alpha: 1.00)
+        subtitleLabel.textColor = DivoColorPalette.textOnDarkMuted
         subtitleLabel.numberOfLines = 0
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(subtitleLabel)
@@ -100,7 +101,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         applyButton.titleLabel?.font = Font.helveticaNeue(11)
         applyButton.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 20).isActive = true
         applyButton.setTitleColor(.white, for: .normal)
-        applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
         applyButton.layer.cornerRadius = 6
         applyButton.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(applyButton)

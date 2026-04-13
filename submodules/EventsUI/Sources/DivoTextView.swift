@@ -5,6 +5,7 @@ import TelegramCore
 import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
+import DivoUIKit
 
 final class DivoTextView: ASDisplayNode, ASEditableTextNodeDelegate { //TODO: Move to common
     
@@ -37,9 +38,9 @@ final class DivoTextView: ASDisplayNode, ASEditableTextNodeDelegate { //TODO: Mo
     }
     
     private func setupNodes() {
-        backgroundNode.backgroundColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00) // передать в init
+        backgroundNode.backgroundColor = DivoColorPalette.fieldBackgroundLight // передать в init
         backgroundNode.borderWidth = 1.0
-        backgroundNode.borderColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00).cgColor // передать в init
+        backgroundNode.borderColor = DivoColorPalette.fieldBackgroundLight.cgColor // передать в init
         backgroundNode.cornerRadius = 11.0
         addSubnode(backgroundNode)
         

@@ -2,38 +2,38 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 final class DashedUploadNode: ASControlNode {
     private let titleNode = ASTextNode()
     private let iconNode = ASImageNode()
     private let dashedLayer = CAShapeLayer()
-    
+
     override init() {
         super.init()
-        
-        let copperColor = UIColor(hexString: "#BF7A54") ?? .black
-        
+
+        let copperColor = DivoColorPalette.accentSecondary
+
         let plusImg = generateTintedImage(image: UIImage(bundleImageName: "Components/Plus"), color: copperColor)
         iconNode.image = plusImg
-        
+
         iconNode.contentMode = .center
-        
+
         // Настройка текста
         titleNode.attributedText = NSAttributedString(
             string: DivoStrings.uploadPhoto,
             font: Font.regular(16),
-            textColor: UIColor(hexString: "#3C3C43")?.withAlphaComponent(0.6) ?? .gray
+            textColor: DivoColorPalette.systemLabelSecondary.withAlphaComponent(0.6)
         )
-        
+
         addSubnode(iconNode)
         addSubnode(titleNode)
     }
-    
+
     override func didLoad() {
         super.didLoad()
-        
-        let copperColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
-        dashedLayer.strokeColor = copperColor.cgColor
+
+        dashedLayer.strokeColor = DivoColorPalette.accentCopperWarm.cgColor
         dashedLayer.lineDashPattern = [6, 4]
         dashedLayer.fillColor = nil
         dashedLayer.lineWidth = 1.0
