@@ -45,7 +45,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let searchIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(bundleImageName: "SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
+        imageView.image = UIImage(bundleImageName: "Components/Search/SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
         imageView.tintColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.6)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -69,7 +69,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
-        button.setImage(UIImage(bundleImageName: "FilterIcon"), for: .normal)
+        button.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
         button.tintColor = .black
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOpacity = 0.08
@@ -93,7 +93,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
-        let image = UIImage(bundleImageName: "SearchCloseIcon") ?? UIImage(systemName: "xmark")
+        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
         button.tintColor = .black
         button.layer.shadowColor = UIColor.black.cgColor
@@ -146,7 +146,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = UIColor(hexString: "#FF772D")
         button.layer.cornerRadius = 26
-        let image = UIImage(bundleImageName: "FaceScan") ?? UIImage(systemName: "person.fill.viewfinder")
+        let image = UIImage(bundleImageName: "Components/Search/FaceScan") ?? UIImage(systemName: "person.fill.viewfinder")
         button.setImage(image, for: .normal)
         button.tintColor = UIColor(hexString: "#BF7A54")
         button.layer.shadowColor = UIColor.black.cgColor
@@ -646,7 +646,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     func hideFiltersButtonLoading() {
         filterButton.isEnabled = true
-        filterButton.setImage(UIImage(bundleImageName: "FilterIcon"), for: .normal)
+        filterButton.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
         filterButtonLoader.stopAnimating()
         filterButtonLoader.isHidden = true
     }

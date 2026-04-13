@@ -39,7 +39,7 @@ final class SearchUserCell: UITableViewCell {
     
     private let arrowIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(bundleImageName: "ArrowProfile") ?? UIImage(systemName: "arrow.up.right")
+        imageView.image = UIImage(bundleImageName: "Components/Search/ArrowProfile") ?? UIImage(systemName: "arrow.up.right")
         imageView.tintColor = UIColor(red: 199/255, green: 199/255, blue: 204/255, alpha: 1.0)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
