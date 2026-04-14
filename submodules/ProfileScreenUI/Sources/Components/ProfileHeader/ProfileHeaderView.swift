@@ -9,6 +9,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 struct UserProfileViewModel {
     enum Job {
@@ -84,7 +85,7 @@ class ProfileHeaderView: UIView {
     private let onlineStatusView: UIView = {
         let view = UIView()
         view.backgroundColor = .systemGreen
-        view.layer.borderColor = UIColor(hex: "E2E2E2").cgColor
+        view.layer.borderColor = DivoColorPalette.avatarStrokeQuiet.cgColor
         view.layer.borderWidth = 3
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -101,10 +102,10 @@ class ProfileHeaderView: UIView {
     
     private let crownIconView: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Profile/CrownPremium")
+        iv.image = UIImage(bundleImageName: "Components/CrownPremium")
         iv.tintColor = .white
         iv.contentMode = .center
-        iv.backgroundColor = UIColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 0.8)
+        iv.backgroundColor = DivoColorPalette.accentCopperMutedBorder
         iv.layer.borderWidth = 1
         iv.layer.borderColor = UIColor.white.withAlphaComponent(0.5).cgColor
         iv.translatesAutoresizingMaskIntoConstraints = false
@@ -256,17 +257,17 @@ class ProfileHeaderView: UIView {
         tagLabel.text = viewModel.role.title
         switch viewModel.role {
         case .model:
-            tagIcon.image = UIImage(bundleImageName: "Profile/Role/Model")
+            tagIcon.image = UIImage(bundleImageName: "Components/Role/Model")
             tagContainer.apply(style: .bronzeGradient)
             tagIcon.tintColor = .white
             tagLabel.textColor = .white
         case .agency:
-            tagIcon.image = UIImage(bundleImageName: "Profile/Role/Agency")
+            tagIcon.image = UIImage(bundleImageName: "Components/Role/Agency")
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black
             tagLabel.textColor = .black
         case .newFace:
-            tagIcon.image = UIImage(bundleImageName: "Profile/Role/NewTalent")
+            tagIcon.image = UIImage(bundleImageName: "Components/Role/NewTalent")
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black
             tagLabel.textColor = .black

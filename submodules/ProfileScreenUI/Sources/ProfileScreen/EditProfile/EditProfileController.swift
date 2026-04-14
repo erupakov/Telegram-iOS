@@ -17,6 +17,7 @@ import CountrySelectionUI
 import ChatScheduleTimeController
 import MapResourceToAvatarSizes
 import PhotosUI
+import DivoUIKit
 
 protocol EditProfileDelegate: AnyObject {
     func didUpdateProfileData()
@@ -44,7 +45,24 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         
         self.presentationData = presentationData
         
+// <<<<<<< HEAD
         super.init(navigationBarPresentationData: nil)
+// =======
+//         let darkNavigationTheme = NavigationBarTheme(
+//             overallDarkAppearance: true,
+//             buttonColor: .white,
+//             disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+//             primaryTextColor: .white,
+//             backgroundColor: .clear,
+//             opaqueBackgroundColor: .clear,
+//             enableBackgroundBlur: false,
+//             separatorColor: .clear,
+//             badgeBackgroundColor: .clear,
+//             badgeStrokeColor: .clear,
+//             badgeTextColor: .clear)
+        
+//         let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
+// >>>>>>> dev
 
         self.presentationDataDisposable = (context.sharedContext.presentationData
                                            |> deliverOnMainQueue).start(next: { [weak self] presentationData in
@@ -68,6 +86,36 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         NotificationCenter.default.removeObserver(self)
         (self.presentationDataDisposable as? Disposable)?.dispose()
     }
+// <<<<<<< HEAD
+// =======
+
+//     private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
+//         let theme = NavigationBarTheme(
+//             overallDarkAppearance: true,
+//             buttonColor: .white,
+//             disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+//             primaryTextColor: .white,
+//             backgroundColor: .clear,
+//             opaqueBackgroundColor: .clear,
+//             enableBackgroundBlur: false,
+//             separatorColor: .clear,
+//             badgeBackgroundColor: .clear,
+//             badgeStrokeColor: .clear,
+//             badgeTextColor: .clear)
+//         return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close))
+//     }
+
+//     @objc private func handleWillEnterForeground() {
+//         self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
+//     }
+
+//     private func updateThemeAndStrings() {
+//         self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
+//         self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
+
+//         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
+//     }
+// >>>>>>> dev
     
     override public func loadDisplayNode() {
         self.displayNode = EditProfileNode(

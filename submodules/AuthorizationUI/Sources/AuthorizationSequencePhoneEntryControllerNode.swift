@@ -4,6 +4,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import TelegramPresentationData
 import PhoneInputNode
 import CountrySelectionUI
@@ -63,7 +64,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
         let countryButtonHighlightedBackground = generateImage(CGSize(width: 70.0, height: 67.0), rotatedContext: { size, context in
             let arrowSize: CGFloat = 10.0
             context.clear(CGRect(origin: CGPoint(), size: size))
-            context.setFillColor(DivoGlassColors.highlightedBackground.cgColor)
+            context.setFillColor(DivoColorPalette.overlayHighlight.cgColor)
             context.fill(CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: size.height - arrowSize)))
             context.move(to: CGPoint(x: size.width, y: size.height - arrowSize))
             context.addLine(to: CGPoint(x: size.width - 1.0, y: size.height - arrowSize))
@@ -157,7 +158,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                     if name == "FT" {
                         localizedName = strongSelf.strings.Login_AnonymousNumbers
                     }
-                    strongSelf.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: DivoGlassColors.primaryText, for: [])
+                    strongSelf.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: DivoColorPalette.primaryTextOnDark, for: [])
                     strongSelf.hasCountry = true
                     
                     if strongSelf.phoneInputNode.mask == nil {
@@ -169,7 +170,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                     if countryId == "FT" {
                         localizedName = strongSelf.strings.Login_AnonymousNumbers
                     }
-                    strongSelf.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: DivoGlassColors.primaryText, for: [])
+                    strongSelf.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: DivoColorPalette.primaryTextOnDark, for: [])
                     strongSelf.hasCountry = true
                     
                     if strongSelf.phoneInputNode.mask == nil {
@@ -385,11 +386,11 @@ private final class EulaCheckboxNode: ASDisplayNode {
         let uiSwitch = self.checkboxNode.view as! UISwitch
         
         if isOn {
-            uiSwitch.onTintColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
+            uiSwitch.onTintColor = DivoColorPalette.accentCopperDeep
             uiSwitch.thumbTintColor = .white
             uiSwitch.backgroundColor = .clear
         } else {
-            let inactiveColor = UIColor.black.withAlphaComponent(0.3)
+            let inactiveColor = DivoColorPalette.switchOffBackground
             uiSwitch.tintColor = inactiveColor
             uiSwitch.backgroundColor = inactiveColor
             uiSwitch.layer.cornerRadius = 16
@@ -412,14 +413,14 @@ private final class SeparatorWithTextNode: ASDisplayNode {
         self.textNode.attributedText = NSAttributedString(
             string: "or continue with",
             font: Font.bold(11.0),
-            textColor: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6)
+            textColor: DivoColorPalette.overlayDarkMediumLine
         )
         
         self.leftLineNode = ASDisplayNode()
-        self.leftLineNode.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6)
+        self.leftLineNode.backgroundColor = DivoColorPalette.overlayDarkMediumLine
         
         self.rightLineNode = ASDisplayNode()
-        self.rightLineNode.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6)
+        self.rightLineNode.backgroundColor = DivoColorPalette.overlayDarkMediumLine
         
         super.init()
         
@@ -466,7 +467,7 @@ private final class AuthButtonNode: ASControlNode { // ButtonWithIconNode
         
         self.backgroundColor = theme.list.itemBlocksBackgroundColor
         self.cornerRadius = 12.0
-        self.layer.borderColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14).cgColor
+        self.layer.borderColor = DivoColorPalette.overlayDarkFieldBorderSoft.cgColor
         self.layer.borderWidth = 1
         
         self.addSubnode(self.iconNode)
@@ -507,11 +508,11 @@ private final class AuthButtonsNode: ASDisplayNode {
         
         let googleLogo = UIImage(bundleImageName: "Settings/GoogleIcon")
         self.googleButton = AuthButtonNode(title: "Google", icon: googleLogo, theme: theme, spacing: 10, imageSize: imageSize)
-        self.googleButton.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14)
+        self.googleButton.backgroundColor = DivoColorPalette.overlayDarkFieldBorderSoft
         
         let appleLogo = UIImage(named: "Settings/AppleIcon")
         self.appleButton = AuthButtonNode(title: "Apple", icon: appleLogo, theme: theme, spacing: 10, imageSize: imageSize)
-        self.appleButton.backgroundColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14)
+        self.appleButton.backgroundColor = DivoColorPalette.overlayDarkFieldBorderSoft
         
         super.init()
         
@@ -643,7 +644,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         self.noticeNode.attributedText = NSAttributedString(
             string: "Please confirm your country code and enter your phone number.",
-            font: Font.regular(16.0), textColor: UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.6),
+            font: Font.regular(16.0), textColor: DivoColorPalette.overlayDarkMediumLine,
             paragraphAlignment: .center
         )
         
@@ -654,9 +655,9 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.phoneAndCountryNode = PhoneAndCountryNode(strings: strings, theme: theme)
         
         let customButtonTheme = SolidRoundedButtonTheme(
-            backgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            backgroundColor: DivoColorPalette.accentCopperDeep,
             foregroundColor: .white,
-            disabledBackgroundColor: UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00),
+            disabledBackgroundColor: DivoColorPalette.accentCopperDeep,
             disabledForegroundColor: .white
         )
         
@@ -674,7 +675,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
             return UITracingLayerView()
         })
         
-        self.backgroundColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        self.backgroundColor = DivoColorPalette.darkBackground
         
         self.addSubnode(self.titleNode)
         self.addSubnode(self.noticeNode)
@@ -1076,7 +1077,7 @@ final class PhoneConfirmationController: ViewController {
             self.number = number
             
             self.dimNode = ASDisplayNode()
-            self.dimNode.backgroundColor = UIColor(white: 0.0, alpha: 0.4)
+            self.dimNode.backgroundColor = DivoColorPalette.dimScrim
             
             self.backgroundNode = ASDisplayNode()
             self.backgroundNode.backgroundColor = theme.list.itemBlocksBackgroundColor

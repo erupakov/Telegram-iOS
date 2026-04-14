@@ -3,6 +3,7 @@ import Display
 import AccountContext
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 struct ModelItem {
     let name: String
@@ -20,7 +21,7 @@ final class ModelListCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 30
-        iv.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -28,7 +29,7 @@ final class ModelListCell: UICollectionViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(16)
-        label.textColor = UIColor(hex: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
         return label
@@ -36,7 +37,7 @@ final class ModelListCell: UICollectionViewCell {
 
     private let premiumBadge: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Profile/CrownPremium")?.withRenderingMode(.alwaysOriginal)
+        iv.image = UIImage(bundleImageName: "Components/CrownPremium")?.withRenderingMode(.alwaysOriginal)
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.isHidden = true
@@ -46,7 +47,7 @@ final class ModelListCell: UICollectionViewCell {
     private let roleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(14)
-        label.textColor = UIColor(hex: "#222222").withAlphaComponent(0.6)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
         return label
@@ -92,7 +93,7 @@ final class ModelListCell: UICollectionViewCell {
         nameLabel.text = item.name
         roleLabel.text = item.role
         premiumBadge.isHidden = !item.isPremium
-        let placeholderColor = UIColor(white: 0.92, alpha: 1.0)
+        let placeholderColor = DivoColorPalette.imagePlaceholderLight
         if let avatarURLString = item.customAvatarURL,
            let url = CDNURLHelper.convertToCDNURL(avatarURLString) {
             avatarImageView.backgroundColor = placeholderColor
@@ -114,7 +115,7 @@ final class ModelListCell: UICollectionViewCell {
         avatarImageView.cancelImageLoad()
         avatarImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         avatarImageView.image = nil
-        avatarImageView.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderDark
     }
 }
 

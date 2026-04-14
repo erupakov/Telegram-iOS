@@ -17,6 +17,7 @@ import Postbox
 import MapResourceToAvatarSizes
 import ContextUI
 import GalleryUI
+import DivoUIKit
 
 final class EmptyModelsPlaceholderNode: ASDisplayNode {
     private let iconContainerNode = ASDisplayNode()
@@ -30,7 +31,7 @@ final class EmptyModelsPlaceholderNode: ASDisplayNode {
     private let tagIcon: UIImageView = {
         let iv = UIImageView()
         let config = UIImage.SymbolConfiguration(pointSize: 34, weight: .regular)
-        iv.image = UIImage(bundleImageName: "Models/AssociatedModels")?.withRenderingMode(.alwaysTemplate)
+        iv.image = UIImage(bundleImageName: "Components/AssociatedModels")?.withRenderingMode(.alwaysTemplate)
         iv.tintColor = .white
         iv.contentMode = .center
         return iv
@@ -40,7 +41,7 @@ final class EmptyModelsPlaceholderNode: ASDisplayNode {
         let label = PaddedLabel()
         label.textInsets = UIEdgeInsets(top: 4, left: 0, bottom: 0, right: 0)
         label.font = Font.helveticaNeue(26)
-        label.textColor = UIColor(hexString: "#000000") ?? .black
+        label.textColor = .black
         label.textAlignment = .center
         label.numberOfLines = 0
         return label
@@ -50,7 +51,7 @@ final class EmptyModelsPlaceholderNode: ASDisplayNode {
         let label = PaddedLabel()
         label.textInsets = UIEdgeInsets(top: 4, left: 0, bottom: 0, right: 0)
         label.font = Font.medium(16)
-        label.textColor = UIColor(hexString: "#222222") ?? .black
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.numberOfLines = 0
         return label
@@ -66,7 +67,7 @@ final class EmptyModelsPlaceholderNode: ASDisplayNode {
             spacing: 10,
             imageSize: CGSize(width: 24, height: 24)
         )
-        self.addButton.backgroundColor = UIColor(hexString: "#BF7A54") ?? .orange
+        self.addButton.backgroundColor = DivoColorPalette.accentSecondary
         
         super.init()
         

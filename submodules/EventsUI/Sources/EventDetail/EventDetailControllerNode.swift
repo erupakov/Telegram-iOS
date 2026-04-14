@@ -4,6 +4,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
@@ -103,7 +104,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
 
     private func setupUI() {
-        self.backgroundColor = .white
+        self.backgroundColor = DivoColorPalette.screenBackground
 
         imageGalleryCollectionView.backgroundColor = .clear
         imageGalleryCollectionView.dataSource = self
@@ -120,7 +121,7 @@ final class EventDetailControllerNode: ASDisplayNode {
 
         gradientOverlayView.configure(
             colors: [
-                UIColor(white: 0.0, alpha: 0.2),
+                DivoColorPalette.imageScrimMedium,
                 UIColor.black
             ],
             direction: .vertical
@@ -129,7 +130,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         castingBadgeLabel.text = DivoStrings.casting
         castingBadgeLabel.font = .systemFont(ofSize: 12)
         castingBadgeLabel.textColor = .white
-        castingBadgeLabel.backgroundColor = UIColor(white: 1.0, alpha: 0.3)
+        castingBadgeLabel.backgroundColor = DivoColorPalette.badgeOnImageStrong
         castingBadgeLabel.layer.cornerRadius = 10
         castingBadgeLabel.layer.masksToBounds = true
         castingBadgeLabel.textAlignment = .center
@@ -165,14 +166,14 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyButton.setTitle(DivoStrings.apply, for: .normal)
         applyButton.titleLabel?.font = Font.helveticaNeue(14)
         applyButton.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
-        applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
         applyButton.setTitleColor(.white, for: .normal)
         applyButton.layer.cornerRadius = 6
         applyButton.clipsToBounds = true
 
-        secondSeparator.backgroundColor = UIColor(red: 236/255.0, green: 236/255.0, blue: 236/255.0, alpha: 1.0)
-        heightSeparator.backgroundColor = UIColor(red: 236/255.0, green: 236/255.0, blue: 236/255.0, alpha: 1.0)
-        ageSeparator.backgroundColor = UIColor(red: 236/255.0, green: 236/255.0, blue: 236/255.0, alpha: 1.0)
+        secondSeparator.backgroundColor = DivoColorPalette.separatorSoft
+        heightSeparator.backgroundColor = DivoColorPalette.separatorSoft
+        ageSeparator.backgroundColor = DivoColorPalette.separatorSoft
 
         profileImageView.image = UIImage(bundleImageName: "Components/Model")
         profileImageView.contentMode = .scaleAspectFill
@@ -181,28 +182,28 @@ final class EventDetailControllerNode: ASDisplayNode {
 
         profileNameLabel.text = "@nyfw"
         profileNameLabel.font = .systemFont(ofSize: 14, weight: .regular)
-        profileNameLabel.textColor = UIColor(red: 0.73, green: 0.44, blue: 0.28, alpha: 1)
+        profileNameLabel.textColor = DivoColorPalette.accentCopperDark
 
         onlineStatusLabel.text = DivoStrings.online
         onlineStatusLabel.font = .systemFont(ofSize: 14)
-        onlineStatusLabel.textColor = UIColor(red: 0.55, green: 0.55, blue: 0.55, alpha: 1.00)
+        onlineStatusLabel.textColor = DivoColorPalette.textOnDarkMuted
 
         organizationLabel.text = DivoStrings.organizer
         organizationLabel.font = .systemFont(ofSize: 14)
-        organizationLabel.textColor = UIColor(red: 0.55, green: 0.55, blue: 0.55, alpha: 1.00)
+        organizationLabel.textColor = DivoColorPalette.textOnDarkMuted
 
         aboutTitleLabel.text = DivoStrings.about
         aboutTitleLabel.font = .systemFont(ofSize: 10, weight: .regular)
-        aboutTitleLabel.textColor = UIColor(red: 0.55, green: 0.55, blue: 0.55, alpha: 1.00)
+        aboutTitleLabel.textColor = DivoColorPalette.textOnDarkMuted
 
 //        aboutDescriptionLabel.text = "Casting of models for a contract with the magazine on the initiative of the NYFW magazine in NY"
         aboutDescriptionLabel.font = .systemFont(ofSize: 14)
-        aboutDescriptionLabel.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        aboutDescriptionLabel.textColor = DivoColorPalette.darkBackground
         aboutDescriptionLabel.numberOfLines = 0
 
         parametersTitleLabel.text = DivoStrings.parametersForApplying
         parametersTitleLabel.font = .systemFont(ofSize: 10, weight: .regular)
-        parametersTitleLabel.textColor = UIColor(red: 0.55, green: 0.55, blue: 0.55, alpha: 1.00)
+        parametersTitleLabel.textColor = DivoColorPalette.textOnDarkMuted
 
         heightLabel.text = DivoStrings.height
         heightLabel.font = .systemFont(ofSize: 14)
@@ -210,7 +211,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         heightValueLabel.text = "1,72 - 2,1 cm"
         heightValueLabel.font = .systemFont(ofSize: 14)
         heightValueLabel.textColor = .black
-        heightIcon.image = UIImage(bundleImageName: "Chat/heightIcon")
+        heightIcon.image = UIImage(bundleImageName: "Components/heightIcon")
         heightIcon.tintColor = .black
 
         ageLabel.text = DivoStrings.age
@@ -219,7 +220,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         ageValueLabel.text = "20-25 y.o"
         ageValueLabel.font = .systemFont(ofSize: 14)
         ageValueLabel.textColor = .black
-        ageIcon.image = UIImage(bundleImageName: "Chat/ageIcon")
+        ageIcon.image = UIImage(bundleImageName: "Components/ageIcon")
         ageIcon.tintColor = .black
 
         genderLabel.text = DivoStrings.gender
@@ -228,7 +229,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         genderValueLabel.text = "Only womans"
         genderValueLabel.font = .systemFont(ofSize: 14)
         genderValueLabel.textColor = .black
-        genderIcon.image = UIImage(bundleImageName: "Chat/genderIcon")
+        genderIcon.image = UIImage(bundleImageName: "Components/genderIcon")
         genderIcon.contentMode = .scaleAspectFit
         genderIcon.tintColor = .black
 
@@ -246,7 +247,7 @@ final class EventDetailControllerNode: ASDisplayNode {
 
         previousEventsTitleLabel.text = DivoStrings.previousEvents
         previousEventsTitleLabel.font = Font.helveticaNeue(20)
-        previousEventsTitleLabel.textColor = UIColor(red: 0.13, green: 0.13, blue: 0.13, alpha: 1.00)
+        previousEventsTitleLabel.textColor = DivoColorPalette.darkBackground
         previousEventsTitleLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
 
         previousEventsCollectionView.backgroundColor = .clear

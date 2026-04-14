@@ -24,7 +24,7 @@ final class ButtonWithIconNode: ASControlNode {
         self.imageSize = imageSize
         
         self.titleLabel = PaddedLabel()
-        self.titleLabel.textInsets = UIEdgeInsets(top: 4, left: 0, bottom: 0, right: 0) 
+        self.titleLabel.textInsets = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0) 
         self.titleLabel.font = Font.helveticaNeue(16)
         self.titleLabel.textColor = .white
         self.titleLabel.text = title

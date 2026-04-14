@@ -2,6 +2,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 final class EventParametersSheetController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
@@ -15,7 +16,7 @@ final class EventParametersSheetController: UIViewController, UITableViewDelegat
     private let saveButton = UIButton(type: .system)
     private let cancelButton = UIButton(type: .system)
     
-    private let accentColor = UIColor(hexString: "#BF7A54") ?? .orange
+    private let accentColor = DivoColorPalette.accentSecondary
     
     init(selectedParameters: Set<EventParameter>, onSave: @escaping (Set<EventParameter>) -> Void) {
         self.selectedParameters = selectedParameters
@@ -33,11 +34,11 @@ final class EventParametersSheetController: UIViewController, UITableViewDelegat
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 0.96, green: 0.96, blue: 0.96, alpha: 1.0)
-        
+        view.backgroundColor = DivoColorPalette.sheetBackgroundMuted
+
         titleLabel.text = sheetTitle
         titleLabel.font = Font.bold(20)
-        titleLabel.textColor = UIColor(hexString: "#222222")
+        titleLabel.textColor = DivoColorPalette.primaryText
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(titleLabel)
         
@@ -56,7 +57,7 @@ final class EventParametersSheetController: UIViewController, UITableViewDelegat
         let subtitle = UILabel()
         subtitle.text = DivoStrings.chooseParametersForApplying
         subtitle.font = Font.semibold(16)
-        subtitle.textColor = UIColor(hexString: "#17181C")
+        subtitle.textColor = DivoColorPalette.systemLabelDark
         subtitle.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(subtitle)
         

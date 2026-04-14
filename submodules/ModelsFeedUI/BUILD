@@ -32,6 +32,7 @@ swift_library(
         "//submodules/TelegramAnimatedStickerNode:TelegramAnimatedStickerNode",
         "//submodules/ProfileScreenUI:ProfileScreenUI",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/DivoUIKit:DivoUIKit",
     ],
     visibility = [
         "//visibility:public",

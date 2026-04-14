@@ -14,6 +14,7 @@ import AppBundle
 import LocalizedPeerData
 import ContextUI
 import TelegramBaseController
+import DivoUIKit
 
 public final class EventsController: TelegramBaseController {
     private var controllerNode: EventsControllerNode {
@@ -48,11 +49,11 @@ public final class EventsController: TelegramBaseController {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
-        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: UIColor(rgb: 0x525252), primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
+        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.disabledButtonBackground, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
         let icon: UIImage?
-        icon = UIImage(bundleImageName: "Chat List/Tabs/IconEvents")
+        icon = UIImage(bundleImageName: "Components/IconEvents")
         self.tabBarItem.title = DivoStrings.tabEvents
         self.tabBarItem.image = icon
         self.tabBarItem.selectedImage = icon
@@ -83,7 +84,7 @@ public final class EventsController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 
-        let copperColor = UIColor(rgb: 0xBF7A54)
+        let copperColor = DivoColorPalette.accentSecondary
 
         let searchIcon = generateTintedImage(image: PresentationResourcesRootController.navigationSearchIcon(self.presentationData.theme), color: copperColor)
         let searchButton = UIBarButtonItem(image: searchIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.searchPressed))

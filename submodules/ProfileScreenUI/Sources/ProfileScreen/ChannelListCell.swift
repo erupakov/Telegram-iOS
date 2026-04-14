@@ -3,6 +3,7 @@ import Display
 import TelegramCore
 import DivoCore
 import AccountContext
+import DivoUIKit
 
 struct ProfileChannelItem {
     let peer: String
@@ -20,7 +21,7 @@ final class ChannelListCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 30
-        iv.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -28,7 +29,7 @@ final class ChannelListCell: UICollectionViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(16)
-        label.textColor = UIColor(hex: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
         return label
@@ -36,7 +37,7 @@ final class ChannelListCell: UICollectionViewCell {
 
     private let premiumBadge: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Profile/CrownPremium")?.withRenderingMode(.alwaysOriginal)
+        iv.image = UIImage(bundleImageName: "Components/CrownPremium")?.withRenderingMode(.alwaysOriginal)
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.isHidden = true
@@ -46,7 +47,7 @@ final class ChannelListCell: UICollectionViewCell {
     private let subtitleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(14)
-        label.textColor = UIColor(hex: "#222222").withAlphaComponent(0.6)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
         return label

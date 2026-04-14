@@ -9,6 +9,7 @@ import SearchBarNode
 import AppBundle
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import ComponentFlow
 import BundleIconComponent
 import GlassBarButtonComponent
@@ -156,13 +157,13 @@ private final class AuthorizationSequenceCountrySelectionNavigationContentNode: 
         self.cancel = cancel
 
         let darkSearchTheme = SearchBarNodeTheme(
-            background: DivoGlassColors.background,
+            background: DivoColorPalette.darkBackground,
             separator: .clear,
-            inputFill: DivoGlassColors.inputFill,
+            inputFill: DivoColorPalette.overlayInput,
             primaryText: theme.chat.inputPanel.panelControlColor,
             placeholder: theme.chat.inputPanel.inputPlaceholderColor,
-            inputIcon: DivoGlassColors.inputIcon,
-            inputClear: DivoGlassColors.inputIcon,
+            inputIcon: DivoColorPalette.overlayInputIcon,
+            inputClear: DivoColorPalette.overlayInputIcon,
             accent: theme.chat.inputPanel.panelControlAccentColor,
             keyboard: theme.rootController.keyboardColor
         )
@@ -360,11 +361,11 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
 
         let darkNavTheme = NavigationBarTheme(
             overallDarkAppearance: true,
-            buttonColor: DivoGlassColors.primaryText,
-            disabledButtonColor: DivoGlassColors.disabledButton,
-            primaryTextColor: DivoGlassColors.primaryText,
-            backgroundColor: DivoGlassColors.background,
-            opaqueBackgroundColor: DivoGlassColors.background,
+            buttonColor: DivoColorPalette.primaryTextOnDark,
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+            primaryTextColor: DivoColorPalette.primaryTextOnDark,
+            backgroundColor: DivoColorPalette.darkBackground,
+            opaqueBackgroundColor: DivoColorPalette.darkBackground,
             enableBackgroundBlur: false,
             separatorColor: .clear,
             badgeBackgroundColor: .clear,

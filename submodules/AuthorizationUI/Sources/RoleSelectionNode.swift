@@ -8,6 +8,7 @@ import TextFormat
 import Markdown
 import SolidRoundedButtonNode
 import AuthorizationUtils
+import DivoUIKit
 
 final class RoleSelectionNode: ASDisplayNode {
     let roleImageNode: ASImageNode
@@ -30,7 +31,7 @@ final class RoleSelectionNode: ASDisplayNode {
         self.roleImageNode = ASImageNode()
         self.roleImageNode.image = roleImage
         self.roleImageNode.cornerRadius = 4
-        self.roleImageNode.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        self.roleImageNode.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         self.roleImageNode.contentMode = .scaleAspectFill
         
         self.roleTitleNode = ASTextNode()
@@ -39,7 +40,7 @@ final class RoleSelectionNode: ASDisplayNode {
         self.roleDescriptionNode = ASTextNode()
         self.roleDescriptionNode.attributedText = NSAttributedString(string: description, attributes: [
             .font: UIFont.systemFont(ofSize: 14),
-            .foregroundColor: UIColor.white.withAlphaComponent(0.6)
+            .foregroundColor: DivoColorPalette.overlayDarkMediumLine
         ])
         
         self.checkmarkNode = ASImageNode()
@@ -75,7 +76,7 @@ final class RoleSelectionNode: ASDisplayNode {
     private func updateState() {
         self.checkmarkNode.image = isSelected ?  UIImage(named: "Components/CheckboxSelected") : UIImage(bundleImageName: "Components/Checkbox")
         self.checkmarkNode.tintColor = isSelected ? .blue : .gray
-        self.borderColor = isSelected ? UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00).cgColor : UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.4).cgColor
+        self.borderColor = isSelected ? DivoColorPalette.accentCopperDeep.cgColor : DivoColorPalette.overlayDarkFieldBorder.cgColor
     }
     
     @objc private func handleTap() {

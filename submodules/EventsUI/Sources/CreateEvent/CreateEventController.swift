@@ -5,6 +5,7 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import MessageUI
 import TelegramPresentationData
 import AccountContext
@@ -39,7 +40,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
-        let copperColor = UIColor(hexString: "#BF7A54") ?? .black
+        let copperColor = DivoColorPalette.accentSecondary
 
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
@@ -49,7 +50,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             backgroundColor: .white,
             opaqueBackgroundColor: .white,
             enableBackgroundBlur: false,
-            separatorColor: UIColor(rgb: 0xE5E5E5),
+            separatorColor: DivoColorPalette.separatorSystem,
             badgeBackgroundColor: .clear,
             badgeStrokeColor: .clear,
             badgeTextColor: .clear)
@@ -115,7 +116,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     }
 
     private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
-        let copperColor = UIColor(hexString: "#BF7A54") ?? .black
+        let copperColor = DivoColorPalette.accentSecondary
         let theme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: copperColor,

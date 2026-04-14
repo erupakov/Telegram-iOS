@@ -4,6 +4,7 @@ import Display
 import TelegramCore
 import DivoCore
 import AppBundle
+import DivoUIKit
 
 struct WorkExperienceItem {
     let id: Int
@@ -82,7 +83,7 @@ final class ExperienceCell: UICollectionViewCell {
         iconImageView.layer.cornerRadius = 28
         iconImageView.clipsToBounds = true
         iconImageView.layer.borderWidth = 1
-        iconImageView.layer.borderColor = UIColor(red: 1.00, green: 1.00, blue: 1.00, alpha: 0.14).cgColor
+        iconImageView.layer.borderColor = DivoColorPalette.overlayDarkFieldBorderSoft.cgColor
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
 
         titleLabel.font = UIFont.boldSystemFont(ofSize: 17)
@@ -94,9 +95,9 @@ final class ExperienceCell: UICollectionViewCell {
         dateLabel.numberOfLines = 2
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let moreImage = UIImage(bundleImageName: "Contact List/moreIcon")?.withRenderingMode(.alwaysTemplate)
+        let moreImage = UIImage(bundleImageName: "Components/moreIcon")?.withRenderingMode(.alwaysTemplate)
         optionsButton.setImage(moreImage, for: .normal)
-        optionsButton.tintColor = UIColor(rgb: 0x8E8E93)
+        optionsButton.tintColor = DivoColorPalette.systemLabelTertiary
         optionsButton.translatesAutoresizingMaskIntoConstraints = false
         optionsButton.addTarget(self, action: #selector(handleOptionsTap(_:)), for: .touchUpInside)
 
@@ -148,7 +149,7 @@ final class ExperienceCell: UICollectionViewCell {
         titleLabel.text = item.companyName
         dateLabel.text = item.period
         optionsButton.isHidden = !showOptions
-        iconImageView.loadImage(from: item.logoURL, placeholder: UIImage(bundleImageName: "Models/DefWork"))
+        iconImageView.loadImage(from: item.logoURL, placeholder: UIImage(bundleImageName: "Components/DefWork"))
     }
 
     func configureAsShimmer() {

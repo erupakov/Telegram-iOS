@@ -8,8 +8,48 @@ public enum DivoConfig {
 
     private static let tokenKey = "DivoConfig.customAccessToken"
     private static let delayKey = "DivoConfig.simulatedDelay"
+    private static let roleKey = "DivoConfig.userRole"
 
     public static let tokenDidChangeNotification = Notification.Name("DivoConfig.tokenDidChange")
+    public static let roleDidChangeNotification = Notification.Name("DivoConfig.roleDidChange")
+
+    // MARK: - User Roles
+
+    public enum UserRole: String, CaseIterable {
+        case agency = "agency_employee"
+        case fan = "fan"
+        case model = "model"
+        case newFace = "new_face"
+
+        public var displayName: String {
+            switch self {
+            case .agency: return "Agency"
+            case .fan: return "Fan"
+            case .model: return "Model"
+            case .newFace: return "New Face"
+            }
+        }
+    }
+
+    public static var currentUserRole: UserRole {
+        get {
+            let rawValue = UserDefaults.standard.string(forKey: roleKey) ?? UserRole.model.rawValue
+            return UserRole(rawValue: rawValue) ?? .model
+        }
+        set {
+            let oldValue = currentUserRole
+            UserDefaults.standard.set(newValue.rawValue, forKey: roleKey)
+            if newValue != oldValue {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: roleDidChangeNotification, object: nil)
+                }
+            }
+        }
+    }
+
+    public static func resetRole() {
+        UserDefaults.standard.removeObject(forKey: roleKey)
+    }
 
     public static var accessToken: String {
         get {

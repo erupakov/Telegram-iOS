@@ -17,12 +17,20 @@ struct CardModel {
 
     let userId: Int?
     let role: String?
+    let roleLabel: String?
     let mainImageURL: URL?
     let avatarImageURL: URL?
     let previewImageURLs: [URL]
-    let likesCount: Int
+    var likesCount: Int
+    let viewsCount: Int
+    var savesCount: Int
     let isFavorite: Bool
     var isFollowed: Bool
+    let feedId: Int?
+    var isLiked: Bool
+    let age: Int?
+    let country: String?
+    let countryFlag: String?
 
     init(
         name: String,
@@ -32,12 +40,20 @@ struct CardModel {
         userReaction: ReactionType? = nil,
         userId: Int? = nil,
         role: String? = nil,
+        roleLabel: String? = nil,
         mainImageURL: URL? = nil,
         avatarImageURL: URL? = nil,
         previewImageURLs: [URL] = [],
         likesCount: Int = 0,
+        viewsCount: Int = 0,
+        savesCount: Int = 0,
         isFavorite: Bool = false,
-        isFollowed: Bool = false
+        isFollowed: Bool = false,
+        feedId: Int? = nil,
+        isLiked: Bool = false,
+        age: Int? = nil,
+        country: String? = nil,
+        countryFlag: String? = nil
     ) {
         self.name = name
         self.mainImageName = mainImageName
@@ -46,12 +62,20 @@ struct CardModel {
         self.userReaction = userReaction
         self.userId = userId
         self.role = role
+        self.roleLabel = roleLabel
         self.mainImageURL = mainImageURL
         self.avatarImageURL = avatarImageURL
         self.previewImageURLs = previewImageURLs
         self.likesCount = likesCount
+        self.viewsCount = viewsCount
+        self.savesCount = savesCount
         self.isFavorite = isFavorite
         self.isFollowed = isFollowed
+        self.feedId = feedId
+        self.isLiked = isLiked
+        self.age = age
+        self.country = country
+        self.countryFlag = countryFlag
     }
 }
 

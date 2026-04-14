@@ -10,6 +10,7 @@ import ItemListUI
 import PresentationDataUtils
 import AccountContext
 import AppBundle
+import DivoUIKit
 
 public enum Role {
     case model
@@ -581,7 +582,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let label = UILabel()
         label.text = DivoStrings.similarProfiles
         label.font = Font.helveticaNeue(18)
-        label.textColor = UIColor(hex: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
         return label
@@ -620,11 +621,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var socialLinksMap: [UIButton: String] = [:]
 
     private enum SocialIcon: String {
-        case instagram = "Models/instaIcon"
-        case tiktok = "Models/TikTokIcon"
-        case youtube = "Models/youtubeIcon"
-        case telegram = "Models/telegramIcon"
-        case website = "Models/webIcon"
+        case instagram = "Components/instaIcon"
+        case tiktok = "Components/TikTokIcon"
+        case youtube = "Components/youtubeIcon"
+        case telegram = "Components/telegramIcon"
+        case website = "Components/webIcon"
         
         static func icon(for urlString: String) -> String {
             let lowercased = urlString.lowercased()

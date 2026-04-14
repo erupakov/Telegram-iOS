@@ -2,6 +2,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 struct InteractionUser {
     let id: Int
@@ -46,7 +47,7 @@ final class InteractionListViewController: UIViewController {
     private let emptyTitleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(26)
-        label.textColor = UIColor(hexString: "#000000")
+        label.textColor = .black
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
@@ -56,7 +57,7 @@ final class InteractionListViewController: UIViewController {
     private let emptySubTitleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(16)
-        label.textColor = UIColor(hexString: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
@@ -66,7 +67,7 @@ final class InteractionListViewController: UIViewController {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(20)
-        label.textColor = UIColor(hexString: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
@@ -124,7 +125,7 @@ final class InteractionListViewController: UIViewController {
     }
 
     private func setupUI() {
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.screenBackground
         titleLabel.text = listType.title
 
         view.addSubview(emptyContainer)

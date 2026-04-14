@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import Display
+import DivoUIKit
 
 final class EventGalleryItem: Equatable {
     let id = UUID().uuidString
@@ -32,7 +33,7 @@ final class EventGalleryCell: UICollectionViewCell {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
 
-        let basketButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/Basket"), color: UIColor(hexString: "#BF7A54") ?? .white)
+        let basketButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/Basket"), color: DivoColorPalette.accentSecondary)
         deleteButton.setImage(basketButtonImg, for: .normal)
         deleteButton.backgroundColor = .white
         deleteButton.layer.cornerRadius = 14

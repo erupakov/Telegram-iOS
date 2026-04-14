@@ -1,24 +1,25 @@
 import UIKit
 import Display
+import DivoUIKit
 
 final class ParameterCell: UITableViewCell {
     static let reuseId = "ParameterCell"
-    
+
     private let iconImageView = UIImageView()
     private let nameLabel = UILabel()
-    private let accentColor = UIColor(hexString: "#BF7A54") ?? .orange
-    
+    private let accentColor = DivoColorPalette.accentSecondary
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        
+
         backgroundColor = .clear
         selectionStyle = .none
-        
+
         iconImageView.contentMode = .scaleAspectFit
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        
+
         nameLabel.font = Font.medium(14)
-        nameLabel.textColor = UIColor(hexString: "#17181C")
+        nameLabel.textColor = DivoColorPalette.systemLabelDark
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         
         contentView.addSubview(iconImageView)

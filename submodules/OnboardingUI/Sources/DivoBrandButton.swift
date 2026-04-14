@@ -1,6 +1,6 @@
 import UIKit
 import Display
-import DivoCore
+import DivoUIKit
 
 public final class DivoBrandButton: UIButton {
 
@@ -27,9 +27,9 @@ public final class DivoBrandButton: UIButton {
 
     private func setup() {
         setTitleColor(.white, for: .normal)
-        setTitleColor(DivoColors.disabledText, for: .disabled)
+        setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         titleLabel?.font = Font.helveticaNeue(20)
-        backgroundColor = DivoColors.brand
+        backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = 28
     }
 }

@@ -9,6 +9,7 @@ import UIKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 final class SimilarProfileCell: UICollectionViewCell {
     static let reuseIdentifier = "SimilarProfileCell"
@@ -18,7 +19,7 @@ final class SimilarProfileCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 6
-        iv.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -26,7 +27,7 @@ final class SimilarProfileCell: UICollectionViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(12)
-        label.textColor = UIColor(hex: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
         return label
@@ -35,7 +36,7 @@ final class SimilarProfileCell: UICollectionViewCell {
     private let infoLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(12)
-        label.textColor = UIColor(hex: "#222222").withAlphaComponent(0.6)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
         return label

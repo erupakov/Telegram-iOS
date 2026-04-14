@@ -19,6 +19,7 @@ import MapResourceToAvatarSizes
 import ContextUI
 import GalleryUI
 import EventsUI
+import DivoUIKit
 
 enum MediaFormatValidator {
     static let videoExtensions: Set<String> = ["mp4", "mov", "avi", "mkv", "webm"]
@@ -99,7 +100,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,
@@ -128,11 +129,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
 
-        let moreButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/MoreActionIcon"), color: .white)
+        let moreButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/MoreActionIcon"), color: .white)
         let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
 
         if isMyProfile {
-            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Profile/EditActionIcon"), color: .white)
+            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/ProfileEditAction"), color: .white)
             
             let editButton = UIBarButtonItem(
                 image: editButtonImg,

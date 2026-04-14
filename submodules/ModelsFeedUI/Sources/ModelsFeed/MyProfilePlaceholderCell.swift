@@ -1,13 +1,14 @@
 import UIKit
 import TelegramCore
 import DivoCore
+import DivoUIKit
 
 final class MyProfilePlaceholderCell: UICollectionViewCell {
 
     private let label: UILabel = {
         let l = UILabel()
         l.text = DivoStrings.goToMyProfile
-        l.textColor = UIColor(white: 0.15, alpha: 1)
+        l.textColor = DivoColorPalette.emptyTitleText
         l.font = UIFont.systemFont(ofSize: 16, weight: .medium)
         l.textAlignment = .left
         return l
@@ -16,15 +17,15 @@ final class MyProfilePlaceholderCell: UICollectionViewCell {
     private let arrowLabel: UILabel = {
         let l = UILabel()
         l.text = "→"
-        l.textColor = UIColor(white: 0.4, alpha: 1)
+        l.textColor = DivoColorPalette.emptySubtitleText
         l.font = UIFont.systemFont(ofSize: 18, weight: .regular)
         return l
     }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = UIColor(white: 0.96, alpha: 1)
-        layer.cornerRadius = 14
+        backgroundColor = DivoColorPalette.placeholderCardBackground
+        layer.cornerRadius = 14 // TODO: DS alignment — не в шкале Radius
         clipsToBounds = true
 
         contentView.addSubview(label)

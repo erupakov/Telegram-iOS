@@ -10,6 +10,7 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 import TelegramBaseController
+import DivoUIKit
 
 public final class EventDetailController: TelegramBaseController {
 
@@ -34,7 +35,7 @@ public final class EventDetailController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,
@@ -73,7 +74,7 @@ public final class EventDetailController: TelegramBaseController {
         likeLabel.textColor = .white
         likeLabel.font = .systemFont(ofSize: 17, weight: .bold)
 
-        let likeImageView = UIImageView(image: UIImage(bundleImageName: "Contact List/HeartActionIcon")!)
+        let likeImageView = UIImageView(image: UIImage(bundleImageName: "Components/HeartActionIcon")!)
         likeImageView.tintColor = .white
 
         let customLikeView = UIView(frame: CGRect(x: 0, y: 0, width: 60, height: 30))
@@ -92,7 +93,7 @@ public final class EventDetailController: TelegramBaseController {
             likeLabel.centerYAnchor.constraint(equalTo: customLikeView.centerYAnchor)
         ])
 
-        let likeButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Contact List/HeartActionIcon"), color: .white)
+        let likeButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/HeartActionIcon"), color: .white)
         let shareButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/MessageSelectionAction"), color: .white)
         let bookmarkButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Instant View/Bookmark"), color: .white)
 

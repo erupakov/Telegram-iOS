@@ -15,6 +15,7 @@ import SearchUI
 import LegacyMediaPickerUI
 import CountrySelectionUI
 import ChatScheduleTimeController
+import DivoUIKit
 
 protocol EditSocialLinksDelegate: AnyObject {
     func didUpdateSocialLinksData()
@@ -42,7 +43,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,
@@ -92,7 +93,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         let theme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: UIColor(rgb: 0x525252),
+            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,

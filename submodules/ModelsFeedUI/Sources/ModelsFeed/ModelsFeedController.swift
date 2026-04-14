@@ -4,6 +4,7 @@ import Display
 import AsyncDisplayKit
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
 import ItemListUI
@@ -55,11 +56,11 @@ public final class ModelsFeedController: TelegramBaseController {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
-        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: UIColor(rgb: 0x525252), primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
+        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.disabledButtonBackground, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
         let icon: UIImage?
-        icon = UIImage(bundleImageName: "Models/IconModels")
+        icon = UIImage(bundleImageName: "Components/IconModels")
         self.tabBarItem.title = DivoStrings.tabModels
         self.tabBarItem.image = icon
         self.tabBarItem.selectedImage = icon
@@ -83,20 +84,41 @@ public final class ModelsFeedController: TelegramBaseController {
             self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.tabBarItem.title = DivoStrings.tabModels
+            guard let self = self else { return }
+            self.tabBarItem.title = DivoStrings.tabModels
+            self.tabStates = [TabState(), TabState(), TabState()]
+            self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
     }
 
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 
-        let copperColor = UIColor(rgb: 0xBF7A54)
-        let originalIcon = PresentationResourcesRootController.navigationSearchIcon(self.presentationData.theme)
-        let tintedIcon = generateTintedImage(image: originalIcon, color: copperColor)
-        let searchButton = UIBarButtonItem(image: tintedIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.searchPressed))
+        let searchImage = Self.makeCircleIcon(systemName: "magnifyingglass")
+        let searchButton = UIBarButtonItem(image: searchImage, style: .plain, target: self, action: #selector(self.searchPressed))
         self.navigationItem.rightBarButtonItems = [searchButton]
 
         self.navigationItem.titleView = UIView()
+    }
+
+    private static func makeCircleIcon(systemName: String) -> UIImage? {
+        let circleSize: CGFloat = 40
+        let padding: CGFloat = 8 // for shadow
+        let total = circleSize + padding * 2
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: total, height: total))
+        return renderer.image { ctx in
+            let gc = ctx.cgContext
+            gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: DivoColorPalette.shadow.withAlphaComponent(0.1).cgColor)
+            gc.setFillColor(UIColor.white.cgColor)
+            gc.fillEllipse(in: CGRect(x: padding, y: padding, width: circleSize, height: circleSize))
+            gc.setShadow(offset: .zero, blur: 0)
+            let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+            if let icon = UIImage(systemName: systemName, withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
+                let iconX = padding + (circleSize - icon.size.width) / 2
+                let iconY = padding + (circleSize - icon.size.height) / 2
+                icon.draw(at: CGPoint(x: iconX, y: iconY))
+            }
+        }.withRenderingMode(.alwaysOriginal)
     }
 
     private var lastContentOffset: CGPoint = .zero
@@ -105,11 +127,13 @@ public final class ModelsFeedController: TelegramBaseController {
     }
 
     @objc private func searchPressed() {
-//        let controller = EventsSearchController(context: context)
-//
-//        if let navigationController = self.context.sharedContext.mainWindow?.viewController as? NavigationController {
-//            navigationController.pushViewController(controller)
-//        }
+        let searchController = ModelsSearchController(context: self.context)
+    
+        if let navigationController = self.navigationController as? NavigationController {
+            navigationController.pushViewController(searchController, animated: true)
+        } else {
+            (self.context.sharedContext.mainWindow?.viewController as? NavigationController)?.pushViewController(searchController, animated: true)
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -119,14 +143,14 @@ public final class ModelsFeedController: TelegramBaseController {
     private func showProfile(_ model: CardModel) {
         let profileModel = ProfileModel(
             name: model.name,
-            age: 0,
-            location: "",
+            age: model.age ?? 0,
+            location: model.country ?? "",
             mainImageName: model.mainImageName,
             avatarImageName: model.avatarImageName,
             isVerified: false,
             likesCount: "\(model.likesCount)",
-            viewsCount: "0",
-            savesCount: "0",
+            viewsCount: "\(model.viewsCount)",
+            savesCount: "\(model.savesCount)",
             biography: "",
             socialMediaHandles: [],
             galleryImageNames: [],
@@ -141,6 +165,40 @@ public final class ModelsFeedController: TelegramBaseController {
             nav.pushViewController(detailController, animated: true)
         } else {
             (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+        }
+    }
+
+    private func openGallery(_ model: CardModel, initialIndex: Int) {
+        var allURLs: [URL] = []
+        if let mainURL = model.mainImageURL {
+            allURLs.append(mainURL)
+        }
+        allURLs.append(contentsOf: model.previewImageURLs)
+
+        guard !allURLs.isEmpty else { return }
+
+        let photos: [UserPhoto] = allURLs.enumerated().map { index, url in
+            let file = UserFile(
+                fileName: url.lastPathComponent,
+                fullUrl: url.absoluteString,
+                fileExtension: url.pathExtension,
+                fileUuid: nil
+            )
+            return UserPhoto(id: index, photo: file, likesCount: nil, isLikedByUser: false, preview: nil)
+        }
+
+        // Preview images start after main image, so offset by 1
+        let galleryIndex = model.mainImageURL != nil ? initialIndex + 1 : initialIndex
+        let clampedIndex = min(galleryIndex, photos.count - 1)
+
+        let galleryController = ProfileGalleryController(
+            context: self.context,
+            photos: photos,
+            initialIndex: clampedIndex,
+            isOwnProfile: false
+        )
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(galleryController, animated: true)
         }
     }
 
@@ -159,11 +217,19 @@ public final class ModelsFeedController: TelegramBaseController {
         self.controllerNode.showProfile = { [weak self] model in
             self?.showProfile(model)
         }
+        self.controllerNode.showGallery = { [weak self] model, index in
+            self?.openGallery(model, initialIndex: index)
+        }
         self.controllerNode.loadMore = { [weak self] in
             self?.loadNextPage()
         }
         self.controllerNode.onTabSelected = { [weak self] index in
             self?.switchToTab(index)
+        }
+        self.controllerNode.onRetry = { [weak self] in
+            guard let self = self else { return }
+            self.controllerNode.showNetworkError = false
+            self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
 
         self.displayNodeDidLoad()
@@ -206,8 +272,6 @@ public final class ModelsFeedController: TelegramBaseController {
 
     private func requestBody(tabIndex: Int, offset: Int, limit: Int) -> FeedlineListRequest {
         switch tabIndex {
-        case 0:
-            return FeedlineListRequest(offset: offset, limit: limit, subscribedOnly: true)
         case 2:
             return FeedlineListRequest(offset: offset, limit: limit, modelsOnly: true)
         default:
@@ -294,12 +358,18 @@ public final class ModelsFeedController: TelegramBaseController {
             name: item.title,
             userId: item.user.id,
             role: item.user.role,
+            roleLabel: item.user.roleLabel,
             mainImageURL: mainURL,
             avatarImageURL: avatarURL,
             previewImageURLs: previewURLs,
             likesCount: item.likesCount,
             isFavorite: item.isFavoriteByUser,
-            isFollowed: isFollowed
+            isFollowed: isFollowed,
+            feedId: item.feedId,
+            isLiked: item.isLikedByUser,
+            age: 24,
+            country: "Moscow",
+            countryFlag: "🇷🇺"
         )
     }
 

@@ -4,6 +4,7 @@ import AsyncDisplayKit
 import Display
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import TelegramPresentationData
 import TelegramStringFormatting
 import AppBundle
@@ -279,9 +280,9 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
         })
 
         if glass {
-            self.backgroundColor = DivoGlassColors.background
-            self.tableView.backgroundColor = DivoGlassColors.background
-            self.searchTableView.backgroundColor = DivoGlassColors.background
+            self.backgroundColor = DivoColorPalette.darkBackground
+            self.tableView.backgroundColor = DivoColorPalette.darkBackground
+            self.searchTableView.backgroundColor = DivoColorPalette.darkBackground
         } else {
             self.backgroundColor = theme.list.plainBackgroundColor
 
@@ -299,7 +300,7 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
         self.tableView.delegate = self
         self.tableView.dataSource = self
 
-        self.tableView.sectionIndexColor = DivoGlassColors.sectionIndex
+        self.tableView.sectionIndexColor = DivoColorPalette.sectionIndex
         self.tableView.sectionIndexBackgroundColor = .clear
 
         self.searchTableView.delegate = self
@@ -496,11 +497,11 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
         if self.displayCodes, let label = cell.accessoryView as? UILabel {
             label.text = code
             label.sizeToFit()
-            label.textColor = DivoGlassColors.primaryText
+            label.textColor = DivoColorPalette.primaryTextOnDark
         }
-        cell.textLabel?.textColor = DivoGlassColors.primaryText
-        cell.detailTextLabel?.textColor = DivoGlassColors.primaryText
-        cell.backgroundColor = DivoGlassColors.cellBackground
+        cell.textLabel?.textColor = DivoColorPalette.primaryTextOnDark
+        cell.detailTextLabel?.textColor = DivoColorPalette.primaryTextOnDark
+        cell.backgroundColor = DivoColorPalette.overlayCell
         cell.selectedBackgroundView?.backgroundColor = self.theme.list.itemHighlightedBackgroundColor
         return cell
     }

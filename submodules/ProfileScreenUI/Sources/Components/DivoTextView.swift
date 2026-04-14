@@ -5,6 +5,7 @@ import TelegramCore
 import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
+import DivoUIKit
 
 final class DivoTextView: UIView, UITextViewDelegate {
 
@@ -66,8 +67,40 @@ final class DivoTextView: UIView, UITextViewDelegate {
         setupUI()
     }
     
+// <<<<<<< HEAD
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+// =======
+//     private func setupNodes() {
+//         backgroundNode.backgroundColor = .clear
+//         backgroundNode.borderWidth = 1.0
+//         backgroundNode.borderColor = DivoColorPalette.overlayDarkFieldBorderLight.cgColor
+//         backgroundNode.cornerRadius = 11.0
+//         addSubnode(backgroundNode)
+        
+//         titleNode.attributedText = NSAttributedString(
+//             string: title,
+//             attributes: [
+//                 .font: Font.regular(14.0),
+//                 .foregroundColor: DivoColorPalette.textOnDarkTertiary
+//             ]
+//         )
+//         addSubnode(titleNode)
+        
+//         textNode.delegate = self
+//         textNode.textView.font = Font.regular(16.0)
+//         textNode.textView.textColor = .white
+//         textNode.textView.backgroundColor = .clear
+// //        textNode.textView.typingAttributes = [
+// //            NSAttributedString.Key.font.rawValue: Font.regular(16.0),
+// //            NSAttributedString.Key.foregroundColor.rawValue: UIColor.white
+// //        ]
+        
+//         textNode.textView.textContainerInset = .zero
+//         textNode.textView.textContainer.lineFragmentPadding = 0
+        
+//         addSubnode(textNode)
+// >>>>>>> dev
     }
     
     // MARK: - Setup UI

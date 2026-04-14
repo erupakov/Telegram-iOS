@@ -12,6 +12,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 private struct AppearanceFilterItem {
     let title: String
@@ -218,9 +219,13 @@ final class EditProfileNode: ASDisplayNode {
     
     private let chancePhotoView: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+// <<<<<<< HEAD
+//         button.backgroundColor = .white
+// =======
+        button.backgroundColor = DivoColorPalette.accentSecondary
+// >>>>>>> dev
         button.translatesAutoresizingMaskIntoConstraints = false
-        let image = UIImage(bundleImageName: "Profile/AddPhotoIcon")
+        let image = UIImage(bundleImageName: "Components/AddPhotoIcon")
         button.setImage(image, for: .normal)
         button.tintColor = UIColor(hexString: "#FF772D")
         button.layer.cornerRadius = 16
@@ -368,6 +373,87 @@ final class EditProfileNode: ASDisplayNode {
         
         self.aboutEventTextField = DivoTextView(title: bioTitle, initialText: bio)
 
+// <<<<<<< HEAD
+// =======
+//         let currentGender = model?.gender?.title ?? DivoStrings.loading
+//         self.genderDropdown = DropdownNode(title: DivoStrings.gender, placeholder: DivoStrings.selectGender, options: [currentGender])
+//         self.genderDropdown.selectedValue = self.model?.gender?.title
+        
+//         self.ageSlider = AgeSliderNode<Int>(
+//             title: DivoStrings.ageYo,
+//             type: "y.o",
+//             mode: .single(value: 17),
+//             minimumValue: 14,
+//             maximumValue: 45,
+//             configuration: .default
+//         )
+
+//         self.heightSlider = AgeSliderNode<Double>(
+//             title: DivoStrings.heightCm,
+//             type: "cm",
+//             mode: .single(value: Float(model?.model?.appearance?.height ?? 1.68)),
+//             minimumValue: 1.68,
+//             maximumValue: 2.50,
+//             configuration: .default
+//         )
+
+//         self.weightSlider = AgeSliderNode<Double>(
+//             title: DivoStrings.weightKg,
+//             type: "kg",
+//             mode: .single(value: Float(model?.model?.appearance?.weight ?? 50)),
+//             minimumValue: 48,
+//             maximumValue: 90,
+//             configuration: .default
+//         )
+
+//         self.waistSlider = AgeSliderNode<Double>(
+//             title: DivoStrings.waistCm,
+//             type: "cm",
+//             mode: .single(value: Float(model?.model?.appearance?.waist ?? 60)),
+//             minimumValue: 48,
+//             maximumValue: 90,
+//             configuration: .default
+//         )
+
+//         self.hipsSlider = AgeSliderNode<Double>(
+//             title: DivoStrings.hipsCm,
+//             type: "cm",
+//             mode: .single(value: Float(model?.model?.appearance?.hips ?? 91)),
+//             minimumValue: 80,
+//             maximumValue: 110,
+//             configuration: .default
+//         )
+
+//         self.shoeSizeSlider = AgeSliderNode<Double>(
+//             title: DivoStrings.shoeSizeEU,
+//             type: "",
+//             mode: .single(value: Float(model?.model?.appearance?.shoesSize ?? 37)),
+//             minimumValue: 36,
+//             maximumValue: 42,
+//             configuration: .default
+//         )
+
+//         let currentHairLength = model?.model?.appearance?.hairLength?.title ?? DivoStrings.loading
+//         let currentHairColor = model?.model?.appearance?.hairColor?.title ?? DivoStrings.loading
+//         let currentEyeColor = model?.model?.appearance?.eyeColor?.title ?? DivoStrings.loading
+//         let currentSkinColor = model?.model?.appearance?.skinColor?.title ?? DivoStrings.loading
+
+//         self.hairLengthDropdown = DropdownNode(title: DivoStrings.hairLength, placeholder: DivoStrings.chooseHairLength, options: [currentHairLength])
+//         self.hairColorDropdown = DropdownNode(title: DivoStrings.hairColor, placeholder: DivoStrings.chooseHairColor, options: [currentHairColor])
+//         self.eyeColorDropdown = DropdownNode(title: DivoStrings.eyeColor, placeholder: DivoStrings.chooseEyeColor, options: [currentEyeColor])
+//         self.skinColorDropdown = DropdownNode(title: DivoStrings.skinColor, placeholder: DivoStrings.chooseSkinColor, options: [currentSkinColor])
+        
+//         self.hairLengthDropdown.selectedValue = model?.model?.appearance?.hairLength?.title
+//         self.hairColorDropdown.selectedValue = model?.model?.appearance?.hairColor?.title
+//         self.eyeColorDropdown.selectedValue = model?.model?.appearance?.eyeColor?.title
+//         self.skinColorDropdown.selectedValue = model?.model?.appearance?.skinColor?.title
+        
+//         self.applyButton = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
+//         self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
+//         self.applyButtonAppearance = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
+//         self.applyButtonAppearance.backgroundColor = DivoColorPalette.accentCopperWarm
+        
+// >>>>>>> dev
         super.init()
         
         self.backgroundColor = UIColor(hexString: "#F0F0F0")
@@ -392,7 +478,11 @@ final class EditProfileNode: ASDisplayNode {
         self.selectedGenderTitle = model?.gender?.title
         self.selectedAge = calculateAge(from: model?.birthday ?? "")
         
+// <<<<<<< HEAD
         setupAppearanceFilterItems()
+// =======
+        self.backgroundColor = DivoColorPalette.darkBackground
+// >>>>>>> dev
     }
     
     override func didLoad() {
@@ -1224,6 +1314,7 @@ extension EditProfileNode: UIScrollViewDelegate {
     }
 }
 
+// <<<<<<< HEAD
 // MARK: - UIGestureRecognizerDelegate
 extension EditProfileNode: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
@@ -1231,5 +1322,26 @@ extension EditProfileNode: UIGestureRecognizerDelegate {
             return false
         }
         return true
+// =======
+
+// // MARK: - Helpers
+
+// private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldNode {
+//     let field = TextFieldNode()
+//     field.textField.font = Font.regular(16.0)
+//     field.textField.textColor = .white
+//     field.textField.textAlignment = .natural
+//     field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
+//     field.textField.autocapitalizationType = .none
+//     field.textField.autocorrectionType = .no
+//     field.borderWidth = 1.0
+//     field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
+//     field.cornerRadius = 11.0
+//     field.clipsToBounds = true
+//     if isMultiline {
+//         field.padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+//     } else {
+//         field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+// >>>>>>> dev
     }
 }

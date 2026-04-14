@@ -13,6 +13,7 @@ import SearchUI
 import ChatListSearchItemHeader
 import AppBundle
 import ItemListUI
+import DivoUIKit
 
 enum TimeType {
     case start
@@ -101,12 +102,12 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
         self.scrollNode = ASScrollNode()
 
-        let iconColor = UIColor(red: 0.75, green: 0.48, blue: 0.33, alpha: 1.00)
+        let iconColor = DivoColorPalette.accentCopperDeep
 
         self.addPhotoButton = HighlightableButtonNode()
         self.addPhotoButton.setImage(
             generateTintedImage(
-                image: UIImage(bundleImageName: "Profile/AddPhotoIcon"),
+                image: UIImage(bundleImageName: "Components/AddPhotoIcon"),
                 color: iconColor),
             for: .normal)
 
@@ -128,8 +129,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         self.currentPhotoNode.displaysAsynchronously = false
         self.currentPhotoNode.displayWithoutProcessing = true
 
-        let headerColor = UIColor(red: 0.09, green: 0.09, blue: 0.11, alpha: 1.00)
-        let labelColor = UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 1.00)
+        let headerColor = DivoColorPalette.systemLabelDark
+        let labelColor = DivoColorPalette.systemLabelBody
         let regularFont = Font.regular(16)
         let semiboldFont = Font.semibold(16)
 
@@ -167,7 +168,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
         let buttonTitle = editItem != nil ? DivoStrings.saveChanges : DivoStrings.createNewWorkExperience
         self.applyButton = ButtonWithIconNode(title: buttonTitle, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
+        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
 
         super.init()
         self.startDateTextField.textField.delegate = self
@@ -489,9 +490,9 @@ private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldN
     let field = TextFieldNode()
 
     field.textField.font = Font.regular(16.0)
-    field.textField.textColor = UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 1.0)
+    field.textField.textColor = DivoColorPalette.systemLabelBody
     field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: UIColor(red: 0.24, green: 0.24, blue: 0.26, alpha: 0.6))
+    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.systemLabelPlaceholder)
     field.textField.autocapitalizationType = .none
     field.textField.autocorrectionType = .no
     field.textField.keyboardType = .default
@@ -499,7 +500,7 @@ private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldN
     field.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
     field.cornerRadius = 11.0
     field.clipsToBounds = true
-    field.backgroundColor = UIColor(red: 0.94, green: 0.94, blue: 0.94, alpha: 1.00)
+    field.backgroundColor = DivoColorPalette.fieldBackgroundLight
 
     if isMultiline {
         field.padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
