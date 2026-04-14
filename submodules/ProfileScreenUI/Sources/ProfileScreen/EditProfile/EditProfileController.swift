@@ -211,7 +211,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.navigationController?.popViewController(animated: true)
 
             } catch {
-                self.editProfileNode.toggleSpinner(active: false)
+                self.editProfileNode.toggleSaving(active: false)
                 self.editProfileNode.showSnackbar(
                     message: DivoStrings.failedProfileUpdated,
                     style: .error
@@ -245,7 +245,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.navigationController?.popViewController(animated: true)
 
             } catch {
-                self.editProfileNode.toggleSpinner(active: false)
+                self.editProfileNode.toggleSaving(active: false)
                 self.editProfileNode.showSnackbar(
                     message: DivoStrings.failedProfileUpdated,
                     style: .error
@@ -253,7 +253,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             }
         }
     }
-    
+
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.statusBar.isHidden = true

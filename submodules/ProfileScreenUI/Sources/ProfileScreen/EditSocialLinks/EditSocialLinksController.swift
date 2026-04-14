@@ -102,7 +102,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                 
             } catch {
                 print("❌ Error saving social links: \(error)")
-                self.editSocialLinksNode.toggleSpinner(active: false)
+                self.editSocialLinksNode.toggleSaving(active: false)
                 self.editSocialLinksNode.showSnackbar(
                     message: DivoStrings.failedLinksUpdated,
                     style: .error

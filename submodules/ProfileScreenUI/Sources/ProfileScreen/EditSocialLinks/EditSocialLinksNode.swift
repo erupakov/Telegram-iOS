@@ -68,40 +68,9 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     private var initialTexts: [String] = []
 
-    private static let saveButtonFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 18) ?? UIFont.boldSystemFont(ofSize: 18)
-    private static let saveButtonDisabledBackground = UIColor(red: 228/255, green: 228/255, blue: 228/255, alpha: 1)
-    private static let saveButtonDisabledTextColor = UIColor(red: 175/255, green: 175/255, blue: 177/255, alpha: 1)
-
-    private let applyButton: UIButton = {
-        let btn = UIButton(type: .custom)
-        let font = EditSocialLinksNode.saveButtonFont
-        let kern: CGFloat = 18 * 0.005
-
-        let normalAttr: [NSAttributedString.Key: Any] = [
-            .font: font, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
-        ]
-        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: normalAttr), for: .normal)
-
-        let disabledAttr: [NSAttributedString.Key: Any] = [
-            .font: font, .kern: kern, .foregroundColor: EditSocialLinksNode.saveButtonDisabledTextColor
-        ]
-        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: disabledAttr), for: .disabled)
-
-        btn.backgroundColor = DivoColorPalette.accent
-        btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        return btn
-    }()
+    private let applyButton = DivoSaveButton()
 
     private var applyButtonBottomConstraint: NSLayoutConstraint?
-    
-    private let applyButtonSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .medium)
-        spinner.color = DivoColorPalette.cardBackground
-        spinner.hidesWhenStopped = true
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        return spinner
-    }()
 
     private let bottomFadeOverlay: UIView = {
         let view = GradientView()
@@ -162,7 +131,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         let fields = [instagramTextField, tiktokTextField, youtubeTextField, websiteTextField]
         initialTexts = fields.map { $0.textField.text ?? "" }
         applyButton.isEnabled = false
-        applyButton.backgroundColor = Self.saveButtonDisabledBackground
     }
 
     private func updateSaveButtonState() {
@@ -170,9 +138,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         let currentTexts = fields.map { $0.textField.text ?? "" }
         let hasChanges = currentTexts != initialTexts
         applyButton.isEnabled = hasChanges
-        applyButton.backgroundColor = hasChanges
-            ? DivoColorPalette.accent
-            : Self.saveButtonDisabledBackground
     }
     
     private func setupUI() {
@@ -194,12 +159,8 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             contentStackView.addArrangedSubview(field.view)
         }
         
-        applyButton.heightAnchor.constraint(equalToConstant: 56).isActive = true
-
         view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
-        
-        applyButton.addSubview(applyButtonSpinner)
     }
     
     private func setupConstraints() {
@@ -232,8 +193,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             buttonBottomCns,
             applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            applyButtonSpinner.centerXAnchor.constraint(equalTo: applyButton.centerXAnchor),
-            applyButtonSpinner.centerYAnchor.constraint(equalTo: applyButton.centerYAnchor),
             
             bottomFadeOverlayCns,
             bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -283,9 +242,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
 
         navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
-
-        applyButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        applyButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -294,24 +250,8 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         }
     }
     
-    func toggleSpinner(active: Bool) {
-        self.applyButton.isUserInteractionEnabled = !active
-
-        if active {
-            self.applyButtonSpinner.startAnimating()
-            UIView.animate(withDuration: 0.2) {
-                self.applyButton.setAttributedTitle(NSAttributedString(string: ""), for: .normal)
-            }
-        } else {
-            self.applyButtonSpinner.stopAnimating()
-            let kern: CGFloat = 18 * 0.005
-            let attr: [NSAttributedString.Key: Any] = [
-                .font: Self.saveButtonFont, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
-            ]
-            UIView.animate(withDuration: 0.2) {
-                self.applyButton.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: attr), for: .normal)
-            }
-        }
+    func toggleSaving(active: Bool) {
+        applyButton.setSaving(active, in: self.view)
     }
 
     private func scrollToField(_ field: DivoTextField) {
@@ -370,24 +310,10 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             websiteUrl: constructFullURL(from: websiteHandle, with: "")
         )
         
-        self.toggleSpinner(active: true)
+        self.toggleSaving(active: true)
         self.saveSocialLinks?(linksData)
     }
     
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1, animations: {
-            sender.alpha = 0.6
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        })
-    }
-    
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2, animations: {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        })
-    }
-
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style

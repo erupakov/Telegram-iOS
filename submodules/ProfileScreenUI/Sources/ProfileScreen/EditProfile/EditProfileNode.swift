@@ -249,40 +249,9 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Footer UI
     
-    private static let saveButtonFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 18) ?? UIFont.boldSystemFont(ofSize: 18)
-    private static let saveButtonDisabledBackground = UIColor(red: 228/255, green: 228/255, blue: 228/255, alpha: 1) // #E4E4E4
-    private static let saveButtonDisabledTextColor = UIColor(red: 175/255, green: 175/255, blue: 177/255, alpha: 1) // #AFAFB1
-
-    private let applyButton: UIButton = {
-        let btn = UIButton(type: .custom)
-        let font = EditProfileNode.saveButtonFont
-        let kern: CGFloat = 18 * 0.005 // 0.5%
-
-        let normalAttr: [NSAttributedString.Key: Any] = [
-            .font: font, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
-        ]
-        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: normalAttr), for: .normal)
-
-        let disabledAttr: [NSAttributedString.Key: Any] = [
-            .font: font, .kern: kern, .foregroundColor: EditProfileNode.saveButtonDisabledTextColor
-        ]
-        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: disabledAttr), for: .disabled)
-
-        btn.backgroundColor = DivoColorPalette.accent
-        btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        return btn
-    }()
+    private let applyButton = DivoSaveButton()
 
     private var applyButtonBottomConstraint: NSLayoutConstraint?
-    
-    private let applyButtonSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .medium)
-        spinner.color = DivoColorPalette.cardBackground
-        spinner.hidesWhenStopped = true
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        return spinner
-    }()
     
     var currentPhoto: UIImage? = nil {
         didSet {
@@ -412,7 +381,6 @@ final class EditProfileNode: ASDisplayNode {
 
         initialSnapshot = makeSnapshot()
         applyButton.isEnabled = false
-        applyButton.backgroundColor = Self.saveButtonDisabledBackground
 
         DispatchQueue.main.async {
             self.updatePagerHeight()
@@ -446,10 +414,8 @@ final class EditProfileNode: ASDisplayNode {
 
         navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
 
-        for button in [applyButton, chancePhotoView] {
-            button.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-            button.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        }
+        chancePhotoView.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        chancePhotoView.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
     }
         
     private func getAppearanceId(for title: String?, in list: [AppearanceOption]?) -> Int {
@@ -630,16 +596,12 @@ final class EditProfileNode: ASDisplayNode {
             aboutEventTextField.heightAnchor.constraint(equalToConstant: 140)
         ])
         
-        applyButton.heightAnchor.constraint(equalToConstant: 56).isActive = true
-        
         view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
-        
-        applyButton.addSubview(applyButtonSpinner)
-        
+
         let buttonBottomCns = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
         self.applyButtonBottomConstraint = buttonBottomCns
-        
+
         let bottomFadeOverlayCns = bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         self.bottomFadeOverlayBottomConstraint = bottomFadeOverlayCns
 
@@ -647,9 +609,7 @@ final class EditProfileNode: ASDisplayNode {
             buttonBottomCns,
             applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            applyButtonSpinner.centerXAnchor.constraint(equalTo: applyButton.centerXAnchor),
-            applyButtonSpinner.centerYAnchor.constraint(equalTo: applyButton.centerYAnchor),
-            
+
             bottomFadeOverlayCns,
             bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -892,9 +852,6 @@ final class EditProfileNode: ASDisplayNode {
     private func updateSaveButtonState() {
         let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
         applyButton.isEnabled = hasChanges
-        applyButton.backgroundColor = hasChanges
-            ? DivoColorPalette.accent
-            : Self.saveButtonDisabledBackground
     }
 
     func setAvatarLoading(_ loading: Bool) {
@@ -912,23 +869,11 @@ final class EditProfileNode: ASDisplayNode {
     }
 
     func toggleSpinner(active: Bool) {
-        self.applyButton.isUserInteractionEnabled = !active
+        applyButton.isUserInteractionEnabled = !active
+    }
 
-        if active {
-            self.applyButtonSpinner.startAnimating()
-            UIView.animate(withDuration: 0.2) {
-                self.applyButton.setAttributedTitle(NSAttributedString(string: ""), for: .normal)
-            }
-        } else {
-            self.applyButtonSpinner.stopAnimating()
-            let kern: CGFloat = 18 * 0.005
-            let attr: [NSAttributedString.Key: Any] = [
-                .font: Self.saveButtonFont, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
-            ]
-            UIView.animate(withDuration: 0.2) {
-                self.applyButton.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: attr), for: .normal)
-            }
-        }
+    func toggleSaving(active: Bool) {
+        applyButton.setSaving(active, in: self.view)
     }
     
     func updateTitle(_ title: String) {
@@ -1006,7 +951,7 @@ final class EditProfileNode: ASDisplayNode {
             )
         )
         
-        self.toggleSpinner(active: true)
+        self.toggleSaving(active: true)
         self.saveProfile?(data)
     }
 
@@ -1017,8 +962,8 @@ final class EditProfileNode: ASDisplayNode {
             title: self.nameEventTextField.textField.text,
             description: self.aboutEventTextField.text
         )
-            
-        self.toggleSpinner(active: true)
+
+        self.toggleSaving(active: true)
         self.saveAgencyProfile?(data)
     }
     
