@@ -221,6 +221,7 @@ public enum DivoStrings {
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...") }
     public static var continueButton: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }
+    public static var notSet: String { L(en: "Not set", ru: "Не задано", es: "No establecido", pt: "Não definido", zh: "未设置") }
 
     public static func xOfY(_ x: Int, _ y: Int) -> String {
         L(en: "\(x) of \(y)", ru: "\(x) из \(y)", es: "\(x) de \(y)", pt: "\(x) de \(y)", zh: "\(x) / \(y)")

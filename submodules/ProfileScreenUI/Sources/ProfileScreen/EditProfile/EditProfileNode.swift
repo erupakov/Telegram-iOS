@@ -729,7 +729,7 @@ final class EditProfileNode: ASDisplayNode {
         for (index, item) in appearanceEditItems.enumerated() {
             let isLast = index == appearanceEditItems.count - 1
             let cell = AppearanceFilterRowView(title: item.title, isLast: isLast)
-            cell.setItems(item.getValues(), emptyTitle: "Not set")
+            cell.setItems(item.getValues(), emptyTitle: DivoStrings.notSet)
             
             let tap = UITapGestureRecognizer(target: self, action: #selector(appearanceCellTapped(_:)))
             cell.addGestureRecognizer(tap)
@@ -806,7 +806,7 @@ final class EditProfileNode: ASDisplayNode {
     private func updateAppearanceValues() {
         for (index, item) in appearanceEditItems.enumerated() {
             if let cell = appearanceContainerStack.arrangedSubviews[safe: index] as? AppearanceFilterRowView {
-                cell.setItems(item.getValues(), emptyTitle: "Not set")
+                cell.setItems(item.getValues(), emptyTitle: DivoStrings.notSet)
             }
         }
     }
@@ -899,11 +899,11 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     private func updateDropdownsUI() {
-        genderDropdown.setItems([selectedGenderTitle ?? "Not set"], emptyTitle: "Not set")
-        hairLengthDropdown.setItems([selectedHairLengthTitle ?? "Not set"], emptyTitle: "Not set")
-        hairColorDropdown.setItems([selectedHairColorTitle ?? "Not set"], emptyTitle: "Not set")
-        eyeColorDropdown.setItems([selectedEyeColorTitle ?? "Not set"], emptyTitle: "Not set")
-        skinColorDropdown.setItems([selectedSkinColorTitle ?? "Not set"], emptyTitle: "Not set")
+        genderDropdown.setItems([selectedGenderTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        hairLengthDropdown.setItems([selectedHairLengthTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        hairColorDropdown.setItems([selectedHairColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        eyeColorDropdown.setItems([selectedEyeColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        skinColorDropdown.setItems([selectedSkinColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
     }
 
     func setAvatarLoading(_ loading: Bool) {

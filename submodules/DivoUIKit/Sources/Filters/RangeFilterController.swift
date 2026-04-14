@@ -50,7 +50,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         return button
     }()
 
-    private let closeСircleButton: UIButton = {
+    private let closeCircleButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = 20
@@ -168,14 +168,14 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         saveButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
         saveButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         
-        closeСircleButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        closeСircleButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeСircleButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        closeCircleButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        closeCircleButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        closeCircleButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
         titleLabel.text = filterTitle
 
         if isOpenPresent {
-            customNavBar.addSubview(closeСircleButton)
+            customNavBar.addSubview(closeCircleButton)
         } else {
             customNavBar.addSubview(backButton)
         }
@@ -189,10 +189,10 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
                 customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
                 customNavBar.heightAnchor.constraint(equalToConstant: 50),
                 
-                closeСircleButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-                closeСircleButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-                closeСircleButton.heightAnchor.constraint(equalToConstant: 40),
-                closeСircleButton.widthAnchor.constraint(equalToConstant: 40),
+                closeCircleButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                closeCircleButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+                closeCircleButton.heightAnchor.constraint(equalToConstant: 40),
+                closeCircleButton.widthAnchor.constraint(equalToConstant: 40),
                 
                 titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
                 titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
