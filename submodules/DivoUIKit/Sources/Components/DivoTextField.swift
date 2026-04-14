@@ -47,7 +47,7 @@ public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
         fieldNode.textField.returnKeyType = .done
         
         fieldNode.backgroundColor = DivoColorPalette.cardBackground
-        fieldNode.cornerRadius = 23.0
+        fieldNode.cornerRadius = 23.0 // TODO: DS alignment — не в шкале Radius
         fieldNode.clipsToBounds = true
         fieldNode.padding = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
 

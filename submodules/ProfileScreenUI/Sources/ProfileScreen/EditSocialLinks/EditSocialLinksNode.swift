@@ -83,7 +83,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     private let contentStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 12 // TODO: DS alignment — не в шкале Spacing (между s=8 и m=16)
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -101,11 +101,11 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
         btn.backgroundColor = DivoColorPalette.accent
-        btn.layer.cornerRadius = 28
+        btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
-    
+
     private var applyButtonBottomConstraint: NSLayoutConstraint?
     
     private let applyButtonSpinner: UIActivityIndicatorView = {
@@ -234,7 +234,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             contentStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             contentStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
-            contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -32),
+            contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
             
             buttonBottomCns,
             applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),

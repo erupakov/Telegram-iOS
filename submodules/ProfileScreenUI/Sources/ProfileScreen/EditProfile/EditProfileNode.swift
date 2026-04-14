@@ -295,11 +295,11 @@ final class EditProfileNode: ASDisplayNode {
         btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
         btn.backgroundColor = DivoColorPalette.accent
-        btn.layer.cornerRadius = 28
+        btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
-    
+
     private var applyButtonBottomConstraint: NSLayoutConstraint?
     
     private let applyButtonSpinner: UIActivityIndicatorView = {

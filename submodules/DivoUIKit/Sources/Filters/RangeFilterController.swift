@@ -28,7 +28,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
 
     private let backButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
 
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
@@ -52,11 +52,11 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
 
     private let closeCircleButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = 20
         let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
-        button.tintColor = .black
+        button.tintColor = DivoColorPalette.primaryText
 
         button.layer.applyDivoShadow()
 
@@ -67,7 +67,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     private let titleLabel: UILabel = {
         let titleLabel = UILabel()
         titleLabel.font = Font.medium(16)
-        titleLabel.textColor = .black
+        titleLabel.textColor = DivoColorPalette.primaryText
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         return titleLabel
@@ -78,7 +78,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         saveButton.backgroundColor = DivoColorPalette.accent
         saveButton.layer.cornerRadius = DivoDesignTokens.Radius.pill
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
-        saveButton.tintColor = .white
+        saveButton.tintColor = DivoColorPalette.primaryTextOnDark
         saveButton.layer.applyDivoShadow()
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         return saveButton
@@ -101,7 +101,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     private let deleteButton: UIButton = {
         let deleteButton = UIButton(type: .system)
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
-        deleteButton.setTitleColor(.white, for: .normal)
+        deleteButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
         deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
         deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
@@ -226,7 +226,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     
     private func setupUI() {
         let container = UIView()
-        container.backgroundColor = .white
+        container.backgroundColor = DivoColorPalette.cardBackground
         container.layer.cornerRadius = DivoDesignTokens.Radius.l
         container.clipsToBounds = true
         container.translatesAutoresizingMaskIntoConstraints = false
@@ -287,7 +287,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     }
 
     private func setupTextField(_ textField: UITextField) {
-        textField.backgroundColor = .white
+        textField.backgroundColor = DivoColorPalette.cardBackground
         textField.layer.cornerRadius = 23 // TODO: DS alignment — не в шкале Radius (border inset от card=24)
         textField.layer.borderWidth = 1
         textField.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.2).cgColor

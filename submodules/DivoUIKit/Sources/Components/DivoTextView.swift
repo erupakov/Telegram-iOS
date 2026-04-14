@@ -18,8 +18,8 @@ public final class DivoTextView: UIView, UITextViewDelegate {
     
     private let backgroundContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 16.0
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.layer.borderWidth = 1.0
         view.layer.borderColor = UIColor.clear.cgColor
         view.translatesAutoresizingMaskIntoConstraints = false

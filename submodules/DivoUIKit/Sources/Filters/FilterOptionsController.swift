@@ -61,7 +61,7 @@ public final class FilterOptionsController: UIViewController {
 
     private let closeButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
 
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
@@ -85,11 +85,11 @@ public final class FilterOptionsController: UIViewController {
     
     private let closeCircleButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = 20
         let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
         button.setImage(image, for: .normal)
-        button.tintColor = .black
+        button.tintColor = DivoColorPalette.primaryText
 
         button.layer.applyDivoShadow()
 
@@ -99,7 +99,7 @@ public final class FilterOptionsController: UIViewController {
 
     private let searchFieldContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.layer.applyDivoShadow()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -132,7 +132,7 @@ public final class FilterOptionsController: UIViewController {
         saveButton.backgroundColor = DivoColorPalette.accent
         saveButton.layer.cornerRadius = DivoDesignTokens.Radius.pill
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
-        saveButton.tintColor = .white
+        saveButton.tintColor = DivoColorPalette.primaryTextOnDark
         saveButton.layer.applyDivoShadow()
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         return saveButton
@@ -141,7 +141,7 @@ public final class FilterOptionsController: UIViewController {
     private let deleteButton: UIButton = {
         let deleteButton = UIButton(type: .system)
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
-        deleteButton.setTitleColor(.white, for: .normal)
+        deleteButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
         deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
         deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
@@ -230,7 +230,7 @@ public final class FilterOptionsController: UIViewController {
         }
 
         let backgroundView = UIView()
-        backgroundView.backgroundColor = .white
+        backgroundView.backgroundColor = DivoColorPalette.cardBackground
         backgroundView.layer.cornerRadius = DivoDesignTokens.Radius.l
         backgroundView.clipsToBounds = true
         backgroundView.translatesAutoresizingMaskIntoConstraints = false
