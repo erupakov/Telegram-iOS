@@ -61,6 +61,8 @@ public final class FilterRowView: UIView {
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             heightAnchor.constraint(equalToConstant: 46)
         ])
+
+        addPressState()
     }
 
     required init?(coder: NSCoder) { fatalError() }

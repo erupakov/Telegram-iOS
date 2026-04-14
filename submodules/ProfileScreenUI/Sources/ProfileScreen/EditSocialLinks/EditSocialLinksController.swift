@@ -24,7 +24,7 @@ protocol EditSocialLinksDelegate: AnyObject {
 public class EditSocialLinksController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
     
-    private var createEventNode: EditSocialLinksNode {
+    private var editSocialLinksNode: EditSocialLinksNode {
         return self.displayNode as! EditSocialLinksNode
     }
     
@@ -39,44 +39,12 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         self.linksData = linksData
 
         self.presentationData = presentationData
-        
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .clear,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
 
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close))
-        
-        super.init(navigationBarPresentationData: navigationBarData)
+        super.init(navigationBarPresentationData: nil)
 
-        self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-
-        NotificationCenter.default.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
-
-        self.title = DivoStrings.editSocialLinks
-        
-        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-        
         self.presentationDataDisposable = (context.sharedContext.presentationData
                                            |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            if let strongSelf = self {
-                let previousTheme = strongSelf.presentationData.theme
-                let previousStrings = strongSelf.presentationData.strings
-                
-                strongSelf.presentationData = presentationData
-                
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
-                    strongSelf.updateThemeAndStrings()
-                }
-            }
+            self?.presentationData = presentationData
         })
     }
     
@@ -89,73 +57,23 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         (self.presentationDataDisposable as? Disposable)?.dispose()
     }
 
-    private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
-        let theme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .clear,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
-        return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close))
-    }
-
-    @objc private func handleWillEnterForeground() {
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-    }
-
-    private func updateThemeAndStrings() {
-        self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-
-        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-    }
-    
     override public func loadDisplayNode() {
-        let currentAvatarMixin = Atomic<NSObject?>(value: nil)
-        let theme = self.presentationData.theme
 
-        self.displayNode = EditSocialLinksNode(context: self.context, presentationData: self.presentationData, linksData: linksData, addPhoto: { [weak self] in
-            presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
-                self?.view.endEditing(true)
-                self?.present(c, in: .window(.root), with: a)
-            }, openCurrent: nil, completion: { image in
-//                self?.createEventNode.currentPhoto = image
-//                self?.avatarAsset = nil
-//                self?.avatarAdjustments = nil
-            }, videoCompletion: { image, asset, adjustments in
-//                self?.createEventNode.currentPhoto = image
-//                self?.avatarAsset = asset
-//                self?.avatarAdjustments = adjustments
-            })
-        })
-
-        self.createEventNode.showAlert = { [weak self] text in
-            self?.showAlert(text: text)
-        }
+        self.displayNode = EditSocialLinksNode(
+            context: self.context, 
+            presentationData: self.presentationData, 
+            linksData: linksData
+        )
         
-        self.createEventNode.saveSocialLinks = { [weak self] linksData in
+        self.editSocialLinksNode.saveSocialLinks = { [weak self] linksData in
             self?.saveSocialLinks(linksData: linksData)
         }
 
-        self.displayNodeDidLoad()
-    }
-    
-    private func showAlert(text: String) {
+        self.editSocialLinksNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
 
-        let alertController = textAlertController(
-            context: context, title: nil,
-            text: text, actions: [
-                TextAlertAction(type: .genericAction, title: "Ok", action: {
-                    print("ok")
-                })
-            ])
-        present(alertController, in: .window(.root))
+        self.displayNodeDidLoad()
     }
     
     private func saveSocialLinks(linksData: LinksData) {
@@ -178,16 +96,17 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                 )
                 
                 print("✅ Social links successfully saved: \(response.message ?? "OK")")
+
                 self.delegate?.didUpdateSocialLinksData()
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.socialLinksUpdated)
-                
                 self.navigationController?.popViewController(animated: true)
                 
             } catch {
                 print("❌ Error saving social links: \(error)")
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: error.localizedDescription)
+                self.editSocialLinksNode.toggleSaving(active: false)
+                self.editSocialLinksNode.showSnackbar(
+                    message: DivoStrings.failedLinksUpdated,
+                    style: .error
+                )
             }
         }
     }
@@ -195,7 +114,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
     }
     
     override public func viewDidDisappear(_ animated: Bool) {
@@ -205,7 +124,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         
-        self.createEventNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        self.editSocialLinksNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
     
 }

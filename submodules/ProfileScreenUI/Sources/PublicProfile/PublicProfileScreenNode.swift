@@ -624,15 +624,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         case instagram = "Components/instaIcon"
         case tiktok = "Components/TikTokIcon"
         case youtube = "Components/youtubeIcon"
-        case telegram = "Components/telegramIcon"
         case website = "Components/webIcon"
-        
+
         static func icon(for urlString: String) -> String {
             let lowercased = urlString.lowercased()
             if lowercased.contains("instagram.com") { return self.instagram.rawValue }
             if lowercased.contains("tiktok.com") { return self.tiktok.rawValue }
             if lowercased.contains("youtube.com") { return self.youtube.rawValue }
-            if lowercased.contains("t.me") || lowercased.contains("telegram.me") { return self.telegram.rawValue }
             return self.website.rawValue
         }
     }
@@ -1412,9 +1410,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         button.layer.cornerRadius = 6
 
         socialLinksMap[button] = url
-        
+
         let icon = UIImageView()
-        icon.image = UIImage(bundleImageName: iconName)
+        icon.image = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
         icon.tintColor = .white
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
@@ -1454,9 +1452,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         button.layer.cornerRadius = 6
 
         socialLinksMap[button] = url
-        
+
         let icon = UIImageView()
-        icon.image = UIImage(bundleImageName: iconName)
+        icon.image = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
         icon.tintColor = .white
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
@@ -1860,7 +1858,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // Собираем все непустые ссылки в один массив
         if let tiktok = detail.model?.tiktokUrl, !tiktok.isEmpty { socialLinks.append(tiktok) }
         if let youtube = detail.model?.youtubeUrl, !youtube.isEmpty { socialLinks.append(youtube) }
-        if let telegram = detail.model?.telegramUrl, !telegram.isEmpty { socialLinks.append(telegram) }
         if let instagram = detail.model?.instagramUrl, !instagram.isEmpty { socialLinks.append(instagram) }
         if let website = detail.model?.websiteUrl, !website.isEmpty { socialLinks.append(website) }
         
@@ -2704,6 +2701,29 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     @objc private func eventGalleryStatusTapped() {
         onAddEventTapped?()
+    }
+
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: 16,
+            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }
 

@@ -182,21 +182,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         return view
     }()
 
-    private let segmentedBackground: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.layer.masksToBounds = true
-        return view
-    }()
-
-    private let segmentIndicator: UIView = {
-        let view = UIView()
-        view.backgroundColor = DivoColorPalette.screenBackground
-        view.layer.masksToBounds = true
-        return view
-    }()
-
-    private var tabButtons: [UIButton] = []
+    private lazy var segmentedControl = DivoSegmentedControl(titles: tabTitles)
 
     private var loadingPlaceholderView: UIView?
     private var spinnerLoadingView: UIView?
@@ -381,16 +367,15 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.navBackgroundView.addSubview(self.titleLabel)
 
         // Segmented control tabs
-        tabsContainerView.addSubview(segmentedBackground)
-        segmentedBackground.addSubview(segmentIndicator)
-
-        for (index, title) in tabTitles.enumerated() {
-            let button = UIButton(type: .custom)
-            button.setAttributedTitle(Self.tabAttributedTitle(title, active: index == 0), for: .normal)
-            button.tag = index
-            button.addTarget(self, action: #selector(tabButtonTapped(_:)), for: .touchUpInside)
-            segmentedBackground.addSubview(button)
-            tabButtons.append(button)
+        tabsContainerView.addSubview(segmentedControl)
+        segmentedControl.onTabSelected = { [weak self] index in
+            guard let self = self else { return }
+            self.selectedTabIndex = index
+            if let label = self.spinnerLoadingView?.viewWithTag(201) as? UILabel {
+                label.text = self.loadingTextForCurrentTab()
+            }
+            self.hideEmptyState()
+            self.onTabSelected?(index)
         }
 
         self.storiesCollectionView.reloadData()
@@ -401,80 +386,12 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             self.titleLabel.text = DivoStrings.navModels
-            for (index, button) in self.tabButtons.enumerated() {
-                if index < self.tabTitles.count {
-                    let title = self.tabTitles[index]
-                    button.setAttributedTitle(Self.tabAttributedTitle(title, active: index == self.selectedTabIndex), for: .normal)
-                }
-            }
+            self.segmentedControl.updateTitles(self.tabTitles)
             if let (layout, navigationBarHeight) = self.containerLayout {
                 self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
             }
             self.storiesCollectionView.reloadData()
             self.mainCollectionView.reloadData()
-        }
-    }
-
-    private static func tabAttributedTitle(_ title: String, active: Bool) -> NSAttributedString {
-        let font = UIFont(name: "HelveticaNeue-CondensedBold", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .bold)
-        let color: UIColor = active ? .black : DivoColorPalette.feedPillInactive
-        return NSAttributedString(string: title.uppercased(), attributes: [
-            .font: font,
-            .foregroundColor: color,
-            .kern: 0.5
-        ])
-    }
-
-    @objc private func tabButtonTapped(_ sender: UIButton) {
-        let index = sender.tag
-        guard index != selectedTabIndex else { return }
-        selectedTabIndex = index
-
-        let haptic = UIImpactFeedbackGenerator(style: .light)
-        haptic.impactOccurred()
-
-        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
-            self.layoutSegmentIndicator()
-        }
-        for button in self.tabButtons {
-            let isSelected = button.tag == index
-            let title = self.tabTitles[button.tag]
-            let attributed = Self.tabAttributedTitle(title, active: isSelected)
-            UIView.transition(with: button, duration: 0.2, options: [.transitionCrossDissolve, .allowUserInteraction]) {
-                button.setAttributedTitle(attributed, for: .normal)
-            }
-        }
-        if let label = spinnerLoadingView?.viewWithTag(201) as? UILabel {
-            label.text = loadingTextForCurrentTab()
-        }
-        hideEmptyState()
-        onTabSelected?(index)
-    }
-
-    private func layoutSegmentIndicator() {
-        guard selectedTabIndex < tabButtons.count else { return }
-        let segBounds = segmentedBackground.bounds
-        let tabCount = CGFloat(tabButtons.count)
-        let padding: CGFloat = 2
-        let segmentWidth = (segBounds.width - padding * 2) / tabCount
-        let indicatorX = padding + CGFloat(selectedTabIndex) * segmentWidth
-
-        let indicatorHeight = segBounds.height - padding * 2
-        segmentIndicator.frame = CGRect(
-            x: indicatorX,
-            y: padding,
-            width: segmentWidth,
-            height: indicatorHeight
-        )
-        segmentIndicator.layer.cornerRadius = indicatorHeight / 2
-
-        for (i, button) in tabButtons.enumerated() {
-            button.frame = CGRect(
-                x: padding + CGFloat(i) * segmentWidth,
-                y: 0,
-                width: segmentWidth,
-                height: segBounds.height
-            )
         }
     }
 
@@ -510,9 +427,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let segmentHPadding: CGFloat = 16 + layout.safeInsets.left
         let segmentWidth = layout.size.width - segmentHPadding * 2
         let segmentHeight = tabsHeight - 8
-        segmentedBackground.frame = CGRect(x: segmentHPadding, y: 4, width: segmentWidth, height: segmentHeight)
-        segmentedBackground.layer.cornerRadius = segmentHeight / 2
-        layoutSegmentIndicator()
+        segmentedControl.frame = CGRect(x: segmentHPadding, y: 4, width: segmentWidth, height: segmentHeight)
 
         let headerHeight = navigationBarHeight + storiesHeight + tabsHeight
 
@@ -1201,91 +1116,5 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }, completion: { _ in
             empty.removeFromSuperview()
         })
-    }
-}
-
-// MARK: - Segmented Spinner
-
-private final class DivoSegmentedSpinner: UIView {
-
-    private var isAnimating = false
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        backgroundColor = .clear
-        setupSegments()
-        NotificationCenter.default.addObserver(self, selector: #selector(appDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    private func setupSegments() {
-        let count = 8
-        let segmentSize = CGSize(width: 3, height: 10)
-        let innerRadius: CGFloat = 5.5
-        let center = CGPoint(x: 16, y: 16)
-        let cornerRadius: CGFloat = 1.0
-        let opacities: [CGFloat] = [1.0, 0.875, 0.75, 0.625, 0.5, 0.375, 0.25, 0.125]
-
-        for i in 0..<count {
-            let angle = CGFloat(i) * (.pi * 2.0 / CGFloat(count)) - .pi / 2.0
-            let dist = innerRadius + segmentSize.height / 2.0
-
-            let seg = CALayer()
-            seg.bounds = CGRect(origin: .zero, size: segmentSize)
-            seg.position = CGPoint(
-                x: center.x + dist * cos(angle),
-                y: center.y + dist * sin(angle)
-            )
-            seg.cornerRadius = cornerRadius
-            seg.backgroundColor = UIColor.black.withAlphaComponent(opacities[i]).cgColor
-            seg.transform = CATransform3DMakeRotation(angle + .pi / 2.0, 0, 0, 1)
-            layer.addSublayer(seg)
-        }
-    }
-
-    override func didMoveToWindow() {
-        super.didMoveToWindow()
-        if window != nil && isAnimating {
-            applyAnimation()
-        }
-    }
-
-    @objc private func appDidBecomeActive() {
-        if isAnimating {
-            applyAnimation()
-        }
-    }
-
-    func startAnimating() {
-        isAnimating = true
-        applyAnimation()
-    }
-
-    func stopAnimating() {
-        isAnimating = false
-        layer.removeAllAnimations()
-    }
-
-    private func applyAnimation() {
-        layer.removeAllAnimations()
-        let animation = CAKeyframeAnimation(keyPath: "transform.rotation.z")
-        let count = 8
-        var values: [Double] = []
-        for i in 0...count {
-            values.append(Double(i) * .pi * 2.0 / Double(count))
-        }
-        animation.values = values
-        animation.keyTimes = (0...count).map { NSNumber(value: Double($0) / Double(count)) }
-        animation.duration = 0.8
-        animation.repeatCount = .infinity
-        animation.calculationMode = .discrete
-        layer.add(animation, forKey: "spin")
     }
 }

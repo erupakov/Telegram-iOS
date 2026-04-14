@@ -557,11 +557,13 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             max: max.doubleValue,
             currentLower: currentMin,
             currentUpper: currentMax
-        ) { [weak self] newRange in
+        ) 
+
+        vc.onSave = { [weak self] firstValue, secondValue in
             guard let self = self else { return }
             
-            if let newRange = newRange {
-                let newClosedRange = T(newRange.0)...T(newRange.1)
+            if let firstValue = firstValue, let secondValue = secondValue {
+                let newClosedRange = T(firstValue)...T(secondValue)
                 self.currentFilters[keyPath: keyPath] = newClosedRange
             } else {
                 self.currentFilters[keyPath: keyPath] = nil
@@ -781,8 +783,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             options: countryOptions,
             selectedOptionIds: selectedIds,
             isMultiSelect: true,
-            showSearch: true,
-            searchPlaceholder: DivoStrings.feedSearchCountry
+            showSearch: true
         )
 
         vc.onSave = { [weak self] selectedItems in

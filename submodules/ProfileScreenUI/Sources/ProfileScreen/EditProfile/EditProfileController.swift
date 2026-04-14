@@ -26,7 +26,7 @@ protocol EditProfileDelegate: AnyObject {
 public class EditProfileController: ViewController, UINavigationControllerDelegate, PHPickerViewControllerDelegate {
     private let context: AccountContext
 
-    private var createEventNode: EditProfileNode {
+    private var editProfileNode: EditProfileNode {
         return self.displayNode as! EditProfileNode
     }
 
@@ -44,43 +44,11 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         
         self.presentationData = presentationData
         
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .clear,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
-        
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
+        super.init(navigationBarPresentationData: nil)
 
-        super.init(navigationBarPresentationData: navigationBarData)
-
-        self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-
-        NotificationCenter.default.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
-
-        self.title = DivoStrings.myProfile
-        
-        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-        
         self.presentationDataDisposable = (context.sharedContext.presentationData
                                            |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            if let strongSelf = self {
-                let previousTheme = strongSelf.presentationData.theme
-                let previousStrings = strongSelf.presentationData.strings
-                
-                strongSelf.presentationData = presentationData
-                
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
-                    strongSelf.updateThemeAndStrings()
-                }
-            }
+            self?.presentationData = presentationData
         })
     }
     
@@ -93,56 +61,33 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         (self.presentationDataDisposable as? Disposable)?.dispose()
     }
 
-    private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
-        let theme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .clear,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
-        return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close))
-    }
-
-    @objc private func handleWillEnterForeground() {
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-    }
-
-    private func updateThemeAndStrings() {
-        self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-
-        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-    }
-    
     override public func loadDisplayNode() {
-        self.title = userDetailData?.role == "agency_employee" ? DivoStrings.agencyProfile : DivoStrings.myProfile
-
         self.displayNode = EditProfileNode(
             context: self.context,
             presentationData: self.presentationData,
             model: userDetailData
         )
+        
+        self.editProfileNode.updateTitle(userDetailData?.role == "agency_employee" ? DivoStrings.agencyProfile : DivoStrings.myProfile)
 
-        self.createEventNode.saveAgencyProfile = { [weak self] rawData in
+        self.editProfileNode.saveAgencyProfile = { [weak self] rawData in
             self?.handleAgencySave(with: rawData)
         }
 
-        self.createEventNode.saveProfile = { [weak self] rawData in
+        self.editProfileNode.saveProfile = { [weak self] rawData in
             self?.handleSave(with: rawData)
         }
-
-        self.createEventNode.showAlert = { [weak self] text in
-            self?.showAlert(text: text)
+        
+        self.editProfileNode.onAvatarTap = { [weak self] in
+            self?.openPhotoGallery()
         }
         
-        self.createEventNode.onAvatarTap = { [weak self] in
-            self?.openPhotoGallery()
+        self.editProfileNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
+        
+        self.editProfileNode.presentController = { [weak self] vc in
+            self?.view.window?.rootViewController?.present(vc, animated: true)
         }
 
         self.displayNodeDidLoad()
@@ -152,7 +97,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     }
 
     private func loadAppearanceDictionary() {
-        self.createEventNode.toggleSpinner(active: true)
+        self.editProfileNode.toggleSpinner(active: true)
         
         Task { @MainActor in
             do {
@@ -161,19 +106,17 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "GET"
                 )
                 
-                self.createEventNode.configureAppearanceDictionaries(response.data)
-                self.createEventNode.toggleSpinner(active: false)
-                
+                self.editProfileNode.configureAppearanceDictionaries(response.data)
+                self.editProfileNode.toggleSpinner(active: false)
             } catch {
                 print("❌ Error loading appearance dictionary: \(error)")
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.failedToLoadAppearance)
+                self.editProfileNode.toggleSpinner(active: false)
             }
         }
     }
     
     private func loadGenderDictionary() {
-        self.createEventNode.toggleSpinner(active: true)
+        self.editProfileNode.toggleSpinner(active: true)
         
         Task { @MainActor in
             do {
@@ -182,27 +125,14 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "GET"
                 )
                 
-                self.createEventNode.configureGenderDictionaries(response)
-                self.createEventNode.toggleSpinner(active: false)
+                self.editProfileNode.configureGenderDictionaries(response)
+                self.editProfileNode.toggleSpinner(active: false)
                 
             } catch {
                 print("❌ Error loading appearance dictionary: \(error)")
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.failedToLoadAppearance)
+                self.editProfileNode.toggleSpinner(active: false)
             }
         }
-    }
-    
-    private func showAlert(text: String) {
-
-        let alertController = textAlertController(
-            context: context, title: nil,
-            text: text, actions: [
-                TextAlertAction(type: .genericAction, title: "Ok", action: {
-                    print("ok")
-                })
-            ])
-        present(alertController, in: .window(.root))
     }
     
     private var selectedAvatarImage: UIImage?
@@ -220,7 +150,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             picker.delegate = self
             self.present(picker, animated: true)
         } else {
-            // Fallback для iOS 13 - использовать UIImagePickerController
             let picker = UIImagePickerController()
             picker.sourceType = .photoLibrary
             picker.delegate = self as UIImagePickerControllerDelegate & UINavigationControllerDelegate
@@ -233,7 +162,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         self.selectedAvatarUUID = nil
 
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-            self.createEventNode.setAvatarLoading(false)
+            self.editProfileNode.setAvatarLoading(false)
             return
         }
 
@@ -244,12 +173,15 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     fileData: imageData
                 )
                 self.selectedAvatarUUID = response.data?.uuid
-                self.createEventNode.setAvatarLoading(false)
+                self.editProfileNode.currentPhoto = selectedAvatarImage
+                self.editProfileNode.setAvatarLoading(false)
                 print("✅ Avatar uploaded, uuid: \(self.selectedAvatarUUID ?? "nil")")
             } catch {
-                self.createEventNode.setAvatarLoading(false)
-                print("❌ Avatar upload error: \(error)")
-                self.showAlert(text: "\(DivoStrings.failedToUploadPhoto): \(error.localizedDescription)")
+                self.editProfileNode.setAvatarLoading(false)
+                self.editProfileNode.showSnackbar(
+                    message: DivoStrings.failedToUploadPhoto,
+                    style: .error
+                )
             }
         }
     }
@@ -274,16 +206,16 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
                 
                 print("✅ Profile successfully saved: \(response.message ?? "OK")")
+
                 self.delegate?.didUpdateProfileData()
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.profileUpdated)
-                
                 self.navigationController?.popViewController(animated: true)
-                
+
             } catch {
-                print("❌ Error saving social links: \(error)")
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: error.localizedDescription)
+                self.editProfileNode.toggleSaving(active: false)
+                self.editProfileNode.showSnackbar(
+                    message: DivoStrings.failedProfileUpdated,
+                    style: .error
+                )
             }
         }
     }
@@ -296,6 +228,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 }
                 let request = UpdateDescriptionAgencyRequest(
                     agencyId: rawData.agencyId,
+                    title: rawData.title,
                     description: rawData.description,
                     photo: photoUuid
                 )
@@ -307,23 +240,24 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
                 
                 print("✅ Profile successfully saved: \(response.message ?? "OK")")
+
                 self.delegate?.didUpdateProfileData()
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.profileUpdated)
-                
                 self.navigationController?.popViewController(animated: true)
-                
+
             } catch {
-                print("❌ Error saving social links: \(error)")
-                self.createEventNode.toggleSpinner(active: false)
-                self.showAlert(text: error.localizedDescription)
+                self.editProfileNode.toggleSaving(active: false)
+                self.editProfileNode.showSnackbar(
+                    message: DivoStrings.failedProfileUpdated,
+                    style: .error
+                )
             }
         }
     }
-    
+
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
+        self.statusBar.isHidden = true
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
     }
     
     override public func viewDidDisappear(_ animated: Bool) {
@@ -333,7 +267,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
 
-        self.createEventNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        self.editProfileNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
 }
 
@@ -354,8 +288,7 @@ extension EditProfileController {
             }
             let normalized = uiImage.fixedOrientation()
             DispatchQueue.main.async {
-                self.createEventNode.setAvatarLoading(true)
-                self.createEventNode.currentPhoto = normalized
+                self.editProfileNode.setAvatarLoading(true)
             }
             self.uploadAvatar(image: normalized)
         }
@@ -382,8 +315,8 @@ extension EditProfileController: UIImagePickerControllerDelegate {
     
     private func handleSelectedImage(_ image: UIImage) {
         let normalized = image.fixedOrientation()
-        self.createEventNode.setAvatarLoading(true)
-        self.createEventNode.currentPhoto = normalized
+        self.editProfileNode.setAvatarLoading(true)
+        self.editProfileNode.currentPhoto = normalized
         self.uploadAvatar(image: normalized)
     }
 }

@@ -1,7 +1,6 @@
 import Display
 import UIKit
 import AsyncDisplayKit
-import TelegramCore
 import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
@@ -14,15 +13,20 @@ import AppBundle
 import ItemListUI
 import DivoUIKit
 
+private struct AppearanceEditItem {
+    let title: String
+    let getValues: () -> [String]
+    let emptyTitle: String
+    let onTap: () -> Void
+}
+
 final class EditProfileNode: ASDisplayNode {
     
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
     private let model: UserDetail?
-    var showAlert: ((String) -> Void)?
     
     private var containerLayout: (ContainerViewLayout, CGFloat)?
-    private var navigationBarTitleHeightConstraint: NSLayoutConstraint!
     
     private var presentationData: PresentationData
     private let presentationDataPromise: Promise<PresentationData>
@@ -45,7 +49,10 @@ final class EditProfileNode: ASDisplayNode {
     var saveProfile: ((UpdateBiographyPageRequest) -> Void)?
     var saveAgencyProfile: ((UpdateDescriptionAgencyRequest) -> Void)?
     var onAvatarTap: (() -> Void)?
+    var onBackTapped: (() -> Void)?
+    var presentController: ((UIViewController) -> Void)?
     
+    private let navigationBar = DivoNavigationBar()
     
     // MARK: - ScrollView
     
@@ -54,6 +61,7 @@ final class EditProfileNode: ASDisplayNode {
         sv.showsVerticalScrollIndicator = false
         sv.contentInsetAdjustmentBehavior = .never
         sv.translatesAutoresizingMaskIntoConstraints = false
+        sv.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)
         return sv
     }()
     
@@ -64,6 +72,9 @@ final class EditProfileNode: ASDisplayNode {
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 20
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.layoutMargins = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right: DivoDesignTokens.Spacing.m)
+        stack.insetsLayoutMarginsFromSafeArea = false
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -71,42 +82,16 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Tab
     
-    private let tabsContainer: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let biographyButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle(DivoStrings.biography, for: .normal)
-        button.titleLabel?.font = Font.helveticaNeue(12)
-        button.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    private lazy var segmentedControl: DivoSegmentedControl = {
+        let control = DivoSegmentedControl(titles: [
+            DivoStrings.biographyTitle,
+            DivoStrings.appearanceTitle,
+            DivoStrings.experienceTitle
+        ])
+        control.translatesAutoresizingMaskIntoConstraints = false
+        return control
     }()
 
-    private let appearanceButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle(DivoStrings.appearance, for: .normal)
-        button.titleLabel?.font = Font.helveticaNeue(12)
-        button.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-    
-    private let indicatorView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 2
-        view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        view.clipsToBounds = true
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    private var indicatorCenterXConstraint: NSLayoutConstraint!
-    private var indicatorWidthConstraint: NSLayoutConstraint!
-    
     private var selectedIndex: Int = 0
     
     
@@ -128,7 +113,7 @@ final class EditProfileNode: ASDisplayNode {
     private let bioStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 16
+        stack.spacing = DivoDesignTokens.Spacing.m
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
@@ -137,7 +122,15 @@ final class EditProfileNode: ASDisplayNode {
     private let appearanceStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 16
+        stack.spacing = DivoDesignTokens.Spacing.m
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
+    private let experienceStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = DivoDesignTokens.Spacing.m
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -145,24 +138,24 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Biography UI
     
-    private let avatarImageContainerView: UIView = {
-        let iv = UIView()
-        iv.clipsToBounds = true
-        iv.layer.cornerRadius = 50
-        iv.layer.borderWidth = 1
-        iv.layer.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
-        iv.backgroundColor = UIColor.white.withAlphaComponent(0.1)
-        iv.isUserInteractionEnabled = true
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-    
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 47
-        iv.backgroundColor = .systemGray
+        iv.layer.cornerRadius = 50
+        iv.layer.borderColor = DivoColorPalette.cardBackground.cgColor
+        iv.layer.borderWidth = 1.0
+        iv.backgroundColor = DivoColorPalette.cardBackground
+        iv.isUserInteractionEnabled = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let avatarImageSpinnerView: UIView = {
+        let iv = UIView()
+        iv.clipsToBounds = true
+        iv.layer.cornerRadius = 50
+        iv.backgroundColor = DivoColorPalette.cardBackground
         iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -170,12 +163,14 @@ final class EditProfileNode: ASDisplayNode {
     
     private let chancePhotoView: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = DivoColorPalette.accentSecondary
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.translatesAutoresizingMaskIntoConstraints = false
         let image = UIImage(bundleImageName: "Components/AddPhotoIcon")
         button.setImage(image, for: .normal)
-        button.tintColor = .white
-        button.layer.cornerRadius = 16
+        button.tintColor = DivoColorPalette.accent
+        button.layer.cornerRadius = DivoDesignTokens.Radius.l
+        button.layer.borderColor = DivoColorPalette.accent.cgColor
+        button.layer.borderWidth = 1
         button.layer.masksToBounds = true
         let padding: CGFloat = 4
         button.imageEdgeInsets = UIEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
@@ -183,58 +178,112 @@ final class EditProfileNode: ASDisplayNode {
         return button
     }()
     
-    private let avatarSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        return spinner
-    }()
+    private let avatarSpinner = DivoSegmentedSpinner()
     
-    private let nameEventTextField: TextFieldNode
+    private let nameEventTextField: DivoTextField
     private let aboutEventTextField: DivoTextView
     
     
     // MARK: - Appearance UI
     
-    private let genderDropdown: DropdownNode
-    private var ageSlider: AgeSliderNode<Int>
-    private let heightSlider: AgeSliderNode<Double>
-    private let weightSlider: AgeSliderNode<Double>
-    private let waistSlider: AgeSliderNode<Double>
-    private let hipsSlider: AgeSliderNode<Double>
-    private let shoeSizeSlider: AgeSliderNode<Double>
-    private let hairLengthDropdown: DropdownNode
-    private let hairColorDropdown: DropdownNode
-    private let eyeColorDropdown: DropdownNode
-    private let skinColorDropdown: DropdownNode
+    private let genderDropdown = FilterRowView(title: DivoStrings.paramGender)
+
+    private let appearanceContainerStack: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.spacing = 0
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
     
+    private let appearanceBackgroundView: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
+        view.clipsToBounds = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private var selectedGenderId: String?
+    private var selectedGenderTitle: String?
+    
+    private var selectedAge: Int?
+    private var selectedHeight: Double?
+    private var selectedWeight: Double?
+    private var selectedWaist: Double?
+    private var selectedHips: Double?
+    private var selectedShoeSize: Double?
+    
+    private var selectedHairLengthId: Int?
+    private var selectedHairLengthTitle: String?
+    private var selectedHairColorId: Int?
+    private var selectedHairColorTitle: String?
+    private var selectedEyeColorId: Int?
+    private var selectedEyeColorTitle: String?
+    private var selectedSkinColorId: Int?
+    private var selectedSkinColorTitle: String?
+    
+    private struct ProfileSnapshot: Equatable {
+        let name: String
+        let bio: String
+        let genderId: String?
+        let height: Double?
+        let weight: Double?
+        let waist: Double?
+        let hips: Double?
+        let shoeSize: Double?
+        let hairLengthId: Int?
+        let hairColorId: Int?
+        let eyeColorId: Int?
+        let skinColorId: Int?
+    }
+
+    private var initialSnapshot: ProfileSnapshot?
+    private var avatarChanged = false
+
+    private let hairLengthDropdown = FilterRowView(title: DivoStrings.hairLength)
+    private let hairColorDropdown = FilterRowView(title: DivoStrings.hairColor)
+    private let eyeColorDropdown = FilterRowView(title: DivoStrings.eyeColor)
+    private let skinColorDropdown = FilterRowView(title: DivoStrings.skinColor)
     
     // MARK: - Footer UI
     
-    private let applyButton: ASControlNode
-    private let applyButtonSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
-        return spinner
-    }()
-    private let applyButtonAppearance: ASControlNode
-    private let applyButtonAppearanceSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
-        return spinner
-    }()
+    private let applyButton = DivoSaveButton()
+
+    private var applyButtonBottomConstraint: NSLayoutConstraint?
     
     var currentPhoto: UIImage? = nil {
         didSet {
             avatarImageView.image = currentPhoto
             avatarImageView.applyAvatarTopCropIfNeeded(image: currentPhoto)
+            if initialSnapshot != nil {
+                avatarChanged = true
+                updateSaveButtonState()
+            }
         }
     }
     
+    private var appearanceEditItems: [AppearanceEditItem] = []
     
+    private let bottomFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+                DivoColorPalette.screenBackground.cgColor
+            ]
+            gradient.locations = [0, 0.45]
+        }
+        return view
+    }()
+
+    private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
+    private var lastContainerSize: CGSize = .zero
+    private var keyboardHandler: DivoKeyboardHandler?
+
     // MARK: - Init
     
     init(context: AccountContext, presentationData: PresentationData, model: UserDetail?) {
@@ -250,140 +299,63 @@ final class EditProfileNode: ASDisplayNode {
         var bio = ""
         if model?.role == "agency_employee" {
             name = model?.agency?.title ?? DivoStrings.name
-            placeholder = DivoStrings.agencyName
+            placeholder = DivoStrings.agencyProfile
             bioTitle = DivoStrings.descriptionTitle
             bio = model?.agency?.description ?? DivoStrings.fillInInfoAboutAgency
-            self.biographyButton.setTitle(DivoStrings.description_, for: .normal)
-            self.biographyButton.isUserInteractionEnabled = false
         } else {
             name = model?.fullName ?? DivoStrings.name
             placeholder = DivoStrings.fullName
             bioTitle = DivoStrings.biographyTitle
             bio = model?.model?.description ?? DivoStrings.fillInInfoAboutYou
-            self.biographyButton.setTitle(DivoStrings.biography, for: .normal)
-            self.biographyButton.isUserInteractionEnabled = true
         }
         
-        self.nameEventTextField = getTextFiel(title: placeholder)
-        self.nameEventTextField.textField.text = name
-        // Пока непонятно как обновлять название агенства
-        self.nameEventTextField.isUserInteractionEnabled = (model?.role == "agency_employee") ? false : true
+        self.nameEventTextField = DivoTextField(title: name, prefix: "")
+        self.nameEventTextField.textField.attributedPlaceholder = NSAttributedString(
+            string: placeholder,
+            font: Font.regular(16),
+            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
+        )
+        self.nameEventTextField.isUserInteractionEnabled = true
         
         self.aboutEventTextField = DivoTextView(title: bioTitle, initialText: bio)
 
-        let currentGender = model?.gender?.title ?? DivoStrings.loading
-        self.genderDropdown = DropdownNode(title: DivoStrings.gender, placeholder: DivoStrings.selectGender, options: [currentGender])
-        self.genderDropdown.selectedValue = self.model?.gender?.title
-        
-        self.ageSlider = AgeSliderNode<Int>(
-            title: DivoStrings.ageYo,
-            type: "y.o",
-            mode: .single(value: 17),
-            minimumValue: 14,
-            maximumValue: 45,
-            configuration: .default
-        )
-
-        self.heightSlider = AgeSliderNode<Double>(
-            title: DivoStrings.heightCm,
-            type: "cm",
-            mode: .single(value: Float(model?.model?.appearance?.height ?? 1.68)),
-            minimumValue: 1.68,
-            maximumValue: 2.50,
-            configuration: .default
-        )
-
-        self.weightSlider = AgeSliderNode<Double>(
-            title: DivoStrings.weightKg,
-            type: "kg",
-            mode: .single(value: Float(model?.model?.appearance?.weight ?? 50)),
-            minimumValue: 48,
-            maximumValue: 90,
-            configuration: .default
-        )
-
-        self.waistSlider = AgeSliderNode<Double>(
-            title: DivoStrings.waistCm,
-            type: "cm",
-            mode: .single(value: Float(model?.model?.appearance?.waist ?? 60)),
-            minimumValue: 48,
-            maximumValue: 90,
-            configuration: .default
-        )
-
-        self.hipsSlider = AgeSliderNode<Double>(
-            title: DivoStrings.hipsCm,
-            type: "cm",
-            mode: .single(value: Float(model?.model?.appearance?.hips ?? 91)),
-            minimumValue: 80,
-            maximumValue: 110,
-            configuration: .default
-        )
-
-        self.shoeSizeSlider = AgeSliderNode<Double>(
-            title: DivoStrings.shoeSizeEU,
-            type: "",
-            mode: .single(value: Float(model?.model?.appearance?.shoesSize ?? 37)),
-            minimumValue: 36,
-            maximumValue: 42,
-            configuration: .default
-        )
-
-        let currentHairLength = model?.model?.appearance?.hairLength?.title ?? DivoStrings.loading
-        let currentHairColor = model?.model?.appearance?.hairColor?.title ?? DivoStrings.loading
-        let currentEyeColor = model?.model?.appearance?.eyeColor?.title ?? DivoStrings.loading
-        let currentSkinColor = model?.model?.appearance?.skinColor?.title ?? DivoStrings.loading
-
-        self.hairLengthDropdown = DropdownNode(title: DivoStrings.hairLength, placeholder: DivoStrings.chooseHairLength, options: [currentHairLength])
-        self.hairColorDropdown = DropdownNode(title: DivoStrings.hairColor, placeholder: DivoStrings.chooseHairColor, options: [currentHairColor])
-        self.eyeColorDropdown = DropdownNode(title: DivoStrings.eyeColor, placeholder: DivoStrings.chooseEyeColor, options: [currentEyeColor])
-        self.skinColorDropdown = DropdownNode(title: DivoStrings.skinColor, placeholder: DivoStrings.chooseSkinColor, options: [currentSkinColor])
-        
-        self.hairLengthDropdown.selectedValue = model?.model?.appearance?.hairLength?.title
-        self.hairColorDropdown.selectedValue = model?.model?.appearance?.hairColor?.title
-        self.eyeColorDropdown.selectedValue = model?.model?.appearance?.eyeColor?.title
-        self.skinColorDropdown.selectedValue = model?.model?.appearance?.skinColor?.title
-        
-        self.applyButton = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
-        self.applyButtonAppearance = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButtonAppearance.backgroundColor = DivoColorPalette.accentCopperWarm
-        
         super.init()
         
-        self.ageSlider = AgeSliderNode<Int>(
-            title: "Age (y.o)",
-            type: "y.o",
-            mode: .single(value: Float(calculateAge(from: model?.birthday ?? ""))),
-            minimumValue: 14,
-            maximumValue: 45,
-            configuration: .default
-        )
+        self.backgroundColor = DivoColorPalette.screenBackground
+
+        if let app = model?.model?.appearance {
+            self.selectedHeight = app.height
+            self.selectedWeight = app.weight
+            self.selectedWaist = app.waist
+            self.selectedHips = app.hips
+            self.selectedShoeSize = app.shoesSize
+            
+            self.selectedHairLengthId = app.hairLength?.id
+            self.selectedHairLengthTitle = app.hairLength?.title
+            self.selectedHairColorId = app.hairColor?.id
+            self.selectedHairColorTitle = app.hairColor?.title
+            self.selectedEyeColorId = app.eyeColor?.id
+            self.selectedEyeColorTitle = app.eyeColor?.title
+            self.selectedSkinColorId = app.skinColor?.id
+            self.selectedSkinColorTitle = app.skinColor?.title
+        }
+        self.selectedGenderId = model?.gender?.id
+        self.selectedGenderTitle = model?.gender?.title
+        self.selectedAge = calculateAge(from: model?.birthday ?? "")
         
-        self.backgroundColor = DivoColorPalette.darkBackground
+        setupAppearanceEditItems()
     }
     
     override func didLoad() {
         super.didLoad()
         setupUI()
-        
-        let avatarTapGesture = UITapGestureRecognizer(target: self, action: #selector(self.avatarTapped))
-        self.avatarImageView.addGestureRecognizer(avatarTapGesture)
-        
-        self.biographyButton.addTarget(self, action: #selector(biographyTapped), for: .touchUpInside)
-        self.appearanceButton.addTarget(self, action: #selector(appearanceTapped), for: .touchUpInside)
 
-        if model?.role == "agency_employee" {
-            self.applyButton.addTarget(self, action: #selector(self.saveAgencyButtonPressed), forControlEvents: .touchUpInside)
-        } else {
-            self.applyButton.addTarget(self, action: #selector(self.saveButtonPressed), forControlEvents: .touchUpInside)
-        }
+        updateDropdownsUI()
+        setupInteractions()
 
-        self.applyButtonAppearance.addTarget(self, action: #selector(self.saveButtonPressed), forControlEvents: .touchUpInside)
-        self.chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
-        
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         dismissTap.cancelsTouchesInView = false
+        dismissTap.delegate = self
         self.view.addGestureRecognizer(dismissTap)
 
         scrollView.keyboardDismissMode = .interactive
@@ -391,55 +363,61 @@ final class EditProfileNode: ASDisplayNode {
         self.nameEventTextField.textField.returnKeyType = .next
         self.nameEventTextField.textField.delegate = self
 
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+        keyboardHandler = DivoKeyboardHandler(
+            scrollView: scrollView,
+            buttonConstraint: applyButtonBottomConstraint!,
+            overlayConstraint: bottomFadeOverlayBottomConstraint!,
+            hostView: self.view,
+            defaultScrollInset: 80,
+            scrollToActiveField: { [weak self] in
+                guard let self, self.aboutEventTextField.textView.isFirstResponder else { return }
+                let frame = self.aboutEventTextField.convert(self.aboutEventTextField.bounds, to: self.scrollView)
+                self.scrollView.scrollRectToVisible(frame, animated: false)
+            }
+        )
+        keyboardHandler?.subscribe()
 
-        updateTabsTextColor()
         loadAvatarIfNeeded()
 
+        initialSnapshot = makeSnapshot()
+        applyButton.isEnabled = false
+
         DispatchQueue.main.async {
             self.updatePagerHeight()
-            self.updateIndicatorPosition(progress: 0, animated: false)
+            if self.model?.role != "agency_employee" {
+                self.segmentedControl.setIndicatorProgress(0)
+            }
             self.readyValue = true
         }
-    }
-    
-    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
-        self.containerLayout = (layout, navigationBarHeight)
-        navigationBarTitleHeightConstraint.isActive = false
-        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight)
-        navigationBarTitleHeightConstraint.isActive = true
         
-        DispatchQueue.main.async {
-            self.updatePagerHeight()
-            self.updateIndicatorPosition(progress: CGFloat(self.selectedIndex), animated: false)
-        }
-//        self.layoutIfNeeded()
+        updateAppearanceValues()
     }
 
-    func configureAppearanceDictionaries(_ dict: AppearanceDictionaryData) {
-        self.appearanceDictionaries = dict
-        
-        self.hairLengthDropdown.options = dict.hairLength.map { $0.title }
-        self.hairColorDropdown.options = dict.hairColor.map { $0.title }
-        self.eyeColorDropdown.options = dict.eyeColor.map { $0.title }
-        self.skinColorDropdown.options = dict.skinColor.map { $0.title }
-        
-        self.hairLengthDropdown.selectedValue = self.model?.model?.appearance?.hairLength?.title
-        self.hairColorDropdown.selectedValue = self.model?.model?.appearance?.hairColor?.title
-        self.eyeColorDropdown.selectedValue = self.model?.model?.appearance?.eyeColor?.title
-        self.skinColorDropdown.selectedValue = self.model?.model?.appearance?.skinColor?.title
+    private func setupInteractions() {
+        segmentedControl.onTabSelected = { [weak self] index in
+            self?.view.endEditing(true)
+            self?.setSelectedIndex(index, animated: true)
+        }
+
+        if model?.role == "agency_employee" {
+            applyButton.addTarget(self, action: #selector(self.saveAgencyButtonPressed), for: .touchUpInside)
+        } else {
+            applyButton.addTarget(self, action: #selector(self.saveButtonPressed), for: .touchUpInside)
+        }
+
+        chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
+
+        nameEventTextField.textField.addTarget(self, action: #selector(nameFieldDidChange), for: .editingChanged)
+        aboutEventTextField.onTextChange = { [weak self] _ in
+            self?.updateSaveButtonState()
+        }
+
+        navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
+
+        chancePhotoView.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        chancePhotoView.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
     }
-    
-    
-    func configureGenderDictionaries(_ dict: GenderResponse) {
-        self.genderDictionaries = dict
         
-        self.genderDropdown.options = dict.data.map { $0.title }
-        
-        self.genderDropdown.selectedValue = self.model?.gender?.title
-    }
-    
     private func getAppearanceId(for title: String?, in list: [AppearanceOption]?) -> Int {
         guard let title = title, let list = list else { return 1 }
         return list.first(where: { $0.title == title })?.id ?? 1
@@ -449,9 +427,6 @@ final class EditProfileNode: ASDisplayNode {
         guard let title = title, let list = list else { return "other" }
         return list.first(where: { $0.title == title })?.id ?? "other"
     }
-    
-    
-    // MARK: - Setup UI (Auto Layout)
     
     private func calculateAge(from birthdayString: String) -> Int {
         let formatter = DateFormatter()
@@ -466,12 +441,17 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     private func setupUI() {
-        self.view.addSubview(scrollView)
+        view.addSubview(navigationBar)
+        
+        view.addSubview(scrollView)
         scrollView.addSubview(mainStackView)
         
         NSLayoutConstraint.activate([
-            // надо тут подмать, как обновлять отступ у scrollView
-            scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 96),
+            navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
@@ -483,62 +463,25 @@ final class EditProfileNode: ASDisplayNode {
             mainStackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
         ])
         
-        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor)
-        navigationBarTitleHeightConstraint.isActive = true
-        
-        setupTabs()
-        setupPager()
+        if model?.role != "agency_employee" {
+            setupTabs()
+            setupPager()
+        } else {
+            setupAgencyPager()
+        }
+
+        scrollView.delegate = self
     }
     
     private func setupTabs() {
-        mainStackView.addArrangedSubview(tabsContainer)
-        tabsContainer.heightAnchor.constraint(equalToConstant: 26).isActive = true
-        
-        if model?.role == "agency_employee" {
-            tabsContainer.addSubview(biographyButton)
-            tabsContainer.addSubview(indicatorView)
-            
-            NSLayoutConstraint.activate([
-                biographyButton.leadingAnchor.constraint(equalTo: tabsContainer.leadingAnchor),
-                biographyButton.topAnchor.constraint(equalTo: tabsContainer.topAnchor),
-                biographyButton.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor),
-                biographyButton.widthAnchor.constraint(equalTo: tabsContainer.widthAnchor, multiplier: 1.0),
-                
-                indicatorView.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor),
-                indicatorView.heightAnchor.constraint(equalToConstant: 2)
-            ])
-        } else {
-            tabsContainer.addSubview(biographyButton)
-            tabsContainer.addSubview(appearanceButton)
-            tabsContainer.addSubview(indicatorView)
-            
-            NSLayoutConstraint.activate([
-                biographyButton.leadingAnchor.constraint(equalTo: tabsContainer.leadingAnchor),
-                biographyButton.topAnchor.constraint(equalTo: tabsContainer.topAnchor),
-                biographyButton.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor),
-                biographyButton.widthAnchor.constraint(equalTo: tabsContainer.widthAnchor, multiplier: 0.5),
-                
-                appearanceButton.trailingAnchor.constraint(equalTo: tabsContainer.trailingAnchor),
-                appearanceButton.topAnchor.constraint(equalTo: tabsContainer.topAnchor),
-                appearanceButton.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor),
-                appearanceButton.widthAnchor.constraint(equalTo: tabsContainer.widthAnchor, multiplier: 0.5),
-                
-                indicatorView.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor),
-                indicatorView.heightAnchor.constraint(equalToConstant: 2)
-            ])
-        }
-        
-        indicatorCenterXConstraint = indicatorView.centerXAnchor.constraint(equalTo: biographyButton.centerXAnchor)
-        indicatorWidthConstraint = indicatorView.widthAnchor.constraint(equalToConstant: 60)
-        
-        indicatorCenterXConstraint.isActive = true
-        indicatorWidthConstraint.isActive = true
+        mainStackView.addArrangedSubview(segmentedControl)
+        segmentedControl.heightAnchor.constraint(equalToConstant: 32).isActive = true
     }
     
     private func setupPager() {
         mainStackView.addArrangedSubview(horizontalPager)
         
-        pagerHeightConstraint = horizontalPager.heightAnchor.constraint(equalToConstant: 300) // Временная стартовая высота
+        pagerHeightConstraint = horizontalPager.heightAnchor.constraint(equalToConstant: 300)
         pagerHeightConstraint.isActive = true
         
         let contentWidthView = UIView()
@@ -547,6 +490,7 @@ final class EditProfileNode: ASDisplayNode {
         
         contentWidthView.addSubview(bioStackView)
         contentWidthView.addSubview(appearanceStackView)
+        contentWidthView.addSubview(experienceStackView)
         
         NSLayoutConstraint.activate([
             contentWidthView.topAnchor.constraint(equalTo: horizontalPager.topAnchor),
@@ -555,217 +499,241 @@ final class EditProfileNode: ASDisplayNode {
             contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor),
             contentWidthView.heightAnchor.constraint(equalTo: horizontalPager.heightAnchor),
             
-            bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor, constant: 16),
+            bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor),
             bioStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
-            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor, constant: -32),
+            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
             
             appearanceStackView.leadingAnchor.constraint(equalTo: bioStackView.trailingAnchor, constant: 32),
+            appearanceStackView.trailingAnchor.constraint(equalTo: experienceStackView.leadingAnchor, constant: 32),
             appearanceStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
-            appearanceStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor, constant: -32),
-            appearanceStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor, constant: -16)
+            appearanceStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
+            
+            experienceStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
+            experienceStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
+            experienceStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor)
         ])
         
         setupBioContent()
         setupAppearanceContent()
     }
     
+    private func setupAgencyPager() {
+        mainStackView.addArrangedSubview(horizontalPager)
+        
+        pagerHeightConstraint = horizontalPager.heightAnchor.constraint(equalToConstant: 300)
+        pagerHeightConstraint.isActive = true
+        
+        let contentWidthView = UIView()
+        contentWidthView.translatesAutoresizingMaskIntoConstraints = false
+        horizontalPager.addSubview(contentWidthView)
+        
+        contentWidthView.addSubview(bioStackView)
+        NSLayoutConstraint.activate([
+            contentWidthView.topAnchor.constraint(equalTo: horizontalPager.topAnchor),
+            contentWidthView.bottomAnchor.constraint(equalTo: horizontalPager.bottomAnchor),
+            contentWidthView.leadingAnchor.constraint(equalTo: horizontalPager.leadingAnchor),
+            contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor),
+            contentWidthView.heightAnchor.constraint(equalTo: horizontalPager.heightAnchor),
+
+            bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor),
+            bioStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
+            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
+            bioStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor)
+        ])
+        
+        setupBioContent()
+    }
+    
     private func setupBioContent() {
         let avatarContainer = UIView()
         avatarContainer.translatesAutoresizingMaskIntoConstraints = false
-        avatarContainer.addSubview(avatarImageContainerView)
         avatarContainer.addSubview(avatarImageView)
+        avatarContainer.addSubview(avatarImageSpinnerView)
         avatarContainer.addSubview(chancePhotoView)
+        avatarSpinner.translatesAutoresizingMaskIntoConstraints = false
         avatarContainer.addSubview(avatarSpinner)
+        avatarSpinner.isHidden = true
+
         
         NSLayoutConstraint.activate([
             avatarContainer.heightAnchor.constraint(equalToConstant: 120),
             
-            avatarImageContainerView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
-            avatarImageContainerView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
-            avatarImageContainerView.widthAnchor.constraint(equalToConstant: 100),
-            avatarImageContainerView.heightAnchor.constraint(equalToConstant: 100),
-            
-            avatarImageView.centerXAnchor.constraint(equalTo: avatarImageContainerView.centerXAnchor),
-            avatarImageView.centerYAnchor.constraint(equalTo: avatarImageContainerView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 94),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 94),
-            
-            chancePhotoView.trailingAnchor.constraint(equalTo: avatarImageContainerView.trailingAnchor, constant: 4),
-            chancePhotoView.bottomAnchor.constraint(equalTo: avatarImageContainerView.bottomAnchor),
+            avatarImageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
+            avatarImageView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
+            avatarImageView.widthAnchor.constraint(equalToConstant: 100),
+            avatarImageView.heightAnchor.constraint(equalToConstant: 100),
+
+            avatarImageSpinnerView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
+            avatarImageSpinnerView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
+            avatarImageSpinnerView.widthAnchor.constraint(equalToConstant: 100),
+            avatarImageSpinnerView.heightAnchor.constraint(equalToConstant: 100),
+
+            chancePhotoView.trailingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 4),
+            chancePhotoView.bottomAnchor.constraint(equalTo: avatarImageView.bottomAnchor),
             chancePhotoView.widthAnchor.constraint(equalToConstant: 32),
             chancePhotoView.heightAnchor.constraint(equalToConstant: 32),
             
             avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
-            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor)
+            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
+            avatarSpinner.widthAnchor.constraint(equalToConstant: 32),
+            avatarSpinner.heightAnchor.constraint(equalToConstant: 32),
         ])
         
         bioStackView.addArrangedSubview(avatarContainer)
         avatarContainer.widthAnchor.constraint(equalTo: bioStackView.widthAnchor).isActive = true
         
         nameEventTextField.view.translatesAutoresizingMaskIntoConstraints = false
-        aboutEventTextField.view.translatesAutoresizingMaskIntoConstraints = false
+        aboutEventTextField.translatesAutoresizingMaskIntoConstraints = false
         
         bioStackView.addArrangedSubview(nameEventTextField.view)
-        bioStackView.addArrangedSubview(aboutEventTextField.view)
+        bioStackView.addArrangedSubview(aboutEventTextField)
         
         NSLayoutConstraint.activate([
             nameEventTextField.view.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
             nameEventTextField.view.heightAnchor.constraint(equalToConstant: 48),
 
-            aboutEventTextField.view.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
-            aboutEventTextField.view.heightAnchor.constraint(equalToConstant: 140)
+            aboutEventTextField.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
+            aboutEventTextField.heightAnchor.constraint(equalToConstant: 140)
         ])
+        
+        view.addSubview(bottomFadeOverlay)
+        view.addSubview(applyButton)
 
-        let buttonContainer = UIView()
-        buttonContainer.translatesAutoresizingMaskIntoConstraints = false
-        applyButton.view.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(applyButton.view)
-        applyButtonSpinner.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(applyButtonSpinner)
+        let buttonBottomCns = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
+        self.applyButtonBottomConstraint = buttonBottomCns
+
+        let bottomFadeOverlayCns = bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        self.bottomFadeOverlayBottomConstraint = bottomFadeOverlayCns
 
         NSLayoutConstraint.activate([
-            applyButton.view.topAnchor.constraint(equalTo: buttonContainer.topAnchor),
-            applyButton.view.bottomAnchor.constraint(equalTo: buttonContainer.bottomAnchor),
-            applyButton.view.leadingAnchor.constraint(equalTo: buttonContainer.leadingAnchor),
-            applyButton.view.trailingAnchor.constraint(equalTo: buttonContainer.trailingAnchor),
-            applyButton.view.heightAnchor.constraint(equalToConstant: 50),
+            buttonBottomCns,
+            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
-            applyButtonSpinner.centerXAnchor.constraint(equalTo: buttonContainer.centerXAnchor),
-            applyButtonSpinner.centerYAnchor.constraint(equalTo: buttonContainer.centerYAnchor),
+            bottomFadeOverlayCns,
+            bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomFadeOverlay.heightAnchor.constraint(equalToConstant: 160)
         ])
-
-        bioStackView.addArrangedSubview(buttonContainer)
-        buttonContainer.widthAnchor.constraint(equalTo: bioStackView.widthAnchor).isActive = true
     }
     
     private func setupAppearanceContent() {
-        let nodes: [ASDisplayNode] = [genderDropdown, ageSlider, heightSlider, weightSlider, waistSlider, hipsSlider, shoeSizeSlider, hairLengthDropdown, hairColorDropdown, eyeColorDropdown, skinColorDropdown]
+        genderDropdown.translatesAutoresizingMaskIntoConstraints = false
+        appearanceStackView.addArrangedSubview(genderDropdown)
 
-        for node in nodes {
-            node.view.translatesAutoresizingMaskIntoConstraints = false
-            appearanceStackView.addArrangedSubview(node.view)
-            
-            node.view.widthAnchor.constraint(equalTo: appearanceStackView.widthAnchor).isActive = true
-            
-            node.view.heightAnchor.constraint(equalToConstant: 80).isActive = true
-        }
-        
-        appearanceStackView.setCustomSpacing(24, after: genderDropdown.view)
-
-        let buttonContainer = UIView()
-        buttonContainer.translatesAutoresizingMaskIntoConstraints = false
-        applyButtonAppearance.view.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(applyButtonAppearance.view)
-        applyButtonAppearanceSpinner.translatesAutoresizingMaskIntoConstraints = false
-        buttonContainer.addSubview(applyButtonAppearanceSpinner)
+        appearanceStackView.addArrangedSubview(appearanceBackgroundView)
+        appearanceBackgroundView.addSubview(appearanceContainerStack)
 
         NSLayoutConstraint.activate([
-            applyButtonAppearance.view.topAnchor.constraint(equalTo: buttonContainer.topAnchor),
-            applyButtonAppearance.view.bottomAnchor.constraint(equalTo: buttonContainer.bottomAnchor),
-            applyButtonAppearance.view.leadingAnchor.constraint(equalTo: buttonContainer.leadingAnchor),
-            applyButtonAppearance.view.trailingAnchor.constraint(equalTo: buttonContainer.trailingAnchor),
-            applyButtonAppearance.view.heightAnchor.constraint(equalToConstant: 50),
-
-            applyButtonAppearanceSpinner.centerXAnchor.constraint(equalTo: buttonContainer.centerXAnchor),
-            applyButtonAppearanceSpinner.centerYAnchor.constraint(equalTo: buttonContainer.centerYAnchor),
+            appearanceBackgroundView.leadingAnchor.constraint(equalTo: appearanceStackView.leadingAnchor),
+            appearanceBackgroundView.trailingAnchor.constraint(equalTo: appearanceStackView.trailingAnchor),
+            
+            appearanceContainerStack.topAnchor.constraint(equalTo: appearanceBackgroundView.topAnchor),
+            appearanceContainerStack.leadingAnchor.constraint(equalTo: appearanceBackgroundView.leadingAnchor),
+            appearanceContainerStack.trailingAnchor.constraint(equalTo: appearanceBackgroundView.trailingAnchor),
+            appearanceContainerStack.bottomAnchor.constraint(equalTo: appearanceBackgroundView.bottomAnchor)
         ])
+        
+        appearanceStackView.addArrangedSubview(hairLengthDropdown)
+        appearanceStackView.addArrangedSubview(hairColorDropdown)
+        appearanceStackView.addArrangedSubview(eyeColorDropdown)
+        appearanceStackView.addArrangedSubview(skinColorDropdown)
 
-        appearanceStackView.addArrangedSubview(buttonContainer)
-        buttonContainer.widthAnchor.constraint(equalTo: appearanceStackView.widthAnchor).isActive = true
+        genderDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(genderTapped)))
+        hairLengthDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(hairLengthTapped)))
+        hairColorDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(hairColorTapped)))
+        eyeColorDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(eyeColorTapped)))
+        skinColorDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(skinColorTapped)))
+
+        reloadAppearanceOptions()
     }
     
+    private func reloadAppearanceOptions() {
+        appearanceContainerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        
+        for (index, item) in appearanceEditItems.enumerated() {
+            let isLast = index == appearanceEditItems.count - 1
+            let cell = AppearanceFilterRowView(title: item.title, isLast: isLast)
+            cell.setItems(item.getValues(), emptyTitle: DivoStrings.notSet)
+            
+            let tap = UITapGestureRecognizer(target: self, action: #selector(appearanceCellTapped(_:)))
+            cell.addGestureRecognizer(tap)
+            cell.tag = index
+            appearanceContainerStack.addArrangedSubview(cell)
+        }
+    }
     
-    // MARK: - Keyboard
-
-    @objc private func keyboardWillShow(_ notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
-              let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-
-        let keyboardHeight = keyboardFrame.height
-        scrollView.contentInset.bottom = keyboardHeight
-        scrollView.verticalScrollIndicatorInsets.bottom = keyboardHeight
-
-        UIView.animate(withDuration: duration) {
-            if self.aboutEventTextField.textView.isFirstResponder {
-                let fieldFrame = self.aboutEventTextField.view.convert(self.aboutEventTextField.bounds, to: self.scrollView)
-                self.scrollView.scrollRectToVisible(fieldFrame, animated: false)
+    private func setupAppearanceEditItems() {
+        appearanceEditItems = [
+            AppearanceEditItem(
+                title: DivoStrings.ageYo,
+                getValues: { [weak self] in self?.selectedAge.map {["\($0)"] } ?? [] },
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showSingleInput(title: DivoStrings.ageYo, min: 14, max: 100, current: self?.selectedAge.map{Double($0)}) { val in
+                        self?.selectedAge = val.map { Int($0) }
+                    }
+                }
+            ),
+            AppearanceEditItem(
+                title: DivoStrings.heightCm,
+                getValues: { [weak self] in self?.selectedHeight.map { ["\(Int($0)) cm"] } ?? [] },
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showSingleInput(title: DivoStrings.heightCm, min: 100, max: 300, current: self?.selectedHeight) { val in
+                        self?.selectedHeight = val
+                    }
+                }
+            ),
+            AppearanceEditItem(
+                title: DivoStrings.weightKg,
+                getValues: { [weak self] in self?.selectedWeight.map { ["\(Int($0)) kg"] } ?? [] },
+                emptyTitle: DivoStrings.debugAny,
+                onTap: {[weak self] in
+                    self?.showSingleInput(title: DivoStrings.weightKg, min: 30, max: 150, current: self?.selectedWeight) { val in
+                        self?.selectedWeight = val
+                    }
+                }
+            ),
+            AppearanceEditItem(
+                title: DivoStrings.waistCm,
+                getValues: { [weak self] in self?.selectedWaist.map { ["\(Int($0)) cm"] } ?? [] },
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showSingleInput(title: DivoStrings.waistCm, min: 40, max: 120, current: self?.selectedWaist) { val in
+                        self?.selectedWaist = val
+                    }
+                }
+            ),
+            AppearanceEditItem(
+                title: DivoStrings.hipsCm,
+                getValues: { [weak self] in self?.selectedHips.map { ["\(Int($0)) cm"] } ?? [] },
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showSingleInput(title: DivoStrings.hipsCm, min: 60, max: 150, current: self?.selectedHips) { val in
+                        self?.selectedHips = val
+                    }
+                }
+            ),
+            AppearanceEditItem(
+                title: DivoStrings.shoeSizeEU,
+                getValues: {[weak self] in self?.selectedShoeSize.map { ["\(Int($0))"] } ?? [] },
+                emptyTitle: DivoStrings.debugAny,
+                onTap: { [weak self] in
+                    self?.showSingleInput(title: DivoStrings.shoeSizeEU, min: 30, max: 50, current: self?.selectedShoeSize) { val in
+                        self?.selectedShoeSize = val
+                    }
+                }
+            ),
+        ]
+    }
+    
+    private func updateAppearanceValues() {
+        for (index, item) in appearanceEditItems.enumerated() {
+            if let cell = appearanceContainerStack.arrangedSubviews[safe: index] as? AppearanceFilterRowView {
+                cell.setItems(item.getValues(), emptyTitle: DivoStrings.notSet)
             }
         }
-    }
-
-    @objc private func keyboardWillHide(_ notification: Notification) {
-        guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-
-        UIView.animate(withDuration: duration) {
-            self.scrollView.contentInset.bottom = 0
-            self.scrollView.verticalScrollIndicatorInsets.bottom = 0
-        }
-    }
-
-    @objc private func dismissKeyboard() {
-        self.view.endEditing(true)
-    }
-
-    // MARK: - Actions
-
-    @objc private func avatarTapped() {
-        print("Change photo")
-        onAvatarTap?()
-    }
-    
-    @objc private func biographyTapped() {
-        setSelectedIndex(0, animated: true)
-    }
-    
-    @objc private func appearanceTapped() {
-        setSelectedIndex(1, animated: true)
-    }
-    
-    @objc private func updateAccountPeerName() {
-        print("Save button tapped")
-    }
-    
-    @objc private func saveButtonPressed() {
-        let genderId = getGenderId(for: self.genderDropdown.selectedValue, in: genderDictionaries?.data)
-        
-        let hairLengthId = getAppearanceId(for: self.hairLengthDropdown.selectedValue, in: appearanceDictionaries?.hairLength)
-        let hairColorId = getAppearanceId(for: self.hairColorDropdown.selectedValue, in: appearanceDictionaries?.hairColor)
-        let eyeColorId = getAppearanceId(for: self.eyeColorDropdown.selectedValue, in: appearanceDictionaries?.eyeColor)
-        let skinColorId = getAppearanceId(for: self.skinColorDropdown.selectedValue, in: appearanceDictionaries?.skinColor)
-        
-        let data = UpdateBiographyPageRequest(
-            fullName: self.nameEventTextField.textField.text ?? "",
-            gender: genderId,
-            model: UpdateBiographyPageRequest.ModelData(
-                description: self.aboutEventTextField.text,
-                appearance: Appearance(
-                    measuringSystem: "metric",
-                    height: self.heightSlider.currentValue,
-                    weight: self.weightSlider.currentValue,
-                    breastSize: "",
-                    waist: self.waistSlider.currentValue,
-                    hips: self.hipsSlider.currentValue,
-                    shoesSize: self.shoeSizeSlider.currentValue,
-                    hairColor: hairColorId,
-                    hairLength: hairLengthId,
-                    eyeColor: eyeColorId,
-                    skinColor: skinColorId
-                )
-            )
-        )
-        
-        self.toggleSpinner(active: true)
-        self.saveProfile?(data)
-    }
-
-    @objc private func saveAgencyButtonPressed() {
-        let data = UpdateDescriptionAgencyRequest(
-            agencyId: model?.agency?.id,
-            description: self.aboutEventTextField.text
-        )
-            
-        self.toggleSpinner(active: true)
-        self.saveAgencyProfile?(data)
     }
     
     private func calculateBirthdayString(from age: Int) -> String {
@@ -778,46 +746,349 @@ final class EditProfileNode: ASDisplayNode {
     private func loadAvatarIfNeeded() {
         guard let avatarURL = CDNURLHelper.convertToCDNURL(model?.avatar?.fullUrl) else { return }
         avatarSpinner.startAnimating()
-        avatarImageView.alpha = 0.5
+        avatarSpinner.isHidden = false
+        avatarImageView.alpha = 0.0
+        avatarImageSpinnerView.isHidden = false
         ImageLoader.shared.load(url: avatarURL) { [weak self] image in
             guard let self else { return }
             self.avatarSpinner.stopAnimating()
+            avatarSpinner.isHidden = true
             self.avatarImageView.alpha = 1.0
             if let image {
                 self.avatarImageView.image = image
+                avatarImageSpinnerView.isHidden = true
                 self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
             }
         }
+    }
+    
+    private func showDictionaryFilter(title: String, dict: [AppearanceOption]?, currentId: Int?, completion: @escaping (Int?, String?) -> Void) {
+        guard let dict = dict else { return }
+        
+        let options = dict.map { FilterOptionItem(id: String($0.id), title: $0.title) }
+        let selectedIds = currentId != nil ? [String(currentId!)] :[]
+        
+        let vc = FilterOptionsController(
+            title: title,
+            options: options,
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: false,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = { selectedItems in
+            var id = 0
+            var title = ""
+            if !selectedItems.isEmpty && !selectedItems.contains(where: { $0.id == "all" }) {
+                id = selectedItems.map { Int($0.id) ?? 0 }.first ?? 0
+                title =  selectedItems.first?.title ?? ""
+            }
+            completion(id, title)
+        }
+        presentSheet(vc)
+    }
+    
+    private func showSingleInput(title: String, min: Double, max: Double, current: Double?, completion: @escaping (Double?) -> Void) {
+        let vc = RangeFilterController(
+            title: title,
+            min: min,
+            max: max,
+            currentLower: nil,
+            currentUpper: current,
+            isSingleValue: true,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = {[weak self] _, upperVal in
+            completion(upperVal)
+            self?.updateAppearanceValues()
+            self?.updateSaveButtonState()
+        }
+        presentSheet(vc)
+    }
+
+    
+    private func presentSheet(_ vc: UIViewController) {
+        let nav = UINavigationController(rootViewController: vc)
+        nav.setNavigationBarHidden(true, animated: false) 
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        presentController?(nav)
+    }
+    
+    private func updateDropdownsUI() {
+        genderDropdown.setItems([selectedGenderTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        hairLengthDropdown.setItems([selectedHairLengthTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        hairColorDropdown.setItems([selectedHairColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        eyeColorDropdown.setItems([selectedEyeColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+        skinColorDropdown.setItems([selectedSkinColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+    }
+
+    private func makeSnapshot() -> ProfileSnapshot {
+        ProfileSnapshot(
+            name: nameEventTextField.textField.text ?? "",
+            bio: aboutEventTextField.text,
+            genderId: selectedGenderId,
+            height: selectedHeight,
+            weight: selectedWeight,
+            waist: selectedWaist,
+            hips: selectedHips,
+            shoeSize: selectedShoeSize,
+            hairLengthId: selectedHairLengthId,
+            hairColorId: selectedHairColorId,
+            eyeColorId: selectedEyeColorId,
+            skinColorId: selectedSkinColorId
+        )
+    }
+
+    private func updateSaveButtonState() {
+        let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
+        applyButton.isEnabled = hasChanges
     }
 
     func setAvatarLoading(_ loading: Bool) {
         if loading {
             avatarSpinner.startAnimating()
-            avatarImageView.alpha = 0.5
+            avatarSpinner.isHidden = false
+            avatarImageView.alpha = 0.0
+            avatarImageSpinnerView.isHidden = false
         } else {
             avatarSpinner.stopAnimating()
+            avatarSpinner.isHidden = true
             avatarImageView.alpha = 1.0
+            avatarImageSpinnerView.isHidden = true
         }
     }
 
     func toggleSpinner(active: Bool) {
-        if active {
-            self.applyButtonSpinner.startAnimating()
-            self.applyButton.alpha = 0.0
-            self.applyButtonAppearanceSpinner.startAnimating()
-            self.applyButtonAppearance.alpha = 0.0
-        } else {
-            self.applyButtonSpinner.stopAnimating()
-            self.applyButton.alpha = 1.0
-            self.applyButtonAppearanceSpinner.stopAnimating()
-            self.applyButtonAppearance.alpha = 1.0
+        applyButton.isUserInteractionEnabled = !active
+    }
+
+    func toggleSaving(active: Bool) {
+        applyButton.setSaving(active, in: self.view)
+    }
+    
+    func updateTitle(_ title: String) {
+        navigationBar.setTitle(title)
+    }
+    
+    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+        let newSize = layout.size
+        guard newSize != lastContainerSize else { return }
+        lastContainerSize = newSize
+
+        DispatchQueue.main.async {
+            self.updatePagerHeight()
+            if self.model?.role != "agency_employee" {
+                self.segmentedControl.setIndicatorProgress(CGFloat(self.selectedIndex))
+            }
         }
+    }
+
+    func configureAppearanceDictionaries(_ dict: AppearanceDictionaryData) {
+        self.appearanceDictionaries = dict
+
+    }
+    
+    func configureGenderDictionaries(_ dict: GenderResponse) {
+        self.genderDictionaries = dict
+        
+    }
+    
+    @objc private func appearanceCellTapped(_ gesture: UITapGestureRecognizer) {
+        guard let view = gesture.view, view.tag < appearanceEditItems.count else { return }
+        appearanceEditItems[view.tag].onTap()
+    }
+    
+    @objc private func nameFieldDidChange() {
+        updateSaveButtonState()
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+
+
+    @objc private func avatarTapped() {
+        print("Change photo")
+        self.view.endEditing(true)
+        onAvatarTap?()
+    }
+    
+    @objc private func updateAccountPeerName() {
+        print("Save button tapped")
+    }
+    
+    @objc private func saveButtonPressed() {
+        self.view.endEditing(true)
+        
+        let data = UpdateBiographyPageRequest(
+            fullName: self.nameEventTextField.textField.text ?? "",
+            gender: self.selectedGenderId,
+            model: UpdateBiographyPageRequest.ModelData(
+                description: self.aboutEventTextField.text,
+                appearance: Appearance(
+                    measuringSystem: "metric",
+                    height: self.selectedHeight,
+                    weight: self.selectedWeight,
+                    breastSize: nil,
+                    waist: self.selectedWaist,
+                    hips: self.selectedHips,
+                    shoesSize: self.selectedShoeSize,
+                    hairColor: self.selectedHairColorId,
+                    hairLength: self.selectedHairLengthId,
+                    eyeColor: self.selectedEyeColorId,
+                    skinColor: selectedSkinColorId
+                )
+            )
+        )
+        
+        self.toggleSaving(active: true)
+        self.saveProfile?(data)
+    }
+
+    @objc private func saveAgencyButtonPressed() {
+        self.view.endEditing(true)
+        let data = UpdateDescriptionAgencyRequest(
+            agencyId: model?.agency?.id,
+            title: self.nameEventTextField.textField.text,
+            description: self.aboutEventTextField.text
+        )
+
+        self.toggleSaving(active: true)
+        self.saveAgencyProfile?(data)
+    }
+    
+    @objc private func buttonPressed(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.1, animations: {
+            sender.alpha = 0.6
+            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        })
+    }
+    
+    @objc private func buttonReleased(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.2, animations: {
+            sender.alpha = 1.0
+            sender.transform = .identity
+        })
+    }
+    
+    @objc private func genderTapped() {
+        self.view.endEditing(true)
+        guard let dict = genderDictionaries?.data else { return }
+        
+        let options = dict.map { FilterOptionItem(id: String($0.id), title: $0.title) }
+        let selectedIds = selectedGenderId != nil ? [String(selectedGenderId!)] :[]
+        
+        let vc = FilterOptionsController(
+            title: DivoStrings.paramGender,
+            options: options,
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: false,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            if let selected = selectedItems.first {
+                self?.selectedGenderId = selected.id
+                self?.selectedGenderTitle = selected.title
+            } else {
+                self?.selectedGenderId = nil
+                self?.selectedGenderTitle = nil
+            }
+            self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
+        }
+        presentSheet(vc)
+    }
+    
+    @objc private func hairLengthTapped() {
+        self.view.endEditing(true)
+        showDictionaryFilter(title: DivoStrings.hairLength, dict: appearanceDictionaries?.hairLength, currentId: selectedHairLengthId) {[weak self] id, title in
+            self?.selectedHairLengthId = id
+            self?.selectedHairLengthTitle = title
+            self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
+        }
+    }
+    
+    @objc private func hairColorTapped() {
+        self.view.endEditing(true)
+        showDictionaryFilter(title: DivoStrings.hairColor, dict: appearanceDictionaries?.hairColor, currentId: selectedHairColorId) { [weak self] id, title in
+            self?.selectedHairColorId = id
+            self?.selectedHairColorTitle = title
+            self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
+        }
+    }
+    
+    @objc private func eyeColorTapped() {
+        self.view.endEditing(true)
+        showDictionaryFilter(title: DivoStrings.eyeColor, dict: appearanceDictionaries?.eyeColor, currentId: selectedEyeColorId) { [weak self] id, title in
+            self?.selectedEyeColorId = id
+            self?.selectedEyeColorTitle = title
+            self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
+        }
+    }
+    
+    @objc private func skinColorTapped() {
+        self.view.endEditing(true)
+        showDictionaryFilter(title: DivoStrings.skinColor, dict: appearanceDictionaries?.skinColor, currentId: selectedSkinColorId) { [weak self] id, title in
+            self?.selectedSkinColorId = id
+            self?.selectedSkinColorTitle = title
+            self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
+        }
+    }
+
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: 16,
+            bottomAnchor: applyButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }
 
 
 // UITextFieldDelegate
 extension EditProfileNode: UITextFieldDelegate {
+    
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        textField.layer.borderWidth = 1.0
+        textField.layer.borderColor = DivoColorPalette.accent.cgColor
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        textField.layer.borderWidth = 0.0
+    }
+    
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         if textField === nameEventTextField.textField {
             aboutEventTextField.textView.becomeFirstResponder()
@@ -828,107 +1099,78 @@ extension EditProfileNode: UITextFieldDelegate {
     private func setSelectedIndex(_ index: Int, animated: Bool) {
         guard selectedIndex != index else { return }
         selectedIndex = index
-        updateTabsTextColor()
         updatePagerHeight()
+        segmentedControl.setSelectedIndex(index, animated: animated)
 
-        let offsetX = CGFloat(index) * horizontalPager.bounds.width
+        let offsetX = CGFloat(index) * (horizontalPager.bounds.width + 32)
 
         if animated {
-            UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
+            UIView.animate(withDuration: 0.3, delay: 0, options:[.curveEaseInOut, .allowUserInteraction], animations: {
                 self.horizontalPager.contentOffset = CGPoint(x: offsetX, y: 0)
             })
         } else {
             horizontalPager.contentOffset = CGPoint(x: offsetX, y: 0)
         }
     }
-    
-    private func updateTabsTextColor() {
-        let selectedColor: UIColor = .white
-        let unselectedColor: UIColor = .white.withAlphaComponent(0.6)
         
-        biographyButton.setTitleColor(selectedIndex == 0 ? selectedColor : unselectedColor, for: .normal)
-        appearanceButton.setTitleColor(selectedIndex == 1 ? selectedColor : unselectedColor, for: .normal)
-    }
-    
     private func updatePagerHeight() {
         bioStackView.layoutIfNeeded()
         appearanceStackView.layoutIfNeeded()
+        experienceStackView.layoutIfNeeded()
 
         let bioHeight = bioStackView.frame.height
         let appHeight = appearanceStackView.frame.height
+        let experienceHeight = experienceStackView.frame.height
 
-        let targetHeight = selectedIndex == 0 ? bioHeight : appHeight
+        var targetHeight = 0.0
+        if selectedIndex == 0 {
+            targetHeight = bioHeight
+        } else if selectedIndex == 1 {
+            targetHeight = appHeight
+        } else if selectedIndex == 2 {
+            targetHeight = experienceHeight
+        }
 
+        guard pagerHeightConstraint.constant != targetHeight else { return }
         pagerHeightConstraint.constant = targetHeight
         self.view.layoutIfNeeded()
     }
     
-    private func updateIndicatorPosition(progress: CGFloat, animated: Bool = false) {
-        guard let bioTitle = biographyButton.titleLabel?.text, let appTitle = appearanceButton.titleLabel?.text else { return }
-        
-        let font = Font.helveticaNeue(12)
-        let bioWidth = (bioTitle as NSString).size(withAttributes: [.font: font]).width
-        let appWidth = (appTitle as NSString).size(withAttributes: [.font: font]).width
-        
-        let currentWidth = bioWidth + (appWidth - bioWidth) * progress
-        indicatorWidthConstraint.constant = currentWidth
-        
-        let halfWidth = tabsContainer.bounds.width / 2.0
-        let center0 = halfWidth / 2.0
-        let center1 = halfWidth + (halfWidth / 2.0)
-        
-        indicatorCenterXConstraint.constant = (center1 - center0) * progress
-        
-        if animated {
-            UIView.animate(withDuration: 0.3) {
-                self.tabsContainer.layoutIfNeeded()
-            }
-        } else {
-            self.tabsContainer.layoutIfNeeded()
-        }
-    }
 }
 
 // UIScrollViewDelegate
 extension EditProfileNode: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager, scrollView.bounds.width > 0 else { return }
-        
-        let progress = scrollView.contentOffset.x / scrollView.bounds.width
-        updateIndicatorPosition(progress: progress)
+
+        let progress = scrollView.contentOffset.x / (scrollView.bounds.width + 32)
+        segmentedControl.setIndicatorProgress(progress)
     }
-    
+
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager else { return }
 
-        let page = Int(round(scrollView.contentOffset.x / scrollView.bounds.width))
+        let page = Int(round(scrollView.contentOffset.x / (scrollView.bounds.width + 32)))
         if selectedIndex != page {
             selectedIndex = page
-            updateTabsTextColor()
             updatePagerHeight()
+            segmentedControl.setSelectedIndex(page, animated: false)
         }
     }
 }
 
-
-// MARK: - Helpers
-
-private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldNode {
-    let field = TextFieldNode()
-    field.textField.font = Font.regular(16.0)
-    field.textField.textColor = .white
-    field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
-    field.textField.autocapitalizationType = .none
-    field.textField.autocorrectionType = .no
-    field.borderWidth = 1.0
-    field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
-    field.cornerRadius = 11.0
-    field.clipsToBounds = true
-    if isMultiline {
-        field.padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-    } else {
-        field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+// MARK: - UIGestureRecognizerDelegate
+extension EditProfileNode: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        if touch.view is UIControl {
+            return false
+        }
+        return true
     }
-    return field
+}
+
+// MARK: - GradientView
+
+private final class GradientView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
 }

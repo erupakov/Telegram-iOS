@@ -53,6 +53,24 @@ public enum DivoDesignTokens {
         public static let thumbRadius: CGFloat = 4
     }
 
+    // MARK: - PressState
+
+    /// Параметры press-state для интерактивных ячеек.
+    ///
+    /// Все тапабельные ячейки (фильтры, дропдауны, опции) должны давать визуальный отклик
+    /// при нажатии. Стандартный эффект — снижение alpha.
+    /// Применять через `UIView.addPressState()`.
+    public enum PressState {
+        /// 0.65 — alpha при нажатии для ячеек с непрозрачным фоном (FilterRowView).
+        public static let alpha: CGFloat = 0.65
+        /// 0.4 — alpha при нажатии для ячеек с прозрачным фоном (AppearanceFilterRowView, option cells).
+        public static let alphaOnClear: CGFloat = 0.4
+        /// 0.07s — длительность анимации нажатия.
+        public static let pressDuration: TimeInterval = 0.07
+        /// 0.25s — длительность анимации отпускания.
+        public static let releaseDuration: TimeInterval = 0.25
+    }
+
     // MARK: - Spacing
 
     /// Базовая шкала отступов DIVO.

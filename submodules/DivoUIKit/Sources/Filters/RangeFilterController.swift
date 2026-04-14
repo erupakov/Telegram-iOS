@@ -18,14 +18,17 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     private let filterTitle: String
     private let minValue: Double
     private let maxValue: Double
+    private let isSingleValue: Bool
+    private let isOpenPresent: Bool
+    private let isResetButton: Bool
 
-    public var onSave: ((Double, Double)?) -> Void
+    public var onSave: ((Double?, Double?) -> Void)?
 
     private let customNavBar = UIView()
 
-    private let closeButton: UIButton = {
+    private let backButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
 
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
@@ -47,10 +50,24 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         return button
     }()
 
+    private let closeCircleButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.backgroundColor = DivoColorPalette.cardBackground
+        button.layer.cornerRadius = 20
+        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
+        button.setImage(image, for: .normal)
+        button.tintColor = DivoColorPalette.primaryText
+
+        button.layer.applyDivoShadow()
+
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     private let titleLabel: UILabel = {
         let titleLabel = UILabel()
         titleLabel.font = Font.medium(16)
-        titleLabel.textColor = .black
+        titleLabel.textColor = DivoColorPalette.primaryText
         titleLabel.textAlignment = .center
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         return titleLabel
@@ -61,7 +78,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         saveButton.backgroundColor = DivoColorPalette.accent
         saveButton.layer.cornerRadius = DivoDesignTokens.Radius.pill
         saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
-        saveButton.tintColor = .white
+        saveButton.tintColor = DivoColorPalette.primaryTextOnDark
         saveButton.layer.applyDivoShadow()
         saveButton.translatesAutoresizingMaskIntoConstraints = false
         return saveButton
@@ -84,25 +101,43 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     private let deleteButton: UIButton = {
         let deleteButton = UIButton(type: .system)
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
-        deleteButton.setTitleColor(.white, for: .normal)
+        deleteButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
         deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
         deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         return deleteButton
     }()
-
-    public init(title: String, min: Double, max: Double, currentLower: Double?, currentUpper: Double?, onSave: @escaping ((Double, Double)?) -> Void) {
+    
+    public init(
+        title: String,
+        min: Double,
+        max: Double,
+        currentLower: Double?,
+        currentUpper: Double?,
+        isSingleValue: Bool = false,
+        isOpenPresent: Bool = false,
+        isResetButton: Bool = true
+    ) {
         self.filterTitle = title
         self.minValue = min
         self.maxValue = max
-        self.onSave = onSave
+        self.isSingleValue = isSingleValue
+        self.isOpenPresent = isOpenPresent
+        self.isResetButton = isResetButton
         super.init(nibName: nil, bundle: nil)
 
         self.rangeSlider.minimumValue = CGFloat(min)
         self.rangeSlider.maximumValue = CGFloat(max)
-        self.rangeSlider.lowerValue = CGFloat(currentLower ?? min)
-        self.rangeSlider.upperValue = CGFloat(currentUpper ?? max)
+        self.rangeSlider.isSingleSlider = isSingleValue
+        
+        if isSingleValue {
+            self.rangeSlider.upperValue = CGFloat(currentUpper ?? max)
+            self.rangeSlider.lowerValue = CGFloat(min)
+        } else {
+            self.rangeSlider.lowerValue = CGFloat(currentLower ?? min)
+            self.rangeSlider.upperValue = CGFloat(currentUpper ?? max)
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -116,50 +151,82 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         setupUI()
         updateTextFields()
 
-        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard)))
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
     }
 
     private func setupNavBar() {
         view.addSubview(customNavBar)
         customNavBar.translatesAutoresizingMaskIntoConstraints = false
 
-        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        closeButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        backButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        backButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         saveButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
         saveButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        
+        closeCircleButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        closeCircleButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        closeCircleButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
         titleLabel.text = filterTitle
 
-        customNavBar.addSubview(closeButton)
+        if isOpenPresent {
+            customNavBar.addSubview(closeCircleButton)
+        } else {
+            customNavBar.addSubview(backButton)
+        }
         customNavBar.addSubview(titleLabel)
         customNavBar.addSubview(saveButton)
 
-        NSLayoutConstraint.activate([
-            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
-            customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            customNavBar.heightAnchor.constraint(equalToConstant: 50),
-
-            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-            closeButton.heightAnchor.constraint(equalToConstant: 40),
-
-            titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-
-            saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-            saveButton.widthAnchor.constraint(equalToConstant: 40),
-            saveButton.heightAnchor.constraint(equalToConstant: 40)
-        ])
+        if isOpenPresent {
+            NSLayoutConstraint.activate([
+                customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
+                customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                customNavBar.heightAnchor.constraint(equalToConstant: 50),
+                
+                closeCircleButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                closeCircleButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+                closeCircleButton.heightAnchor.constraint(equalToConstant: 40),
+                closeCircleButton.widthAnchor.constraint(equalToConstant: 40),
+                
+                titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
+                titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+                
+                saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+                saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+                saveButton.widthAnchor.constraint(equalToConstant: 40),
+                saveButton.heightAnchor.constraint(equalToConstant: 40),
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
+                customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                customNavBar.heightAnchor.constraint(equalToConstant: 50),
+                
+                backButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                backButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+                backButton.heightAnchor.constraint(equalToConstant: 40),
+                
+                titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
+                titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+                
+                saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+                saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
+                saveButton.widthAnchor.constraint(equalToConstant: 40),
+                saveButton.heightAnchor.constraint(equalToConstant: 40),
+            ])
+        }
     }
-
+    
     private func setupUI() {
         let container = UIView()
-        container.backgroundColor = .white
+        container.backgroundColor = DivoColorPalette.cardBackground
         container.layer.cornerRadius = DivoDesignTokens.Radius.l
         container.clipsToBounds = true
         container.translatesAutoresizingMaskIntoConstraints = false
@@ -181,7 +248,10 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         container.addSubview(rangeSlider)
 
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
-        view.addSubview(deleteButton)
+
+        if isResetButton {
+            view.addSubview(deleteButton)
+        }
 
         NSLayoutConstraint.activate([
             container.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -201,16 +271,23 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             rangeSlider.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             rangeSlider.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             rangeSlider.heightAnchor.constraint(equalToConstant: 28),
-
-            deleteButton.topAnchor.constraint(equalTo: container.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
-            deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            deleteButton.heightAnchor.constraint(equalToConstant: 48)
         ])
+
+        if isResetButton {
+            NSLayoutConstraint.activate([
+                deleteButton.topAnchor.constraint(equalTo: container.bottomAnchor, constant: 32),
+                deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+                deleteButton.heightAnchor.constraint(equalToConstant: 48)
+            ])
+        }
+
+        minTextField.isHidden = isSingleValue
+        dashLabel.isHidden = isSingleValue
     }
 
     private func setupTextField(_ textField: UITextField) {
-        textField.backgroundColor = .white
+        textField.backgroundColor = DivoColorPalette.cardBackground
         textField.layer.cornerRadius = 23 // TODO: DS alignment — не в шкале Radius (border inset от card=24)
         textField.layer.borderWidth = 1
         textField.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.2).cgColor
@@ -224,29 +301,46 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
 
     // MARK: - Actions
 
+    @objc private func backTapped() {
+        navigationController?.popViewController(animated: true)
+    }
+
     @objc private func closeTapped() {
-        navigationController?.popViewController(animated: true)
+        navigationController?.dismiss(animated: true)
     }
-
+    
     @objc private func saveTapped() {
-        onSave((Double(rangeSlider.lowerValue), Double(rangeSlider.upperValue)))
-        navigationController?.popViewController(animated: true)
+        view.endEditing(true)
+        if isSingleValue {
+            onSave?(nil, Double(rangeSlider.upperValue))
+        } else {
+            onSave?(Double(rangeSlider.lowerValue), Double(rangeSlider.upperValue))
+        }
+        if isOpenPresent {
+            navigationController?.dismiss(animated: true)
+        } else {
+            navigationController?.popViewController(animated: true)
+        }
     }
-
+    
     @objc private func deleteTapped() {
-        onSave(nil)
+        onSave?(nil, nil)
         navigationController?.popViewController(animated: true)
     }
-
+    
     @objc private func sliderChanged() {
         updateTextFields()
     }
-
+    
     private func updateTextFields() {
-        minTextField.text = "\(Int(rangeSlider.lowerValue))"
-        maxTextField.text = "\(Int(rangeSlider.upperValue))"
+        if isSingleValue {
+            maxTextField.text = "\(Int(rangeSlider.upperValue))"
+        } else {
+            minTextField.text = "\(Int(rangeSlider.lowerValue))"
+            maxTextField.text = "\(Int(rangeSlider.upperValue))"
+        }
     }
-
+    
     @objc private func textFieldDidChange(_ textField: UITextField) {
         guard let text = textField.text, let value = Double(text) else { return }
 
@@ -255,6 +349,29 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         } else if textField == maxTextField {
             rangeSlider.upperValue = CGFloat(value)
         }
+    }
+
+    public func textFieldDidEndEditing(_ textField: UITextField) {
+        guard let text = textField.text, let enteredValue = Double(text) else {
+            updateTextFields()
+            return
+        }
+
+        let clampedValue = max(minValue, min(enteredValue, maxValue))
+
+        if textField == minTextField {
+            if clampedValue > Double(rangeSlider.upperValue) {
+                rangeSlider.upperValue = CGFloat(clampedValue)
+            }
+            rangeSlider.lowerValue = CGFloat(clampedValue)
+            
+        } else if textField == maxTextField {
+            if clampedValue < Double(rangeSlider.lowerValue) && !isSingleValue {
+                rangeSlider.lowerValue = CGFloat(clampedValue)
+            }
+            rangeSlider.upperValue = CGFloat(clampedValue)
+        }
+        updateTextFields()
     }
 
     @objc private func dismissKeyboard() {

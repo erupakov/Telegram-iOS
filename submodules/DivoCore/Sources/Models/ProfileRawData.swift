@@ -95,30 +95,30 @@ public struct Model: Codable {
 }
 
 public struct Appearance: Codable {
-    public let measuringSystem: String
-    public let height: Double
+    public let measuringSystem: String?
+    public let height: Double?
     public let weight: Double?
     public let breastSize: String?
-    public let waist: Double
-    public let hips: Double
-    public let shoesSize: Double
-    public let hairColor: Int
-    public let hairLength: Int
-    public let eyeColor: Int
-    public let skinColor: Int
+    public let waist: Double?
+    public let hips: Double?
+    public let shoesSize: Double?
+    public let hairColor: Int?
+    public let hairLength: Int?
+    public let eyeColor: Int?
+    public let skinColor: Int?
 
     public init(
-        measuringSystem: String,
-        height: Double,
+        measuringSystem: String?,
+        height: Double?,
         weight: Double?,
         breastSize: String?,
-        waist: Double,
-        hips: Double,
-        shoesSize: Double,
-        hairColor: Int,
-        hairLength: Int,
-        eyeColor: Int,
-        skinColor: Int
+        waist: Double?,
+        hips: Double?,
+        shoesSize: Double?,
+        hairColor: Int?,
+        hairLength: Int?,
+        eyeColor: Int?,
+        skinColor: Int?
     ) {
         self.measuringSystem = measuringSystem
         self.height = height

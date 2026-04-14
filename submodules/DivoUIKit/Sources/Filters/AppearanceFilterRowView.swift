@@ -79,6 +79,8 @@ public final class AppearanceFilterRowView: UIView {
             valueLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.m)
         ])
+
+        addPressState(alpha: DivoDesignTokens.PressState.alphaOnClear)
     }
 
     required init?(coder: NSCoder) { fatalError() }

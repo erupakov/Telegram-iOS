@@ -212,6 +212,7 @@ public enum DivoStrings {
     public static var ok: String { L(en: "OK", ru: "OK", es: "OK", pt: "OK", zh: "好的") }
     public static var cancel: String { L(en: "Cancel", ru: "Отмена", es: "Cancelar", pt: "Cancelar", zh: "取消") }
     public static var save: String { L(en: "Save", ru: "Сохранить", es: "Guardar", pt: "Salvar", zh: "保存") }
+    public static var saving: String { L(en: "Saving...", ru: "Сохранение...", es: "Guardando...", pt: "Salvando...", zh: "保存中...") }
     public static var nextStep: String { L(en: "Next Step", ru: "Следующий шаг", es: "Siguiente Paso", pt: "Próximo Passo", zh: "下一步") }
     public static var delete: String { L(en: "Delete", ru: "Удалить", es: "Eliminar", pt: "Excluir", zh: "删除") }
     public static var edit: String { L(en: "Edit", ru: "Редактировать", es: "Editar", pt: "Editar", zh: "编辑") }
@@ -221,6 +222,7 @@ public enum DivoStrings {
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...") }
     public static var continueButton: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }
+    public static var notSet: String { L(en: "Not set", ru: "Не задано", es: "No establecido", pt: "Não definido", zh: "未设置") }
 
     public static func xOfY(_ x: Int, _ y: Int) -> String {
         L(en: "\(x) of \(y)", ru: "\(x) из \(y)", es: "\(x) de \(y)", pt: "\(x) de \(y)", zh: "\(x) / \(y)")
@@ -229,7 +231,7 @@ public enum DivoStrings {
     // MARK: - Profile
 
     public static var myProfile: String { L(en: "MY PROFILE", ru: "МОЙ ПРОФИЛЬ", es: "MI PERFIL", pt: "MEU PERFIL", zh: "我的个人资料") }
-    public static var agencyProfile: String { L(en: "AGENCY PROFILE", ru: "ПРОФИЛЬ АГЕНТСТВА", es: "PERFIL DE AGENCIA", pt: "PERFIL DA AGÊNCIA", zh: "经纪公司资料") }
+    public static var agencyProfile: String { L(en: "My Agency Profile", ru: "Мой профиль агентства", es: "Mi perfil de agencia", pt: "Meu perfil de agência", zh: "我的机构资料") }
     public static var noBiography: String { L(en: "No biography", ru: "Нет биографии", es: "Sin biografía", pt: "Sem biografia", zh: "暂无简介") }
     public static var fillInInfoAboutYou: String { L(en: "Fill in the information about you", ru: "Заполните информацию о себе", es: "Complete la información sobre usted", pt: "Preencha as informações sobre você", zh: "请填写您的信息") }
     public static var fillInInfoAboutAgency: String { L(en: "Fill in the information about the agency", ru: "Заполните информацию об агентстве", es: "Complete la información sobre la agencia", pt: "Preencha as informações sobre a agência", zh: "请填写经纪公司信息") }
@@ -238,6 +240,8 @@ public enum DivoStrings {
     public static var description_: String { L(en: "DESCRIPTION", ru: "ОПИСАНИЕ", es: "DESCRIPCIÓN", pt: "DESCRIÇÃO", zh: "描述") }
     public static var descriptionTitle: String { L(en: "Description", ru: "Описание", es: "Descripción", pt: "Descrição", zh: "描述") }
     public static var appearance: String { L(en: "APPEARANCE", ru: "ВНЕШНОСТЬ", es: "APARIENCIA", pt: "APARÊNCIA", zh: "外貌") }
+    public static var appearanceTitle: String { L(en: "Appearance", ru: "Внешность", es: "Apariencia", pt: "Aparência", zh: "外貌") }
+    public static var experienceTitle: String { L(en: "Experience", ru: "Опыт", es: "Experiencia", pt: "Experiência", zh: "经验") }
     public static var seeMore: String { L(en: "SEE MORE", ru: "ПОКАЗАТЬ ЕЩЁ", es: "VER MÁS", pt: "VER MAIS", zh: "查看更多") }
     public static var seeLess: String { L(en: "SEE LESS", ru: "СВЕРНУТЬ", es: "VER MENOS", pt: "VER MENOS", zh: "收起") }
     public static var editLinks: String { L(en: "EDIT LINKS", ru: "РЕД. ССЫЛКИ", es: "EDITAR ENLACES", pt: "EDITAR LINKS", zh: "编辑链接") }
@@ -245,7 +249,9 @@ public enum DivoStrings {
     public static var editSocialLinks: String { L(en: "EDIT SOCIAL LINKS", ru: "РЕДАКТИРОВАТЬ ССЫЛКИ", es: "EDITAR REDES SOCIALES", pt: "EDITAR REDES SOCIAIS", zh: "编辑社交链接") }
     public static var enterYourWebsite: String { L(en: "Enter your website", ru: "Введите ваш сайт", es: "Ingrese su sitio web", pt: "Insira seu site", zh: "输入您的网站") }
     public static var socialLinksUpdated: String { L(en: "Social links updated", ru: "Ссылки обновлены", es: "Enlaces actualizados", pt: "Links atualizados", zh: "社交链接已更新") }
+    public static var failedLinksUpdated: String { L(en: "Couldn't update social links", ru: "Не удалось обновить ссылки на соцсети", es: "No se pudieron actualizar los enlaces sociales", pt: "Não foi possível atualizar os links sociais", zh: "无法更新社交链接") }
     public static var profileUpdated: String { L(en: "Profile updated", ru: "Профиль обновлён", es: "Perfil actualizado", pt: "Perfil atualizado", zh: "个人资料已更新") }
+    public static var failedProfileUpdated: String { L(en: "Couldn't update profile", ru: "Не удалось обновить профиль", es: "No se pudo actualizar el perfil", pt: "Não foi possível atualizar o perfil", zh: "无法更新个人资料") }
     public static var failedToLoadAppearance: String { L(en: "Failed to load appearance options.", ru: "Не удалось загрузить параметры внешности.", es: "Error al cargar las opciones de apariencia.", pt: "Falha ao carregar as opções de aparência.", zh: "无法加载外观选项。") }
     public static var failedToUploadPhoto: String { L(en: "Failed to upload photo", ru: "Не удалось загрузить фото", es: "Error al subir la foto", pt: "Falha ao enviar a foto", zh: "上传照片失败") }
     public static var similarProfiles: String { L(en: "You may be interested in similar profiles", ru: "Вам могут быть интересны похожие профили", es: "Perfiles similares que podrían interesarle", pt: "Perfis semelhantes que podem interessar", zh: "您可能感兴趣的类似资料") }
