@@ -1,7 +1,6 @@
 import Display
 import UIKit
 import AsyncDisplayKit
-import TelegramCore
 import DivoCore
 import SwiftSignalKit
 import TelegramPresentationData
@@ -14,7 +13,7 @@ import AppBundle
 import ItemListUI
 import DivoUIKit
 
-private struct AppearanceFilterItem {
+private struct AppearanceEditItem {
     let title: String
     let getValues: () -> [String]
     let emptyTitle: String
@@ -26,7 +25,6 @@ final class EditProfileNode: ASDisplayNode {
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
     private let model: UserDetail?
-    var showAlert: ((String) -> Void)?
     
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
@@ -54,7 +52,7 @@ final class EditProfileNode: ASDisplayNode {
     var onBackTapped: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
     
-    var currentFilters: FilterState
+    var currentEditState: EditState
     
     private let topBarContainer: UIView = {
         let view = UIView()
@@ -66,7 +64,7 @@ final class EditProfileNode: ASDisplayNode {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(20)
-        label.textColor = UIColor(hexString: "#222222")
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -74,18 +72,16 @@ final class EditProfileNode: ASDisplayNode {
     
     private let backButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
-        button.layer.cornerRadius = 20
+        button.backgroundColor = DivoColorPalette.cardBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         let image = UIImage(systemName: "chevron.left", withConfiguration: config)
         button.setImage(image, for: .normal)
-        button.tintColor = UIColor(hexString: "#222222")
+        button.tintColor = DivoColorPalette.primaryText
 
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.08
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = 12
+        button.layer.applyDivoShadow()
+
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -117,12 +113,9 @@ final class EditProfileNode: ASDisplayNode {
     
     private let tabsContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 16
-        view.layer.shadowColor = UIColor.black.cgColor
-        view.layer.shadowOpacity = 0.05
-        view.layer.shadowOffset = CGSize(width: 0, height: 2)
-        view.layer.shadowRadius = 8
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
+        view.layer.applyDivoShadow()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -131,7 +124,7 @@ final class EditProfileNode: ASDisplayNode {
         let button = UIButton(type: .system)
         button.setTitle(title.uppercased(), for: .normal)
         button.titleLabel?.font = Font.helveticaNeue(10)
-        button.setTitleColor(UIColor(hexString: "#222222"), for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }
@@ -151,7 +144,7 @@ final class EditProfileNode: ASDisplayNode {
     
     private let indicatorView: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(hexString: "#F0F0F0")
+        view.backgroundColor = DivoColorPalette.screenBackground
         view.layer.cornerRadius = 14
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -179,7 +172,7 @@ final class EditProfileNode: ASDisplayNode {
     private let bioStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 16
+        stack.spacing = DivoDesignTokens.Spacing.m
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
@@ -188,7 +181,7 @@ final class EditProfileNode: ASDisplayNode {
     private let appearanceStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 16
+        stack.spacing = DivoDesignTokens.Spacing.m
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -196,7 +189,7 @@ final class EditProfileNode: ASDisplayNode {
     private let experienceStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 16
+        stack.spacing = DivoDesignTokens.Spacing.m
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -209,9 +202,19 @@ final class EditProfileNode: ASDisplayNode {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 50
-        iv.layer.borderColor = UIColor.white.cgColor
+        iv.layer.borderColor = DivoColorPalette.cardBackground.cgColor
         iv.layer.borderWidth = 1.0
-        iv.backgroundColor = .systemGray
+        iv.backgroundColor = DivoColorPalette.cardBackground
+        iv.isUserInteractionEnabled = true
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let avatarImageSpinnerView: UIView = {
+        let iv = UIView()
+        iv.clipsToBounds = true
+        iv.layer.cornerRadius = 50
+        iv.backgroundColor = DivoColorPalette.cardBackground
         iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -219,17 +222,13 @@ final class EditProfileNode: ASDisplayNode {
     
     private let chancePhotoView: UIButton = {
         let button = UIButton(type: .custom)
-// <<<<<<< HEAD
-//         button.backgroundColor = .white
-// =======
-        button.backgroundColor = DivoColorPalette.accentSecondary
-// >>>>>>> dev
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.translatesAutoresizingMaskIntoConstraints = false
         let image = UIImage(bundleImageName: "Components/AddPhotoIcon")
         button.setImage(image, for: .normal)
-        button.tintColor = UIColor(hexString: "#FF772D")
-        button.layer.cornerRadius = 16
-        button.layer.borderColor = UIColor(hexString: "#FF772D")?.cgColor
+        button.tintColor = DivoColorPalette.accent
+        button.layer.cornerRadius = DivoDesignTokens.Radius.l
+        button.layer.borderColor = DivoColorPalette.accent.cgColor
         button.layer.borderWidth = 1
         button.layer.masksToBounds = true
         let padding: CGFloat = 4
@@ -238,13 +237,7 @@ final class EditProfileNode: ASDisplayNode {
         return button
     }()
     
-    private let avatarSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        return spinner
-    }()
+    private let avatarSpinner = DivoSegmentedSpinner()
     
     private let nameEventTextField: DivoTextField
     private let aboutEventTextField: DivoTextView
@@ -264,8 +257,8 @@ final class EditProfileNode: ASDisplayNode {
     
     private let appearanceBackgroundView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 16
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -300,10 +293,10 @@ final class EditProfileNode: ASDisplayNode {
     private let applyButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle(DivoStrings.save, for: .normal)
-        btn.setTitleColor(.white, for: .normal)
-        btn.setTitleColor(UIColor(hexString: "#AFAFB1"), for: .disabled)
+        btn.setTitleColor(DivoColorPalette.cardBackground, for: .normal)
+        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
-        btn.backgroundColor = UIColor(hexString: "#FF772D")
+        btn.backgroundColor = DivoColorPalette.accent
         btn.layer.cornerRadius = 28
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
@@ -313,7 +306,7 @@ final class EditProfileNode: ASDisplayNode {
     
     private let applyButtonSpinner: UIActivityIndicatorView = {
         let spinner = UIActivityIndicatorView(style: .medium)
-        spinner.color = .white
+        spinner.color = DivoColorPalette.cardBackground
         spinner.hidesWhenStopped = true
         spinner.translatesAutoresizingMaskIntoConstraints = false
         return spinner
@@ -326,11 +319,15 @@ final class EditProfileNode: ASDisplayNode {
         }
     }
     
-    private var appearanceFilterItems: [AppearanceFilterItem] = []
+    private var appearanceEditItems: [AppearanceEditItem] = []
     
-    private let bottomBlurOverlay: GradientBlurView = {
-        let view = GradientBlurView(isTop: false)
-        view.isHidden = false
+    private let bottomBlurOverlay: DivoGlassBlurView = {
+        let view = DivoGlassBlurView(
+            direction: .bottom,
+            blurStyle: .systemUltraThinMaterialLight,
+            falloff: .linear
+        )
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
@@ -339,8 +336,8 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Init
     
-    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?, currentFilters: FilterState) {
-        self.currentFilters = currentFilters
+    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?, currentEditState: EditState) {
+        self.currentEditState = currentEditState
         self.context = context
         self.model = model
         
@@ -367,96 +364,15 @@ final class EditProfileNode: ASDisplayNode {
         self.nameEventTextField.textField.attributedPlaceholder = NSAttributedString(
             string: placeholder,
             font: Font.regular(16),
-            textColor: UIColor(hexString: "#222222")?.withAlphaComponent(0.4) ?? .black.withAlphaComponent(0.4)
+            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
         self.nameEventTextField.isUserInteractionEnabled = (model?.role == "agency_employee") ? false : true
         
         self.aboutEventTextField = DivoTextView(title: bioTitle, initialText: bio)
 
-// <<<<<<< HEAD
-// =======
-//         let currentGender = model?.gender?.title ?? DivoStrings.loading
-//         self.genderDropdown = DropdownNode(title: DivoStrings.gender, placeholder: DivoStrings.selectGender, options: [currentGender])
-//         self.genderDropdown.selectedValue = self.model?.gender?.title
-        
-//         self.ageSlider = AgeSliderNode<Int>(
-//             title: DivoStrings.ageYo,
-//             type: "y.o",
-//             mode: .single(value: 17),
-//             minimumValue: 14,
-//             maximumValue: 45,
-//             configuration: .default
-//         )
-
-//         self.heightSlider = AgeSliderNode<Double>(
-//             title: DivoStrings.heightCm,
-//             type: "cm",
-//             mode: .single(value: Float(model?.model?.appearance?.height ?? 1.68)),
-//             minimumValue: 1.68,
-//             maximumValue: 2.50,
-//             configuration: .default
-//         )
-
-//         self.weightSlider = AgeSliderNode<Double>(
-//             title: DivoStrings.weightKg,
-//             type: "kg",
-//             mode: .single(value: Float(model?.model?.appearance?.weight ?? 50)),
-//             minimumValue: 48,
-//             maximumValue: 90,
-//             configuration: .default
-//         )
-
-//         self.waistSlider = AgeSliderNode<Double>(
-//             title: DivoStrings.waistCm,
-//             type: "cm",
-//             mode: .single(value: Float(model?.model?.appearance?.waist ?? 60)),
-//             minimumValue: 48,
-//             maximumValue: 90,
-//             configuration: .default
-//         )
-
-//         self.hipsSlider = AgeSliderNode<Double>(
-//             title: DivoStrings.hipsCm,
-//             type: "cm",
-//             mode: .single(value: Float(model?.model?.appearance?.hips ?? 91)),
-//             minimumValue: 80,
-//             maximumValue: 110,
-//             configuration: .default
-//         )
-
-//         self.shoeSizeSlider = AgeSliderNode<Double>(
-//             title: DivoStrings.shoeSizeEU,
-//             type: "",
-//             mode: .single(value: Float(model?.model?.appearance?.shoesSize ?? 37)),
-//             minimumValue: 36,
-//             maximumValue: 42,
-//             configuration: .default
-//         )
-
-//         let currentHairLength = model?.model?.appearance?.hairLength?.title ?? DivoStrings.loading
-//         let currentHairColor = model?.model?.appearance?.hairColor?.title ?? DivoStrings.loading
-//         let currentEyeColor = model?.model?.appearance?.eyeColor?.title ?? DivoStrings.loading
-//         let currentSkinColor = model?.model?.appearance?.skinColor?.title ?? DivoStrings.loading
-
-//         self.hairLengthDropdown = DropdownNode(title: DivoStrings.hairLength, placeholder: DivoStrings.chooseHairLength, options: [currentHairLength])
-//         self.hairColorDropdown = DropdownNode(title: DivoStrings.hairColor, placeholder: DivoStrings.chooseHairColor, options: [currentHairColor])
-//         self.eyeColorDropdown = DropdownNode(title: DivoStrings.eyeColor, placeholder: DivoStrings.chooseEyeColor, options: [currentEyeColor])
-//         self.skinColorDropdown = DropdownNode(title: DivoStrings.skinColor, placeholder: DivoStrings.chooseSkinColor, options: [currentSkinColor])
-        
-//         self.hairLengthDropdown.selectedValue = model?.model?.appearance?.hairLength?.title
-//         self.hairColorDropdown.selectedValue = model?.model?.appearance?.hairColor?.title
-//         self.eyeColorDropdown.selectedValue = model?.model?.appearance?.eyeColor?.title
-//         self.skinColorDropdown.selectedValue = model?.model?.appearance?.skinColor?.title
-        
-//         self.applyButton = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-//         self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
-//         self.applyButtonAppearance = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-//         self.applyButtonAppearance.backgroundColor = DivoColorPalette.accentCopperWarm
-        
-// >>>>>>> dev
         super.init()
         
-        self.backgroundColor = UIColor(hexString: "#F0F0F0")
+        self.backgroundColor = DivoColorPalette.screenBackground
 
         if let app = model?.model?.appearance {
             self.selectedHeight = Double(app.height ?? 1)
@@ -478,11 +394,7 @@ final class EditProfileNode: ASDisplayNode {
         self.selectedGenderTitle = model?.gender?.title
         self.selectedAge = calculateAge(from: model?.birthday ?? "")
         
-// <<<<<<< HEAD
-        setupAppearanceFilterItems()
-// =======
-        self.backgroundColor = DivoColorPalette.darkBackground
-// >>>>>>> dev
+        setupAppearanceEditItems()
     }
     
     override func didLoad() {
@@ -490,26 +402,8 @@ final class EditProfileNode: ASDisplayNode {
         setupUI()
         
         updateDropdownsUI()
-        
-        backButton.addTarget(self, action: #selector(backPressed), for: .touchUpInside)
-        backButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        backButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        
-        let avatarTapGesture = UITapGestureRecognizer(target: self, action: #selector(self.avatarTapped))
-        self.avatarImageView.addGestureRecognizer(avatarTapGesture)
-        
-        self.biographyButton.addTarget(self, action: #selector(biographyTapped), for: .touchUpInside)
-        self.appearanceButton.addTarget(self, action: #selector(appearanceTapped), for: .touchUpInside)
-        self.experienceButton.addTarget(self, action: #selector(experienceTapped), for: .touchUpInside)
+        setupInteractions()
 
-        if model?.role == "agency_employee" {
-            self.applyButton.addTarget(self, action: #selector(self.saveAgencyButtonPressed), for: .touchUpInside)
-        } else {
-            self.applyButton.addTarget(self, action: #selector(self.saveButtonPressed), for: .touchUpInside)
-        }
-
-        self.chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
-        
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         dismissTap.cancelsTouchesInView = false
         dismissTap.delegate = self
@@ -534,6 +428,27 @@ final class EditProfileNode: ASDisplayNode {
         }
         
         updateAppearanceValues()
+    }
+
+    private func setupInteractions() {
+        biographyButton.addTarget(self, action: #selector(biographyTapped), for: .touchUpInside)
+        appearanceButton.addTarget(self, action: #selector(appearanceTapped), for: .touchUpInside)
+        experienceButton.addTarget(self, action: #selector(experienceTapped), for: .touchUpInside)
+
+        if model?.role == "agency_employee" {
+            applyButton.addTarget(self, action: #selector(self.saveAgencyButtonPressed), for: .touchUpInside)
+        } else {
+            applyButton.addTarget(self, action: #selector(self.saveButtonPressed), for: .touchUpInside)
+        }
+
+        chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
+        
+        backButton.addTarget(self, action: #selector(backPressed), for: .touchUpInside)
+
+        for button in [backButton, applyButton, chancePhotoView] {
+            button.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+            button.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        }
     }
         
     private func getAppearanceId(for title: String?, in list: [AppearanceOption]?) -> Int {
@@ -572,7 +487,7 @@ final class EditProfileNode: ASDisplayNode {
             topBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topBarContainer.heightAnchor.constraint(equalToConstant: 50),
             
-            backButton.leadingAnchor.constraint(equalTo: topBarContainer.leadingAnchor, constant: 16),
+            backButton.leadingAnchor.constraint(equalTo: topBarContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             backButton.centerYAnchor.constraint(equalTo: topBarContainer.centerYAnchor),
             backButton.widthAnchor.constraint(equalToConstant: 40),
             backButton.heightAnchor.constraint(equalToConstant: 40),
@@ -615,8 +530,8 @@ final class EditProfileNode: ASDisplayNode {
         
         NSLayoutConstraint.activate([
             
-            tabsContainer.leadingAnchor.constraint(equalTo: mainStackView.leadingAnchor, constant: 16),
-            tabsContainer.trailingAnchor.constraint(equalTo: mainStackView.trailingAnchor, constant: -16),
+            tabsContainer.leadingAnchor.constraint(equalTo: mainStackView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            tabsContainer.trailingAnchor.constraint(equalTo: mainStackView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
             tabButtonsStack.topAnchor.constraint(equalTo: tabsContainer.topAnchor),
             tabButtonsStack.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor),
@@ -685,8 +600,8 @@ final class EditProfileNode: ASDisplayNode {
         NSLayoutConstraint.activate([
             contentWidthView.topAnchor.constraint(equalTo: horizontalPager.topAnchor),
             contentWidthView.bottomAnchor.constraint(equalTo: horizontalPager.bottomAnchor),
-            contentWidthView.leadingAnchor.constraint(equalTo: horizontalPager.leadingAnchor, constant: 16),
-            contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor, constant: -16),
+            contentWidthView.leadingAnchor.constraint(equalTo: horizontalPager.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             contentWidthView.heightAnchor.constraint(equalTo: horizontalPager.heightAnchor),
             
             bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor),
@@ -702,8 +617,12 @@ final class EditProfileNode: ASDisplayNode {
         let avatarContainer = UIView()
         avatarContainer.translatesAutoresizingMaskIntoConstraints = false
         avatarContainer.addSubview(avatarImageView)
+        avatarContainer.addSubview(avatarImageSpinnerView)
         avatarContainer.addSubview(chancePhotoView)
+        avatarSpinner.translatesAutoresizingMaskIntoConstraints = false
         avatarContainer.addSubview(avatarSpinner)
+        avatarSpinner.isHidden = true
+
         
         NSLayoutConstraint.activate([
             avatarContainer.heightAnchor.constraint(equalToConstant: 120),
@@ -713,13 +632,20 @@ final class EditProfileNode: ASDisplayNode {
             avatarImageView.widthAnchor.constraint(equalToConstant: 100),
             avatarImageView.heightAnchor.constraint(equalToConstant: 100),
 
+            avatarImageSpinnerView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
+            avatarImageSpinnerView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
+            avatarImageSpinnerView.widthAnchor.constraint(equalToConstant: 100),
+            avatarImageSpinnerView.heightAnchor.constraint(equalToConstant: 100),
+
             chancePhotoView.trailingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 4),
             chancePhotoView.bottomAnchor.constraint(equalTo: avatarImageView.bottomAnchor),
             chancePhotoView.widthAnchor.constraint(equalToConstant: 32),
             chancePhotoView.heightAnchor.constraint(equalToConstant: 32),
             
             avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
-            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor)
+            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
+            avatarSpinner.widthAnchor.constraint(equalToConstant: 32),
+            avatarSpinner.heightAnchor.constraint(equalToConstant: 32),
         ])
         
         bioStackView.addArrangedSubview(avatarContainer)
@@ -754,8 +680,8 @@ final class EditProfileNode: ASDisplayNode {
 
         NSLayoutConstraint.activate([
             buttonBottomCns,
-            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             applyButtonSpinner.centerXAnchor.constraint(equalTo: applyButton.centerXAnchor),
             applyButtonSpinner.centerYAnchor.constraint(equalTo: applyButton.centerYAnchor),
             
@@ -800,8 +726,8 @@ final class EditProfileNode: ASDisplayNode {
     private func reloadAppearanceOptions() {
         appearanceContainerStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
-        for (index, item) in appearanceFilterItems.enumerated() {
-            let isLast = index == appearanceFilterItems.count - 1
+        for (index, item) in appearanceEditItems.enumerated() {
+            let isLast = index == appearanceEditItems.count - 1
             let cell = AppearanceFilterRowView(title: item.title, isLast: isLast)
             cell.setItems(item.getValues(), emptyTitle: "Not set")
             
@@ -812,64 +738,64 @@ final class EditProfileNode: ASDisplayNode {
         }
     }
     
-    private func setupAppearanceFilterItems() {
-        appearanceFilterItems = [
-            AppearanceFilterItem(
+    private func setupAppearanceEditItems() {
+        appearanceEditItems = [
+            AppearanceEditItem(
                 title: DivoStrings.ageYo,
                 getValues: { [weak self] in self?.selectedAge.map {["\($0)"] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.ageYo, unit: "y.o.", min: 14, max: 100, current: self?.selectedAge.map{Double($0)}) { val in
+                    self?.showSingleInput(title: DivoStrings.ageYo, min: 14, max: 100, current: self?.selectedAge.map{Double($0)}) { val in
                         self?.selectedAge = val.map { Int($0) }
                     }
                 }
             ),
-            AppearanceFilterItem(
+            AppearanceEditItem(
                 title: DivoStrings.heightCm,
                 getValues: { [weak self] in self?.selectedHeight.map { ["\(Int($0)) cm"] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.heightCm, unit: "cm", min: 100, max: 300, current: self?.selectedHeight) { val in
+                    self?.showSingleInput(title: DivoStrings.heightCm, min: 100, max: 300, current: self?.selectedHeight) { val in
                         self?.selectedHeight = val
                     }
                 }
             ),
-            AppearanceFilterItem(
+            AppearanceEditItem(
                 title: DivoStrings.weightKg,
                 getValues: { [weak self] in self?.selectedWeight.map { ["\(Int($0)) kg"] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: {[weak self] in
-                    self?.showSingleInput(title: DivoStrings.weightKg, unit: "kg", min: 30, max: 150, current: self?.selectedWeight) { val in
+                    self?.showSingleInput(title: DivoStrings.weightKg, min: 30, max: 150, current: self?.selectedWeight) { val in
                         self?.selectedWeight = val
                     }
                 }
             ),
-            AppearanceFilterItem(
+            AppearanceEditItem(
                 title: DivoStrings.waistCm,
                 getValues: { [weak self] in self?.selectedWaist.map { ["\(Int($0)) cm"] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.waistCm, unit: "cm", min: 40, max: 120, current: self?.selectedWaist) { val in
+                    self?.showSingleInput(title: DivoStrings.waistCm, min: 40, max: 120, current: self?.selectedWaist) { val in
                         self?.selectedWaist = val
                     }
                 }
             ),
-            AppearanceFilterItem(
+            AppearanceEditItem(
                 title: DivoStrings.hipsCm,
                 getValues: { [weak self] in self?.selectedHips.map { ["\(Int($0)) cm"] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.hipsCm, unit: "cm", min: 60, max: 150, current: self?.selectedHips) { val in
+                    self?.showSingleInput(title: DivoStrings.hipsCm, min: 60, max: 150, current: self?.selectedHips) { val in
                         self?.selectedHips = val
                     }
                 }
             ),
-            AppearanceFilterItem(
+            AppearanceEditItem(
                 title: DivoStrings.shoeSizeEU,
                 getValues: {[weak self] in self?.selectedShoeSize.map { ["\(Int($0))"] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.shoeSizeEU, unit: "", min: 30, max: 50, current: self?.selectedShoeSize) { val in
+                    self?.showSingleInput(title: DivoStrings.shoeSizeEU, min: 30, max: 50, current: self?.selectedShoeSize) { val in
                         self?.selectedShoeSize = val
                     }
                 }
@@ -878,7 +804,7 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     private func updateAppearanceValues() {
-        for (index, item) in appearanceFilterItems.enumerated() {
+        for (index, item) in appearanceEditItems.enumerated() {
             if let cell = appearanceContainerStack.arrangedSubviews[safe: index] as? AppearanceFilterRowView {
                 cell.setItems(item.getValues(), emptyTitle: "Not set")
             }
@@ -895,13 +821,17 @@ final class EditProfileNode: ASDisplayNode {
     private func loadAvatarIfNeeded() {
         guard let avatarURL = CDNURLHelper.convertToCDNURL(model?.avatar?.fullUrl) else { return }
         avatarSpinner.startAnimating()
-        avatarImageView.alpha = 0.5
+        avatarSpinner.isHidden = false
+        avatarImageView.alpha = 0.0
+        avatarImageSpinnerView.isHidden = false
         ImageLoader.shared.load(url: avatarURL) { [weak self] image in
             guard let self else { return }
             self.avatarSpinner.stopAnimating()
+            avatarSpinner.isHidden = true
             self.avatarImageView.alpha = 1.0
             if let image {
                 self.avatarImageView.image = image
+                avatarImageSpinnerView.isHidden = true
                 self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
             }
         }
@@ -935,12 +865,11 @@ final class EditProfileNode: ASDisplayNode {
         presentSheet(vc)
     }
     
-    private func showSingleInput(title: String, unit: String, min: Double, max: Double, current: Double?, completion: @escaping (Double?) -> Void) {
+    private func showSingleInput(title: String, min: Double, max: Double, current: Double?, completion: @escaping (Double?) -> Void) {
         let vc = RangeFilterController(
             title: title,
             min: min,
             max: max,
-            unit: unit,
             currentLower: nil,
             currentUpper: current,
             isSingleValue: true,
@@ -963,7 +892,7 @@ final class EditProfileNode: ASDisplayNode {
             if let sheet = nav.sheetPresentationController {
                 sheet.detents = [.large()]
                 sheet.prefersGrabberVisible = true
-                sheet.preferredCornerRadius = 24
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
             }
         }
         presentController?(nav)
@@ -980,10 +909,14 @@ final class EditProfileNode: ASDisplayNode {
     func setAvatarLoading(_ loading: Bool) {
         if loading {
             avatarSpinner.startAnimating()
-            avatarImageView.alpha = 0.5
+            avatarSpinner.isHidden = false
+            avatarImageView.alpha = 0.0
+            avatarImageSpinnerView.isHidden = false
         } else {
             avatarSpinner.stopAnimating()
+            avatarSpinner.isHidden = true
             avatarImageView.alpha = 1.0
+            avatarImageSpinnerView.isHidden = true
         }
     }
 
@@ -1027,8 +960,8 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     @objc private func appearanceCellTapped(_ gesture: UITapGestureRecognizer) {
-        guard let view = gesture.view, view.tag < appearanceFilterItems.count else { return }
-        appearanceFilterItems[view.tag].onTap()
+        guard let view = gesture.view, view.tag < appearanceEditItems.count else { return }
+        appearanceEditItems[view.tag].onTap()
     }
     
     @objc private func dismissKeyboard() {
@@ -1044,7 +977,7 @@ final class EditProfileNode: ASDisplayNode {
         scrollView.contentInset.bottom = keyboardHeight + 90
         scrollView.verticalScrollIndicatorInsets.bottom = keyboardHeight + 90
         
-        applyButtonBottomConstraint?.constant = -(keyboardHeight + 16)
+        applyButtonBottomConstraint?.constant = -(keyboardHeight + DivoDesignTokens.Spacing.m)
         bottomBlurOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
         
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
@@ -1071,6 +1004,7 @@ final class EditProfileNode: ASDisplayNode {
 
     @objc private func avatarTapped() {
         print("Change photo")
+        self.view.endEditing(true)
         onAvatarTap?()
     }
     
@@ -1215,6 +1149,29 @@ final class EditProfileNode: ASDisplayNode {
             self?.updateDropdownsUI()
         }
     }
+
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: 16,
+            bottomAnchor: applyButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
+    }
 }
 
 
@@ -1223,7 +1180,7 @@ extension EditProfileNode: UITextFieldDelegate {
     
     func textFieldDidBeginEditing(_ textField: UITextField) {
         textField.layer.borderWidth = 1.0
-        textField.layer.borderColor = UIColor(hexString: "#FF772D")?.cgColor
+        textField.layer.borderColor = DivoColorPalette.accent.cgColor
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
@@ -1314,7 +1271,6 @@ extension EditProfileNode: UIScrollViewDelegate {
     }
 }
 
-// <<<<<<< HEAD
 // MARK: - UIGestureRecognizerDelegate
 extension EditProfileNode: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
@@ -1322,26 +1278,5 @@ extension EditProfileNode: UIGestureRecognizerDelegate {
             return false
         }
         return true
-// =======
-
-// // MARK: - Helpers
-
-// private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldNode {
-//     let field = TextFieldNode()
-//     field.textField.font = Font.regular(16.0)
-//     field.textField.textColor = .white
-//     field.textField.textAlignment = .natural
-//     field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.overlayDarkFieldBorder)
-//     field.textField.autocapitalizationType = .none
-//     field.textField.autocorrectionType = .no
-//     field.borderWidth = 1.0
-//     field.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
-//     field.cornerRadius = 11.0
-//     field.clipsToBounds = true
-//     if isMultiline {
-//         field.padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-//     } else {
-//         field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
-// >>>>>>> dev
     }
 }

@@ -34,7 +34,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     private var presentationDataDisposable: Any?
     private let userDetailData: UserDetail?
     private let updatePhoto: (UIImage?) -> Void
-    private var currentFilters = FilterState()
+    private var currentEditState = EditState()
 
     weak var delegate: EditProfileDelegate?
     
@@ -45,24 +45,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         
         self.presentationData = presentationData
         
-// <<<<<<< HEAD
         super.init(navigationBarPresentationData: nil)
-// =======
-//         let darkNavigationTheme = NavigationBarTheme(
-//             overallDarkAppearance: true,
-//             buttonColor: .white,
-//             disabledButtonColor: DivoColorPalette.disabledButtonBackground,
-//             primaryTextColor: .white,
-//             backgroundColor: .clear,
-//             opaqueBackgroundColor: .clear,
-//             enableBackgroundBlur: false,
-//             separatorColor: .clear,
-//             badgeBackgroundColor: .clear,
-//             badgeStrokeColor: .clear,
-//             badgeTextColor: .clear)
-        
-//         let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
-// >>>>>>> dev
 
         self.presentationDataDisposable = (context.sharedContext.presentationData
                                            |> deliverOnMainQueue).start(next: { [weak self] presentationData in
@@ -86,43 +69,13 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         NotificationCenter.default.removeObserver(self)
         (self.presentationDataDisposable as? Disposable)?.dispose()
     }
-// <<<<<<< HEAD
-// =======
 
-//     private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
-//         let theme = NavigationBarTheme(
-//             overallDarkAppearance: true,
-//             buttonColor: .white,
-//             disabledButtonColor: DivoColorPalette.disabledButtonBackground,
-//             primaryTextColor: .white,
-//             backgroundColor: .clear,
-//             opaqueBackgroundColor: .clear,
-//             enableBackgroundBlur: false,
-//             separatorColor: .clear,
-//             badgeBackgroundColor: .clear,
-//             badgeStrokeColor: .clear,
-//             badgeTextColor: .clear)
-//         return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(back: DivoStrings.back, close: DivoStrings.close))
-//     }
-
-//     @objc private func handleWillEnterForeground() {
-//         self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-//     }
-
-//     private func updateThemeAndStrings() {
-//         self.statusBar.statusBarStyle = presentationData.theme.intro.statusBarStyle.style
-//         self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-
-//         self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-//     }
-// >>>>>>> dev
-    
     override public func loadDisplayNode() {
         self.displayNode = EditProfileNode(
             context: self.context,
             presentationData: self.presentationData,
             model: userDetailData,
-            currentFilters: currentFilters
+            currentEditState: currentEditState
         )
         
         self.editProfileNode.updateTitle(userDetailData?.role == "agency_employee" ? DivoStrings.agencyProfile : DivoStrings.myProfile)
@@ -133,10 +86,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
         self.editProfileNode.saveProfile = { [weak self] rawData in
             self?.handleSave(with: rawData)
-        }
-
-        self.editProfileNode.showAlert = { [weak self] text in
-            self?.showAlert(text: text)
         }
         
         self.editProfileNode.onAvatarTap = { [weak self] in
@@ -169,11 +118,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 
                 self.editProfileNode.configureAppearanceDictionaries(response.data)
                 self.editProfileNode.toggleSpinner(active: false)
-                
             } catch {
                 print("❌ Error loading appearance dictionary: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.failedToLoadAppearance)
             }
         }
     }
@@ -194,21 +141,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             } catch {
                 print("❌ Error loading appearance dictionary: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.failedToLoadAppearance)
             }
         }
-    }
-    
-    private func showAlert(text: String) {
-
-        let alertController = textAlertController(
-            context: context, title: nil,
-            text: text, actions: [
-                TextAlertAction(type: .genericAction, title: "Ok", action: {
-                    print("ok")
-                })
-            ])
-        present(alertController, in: .window(.root))
     }
     
     private var selectedAvatarImage: UIImage?
@@ -226,7 +160,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             picker.delegate = self
             self.present(picker, animated: true)
         } else {
-            // Fallback для iOS 13 - использовать UIImagePickerController
             let picker = UIImagePickerController()
             picker.sourceType = .photoLibrary
             picker.delegate = self as UIImagePickerControllerDelegate & UINavigationControllerDelegate
@@ -250,12 +183,15 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     fileData: imageData
                 )
                 self.selectedAvatarUUID = response.data?.uuid
+                self.editProfileNode.currentPhoto = selectedAvatarImage
                 self.editProfileNode.setAvatarLoading(false)
                 print("✅ Avatar uploaded, uuid: \(self.selectedAvatarUUID ?? "nil")")
             } catch {
                 self.editProfileNode.setAvatarLoading(false)
-                print("❌ Avatar upload error: \(error)")
-                self.showAlert(text: "\(DivoStrings.failedToUploadPhoto): \(error.localizedDescription)")
+                self.editProfileNode.showSnackbar(
+                    message: DivoStrings.failedToUploadPhoto,
+                    style: .error
+                )
             }
         }
     }
@@ -280,16 +216,18 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
                 
                 print("✅ Profile successfully saved: \(response.message ?? "OK")")
-                self.delegate?.didUpdateProfileData()
-                self.editProfileNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.profileUpdated)
-                
+
                 self.navigationController?.popViewController(animated: true)
+
+                self.editProfileNode.toggleSpinner(active: false)
+                self.delegate?.didUpdateProfileData()
                 
             } catch {
-                print("❌ Error saving social links: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
-                self.showAlert(text: error.localizedDescription)
+                self.editProfileNode.showSnackbar(
+                    message: DivoStrings.failedProfileUpdated,
+                    style: .error
+                )
             }
         }
     }
@@ -313,16 +251,18 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
                 
                 print("✅ Profile successfully saved: \(response.message ?? "OK")")
-                self.delegate?.didUpdateProfileData()
-                self.editProfileNode.toggleSpinner(active: false)
-                self.showAlert(text: DivoStrings.profileUpdated)
-                
+
                 self.navigationController?.popViewController(animated: true)
+
+                self.editProfileNode.toggleSpinner(active: false)
+                self.delegate?.didUpdateProfileData()
                 
             } catch {
-                print("❌ Error saving social links: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
-                self.showAlert(text: error.localizedDescription)
+                self.editProfileNode.showSnackbar(
+                    message: DivoStrings.failedProfileUpdated,
+                    style: .error
+                )
             }
         }
     }
@@ -362,7 +302,6 @@ extension EditProfileController {
             let normalized = uiImage.fixedOrientation()
             DispatchQueue.main.async {
                 self.editProfileNode.setAvatarLoading(true)
-                self.editProfileNode.currentPhoto = normalized
             }
             self.uploadAvatar(image: normalized)
         }

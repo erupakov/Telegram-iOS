@@ -1,23 +1,19 @@
 import Display
 import UIKit
 import AsyncDisplayKit
-import TelegramCore
 import SwiftSignalKit
-import TelegramPresentationData
-import TelegramUIPreferences
-import DivoUIKit
 
-final class DivoTextView: UIView, UITextViewDelegate {
+public final class DivoTextView: UIView, UITextViewDelegate {
 
     private let inactiveBorderColor = UIColor.clear.cgColor
-    private let activeBorderColor = UIColor(hexString: "#FF772D")?.cgColor ?? UIColor.systemOrange.cgColor
+    private let activeBorderColor = DivoColorPalette.accent.cgColor
     
     // MARK: - UI Elements
     
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        label.textColor = UIColor(hexString: "#222222")?.withAlphaComponent(0.6) ?? .gray
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -32,10 +28,10 @@ final class DivoTextView: UIView, UITextViewDelegate {
         return view
     }()
     
-    let textView: UITextView = {
+    public let textView: UITextView = {
         let tv = UITextView()
         tv.font = UIFont.systemFont(ofSize: 16, weight: .regular)
-        tv.textColor = UIColor(hexString: "#222222") ?? .black
+        tv.textColor = DivoColorPalette.primaryText
         tv.backgroundColor = .clear
         tv.isScrollEnabled = true
         tv.textContainerInset = .zero
@@ -46,18 +42,18 @@ final class DivoTextView: UIView, UITextViewDelegate {
 
     // MARK: - Properties
     
-    var text: String {
+    public var text: String {
         get { return textView.text }
         set { textView.text = newValue }
     }
     
-    var onBeginEditing: (() -> Void)?
-    var onEndEditing: (() -> Void)?
-    var onTextChange: ((String) -> Void)?
+    public var onBeginEditing: (() -> Void)?
+    public var onEndEditing: (() -> Void)?
+    public var onTextChange: ((String) -> Void)?
 
     // MARK: - Init
     
-    init(title: String, initialText: String = "") {
+    public init(title: String, initialText: String = "") {
         super.init(frame: .zero)
         self.translatesAutoresizingMaskIntoConstraints = false
         
@@ -67,40 +63,8 @@ final class DivoTextView: UIView, UITextViewDelegate {
         setupUI()
     }
     
-// <<<<<<< HEAD
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-// =======
-//     private func setupNodes() {
-//         backgroundNode.backgroundColor = .clear
-//         backgroundNode.borderWidth = 1.0
-//         backgroundNode.borderColor = DivoColorPalette.overlayDarkFieldBorderLight.cgColor
-//         backgroundNode.cornerRadius = 11.0
-//         addSubnode(backgroundNode)
-        
-//         titleNode.attributedText = NSAttributedString(
-//             string: title,
-//             attributes: [
-//                 .font: Font.regular(14.0),
-//                 .foregroundColor: DivoColorPalette.textOnDarkTertiary
-//             ]
-//         )
-//         addSubnode(titleNode)
-        
-//         textNode.delegate = self
-//         textNode.textView.font = Font.regular(16.0)
-//         textNode.textView.textColor = .white
-//         textNode.textView.backgroundColor = .clear
-// //        textNode.textView.typingAttributes = [
-// //            NSAttributedString.Key.font.rawValue: Font.regular(16.0),
-// //            NSAttributedString.Key.foregroundColor.rawValue: UIColor.white
-// //        ]
-        
-//         textNode.textView.textContainerInset = .zero
-//         textNode.textView.textContainer.lineFragmentPadding = 0
-        
-//         addSubnode(textNode)
-// >>>>>>> dev
     }
     
     // MARK: - Setup UI
@@ -117,15 +81,15 @@ final class DivoTextView: UIView, UITextViewDelegate {
             titleLabel.leadingAnchor.constraint(equalTo: self.leadingAnchor),
             titleLabel.trailingAnchor.constraint(equalTo: self.trailingAnchor),
             
-            backgroundContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            backgroundContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             backgroundContainer.leadingAnchor.constraint(equalTo: self.leadingAnchor),
             backgroundContainer.trailingAnchor.constraint(equalTo: self.trailingAnchor),
             backgroundContainer.bottomAnchor.constraint(equalTo: self.bottomAnchor),
             
             textView.topAnchor.constraint(equalTo: backgroundContainer.topAnchor, constant: 10),
             textView.bottomAnchor.constraint(equalTo: backgroundContainer.bottomAnchor, constant: -10),
-            textView.leadingAnchor.constraint(equalTo: backgroundContainer.leadingAnchor, constant: 16),
-            textView.trailingAnchor.constraint(equalTo: backgroundContainer.trailingAnchor, constant: -16)
+            textView.leadingAnchor.constraint(equalTo: backgroundContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            textView.trailingAnchor.constraint(equalTo: backgroundContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
         ])
     }
     
@@ -143,17 +107,17 @@ final class DivoTextView: UIView, UITextViewDelegate {
     
     // MARK: - UITextViewDelegate
     
-    func textViewDidBeginEditing(_ textView: UITextView) {
+    public func textViewDidBeginEditing(_ textView: UITextView) {
         animateBorderColor(to: activeBorderColor)
         onBeginEditing?()
     }
     
-    func textViewDidEndEditing(_ textView: UITextView) {
+    public func textViewDidEndEditing(_ textView: UITextView) {
         animateBorderColor(to: inactiveBorderColor)
         onEndEditing?()
     }
     
-    func textViewDidChange(_ textView: UITextView) {
+    public func textViewDidChange(_ textView: UITextView) {
         onTextChange?(textView.text)
     }
 }

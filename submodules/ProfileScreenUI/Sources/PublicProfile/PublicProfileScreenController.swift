@@ -922,6 +922,11 @@ extension PublicProfileScreenController: EditSocialLinksDelegate {
     func didUpdateSocialLinksData() {
         self.profileLoaded = false
         self.loadInitialData()
+
+        self.controllerNode.showSnackbar(
+            message: DivoStrings.socialLinksUpdated,
+            style: .success
+        )
     }
 }
 
@@ -929,6 +934,11 @@ extension PublicProfileScreenController: EditProfileDelegate {
     func didUpdateProfileData() {
         self.profileLoaded = false
         self.loadInitialData()
+
+        self.controllerNode.showSnackbar(
+            message: DivoStrings.profileUpdated,
+            style: .success
+        )
     }
 }
 

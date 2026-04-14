@@ -1,5 +1,5 @@
 //
-//  SearchFilterState.swift
+//  FilterState.swift
 //  divo-ios
 //
 //  Created by Michail Shagovitov on 07.04.2026.
@@ -8,17 +8,12 @@
 import Foundation
 import TelegramCore
 
-struct FilterOptionItem {
-    let id: String
-    let title: String
-}
-
-struct FilterOptionApperanceItem {
+struct EditOptionApperanceItem {
     let id: Int
     let title: String
 }
 
-struct FilterState: Equatable {
+struct EditState: Equatable {
     var roleIds: [String] = []
     var roleTitles: [String] = []
 

@@ -2705,6 +2705,29 @@ final class PublicProfileScreenNode: ASDisplayNode {
     @objc private func eventGalleryStatusTapped() {
         onAddEventTapped?()
     }
+
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: 16,
+            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
+    }
 }
 
 

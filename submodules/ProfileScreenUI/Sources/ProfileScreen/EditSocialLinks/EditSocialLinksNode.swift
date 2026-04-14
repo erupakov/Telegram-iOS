@@ -21,7 +21,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     private var presentationData: PresentationData
     private var presentationDataDisposable: Disposable?
-    private let presentationDataPromise: Promise<PresentationData>
     
     private let _ready = Promise<Bool>()
     private var readyValue = false {
@@ -35,35 +34,106 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         return self._ready.get()
     }
     
-    private let scrollNode: ASScrollNode
+    var onBackTapped: (() -> Void)?
+    var saveSocialLinks: ((LinksData) -> Void)?
+    
+    private var linksData: LinksData
+    
+    private let topBarContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = DivoStrings.editSocialLinks
+        label.font = Font.helveticaNeue(20)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private let backButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.backgroundColor = DivoColorPalette.cardBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        
+        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
+        button.setImage(image, for: .normal)
+        button.tintColor = DivoColorPalette.primaryText
+
+        button.layer.applyDivoShadow()
+
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+        
+    private let scrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.showsVerticalScrollIndicator = false
+        sv.contentInsetAdjustmentBehavior = .never
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
+    }()
+    
+    private let contentStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
     
     private let instagramTextField: DivoTextField
     private let tiktokTextField: DivoTextField
-    private let telegramTextField: DivoTextField
     private let youtubeTextField: DivoTextField
+    private let telegramTextField: DivoTextField
     private let websiteTextField: DivoTextField
     
-    private let applyButton: ASControlNode
+    private let applyButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle(DivoStrings.save, for: .normal)
+        btn.setTitleColor(DivoColorPalette.cardBackground, for: .normal)
+        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
+        btn.titleLabel?.font = Font.helveticaNeue(20)
+        btn.backgroundColor = DivoColorPalette.accent
+        btn.layer.cornerRadius = 28
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
+    
+    private var applyButtonBottomConstraint: NSLayoutConstraint?
+    
     private let applyButtonSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.color = DivoColorPalette.cardBackground
         spinner.hidesWhenStopped = true
+        spinner.translatesAutoresizingMaskIntoConstraints = false
         return spinner
     }()
-    private let addPhoto: () -> Void
-    var showAlert: ((String) -> Void)?
-    var saveSocialLinks: ((LinksData) -> Void)?
 
-    private var linksData: LinksData
+    private let bottomBlurOverlay: DivoGlassBlurView = {
+        let view = DivoGlassBlurView(
+            direction: .bottom,
+            blurStyle: .systemUltraThinMaterialLight,
+            falloff: .linear
+        )
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
-    init(context: AccountContext, presentationData: PresentationData, linksData: LinksData, addPhoto: @escaping () -> Void) {
+    private var bottomBlurOverlayBottomConstraint: NSLayoutConstraint?
+    
+    // MARK: - Init
+    
+    init(context: AccountContext, presentationData: PresentationData, linksData: LinksData) {
         self.context = context
-        self.addPhoto = addPhoto
         self.linksData = linksData
-        
         self.presentationData = presentationData
-        self.presentationDataPromise = Promise(self.presentationData)
-        
-        self.scrollNode = ASScrollNode()
         
         let tiktok = linksData.tiktokUrl ?? ""
         let youtube = linksData.youtubeUrl ?? ""
@@ -79,43 +149,111 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         self.websiteTextField = DivoTextField(title: website, prefix: "")
         self.websiteTextField.textField.attributedPlaceholder = NSAttributedString(
             string: DivoStrings.enterYourWebsite,
-            font: Font.bold(16),
-            textColor: DivoColorPalette.overlayInputIcon
+            font: Font.regular(16),
+            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
-        
-        self.applyButton = ButtonWithIconNode(title: DivoStrings.save, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
         
         super.init()
         
-        self.backgroundColor = DivoColorPalette.darkBackground
-        
-        self.addSubnode(self.scrollNode)
-        
-        self.scrollNode.addSubnode(self.instagramTextField)
-        self.scrollNode.addSubnode(self.tiktokTextField)
-        self.scrollNode.addSubnode(self.youtubeTextField)
-        self.scrollNode.addSubnode(self.telegramTextField)
-        self.scrollNode.addSubnode(self.websiteTextField)
-        
-        self.scrollNode.addSubnode(self.applyButton)
-        self.applyButton.view.addSubview(self.applyButtonSpinner)
+        self.backgroundColor = DivoColorPalette.screenBackground
     }
 
     deinit {
         self.supportPeerDisposable.dispose()
         NotificationCenter.default.removeObserver(self)
     }
-
+    
     override func didLoad() {
         super.didLoad()
-        self.applyButton.addTarget(self, action: #selector(self.applyButtonTapped), forControlEvents: .touchUpInside)
+        setupUI()
+        setupConstraints()
+        setupInteractions()
+    }
+    
+    private func setupUI() {
+        view.addSubview(topBarContainer)
+        topBarContainer.addSubview(backButton)
+        topBarContainer.addSubview(titleLabel)
+        
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentStackView)
+        
+        let formElements = [
+            instagramTextField,
+            tiktokTextField,
+            youtubeTextField,
+            telegramTextField,
+            websiteTextField
+        ]
+        
+        for field in formElements {
+            field.view.translatesAutoresizingMaskIntoConstraints = false
+            field.view.heightAnchor.constraint(equalToConstant: 46).isActive = true
+            contentStackView.addArrangedSubview(field.view)
+        }
+        
+        applyButton.heightAnchor.constraint(equalToConstant: 56).isActive = true
 
+        view.addSubview(bottomBlurOverlay)
+        view.addSubview(applyButton)
+        
+        applyButton.addSubview(applyButtonSpinner)
+    }
+    
+    private func setupConstraints() {
+        let safeArea = view.safeAreaLayoutGuide
+        
+        let buttonBottomCns = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
+        self.applyButtonBottomConstraint = buttonBottomCns
+
+        let bottomBlurOverlayCns = bottomBlurOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        self.bottomBlurOverlayBottomConstraint = bottomBlurOverlayCns
+        
+        NSLayoutConstraint.activate([
+            topBarContainer.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            topBarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            topBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            topBarContainer.heightAnchor.constraint(equalToConstant: 50),
+            
+            backButton.leadingAnchor.constraint(equalTo: topBarContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            backButton.centerYAnchor.constraint(equalTo: topBarContainer.centerYAnchor),
+            backButton.widthAnchor.constraint(equalToConstant: 40),
+            backButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            titleLabel.centerXAnchor.constraint(equalTo: topBarContainer.centerXAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: topBarContainer.centerYAnchor),
+            
+            // --- ScrollView ---
+            scrollView.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            contentStackView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            contentStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -40),
+            contentStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            contentStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            
+            contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -32),
+            
+            buttonBottomCns,
+            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            applyButtonSpinner.centerXAnchor.constraint(equalTo: applyButton.centerXAnchor),
+            applyButtonSpinner.centerYAnchor.constraint(equalTo: applyButton.centerYAnchor),
+            
+            bottomBlurOverlayCns,
+            bottomBlurOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomBlurOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomBlurOverlay.heightAnchor.constraint(equalToConstant: 160)
+        ])
+    }
+    
+    private func setupInteractions() {
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         dismissTap.cancelsTouchesInView = false
-        scrollNode.view.addGestureRecognizer(dismissTap)
-
-        scrollNode.view.keyboardDismissMode = .interactive
+        scrollView.addGestureRecognizer(dismissTap)
+        scrollView.keyboardDismissMode = .interactive
 
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
@@ -135,96 +273,45 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
                 self.scrollToField(field)
             }
         }
-    }
 
-    @objc private func dismissKeyboard() {
-        view.endEditing(true)
-    }
+        backButton.addTarget(self, action: #selector(backPressed), for: .touchUpInside)
+        applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
 
-    @objc private func keyboardWillShow(_ notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
-              let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-
-        let keyboardHeight = keyboardFrame.height
-        scrollNode.view.contentInset.bottom = keyboardHeight
-        scrollNode.view.verticalScrollIndicatorInsets.bottom = keyboardHeight
-
-        UIView.animate(withDuration: duration) {
-            let fields = [self.instagramTextField, self.tiktokTextField, self.youtubeTextField, self.telegramTextField, self.websiteTextField]
-            if let active = fields.first(where: { $0.textField.isFirstResponder }) {
-                self.scrollToField(active)
-            }
+        for button in [backButton, applyButton] {
+            button.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+            button.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         }
     }
-
-    @objc private func keyboardWillHide(_ notification: Notification) {
-        guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-
-        UIView.animate(withDuration: duration) {
-            self.scrollNode.view.contentInset.bottom = 0
-            self.scrollNode.view.verticalScrollIndicatorInsets.bottom = 0
+    
+    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+        if !readyValue {
+            readyValue = true
         }
     }
-
-    private func scrollToField(_ field: DivoTextField) {
-        let frame = field.frame.insetBy(dx: 0, dy: -16)
-        scrollNode.view.scrollRectToVisible(frame, animated: true)
-    }
-
+    
     func toggleSpinner(active: Bool) {
         self.applyButton.isUserInteractionEnabled = !active
         
         if active {
             self.applyButtonSpinner.startAnimating()
             UIView.animate(withDuration: 0.2) {
-                self.applyButton.subnodes?.forEach { $0.alpha = 0.0 }
+                self.applyButton.setTitle("", for: .normal)
             }
         } else {
             self.applyButtonSpinner.stopAnimating()
             UIView.animate(withDuration: 0.2) {
-                self.applyButton.subnodes?.forEach { $0.alpha = 1.0 }
+                self.applyButton.setTitle(DivoStrings.save, for: .normal)
             }
         }
     }
 
-    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
-        
-        let topInset = navigationBarHeight
-        self.scrollNode.frame = CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: layout.size.width, height: layout.size.height - topInset))
-        
-        let sidePadding: CGFloat = 16.0
-        let sectionSpacing: CGFloat = 24.0
-        let itemHeight: CGFloat = 48.0
-        
-        var currentY: CGFloat = 30.0
-        
-        self.instagramTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
-        currentY += itemHeight + sectionSpacing
-        
-        self.tiktokTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
-        currentY += itemHeight + sectionSpacing
-        
-        self.youtubeTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
-        currentY += itemHeight + sectionSpacing
-
-        self.telegramTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
-        currentY += itemHeight + sectionSpacing
-
-        self.websiteTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
-        currentY += itemHeight + sectionSpacing
-        
-        self.applyButton.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: 50.0))
-        
-        self.applyButtonSpinner.center = CGPoint(x: self.applyButton.bounds.midX, y: self.applyButton.bounds.midY)
-
-        currentY += 70.0
-        self.scrollNode.view.contentSize = CGSize(width: layout.size.width, height: currentY)
-        self.readyValue = true
+    private func scrollToField(_ field: DivoTextField) {
+        let frame = field.view.frame.insetBy(dx: 0, dy: -16)
+        scrollView.scrollRectToVisible(frame, animated: true)
     }
 
     private func constructFullURL(from handle: String, with prefix: String) -> String? {
         let trimmed = handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        
         if trimmed.isEmpty { return nil }
         
         let plainHandle = trimmed
@@ -239,18 +326,61 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         }
         
         let cleanedPath = userPath.trimmingCharacters(in: CharacterSet(charactersIn: "/ "))
-        if cleanedPath.isEmpty {
-            return nil
-        }
+        if cleanedPath.isEmpty { return nil }
         
-        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
-            return trimmed
-        }
-        
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") { return trimmed }
         return "https://\(trimmed)"
+    }
+    
+    
+    // MARK: - Actions
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+              let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
+        
+        let keyboardHeight = keyboardFrame.height
+        
+        scrollView.contentInset.bottom = keyboardHeight + 90
+        scrollView.verticalScrollIndicatorInsets.bottom = keyboardHeight + 90
+        
+        applyButtonBottomConstraint?.constant = -(keyboardHeight + DivoDesignTokens.Spacing.m)
+        bottomBlurOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
+
+        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
+            self.view.layoutIfNeeded()
+            
+            let fields = [self.instagramTextField, self.tiktokTextField, self.youtubeTextField, self.telegramTextField, self.websiteTextField]
+            if let active = fields.first(where: { $0.textField.isFirstResponder }) {
+                self.scrollToField(active)
+            }
+        }, completion: nil)
+    }
+    
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
+        
+        applyButtonBottomConstraint?.constant = -40
+        bottomBlurOverlayBottomConstraint?.constant = 0
+        
+        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
+            self.scrollView.contentInset.bottom = 0
+            self.scrollView.verticalScrollIndicatorInsets.bottom = 0
+            self.view.layoutIfNeeded()
+        }, completion: nil)
+    }
+    
+    @objc private func backPressed() {
+        onBackTapped?()
     }
 
     @objc private func applyButtonTapped() {
+        view.endEditing(true) 
+
         let instagramHandle = self.instagramTextField.textField.text ?? ""
         let tiktokHandle = self.tiktokTextField.textField.text ?? ""
         let youtubeHandle = self.youtubeTextField.textField.text ?? ""
@@ -267,5 +397,42 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         
         self.toggleSpinner(active: true)
         self.saveSocialLinks?(linksData)
+    }
+    
+    @objc private func buttonPressed(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.1, animations: {
+            sender.alpha = 0.6
+            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+        })
+    }
+    
+    @objc private func buttonReleased(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.2, animations: {
+            sender.alpha = 1.0
+            sender.transform = .identity
+        })
+    }
+
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: 16,
+            bottomAnchor: applyButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }

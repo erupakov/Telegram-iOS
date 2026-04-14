@@ -1,31 +1,22 @@
 import Display
 import UIKit
 import AsyncDisplayKit
-import TelegramCore
 import SwiftSignalKit
-import TelegramPresentationData
-import TelegramUIPreferences
-import MergeLists
-import AccountContext
-import SearchUI
-import ChatListSearchItemHeader
 import AppBundle
-import ItemListUI
-import DivoUIKit
 
-final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
+public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
 
-    let fieldNode = TextFieldNode()
+    public let fieldNode = TextFieldNode()
     private let prefix: String?
 
-    var onReturn: (() -> Void)?
-    var onBeginEditing: (() -> Void)?
+    public var onReturn: (() -> Void)?
+    public var onBeginEditing: (() -> Void)?
 
-    var textField: UITextField {
+    public var textField: UITextField {
         get { fieldNode.textField }
     }
     
-    init(title: String, prefix: String? = nil) {
+    public init(title: String, prefix: String? = nil) {
         self.prefix = prefix
         super.init()
         setup(title: title)
@@ -33,7 +24,7 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
     }
     
     // MARK: - Auto Layout
-    override func didLoad() {
+    public override func didLoad() {
         super.didLoad()
         
         fieldNode.view.translatesAutoresizingMaskIntoConstraints = false
@@ -52,13 +43,13 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
     private func setup(title: String) {
         fieldNode.textField.delegate = self
         fieldNode.textField.font = Font.regular(16.0)
-        fieldNode.textField.textColor = UIColor(hexString: "#222222")
+        fieldNode.textField.textColor = DivoColorPalette.primaryText
         fieldNode.textField.autocapitalizationType = .none
         fieldNode.textField.autocorrectionType = .no
         fieldNode.textField.returnKeyType = .done
-        fieldNode.borderWidth = 1.0
-        fieldNode.borderColor = DivoColorPalette.overlayDarkFieldBorder.cgColor
-        fieldNode.cornerRadius = 11.0
+        
+        fieldNode.backgroundColor = DivoColorPalette.cardBackground
+        fieldNode.cornerRadius = 23.0
         fieldNode.clipsToBounds = true
         fieldNode.padding = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 16)
 
@@ -72,21 +63,21 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
         let fullString = NSMutableAttributedString()
         
         let prefixAttr: [NSAttributedString.Key: Any] = [
-            .font: Font.bold(16.0),
-            .foregroundColor: UIColor.white
+            .font: Font.regular(16.0),
+            .foregroundColor: DivoColorPalette.primaryText
         ]
         fullString.append(NSAttributedString(string: prefix, attributes: prefixAttr))
         
         let userAttr: [NSAttributedString.Key: Any] = [
             .font: Font.regular(16.0),
-            .foregroundColor: UIColor(hexString: "#222222") ?? .black
+            .foregroundColor: DivoColorPalette.primaryText
         ]
         fullString.append(NSAttributedString(string: userText, attributes: userAttr))
         
         fieldNode.textField.attributedText = fullString
     }
     
-    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+    public func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         if string.contains("\n") {
             textField.resignFirstResponder()
             return false
@@ -112,18 +103,18 @@ final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
         return false
     }
     
-    func textFieldDidBeginEditing(_ textField: UITextField) {
+    public func textFieldDidBeginEditing(_ textField: UITextField) {
         fieldNode.borderWidth = 1.0
-        fieldNode.borderColor = UIColor(hexString: "#FF772D")?.cgColor
+        fieldNode.borderColor = DivoColorPalette.accent.cgColor
         
         onBeginEditing?()
     }
     
-    func textFieldDidEndEditing(_ textField: UITextField) {
+    public func textFieldDidEndEditing(_ textField: UITextField) {
         fieldNode.borderWidth = 0.0
     }
 
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+    public func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         if let onReturn = onReturn {
             onReturn()
         } else {

@@ -247,7 +247,9 @@ public enum DivoStrings {
     public static var editSocialLinks: String { L(en: "EDIT SOCIAL LINKS", ru: "РЕДАКТИРОВАТЬ ССЫЛКИ", es: "EDITAR REDES SOCIALES", pt: "EDITAR REDES SOCIAIS", zh: "编辑社交链接") }
     public static var enterYourWebsite: String { L(en: "Enter your website", ru: "Введите ваш сайт", es: "Ingrese su sitio web", pt: "Insira seu site", zh: "输入您的网站") }
     public static var socialLinksUpdated: String { L(en: "Social links updated", ru: "Ссылки обновлены", es: "Enlaces actualizados", pt: "Links atualizados", zh: "社交链接已更新") }
+    public static var failedLinksUpdated: String { L(en: "Couldn't update social links", ru: "Не удалось обновить ссылки на соцсети", es: "No se pudieron actualizar los enlaces sociales", pt: "Não foi possível atualizar os links sociais", zh: "无法更新社交链接") }
     public static var profileUpdated: String { L(en: "Profile updated", ru: "Профиль обновлён", es: "Perfil actualizado", pt: "Perfil atualizado", zh: "个人资料已更新") }
+    public static var failedProfileUpdated: String { L(en: "Couldn't update profile", ru: "Не удалось обновить профиль", es: "No se pudo actualizar el perfil", pt: "Não foi possível atualizar o perfil", zh: "无法更新个人资料") }
     public static var failedToLoadAppearance: String { L(en: "Failed to load appearance options.", ru: "Не удалось загрузить параметры внешности.", es: "Error al cargar las opciones de apariencia.", pt: "Falha ao carregar as opções de aparência.", zh: "无法加载外观选项。") }
     public static var failedToUploadPhoto: String { L(en: "Failed to upload photo", ru: "Не удалось загрузить фото", es: "Error al subir la foto", pt: "Falha ao enviar a foto", zh: "上传照片失败") }
     public static var similarProfiles: String { L(en: "You may be interested in similar profiles", ru: "Вам могут быть интересны похожие профили", es: "Perfiles similares que podrían interesarle", pt: "Perfis semelhantes que podem interessar", zh: "您可能感兴趣的类似资料") }
