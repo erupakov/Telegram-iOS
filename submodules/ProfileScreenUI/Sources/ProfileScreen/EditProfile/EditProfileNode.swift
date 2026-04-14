@@ -102,6 +102,8 @@ final class EditProfileNode: ASDisplayNode {
         let stack = UIStackView()
         stack.axis = .vertical
         stack.spacing = 20
+        stack.isLayoutMarginsRelativeArrangement = true
+        stack.layoutMargins = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right: DivoDesignTokens.Spacing.m)
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -109,46 +111,16 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Tab
     
-    private let tabsContainer: UIView = {
-        let view = UIView()
-        view.backgroundColor = DivoColorPalette.cardBackground
-        view.layer.cornerRadius = DivoDesignTokens.Radius.l
-        view.layer.applyDivoShadow()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
+    private lazy var segmentedControl: DivoSegmentedControl = {
+        let control = DivoSegmentedControl(titles: [
+            DivoStrings.biographyTitle,
+            DivoStrings.appearanceTitle,
+            DivoStrings.experienceTitle
+        ])
+        control.translatesAutoresizingMaskIntoConstraints = false
+        return control
     }()
-    
-    private static func createTabButton(title: String) -> UIButton {
-        let button = UIButton(type: .system)
-        button.setTitle(title.uppercased(), for: .normal)
-        button.titleLabel?.font = Font.helveticaNeue(10)
-        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }
-    
-    private let biographyButton = createTabButton(title: DivoStrings.biographyTitle)
-    private let appearanceButton = createTabButton(title: DivoStrings.appearanceTitle)
-    private let experienceButton = createTabButton(title: DivoStrings.experienceTitle)
-    
-    private let tabButtonsStack: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.distribution = .fillEqually
-        stack.alignment = .fill
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
-    }()
-    
-    private let indicatorView: UIView = {
-        let view = UIView()
-        view.backgroundColor = DivoColorPalette.screenBackground
-        view.layer.cornerRadius = 14
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private var indicatorCenterXConstraint: NSLayoutConstraint!
+
     private var selectedIndex: Int = 0
     
     
@@ -419,7 +391,7 @@ final class EditProfileNode: ASDisplayNode {
         DispatchQueue.main.async {
             self.updatePagerHeight()
             if self.model?.role != "agency_employee" {
-                self.updateIndicatorPosition(progress: 0, animated: false)
+                self.segmentedControl.setIndicatorProgress(0)
             }
             self.readyValue = true
         }
@@ -428,9 +400,10 @@ final class EditProfileNode: ASDisplayNode {
     }
 
     private func setupInteractions() {
-        biographyButton.addTarget(self, action: #selector(biographyTapped), for: .touchUpInside)
-        appearanceButton.addTarget(self, action: #selector(appearanceTapped), for: .touchUpInside)
-        experienceButton.addTarget(self, action: #selector(experienceTapped), for: .touchUpInside)
+        segmentedControl.onTabSelected = { [weak self] index in
+            self?.view.endEditing(true)
+            self?.setSelectedIndex(index, animated: true)
+        }
 
         if model?.role == "agency_employee" {
             applyButton.addTarget(self, action: #selector(self.saveAgencyButtonPressed), for: .touchUpInside)
@@ -513,35 +486,8 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     private func setupTabs() {
-        mainStackView.addArrangedSubview(tabsContainer)
-        
-        tabsContainer.heightAnchor.constraint(equalToConstant: 32).isActive = true
-        tabsContainer.widthAnchor.constraint(equalTo: mainStackView.widthAnchor, constant: -32).isActive = true
-        
-        tabsContainer.addSubview(indicatorView)
-        
-        tabButtonsStack.addArrangedSubview(biographyButton)
-        tabButtonsStack.addArrangedSubview(appearanceButton)
-        tabButtonsStack.addArrangedSubview(experienceButton)
-        tabsContainer.addSubview(tabButtonsStack)
-        
-        NSLayoutConstraint.activate([
-            
-            tabsContainer.leadingAnchor.constraint(equalTo: mainStackView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            tabsContainer.trailingAnchor.constraint(equalTo: mainStackView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            
-            tabButtonsStack.topAnchor.constraint(equalTo: tabsContainer.topAnchor),
-            tabButtonsStack.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor),
-            tabButtonsStack.leadingAnchor.constraint(equalTo: tabsContainer.leadingAnchor),
-            tabButtonsStack.trailingAnchor.constraint(equalTo: tabsContainer.trailingAnchor),
-            
-            indicatorView.topAnchor.constraint(equalTo: tabsContainer.topAnchor, constant: 2),
-            indicatorView.bottomAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: -2),
-            indicatorView.widthAnchor.constraint(equalTo: biographyButton.widthAnchor, constant: -4)
-        ])
-        
-        indicatorCenterXConstraint = indicatorView.centerXAnchor.constraint(equalTo: tabsContainer.leadingAnchor)
-        indicatorCenterXConstraint.isActive = true
+        mainStackView.addArrangedSubview(segmentedControl)
+        segmentedControl.heightAnchor.constraint(equalToConstant: 32).isActive = true
     }
     
     private func setupPager() {
@@ -597,13 +543,13 @@ final class EditProfileNode: ASDisplayNode {
         NSLayoutConstraint.activate([
             contentWidthView.topAnchor.constraint(equalTo: horizontalPager.topAnchor),
             contentWidthView.bottomAnchor.constraint(equalTo: horizontalPager.bottomAnchor),
-            contentWidthView.leadingAnchor.constraint(equalTo: horizontalPager.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            contentWidthView.leadingAnchor.constraint(equalTo: horizontalPager.leadingAnchor),
+            contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor),
             contentWidthView.heightAnchor.constraint(equalTo: horizontalPager.heightAnchor),
-            
+
             bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor),
             bioStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
-            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor, constant: -32),
+            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
             bioStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor)
         ])
         
@@ -941,7 +887,7 @@ final class EditProfileNode: ASDisplayNode {
         DispatchQueue.main.async {
             self.updatePagerHeight()
             if self.model?.role != "agency_employee" {
-                self.updateIndicatorPosition(progress: CGFloat(self.selectedIndex), animated: false)
+                self.segmentedControl.setIndicatorProgress(CGFloat(self.selectedIndex))
             }
         }
     }
@@ -1003,21 +949,6 @@ final class EditProfileNode: ASDisplayNode {
         print("Change photo")
         self.view.endEditing(true)
         onAvatarTap?()
-    }
-    
-    @objc private func biographyTapped() {
-        self.view.endEditing(true)
-        setSelectedIndex(0, animated: true)
-    }
-    
-    @objc private func appearanceTapped() {
-        self.view.endEditing(true)
-        setSelectedIndex(1, animated: true)
-    }
-    
-    @objc private func experienceTapped() {
-        self.view.endEditing(true)
-        setSelectedIndex(2, animated: true)
     }
     
     @objc private func updateAccountPeerName() {
@@ -1195,9 +1126,10 @@ extension EditProfileNode: UITextFieldDelegate {
         guard selectedIndex != index else { return }
         selectedIndex = index
         updatePagerHeight()
-        
+        segmentedControl.setSelectedIndex(index, animated: animated)
+
         let offsetX = CGFloat(index) * (horizontalPager.bounds.width + 32)
-        
+
         if animated {
             UIView.animate(withDuration: 0.3, delay: 0, options:[.curveEaseInOut, .allowUserInteraction], animations: {
                 self.horizontalPager.contentOffset = CGPoint(x: offsetX, y: 0)
@@ -1229,34 +1161,17 @@ extension EditProfileNode: UITextFieldDelegate {
         self.view.layoutIfNeeded()
     }
     
-    private func updateIndicatorPosition(progress: CGFloat, animated: Bool = false) {
-        guard tabsContainer.bounds.width > 0 else { return }
-        
-        let segmentWidth = tabsContainer.bounds.width / 3.0
-        
-        let centerX = (segmentWidth / 2.0) + (segmentWidth * progress)
-        
-        indicatorCenterXConstraint.constant = centerX
-        
-        if animated {
-            UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseOut], animations: {
-                self.tabsContainer.layoutIfNeeded()
-            })
-        } else {
-            self.tabsContainer.layoutIfNeeded()
-        }
-    }
 }
 
 // UIScrollViewDelegate
 extension EditProfileNode: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager, scrollView.bounds.width > 0 else { return }
-        
+
         let progress = scrollView.contentOffset.x / (scrollView.bounds.width + 32)
-        updateIndicatorPosition(progress: progress)
+        segmentedControl.setIndicatorProgress(progress)
     }
-    
+
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager else { return }
 
@@ -1264,6 +1179,7 @@ extension EditProfileNode: UIScrollViewDelegate {
         if selectedIndex != page {
             selectedIndex = page
             updatePagerHeight()
+            segmentedControl.setSelectedIndex(page, animated: false)
         }
     }
 }
