@@ -1,8 +1,6 @@
 import Display
 import UIKit
 import AsyncDisplayKit
-import SwiftSignalKit
-import AppBundle
 
 public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
 

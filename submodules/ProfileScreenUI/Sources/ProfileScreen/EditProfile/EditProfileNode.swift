@@ -52,8 +52,6 @@ final class EditProfileNode: ASDisplayNode {
     var onBackTapped: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
     
-    var currentEditState: EditState
-    
     private let topBarContainer: UIView = {
         let view = UIView()
         view.backgroundColor = .clear
@@ -336,8 +334,7 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Init
     
-    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?, currentEditState: EditState) {
-        self.currentEditState = currentEditState
+    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?) {
         self.context = context
         self.model = model
         

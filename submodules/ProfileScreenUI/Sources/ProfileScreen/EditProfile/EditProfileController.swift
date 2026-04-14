@@ -34,7 +34,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     private var presentationDataDisposable: Any?
     private let userDetailData: UserDetail?
     private let updatePhoto: (UIImage?) -> Void
-    private var currentEditState = EditState()
 
     weak var delegate: EditProfileDelegate?
     
@@ -49,15 +48,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
         self.presentationDataDisposable = (context.sharedContext.presentationData
                                            |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            if let strongSelf = self {
-                let previousTheme = strongSelf.presentationData.theme
-                let previousStrings = strongSelf.presentationData.strings
-                
-                strongSelf.presentationData = presentationData
-                
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
-                }
-            }
+            self?.presentationData = presentationData
         })
     }
     
@@ -74,8 +65,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         self.displayNode = EditProfileNode(
             context: self.context,
             presentationData: self.presentationData,
-            model: userDetailData,
-            currentEditState: currentEditState
+            model: userDetailData
         )
         
         self.editProfileNode.updateTitle(userDetailData?.role == "agency_employee" ? DivoStrings.agencyProfile : DivoStrings.myProfile)

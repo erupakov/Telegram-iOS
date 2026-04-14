@@ -1,7 +1,5 @@
 import Display
 import UIKit
-import AsyncDisplayKit
-import SwiftSignalKit
 
 public final class DivoTextView: UIView, UITextViewDelegate {
 
