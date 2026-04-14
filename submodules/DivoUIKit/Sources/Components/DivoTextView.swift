@@ -32,6 +32,8 @@ public final class DivoTextView: UIView, UITextViewDelegate {
         tv.textColor = DivoColorPalette.primaryText
         tv.backgroundColor = .clear
         tv.isScrollEnabled = true
+        tv.showsVerticalScrollIndicator = false
+        tv.showsHorizontalScrollIndicator = false
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
         tv.translatesAutoresizingMaskIntoConstraints = false

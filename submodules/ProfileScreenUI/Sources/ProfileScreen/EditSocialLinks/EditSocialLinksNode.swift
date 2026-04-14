@@ -64,7 +64,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     private let instagramTextField: DivoTextField
     private let tiktokTextField: DivoTextField
     private let youtubeTextField: DivoTextField
-    private let telegramTextField: DivoTextField
     private let websiteTextField: DivoTextField
     
     private var initialTexts: [String] = []
@@ -130,14 +129,12 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         
         let tiktok = linksData.tiktokUrl ?? ""
         let youtube = linksData.youtubeUrl ?? ""
-        let telegram = linksData.telegramUrl ?? ""
         let instagram = linksData.instagramUrl ?? ""
         let website = linksData.websiteUrl ?? ""
 
         self.instagramTextField = DivoTextField(title: instagram, prefix: "instagram.com/")
         self.tiktokTextField = DivoTextField(title: tiktok, prefix: "tiktok.com/")
         self.youtubeTextField = DivoTextField(title: youtube, prefix: "youtube.com/")
-        self.telegramTextField = DivoTextField(title: telegram, prefix: "t.me/")
         
         self.websiteTextField = DivoTextField(title: website, prefix: "")
         self.websiteTextField.textField.attributedPlaceholder = NSAttributedString(
@@ -162,14 +159,14 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         setupConstraints()
         setupInteractions()
 
-        let fields = [instagramTextField, tiktokTextField, youtubeTextField, telegramTextField, websiteTextField]
+        let fields = [instagramTextField, tiktokTextField, youtubeTextField, websiteTextField]
         initialTexts = fields.map { $0.textField.text ?? "" }
         applyButton.isEnabled = false
         applyButton.backgroundColor = Self.saveButtonDisabledBackground
     }
 
     private func updateSaveButtonState() {
-        let fields = [instagramTextField, tiktokTextField, youtubeTextField, telegramTextField, websiteTextField]
+        let fields = [instagramTextField, tiktokTextField, youtubeTextField, websiteTextField]
         let currentTexts = fields.map { $0.textField.text ?? "" }
         let hasChanges = currentTexts != initialTexts
         applyButton.isEnabled = hasChanges
@@ -188,7 +185,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             instagramTextField,
             tiktokTextField,
             youtubeTextField,
-            telegramTextField,
             websiteTextField
         ]
         
@@ -252,7 +248,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         scrollView.addGestureRecognizer(dismissTap)
         scrollView.keyboardDismissMode = .interactive
 
-        let fields = [instagramTextField, tiktokTextField, youtubeTextField, telegramTextField, websiteTextField]
+        let fields = [instagramTextField, tiktokTextField, youtubeTextField, websiteTextField]
         keyboardHandler = DivoKeyboardHandler(
             scrollView: scrollView,
             buttonConstraint: applyButtonBottomConstraint!,
@@ -261,7 +257,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             defaultScrollInset: 0,
             scrollToActiveField: { [weak self] in
                 guard let self else { return }
-                let allFields = [self.instagramTextField, self.tiktokTextField, self.youtubeTextField, self.telegramTextField, self.websiteTextField]
+                let allFields = [self.instagramTextField, self.tiktokTextField, self.youtubeTextField, self.websiteTextField]
                 if let active = allFields.first(where: { $0.textField.isFirstResponder }) {
                     self.scrollToField(active)
                 }
@@ -364,13 +360,12 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         let instagramHandle = self.instagramTextField.textField.text ?? ""
         let tiktokHandle = self.tiktokTextField.textField.text ?? ""
         let youtubeHandle = self.youtubeTextField.textField.text ?? ""
-        let telegramHandle = self.telegramTextField.textField.text ?? ""
         let websiteHandle = self.websiteTextField.textField.text ?? ""
-        
+
         let linksData = LinksData(
             tiktokUrl: constructFullURL(from: tiktokHandle, with: "tiktok.com/"),
             youtubeUrl: constructFullURL(from: youtubeHandle, with: "youtube.com/"),
-            telegramUrl: constructFullURL(from: telegramHandle, with: "t.me/"),
+            telegramUrl: nil,
             instagramUrl: constructFullURL(from: instagramHandle, with: "instagram.com/"),
             websiteUrl: constructFullURL(from: websiteHandle, with: "")
         )

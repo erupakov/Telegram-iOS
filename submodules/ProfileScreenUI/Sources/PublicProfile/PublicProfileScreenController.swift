@@ -279,14 +279,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
         
         let tiktok = userDetailModel?.model?.tiktokUrl ?? ""
         let youtube = userDetailModel?.model?.youtubeUrl ?? ""
-        let telegram = userDetailModel?.model?.telegramUrl ?? ""
         let instagram = userDetailModel?.model?.instagramUrl ?? ""
         let website = userDetailModel?.model?.websiteUrl ?? ""
-        
+
         let linksData = LinksData(
             tiktokUrl: self.controllerNode.extractHandle(from: tiktok),
             youtubeUrl: self.controllerNode.extractHandle(from: youtube),
-            telegramUrl: self.controllerNode.extractHandle(from: telegram),
+            telegramUrl: nil,
             instagramUrl: self.controllerNode.extractHandle(from: instagram),
             websiteUrl: self.controllerNode.extractHandle(from: website)
         )

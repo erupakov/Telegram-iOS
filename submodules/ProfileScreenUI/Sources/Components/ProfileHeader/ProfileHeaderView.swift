@@ -257,17 +257,17 @@ class ProfileHeaderView: UIView {
         tagLabel.text = viewModel.role.title
         switch viewModel.role {
         case .model:
-            tagIcon.image = UIImage(bundleImageName: "Components/Role/Model")
+            tagIcon.image = UIImage(bundleImageName: "Components/Role/Model")?.withRenderingMode(.alwaysTemplate)
             tagContainer.apply(style: .bronzeGradient)
             tagIcon.tintColor = .white
             tagLabel.textColor = .white
         case .agency:
-            tagIcon.image = UIImage(bundleImageName: "Components/Role/Agency")
+            tagIcon.image = UIImage(bundleImageName: "Components/Role/Agency")?.withRenderingMode(.alwaysTemplate)
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black
             tagLabel.textColor = .black
         case .newFace:
-            tagIcon.image = UIImage(bundleImageName: "Components/Role/NewTalent")
+            tagIcon.image = UIImage(bundleImageName: "Components/Role/NewTalent")?.withRenderingMode(.alwaysTemplate)
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black
             tagLabel.textColor = .black

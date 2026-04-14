@@ -344,6 +344,7 @@ public final class FilterOptionsController: UIViewController {
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(optionTapped(_:)))
             cell.addGestureRecognizer(tapGesture)
             cell.tag = index
+            cell.addPressState(alpha: DivoDesignTokens.PressState.alphaOnClear)
 
             stackView.addArrangedSubview(cell)
         }
