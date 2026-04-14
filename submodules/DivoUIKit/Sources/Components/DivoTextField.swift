@@ -80,25 +80,91 @@ public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
             textField.resignFirstResponder()
             return false
         }
-        
+
         guard let prefix = prefix, !prefix.isEmpty else { return true }
-        
+
+        // 1. Пробуем извлечь handle (URL с/без протокола, включая голый домен)
+        if let handle = extractHandle(from: string) {
+            let clean = sanitizeHandle(handle)
+            updateText(userText: clean)
+            moveCursorToEnd(textField)
+            return false
+        }
+
+        // 2. Если не извлекли, но это URL — значит чужой домен, отклоняем
+        if looksLikeURL(string) {
+            return false
+        }
+
+        // 3. Валидация символов (одиночный ввод или вставка plain-текста)
+        if !string.isEmpty && !isValidHandleInput(string) {
+            return false
+        }
+
+        // 4. Стандартная логика: prefix несъедаемый
         let currentText = textField.text ?? ""
         guard let stringRange = Range(range, in: currentText) else { return false }
         let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
-        
+
         if updatedText.hasPrefix(prefix) {
             let userPart = String(updatedText.dropFirst(prefix.count))
             updateText(userText: userPart)
-            
+
             let newPosition = textField.position(from: textField.beginningOfDocument, offset: range.location + string.count)
             if let newPosition = newPosition {
                 textField.selectedTextRange = textField.textRange(from: newPosition, to: newPosition)
             }
             return false
         }
-        
+
         return false
+    }
+
+    // MARK: - Smart Paste Helpers
+
+    private func looksLikeURL(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        return lower.hasPrefix("http://") || lower.hasPrefix("https://") || lower.hasPrefix("www.") || lower.contains("://")
+    }
+
+    private func extractHandle(from pastedText: String) -> String? {
+        guard let prefix = prefix, !prefix.isEmpty else { return nil }
+
+        let domain = prefix.hasSuffix("/") ? String(prefix.dropLast()) : prefix
+        let candidates = [
+            "https://www.\(domain)/",
+            "http://www.\(domain)/",
+            "https://\(domain)/",
+            "http://\(domain)/",
+            "www.\(domain)/",
+            "\(domain)/",
+        ]
+
+        let lowercased = pastedText.lowercased()
+        for candidate in candidates {
+            if lowercased.hasPrefix(candidate.lowercased()) {
+                let raw = String(pastedText.dropFirst(candidate.count))
+                // Убираем query-параметры (?igsh=...) и фрагменты (#...)
+                let clean = raw.components(separatedBy: CharacterSet(charactersIn: "?#")).first ?? raw
+                return clean.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            }
+        }
+        return nil
+    }
+
+    private func isValidHandleInput(_ text: String) -> Bool {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._@-"))
+        return text.unicodeScalars.allSatisfy { allowed.contains($0) }
+    }
+
+    private func sanitizeHandle(_ handle: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._@-"))
+        return String(handle.unicodeScalars.filter { allowed.contains($0) })
+    }
+
+    private func moveCursorToEnd(_ textField: UITextField) {
+        let end = textField.endOfDocument
+        textField.selectedTextRange = textField.textRange(from: end, to: end)
     }
     
     public func textFieldDidBeginEditing(_ textField: UITextField) {
