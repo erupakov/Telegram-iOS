@@ -52,37 +52,7 @@ final class EditProfileNode: ASDisplayNode {
     var onBackTapped: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
     
-    private let topBarContainer: UIView = {
-        let view = UIView()
-        view.backgroundColor = .clear
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.font = Font.helveticaNeue(20)
-        label.textColor = DivoColorPalette.primaryText
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-    
-    private let backButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.backgroundColor = DivoColorPalette.cardBackground
-        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        
-        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
-        button.setImage(image, for: .normal)
-        button.tintColor = DivoColorPalette.primaryText
-
-        button.layer.applyDivoShadow()
-
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
+    private let navigationBar = DivoNavigationBar()
     
     // MARK: - ScrollView
     
@@ -343,6 +313,7 @@ final class EditProfileNode: ASDisplayNode {
 
     private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
     private var lastContainerSize: CGSize = .zero
+    private var keyboardHandler: DivoKeyboardHandler?
 
     // MARK: - Init
     
@@ -423,8 +394,19 @@ final class EditProfileNode: ASDisplayNode {
         self.nameEventTextField.textField.returnKeyType = .next
         self.nameEventTextField.textField.delegate = self
 
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+        keyboardHandler = DivoKeyboardHandler(
+            scrollView: scrollView,
+            buttonConstraint: applyButtonBottomConstraint!,
+            overlayConstraint: bottomFadeOverlayBottomConstraint!,
+            hostView: self.view,
+            defaultScrollInset: 80,
+            scrollToActiveField: { [weak self] in
+                guard let self, self.aboutEventTextField.textView.isFirstResponder else { return }
+                let frame = self.aboutEventTextField.convert(self.aboutEventTextField.bounds, to: self.scrollView)
+                self.scrollView.scrollRectToVisible(frame, animated: false)
+            }
+        )
+        keyboardHandler?.subscribe()
 
         loadAvatarIfNeeded()
 
@@ -462,9 +444,9 @@ final class EditProfileNode: ASDisplayNode {
             self?.updateSaveButtonState()
         }
 
-        backButton.addTarget(self, action: #selector(backPressed), for: .touchUpInside)
+        navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
 
-        for button in [backButton, applyButton, chancePhotoView] {
+        for button in [applyButton, chancePhotoView] {
             button.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
             button.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         }
@@ -493,28 +475,17 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     private func setupUI() {
-        view.addSubview(topBarContainer)
-        topBarContainer.addSubview(backButton)
-        topBarContainer.addSubview(titleLabel)
+        view.addSubview(navigationBar)
         
         view.addSubview(scrollView)
         scrollView.addSubview(mainStackView)
         
         NSLayoutConstraint.activate([
-            topBarContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            topBarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            topBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            topBarContainer.heightAnchor.constraint(equalToConstant: 50),
-            
-            backButton.leadingAnchor.constraint(equalTo: topBarContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            backButton.centerYAnchor.constraint(equalTo: topBarContainer.centerYAnchor),
-            backButton.widthAnchor.constraint(equalToConstant: 40),
-            backButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            titleLabel.centerXAnchor.constraint(equalTo: topBarContainer.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: topBarContainer.centerYAnchor),
-            
-            scrollView.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor),
+            navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
@@ -961,7 +932,7 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     func updateTitle(_ title: String) {
-        titleLabel.text = title.uppercased()
+        navigationBar.setTitle(title)
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -1000,39 +971,6 @@ final class EditProfileNode: ASDisplayNode {
         view.endEditing(true)
     }
 
-    @objc private func keyboardWillShow(_ notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
-              let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-        
-        let keyboardHeight = keyboardFrame.height
-        
-        scrollView.contentInset.bottom = keyboardHeight + 90
-        scrollView.verticalScrollIndicatorInsets.bottom = keyboardHeight + 90
-        
-        applyButtonBottomConstraint?.constant = -(keyboardHeight + DivoDesignTokens.Spacing.m)
-        bottomFadeOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
-        
-        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
-            self.view.layoutIfNeeded()
-            if self.aboutEventTextField.textView.isFirstResponder {
-                let fieldFrame = self.aboutEventTextField.convert(self.aboutEventTextField.bounds, to: self.scrollView)
-                self.scrollView.scrollRectToVisible(fieldFrame, animated: false)
-            }
-        }, completion: nil)
-    }
-    
-    @objc private func keyboardWillHide(_ notification: Notification) {
-        guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-        
-        applyButtonBottomConstraint?.constant = -40
-        bottomFadeOverlayBottomConstraint?.constant = 0
-        
-        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
-            self.scrollView.contentInset.bottom = 80
-            self.scrollView.verticalScrollIndicatorInsets.bottom = 0
-            self.view.layoutIfNeeded()
-        }, completion: nil)
-    }
 
     @objc private func avatarTapped() {
         print("Change photo")
@@ -1082,10 +1020,6 @@ final class EditProfileNode: ASDisplayNode {
             
         self.toggleSpinner(active: true)
         self.saveAgencyProfile?(data)
-    }
-    
-    @objc private func backPressed() {
-        onBackTapped?()
     }
     
     @objc private func buttonPressed(_ sender: UIButton) {

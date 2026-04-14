@@ -39,37 +39,10 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     private var linksData: LinksData
     
-    private let topBarContainer: UIView = {
-        let view = UIView()
-        view.backgroundColor = .clear
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = DivoStrings.editSocialLinks
-        label.font = Font.helveticaNeue(20)
-        label.textColor = DivoColorPalette.primaryText
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-    
-    private let backButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.backgroundColor = DivoColorPalette.cardBackground
-        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        
-        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
-        button.setImage(image, for: .normal)
-        button.tintColor = DivoColorPalette.primaryText
-
-        button.layer.applyDivoShadow()
-
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
+    private let navigationBar: DivoNavigationBar = {
+        let bar = DivoNavigationBar()
+        bar.setTitle(DivoStrings.editSocialLinks)
+        return bar
     }()
         
     private let scrollView: UIScrollView = {
@@ -146,7 +119,8 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     }()
 
     private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
-    
+    private var keyboardHandler: DivoKeyboardHandler?
+
     // MARK: - Init
     
     init(context: AccountContext, presentationData: PresentationData, linksData: LinksData) {
@@ -205,9 +179,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     private func setupUI() {
-        view.addSubview(topBarContainer)
-        topBarContainer.addSubview(backButton)
-        topBarContainer.addSubview(titleLabel)
+        view.addSubview(navigationBar)
         
         view.addSubview(scrollView)
         scrollView.addSubview(contentStackView)
@@ -244,21 +216,12 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         self.bottomFadeOverlayBottomConstraint = bottomFadeOverlayCns
         
         NSLayoutConstraint.activate([
-            topBarContainer.topAnchor.constraint(equalTo: safeArea.topAnchor),
-            topBarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            topBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            topBarContainer.heightAnchor.constraint(equalToConstant: 50),
-            
-            backButton.leadingAnchor.constraint(equalTo: topBarContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            backButton.centerYAnchor.constraint(equalTo: topBarContainer.centerYAnchor),
-            backButton.widthAnchor.constraint(equalToConstant: 40),
-            backButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            titleLabel.centerXAnchor.constraint(equalTo: topBarContainer.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: topBarContainer.centerYAnchor),
-            
+            navigationBar.topAnchor.constraint(equalTo: safeArea.topAnchor),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
             // --- ScrollView ---
-            scrollView.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -289,10 +252,23 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         scrollView.addGestureRecognizer(dismissTap)
         scrollView.keyboardDismissMode = .interactive
 
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
-
         let fields = [instagramTextField, tiktokTextField, youtubeTextField, telegramTextField, websiteTextField]
+        keyboardHandler = DivoKeyboardHandler(
+            scrollView: scrollView,
+            buttonConstraint: applyButtonBottomConstraint!,
+            overlayConstraint: bottomFadeOverlayBottomConstraint!,
+            hostView: self.view,
+            defaultScrollInset: 0,
+            scrollToActiveField: { [weak self] in
+                guard let self else { return }
+                let allFields = [self.instagramTextField, self.tiktokTextField, self.youtubeTextField, self.telegramTextField, self.websiteTextField]
+                if let active = allFields.first(where: { $0.textField.isFirstResponder }) {
+                    self.scrollToField(active)
+                }
+            }
+        )
+        keyboardHandler?.subscribe()
+
         for (index, field) in fields.enumerated() {
             let isLast = index == fields.count - 1
             field.textField.returnKeyType = isLast ? .done : .next
@@ -309,13 +285,11 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             field.textField.addTarget(self, action: #selector(textFieldDidChangeValue), for: .editingChanged)
         }
 
-        backButton.addTarget(self, action: #selector(backPressed), for: .touchUpInside)
+        navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
 
-        for button in [backButton, applyButton] {
-            button.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-            button.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        }
+        applyButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        applyButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -382,44 +356,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         view.endEditing(true)
     }
 
-    @objc private func keyboardWillShow(_ notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
-              let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-        
-        let keyboardHeight = keyboardFrame.height
-        
-        scrollView.contentInset.bottom = keyboardHeight + 90
-        scrollView.verticalScrollIndicatorInsets.bottom = keyboardHeight + 90
-        
-        applyButtonBottomConstraint?.constant = -(keyboardHeight + DivoDesignTokens.Spacing.m)
-        bottomFadeOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
 
-        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
-            self.view.layoutIfNeeded()
-            
-            let fields = [self.instagramTextField, self.tiktokTextField, self.youtubeTextField, self.telegramTextField, self.websiteTextField]
-            if let active = fields.first(where: { $0.textField.isFirstResponder }) {
-                self.scrollToField(active)
-            }
-        }, completion: nil)
-    }
-    
-    @objc private func keyboardWillHide(_ notification: Notification) {
-        guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
-        
-        applyButtonBottomConstraint?.constant = -40
-        bottomFadeOverlayBottomConstraint?.constant = 0
-        
-        UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
-            self.scrollView.contentInset.bottom = 0
-            self.scrollView.verticalScrollIndicatorInsets.bottom = 0
-            self.view.layoutIfNeeded()
-        }, completion: nil)
-    }
-    
-    @objc private func backPressed() {
-        onBackTapped?()
-    }
 
     @objc private func applyButtonTapped() {
         view.endEditing(true) 
