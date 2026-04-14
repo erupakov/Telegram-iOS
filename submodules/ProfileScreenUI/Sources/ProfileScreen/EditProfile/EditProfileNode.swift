@@ -375,11 +375,11 @@ final class EditProfileNode: ASDisplayNode {
         self.backgroundColor = DivoColorPalette.screenBackground
 
         if let app = model?.model?.appearance {
-            self.selectedHeight = Double(app.height ?? 1)
-            self.selectedWeight = Double(app.weight ?? 0)
-            self.selectedWaist = Double(app.waist ?? 0)
-            self.selectedHips = Double(app.hips ?? 0)
-            self.selectedShoeSize = Double(app.shoesSize ?? 0)
+            self.selectedHeight = app.height
+            self.selectedWeight = app.weight
+            self.selectedWaist = app.waist
+            self.selectedHips = app.hips
+            self.selectedShoeSize = app.shoesSize
             
             self.selectedHairLengthId = app.hairLength?.id
             self.selectedHairLengthTitle = app.hairLength?.title
@@ -1039,7 +1039,7 @@ final class EditProfileNode: ASDisplayNode {
                     measuringSystem: "metric",
                     height: self.selectedHeight,
                     weight: self.selectedWeight,
-                    breastSize: "",
+                    breastSize: nil,
                     waist: self.selectedWaist,
                     hips: self.selectedHips,
                     shoesSize: self.selectedShoeSize,

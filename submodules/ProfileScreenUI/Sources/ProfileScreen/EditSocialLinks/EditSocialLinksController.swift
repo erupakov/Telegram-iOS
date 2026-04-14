@@ -105,9 +105,8 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                 
                 print("✅ Social links successfully saved: \(response.message ?? "OK")")
 
-                self.navigationController?.popViewController(animated: true)
-                self.editSocialLinksNode.toggleSpinner(active: false)
                 self.delegate?.didUpdateSocialLinksData()
+                self.navigationController?.popViewController(animated: true)
                 
             } catch {
                 print("❌ Error saving social links: \(error)")

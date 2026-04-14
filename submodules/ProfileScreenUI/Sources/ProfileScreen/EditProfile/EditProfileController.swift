@@ -217,11 +217,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 
                 print("✅ Profile successfully saved: \(response.message ?? "OK")")
 
+                self.delegate?.didUpdateProfileData()
                 self.navigationController?.popViewController(animated: true)
 
-                self.editProfileNode.toggleSpinner(active: false)
-                self.delegate?.didUpdateProfileData()
-                
             } catch {
                 self.editProfileNode.toggleSpinner(active: false)
                 self.editProfileNode.showSnackbar(
@@ -252,11 +250,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 
                 print("✅ Profile successfully saved: \(response.message ?? "OK")")
 
+                self.delegate?.didUpdateProfileData()
                 self.navigationController?.popViewController(animated: true)
 
-                self.editProfileNode.toggleSpinner(active: false)
-                self.delegate?.didUpdateProfileData()
-                
             } catch {
                 self.editProfileNode.toggleSpinner(active: false)
                 self.editProfileNode.showSnackbar(
