@@ -104,6 +104,7 @@ final class EditProfileNode: ASDisplayNode {
         stack.spacing = 20
         stack.isLayoutMarginsRelativeArrangement = true
         stack.layoutMargins = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right: DivoDesignTokens.Spacing.m)
+        stack.insetsLayoutMarginsFromSafeArea = false
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -253,6 +254,24 @@ final class EditProfileNode: ASDisplayNode {
     private var selectedSkinColorId: Int?
     private var selectedSkinColorTitle: String?
     
+    private struct ProfileSnapshot: Equatable {
+        let name: String
+        let bio: String
+        let genderId: String?
+        let height: Double?
+        let weight: Double?
+        let waist: Double?
+        let hips: Double?
+        let shoeSize: Double?
+        let hairLengthId: Int?
+        let hairColorId: Int?
+        let eyeColorId: Int?
+        let skinColorId: Int?
+    }
+
+    private var initialSnapshot: ProfileSnapshot?
+    private var avatarChanged = false
+
     private let hairLengthDropdown = FilterRowView(title: DivoStrings.hairLength)
     private let hairColorDropdown = FilterRowView(title: DivoStrings.hairColor)
     private let eyeColorDropdown = FilterRowView(title: DivoStrings.eyeColor)
@@ -260,12 +279,25 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Footer UI
     
+    private static let saveButtonFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 18) ?? UIFont.boldSystemFont(ofSize: 18)
+    private static let saveButtonDisabledBackground = UIColor(red: 228/255, green: 228/255, blue: 228/255, alpha: 1) // #E4E4E4
+    private static let saveButtonDisabledTextColor = UIColor(red: 175/255, green: 175/255, blue: 177/255, alpha: 1) // #AFAFB1
+
     private let applyButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle(DivoStrings.save, for: .normal)
-        btn.setTitleColor(DivoColorPalette.cardBackground, for: .normal)
-        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
-        btn.titleLabel?.font = Font.helveticaNeue(20)
+        let btn = UIButton(type: .custom)
+        let font = EditProfileNode.saveButtonFont
+        let kern: CGFloat = 18 * 0.005 // 0.5%
+
+        let normalAttr: [NSAttributedString.Key: Any] = [
+            .font: font, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
+        ]
+        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: normalAttr), for: .normal)
+
+        let disabledAttr: [NSAttributedString.Key: Any] = [
+            .font: font, .kern: kern, .foregroundColor: EditProfileNode.saveButtonDisabledTextColor
+        ]
+        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: disabledAttr), for: .disabled)
+
         btn.backgroundColor = DivoColorPalette.accent
         btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
         btn.translatesAutoresizingMaskIntoConstraints = false
@@ -286,24 +318,32 @@ final class EditProfileNode: ASDisplayNode {
         didSet {
             avatarImageView.image = currentPhoto
             avatarImageView.applyAvatarTopCropIfNeeded(image: currentPhoto)
+            if initialSnapshot != nil {
+                avatarChanged = true
+                updateSaveButtonState()
+            }
         }
     }
     
     private var appearanceEditItems: [AppearanceEditItem] = []
     
-    private let bottomBlurOverlay: DivoGlassBlurView = {
-        let view = DivoGlassBlurView(
-            direction: .bottom,
-            blurStyle: .systemUltraThinMaterialLight,
-            falloff: .linear
-        )
+    private let bottomFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
         view.translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+                DivoColorPalette.screenBackground.cgColor
+            ]
+            gradient.locations = [0, 0.45]
+        }
         return view
     }()
-    
-    private var bottomBlurOverlayBottomConstraint: NSLayoutConstraint?
-    
-    
+
+    private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
+    private var lastContainerSize: CGSize = .zero
+
     // MARK: - Init
     
     init(context: AccountContext, presentationData: PresentationData, model: UserDetail?) {
@@ -335,7 +375,7 @@ final class EditProfileNode: ASDisplayNode {
             font: Font.regular(16),
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
-        self.nameEventTextField.isUserInteractionEnabled = (model?.role == "agency_employee") ? false : true
+        self.nameEventTextField.isUserInteractionEnabled = true
         
         self.aboutEventTextField = DivoTextView(title: bioTitle, initialText: bio)
 
@@ -369,7 +409,7 @@ final class EditProfileNode: ASDisplayNode {
     override func didLoad() {
         super.didLoad()
         setupUI()
-        
+
         updateDropdownsUI()
         setupInteractions()
 
@@ -387,6 +427,10 @@ final class EditProfileNode: ASDisplayNode {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
 
         loadAvatarIfNeeded()
+
+        initialSnapshot = makeSnapshot()
+        applyButton.isEnabled = false
+        applyButton.backgroundColor = Self.saveButtonDisabledBackground
 
         DispatchQueue.main.async {
             self.updatePagerHeight()
@@ -412,7 +456,12 @@ final class EditProfileNode: ASDisplayNode {
         }
 
         chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
-        
+
+        nameEventTextField.textField.addTarget(self, action: #selector(nameFieldDidChange), for: .editingChanged)
+        aboutEventTextField.onTextChange = { [weak self] _ in
+            self?.updateSaveButtonState()
+        }
+
         backButton.addTarget(self, action: #selector(backPressed), for: .touchUpInside)
 
         for button in [backButton, applyButton, chancePhotoView] {
@@ -483,6 +532,8 @@ final class EditProfileNode: ASDisplayNode {
         } else {
             setupAgencyPager()
         }
+
+        scrollView.delegate = self
     }
     
     private func setupTabs() {
@@ -610,7 +661,7 @@ final class EditProfileNode: ASDisplayNode {
         
         applyButton.heightAnchor.constraint(equalToConstant: 56).isActive = true
         
-        view.addSubview(bottomBlurOverlay)
+        view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
         
         applyButton.addSubview(applyButtonSpinner)
@@ -618,8 +669,8 @@ final class EditProfileNode: ASDisplayNode {
         let buttonBottomCns = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
         self.applyButtonBottomConstraint = buttonBottomCns
         
-        let bottomBlurOverlayCns = bottomBlurOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        self.bottomBlurOverlayBottomConstraint = bottomBlurOverlayCns
+        let bottomFadeOverlayCns = bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        self.bottomFadeOverlayBottomConstraint = bottomFadeOverlayCns
 
         NSLayoutConstraint.activate([
             buttonBottomCns,
@@ -628,10 +679,10 @@ final class EditProfileNode: ASDisplayNode {
             applyButtonSpinner.centerXAnchor.constraint(equalTo: applyButton.centerXAnchor),
             applyButtonSpinner.centerYAnchor.constraint(equalTo: applyButton.centerYAnchor),
             
-            bottomBlurOverlayCns,
-            bottomBlurOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            bottomBlurOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            bottomBlurOverlay.heightAnchor.constraint(equalToConstant: 160)
+            bottomFadeOverlayCns,
+            bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomFadeOverlay.heightAnchor.constraint(equalToConstant: 160)
         ])
     }
     
@@ -823,6 +874,7 @@ final class EditProfileNode: ASDisplayNode {
         vc.onSave = {[weak self] _, upperVal in
             completion(upperVal)
             self?.updateAppearanceValues()
+            self?.updateSaveButtonState()
         }
         presentSheet(vc)
     }
@@ -849,6 +901,31 @@ final class EditProfileNode: ASDisplayNode {
         skinColorDropdown.setItems([selectedSkinColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
     }
 
+    private func makeSnapshot() -> ProfileSnapshot {
+        ProfileSnapshot(
+            name: nameEventTextField.textField.text ?? "",
+            bio: aboutEventTextField.text,
+            genderId: selectedGenderId,
+            height: selectedHeight,
+            weight: selectedWeight,
+            waist: selectedWaist,
+            hips: selectedHips,
+            shoeSize: selectedShoeSize,
+            hairLengthId: selectedHairLengthId,
+            hairColorId: selectedHairColorId,
+            eyeColorId: selectedEyeColorId,
+            skinColorId: selectedSkinColorId
+        )
+    }
+
+    private func updateSaveButtonState() {
+        let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
+        applyButton.isEnabled = hasChanges
+        applyButton.backgroundColor = hasChanges
+            ? DivoColorPalette.accent
+            : Self.saveButtonDisabledBackground
+    }
+
     func setAvatarLoading(_ loading: Bool) {
         if loading {
             avatarSpinner.startAnimating()
@@ -865,16 +942,20 @@ final class EditProfileNode: ASDisplayNode {
 
     func toggleSpinner(active: Bool) {
         self.applyButton.isUserInteractionEnabled = !active
-        
+
         if active {
             self.applyButtonSpinner.startAnimating()
             UIView.animate(withDuration: 0.2) {
-                self.applyButton.setTitle("", for: .normal)
+                self.applyButton.setAttributedTitle(NSAttributedString(string: ""), for: .normal)
             }
         } else {
             self.applyButtonSpinner.stopAnimating()
+            let kern: CGFloat = 18 * 0.005
+            let attr: [NSAttributedString.Key: Any] = [
+                .font: Self.saveButtonFont, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
+            ]
             UIView.animate(withDuration: 0.2) {
-                self.applyButton.setTitle(DivoStrings.save, for: .normal)
+                self.applyButton.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: attr), for: .normal)
             }
         }
     }
@@ -884,6 +965,10 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+        let newSize = layout.size
+        guard newSize != lastContainerSize else { return }
+        lastContainerSize = newSize
+
         DispatchQueue.main.async {
             self.updatePagerHeight()
             if self.model?.role != "agency_employee" {
@@ -907,6 +992,10 @@ final class EditProfileNode: ASDisplayNode {
         appearanceEditItems[view.tag].onTap()
     }
     
+    @objc private func nameFieldDidChange() {
+        updateSaveButtonState()
+    }
+
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
@@ -921,7 +1010,7 @@ final class EditProfileNode: ASDisplayNode {
         scrollView.verticalScrollIndicatorInsets.bottom = keyboardHeight + 90
         
         applyButtonBottomConstraint?.constant = -(keyboardHeight + DivoDesignTokens.Spacing.m)
-        bottomBlurOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
+        bottomFadeOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
         
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
             self.view.layoutIfNeeded()
@@ -936,7 +1025,7 @@ final class EditProfileNode: ASDisplayNode {
         guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
         
         applyButtonBottomConstraint?.constant = -40
-        bottomBlurOverlayBottomConstraint?.constant = 0
+        bottomFadeOverlayBottomConstraint?.constant = 0
         
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
             self.scrollView.contentInset.bottom = 80
@@ -987,6 +1076,7 @@ final class EditProfileNode: ASDisplayNode {
         self.view.endEditing(true)
         let data = UpdateDescriptionAgencyRequest(
             agencyId: model?.agency?.id,
+            title: self.nameEventTextField.textField.text,
             description: self.aboutEventTextField.text
         )
             
@@ -1038,6 +1128,7 @@ final class EditProfileNode: ASDisplayNode {
                 self?.selectedGenderTitle = nil
             }
             self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
         }
         presentSheet(vc)
     }
@@ -1048,6 +1139,7 @@ final class EditProfileNode: ASDisplayNode {
             self?.selectedHairLengthId = id
             self?.selectedHairLengthTitle = title
             self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
         }
     }
     
@@ -1057,6 +1149,7 @@ final class EditProfileNode: ASDisplayNode {
             self?.selectedHairColorId = id
             self?.selectedHairColorTitle = title
             self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
         }
     }
     
@@ -1066,6 +1159,7 @@ final class EditProfileNode: ASDisplayNode {
             self?.selectedEyeColorId = id
             self?.selectedEyeColorTitle = title
             self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
         }
     }
     
@@ -1075,6 +1169,7 @@ final class EditProfileNode: ASDisplayNode {
             self?.selectedSkinColorId = id
             self?.selectedSkinColorTitle = title
             self?.updateDropdownsUI()
+            self?.updateSaveButtonState()
         }
     }
 
@@ -1147,7 +1242,7 @@ extension EditProfileNode: UITextFieldDelegate {
         let bioHeight = bioStackView.frame.height
         let appHeight = appearanceStackView.frame.height
         let experienceHeight = experienceStackView.frame.height
-        
+
         var targetHeight = 0.0
         if selectedIndex == 0 {
             targetHeight = bioHeight
@@ -1157,6 +1252,7 @@ extension EditProfileNode: UITextFieldDelegate {
             targetHeight = experienceHeight
         }
 
+        guard pagerHeightConstraint.constant != targetHeight else { return }
         pagerHeightConstraint.constant = targetHeight
         self.view.layoutIfNeeded()
     }
@@ -1192,4 +1288,10 @@ extension EditProfileNode: UIGestureRecognizerDelegate {
         }
         return true
     }
+}
+
+// MARK: - GradientView
+
+private final class GradientView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
 }

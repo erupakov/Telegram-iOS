@@ -94,12 +94,27 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     private let telegramTextField: DivoTextField
     private let websiteTextField: DivoTextField
     
+    private var initialTexts: [String] = []
+
+    private static let saveButtonFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 18) ?? UIFont.boldSystemFont(ofSize: 18)
+    private static let saveButtonDisabledBackground = UIColor(red: 228/255, green: 228/255, blue: 228/255, alpha: 1)
+    private static let saveButtonDisabledTextColor = UIColor(red: 175/255, green: 175/255, blue: 177/255, alpha: 1)
+
     private let applyButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle(DivoStrings.save, for: .normal)
-        btn.setTitleColor(DivoColorPalette.cardBackground, for: .normal)
-        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
-        btn.titleLabel?.font = Font.helveticaNeue(20)
+        let btn = UIButton(type: .custom)
+        let font = EditSocialLinksNode.saveButtonFont
+        let kern: CGFloat = 18 * 0.005
+
+        let normalAttr: [NSAttributedString.Key: Any] = [
+            .font: font, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
+        ]
+        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: normalAttr), for: .normal)
+
+        let disabledAttr: [NSAttributedString.Key: Any] = [
+            .font: font, .kern: kern, .foregroundColor: EditSocialLinksNode.saveButtonDisabledTextColor
+        ]
+        btn.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: disabledAttr), for: .disabled)
+
         btn.backgroundColor = DivoColorPalette.accent
         btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
         btn.translatesAutoresizingMaskIntoConstraints = false
@@ -116,17 +131,21 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         return spinner
     }()
 
-    private let bottomBlurOverlay: DivoGlassBlurView = {
-        let view = DivoGlassBlurView(
-            direction: .bottom,
-            blurStyle: .systemUltraThinMaterialLight,
-            falloff: .linear
-        )
+    private let bottomFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
         view.translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+                DivoColorPalette.screenBackground.cgColor
+            ]
+            gradient.locations = [0, 0.45]
+        }
         return view
     }()
-    
-    private var bottomBlurOverlayBottomConstraint: NSLayoutConstraint?
+
+    private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
     
     // MARK: - Init
     
@@ -168,6 +187,21 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         setupUI()
         setupConstraints()
         setupInteractions()
+
+        let fields = [instagramTextField, tiktokTextField, youtubeTextField, telegramTextField, websiteTextField]
+        initialTexts = fields.map { $0.textField.text ?? "" }
+        applyButton.isEnabled = false
+        applyButton.backgroundColor = Self.saveButtonDisabledBackground
+    }
+
+    private func updateSaveButtonState() {
+        let fields = [instagramTextField, tiktokTextField, youtubeTextField, telegramTextField, websiteTextField]
+        let currentTexts = fields.map { $0.textField.text ?? "" }
+        let hasChanges = currentTexts != initialTexts
+        applyButton.isEnabled = hasChanges
+        applyButton.backgroundColor = hasChanges
+            ? DivoColorPalette.accent
+            : Self.saveButtonDisabledBackground
     }
     
     private func setupUI() {
@@ -194,7 +228,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         
         applyButton.heightAnchor.constraint(equalToConstant: 56).isActive = true
 
-        view.addSubview(bottomBlurOverlay)
+        view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
         
         applyButton.addSubview(applyButtonSpinner)
@@ -206,8 +240,8 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         let buttonBottomCns = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
         self.applyButtonBottomConstraint = buttonBottomCns
 
-        let bottomBlurOverlayCns = bottomBlurOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        self.bottomBlurOverlayBottomConstraint = bottomBlurOverlayCns
+        let bottomFadeOverlayCns = bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        self.bottomFadeOverlayBottomConstraint = bottomFadeOverlayCns
         
         NSLayoutConstraint.activate([
             topBarContainer.topAnchor.constraint(equalTo: safeArea.topAnchor),
@@ -242,10 +276,10 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             applyButtonSpinner.centerXAnchor.constraint(equalTo: applyButton.centerXAnchor),
             applyButtonSpinner.centerYAnchor.constraint(equalTo: applyButton.centerYAnchor),
             
-            bottomBlurOverlayCns,
-            bottomBlurOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            bottomBlurOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            bottomBlurOverlay.heightAnchor.constraint(equalToConstant: 160)
+            bottomFadeOverlayCns,
+            bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomFadeOverlay.heightAnchor.constraint(equalToConstant: 160)
         ])
     }
     
@@ -272,6 +306,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
                 guard let self, let field else { return }
                 self.scrollToField(field)
             }
+            field.textField.addTarget(self, action: #selector(textFieldDidChangeValue), for: .editingChanged)
         }
 
         backButton.addTarget(self, action: #selector(backPressed), for: .touchUpInside)
@@ -291,16 +326,20 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     func toggleSpinner(active: Bool) {
         self.applyButton.isUserInteractionEnabled = !active
-        
+
         if active {
             self.applyButtonSpinner.startAnimating()
             UIView.animate(withDuration: 0.2) {
-                self.applyButton.setTitle("", for: .normal)
+                self.applyButton.setAttributedTitle(NSAttributedString(string: ""), for: .normal)
             }
         } else {
             self.applyButtonSpinner.stopAnimating()
+            let kern: CGFloat = 18 * 0.005
+            let attr: [NSAttributedString.Key: Any] = [
+                .font: Self.saveButtonFont, .kern: kern, .foregroundColor: DivoColorPalette.primaryTextOnDark
+            ]
             UIView.animate(withDuration: 0.2) {
-                self.applyButton.setTitle(DivoStrings.save, for: .normal)
+                self.applyButton.setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: attr), for: .normal)
             }
         }
     }
@@ -335,6 +374,10 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     // MARK: - Actions
     
+    @objc private func textFieldDidChangeValue() {
+        updateSaveButtonState()
+    }
+
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
@@ -349,7 +392,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         scrollView.verticalScrollIndicatorInsets.bottom = keyboardHeight + 90
         
         applyButtonBottomConstraint?.constant = -(keyboardHeight + DivoDesignTokens.Spacing.m)
-        bottomBlurOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
+        bottomFadeOverlayBottomConstraint?.constant = -(keyboardHeight - 26)
 
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
             self.view.layoutIfNeeded()
@@ -365,7 +408,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         guard let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double else { return }
         
         applyButtonBottomConstraint?.constant = -40
-        bottomBlurOverlayBottomConstraint?.constant = 0
+        bottomFadeOverlayBottomConstraint?.constant = 0
         
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut, animations: {
             self.scrollView.contentInset.bottom = 0
@@ -435,4 +478,10 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     func hideSnackbar(animated: Bool) {
         snackbar.hide(animated: animated)
     }
+}
+
+// MARK: - GradientView
+
+private final class GradientView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
 }

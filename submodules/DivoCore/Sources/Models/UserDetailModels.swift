@@ -427,6 +427,7 @@ public struct AgencyModelsListRequest: Encodable {
 
 public struct UpdateDescriptionAgencyRequest: Encodable {
     public let agencyId: Int?
+    public let title: String?
     public let description: String?
     public let background: AvatarUuid?
     public let photo: AvatarUuid?
@@ -436,8 +437,9 @@ public struct UpdateDescriptionAgencyRequest: Encodable {
         public init(uuid: String) { self.uuid = uuid }
     }
 
-    public init(agencyId: Int?, description: String? = nil, background: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
+    public init(agencyId: Int?, title: String? = nil, description: String? = nil, background: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
         self.agencyId = agencyId
+        self.title = title
         self.description = description
         self.background = background
         self.photo = photo

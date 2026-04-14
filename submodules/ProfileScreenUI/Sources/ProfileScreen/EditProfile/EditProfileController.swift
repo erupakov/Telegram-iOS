@@ -228,6 +228,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 }
                 let request = UpdateDescriptionAgencyRequest(
                     agencyId: rawData.agencyId,
+                    title: rawData.title,
                     description: rawData.description,
                     photo: photoUuid
                 )
