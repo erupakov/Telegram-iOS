@@ -43,11 +43,14 @@ final class SearchUserCell: UITableViewCell {
     private let arrowIcon: UIImageView = {
         let imageView = UIImageView()
         imageView.image = DivoImage.searchArrowProfile
-        imageView.tintColor = DivoColorPalette.systemGray3
+        imageView.tintColor = DivoColorPalette.primaryText
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
+    
+    private var nameTopConstraint: NSLayoutConstraint!
+    private var nameCenterYConstraint: NSLayoutConstraint!
     
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -60,6 +63,9 @@ final class SearchUserCell: UITableViewCell {
         contentView.addSubview(usernameLabel)
         contentView.addSubview(arrowIcon)
         
+        nameTopConstraint = nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12)
+        nameCenterYConstraint = nameLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+        
         NSLayoutConstraint.activate([
             avatarView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -67,7 +73,7 @@ final class SearchUserCell: UITableViewCell {
             avatarView.heightAnchor.constraint(equalToConstant: SearchUserCell.avatarSize),
             
             nameLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 12),
-            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+            nameTopConstraint,
             nameLabel.trailingAnchor.constraint(equalTo: arrowIcon.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
             
             usernameLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 12),
@@ -87,9 +93,13 @@ final class SearchUserCell: UITableViewCell {
     
     func configure(with item: SearchUserDTO, query: String) {
         // Backend does not expose a dedicated username field; fall back to description.
-        usernameLabel.text = item.description
+        let description = item.description ?? ""
+        let hasDescription = !description.isEmpty
+        usernameLabel.text = description
+        usernameLabel.isHidden = !hasDescription
+        nameTopConstraint.isActive = hasDescription
+        nameCenterYConstraint.isActive = !hasDescription
         
-
         if let avatarURLString = item.searchImage?.fullUrl,
            let url = CDNURLHelper.convertToCDNURL(avatarURLString) {
             avatarView.loadImage(from: url) { [weak self] image in
@@ -101,9 +111,20 @@ final class SearchUserCell: UITableViewCell {
         if !query.isEmpty {
             let range = (item.title.lowercased() as NSString).range(of: query.lowercased())
             if range.location != NSNotFound {
-                attributedName.addAttribute(.foregroundColor, value: DivoColorPalette.accentSecondary, range: range)
+                attributedName.addAttribute(.foregroundColor, value: DivoColorPalette.accent, range: range)
             }
         }
         nameLabel.attributedText = attributedName
+    }
+    
+    override func setHighlighted(_ highlighted: Bool, animated: Bool) {
+        super.setHighlighted(highlighted, animated: animated)
+        let duration = highlighted ? 0.1 : 0.2
+        UIView.animate(withDuration: duration) {
+            self.contentView.alpha = highlighted ? 0.6 : 1.0
+            self.contentView.transform = highlighted
+                ? CGAffineTransform(scaleX: 0.98, y: 0.98)
+                : .identity
+        }
     }
 }

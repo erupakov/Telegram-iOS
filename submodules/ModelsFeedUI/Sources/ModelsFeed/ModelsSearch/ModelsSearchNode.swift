@@ -108,9 +108,10 @@ final class ModelsSearchNode: ASDisplayNode {
     private let resultsTableView: UITableView = {
         let tableView = UITableView()
         tableView.separatorStyle = .none
-        tableView.isScrollEnabled = false
+        tableView.isScrollEnabled = true
         tableView.backgroundColor = .clear
         tableView.keyboardDismissMode = .onDrag
+        tableView.showsVerticalScrollIndicator = false
         tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
@@ -164,7 +165,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     private let autocompleteLoader: UIActivityIndicatorView = {
         let loader = UIActivityIndicatorView(style: .medium)
-        loader.color = DivoColorPalette.accentSecondary
+        loader.color = DivoColorPalette.accent
         loader.hidesWhenStopped = true
         loader.translatesAutoresizingMaskIntoConstraints = false
         return loader
@@ -172,7 +173,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let gridCenterLoader: UIActivityIndicatorView = {
         let loader = UIActivityIndicatorView(style: .large)
-        loader.color = DivoColorPalette.accentSecondary
+        loader.color = DivoColorPalette.accent
         loader.hidesWhenStopped = true
         loader.translatesAutoresizingMaskIntoConstraints = false
         return loader
@@ -655,14 +656,17 @@ final class ModelsSearchNode: ASDisplayNode {
         currentAutocompleteResults = results
         resultsTableView.reloadData()
         
+        emptyStateContainer.isHidden = true
+        
         if results.isEmpty {
             resultsContainer.isHidden = true
-            emptyStateContainer.isHidden = false
+            resultsContainerHeightConstraint?.constant = 0
         } else {
-            emptyStateContainer.isHidden = true
             resultsContainer.isHidden = false
             
-            let height = CGFloat(results.count) * 64 + 16
+            let maxVisibleRows = 5
+            let visibleRows = min(results.count, maxVisibleRows)
+            let height = CGFloat(visibleRows) * 64 + 16
             resultsContainerHeightConstraint?.constant = height
         }
         
