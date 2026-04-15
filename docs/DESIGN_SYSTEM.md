@@ -147,6 +147,73 @@ button.layer.applyDivoShadow(
 
 ---
 
+## Ассеты
+
+### Цель
+
+DIVO-ассеты должны **по коду** быть отличимы от Telegram-ассетов и **защищены** от ошибок — чтобы на смешанном проекте (форк Telegram + DIVO-слой) нельзя было:
+
+- случайно положить DIVO-картинку в чужой каталог и не заметить (в рантайме получить `nil`);
+- случайно подцепить Telegram-ассет, думая что это наш;
+- обратиться к ассету по строке с опечаткой — и поймать `nil` только в прод-сборке;
+- добавить новый ассет и забыть про него в коде (недоступен → «почему не работает?»).
+
+Инструменты, которые это обеспечивают:
+- **Префикс `Divo`** в именах — визуальная маркировка в навигации по xcassets.
+- **Типизированный неймспейс `DivoImage`** — compile-time safety вместо строк.
+- **Lint-скрипт** — автопроверка правил при коммите и на PR.
+
+### Где лежат
+
+Один каталог: [`submodules/DivoCore/DivoCoreImages.xcassets`](../submodules/DivoCore/DivoCoreImages.xcassets/).
+
+Там внутри подкаталоги (`Components/`, `Role/`, `Search/`, …) — это **только для удобства навигации** в редакторе. `provides-namespace` на них **не стоит** и стоять не должен (см. R3 ниже): подкаталог не входит в имя ассета.
+
+Сгенерированный API: [`submodules/DivoUIKit/Sources/DivoImage.swift`](../submodules/DivoUIKit/Sources/DivoImage.swift). Файл редактировать руками **нельзя** — он перегенерируется скриптом.
+
+### Как использовать в коде
+
+```swift
+import DivoUIKit
+
+imageView.image = DivoImage.heartActionIcon
+let filledImage = DivoImage.statLikeFilled.withRenderingMode(.alwaysTemplate)
+```
+
+Строковые вызовы `UIImage(named: "DivoXxx")` / `UIImage(bundleImageName: "DivoXxx")` для DIVO-ассетов **запрещены** (см. R4). Для Telegram-нативных ассетов (`Chat/Context Menu/…`, `Instant View/…`, `Avatar/…`) — `UIImage(bundleImageName:)` остаётся, они не в DIVO-каталоге.
+
+### Как добавить новый ассет
+
+1. Положить `.imageset` в [`DivoCoreImages.xcassets`](../submodules/DivoCore/DivoCoreImages.xcassets/) (в любой подкаталог или в корень). **Имя обязательно с префикса `Divo`**: `DivoMyIcon.imageset`.
+2. Перегенерировать неймспейс:
+   ```
+   python3 scripts/divo/generate_divo_images.py
+   ```
+   В `DivoImage.swift` появится `public static var myIcon: UIImage { load("DivoMyIcon") }`.
+3. Использовать: `DivoImage.myIcon`.
+
+Если забыть шаг 2 — пре-коммит хук упадёт с ошибкой R5 и подскажет команду.
+
+### Правила (проверяются `scripts/divo/lint_divo_images.py`)
+
+| № | Правило | Зачем |
+|---|---|---|
+| **R1** | Каждый `.imageset` в `DivoCoreImages.xcassets` начинается с `Divo`. | Визуально отличать DIVO-ассеты от Telegram в навигации по xcassets. |
+| **R2** | Префикс `Divo` не встречается ни в одном другом `.xcassets`. | DIVO-ассет должен лежать в `DivoCore` — иначе бандл его не подхватит, и `UIImage(...)` вернёт `nil` в рантайме. |
+| **R3** | В `DivoCoreImages.xcassets` нигде не стоит `provides-namespace: true`. | С `provides-namespace` подкаталог становится частью имени (`Components/Xxx`), и префикс `Divo` в имени ассета исчезает — R1 обходится. |
+| **R4** | Нет `UIImage(named: "Divo…")` / `UIImage(bundleImageName: "Divo…")` в Swift-коде. | Строковое обращение не ловится компилятором: опечатка = `nil` в рантайме. Через `DivoImage.xxx` — ошибка сборки. |
+| **R5** | `DivoImage.swift` синхронизирован со списком `.imageset`. | Иначе добавленный ассет недоступен в коде, или `DivoImage.xxx` ссылается на удалённый ассет → `nil` в рантайме. |
+
+### Автоматизация
+
+Правила проверяются в двух точках:
+- **Локально при `git commit`** — `.githooks/pre-commit` прогоняет линт. Активируется один раз на клон: `./scripts/divo/install_hooks.sh`.
+- **В CI на PR/push** — [`.github/workflows/divo-lint.yml`](../.github/workflows/divo-lint.yml), ~10 сек на Ubuntu.
+
+Если линтер ругается — он печатает конкретный файл:строку и что именно чинить. В 95% случаев: «переименуй ассет» / «замени строку на `DivoImage.xxx`» / «запусти `generate_divo_images.py`».
+
+---
+
 ## Нюанс про Bazel и скорость итераций
 
 **Правка в `DivoUIKit` триггерит пересборку всех потребителей.** В DIVO это ~десятки модулей. Инкрементальная пересборка после изменения токена/цвета может идти минутами.
