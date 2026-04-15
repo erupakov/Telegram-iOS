@@ -122,7 +122,7 @@ final class ModelsSearchNode: ASDisplayNode {
         button.layer.cornerRadius = 26 // TODO: DS alignment — не в шкале Radius
         let image = DivoImage.searchFaceScan
         button.setImage(image, for: .normal)
-        button.tintColor = DivoColorPalette.accentSecondary
+        button.tintColor = DivoColorPalette.primaryTextOnDark
         button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -276,11 +276,14 @@ final class ModelsSearchNode: ASDisplayNode {
     var onClosePressed: (() -> Void)?
     var onFilterPressed: (() -> Void)?
     var onFaceScanPressed: (() -> Void)?
+    var onUserTapped: ((SearchUserDTO) -> Void)?
     var requestAutocomplete: ((String) -> Void)?
+    var cancelAutocomplete: (() -> Void)?
     var requestGridSearch: ((String) -> Void)?
     var loadMoreGridResults: (() -> Void)?
     
     private var searchTimer: Timer?
+    private var loaderDelayTimer: Timer?
     
     enum SearchMode {
         case idle
@@ -626,6 +629,15 @@ final class ModelsSearchNode: ASDisplayNode {
         }
     }
     
+    func hideAutocompleteLoading() {
+        loaderDelayTimer?.invalidate()
+        autocompleteLoader.stopAnimating()
+        resultsContainer.isHidden = true
+        resultsContainerHeightConstraint?.constant = 0
+        resultsContainer.layer.removeAllAnimations()
+        view.layoutIfNeeded()
+    }
+    
     func showGridLoading(isFirstPage: Bool) {
         self.mode = .grid
         self.searchTimer?.invalidate()
@@ -651,6 +663,7 @@ final class ModelsSearchNode: ASDisplayNode {
     func updateAutocomplete(results: [SearchUserDTO]) {
         guard mode == .autocomplete else { return }
         
+        loaderDelayTimer?.invalidate()
         autocompleteLoader.stopAnimating()
         
         currentAutocompleteResults = results
@@ -734,7 +747,9 @@ final class ModelsSearchNode: ASDisplayNode {
         let text = searchTextField.text ?? ""
         
         searchTimer?.invalidate()
+        loaderDelayTimer?.invalidate()
         currentTask?.cancel()
+        cancelAutocomplete?()
         
         resultsCountLabel.isHidden = true
         gridCollectionView.isHidden = true
@@ -753,10 +768,13 @@ final class ModelsSearchNode: ASDisplayNode {
         searchTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
             guard let self else { return }
             
-            self.showAutocompleteLoading()
-            
             self.currentTask = Task { @MainActor in
                 self.requestAutocomplete?(text)
+            }
+            
+            self.loaderDelayTimer?.invalidate()
+            self.loaderDelayTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+                self?.showAutocompleteLoading()
             }
         }
     }
@@ -805,12 +823,19 @@ final class ModelsSearchNode: ASDisplayNode {
     private let snackbar = DivoSnackbar()
 
     func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        let bottomAnchor: NSLayoutYAxisAnchor
+        if #available(iOS 15.0, *) {
+            bottomAnchor = view.keyboardLayoutGuide.topAnchor
+        } else {
+            bottomAnchor = view.safeAreaLayoutGuide.bottomAnchor
+        }
+        
         snackbar.show(
             in: self.view,
             message: message,
             style: style,
             bottomInset: 16,
-            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            bottomAnchor: bottomAnchor,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
             persistent: persistent
@@ -867,6 +892,8 @@ extension ModelsSearchNode: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         searchTextField.resignFirstResponder()
+        let item = currentAutocompleteResults[indexPath.row]
+        onUserTapped?(item)
     }
 }
 

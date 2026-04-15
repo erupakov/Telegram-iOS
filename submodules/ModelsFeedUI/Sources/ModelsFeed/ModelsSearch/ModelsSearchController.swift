@@ -15,6 +15,7 @@ import DivoUIKit
 import TelegramPresentationData
 import AccountContext
 import CountrySelectionUI
+import ProfileScreenUI
 
 public class ModelsSearchController: ViewController {
     private let context: AccountContext
@@ -72,6 +73,10 @@ public class ModelsSearchController: ViewController {
     }
     
     override public func loadDisplayNode() {
+        // Прогреваем keyboard-трекер снекбара заранее: иначе при первом показе
+        // snackbar'а (ошибка автокомплита) трекер пропустит уже отправленное
+        // keyboardWillChangeFrame и снек окажется под клавиатурой.
+        DivoSnackbar.prepareKeyboardTracking()
 
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
 
@@ -93,8 +98,16 @@ public class ModelsSearchController: ViewController {
             self?.openFaceRecognition()
         }
         
+        self.searchNode.onUserTapped = { [weak self] user in
+            self?.openModelScreen(for: user)
+        }
+        
         self.searchNode.requestAutocomplete = {[weak self] query in
             self?.fetchAutocompleteResults(for: query)
+        }
+        
+        self.searchNode.cancelAutocomplete = { [weak self] in
+            self?.currentSearchTask?.cancel()
         }
         
         self.searchNode.requestGridSearch = { [weak self] query in
@@ -118,6 +131,29 @@ public class ModelsSearchController: ViewController {
     private func openFaceRecognition() {
         let vc = FaceRecognitionController(context: self.context)
         (self.navigationController as? NavigationController)?.pushViewController(vc)
+    }
+
+    private func openModelScreen(for user: SearchUserDTO) {
+        let mainImageURL = user.searchImage?.fullUrl
+            .flatMap { CDNURLHelper.convertToCDNURL($0) }
+
+        let profileModel = ProfileModel(
+            name: user.title,
+            age: user.user?.age ?? 0,
+            location: user.user?.city?.name ?? "",
+            isVerified: false,
+            likesCount: "\(user.likesCount ?? 0)",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: user.user?.id,
+            role: user.user?.role,
+            mainImageURL: mainImageURL,
+            avatarImageURL: mainImageURL
+        )
+        let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
 
     private func openFilters() {
@@ -307,9 +343,14 @@ public class ModelsSearchController: ViewController {
                 self.searchNode.updateAutocomplete(results: response.data.items)
             } catch {
                 if !Task.isCancelled {
+                    self.searchNode.hideAutocompleteLoading()
                     self.searchNode.showSnackbar(
                         message: DivoStrings.feedSearchResultsLoadFailed,
-                        style: .error
+                        style: .error,
+                        retryAction: { [weak self] in
+                            guard let self else { return }
+                            self.fetchAutocompleteResults(for: self.currentQuery)
+                        }
                     )
                 }
             }
