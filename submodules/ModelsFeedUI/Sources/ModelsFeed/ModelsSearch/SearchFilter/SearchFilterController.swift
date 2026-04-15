@@ -15,10 +15,10 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     var currentFilters: SearchFilterState
     
     var genderOptions: [FilterOptionItem] = []
-    var hairLengthOptions: [FilterOptionApperanceItem] = []
-    var hairColorOptions: [FilterOptionApperanceItem] = []
-    var eyeColorOptions: [FilterOptionApperanceItem] = []
-    var skinColorOptions: [FilterOptionApperanceItem] = []
+    var hairLengthOptions: [FilterOptionAppearanceItem] = []
+    var hairColorOptions: [FilterOptionAppearanceItem] = []
+    var eyeColorOptions: [FilterOptionAppearanceItem] = []
+    var skinColorOptions: [FilterOptionAppearanceItem] = []
     var roleOptions: [FilterOptionItem] = [
         FilterOptionItem(id: "all", title: DivoStrings.feedSearchAllRoles),
         FilterOptionItem(id: "model", title: DivoStrings.debugModel),
@@ -60,7 +60,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let cityTextField: UITextField = {
         let tf = UITextField()
         tf.placeholder = DivoStrings.debugCity
-        tf.backgroundColor = .white
+        tf.backgroundColor = DivoColorPalette.cardBackground
         tf.layer.cornerRadius = 23 // TODO: DS alignment — не в шкале Radius (border inset от card=24)
         tf.font = Font.regular(16)
         let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 46))
@@ -95,7 +95,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     private let appearanceBackgroundView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -105,7 +105,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let applyButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle(DivoStrings.feedSearchApplyFilter, for: .normal)
-        btn.setTitleColor(.white, for: .normal)
+        btn.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
         btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
         btn.backgroundColor = DivoColorPalette.accent
@@ -142,11 +142,11 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     private let closeButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         let image = DivoImage.searchCloseIcon
         button.setImage(image, for: .normal)
-        button.tintColor = .black
+        button.tintColor = DivoColorPalette.primaryText
         button.layer.applyDivoShadow()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -218,7 +218,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
-                        title: DivoStrings.ageYo,
+                        title: DivoStrings.heightCm,
                         keyPath: \.heightRange,
                         min: 150,
                         max: 200
@@ -815,23 +815,20 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }
 }
 
-// 1. Создаем общий протокол для фильтров
+// Общий протокол для фильтров с числовыми диапазонами.
 protocol RangeFilterable: Comparable {
     var doubleValue: Double { get }
     init(_ value: Double)
 }
 
-// 2. Учим Int работать с этим протоколом
 extension Int: RangeFilterable {
     var doubleValue: Double { return Double(self) }
 }
 
-// 3. Учим Double работать с этим протоколом
 extension Double: RangeFilterable {
     var doubleValue: Double { return self }
 }
 
-// Если где-то используете Float или CGFloat, можно добавить и их:
 extension Float: RangeFilterable {
     var doubleValue: Double { return Double(self) }
 }
