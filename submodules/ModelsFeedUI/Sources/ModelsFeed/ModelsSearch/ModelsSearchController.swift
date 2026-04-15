@@ -43,6 +43,8 @@ public class ModelsSearchController: ViewController {
     private var dictionaryLoadGroup = DispatchGroup()
     private var isDictionaryReady = false
     private var dictionaryLoadFailed = false
+    private var isDictionaryLoading = false
+    private var pendingFiltersOpen = false
 
     private var currentSearchTask: Task<Void, Never>?
 
@@ -72,8 +74,6 @@ public class ModelsSearchController: ViewController {
     override public func loadDisplayNode() {
 
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
-
-        loadDictionaries()
 
         // MARK: - Bindings
         
@@ -121,18 +121,24 @@ public class ModelsSearchController: ViewController {
     }
 
     private func openFilters() {
-        
-        guard isDictionaryReady else {
+        if isDictionaryReady {
+            presentFiltersSheet()
             return
         }
-        
+        pendingFiltersOpen = true
+        if !isDictionaryLoading {
+            loadDictionaries()
+        }
+    }
+
+    private func presentFiltersSheet() {
         let filterVC = SearchFilterController(currentFilters: self.currentFilters)
         filterVC.genderOptions = self.preloadedGenders
         filterVC.hairLengthOptions = self.preloadedHairLength
         filterVC.hairColorOptions = self.preloadedHairColor
         filterVC.eyeColorOptions = self.preloadedEyeColor
         filterVC.skinColorOptions = self.preloadedSkinColor
-        
+
         filterVC.onApply = { [weak self] newFilters in
             guard let self = self else { return }
             self.currentFilters = newFilters
@@ -141,7 +147,7 @@ public class ModelsSearchController: ViewController {
             self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
             self.fetchGridResults(isFirstPage: true)
         }
-        
+
         filterVC.onClose = { [weak self] newFilters in
             guard let self = self else { return }
             guard self.currentFilters != newFilters else { return }
@@ -152,7 +158,7 @@ public class ModelsSearchController: ViewController {
             self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
             self.fetchGridResults(isFirstPage: true)
         }
-        
+
         let navVC = UINavigationController(rootViewController: filterVC)
         if #available(iOS 15.0, *) {
             if let sheet = navVC.sheetPresentationController {
@@ -169,9 +175,9 @@ public class ModelsSearchController: ViewController {
     private func loadDictionaries() {
         self.dictionaryLoadFailed = false
         self.isDictionaryReady = false
+        self.isDictionaryLoading = true
         self.dictionaryLoadGroup = DispatchGroup()
 
-        self.searchNode.setFiltersButtonEnabled(false)
         self.searchNode.showFiltersButtonLoading()
 
         loadGenderDictionary()
@@ -179,22 +185,25 @@ public class ModelsSearchController: ViewController {
 
         self.dictionaryLoadGroup.notify(queue: .main) { [weak self] in
             guard let self = self else { return }
+            self.isDictionaryLoading = false
             self.searchNode.hideFiltersButtonLoading()
 
             if self.dictionaryLoadFailed {
                 self.isDictionaryReady = false
-                self.searchNode.setFiltersButtonEnabled(false)
+                self.pendingFiltersOpen = false
                 self.searchNode.showSnackbar(
                     message: DivoStrings.feedSearchFiltersLoadFailed,
                     style: .error,
                     retryAction: { [weak self] in
-                        self?.loadDictionaries()
-                    },
-                    persistent: true
+                        self?.openFilters()
+                    }
                 )
             } else {
                 self.isDictionaryReady = true
-                self.searchNode.setFiltersButtonEnabled(true)
+                if self.pendingFiltersOpen {
+                    self.pendingFiltersOpen = false
+                    self.presentFiltersSheet()
+                }
             }
         }
     }

@@ -599,11 +599,6 @@ final class ModelsSearchNode: ASDisplayNode {
         updateResultFilterStackVisibility()
     }
     
-    func setFiltersButtonEnabled(_ isEnabled: Bool) {
-        filterButton.isEnabled = isEnabled
-        filterButton.alpha = isEnabled ? 1.0 : 0.5
-    }
-
     func showFiltersButtonLoading() {
         filterButton.isEnabled = false
         filterButton.setImage(nil, for: .normal)
