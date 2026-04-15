@@ -54,7 +54,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         let button = UIButton(type: .custom)
         button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = 20
-        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
+        let image = DivoImage.searchCloseIcon
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.primaryText
 

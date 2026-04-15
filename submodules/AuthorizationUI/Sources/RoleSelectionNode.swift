@@ -44,7 +44,7 @@ final class RoleSelectionNode: ASDisplayNode {
         ])
         
         self.checkmarkNode = ASImageNode()
-        self.checkmarkNode.image = UIImage(bundleImageName: "Components/Checkbox")
+        self.checkmarkNode.image = DivoImage.checkbox
         self.checkmarkNode.tintColor = .gray
         
         let blurEffect = UIBlurEffect(style: .systemChromeMaterialDark)
@@ -74,7 +74,7 @@ final class RoleSelectionNode: ASDisplayNode {
     }
     
     private func updateState() {
-        self.checkmarkNode.image = isSelected ?  UIImage(named: "Components/CheckboxSelected") : UIImage(bundleImageName: "Components/Checkbox")
+        self.checkmarkNode.image = isSelected ? DivoImage.checkboxSelected : DivoImage.checkbox
         self.checkmarkNode.tintColor = isSelected ? .blue : .gray
         self.borderColor = isSelected ? DivoColorPalette.accentCopperDeep.cgColor : DivoColorPalette.overlayDarkFieldBorder.cgColor
     }

@@ -197,7 +197,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         self.addPhotoButton = HighlightableButtonNode()
         self.addPhotoButton.setImage(
             generateTintedImage(
-                image: UIImage(bundleImageName: "Components/AddPhotoIcon"),
+                image: DivoImage.addPhotoIcon,
                 color: iconColor),
             for: .normal)
 
@@ -1054,7 +1054,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         let button = ASButtonNode()
         button.backgroundColor = .clear
 
-        let basketButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/Basket"), color: DivoColorPalette.accentSecondary)
+        let basketButtonImg = generateTintedImage(image: DivoImage.basket, color: DivoColorPalette.accentSecondary)
         button.setImage(basketButtonImg, for: .normal)
         button.addTarget(self, action: #selector(self.deleteParameterTapped(_:)), forControlEvents: .touchUpInside)
         

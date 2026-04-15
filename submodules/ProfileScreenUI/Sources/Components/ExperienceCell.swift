@@ -95,7 +95,7 @@ final class ExperienceCell: UICollectionViewCell {
         dateLabel.numberOfLines = 2
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        let moreImage = UIImage(bundleImageName: "Components/moreIcon")?.withRenderingMode(.alwaysTemplate)
+        let moreImage = DivoImage.moreIcon.withRenderingMode(.alwaysTemplate)
         optionsButton.setImage(moreImage, for: .normal)
         optionsButton.tintColor = DivoColorPalette.systemLabelTertiary
         optionsButton.translatesAutoresizingMaskIntoConstraints = false
@@ -149,7 +149,7 @@ final class ExperienceCell: UICollectionViewCell {
         titleLabel.text = item.companyName
         dateLabel.text = item.period
         optionsButton.isHidden = !showOptions
-        iconImageView.loadImage(from: item.logoURL, placeholder: UIImage(bundleImageName: "Components/DefWork"))
+        iconImageView.loadImage(from: item.logoURL, placeholder: DivoImage.defWork)
     }
 
     func configureAsShimmer() {

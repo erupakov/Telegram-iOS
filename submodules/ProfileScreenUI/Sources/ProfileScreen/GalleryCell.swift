@@ -29,12 +29,6 @@ final class GalleryCell: UICollectionViewCell {
         }
     }
     
-    func configure(with imageName: String) {
-        imageView.image = UIImage(named: imageName)
-        spinner.stopAnimating()
-        imageView.alpha = 1.0
-    }
-
     func configure(with url: URL) {
         imageView.loadImage(from: url)
         spinner.stopAnimating()

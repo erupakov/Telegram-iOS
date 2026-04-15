@@ -124,8 +124,8 @@ class CheckboxNode: ASButtonNode {
     }
     
     private func updateAppearance() {
-        let normalImage = UIImage(bundleImageName: "Models/Checkbox")
-        let selectedImage = UIImage(bundleImageName: "Models/CheckboxSelected")
+        let normalImage = DivoImage.checkbox
+        let selectedImage = DivoImage.checkboxSelected
         
         self.setImage(normalImage, for: .normal)
         self.setImage(selectedImage, for: .selected)

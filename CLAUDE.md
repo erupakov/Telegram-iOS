@@ -22,6 +22,20 @@ This is a fork of Telegram-iOS with a DIVO layer on top. DIVO code uses REST API
 - Simulator ID: `C00BA86B-0536-4BFC-A845-F46BB4E2267D` (iPhone 15 / iOS 18)
 - App binary: `bazel-bin/Telegram/Telegram_archive-root/Payload/Telegram.app`
 
+## Developer setup
+После клонирования репо — один раз активировать git hooks:
+```
+./scripts/divo/install_hooks.sh
+```
+Это переключает `core.hooksPath` на `.githooks/`. Pre-commit хук гоняет
+`scripts/divo/lint_divo_images.py` — правила работы с DIVO-ассетами
+(см. `docs/DESIGN_SYSTEM.md`, раздел «Ассеты»). Те же проверки дублируются
+в CI на PR (`.github/workflows/divo-lint.yml`).
+
+Если хук падает — скрипт печатает конкретный файл/строку и что чинить.
+При добавлении/переименовании DIVO-ассетов: запустить
+`python3 scripts/divo/generate_divo_images.py` (перегенерит `DivoImage.swift`).
+
 ## Code Style Guidelines
 - **Naming**: PascalCase for types, camelCase for variables/methods
 - **Imports**: Group and sort imports at the top of files

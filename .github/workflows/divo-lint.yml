@@ -1,0 +1,21 @@
+name: DIVO Lint
+
+# Проверка правил работы с DIVO-ассетами (docs/DESIGN_SYSTEM.md, раздел «Ассеты»).
+# Запускается на PR и на push в основные ветки — как страховка на случай,
+# если кто-то запушил, не установив локальный pre-commit хук.
+
+on:
+  pull_request:
+    branches: [ master, dev ]
+  push:
+    branches: [ master, dev ]
+
+jobs:
+  divo-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run DIVO image lint
+        run: python3 scripts/divo/lint_divo_images.py

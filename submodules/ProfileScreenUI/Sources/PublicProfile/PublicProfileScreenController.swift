@@ -129,11 +129,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private func updateNavigation() {
         self.statusBar.statusBarStyle = .White
 
-        let moreButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/MoreActionIcon"), color: .white)
+        let moreButtonImg = generateTintedImage(image: DivoImage.moreActionIcon, color: .white)
         let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
 
         if isMyProfile {
-            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/ProfileEditAction"), color: .white)
+            let editButtonImg = generateTintedImage(image: DivoImage.profileEditAction, color: .white)
             
             let editButton = UIBarButtonItem(
                 image: editButtonImg,
@@ -688,8 +688,7 @@ extension PublicProfileScreenController {
                         name: item.name ?? "Unknown",
                         role: "Model",
                         isPremium: false,
-                        customAvatarURL: item.photo?.fullUrl,
-                        localAvatarName: nil
+                        customAvatarURL: item.photo?.fullUrl
                     )
                 }
                 self.controllerNode.updateModelsList(models)

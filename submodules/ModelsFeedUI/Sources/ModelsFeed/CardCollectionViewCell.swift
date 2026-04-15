@@ -87,13 +87,13 @@ final class CardCollectionViewCell: UICollectionViewCell {
     }()
 
     private let likesPill: StatPillView = {
-        let pill = StatPillView(iconName: "Components/StatLike", filledIconName: "Components/StatLikeFilled")
+        let pill = StatPillView(icon: DivoImage.statLike, filledIcon: DivoImage.statLikeFilled)
         pill.isUserInteractionEnabled = true
         return pill
     }()
-    private let viewsPill = StatPillView(iconName: "Components/StatView")
+    private let viewsPill = StatPillView(icon: DivoImage.statView)
     private let savesPill: StatPillView = {
-        let pill = StatPillView(iconName: "Components/StatSave", filledIconName: "Components/StatSaveFilled")
+        let pill = StatPillView(icon: DivoImage.statSave, filledIcon: DivoImage.statSaveFilled)
         pill.isUserInteractionEnabled = true
         return pill
     }()
@@ -273,8 +273,6 @@ final class CardCollectionViewCell: UICollectionViewCell {
         if let url = model.mainImageURL {
             mainImageView.backgroundColor = placeholderColor
             mainImageView.loadImage(from: url)
-        } else if let image = UIImage(named: model.mainImageName) {
-            mainImageView.image = image
         } else {
             mainImageView.backgroundColor = placeholderColor
         }
@@ -313,20 +311,12 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
         // Preview images
         previewStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        if !model.previewImageURLs.isEmpty {
-            for (index, url) in model.previewImageURLs.enumerated() {
-                let imageView = createPreviewImageView(index: index)
-                imageView.loadImage(from: url)
-                previewStackView.addArrangedSubview(imageView)
-            }
-        } else {
-            for (index, imageName) in model.previewImagesName.enumerated() {
-                let imageView = createPreviewImageView(index: index, imageName: imageName)
-                previewStackView.addArrangedSubview(imageView)
-            }
+        for (index, url) in model.previewImageURLs.enumerated() {
+            let imageView = createPreviewImageView(index: index)
+            imageView.loadImage(from: url)
+            previewStackView.addArrangedSubview(imageView)
         }
-        let hasPreviews = !model.previewImagesName.isEmpty || !model.previewImageURLs.isEmpty
-        previewScrollView.isHidden = !hasPreviews
+        previewScrollView.isHidden = model.previewImageURLs.isEmpty
         previewScrollView.contentOffset = .zero
 
         setNeedsLayout()
@@ -334,7 +324,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     // MARK: - Helpers
 
-    private func createPreviewImageView(index: Int, imageName: String? = nil) -> UIImageView {
+    private func createPreviewImageView(index: Int) -> UIImageView {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.layer.masksToBounds = true
@@ -346,9 +336,6 @@ final class CardCollectionViewCell: UICollectionViewCell {
         imageView.isUserInteractionEnabled = true
         imageView.tag = index
         imageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(previewImageTapped(_:))))
-        if let imageName {
-            imageView.image = UIImage(named: imageName)
-        }
         return imageView
     }
 
@@ -420,13 +407,9 @@ final class StatPillView: UIView {
     private let normalIcon: UIImage?
     private let filledIcon: UIImage?
 
-    init(iconName: String, filledIconName: String? = nil) {
-        self.normalIcon = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
-        if let filledIconName {
-            self.filledIcon = UIImage(bundleImageName: filledIconName)?.withRenderingMode(.alwaysTemplate)
-        } else {
-            self.filledIcon = nil
-        }
+    init(icon: UIImage, filledIcon: UIImage? = nil) {
+        self.normalIcon = icon.withRenderingMode(.alwaysTemplate)
+        self.filledIcon = filledIcon?.withRenderingMode(.alwaysTemplate)
         super.init(frame: .zero)
         backgroundColor = DivoColorPalette.statPillBackground
         layer.cornerRadius = 15 // TODO: DS alignment — не в шкале Radius

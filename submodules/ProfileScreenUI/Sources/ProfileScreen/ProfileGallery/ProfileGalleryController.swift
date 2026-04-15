@@ -73,7 +73,7 @@ public class ProfileGalleryController: TelegramBaseController {
         self.title = DivoStrings.xOfY(initialIndex + 1, totalCount)
         
         if isOwnProfile {
-            let editButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/MoreActionIcon"), color: .white)
+            let editButtonImg = generateTintedImage(image: DivoImage.moreActionIcon, color: .white)
             let editButton = UIBarButtonItem(image: editButtonImg, style: .plain, target: self, action: #selector(self.editMenu))
             self.navigationItem.rightBarButtonItem = editButton
         }

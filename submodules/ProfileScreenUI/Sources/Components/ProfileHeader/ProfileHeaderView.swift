@@ -102,7 +102,7 @@ class ProfileHeaderView: UIView {
     
     private let crownIconView: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Components/CrownPremium")
+        iv.image = DivoImage.crownPremium
         iv.tintColor = .white
         iv.contentMode = .center
         iv.backgroundColor = DivoColorPalette.accentCopperMutedBorder
@@ -257,17 +257,17 @@ class ProfileHeaderView: UIView {
         tagLabel.text = viewModel.role.title
         switch viewModel.role {
         case .model:
-            tagIcon.image = UIImage(bundleImageName: "Components/Role/Model")?.withRenderingMode(.alwaysTemplate)
+            tagIcon.image = DivoImage.roleModel.withRenderingMode(.alwaysTemplate)
             tagContainer.apply(style: .bronzeGradient)
             tagIcon.tintColor = .white
             tagLabel.textColor = .white
         case .agency:
-            tagIcon.image = UIImage(bundleImageName: "Components/Role/Agency")?.withRenderingMode(.alwaysTemplate)
+            tagIcon.image = DivoImage.roleAgency.withRenderingMode(.alwaysTemplate)
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black
             tagLabel.textColor = .black
         case .newFace:
-            tagIcon.image = UIImage(bundleImageName: "Components/Role/NewTalent")?.withRenderingMode(.alwaysTemplate)
+            tagIcon.image = DivoImage.roleNewTalent.withRenderingMode(.alwaysTemplate)
             tagContainer.apply(style: .plainWhite)
             tagIcon.tintColor = .black
             tagLabel.textColor = .black

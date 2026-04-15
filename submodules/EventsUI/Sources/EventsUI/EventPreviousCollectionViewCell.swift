@@ -69,7 +69,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         tagContainer.addSubview(tagLabel)
         
         
-        likesButton.setImage(UIImage(bundleImageName: "Components/HeartActionIcon"), for: .normal)
+        likesButton.setImage(DivoImage.heartActionIcon, for: .normal)
         likesButton.tintColor = .white
         likesButton.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(likesButton)
@@ -79,7 +79,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         likesLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(likesLabel)
         
-        optionsButton.setImage(UIImage(bundleImageName: "Components/moreIcon"), for: .normal)
+        optionsButton.setImage(DivoImage.moreIcon, for: .normal)
         optionsButton.tintColor = .white
         optionsButton.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(optionsButton)
@@ -155,7 +155,11 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
     }
     
     func configure(with event: EventData) {
-        imageView.image = UIImage(named: event.imageName)
+        if let urlString = event.coverPhotoURL, let url = URL(string: urlString) {
+            imageView.loadImage(from: url)
+        } else {
+            imageView.image = nil
+        }
         titleLabel.text = event.title.uppercased()
         subtitleLabel.text = event.subtitle
         tagLabel.text = event.type

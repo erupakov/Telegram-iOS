@@ -107,7 +107,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         self.addPhotoButton = HighlightableButtonNode()
         self.addPhotoButton.setImage(
             generateTintedImage(
-                image: UIImage(bundleImageName: "Components/AddPhotoIcon"),
+                image: DivoImage.addPhotoIcon,
                 color: iconColor),
             for: .normal)
 
