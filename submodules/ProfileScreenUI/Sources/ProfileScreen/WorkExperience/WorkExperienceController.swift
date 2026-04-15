@@ -76,7 +76,7 @@ public final class WorkExperienceController: TelegramBaseController {
         self.title = DivoStrings.workExperience
 
         if model.isMyProfile {
-            let addItem = UIBarButtonItem(image: UIImage(bundleImageName: "Components/addIcon"), style: .plain, target: self, action: #selector(self.addPressed))
+            let addItem = UIBarButtonItem(image: DivoImage.addIcon, style: .plain, target: self, action: #selector(self.addPressed))
             addItem.tintColor = DivoColorPalette.accentCopperTint
             self.navigationItem.rightBarButtonItem = addItem
         }

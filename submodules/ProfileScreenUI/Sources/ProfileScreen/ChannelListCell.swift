@@ -37,7 +37,7 @@ final class ChannelListCell: UICollectionViewCell {
 
     private let premiumBadge: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Components/CrownPremium")?.withRenderingMode(.alwaysOriginal)
+        iv.image = DivoImage.crownPremium.withRenderingMode(.alwaysOriginal)
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.isHidden = true

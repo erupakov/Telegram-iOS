@@ -42,7 +42,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     private let searchIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(bundleImageName: "Components/Search/SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
+        imageView.image = DivoImage.searchFieldIcon
         imageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -66,7 +66,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        button.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
+        button.setImage(DivoImage.searchFilterIcon, for: .normal)
         button.tintColor = .black
         button.layer.applyDivoShadow()
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -86,7 +86,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = .white
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
+        let image = DivoImage.searchCloseIcon
         button.setImage(image, for: .normal)
         button.tintColor = .black
         button.layer.applyDivoShadow()
@@ -118,7 +118,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = DivoColorPalette.accent
         button.layer.cornerRadius = 26 // TODO: DS alignment — не в шкале Radius
-        let image = UIImage(bundleImageName: "Components/Search/FaceScan") ?? UIImage(systemName: "person.fill.viewfinder")
+        let image = DivoImage.searchFaceScan
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.accentSecondary
         button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
@@ -596,7 +596,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     func hideFiltersButtonLoading() {
         filterButton.isEnabled = true
-        filterButton.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
+        filterButton.setImage(DivoImage.searchFilterIcon, for: .normal)
         filterButtonLoader.stopAnimating()
         filterButtonLoader.isHidden = true
     }

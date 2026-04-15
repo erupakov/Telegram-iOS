@@ -420,7 +420,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var galleryIsLoading: Bool = false
     private var galleryHasMore: Bool = true
     private var galleryInitialized: Bool = false
-    private var galleryImageNames: [String] = []
     private var uploadingPhotoImage: UIImage?
     private var uploadingVideoImage: UIImage?
     
@@ -620,18 +619,27 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private var socialLinksMap: [UIButton: String] = [:]
 
-    private enum SocialIcon: String {
-        case instagram = "Components/instaIcon"
-        case tiktok = "Components/TikTokIcon"
-        case youtube = "Components/youtubeIcon"
-        case website = "Components/webIcon"
+    private enum SocialIcon {
+        case instagram
+        case tiktok
+        case youtube
+        case website
 
-        static func icon(for urlString: String) -> String {
+        var image: UIImage {
+            switch self {
+            case .instagram: return DivoImage.instaIcon
+            case .tiktok: return DivoImage.tikTokIcon
+            case .youtube: return DivoImage.youtubeIcon
+            case .website: return DivoImage.webIcon
+            }
+        }
+
+        static func icon(for urlString: String) -> UIImage {
             let lowercased = urlString.lowercased()
-            if lowercased.contains("instagram.com") { return self.instagram.rawValue }
-            if lowercased.contains("tiktok.com") { return self.tiktok.rawValue }
-            if lowercased.contains("youtube.com") { return self.youtube.rawValue }
-            return self.website.rawValue
+            if lowercased.contains("instagram.com") { return self.instagram.image }
+            if lowercased.contains("tiktok.com") { return self.tiktok.image }
+            if lowercased.contains("youtube.com") { return self.youtube.image }
+            return self.website.image
         }
     }
 
@@ -1404,7 +1412,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Создание кнопок социальных сетей
-    private func createSocialMediaButton(handle: String, iconName: String, url: String) -> UIView {
+    private func createSocialMediaButton(handle: String, icon iconImage: UIImage, url: String) -> UIView {
         let button = UIButton(type: .system)
         button.backgroundColor = .black.withAlphaComponent(0.12)
         button.layer.cornerRadius = 6
@@ -1412,7 +1420,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         socialLinksMap[button] = url
 
         let icon = UIImageView()
-        icon.image = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
+        icon.image = iconImage.withRenderingMode(.alwaysTemplate)
         icon.tintColor = .white
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
@@ -1446,7 +1454,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Создание кнопоки социально сети, если она одна
-    private func createSocialOneMediaButton(handle: String, iconName: String, url: String) -> UIView {
+    private func createSocialOneMediaButton(handle: String, icon iconImage: UIImage, url: String) -> UIView {
         let button = UIButton(type: .system)
         button.backgroundColor = .black.withAlphaComponent(0.12)
         button.layer.cornerRadius = 6
@@ -1454,7 +1462,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         socialLinksMap[button] = url
 
         let icon = UIImageView()
-        icon.image = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
+        icon.image = iconImage.withRenderingMode(.alwaysTemplate)
         icon.tintColor = .white
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
@@ -1570,13 +1578,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if !links.isEmpty {
             for link in links {
-                let iconName = SocialIcon.icon(for: link)
+                let icon = SocialIcon.icon(for: link)
                 let handle = extractHandle(from: link)
-                
+
                 if links.count == 1 {
-                    socialMediaStack.addArrangedSubview(createSocialOneMediaButton(handle: handle, iconName: iconName, url: link))
+                    socialMediaStack.addArrangedSubview(createSocialOneMediaButton(handle: handle, icon: icon, url: link))
                 } else {
-                    socialMediaStack.addArrangedSubview(createSocialMediaButton(handle: handle, iconName: iconName, url: link))
+                    socialMediaStack.addArrangedSubview(createSocialMediaButton(handle: handle, icon: icon, url: link))
                 }
             }
         }

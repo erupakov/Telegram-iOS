@@ -175,7 +175,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         heightSeparator.backgroundColor = DivoColorPalette.separatorSoft
         ageSeparator.backgroundColor = DivoColorPalette.separatorSoft
 
-        profileImageView.image = UIImage(bundleImageName: "Components/Model")
         profileImageView.contentMode = .scaleAspectFill
         profileImageView.clipsToBounds = true
         profileImageView.layer.cornerRadius = 20
@@ -211,7 +210,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         heightValueLabel.text = "1,72 - 2,1 cm"
         heightValueLabel.font = .systemFont(ofSize: 14)
         heightValueLabel.textColor = .black
-        heightIcon.image = UIImage(bundleImageName: "Components/heightIcon")
+        heightIcon.image = DivoImage.heightIcon
         heightIcon.tintColor = .black
 
         ageLabel.text = DivoStrings.age
@@ -220,7 +219,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         ageValueLabel.text = "20-25 y.o"
         ageValueLabel.font = .systemFont(ofSize: 14)
         ageValueLabel.textColor = .black
-        ageIcon.image = UIImage(bundleImageName: "Components/ageIcon")
+        ageIcon.image = DivoImage.ageIcon
         ageIcon.tintColor = .black
 
         genderLabel.text = DivoStrings.gender
@@ -229,7 +228,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         genderValueLabel.text = "Only womans"
         genderValueLabel.font = .systemFont(ofSize: 14)
         genderValueLabel.textColor = .black
-        genderIcon.image = UIImage(bundleImageName: "Components/genderIcon")
+        genderIcon.image = DivoImage.genderIcon
         genderIcon.contentMode = .scaleAspectFit
         genderIcon.tintColor = .black
 
@@ -562,7 +561,7 @@ final class EventDetailControllerNode: ASDisplayNode {
                 }
             })
         } else {
-            imageView.image = UIImage(bundleImageName: "Components/Model")
+            imageView.image = nil
         }
     }
 
@@ -574,14 +573,14 @@ final class EventDetailControllerNode: ASDisplayNode {
 extension EventDetailControllerNode: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
     private var previousEvents: [EventData] {
         return [
-            EventData(title: "fashion model event", subtitle: "May 27 · 5:00 PM · NY NYFW Magazine", imageName: "Components/NewTalent", profileImageName: "", profileName: "", timeRemaining: "", type: "Conference"),
-            EventData(title: "Previous Event 2", subtitle: "", imageName: "Components/Agencies", profileImageName: "", profileName: "", timeRemaining: "", type: "Casting"),
-            EventData(title: "Previous Event 3", subtitle: "", imageName: "Components/Model", profileImageName: "", profileName: "", timeRemaining: "", type: "Casting")
+            EventData(title: "fashion model event", subtitle: "May 27 · 5:00 PM · NY NYFW Magazine", profileName: "", timeRemaining: "", type: "Conference"),
+            EventData(title: "Previous Event 2", subtitle: "", profileName: "", timeRemaining: "", type: "Casting"),
+            EventData(title: "Previous Event 3", subtitle: "", profileName: "", timeRemaining: "", type: "Casting")
         ]
     }
 
-    private var imageGalleryItems: [String] {
-        return ["Components/NewTalent", "Components/Agencies", "Components/Model", "Components/NewTalent", "Components/Agencies", "Components/Model"]
+    private var imageGalleryItems: [UIImage?] {
+        return Array(repeating: DivoImage.eventTest, count: 6)
     }
 
     func numberOfSections(in collectionView: UICollectionView) -> Int {

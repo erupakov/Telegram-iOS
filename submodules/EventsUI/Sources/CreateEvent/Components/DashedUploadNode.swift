@@ -14,7 +14,7 @@ final class DashedUploadNode: ASControlNode {
 
         let copperColor = DivoColorPalette.accentSecondary
 
-        let plusImg = generateTintedImage(image: UIImage(bundleImageName: "Components/Plus"), color: copperColor)
+        let plusImg = generateTintedImage(image: DivoImage.plus, color: copperColor)
         iconNode.image = plusImg
 
         iconNode.contentMode = .center

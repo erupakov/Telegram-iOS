@@ -87,7 +87,7 @@ public final class FilterOptionsController: UIViewController {
         let button = UIButton(type: .custom)
         button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = 20
-        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
+        let image = DivoImage.searchCloseIcon
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.primaryText
 
@@ -108,7 +108,7 @@ public final class FilterOptionsController: UIViewController {
 
     private let searchIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(bundleImageName: "Components/Search/SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
+        imageView.image = DivoImage.searchFieldIcon
         imageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false

@@ -52,8 +52,7 @@ public final class EventsController: TelegramBaseController {
         let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.disabledButtonBackground, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
-        let icon: UIImage?
-        icon = UIImage(bundleImageName: "Components/IconEvents")
+        let icon: UIImage = DivoImage.iconEvents
         self.tabBarItem.title = DivoStrings.tabEvents
         self.tabBarItem.image = icon
         self.tabBarItem.selectedImage = icon

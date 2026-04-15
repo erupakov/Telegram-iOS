@@ -3,16 +3,13 @@ import UIKit
 
 struct StoryModel {
     let name: String
-    let avatarName: String
+    let avatar: UIImage?
     let isLive: Bool
     let isAdd: Bool?
 }
 
 struct CardModel {
     let name: String
-    let mainImageName: String
-    let avatarImageName: String
-    let previewImagesName: [String]
     var userReaction: ReactionType?
 
     let userId: Int?
@@ -34,9 +31,6 @@ struct CardModel {
 
     init(
         name: String,
-        mainImageName: String = "",
-        avatarImageName: String = "",
-        previewImagesName: [String] = [],
         userReaction: ReactionType? = nil,
         userId: Int? = nil,
         role: String? = nil,
@@ -56,9 +50,6 @@ struct CardModel {
         countryFlag: String? = nil
     ) {
         self.name = name
-        self.mainImageName = mainImageName
-        self.avatarImageName = avatarImageName
-        self.previewImagesName = previewImagesName
         self.userReaction = userReaction
         self.userId = userId
         self.role = role

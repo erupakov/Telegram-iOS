@@ -150,7 +150,7 @@ final class WorkExperience: ASDisplayNode {
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        let iconView = UIImageView(image: UIImage(bundleImageName: "Components/BadgeBaseWork"))
+        let iconView = UIImageView(image: DivoImage.badgeBaseWork)
         iconView.translatesAutoresizingMaskIntoConstraints = false
 
         let titleLabel = UILabel()

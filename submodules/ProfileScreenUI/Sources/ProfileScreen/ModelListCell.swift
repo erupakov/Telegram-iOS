@@ -10,7 +10,6 @@ struct ModelItem {
     let role: String
     let isPremium: Bool
     let customAvatarURL: String?
-    let localAvatarName: String?
 }
 
 final class ModelListCell: UICollectionViewCell {
@@ -37,7 +36,7 @@ final class ModelListCell: UICollectionViewCell {
 
     private let premiumBadge: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Components/CrownPremium")?.withRenderingMode(.alwaysOriginal)
+        iv.image = DivoImage.crownPremium.withRenderingMode(.alwaysOriginal)
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.isHidden = true
@@ -100,9 +99,6 @@ final class ModelListCell: UICollectionViewCell {
             avatarImageView.loadImage(from: url) { [weak self] image in
                 self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
             }
-        } else if let localName = item.localAvatarName, let image = UIImage(named: localName) {
-            avatarImageView.image = image
-            avatarImageView.applyAvatarTopCropIfNeeded(image: image)
         } else {
             avatarImageView.image = nil
             avatarImageView.backgroundColor = placeholderColor
