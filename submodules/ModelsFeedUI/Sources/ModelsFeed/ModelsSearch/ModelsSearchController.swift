@@ -88,6 +88,10 @@ public class ModelsSearchController: ViewController {
         self.searchNode.onFilterPressed = { [weak self] in
             self?.openFilters()
         }
+
+        self.searchNode.onFaceScanPressed = { [weak self] in
+            self?.openFaceRecognition()
+        }
         
         self.searchNode.requestAutocomplete = {[weak self] query in
             self?.fetchAutocompleteResults(for: query)
@@ -111,6 +115,11 @@ public class ModelsSearchController: ViewController {
         self.navigationBar?.isHidden = true
     }
     
+    private func openFaceRecognition() {
+        let vc = FaceRecognitionController(context: self.context)
+        (self.navigationController as? NavigationController)?.pushViewController(vc)
+    }
+
     private func openFilters() {
         
         guard isDictionaryReady else {

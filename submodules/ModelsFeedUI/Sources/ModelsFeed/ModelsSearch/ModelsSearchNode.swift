@@ -110,6 +110,7 @@ final class ModelsSearchNode: ASDisplayNode {
         tableView.separatorStyle = .none
         tableView.isScrollEnabled = false
         tableView.backgroundColor = .clear
+        tableView.keyboardDismissMode = .onDrag
         tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
@@ -144,6 +145,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.backgroundColor = .clear
         cv.isHidden = true
+        cv.keyboardDismissMode = .onDrag
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.showsVerticalScrollIndicator = false
         return cv
@@ -249,6 +251,7 @@ final class ModelsSearchNode: ASDisplayNode {
         stackView.axis = .horizontal
         stackView.distribution = .fill
         stackView.alignment = .fill
+        stackView.isHidden = true
         stackView.translatesAutoresizingMaskIntoConstraints = false
         return stackView
     }()
@@ -271,6 +274,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     var onClosePressed: (() -> Void)?
     var onFilterPressed: (() -> Void)?
+    var onFaceScanPressed: (() -> Void)?
     var requestAutocomplete: ((String) -> Void)?
     var requestGridSearch: ((String) -> Void)?
     var loadMoreGridResults: (() -> Void)?
@@ -297,10 +301,18 @@ final class ModelsSearchNode: ASDisplayNode {
     override func didLoad() {
         super.didLoad()
         setupUI()
-        
+
+        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboardTapped))
+        dismissTap.cancelsTouchesInView = false
+        view.addGestureRecognizer(dismissTap)
+
+        let dismissSwipe = UISwipeGestureRecognizer(target: self, action: #selector(dismissKeyboardTapped))
+        dismissSwipe.direction = .down
+        view.addGestureRecognizer(dismissSwipe)
+
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
-        
+
         searchTextField.becomeFirstResponder()
     }
     
@@ -531,17 +543,21 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private func setupFaceScanActionButton() {
         let safeArea = view.safeAreaLayoutGuide
-        
+
         view.addSubview(faceScanButton)
-        
+
         faceScanButtonBottomConstraint = faceScanButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
         faceScanButtonBottomConstraint?.isActive = true
-        
+
         NSLayoutConstraint.activate([
             faceScanButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             faceScanButton.widthAnchor.constraint(equalToConstant: 52),
             faceScanButton.heightAnchor.constraint(equalToConstant: 52)
         ])
+
+        faceScanButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        faceScanButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        faceScanButton.addTarget(self, action: #selector(faceScanTapped), for: .touchUpInside)
     }
     
     
@@ -753,6 +769,15 @@ final class ModelsSearchNode: ASDisplayNode {
     
     @objc private func filterTapped() {
         onFilterPressed?()
+    }
+
+    @objc private func faceScanTapped() {
+        searchTextField.resignFirstResponder()
+        onFaceScanPressed?()
+    }
+
+    @objc private func dismissKeyboardTapped() {
+        searchTextField.resignFirstResponder()
     }
     
     @objc private func keyboardWillShow(notification: NSNotification) {
