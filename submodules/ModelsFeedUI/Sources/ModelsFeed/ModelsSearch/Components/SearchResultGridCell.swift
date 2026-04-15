@@ -53,7 +53,7 @@ final class SearchResultGridCell: UICollectionViewCell {
     private let roleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(11)
-        label.textColor = .white
+        label.textColor = DivoColorPalette.primaryTextOnDark
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -69,15 +69,15 @@ final class SearchResultGridCell: UICollectionViewCell {
     private let shareIcon: UIImageView = {
         let iv = UIImageView()
         iv.image = UIImage(systemName: "square.and.arrow.up")
-        iv.tintColor = .white
+        iv.tintColor = DivoColorPalette.primaryTextOnDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
-    
+
     private let bookmarkIcon: UIImageView = {
         let iv = UIImageView()
         iv.image = UIImage(systemName: "bookmark")
-        iv.tintColor = .white
+        iv.tintColor = DivoColorPalette.primaryTextOnDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -98,23 +98,23 @@ final class SearchResultGridCell: UICollectionViewCell {
     private let likesLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(10)
-        label.textColor = .white
+        label.textColor = DivoColorPalette.primaryTextOnDark
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(20)
-        label.textColor = .white
+        label.textColor = DivoColorPalette.primaryTextOnDark
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     private let infoLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(10)
-        label.textColor = .white
+        label.textColor = DivoColorPalette.primaryTextOnDark
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -189,7 +189,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         contentView.addSubview(likesContainer)
         
         heartIcon.image = UIImage(systemName: "heart")
-        heartIcon.tintColor = .white
+        heartIcon.tintColor = DivoColorPalette.primaryTextOnDark
         heartIcon.translatesAutoresizingMaskIntoConstraints = false
         likesContainer.contentView.addSubview(heartIcon)
         likesContainer.contentView.addSubview(likesLabel)
@@ -327,6 +327,8 @@ final class SearchResultGridCell: UICollectionViewCell {
     }
     
     private func setupProgressiveBlurWithGradient() {
+        // Градиент используется как alpha-маска progressiveBlurView (.clear → opaque),
+        // цвет не виден на UI, поэтому DivoColorPalette здесь неприменим.
         let gradient = CAGradientLayer()
         gradient.colors = [
             UIColor.clear.cgColor,

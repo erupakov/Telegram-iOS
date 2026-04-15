@@ -35,10 +35,10 @@ public class ModelsSearchController: ViewController {
     
     private var currentFilters = SearchFilterState()
     private var preloadedGenders: [FilterOptionItem] = []
-    private var preloadedHairLength: [FilterOptionApperanceItem] = []
-    private var preloadedHairColor: [FilterOptionApperanceItem] = []
-    private var preloadedEyeColor: [FilterOptionApperanceItem] = []
-    private var preloadedSkinColor: [FilterOptionApperanceItem] = []
+    private var preloadedHairLength: [FilterOptionAppearanceItem] = []
+    private var preloadedHairColor: [FilterOptionAppearanceItem] = []
+    private var preloadedEyeColor: [FilterOptionAppearanceItem] = []
+    private var preloadedSkinColor: [FilterOptionAppearanceItem] = []
     
     private var dictionaryLoadGroup = DispatchGroup()
     private var isDictionaryReady = false
@@ -66,6 +66,7 @@ public class ModelsSearchController: ViewController {
     
     deinit {
         self.presentationDataDisposable?.dispose()
+        self.currentSearchTask?.cancel()
     }
     
     override public func loadDisplayNode() {
@@ -74,7 +75,7 @@ public class ModelsSearchController: ViewController {
 
         loadDictionaries()
 
-        // MARK: - Bindings (Связь UI и Логики)
+        // MARK: - Bindings
         
         self.searchNode.onClosePressed = { [weak self] in
             if let nav = self?.navigationController as? NavigationController {
@@ -113,7 +114,6 @@ public class ModelsSearchController: ViewController {
     private func openFilters() {
         
         guard isDictionaryReady else {
-            print("Filters not ready yet")
             return
         }
         
@@ -135,22 +135,13 @@ public class ModelsSearchController: ViewController {
         
         filterVC.onClose = { [weak self] newFilters in
             guard let self = self else { return }
-            
-            if self.currentFilters != newFilters {
-                
-                print("Фильтры изменились при закрытии. Обновляем данные...")
-                
-                self.currentFilters = newFilters
-                
-                self.gridOffset = 0
-                self.hasMoreGridResults = true
-                self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
-                
-                self.fetchGridResults(isFirstPage: true)
-                
-            } else {
-                print("Фильтры не изменились. Пропускаем запрос.")
-            }
+            guard self.currentFilters != newFilters else { return }
+
+            self.currentFilters = newFilters
+            self.gridOffset = 0
+            self.hasMoreGridResults = true
+            self.searchNode.updateActiveFiltersCount(newFilters.activeFilterCount)
+            self.fetchGridResults(isFirstPage: true)
         }
         
         let navVC = UINavigationController(rootViewController: filterVC)
@@ -213,7 +204,6 @@ public class ModelsSearchController: ViewController {
                     FilterOptionItem(id: $0.id, title: $0.title)
                 }
             } catch {
-                print("❌ Error loading gender dictionary: \(error)")
                 self.dictionaryLoadFailed = true
             }
         }
@@ -230,20 +220,19 @@ public class ModelsSearchController: ViewController {
                 )
 
                 self.preloadedHairLength = response.data.hairLength.map {
-                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                    FilterOptionAppearanceItem(id: $0.id, title: $0.title)
                 }
                 self.preloadedHairColor = response.data.hairColor.map {
-                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                    FilterOptionAppearanceItem(id: $0.id, title: $0.title)
                 }
                 self.preloadedEyeColor = response.data.eyeColor.map {
-                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                    FilterOptionAppearanceItem(id: $0.id, title: $0.title)
                 }
                 self.preloadedSkinColor = response.data.skinColor.map {
-                    FilterOptionApperanceItem(id: $0.id, title: $0.title)
+                    FilterOptionAppearanceItem(id: $0.id, title: $0.title)
                 }
 
             } catch {
-                print("❌ Error loading appearance dictionary: \(error)")
                 self.dictionaryLoadFailed = true
             }
         }
@@ -300,7 +289,6 @@ public class ModelsSearchController: ViewController {
                 self.searchNode.updateAutocomplete(results: response.data.items)
             } catch {
                 if !Task.isCancelled {
-                    print("Autocomplete error: \(error)")
                     self.searchNode.showSnackbar(
                         message: DivoStrings.feedSearchResultsLoadFailed,
                         style: .error
@@ -352,7 +340,6 @@ public class ModelsSearchController: ViewController {
 
             } catch {
                 if !Task.isCancelled {
-                    print("Grid fetch error: \(error)")
                     self.searchNode.showSnackbar(
                         message: DivoStrings.feedSearchResultsLoadFailed,
                         style: .error

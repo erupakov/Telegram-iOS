@@ -27,7 +27,7 @@ final class SearchUserCell: UITableViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        label.textColor = .black
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -86,7 +86,7 @@ final class SearchUserCell: UITableViewCell {
     }
     
     func configure(with item: SearchUserDTO, query: String) {
-        // У вас в JSON нет Username, поэтому используем title или RoleLabel
+        // Backend does not expose a dedicated username field; fall back to description.
         usernameLabel.text = item.description
         
 
