@@ -17,7 +17,8 @@ public enum DivoColorPalette {
     public static let accentCopperTint = UIColor(hexString: "#BC8461")!
     public static let roleBadgeBlue = UIColor(red: 34/255, green: 98/255, blue: 216/255, alpha: 1)
     public static let roleBadgeCopperTint = UIColor(red: 0.95, green: 0.92, blue: 0.90, alpha: 1)
-
+    public static let borderWorkHistoryImage = UIColor(hexString: "#F6F6F6")!
+    
     // MARK: - Text (DIVO)
     public static let primaryText = UIColor(hexString: "#222222")!
     public static let secondaryText = UIColor(white: 153/255, alpha: 1) // #999999

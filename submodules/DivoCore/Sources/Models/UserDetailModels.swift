@@ -385,6 +385,16 @@ public struct AddGalleryResponse: Decodable {
     public let errors: String?
 }
 
+// MARK: - Agency
+
+public struct AgencyDetailResponse: Decodable {
+    public let data: AgencyDetailData
+}
+
+public struct AgencyDetailData: Decodable {
+    public let photo: UserFile?
+}
+
 // MARK: - Agency Models List
 
 public struct AgencyModelsResponse: Decodable {

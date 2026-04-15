@@ -305,8 +305,9 @@ public enum DivoStrings {
     public static var startDate: String { L(en: "Start date", ru: "Дата начала", es: "Fecha de inicio", pt: "Data de início", zh: "开始日期") }
     public static var endDate: String { L(en: "End date", ru: "Дата окончания", es: "Fecha de fin", pt: "Data de término", zh: "结束日期") }
     public static var currentlyWorking: String { L(en: "I am currently working in this role", ru: "Я сейчас работаю на этой позиции", es: "Actualmente trabajo en este puesto", pt: "Estou atualmente nesta função", zh: "我目前在此职位工作") }
-    public static var saveChanges: String { L(en: "Save Changes", ru: "Сохранить изменения", es: "Guardar cambios", pt: "Salvar alterações", zh: "保存更改") }
-    public static var createNewWorkExperience: String { L(en: "Create New Work Experience", ru: "Создать опыт работы", es: "Crear nueva experiencia", pt: "Criar nova experiência", zh: "创建新工作经历") }
+    public static var saveChanges: String { L(en: "Save changes", ru: "Сохранить изменения", es: "Guardar cambios", pt: "Salvar alterações", zh: "保存更改") }
+    public static var createNewWorkExperience: String { L(en: "Create new work experience", ru: "Создать новый опыт работы", es: "Crear nueva experiencia laboral", pt: "Criar nova experiência profissional", zh: "创建新的工作经验") }
+    public static var creatingNewWorkExperience: String { L(en: "Creating...", ru: "Создание...", es: "Creando...", pt: "Criando...", zh: "创建中...") }
     public static var pleaseFillStartDate: String { L(en: "Please fill in the start date", ru: "Пожалуйста, укажите дату начала", es: "Por favor, ingrese la fecha de inicio", pt: "Por favor, preencha a data de início", zh: "请填写开始日期") }
     public static var currentAgency: String { L(en: "Current Agency", ru: "Текущее агентство", es: "Agencia actual", pt: "Agência atual", zh: "当前经纪公司") }
     public static var seeHistory: String { L(en: "SEE HISTORY", ru: "ИСТОРИЯ", es: "VER HISTORIAL", pt: "VER HISTÓRICO", zh: "查看历史") }

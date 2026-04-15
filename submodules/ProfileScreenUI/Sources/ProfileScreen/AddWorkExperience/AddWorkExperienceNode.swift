@@ -27,308 +27,451 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private var startTime: Int32 = 0
     private var endTime: Int32 = 0
 
-    private var presentationData: PresentationData
-    private var presentationDataDisposable: Disposable?
+    private let topBarContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+        
+    private let navigationBar = DivoNavigationBar()
+    
+    // MARK: - UI Elements
 
-    private let presentationDataPromise: Promise<PresentationData>
+    private let scrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.showsVerticalScrollIndicator = false
+        sv.contentInsetAdjustmentBehavior = .never
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
+    }()
 
-    private let _ready = Promise<Bool>()
-    private var readyValue = false {
-        didSet {
-            if self.readyValue, self.readyValue != oldValue {
-                self._ready.set(.single(self.readyValue))
-            }
+    private let contentView: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let avatarContainer: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let avatarImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFill
+        iv.clipsToBounds = true
+        iv.layer.cornerRadius = 47
+        iv.backgroundColor = .white
+        iv.layer.borderWidth = 1
+        iv.layer.borderColor = DivoColorPalette.accent.cgColor
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+    
+    private let avatarEmptyImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFill
+        iv.clipsToBounds = true
+        iv.image = UIImage(bundleImageName: "Components/EmptyImageWork")
+        iv.isHidden = false
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+    
+    private let avatarSpinner: DivoSegmentedSpinner = {
+        let avatarSpinner = DivoSegmentedSpinner()
+        avatarSpinner.isHidden = true
+        return avatarSpinner
+    }()
+
+    private let eventInfoLabel: UILabel = {
+        let label = UILabel()
+        label.text = DivoStrings.workExperienceInfo
+        label.font = Font.medium(16)
+        label.textColor = DivoColorPalette.primaryText
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let nameEventLabel: UILabel = {
+        let label = UILabel()
+        label.text = DivoStrings.agencyName
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let nameEventTextField: DivoTextField
+
+    private let startDateLabel: UILabel = {
+        let label = UILabel()
+        label.text = DivoStrings.startDate
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+
+    private let endTimeLabel: UILabel = {
+        let label = UILabel()
+        label.text = DivoStrings.endDate
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let startDateView = DateSelectionControl(placeholder: "27 Jun 2025")
+    private let endTimeView = DateSelectionControl(placeholder: "27 Jun 2025")
+
+    private let currentlyWorkingCheckbox: UIButton = {
+        let button = UIButton(type: .custom)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        
+        let uncheckedImage = UIImage(systemName: "square")?
+            .withTintColor(DivoColorPalette.primaryText.withAlphaComponent(0.4), renderingMode: .alwaysOriginal)
+        let checkedImage = UIImage(systemName: "checkmark.square.fill")?
+            .withTintColor(DivoColorPalette.accent, renderingMode: .alwaysOriginal)
+        
+        button.setImage(uncheckedImage, for: .normal)
+        button.setImage(checkedImage, for: .selected)
+        
+        button.contentVerticalAlignment = .fill
+        button.contentHorizontalAlignment = .fill
+        button.imageView?.contentMode = .scaleAspectFit
+        
+        return button
+    }()
+
+    private let currentlyWorkingLabel: UILabel = {
+        let label = UILabel()
+        label.text = DivoStrings.currentlyWorking
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let applyButton = DivoButton()
+    private var applyButtonBottomConstraint: NSLayoutConstraint?
+    
+    private let bottomFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+                DivoColorPalette.screenBackground.cgColor
+            ]
+            gradient.locations = [0, 0.45]
         }
-    }
-    var ready: Signal<Bool, NoError> {
-        return self._ready.get()
-    }
+        return view
+    }()
 
-    private var disposable: Disposable?
+    private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
+    
+    private var keyboardHandler: DivoKeyboardHandler?
 
-    private let scrollNode: ASScrollNode
-
-    private let currentPhotoNode: ASImageNode
-    private let addPhotoButton: HighlightableButtonNode
-
-    private let eventInfoLabel: ASTextNode
-
-    private let nameEventLabel: ASTextNode
-    private let nameEventTextField: TextFieldNode
-
-    private let startDateLabel: ASTextNode
-    private let startDateTextField: TextFieldNode
-
-    private let endTimeLabel: ASTextNode
-    private let endTimeTextField: TextFieldNode
-
-    private let currentlyWorkingContainer: ASDisplayNode
-    private let currentlyWorkingCheckbox: CheckboxNode
-    private let currentlyWorkingLabel: ASTextNode
-
-    private let applyButton: ASControlNode
-    private let addPhoto: () -> Void
+    // MARK: - Callbacks
 
     var scheduleTimeController: ((TimeType) -> Void)?
     var showAlert: ((String) -> Void)?
-    var onSaveSuccess: (() -> Void)?
-    private var countryId: String = ""
+    var onSave: ((CreateWorkHistoryRequest) -> Void)?
+    var onAddPhoto: (() -> Void)?
+    var onBackTapped: (() -> Void)?
 
     var currentPhoto: UIImage? = nil {
         didSet {
-            if let currentPhoto = self.currentPhoto {
-                self.currentPhotoNode.image = generateImage(CGSize(width: 110.0, height: 110.0), contextGenerator: { size, context in
-                    context.clear(CGRect(origin: CGPoint(), size: size))
-                    context.setBlendMode(.copy)
-                    context.draw(currentPhoto.cgImage!, in: CGRect(origin: CGPoint(), size: size))
-                    context.setBlendMode(.destinationOut)
-                    context.draw(roundCorners(diameter: size.width).cgImage!, in: CGRect(origin: CGPoint(), size: size))
-                })
-            } else {
-                self.currentPhotoNode.image = nil
+            avatarImageView.image = currentPhoto
+            avatarEmptyImageView.isHidden = (currentPhoto != nil)
+            
+            if currentPhoto != nil {
+                avatarImageView.alpha = 0
+                self.avatarImageView.alpha = 1.0
             }
         }
     }
 
-    init(context: AccountContext, editItem: WorkHistoryItem? = nil, addPhoto: @escaping () -> Void) {
+    // MARK: - Init
+
+    init(context: AccountContext, editItem: WorkHistoryItem? = nil) {
         self.context = context
         self.editItem = editItem
-        self.addPhoto = addPhoto
-
-        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-        self.presentationData = presentationData
-
-        self.presentationDataPromise = Promise(self.presentationData)
-
-        self.scrollNode = ASScrollNode()
-
-        let iconColor = DivoColorPalette.accentCopperDeep
-
-        self.addPhotoButton = HighlightableButtonNode()
-        self.addPhotoButton.setImage(
-            generateTintedImage(
-                image: UIImage(bundleImageName: "Components/AddPhotoIcon"),
-                color: iconColor),
-            for: .normal)
-
-        let buttonDiameter: CGFloat = 110.0
-
-        self.addPhotoButton.setBackgroundImage(
-            generateFilledCircleImage(diameter: buttonDiameter,
-                                      color: .white,
-                                      strokeColor: iconColor,
-                                      strokeWidth: 1,
-                                      backgroundColor: nil),
-            for: .normal
+        
+        self.nameEventTextField = DivoTextField(title: "", prefix: "")
+        self.nameEventTextField.textField.attributedPlaceholder = NSAttributedString(
+            string: DivoStrings.enterAgencyName,
+            font: Font.regular(16),
+            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
-
-        self.addPhotoButton.allowsGroupOpacity = true
-
-        self.currentPhotoNode = ASImageNode()
-        self.currentPhotoNode.isUserInteractionEnabled = false
-        self.currentPhotoNode.displaysAsynchronously = false
-        self.currentPhotoNode.displayWithoutProcessing = true
-
-        let headerColor = DivoColorPalette.systemLabelDark
-        let labelColor = DivoColorPalette.systemLabelBody
-        let regularFont = Font.regular(16)
-        let semiboldFont = Font.semibold(16)
-
-        self.eventInfoLabel = ASTextNode()
-        self.eventInfoLabel.attributedText = NSAttributedString(string: DivoStrings.workExperienceInfo, font: semiboldFont, textColor: headerColor)
-
-        self.nameEventLabel = ASTextNode()
-        self.nameEventLabel.attributedText = NSAttributedString(string: DivoStrings.agencyName, font: regularFont, textColor: labelColor)
-
-        self.nameEventTextField = getTextFiel(title: DivoStrings.enterAgencyName)
-
-        self.startDateLabel = ASTextNode()
-        self.startDateLabel.attributedText = NSAttributedString(string: DivoStrings.startDate, font: regularFont, textColor: labelColor)
-        self.startDateTextField = getTextFiel(title: "27 Jun 2025")
-
-        self.endTimeLabel = ASTextNode()
-        self.endTimeLabel.attributedText = NSAttributedString(string: DivoStrings.endDate, font: regularFont, textColor: labelColor)
-        self.endTimeTextField = getTextFiel(title: "27 Jun 2025")
-
-        self.currentlyWorkingContainer = ASDisplayNode()
-        self.currentlyWorkingContainer.isUserInteractionEnabled = true
-
-        self.currentlyWorkingCheckbox = CheckboxNode(size: CGSize(width: 20, height: 20))
-
-        self.currentlyWorkingLabel = ASTextNode()
-        self.currentlyWorkingLabel.attributedText = NSAttributedString(
-            string: DivoStrings.currentlyWorking,
-            font: semiboldFont,
-            textColor: labelColor
-        )
-        self.currentlyWorkingLabel.isUserInteractionEnabled = false
-
-        self.currentlyWorkingContainer.addSubnode(self.currentlyWorkingCheckbox)
-        self.currentlyWorkingContainer.addSubnode(self.currentlyWorkingLabel)
-
-        let buttonTitle = editItem != nil ? DivoStrings.saveChanges : DivoStrings.createNewWorkExperience
-        self.applyButton = ButtonWithIconNode(title: buttonTitle, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: CGSize(width: 24, height: 24))
-        self.applyButton.backgroundColor = DivoColorPalette.accentCopperWarm
 
         super.init()
-        self.startDateTextField.textField.delegate = self
-        self.endTimeTextField.textField.delegate = self
 
-        self.backgroundColor = .white
-        self.addSubnode(self.scrollNode)
-        self.addPhotoButton.addSubnode(self.currentPhotoNode)
-        self.scrollNode.addSubnode(self.addPhotoButton)
-        self.scrollNode.addSubnode(self.eventInfoLabel)
-
-        self.scrollNode.addSubnode(self.nameEventLabel)
-        self.scrollNode.addSubnode(self.nameEventTextField)
-
-        self.scrollNode.addSubnode(self.startDateLabel)
-        self.scrollNode.addSubnode(self.startDateTextField)
-
-        self.scrollNode.addSubnode(self.endTimeLabel)
-        self.scrollNode.addSubnode(self.endTimeTextField)
-
-        self.scrollNode.addSubnode(self.currentlyWorkingContainer)
-
-        self.scrollNode.view.showsVerticalScrollIndicator = false
-        self.scrollNode.view.showsHorizontalScrollIndicator = false
-
-        self.addSubnode(self.applyButton)
-
-        self.presentationDataDisposable = (context.sharedContext.presentationData
-                                           |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            if let strongSelf = self {
-                let previousTheme = strongSelf.presentationData.theme
-                let previousStrings = strongSelf.presentationData.strings
-
-                strongSelf.presentationData = presentationData
-                strongSelf.presentationDataPromise.set(.single(presentationData))
-
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
-                    strongSelf.updateThemeAndStrings()
-                }
-            }
-        }).strict()
+        self.backgroundColor = DivoColorPalette.screenBackground
+        
+        navigationBar.makeNavigationBar(
+            title: title: editItem != nil ? DivoStrings.navEditExperience.uppercased() : DivoStrings.navCreateExperience.uppercased(),
+            backButtonConfiguration: .circle("chevron.left"),
+            rightButtonConfiguration: editItem != nil ? .text(DivoStrings.save) : .text(DivoStrings.create),
+            onBackTapped: { [weak self] in self?.onBackTapped?() },
+            onCircleTextTapped: { [weak self] in self?.applyButtonTapped() }
+        )
+        
+        applyButton.makeDivoButton(
+            title: editItem != nil ? DivoStrings.saveChanges : DivoStrings.createNewWorkExperience,
+            loading: editItem != nil ? DivoStrings.saving : DivoStrings.creatingNewWorkExperience
+        )
     }
 
     deinit {
-        self.disposable?.dispose()
-        self.presentationDataDisposable?.dispose()
         NotificationCenter.default.removeObserver(self)
     }
 
     override func didLoad() {
         super.didLoad()
-
-        self.applyButton.addTarget(self, action: #selector(self.applyButtonTapped), forControlEvents: .touchUpInside)
-        self.addPhotoButton.addTarget(self, action: #selector(self.addPhotoPressed), forControlEvents: .touchUpInside)
-        let checkboxTapGesture = UITapGestureRecognizer(target: self, action: #selector(currentlyWorkingTapped))
-        self.currentlyWorkingContainer.view.addGestureRecognizer(checkboxTapGesture)
-
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
-        tapGesture.cancelsTouchesInView = false
-        self.view.addGestureRecognizer(tapGesture)
-
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+        setupUI()
+        setupInteractions()
 
         if let item = editItem {
             prefillEditData(item)
         }
     }
 
-    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        if textField == startDateTextField.textField  {
-            scheduleTimeController?(.start)
-            return false
-        } else if textField == endTimeTextField.textField {
-            scheduleTimeController?(.end)
-            return false
+    // MARK: - Setup
+
+    private func setupUI() {
+        view.addSubview(navigationBar)
+        
+        NSLayoutConstraint.activate([
+            navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
+        
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+
+        contentView.addSubview(avatarContainer)
+        avatarContainer.addSubview(avatarImageView)
+        avatarContainer.addSubview(avatarEmptyImageView)
+        avatarSpinner.translatesAutoresizingMaskIntoConstraints = false
+        avatarContainer.addSubview(avatarSpinner)
+
+        contentView.addSubview(eventInfoLabel)
+        contentView.addSubview(nameEventLabel)
+        
+        nameEventTextField.view.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(nameEventTextField.view)
+        
+        contentView.addSubview(startDateLabel)
+        contentView.addSubview(endTimeLabel)
+        
+        contentView.addSubview(startDateView)
+        contentView.addSubview(endTimeView)
+
+        contentView.addSubview(currentlyWorkingCheckbox)
+        contentView.addSubview(currentlyWorkingLabel)
+
+        view.addSubview(bottomFadeOverlay)
+        view.addSubview(applyButton)
+
+        currentlyWorkingCheckbox.addTarget(self, action: #selector(checkboxTapped), for: .touchUpInside)
+
+        setupConstraints()
+    }
+
+    private func setupConstraints() {
+        let sidePadding: CGFloat = 16.0
+        let avatarSize: CGFloat = 94.0
+        
+        let buttonBottomCns = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
+        self.applyButtonBottomConstraint = buttonBottomCns
+
+        let bottomFadeOverlayCns = bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        self.bottomFadeOverlayBottomConstraint = bottomFadeOverlayCns
+
+        NSLayoutConstraint.activate([
+            // ScrollView
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 16),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            // ContentView
+            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
+
+            // Avatar Container
+            avatarContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            avatarContainer.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            avatarContainer.widthAnchor.constraint(equalToConstant: avatarSize),
+            avatarContainer.heightAnchor.constraint(equalToConstant: avatarSize),
+
+            // Avatar Image
+            avatarImageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
+            avatarImageView.centerYAnchor.constraint(equalTo: avatarContainer.centerYAnchor),
+            avatarImageView.widthAnchor.constraint(equalToConstant: avatarSize),
+            avatarImageView.heightAnchor.constraint(equalToConstant: avatarSize),
+
+            // Add Photo Button
+            avatarEmptyImageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
+            avatarEmptyImageView.centerYAnchor.constraint(equalTo: avatarContainer.centerYAnchor),
+            avatarEmptyImageView.widthAnchor.constraint(equalToConstant: 32),
+            avatarEmptyImageView.heightAnchor.constraint(equalToConstant: 32),
+            
+            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
+            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
+            avatarSpinner.widthAnchor.constraint(equalToConstant: 32),
+            avatarSpinner.heightAnchor.constraint(equalToConstant: 32),
+
+            // Event info label
+            eventInfoLabel.topAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: 32),
+            eventInfoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+            eventInfoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+
+            // Name label & field
+            nameEventLabel.topAnchor.constraint(equalTo: eventInfoLabel.bottomAnchor, constant: 16),
+            nameEventLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+            nameEventLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+
+            nameEventTextField.view.topAnchor.constraint(equalTo: nameEventLabel.bottomAnchor, constant: 6),
+            nameEventTextField.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+            nameEventTextField.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+            nameEventTextField.view.heightAnchor.constraint(equalToConstant: 48),
+
+            // Date labels
+            startDateLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: 16),
+            startDateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+
+            endTimeLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: 16),
+            endTimeLabel.leadingAnchor.constraint(equalTo: endTimeView.leadingAnchor),
+            
+            startDateView.topAnchor.constraint(equalTo: startDateLabel.bottomAnchor, constant: 6),
+            startDateView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+            startDateView.heightAnchor.constraint(equalToConstant: 46),
+            
+            endTimeView.topAnchor.constraint(equalTo: endTimeLabel.bottomAnchor, constant: 6),
+            endTimeView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+            endTimeView.heightAnchor.constraint(equalToConstant: 46),
+
+            startDateView.widthAnchor.constraint(equalTo: endTimeView.widthAnchor),
+            startDateView.trailingAnchor.constraint(equalTo: endTimeView.leadingAnchor, constant: -12),
+
+            currentlyWorkingCheckbox.topAnchor.constraint(equalTo: startDateView.bottomAnchor, constant: 16),
+            currentlyWorkingCheckbox.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+
+            currentlyWorkingLabel.centerYAnchor.constraint(equalTo: currentlyWorkingCheckbox.centerYAnchor),
+            currentlyWorkingLabel.leadingAnchor.constraint(equalTo: currentlyWorkingCheckbox.trailingAnchor, constant: 6),
+            currentlyWorkingLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+
+            currentlyWorkingCheckbox.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
+
+            buttonBottomCns,
+            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
+            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
+            
+            bottomFadeOverlayCns,
+            bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomFadeOverlay.heightAnchor.constraint(equalToConstant: 160)
+        ])
+    }
+
+    private func setupInteractions() {
+        applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
+        
+        startDateView.onDateSelected = { [weak self] timestamp in
+            self?.updateTime(timestamp, type: .start)
         }
-        return true
-    }
-
-    @objc private func addPhotoPressed() {
-        self.addPhoto()
-    }
-
-    @objc func applyButtonTapped() {
-        let agencyName = nameEventTextField.textField.text ?? ""
-
-        guard startTime > 0 else {
-            self.showAlert?(DivoStrings.pleaseFillStartDate)
-            return
+        
+        endTimeView.onDateSelected = { [weak self] timestamp in
+            self?.updateTime(timestamp, type: .end)
         }
-
-        saveWorkExperience(agencyName: agencyName)
-    }
-
-    private func saveWorkExperience(agencyName: String) {
-        let isCurrent = currentlyWorkingCheckbox.isSelected
-
-        let body = CreateWorkHistoryRequest(
-            agencyId: nil,
-            agencyName: agencyName.isEmpty ? nil : agencyName,
-            startDate: Self.formatDateForAPI(timestamp: startTime),
-            endDate: isCurrent ? nil : (endTime > 0 ? Self.formatDateForAPI(timestamp: endTime) : nil),
-            isCurrent: isCurrent
+        
+        startDateView.onBeginEditing = { [weak self] in
+            guard let self else { return }
+            self.scrollToView(self.startDateView)
+        }
+        
+        endTimeView.onBeginEditing = { [weak self] in
+            guard let self else { return }
+            self.scrollToView(self.endTimeView)
+        }
+        
+        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        dismissTap.cancelsTouchesInView = false
+        scrollView.addGestureRecognizer(dismissTap)
+        scrollView.keyboardDismissMode = .interactive
+        
+        let fields = [nameEventTextField]
+        keyboardHandler = DivoKeyboardHandler(
+            scrollView: scrollView,
+            buttonConstraint: applyButtonBottomConstraint!,
+            overlayConstraint: bottomFadeOverlayBottomConstraint!,
+            hostView: self.view,
+            defaultScrollInset: 0,
+            scrollToActiveField: { [weak self] in
+                guard let self else { return }
+                
+                if self.nameEventTextField.textField.isFirstResponder {
+                    self.scrollToView(self.nameEventTextField.view)
+                }
+                else if self.startDateView.isActive {
+                    self.scrollToView(self.startDateView)
+                }
+                else if self.endTimeView.isActive {
+                    self.scrollToView(self.endTimeView)
+                }
+            }
         )
-
-        let path: String
-        if let editItem = editItem {
-            path = "/model-work-history/\(editItem.id)"
-        } else {
-            path = "/model-work-history"
-        }
-
-        print("[DivoAPI] save work-history request: path=\(path), body=agencyName:\(body.agencyName ?? "nil"), startDate:\(body.startDate), endDate:\(body.endDate ?? "nil"), isCurrent:\(body.isCurrent)")
-        Task {
-            do {
-                let response: WorkHistorySaveResponse = try await DivoAPIClient.shared.request(
-                    path: path,
-                    method: "POST",
-                    body: body
-                )
-                let msg = "OK: \(response.message ?? "nil"), errors: \(response.errors ?? [])"
-                print("[DivoAPI] save work-history success: \(msg)")
-                await MainActor.run {
-                    self.showAlert?(msg)
+        keyboardHandler?.subscribe()
+        
+        for (index, field) in fields.enumerated() {
+            let isLast = index == fields.count - 1
+            field.textField.returnKeyType = isLast ? .done : .next
+            if !isLast {
+                let nextField = fields[index + 1]
+                field.onReturn = { [weak nextField] in
+                    nextField?.textField.becomeFirstResponder()
                 }
-            } catch {
-                let errMsg = "Error: \(error)"
-                print("[DivoAPI] save work-history error: \(errMsg)")
-                await MainActor.run {
-                    self.showAlert?(errMsg)
-                }
-                print("[DivoAPI] save work-history error: \(error)")
+            }
+            field.onBeginEditing = { [weak self, weak field] in
+                guard let self, let field else { return }
+                self.scrollToView(field.view)
             }
         }
     }
-
     private func prefillEditData(_ item: WorkHistoryItem) {
         nameEventTextField.textField.text = item.agencyDisplayName ?? item.agencyName
-
+        
         let inputFormatter = DateFormatter()
         inputFormatter.dateFormat = "yyyy-MM-dd"
         inputFormatter.locale = Locale(identifier: "en_US_POSIX")
-
+        
         let displayFormatter = DateFormatter()
         displayFormatter.dateFormat = "d MMM yyyy"
         displayFormatter.locale = Locale(identifier: DivoStrings.current.localeIdentifier)
-
+        
         if let startStr = item.startDate, let startDate = inputFormatter.date(from: startStr) {
             startTime = Int32(startDate.timeIntervalSince1970)
-            startDateTextField.textField.text = displayFormatter.string(from: startDate)
+            startDateView.setDate(timestamp: startTime, localeIdentifier: DivoStrings.current.localeIdentifier)
         }
-
+        
         if item.isCurrent == true {
             currentlyWorkingCheckbox.isSelected = true
             endTimeLabel.isHidden = true
-            endTimeTextField.isHidden = true
+            endTimeView.isHidden = true
         } else if let endStr = item.endDate, let endDate = inputFormatter.date(from: endStr) {
             endTime = Int32(endDate.timeIntervalSince1970)
-            endTimeTextField.textField.text = displayFormatter.string(from: endDate)
+            endTimeView.setDate(timestamp: endTime, localeIdentifier: DivoStrings.current.localeIdentifier)
         }
     }
 
@@ -340,186 +483,91 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         return formatter.string(from: date)
     }
 
-    @objc private func currentlyWorkingTapped() {
-        self.currentlyWorkingCheckbox.isSelected.toggle()
-        endTimeLabel.isHidden = currentlyWorkingCheckbox.isSelected
-        endTimeTextField.isHidden = currentlyWorkingCheckbox.isSelected
+    private func scrollToView(_ targetView: UIView) {
+        let frame = targetView.frame.insetBy(dx: 0, dy: -16)
+        scrollView.scrollRectToVisible(frame, animated: true)
     }
 
     func updateTime(_ timestamp: Int32, type: TimeType) {
-        let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: DivoStrings.current.localeIdentifier)
-        dateFormatter.dateFormat = "d MMM yyyy"
-        let dateString = dateFormatter.string(from: date)
-        dateFormatter.dateFormat = "d MMM yyyy"
-        let timeString = dateFormatter.string(from: date)
-
+        let locale = DivoStrings.current.localeIdentifier
+        
         switch type {
         case .start:
             startTime = timestamp
-            startDateTextField.textField.text = dateString
+            startDateView.setDate(timestamp: timestamp, localeIdentifier: locale)
         case .end:
             endTime = timestamp
-            endTimeTextField.textField.text = timeString
+            endTimeView.setDate(timestamp: timestamp, localeIdentifier: locale)
         }
     }
-
-    private func updateThemeAndStrings() {
-        self.backgroundColor = self.presentationData.theme.chatList.backgroundColor
+    
+    func loadAvatar(isLoading: Bool) {
+        isLoading ? avatarSpinner.startAnimating() : avatarSpinner.stopAnimating()
+        avatarSpinner.isHidden = !isLoading
+        avatarEmptyImageView.isHidden = isLoading
     }
 
+    func toggleSpinner(active: Bool) {
+        applyButton.setSaving(active, in: self.view)
+    }
+    
+    
+    // MARK: - Actions
+    
     @objc private func dismissKeyboard() {
-        self.view.endEditing(true)
+        view.endEditing(true)
     }
 
-    @objc func keyboardWillShow(notification: NSNotification) {
-        guard let userInfo = notification.userInfo,
-              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue,
-              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber,
-              let curve = userInfo[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber else {
+    @objc private func addPhotoPressed() {
+        onAddPhoto?()
+    }
+    
+    @objc private func checkboxTapped() {
+        currentlyWorkingCheckbox.isSelected.toggle()
+        if currentlyWorkingCheckbox.isSelected {
+            endTimeLabel.isHidden = true
+            endTimeView.isHidden = true
+        } else {
+            endTimeLabel.isHidden = false
+            endTimeView.isHidden = false
+        }
+    }
+    
+    @objc private func backPressed() { onBackTapped?() }
+    
+    @objc private func buttonPressed(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.1) { sender.alpha = 0.6; sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95) }
+    }
+    
+    @objc private func buttonReleased(_ sender: UIButton) {
+        UIView.animate(withDuration: 0.2) { sender.alpha = 1.0; sender.transform = .identity }
+    }
+
+    @objc func applyButtonTapped() {
+        let agencyName = nameEventTextField.textField.text ?? ""
+
+        guard startTime > 0 else {
+            showAlert?(DivoStrings.pleaseFillStartDate)
             return
         }
 
-        let keyboardHeight = keyboardFrame.cgRectValue.height
+        let isCurrent = currentlyWorkingCheckbox.isSelected
 
-        var currentInsets = self.scrollNode.view.contentInset
-
-        currentInsets.bottom = keyboardHeight
-
-        UIView.animate(withDuration: duration.doubleValue, delay: 0.0, options: UIView.AnimationOptions(rawValue: curve.uintValue << 16), animations: {
-            self.scrollNode.view.contentInset = currentInsets
-            self.scrollNode.view.scrollIndicatorInsets = currentInsets
-        }, completion: nil)
-    }
-
-    @objc func keyboardWillHide(notification: NSNotification) {
-        guard let userInfo = notification.userInfo,
-              let duration = userInfo[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber,
-              let curve = userInfo[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber else {
-            return
-        }
-
-        var currentInsets = self.scrollNode.view.contentInset
-        currentInsets.bottom = 0
-
-        UIView.animate(withDuration: duration.doubleValue, delay: 0.0, options: UIView.AnimationOptions(rawValue: curve.uintValue << 16), animations: {
-            self.scrollNode.view.contentInset = currentInsets
-            self.scrollNode.view.scrollIndicatorInsets = currentInsets
-        }, completion: nil)
-    }
-
-    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
-
-        let avatarSize: CGSize = CGSize(width: 100.0, height: 100.0)
-
-        let avatarX: CGFloat = floor((layout.size.width - avatarSize.width) / 2.0)
-        self.addPhotoButton.frame = CGRect(origin: CGPoint(x: avatarX, y: 20), size: avatarSize)
-        self.currentPhotoNode.frame = CGRect(origin: CGPoint(), size: avatarSize)
-
-        let topInset: CGFloat = navigationBarHeight
-
-        let sidePadding: CGFloat = 16.0
-        let sectionSpacing: CGFloat = 24.0
-        let itemHeight: CGFloat = 48.0
-        let halfItemSpacing: CGFloat = 6.0
-
-        self.scrollNode.frame = CGRect(origin: CGPoint(x: 0.0, y: topInset), size: CGSize(width: layout.size.width, height: layout.size.height - topInset))
-
-        var currentY: CGFloat = 140.0
-
-        let eventInfoBySize = self.eventInfoLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
-        self.eventInfoLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: eventInfoBySize)
-        currentY += eventInfoBySize.height + sectionSpacing
-
-        let nameEventLabelSize = self.nameEventLabel.measure(CGSize(width: layout.size.width - sidePadding * 2, height: .greatestFiniteMagnitude))
-        self.nameEventLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: nameEventLabelSize)
-        currentY += nameEventLabelSize.height + halfItemSpacing
-
-        self.nameEventTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: layout.size.width - sidePadding * 2, height: itemHeight))
-        currentY += itemHeight + sectionSpacing
-
-        let dateWidth: CGFloat = floor((layout.size.width - sidePadding * 3) / 2.0)
-
-        let startDateLabelSize = self.startDateLabel.measure(CGSize(width: dateWidth, height: .greatestFiniteMagnitude))
-        self.startDateLabel.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: startDateLabelSize)
-
-        let endTimeLabelSize = self.endTimeLabel.measure(CGSize(width: dateWidth, height: .greatestFiniteMagnitude))
-        self.endTimeLabel.frame = CGRect(origin: CGPoint(x: sidePadding * 2 + dateWidth, y: currentY), size: endTimeLabelSize)
-        currentY += startDateLabelSize.height + halfItemSpacing
-
-        self.startDateTextField.frame = CGRect(origin: CGPoint(x: sidePadding, y: currentY), size: CGSize(width: dateWidth, height: itemHeight))
-        self.endTimeTextField.frame = CGRect(origin: CGPoint(x: sidePadding * 2 + dateWidth, y: currentY), size: CGSize(width: dateWidth, height: itemHeight))
-        currentY += itemHeight + sectionSpacing
-
-        let rowHeight: CGFloat = 24.0
-
-        self.currentlyWorkingContainer.frame = CGRect(
-            origin: CGPoint(x: sidePadding, y: currentY),
-            size: CGSize(width: layout.size.width - sidePadding * 2, height: rowHeight)
+        let body = CreateWorkHistoryRequest(
+            agencyId: nil,
+            agencyName: agencyName.isEmpty ? nil : agencyName,
+            startDate: Self.formatDateForAPI(timestamp: startTime),
+            endDate: isCurrent ? nil : (endTime > 0 ? Self.formatDateForAPI(timestamp: endTime) : nil),
+            isCurrent: isCurrent
         )
 
-        self.currentlyWorkingCheckbox.frame = CGRect(
-            origin: CGPoint(x: 0, y: (rowHeight - 20) / 2),
-            size: CGSize(width: 20, height: 20)
-        )
-
-        let labelSize = self.currentlyWorkingLabel.measure(
-            CGSize(width: layout.size.width - sidePadding * 2 - 32, height: rowHeight)
-        )
-        self.currentlyWorkingLabel.frame = CGRect(
-            origin: CGPoint(x: 32, y: 0),
-            size: labelSize
-        )
-
-        currentY += rowHeight + sectionSpacing
-
-        self.scrollNode.view.contentSize = CGSize(width: layout.size.width, height: currentY + 20.0)
-
-        let buttonWidth = layout.size.width - sidePadding * 2
-        let buttonHeight: CGFloat = 50.0
-        let safeBottom = layout.intrinsicInsets.bottom
-        let bottomPadding: CGFloat = safeBottom > 0 ? 8 : 16
-        self.applyButton.frame = CGRect(origin: CGPoint(x: sidePadding, y: layout.size.height - buttonHeight - safeBottom - bottomPadding), size: CGSize(width: buttonWidth, height: buttonHeight))
-
-        self.readyValue = true
+        onSave?(body)
     }
 }
 
-private func getTextFiel(title: String, isMultiline: Bool = false) -> TextFieldNode {
-    let field = TextFieldNode()
 
-    field.textField.font = Font.regular(16.0)
-    field.textField.textColor = DivoColorPalette.systemLabelBody
-    field.textField.textAlignment = .natural
-    field.textField.attributedPlaceholder = NSAttributedString(string: title, font: field.textField.font, textColor: DivoColorPalette.systemLabelPlaceholder)
-    field.textField.autocapitalizationType = .none
-    field.textField.autocorrectionType = .no
-    field.textField.keyboardType = .default
-    field.borderWidth = 1.0
-    field.borderColor = UIColor.white.withAlphaComponent(0.4).cgColor
-    field.cornerRadius = 11.0
-    field.clipsToBounds = true
-    field.backgroundColor = DivoColorPalette.fieldBackgroundLight
+// MARK: - GradientView
 
-    if isMultiline {
-        field.padding = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
-    } else {
-        field.padding = UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
-    }
-
-    return field
-}
-
-private func roundCorners(diameter: CGFloat) -> UIImage {
-    UIGraphicsBeginImageContextWithOptions(CGSize(width: diameter, height: diameter), false, 0.0)
-    let context = UIGraphicsGetCurrentContext()!
-    context.setBlendMode(.copy)
-    context.setFillColor(UIColor.black.cgColor)
-    context.fill(CGRect(origin: CGPoint(), size: CGSize(width: diameter, height: diameter)))
-    context.setFillColor(UIColor.clear.cgColor)
-    context.fillEllipse(in: CGRect(origin: CGPoint(), size: CGSize(width: diameter, height: diameter)))
-    let image = UIGraphicsGetImageFromCurrentImageContext()!.stretchableImage(withLeftCapWidth: Int(diameter / 2.0), topCapHeight: Int(diameter / 2.0))
-    UIGraphicsEndImageContext()
-    return image
+private final class GradientView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
 }

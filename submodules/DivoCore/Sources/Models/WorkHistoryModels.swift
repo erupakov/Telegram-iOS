@@ -15,10 +15,27 @@ public struct WorkHistoryItem: Decodable {
     public let agencyId: Int?
     public let agencyName: String?
     public let agencyDisplayName: String?
-    public let agencyPhoto: UserFile?
     public let startDate: String?
     public let endDate: String?
     public let isCurrent: Bool?
+    
+    public init(
+        id: Int,
+        agencyId: Int?,
+        agencyName: String?,
+        agencyDisplayName: String?,
+        startDate: String?,
+        endDate: String?,
+        isCurrent: Bool?
+    ) {
+        self.id = id
+        self.agencyId = agencyId
+        self.agencyName = agencyName
+        self.agencyDisplayName = agencyDisplayName
+        self.startDate = startDate
+        self.endDate = endDate
+        self.isCurrent = isCurrent
+    }
 }
 
 public struct WorkHistoryDeleteResponse: Decodable {

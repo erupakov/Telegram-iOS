@@ -40,24 +40,7 @@ public final class WorkExperienceController: TelegramBaseController {
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
 
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: DivoColorPalette.accentCopperDeep,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .black,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
-//
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
-
-        super.init(context: context, navigationBarPresentationData: navigationBarData)
-
-        updateNavigation()
+        super.init(context: context, navigationBarPresentationData: nil)
     }
 
     deinit {
@@ -68,18 +51,6 @@ public final class WorkExperienceController: TelegramBaseController {
 
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    private func updateNavigation() {
-        self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-
-        self.title = DivoStrings.workExperience
-
-        if model.isMyProfile {
-            let addItem = UIBarButtonItem(image: UIImage(bundleImageName: "Components/addIcon"), style: .plain, target: self, action: #selector(self.addPressed))
-            addItem.tintColor = DivoColorPalette.accentCopperTint
-            self.navigationItem.rightBarButtonItem = addItem
-        }
     }
 
     @objc private func addPressed() {
@@ -97,7 +68,8 @@ public final class WorkExperienceController: TelegramBaseController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        getWorkHistory()
+        
+        model.isMyProfile ? getWorkMyHistory() : getWorkHistory()
     }
 
     private func getWorkHistory() {
@@ -107,7 +79,6 @@ public final class WorkExperienceController: TelegramBaseController {
             return
         }
         Task {
-            // Try structured API first
             var structuredItems: [WorkHistoryItem] = []
             do {
                 let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
@@ -122,6 +93,7 @@ public final class WorkExperienceController: TelegramBaseController {
                 await MainActor.run {
                     self.controllerNode.reloadWorkHistory(items: structuredItems)
                 }
+                self.fetchAgencyLogos(for: structuredItems)
                 return
             }
 
@@ -142,6 +114,55 @@ public final class WorkExperienceController: TelegramBaseController {
         }
     }
 
+    private func getWorkMyHistory() {
+        controllerNode.setLoading(true)
+        
+        Task {
+            var structuredItems: [WorkHistoryItem] = []
+            do {
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history"
+                )
+                structuredItems = response.data.items
+            } catch {
+                print("[DivoAPI] model-work-history error: \(error)")
+            }
+            
+            if !structuredItems.isEmpty {
+                await MainActor.run {
+                    self.controllerNode.reloadWorkHistory(items: structuredItems)
+                }
+                self.fetchAgencyLogos(for: structuredItems)
+                return
+            }
+        }
+    }
+    
+    private func fetchAgencyLogos(for items: [WorkHistoryItem]) {
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for item in items {
+                    guard let agencyId = item.agencyId else { continue }
+                    
+                    group.addTask {
+                        do {
+                            let response: AgencyDetailResponse = try await DivoAPIClient.shared.request(
+                                path: "/agency/\(agencyId)"
+                            )
+                            
+                            if let urlString = response.data.photo?.fullUrl, let url = URL(string: urlString) {
+                                await MainActor.run {
+                                    self.controllerNode.updateAgencyLogo(itemId: item.id, url: url)
+                                }
+                            }
+                        } catch {
+                            print("[DivoAPI] fetch agency \(agencyId) error: \(error)")
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     override public func loadDisplayNode() {
         self.displayNode = WorkExperience(
@@ -150,14 +171,21 @@ public final class WorkExperienceController: TelegramBaseController {
             presentationData: self.presentationData,
             model: model)
 
-        self.controllerNode.showItemOptions = { [weak self] item in
-            self?.showItemOptions(item)
+        self.controllerNode.onEditItem = { [weak self] item in
+            self?.editWorkExperience(item)
+        }
+        
+        self.controllerNode.onDeleteItem = { [weak self] item in
+            self?.deleteWorkHistory(id: item.id)
         }
 
         self.controllerNode.openAddWorkExperience = { [weak self] in
             self?.addWorkExperience()
         }
-
+        
+        self.controllerNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
 
         self.displayNodeDidLoad()
     }
@@ -191,7 +219,7 @@ public final class WorkExperienceController: TelegramBaseController {
                     method: "DELETE"
                 )
                 await MainActor.run {
-                    self.getWorkHistory()
+                    self.getWorkMyHistory()
                 }
             } catch {
                 print("[DivoAPI] delete model-work-history/\(id) error: \(error)")
