@@ -145,7 +145,7 @@ public final class DivoSegmentedControl: UIView {
 
     private static func attributedTitle(_ title: String, active: Bool) -> NSAttributedString {
         let font = UIFont(name: "HelveticaNeue-CondensedBold", size: 10) ?? UIFont.systemFont(ofSize: 10, weight: .bold)
-        let color: UIColor = active ? .black : DivoColorPalette.feedPillInactive
+        let color: UIColor = DivoColorPalette.primaryText
         return NSAttributedString(string: title.uppercased(), attributes: [
             .font: font,
             .foregroundColor: color,

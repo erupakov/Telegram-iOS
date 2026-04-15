@@ -218,7 +218,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
-                        title: DivoStrings.ageYo,
+                        title: DivoStrings.heightCm,
                         keyPath: \.heightRange,
                         min: 150,
                         max: 200
@@ -234,7 +234,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
-                        title: DivoStrings.paramWeight,
+                        title: DivoStrings.weightKg,
                         keyPath: \.weightRange,
                         min: 40,
                         max: 120
@@ -250,7 +250,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
-                        title: DivoStrings.paramWaist,
+                        title: DivoStrings.waistCm,
                         keyPath: \.waistRange,
                         min: 50,
                         max: 120
@@ -263,7 +263,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                     return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHips, keyPath: \.hipsRange, min: 70, max: 130) }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.hipsCm, keyPath: \.hipsRange, min: 70, max: 130) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.shoeSizeEU,
@@ -272,7 +272,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                     return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramShoeSize, keyPath: \.shoeSizeRange, min: 35, max: 46) }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.shoeSizeEU, keyPath: \.shoeSizeRange, min: 35, max: 46) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hairLength,

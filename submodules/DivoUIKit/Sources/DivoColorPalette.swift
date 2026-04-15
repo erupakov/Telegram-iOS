@@ -81,6 +81,7 @@ public enum DivoColorPalette {
     public static let disabledButtonBackground = UIColor(red: 0.322, green: 0.322, blue: 0.322, alpha: 1)
     /// #343434 — delete/back button background на тёмном.
     public static let deleteButtonBackground = UIColor(hexString: "#343434")!
+    public static let disabledBackground = UIColor(red: 228/255, green: 228/255, blue: 228/255, alpha: 1) // #E4E4E4
     /// 0.55 — неактивная иконка таба (DivoSettings).
     public static let tabInactiveIcon = UIColor(white: 0.55, alpha: 1)
     /// 0.2 — активная иконка таба.

@@ -249,7 +249,7 @@ final class EditProfileNode: ASDisplayNode {
     
     // MARK: - Footer UI
     
-    private let applyButton = DivoSaveButton()
+    private let applyButton = DivoButton()
 
     private var applyButtonBottomConstraint: NSLayoutConstraint?
     
@@ -343,6 +343,13 @@ final class EditProfileNode: ASDisplayNode {
         self.selectedGenderTitle = model?.gender?.title
         self.selectedAge = calculateAge(from: model?.birthday ?? "")
         
+        navigationBar.makeNavigationBar(
+            backButtonConfiguration: .circle("chevron.left"),
+            onBackTapped: { [weak self] in self?.onBackTapped?() }
+        )
+
+        applyButton.makeDivoButton(title: DivoStrings.save, loading: DivoStrings.saving)
+        
         setupAppearanceEditItems()
     }
     
@@ -411,8 +418,6 @@ final class EditProfileNode: ASDisplayNode {
         aboutEventTextField.onTextChange = { [weak self] _ in
             self?.updateSaveButtonState()
         }
-
-        navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
 
         chancePhotoView.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
         chancePhotoView.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])

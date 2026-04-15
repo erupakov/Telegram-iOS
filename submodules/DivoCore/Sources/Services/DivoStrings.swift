@@ -299,7 +299,7 @@ public enum DivoStrings {
     public static var workExperience: String { L(en: "Work experience", ru: "Опыт работы", es: "Experiencia laboral", pt: "Experiência profissional", zh: "工作经历") }
     public static var noWorkExperienceYet: String { L(en: "THERE ARE NO WORK\nEXPERIENCE YET.", ru: "ОПЫТА РАБОТЫ\nПОКА НЕТ.", es: "AÚN NO HAY\nEXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ\nEXPERIÊNCIA.", zh: "暂无\n工作经历。") }
     public static var noWorkExperienceSubtitle: String { L(en: "Click the button below\nto add your work\nexperience", ru: "Нажмите кнопку ниже,\nчтобы добавить\nопыт работы", es: "Haga clic en el botón\npara agregar su\nexperiencia", pt: "Clique no botão abaixo\npara adicionar sua\nexperiência", zh: "点击下方按钮\n添加您的\n工作经历") }
-    public static var addWorkExperience: String { L(en: "Add Work Experience", ru: "Добавить опыт работы", es: "Agregar experiencia", pt: "Adicionar experiência", zh: "添加工作经历") }
+    public static var addWorkExperience: String { L(en: "Add work experience", ru: "Добавить опыт работы", es: "Agregar experiencia laboral", pt: "Adicionar experiência profissional", zh: "添加工作经验") }
     public static var workExperienceInfo: String { L(en: "Work experience info", ru: "Информация об опыте работы", es: "Información de experiencia", pt: "Informações da experiência", zh: "工作经历信息") }
     public static var enterAgencyName: String { L(en: "Enter agency name", ru: "Введите название агентства", es: "Ingrese el nombre de la agencia", pt: "Insira o nome da agência", zh: "输入经纪公司名称") }
     public static var startDate: String { L(en: "Start date", ru: "Дата начала", es: "Fecha de inicio", pt: "Data de início", zh: "开始日期") }

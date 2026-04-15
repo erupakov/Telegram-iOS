@@ -1,17 +1,18 @@
 import UIKit
-import DivoCore
+import Display
 
-public final class DivoSaveButton: UIButton {
+public final class DivoButton: UIButton {
 
     // MARK: - Design tokens
 
-    private static let buttonFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 18) ?? UIFont.boldSystemFont(ofSize: 18)
+    private static let buttonFont = Font.helveticaNeue(20)
     private static let kern: CGFloat = 18 * 0.005 // 0.5 %
-    private static let disabledBackground = UIColor(red: 228/255, green: 228/255, blue: 228/255, alpha: 1) // #E4E4E4
-    private static let disabledTextColor = UIColor(red: 175/255, green: 175/255, blue: 177/255, alpha: 1) // #AFAFB1
     private static let buttonHeight: CGFloat = 56
     private static let cornerRadius: CGFloat = 28 // TODO: DS alignment — не в шкале Radius
-
+    
+    private var normalTitle: String?
+    private var loadingTitle: String?
+    
     // MARK: - Subviews
 
     private let spinner: UIActivityIndicatorView = {
@@ -45,15 +46,22 @@ public final class DivoSaveButton: UIButton {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
+    // MARK: - Configuration
+    
+    public func makeDivoButton(title: String, loading: String? = nil) {
+        normalTitle = title
+        loadingTitle = loading
+        
+        applyNormalTitle()
+        applyDisabledTitle()
+    }
+    
     // MARK: - Setup
 
     private func setup() {
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = Self.cornerRadius
-
-        applyNormalTitle()
-        applyDisabledTitle()
 
         heightAnchor.constraint(equalToConstant: Self.buttonHeight).isActive = true
 
@@ -74,30 +82,33 @@ public final class DivoSaveButton: UIButton {
     // MARK: - Attributed titles
 
     private func applyNormalTitle() {
+        guard let normalTitle = normalTitle else { return }
         let attr: [NSAttributedString.Key: Any] = [
             .font: Self.buttonFont,
             .kern: Self.kern,
             .foregroundColor: DivoColorPalette.primaryTextOnDark,
         ]
-        setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: attr), for: .normal)
+        setAttributedTitle(NSAttributedString(string: normalTitle, attributes: attr), for: .normal)
     }
 
     private func applyDisabledTitle() {
+        guard let normalTitle = normalTitle else { return }
         let attr: [NSAttributedString.Key: Any] = [
             .font: Self.buttonFont,
             .kern: Self.kern,
-            .foregroundColor: Self.disabledTextColor,
+            .foregroundColor: DivoColorPalette.disabledText,
         ]
-        setAttributedTitle(NSAttributedString(string: DivoStrings.save.uppercased(), attributes: attr), for: .disabled)
+        setAttributedTitle(NSAttributedString(string: normalTitle, attributes: attr), for: .disabled)
     }
 
     private func savingAttributedString() -> NSAttributedString {
+        guard let loadingTitle = loadingTitle else { return NSAttributedString() }
         let attr: [NSAttributedString.Key: Any] = [
             .font: Self.buttonFont,
             .kern: Self.kern,
             .foregroundColor: DivoColorPalette.primaryTextOnDark,
         ]
-        return NSAttributedString(string: DivoStrings.saving.uppercased(), attributes: attr)
+        return NSAttributedString(string: loadingTitle, attributes: attr)
     }
 
     // MARK: - Enabled / disabled
@@ -105,7 +116,7 @@ public final class DivoSaveButton: UIButton {
     override public var isEnabled: Bool {
         didSet {
             guard !isSaving else { return }
-            backgroundColor = isEnabled ? DivoColorPalette.accent : Self.disabledBackground
+            backgroundColor = isEnabled ? DivoColorPalette.accent : DivoColorPalette.disabledBackground
         }
     }
 
@@ -126,6 +137,7 @@ public final class DivoSaveButton: UIButton {
             UIView.animate(withDuration: 0.2) {
                 self.titleLabel?.alpha = 0
                 self.savingLabel.alpha = 1
+                self.alpha = 0.7
             }
 
             installBlockingOverlay(on: hostView)
@@ -135,6 +147,7 @@ public final class DivoSaveButton: UIButton {
             UIView.animate(withDuration: 0.2) {
                 self.titleLabel?.alpha = 1
                 self.savingLabel.alpha = 0
+                self.alpha = 1.0
             }
 
             removeBlockingOverlay(from: hostView)

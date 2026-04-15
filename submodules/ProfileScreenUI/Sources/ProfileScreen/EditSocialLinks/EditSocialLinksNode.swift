@@ -39,11 +39,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     private var linksData: LinksData
     
-    private let navigationBar: DivoNavigationBar = {
-        let bar = DivoNavigationBar()
-        bar.setTitle(DivoStrings.editSocialLinks)
-        return bar
-    }()
+    private let navigationBar = DivoNavigationBar()
         
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
@@ -68,7 +64,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     private var initialTexts: [String] = []
 
-    private let applyButton = DivoSaveButton()
+    private let applyButton = DivoButton()
 
     private var applyButtonBottomConstraint: NSLayoutConstraint?
 
@@ -115,6 +111,14 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         super.init()
         
         self.backgroundColor = DivoColorPalette.screenBackground
+        
+        navigationBar.makeNavigationBar(
+            title: DivoStrings.editSocialLinks.uppercased(),
+            backButtonConfiguration: .circle("chevron.left"),
+            onBackTapped: { [weak self] in self?.onBackTapped?() }
+        )
+
+        applyButton.makeDivoButton(title: DivoStrings.save, loading: DivoStrings.saving)
     }
 
     deinit {
@@ -240,7 +244,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             field.textField.addTarget(self, action: #selector(textFieldDidChangeValue), for: .editingChanged)
         }
 
-        navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
     }
     

@@ -25,6 +25,8 @@ public final class FilterOptionsController: UIViewController {
    
     public var onSave: (([FilterOptionItem]) -> Void)?
 
+    private let navigationBar = DivoNavigationBar()
+
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -41,60 +43,6 @@ public final class FilterOptionsController: UIViewController {
         stackView.distribution = .fill
         stackView.backgroundColor = .clear
         return stackView
-    }()
-
-    private let customNavBar: UIView = {
-        let view = UIView()
-        view.backgroundColor = .clear
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.font = Font.medium(16)
-        label.textColor = DivoColorPalette.primaryText
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let closeButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.backgroundColor = DivoColorPalette.cardBackground
-        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-
-        let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        let image = UIImage(systemName: "chevron.left", withConfiguration: config)
-        button.setImage(image, for: .normal)
-        button.tintColor = DivoColorPalette.primaryText
-
-        button.setTitle(DivoStrings.back, for: .normal)
-        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
-
-        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
-        button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)
-        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 20)
-
-        button.layer.applyDivoShadow()
-
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-    
-    private let closeCircleButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.backgroundColor = DivoColorPalette.cardBackground
-        button.layer.cornerRadius = 20
-        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
-        button.setImage(image, for: .normal)
-        button.tintColor = DivoColorPalette.primaryText
-
-        button.layer.applyDivoShadow()
-
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
     }()
 
     private let searchFieldContainer: UIView = {
@@ -127,17 +75,6 @@ public final class FilterOptionsController: UIViewController {
         return field
     }()
 
-    private let saveButton: UIButton = {
-        let saveButton = UIButton(type: .custom)
-        saveButton.backgroundColor = DivoColorPalette.accent
-        saveButton.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        saveButton.setImage(UIImage(systemName: "checkmark"), for: .normal)
-        saveButton.tintColor = DivoColorPalette.primaryTextOnDark
-        saveButton.layer.applyDivoShadow()
-        saveButton.translatesAutoresizingMaskIntoConstraints = false
-        return saveButton
-    }()
-
     private let deleteButton: UIButton = {
         let deleteButton = UIButton(type: .system)
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
@@ -158,7 +95,6 @@ public final class FilterOptionsController: UIViewController {
         isOpenPresent: Bool = false,
         isResetButton: Bool = true
     ) {
-        self.titleLabel.text = title
         self.allOptions = options
         self.filteredOptions = options
         self.selectedOptionIds = Set(selectedOptionIds)
@@ -167,6 +103,24 @@ public final class FilterOptionsController: UIViewController {
         self.isOpenPresent = isOpenPresent
         self.isResetButton = isResetButton
         super.init(nibName: nil, bundle: nil)
+
+        navigationBar.makeNavigationBar(
+            title: title,
+            font: Font.medium(16),
+            backButtonConfiguration: isOpenPresent ? .circle("xmark") : .circle("chevron.left"),
+            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.primaryTextOnDark, "checkmark"),
+            onBackTapped: isOpenPresent ?
+            { [weak self] in
+                self?.navigationController?.dismiss(animated: true)
+            } 
+            :
+            { [weak self] in
+                self?.navigationController?.popViewController(animated: true)
+            },
+            onCircleRightTapped: { [weak self] in
+                self?.saveTapped()
+            }
+        )
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -183,17 +137,6 @@ public final class FilterOptionsController: UIViewController {
 
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
-        closeButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        closeButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-
-        closeCircleButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        closeCircleButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeCircleButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-
-        saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-        saveButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        saveButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
 
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
         deleteButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
@@ -203,14 +146,13 @@ public final class FilterOptionsController: UIViewController {
     }
 
     private func setupCustomNavBar() {
-        view.addSubview(customNavBar)
-        if isOpenPresent {
-            customNavBar.addSubview(closeCircleButton)
-        } else {
-            customNavBar.addSubview(closeButton)
-        }
-        customNavBar.addSubview(titleLabel)
-        customNavBar.addSubview(saveButton)
+        view.addSubview(navigationBar)
+        
+        NSLayoutConstraint.activate([
+            navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
     }
 
     private func setupSearchField() {
@@ -246,50 +188,9 @@ public final class FilterOptionsController: UIViewController {
     }
 
     private func setupConstraints() {
-        if isOpenPresent {
-            NSLayoutConstraint.activate([
-                customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
-                customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                customNavBar.heightAnchor.constraint(equalToConstant: 50),
-                
-                closeCircleButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-                closeCircleButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-                closeCircleButton.heightAnchor.constraint(equalToConstant: 40),
-                closeCircleButton.widthAnchor.constraint(equalToConstant: 40),
-                
-                titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
-                titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-                
-                saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-                saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-                saveButton.widthAnchor.constraint(equalToConstant: 40),
-                saveButton.heightAnchor.constraint(equalToConstant: 40),
-            ])
-        } else {
-            NSLayoutConstraint.activate([
-                customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
-                customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-                customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-                customNavBar.heightAnchor.constraint(equalToConstant: 50),
-                
-                closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-                closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-                closeButton.heightAnchor.constraint(equalToConstant: 40),
-                
-                titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
-                titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-                
-                saveButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-                saveButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-                saveButton.widthAnchor.constraint(equalToConstant: 40),
-                saveButton.heightAnchor.constraint(equalToConstant: 40),
-            ])
-        }
-        
         if showSearch {
             NSLayoutConstraint.activate([
-                searchFieldContainer.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 20),
+                searchFieldContainer.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 20),
                 searchFieldContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
                 searchFieldContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
                 searchFieldContainer.heightAnchor.constraint(equalToConstant: 40),
@@ -307,7 +208,7 @@ public final class FilterOptionsController: UIViewController {
         }
         
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: showSearch ? searchFieldContainer.bottomAnchor : customNavBar.bottomAnchor, constant: showSearch ? 10.0 : 20.0),
+            scrollView.topAnchor.constraint(equalTo: showSearch ? searchFieldContainer.bottomAnchor : navigationBar.bottomAnchor, constant: showSearch ? 10.0 : 20.0),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -428,14 +329,6 @@ public final class FilterOptionsController: UIViewController {
         }
 
         reloadOptions()
-    }
-
-    @objc private func backTapped() {
-        navigationController?.popViewController(animated: true)
-    }
-
-    @objc private func closeTapped() {
-        navigationController?.dismiss(animated: true)
     }
 
     @objc private func buttonPressed(_ sender: UIButton) {

@@ -1,74 +1,213 @@
 import UIKit
 import DivoCore
+import Display
+
+import UIKit
+import Display
+
+public enum BackButtonConfiguration {
+    case circle(String)
+    case circleWithText
+}
+
+public enum RightButtonConfiguration {
+    case circle(UIColor, UIColor, String)
+    case text(String)
+}
 
 public final class DivoNavigationBar: UIView {
-
-    public var onBackTapped: (() -> Void)?
-
-    public let titleLabel: UILabel = {
+    
+    private var onBackTapped: (() -> Void)?
+    private var onCircleRightTapped: (() -> Void)?
+    private var onCircleTextTapped: (() -> Void)?
+    
+    private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? UIFont.boldSystemFont(ofSize: 20)
         label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-
+    
     private let backButton: UIButton = {
         let button = UIButton(type: .custom)
         button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
 
+        button.layer.applyDivoShadow()
+        
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
+    private let backTextButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.backgroundColor = DivoColorPalette.cardBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        
         let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
         let image = UIImage(systemName: "chevron.left", withConfiguration: config)
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.primaryText
-
+        
+        button.setTitle(DivoStrings.back, for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        
+        button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
+        button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)
+        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 20)
+        
         button.layer.applyDivoShadow()
-
+        
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
+    
+    private let circleRightButton: UIButton = {
+        let button = UIButton(type: .custom)
 
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        
+        button.layer.applyDivoShadow()
+        
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
+    private let textRightButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitleColor(DivoColorPalette.accent, for: .normal)
+        btn.titleLabel?.font = Font.regular(15)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
+    
     public override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
+        setupInteractions()
     }
-
+    
     public required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-
+    
     private func setup() {
         backgroundColor = .clear
         translatesAutoresizingMaskIntoConstraints = false
-
+        
+        addSubview(backTextButton)
         addSubview(backButton)
         addSubview(titleLabel)
-
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        backButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        backButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-
+        addSubview(circleRightButton)
+        addSubview(textRightButton)
+        
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 50),
-
+            
+            backTextButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            backTextButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            backTextButton.widthAnchor.constraint(equalToConstant: 40),
+            backTextButton.heightAnchor.constraint(equalToConstant: 40),
+            
             backButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             backButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             backButton.widthAnchor.constraint(equalToConstant: 40),
             backButton.heightAnchor.constraint(equalToConstant: 40),
-
+            
             titleLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            
+            circleRightButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            circleRightButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            circleRightButton.widthAnchor.constraint(equalToConstant: 40),
+            circleRightButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            textRightButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            textRightButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textRightButton.heightAnchor.constraint(equalToConstant: 40),
         ])
     }
-
+    
+    private func setupInteractions() {
+        backTextButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+        circleRightButton.addTarget(self, action: #selector(circleRightTapped), for: .touchUpInside)
+        textRightButton.addTarget(self, action: #selector(circleTextTapped), for: .touchUpInside)
+        
+        for button in [backTextButton, backButton, circleRightButton, textRightButton] {
+            button.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+            button.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        }
+    }
+    
     public func setTitle(_ title: String) {
         titleLabel.text = title.uppercased()
     }
-
+    
+    public func makeNavigationBar(
+        title: String? = nil,
+        font: UIFont? = Font.helveticaNeue(20),
+        backButtonConfiguration: BackButtonConfiguration? = nil,
+        rightButtonConfiguration: RightButtonConfiguration? = nil,
+        onBackTapped: (() -> Void)? = nil,
+        onCircleRightTapped: (() -> Void)? = nil,
+        onCircleTextTapped: (() -> Void)? = nil
+    ) {
+        self.titleLabel.text = title
+        self.titleLabel.font = font
+        switch backButtonConfiguration {
+        case .circle(let iamgeName):
+            backButton.isHidden = false
+            backTextButton.isHidden = true
+            
+            let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+            let image = UIImage(systemName: iamgeName, withConfiguration: config)
+            backButton.setImage(image, for: .normal)
+            backButton.tintColor = DivoColorPalette.primaryText
+            
+        case .circleWithText:
+            backButton.isHidden = true
+            backTextButton.isHidden = false
+        case .none:
+            backButton.isHidden = true
+            backTextButton.isHidden = true
+        }
+        switch rightButtonConfiguration {
+        case .circle(let backgroundColor, let titleColor, let imageName):
+            circleRightButton.isHidden = false
+            textRightButton.isHidden = true
+            
+            let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+            let image = UIImage(systemName: imageName, withConfiguration: config)
+            circleRightButton.setImage(image, for: .normal)
+            circleRightButton.tintColor = titleColor
+            circleRightButton.backgroundColor = backgroundColor
+            
+        case .text(let title):
+            circleRightButton.isHidden = true
+            textRightButton.isHidden = false
+            textRightButton.setTitle(title, for: .normal)
+        case .none:
+            circleRightButton.isHidden = true
+            textRightButton.isHidden = true
+        }
+        self.onBackTapped = onBackTapped
+        self.onCircleRightTapped = onCircleRightTapped
+        self.onCircleTextTapped = onCircleTextTapped
+    }
+    
     @objc private func backTapped() {
         onBackTapped?()
+    }
+    
+    @objc private func circleRightTapped() {
+        onCircleRightTapped?()
+    }
+    
+    @objc private func circleTextTapped() {
+        onCircleTextTapped?()
     }
 
     @objc private func buttonPressed(_ sender: UIButton) {
