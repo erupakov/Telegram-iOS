@@ -9,6 +9,8 @@ Lint для DIVO-ассетов.
   [R4] в Swift-коде нет UIImage(named: "Divo...") / UIImage(bundleImageName: "Divo...")
        — для DIVO-ассетов должен использоваться DivoImage.xxx
   [R5] DivoImage.swift синхронизирован со списком .imageset в DivoCoreImages.xcassets
+  [R6] в DIVO-модулях все UIImage(named:/bundleImageName:) должны резолвиться
+       в реально существующий .imageset (с учётом namespace)
 
 Зачем:
   R1 — визуально отличать DIVO-ресурсы от Telegram в навигации по xcassets.
@@ -20,6 +22,10 @@ Lint для DIVO-ассетов.
        Через DivoImage.xxx — опечатка = ошибка сборки.
   R5 — если кто-то добавил ассет и забыл перегенерировать DivoImage.swift,
        ассет недоступен в коде — пусть CI падает, а не ловим руками.
+  R6 — ловит строковые ссылки на удалённые/переименованные ассеты, которые
+       раньше возвращают nil в рантайме (пустая картинка на UI и никаких ошибок
+       сборки). Такие «мёртвые» строки остаются после рефакторингов и не
+       подсвечиваются ни R4, ни компилятором.
 
 Как запускать:
   python3 scripts/divo/lint_divo_images.py           — прогнать все проверки
@@ -66,10 +72,33 @@ R4_EXCLUDE_PATHS = {
     REPO_ROOT / "scripts" / "divo" / "generate_divo_images.py",
 }
 
+# R6 — где применяем проверку «строка обязана резолвиться в реальный ассет».
+# Это DIVO-модули и форк-модули, где встречаются DIVO-ассеты. Нативный
+# Telegram-код специально не трогаем.
+R6_MODULE_ROOTS = [
+    REPO_ROOT / "submodules" / "DivoCore",
+    REPO_ROOT / "submodules" / "DivoUIKit",
+    REPO_ROOT / "submodules" / "ProfileScreenUI",
+    REPO_ROOT / "submodules" / "EventsUI",
+    REPO_ROOT / "submodules" / "ModelsFeedUI",
+    REPO_ROOT / "submodules" / "OnboardingUI",
+    REPO_ROOT / "submodules" / "AuthorizationUI",
+]
+
+# R6 исключения: сам DivoImage.swift (там строки — это намеренный источник истины).
+R6_EXCLUDE_PATHS = {
+    REPO_ROOT / "submodules" / "DivoUIKit" / "Sources" / "DivoImage.swift",
+}
+
 # Regex для UIImage(named: "Divo...") и UIImage(bundleImageName: "Divo...")
 # Поддерживает пробелы и переносы: UIImage(\n  named: "DivoXxx"\n )
 R4_PATTERN = re.compile(
     r'UIImage\s*\(\s*(?:named|bundleImageName)\s*:\s*"(Divo[A-Za-z0-9_]*)"'
+)
+
+# R6 ловит ЛЮБЫЕ строковые ссылки на ассет, не только Divo-префикс.
+R6_PATTERN = re.compile(
+    r'UIImage\s*\(\s*(?:named|bundleImageName)\s*:\s*"([^"]+)"'
 )
 
 # ANSI цвета — включаем только если stdout tty
@@ -122,6 +151,54 @@ def iter_xcassets_roots(root: Path):
                 drop.append(d)
         for d in drop:
             dirnames.remove(d)
+
+
+def collect_all_asset_names(repo_root: Path) -> set[str]:
+    """Возвращает множество всех bundle-имён ассетов, доступных в репо.
+
+    Учитывает provides-namespace: если папка-предок имеет этот флаг, её имя
+    становится частью bundle-имени через '/'. Пример:
+      DivoCoreImages.xcassets/Components(ns=true)/Checkbox.imageset
+         → "Components/Checkbox"
+      DivoCoreImages.xcassets/DivoCheckbox.imageset  (без ns)
+         → "DivoCheckbox"
+
+    Собираем по ВСЕМ .xcassets в репо (включая Telegram-native), потому что
+    в DIVO-модулях допустимо ссылаться на нативные иконки (стрелки, галочки,
+    системные кнопки) — и они должны валидироваться так же.
+    """
+    names: set[str] = set()
+
+    def walk(dir_path: Path, prefix: str) -> None:
+        try:
+            children = list(dir_path.iterdir())
+        except OSError:
+            return
+        for child in children:
+            if not child.is_dir():
+                continue
+            if child.name.endswith(".imageset"):
+                base = child.name[: -len(".imageset")]
+                names.add(f"{prefix}{base}")
+            elif child.name.endswith(".xcassets"):
+                # вложенный .xcassets — не типичная структура, пропускаем
+                continue
+            else:
+                contents = child / "Contents.json"
+                ns = False
+                if contents.is_file():
+                    try:
+                        data = json.loads(contents.read_text(encoding="utf-8"))
+                        ns = (data.get("properties") or {}).get("provides-namespace") is True
+                    except (OSError, json.JSONDecodeError):
+                        ns = False
+                new_prefix = f"{prefix}{child.name}/" if ns else prefix
+                walk(child, new_prefix)
+
+    for xcassets in iter_xcassets_roots(repo_root):
+        walk(xcassets, "")
+
+    return names
 
 
 def iter_swift_files(root: Path):
@@ -252,6 +329,46 @@ def check_r5_divoimage_in_sync(report: LintReport) -> None:
         )
 
 
+def check_r6_string_references_resolve(report: LintReport) -> None:
+    """В DIVO-модулях все UIImage(named:/bundleImageName:) должны резолвиться.
+
+    Собираем множество всех доступных bundle-имён из всех .xcassets репо
+    (с учётом provides-namespace). Затем в Swift-файлах DIVO-модулей ищем
+    строковые литералы UIImage(..., "...") и проверяем, что каждое имя
+    есть в множестве.
+    """
+    available = collect_all_asset_names(REPO_ROOT)
+    if not available:
+        report.add("R6", "не удалось собрать ассеты из .xcassets — пропущено")
+        return
+
+    excluded = {p.resolve() for p in R6_EXCLUDE_PATHS}
+    for module_root in R6_MODULE_ROOTS:
+        if not module_root.is_dir():
+            continue
+        for swift_file in iter_swift_files(module_root):
+            if swift_file.resolve() in excluded:
+                continue
+            try:
+                text = swift_file.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            if "UIImage" not in text:  # быстрый отсев
+                continue
+            for m in R6_PATTERN.finditer(text):
+                asset = m.group(1)
+                if asset in available:
+                    continue
+                line_no = text.count("\n", 0, m.start()) + 1
+                report.add(
+                    "R6",
+                    f"{relpath(swift_file)}:{line_no}: "
+                    f'UIImage(..., "{asset}") — такого .imageset нет в репо '
+                    f"(опечатка, переименование или удалённый ассет — "
+                    f"UIImage вернёт nil в рантайме)",
+                )
+
+
 # ---------- main ----------
 
 def main() -> int:
@@ -262,9 +379,10 @@ def main() -> int:
     check_r3_no_provides_namespace(report)
     check_r4_no_string_literals(report)
     check_r5_divoimage_in_sync(report)
+    check_r6_string_references_resolve(report)
 
     if report.ok:
-        print(f"{GREEN}{BOLD}[divo-lint]{RESET} OK — все 5 проверок прошли.")
+        print(f"{GREEN}{BOLD}[divo-lint]{RESET} OK — все 6 проверок прошли.")
         return 0
 
     print(f"{RED}{BOLD}[divo-lint]{RESET} нарушения ({len(report.errors)}):")

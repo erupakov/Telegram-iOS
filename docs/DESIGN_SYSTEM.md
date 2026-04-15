@@ -203,6 +203,7 @@ let filledImage = DivoImage.statLikeFilled.withRenderingMode(.alwaysTemplate)
 | **R3** | В `DivoCoreImages.xcassets` нигде не стоит `provides-namespace: true`. | С `provides-namespace` подкаталог становится частью имени (`Components/Xxx`), и префикс `Divo` в имени ассета исчезает — R1 обходится. |
 | **R4** | Нет `UIImage(named: "Divo…")` / `UIImage(bundleImageName: "Divo…")` в Swift-коде. | Строковое обращение не ловится компилятором: опечатка = `nil` в рантайме. Через `DivoImage.xxx` — ошибка сборки. |
 | **R5** | `DivoImage.swift` синхронизирован со списком `.imageset`. | Иначе добавленный ассет недоступен в коде, или `DivoImage.xxx` ссылается на удалённый ассет → `nil` в рантайме. |
+| **R6** | В DIVO-модулях любая строка `UIImage(named: "…")` / `UIImage(bundleImageName: "…")` резолвится в реально существующий `.imageset` (с учётом `provides-namespace`). | Ловит мёртвые строковые ссылки на удалённые/переименованные ассеты. Без R6 такая строка молча возвращает `nil` — пустая картинка в UI, ни сборка, ни R4 её не ловят. Проверяются модули: `DivoCore`, `DivoUIKit`, `ProfileScreenUI`, `EventsUI`, `ModelsFeedUI`, `OnboardingUI`, `AuthorizationUI`. |
 
 ### Автоматизация
 
