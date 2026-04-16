@@ -119,10 +119,23 @@ public class ModelsSearchController: ViewController {
         self.searchNode.loadMoreGridResults = { [weak self] in
             self?.fetchGridResults(isFirstPage: false)
         }
+
+        self.searchNode.onSearchCleared = { [weak self] in
+            guard let self else { return }
+            self.currentQuery = ""
+            if self.currentFilters.activeFilterCount > 0 {
+                self.hasMoreGridResults = true
+                self.fetchGridResults(isFirstPage: true)
+            }
+        }
         
         self.displayNodeDidLoad()
+
+        DispatchQueue.main.async { [weak self] in
+            self?.loadDictionaries()
+        }
     }
-    
+
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
@@ -214,7 +227,9 @@ public class ModelsSearchController: ViewController {
         self.isDictionaryLoading = true
         self.dictionaryLoadGroup = DispatchGroup()
 
-        self.searchNode.showFiltersButtonLoading()
+        if pendingFiltersOpen {
+            self.searchNode.showFiltersButtonLoading()
+        }
 
         loadGenderDictionary()
         loadAppearanceDictionary()
@@ -226,14 +241,17 @@ public class ModelsSearchController: ViewController {
 
             if self.dictionaryLoadFailed {
                 self.isDictionaryReady = false
-                self.pendingFiltersOpen = false
-                self.searchNode.showSnackbar(
-                    message: DivoStrings.feedSearchFiltersLoadFailed,
-                    style: .error,
-                    retryAction: { [weak self] in
-                        self?.openFilters()
-                    }
-                )
+                if self.pendingFiltersOpen {
+                    self.pendingFiltersOpen = false
+                    self.searchNode.showSnackbar(
+                        message: DivoStrings.feedSearchFiltersLoadFailed,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.openFilters()
+                        },
+                        persistent: true
+                    )
+                }
             } else {
                 self.isDictionaryReady = true
                 if self.pendingFiltersOpen {
@@ -302,23 +320,29 @@ public class ModelsSearchController: ViewController {
         let hips = self.currentFilters.hipsRange?.upperBound == nil ? nil : RangeParamDouble(from: self.currentFilters.hipsRange?.lowerBound, to: self.currentFilters.hipsRange?.upperBound)
         let role = self.currentFilters.roleIds.isEmpty ? nil : self.currentFilters.roleIds
         
+        let gender = self.currentFilters.genderIds.isEmpty ? nil : self.currentFilters.genderIds
+        let eyeColor = self.currentFilters.eyeColor?.isEmpty == true ? nil : self.currentFilters.eyeColor
+        let skinColor = self.currentFilters.skinColor?.isEmpty == true ? nil : self.currentFilters.skinColor
+        let hairColor = self.currentFilters.hairColor?.isEmpty == true ? nil : self.currentFilters.hairColor
+        let hairLength = self.currentFilters.hairLength?.isEmpty == true ? nil : self.currentFilters.hairLength
+
         return ModelsSearchRequest(
             offset: offset,
             limit: limit,
             query: query,
             role: role,
             modelParameters: ModelSearchParameters(
-                gender: self.currentFilters.genderIds,
+                gender: gender,
                 age: age,
                 weight: weight,
                 height: height,
                 waist: waist,
                 shoesSize: shoesSize,
                 hips: hips,
-                eyeColor: self.currentFilters.eyeColor,
-                skinColor: self.currentFilters.skinColor,
-                hairColor: self.currentFilters.hairColor,
-                hairLength: self.currentFilters.hairLength
+                eyeColor: eyeColor,
+                skinColor: skinColor,
+                hairColor: hairColor,
+                hairLength: hairLength
             )
         )
     }
@@ -350,7 +374,8 @@ public class ModelsSearchController: ViewController {
                         retryAction: { [weak self] in
                             guard let self else { return }
                             self.fetchAutocompleteResults(for: self.currentQuery)
-                        }
+                        },
+                        persistent: true
                     )
                 }
             }
@@ -369,40 +394,61 @@ public class ModelsSearchController: ViewController {
             hasMoreGridResults = true
             self.searchNode.mode = .grid
             self.searchNode.showGridLoading(isFirstPage: true)
+        } else {
+            self.searchNode.showPaginationLoading()
         }
-        
+
         currentSearchTask = Task { @MainActor in
             defer { isFetchingGrid = false }
-            
+
             do {
                 let request = buildRequest(limit: gridLimit, offset: gridOffset, query: self.currentQuery.isEmpty ? nil : self.currentQuery)
-                
+
                 let response: ModelsSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/feedline/search",
                     method: "POST",
                     body: request
                 )
-                
+
                 guard !Task.isCancelled else { return }
-                
+
                 let totalCount = response.data.pagination.meta.totalCount
-                
+
                 self.searchNode.updateGrid(
                     results: response.data.items,
                     totalCount: totalCount,
                     isFirstPage: isFirstPage,
                     query: self.currentQuery
                 )
-                
+
                 self.gridOffset += response.data.items.count
                 self.hasMoreGridResults = self.gridOffset < totalCount
 
             } catch {
                 if !Task.isCancelled {
-                    self.searchNode.showSnackbar(
-                        message: DivoStrings.feedSearchResultsLoadFailed,
-                        style: .error
-                    )
+                    if isFirstPage {
+                        self.searchNode.showGridError()
+                        self.searchNode.showSnackbar(
+                            message: DivoStrings.feedSearchResultsLoadFailed,
+                            style: .error,
+                            retryAction: { [weak self] in
+                                guard let self else { return }
+                                self.fetchGridResults(isFirstPage: true)
+                            },
+                            persistent: true
+                        )
+                    } else {
+                        self.searchNode.showPaginationError()
+                        self.searchNode.showSnackbar(
+                            message: DivoStrings.feedSearchResultsLoadFailed,
+                            style: .error,
+                            retryAction: { [weak self] in
+                                guard let self else { return }
+                                self.fetchGridResults(isFirstPage: false)
+                            },
+                            persistent: true
+                        )
+                    }
                 }
             }
         }

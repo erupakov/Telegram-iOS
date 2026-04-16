@@ -51,6 +51,8 @@ public final class DivoSnackbar {
     private var bottomConstraint: NSLayoutConstraint?
     private var baseBottomInset: CGFloat = 0
     private var keyboardObservers: [NSObjectProtocol] = []
+    private var currentMessage: String?
+    private var currentStyle: Style?
 
     public init() {}
 
@@ -66,6 +68,17 @@ public final class DivoSnackbar {
     ) {
         // Убедимся, что глобальный трекер инициализирован
         _ = DivoSnackbar.keyboardTracker
+
+        if snackbarView != nil, currentMessage == message, currentStyle == style {
+            self.retryAction = retryAction
+            hideTimer?.invalidate()
+            if !persistent {
+                hideTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                    self?.hide(animated: true)
+                }
+            }
+            return
+        }
 
         hide(animated: false)
         if let hiding = hidingSnackbarView {
@@ -97,6 +110,8 @@ public final class DivoSnackbar {
         self.hostView = hostView
         self.retryAction = retryAction
         self.snackbarView = snack
+        self.currentMessage = message
+        self.currentStyle = style
         self.baseBottomInset = bottomInset
         hostView.addSubview(snack)
         hostView.bringSubviewToFront(snack)
@@ -179,6 +194,8 @@ public final class DivoSnackbar {
         snackbarView = nil
         retryAction = nil
         bottomConstraint = nil
+        currentMessage = nil
+        currentStyle = nil
         if animated {
             hidingSnackbarView = snack
             UIView.animate(withDuration: 0.2, animations: {
