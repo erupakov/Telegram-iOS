@@ -139,11 +139,11 @@ public final class FilterOptionsController: UIViewController {
     }()
 
     private let deleteButton: UIButton = {
-        let deleteButton = UIButton(type: .system)
+        let deleteButton = UIButton(type: .custom)
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
         deleteButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
-        deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
+        deleteButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
         deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         return deleteButton
@@ -184,22 +184,30 @@ public final class FilterOptionsController: UIViewController {
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
         closeButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        closeButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        closeButton.addDivoPressState(.pill)
 
         closeCircleButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        closeCircleButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeCircleButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        closeCircleButton.addDivoPressState(.pill)
 
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-        saveButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        saveButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        saveButton.addDivoPressState(.primary)
 
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
-        deleteButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        deleteButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        deleteButton.addDivoPressState(.secondary)
+
+        if showSearch {
+            scrollView.keyboardDismissMode = .onDrag
+
+            let tapDismiss = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboardTap))
+            tapDismiss.cancelsTouchesInView = false
+            view.addGestureRecognizer(tapDismiss)
+        }
 
         reloadOptions()
+    }
+
+    @objc private func dismissKeyboardTap() {
+        view.endEditing(true)
     }
 
     private func setupCustomNavBar() {
@@ -348,6 +356,13 @@ public final class FilterOptionsController: UIViewController {
 
             stackView.addArrangedSubview(cell)
         }
+        updateDeleteButtonState()
+    }
+
+    private func updateDeleteButtonState() {
+        let isDefault = selectedOptionIds.isEmpty
+        deleteButton.isEnabled = !isDefault
+        deleteButton.backgroundColor = isDefault ? DivoColorPalette.buttonDisabledBackground : DivoColorPalette.secondaryButtonBackground
     }
 
     private func createOptionCell(option: FilterOptionItem, isSelected: Bool, isLast: Bool) -> UIView {
@@ -436,20 +451,6 @@ public final class FilterOptionsController: UIViewController {
 
     @objc private func closeTapped() {
         navigationController?.dismiss(animated: true)
-    }
-
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1, animations: {
-            sender.alpha = 0.6
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        })
-    }
-
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2, animations: {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        })
     }
 
     @objc private func saveTapped() {

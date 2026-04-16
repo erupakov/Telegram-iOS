@@ -118,12 +118,12 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let faceScanButton: UIButton = {
         let button = UIButton(type: .custom)
+        button.adjustsImageWhenHighlighted = false
         button.backgroundColor = DivoColorPalette.accent
-        button.layer.cornerRadius = 26 // TODO: DS alignment — не в шкале Radius
+        button.layer.cornerRadius = 18
         let image = DivoImage.searchFaceScan
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.primaryTextOnDark
-        button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -242,9 +242,17 @@ final class ModelsSearchNode: ASDisplayNode {
         label.font = Font.regular(14)
         label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
-        
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+
+    private let activeFiltersClearButton: UIButton = {
+        let button = UIButton(type: .system)
+        let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
+        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        button.tintColor = DivoColorPalette.primaryText
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
     
     private let resultFilterStackView: UIStackView = {
@@ -292,7 +300,6 @@ final class ModelsSearchNode: ASDisplayNode {
     private var currentResults:[SearchUserItem] = []
     
     private var resultsContainerHeightConstraint: NSLayoutConstraint?
-    private var faceScanButtonBottomConstraint: NSLayoutConstraint?
     private var gridTopToFilterStackConstraint: NSLayoutConstraint?
     private var gridTopToSkeletonConstraint: NSLayoutConstraint?
     
@@ -308,6 +315,10 @@ final class ModelsSearchNode: ASDisplayNode {
     var requestGridSearch: ((String) -> Void)?
     var loadMoreGridResults: (() -> Void)?
     var onSearchCleared: (() -> Void)?
+    var onGridLikeTapped: ((Int, Bool) -> Void)?
+    var onGridSaveTapped: ((Int, Bool) -> Void)?
+    var onGridShareTapped: ((SearchUserDTO, UIImage?) -> Void)?
+    var onFiltersClearTapped: (() -> Void)?
     
     private var searchTimer: Timer?
     private var currentKeyboardHeight: CGFloat = 0
@@ -378,7 +389,6 @@ final class ModelsSearchNode: ASDisplayNode {
         setupGridContainer()
         setupResultsContainer()
         setupEmptyStateContainer()
-        setupFaceScanActionButton()
     }
     
     private func setupTopContainer() {
@@ -391,6 +401,7 @@ final class ModelsSearchNode: ASDisplayNode {
         topBarContainer.addSubview(searchFieldContainer)
         searchFieldContainer.addSubview(searchIcon)
         searchFieldContainer.addSubview(searchTextField)
+        searchFieldContainer.addSubview(faceScanButton)
         topBarContainer.addSubview(filterButton)
         topBarContainer.addSubview(closeButton)
         
@@ -438,8 +449,15 @@ final class ModelsSearchNode: ASDisplayNode {
         ])
         
         NSLayoutConstraint.activate([
+            faceScanButton.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -2),
+            faceScanButton.centerYAnchor.constraint(equalTo: searchFieldContainer.centerYAnchor),
+            faceScanButton.widthAnchor.constraint(equalToConstant: 36),
+            faceScanButton.heightAnchor.constraint(equalToConstant: 36)
+        ])
+
+        NSLayoutConstraint.activate([
             searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
-            searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -6),
+            searchTextField.trailingAnchor.constraint(equalTo: faceScanButton.leadingAnchor, constant: -4),
             searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
             searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor)
         ])
@@ -447,11 +465,12 @@ final class ModelsSearchNode: ASDisplayNode {
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
 
-        filterButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        filterButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        closeButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        
+        faceScanButton.addDivoPressState(.accentInline)
+        faceScanButton.addTarget(self, action: #selector(faceScanTapped), for: .touchUpInside)
+
+        filterButton.addDivoPressState(.pill)
+        closeButton.addDivoPressState(.pill)
+
         filterButton.addTarget(self, action: #selector(filterTapped), for: .touchUpInside)
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
     }
@@ -502,6 +521,8 @@ final class ModelsSearchNode: ASDisplayNode {
         
         view.addSubview(resultFilterStackView)
         activeFiltersContainer.addSubview(activeFiltersLabel)
+        activeFiltersContainer.addSubview(activeFiltersClearButton)
+        activeFiltersClearButton.addTarget(self, action: #selector(filtersClearTapped), for: .touchUpInside)
         
         view.addSubview(gridCollectionView)
         view.addSubview(bottomBlurOverlay)
@@ -519,9 +540,14 @@ final class ModelsSearchNode: ASDisplayNode {
         
         NSLayoutConstraint.activate([
             activeFiltersLabel.leadingAnchor.constraint(equalTo: activeFiltersContainer.leadingAnchor, constant: 12),
-            activeFiltersLabel.trailingAnchor.constraint(equalTo: activeFiltersContainer.trailingAnchor, constant: -12),
             activeFiltersLabel.centerYAnchor.constraint(equalTo: activeFiltersContainer.centerYAnchor),
-            
+
+            activeFiltersClearButton.leadingAnchor.constraint(equalTo: activeFiltersLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            activeFiltersClearButton.trailingAnchor.constraint(equalTo: activeFiltersContainer.trailingAnchor, constant: -12),
+            activeFiltersClearButton.centerYAnchor.constraint(equalTo: activeFiltersContainer.centerYAnchor),
+            activeFiltersClearButton.widthAnchor.constraint(equalToConstant: 16),
+            activeFiltersClearButton.heightAnchor.constraint(equalToConstant: 16),
+
             activeFiltersContainer.heightAnchor.constraint(equalToConstant: 36),
         ])
         
@@ -603,30 +629,8 @@ final class ModelsSearchNode: ASDisplayNode {
         let shouldHide = resultsCountLabel.isHidden && activeFiltersContainer.isHidden
         resultFilterStackView.isHidden = shouldHide
         stackSpacer.isHidden = shouldHide
-
-        UIView.animate(withDuration: 0.2) {
-            self.view.layoutIfNeeded()
-        }
     }
     
-    private func setupFaceScanActionButton() {
-        let safeArea = view.safeAreaLayoutGuide
-
-        view.addSubview(faceScanButton)
-
-        faceScanButtonBottomConstraint = faceScanButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
-        faceScanButtonBottomConstraint?.isActive = true
-
-        NSLayoutConstraint.activate([
-            faceScanButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            faceScanButton.widthAnchor.constraint(equalToConstant: 52),
-            faceScanButton.heightAnchor.constraint(equalToConstant: 52)
-        ])
-
-        faceScanButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        faceScanButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        faceScanButton.addTarget(self, action: #selector(faceScanTapped), for: .touchUpInside)
-    }
     
     
     // MARK: - Internal
@@ -656,13 +660,9 @@ final class ModelsSearchNode: ASDisplayNode {
                 }
             }
         } else {
-            if !activeFiltersContainer.isHidden {
-                UIView.animate(withDuration: 0.3, animations: {
-                    self.activeFiltersContainer.alpha = 0
-                }) { _ in
-                    self.activeFiltersContainer.isHidden = true
-                }
-            }
+            activeFiltersContainer.layer.removeAllAnimations()
+            activeFiltersContainer.alpha = 1
+            activeFiltersContainer.isHidden = true
         }
         updateResultFilterStackVisibility()
     }
@@ -893,20 +893,6 @@ final class ModelsSearchNode: ASDisplayNode {
     
     // MARK: @objc
     
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1, animations: {
-            sender.alpha = 0.6
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        })
-    }
-    
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2, animations: {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        })
-    }
-    
     @objc private func searchTextChanged() {
         let text = searchTextField.text ?? ""
         
@@ -962,6 +948,10 @@ final class ModelsSearchNode: ASDisplayNode {
         onFilterPressed?()
     }
 
+    @objc private func filtersClearTapped() {
+        onFiltersClearTapped?()
+    }
+
     @objc private func faceScanTapped() {
         searchTextField.resignFirstResponder()
         onFaceScanPressed?()
@@ -976,24 +966,11 @@ final class ModelsSearchNode: ASDisplayNode {
               let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
 
         currentKeyboardHeight = keyboardFrame.height
-
-        UIView.animate(withDuration: 0.3) {
-            let safeAreaBottom = self.view.safeAreaInsets.bottom
-            self.faceScanButtonBottomConstraint?.constant = -(keyboardFrame.height - safeAreaBottom + 16)
-            self.view.layoutIfNeeded()
-        }
-
         snackbar.updateBottomInset(snackbarBottomInset)
     }
 
     @objc private func keyboardWillHide(notification: NSNotification) {
         currentKeyboardHeight = 0
-
-        UIView.animate(withDuration: 0.3) {
-            self.faceScanButtonBottomConstraint?.constant = -16
-            self.view.layoutIfNeeded()
-        }
-
         snackbar.updateBottomInset(snackbarBottomInset)
     }
 
@@ -1005,6 +982,35 @@ final class ModelsSearchNode: ASDisplayNode {
         }
     }
     
+
+    // MARK: - Grid State Helpers
+
+    func gridItem(forFeedId feedId: Int) -> SearchUserDTO? {
+        guard let idx = currentGridResults.firstIndex(where: { $0.feedId == feedId }) else { return nil }
+        return currentGridResults[idx]
+    }
+
+    func gridItem(forUserId userId: Int) -> SearchUserDTO? {
+        guard let idx = currentGridResults.firstIndex(where: { $0.user?.id == userId }) else { return nil }
+        return currentGridResults[idx]
+    }
+
+    func applyGridLikeState(feedId: Int, isLiked: Bool, likesCount: Int) {
+        guard let idx = currentGridResults.firstIndex(where: { $0.feedId == feedId }) else { return }
+        currentGridResults[idx].isLikedByUser = isLiked
+        currentGridResults[idx].likesCount = likesCount
+        if let cell = gridCollectionView.cellForItem(at: IndexPath(item: idx, section: 0)) as? SearchResultGridCell {
+            cell.rollbackLike(isLiked: isLiked, likesCount: likesCount)
+        }
+    }
+
+    func applyGridSaveState(userId: Int, isSaved: Bool) {
+        guard let idx = currentGridResults.firstIndex(where: { $0.user?.id == userId }) else { return }
+        currentGridResults[idx].isFavoriteByUser = isSaved
+        if let cell = gridCollectionView.cellForItem(at: IndexPath(item: idx, section: 0)) as? SearchResultGridCell {
+            cell.rollbackSave(isSaved: isSaved)
+        }
+    }
 
     // MARK: - Snackbar
 
@@ -1117,6 +1123,16 @@ extension ModelsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
                 county = flag
             }
             cell.configure(with: item, county: county)
+            cell.onLikeTapped = { [weak self] feedId, isLiked in
+                self?.onGridLikeTapped?(feedId, isLiked)
+            }
+            cell.onSaveTapped = { [weak self] userId, isSaved in
+                self?.onGridSaveTapped?(userId, isSaved)
+            }
+            cell.onShareTapped = { [weak self, weak cell] in
+                guard let self, let cell else { return }
+                self.onGridShareTapped?(item, cell.coverImage)
+            }
             return cell
         default:
             return UICollectionViewCell()

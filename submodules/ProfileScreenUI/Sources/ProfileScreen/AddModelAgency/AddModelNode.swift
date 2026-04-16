@@ -249,7 +249,7 @@ final class AddModelNode: ASDisplayNode {
         let imageSize = CGSize(width: 16, height: 12)
         
         self.backNode = ButtonWithIconNode(title: DivoStrings.back, icon: backIcon, theme: presentationData.theme, spacing: 10, imageSize: imageSize)
-        self.backNode.backgroundColor = DivoColorPalette.deleteButtonBackground
+        self.backNode.backgroundColor = DivoColorPalette.secondaryButtonBackground
         
         self.nextNode = ButtonWithIconNode(title: DivoStrings.nextStep, icon: nil, theme: presentationData.theme, spacing: 10, imageSize: imageSize)
         self.nextNode.backgroundColor = DivoColorPalette.accentSecondary

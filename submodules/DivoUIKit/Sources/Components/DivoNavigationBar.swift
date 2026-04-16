@@ -47,8 +47,7 @@ public final class DivoNavigationBar: UIView {
         addSubview(titleLabel)
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        backButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        backButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        backButton.addDivoPressState(.pill)
 
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 50),
@@ -69,19 +68,5 @@ public final class DivoNavigationBar: UIView {
 
     @objc private func backTapped() {
         onBackTapped?()
-    }
-
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1) {
-            sender.alpha = 0.7
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        }
-    }
-
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2) {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        }
     }
 }

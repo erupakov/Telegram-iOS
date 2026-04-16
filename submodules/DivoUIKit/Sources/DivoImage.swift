@@ -46,7 +46,6 @@ public enum DivoImage {
     public static var roleModel: UIImage { load("DivoRoleModel") }
     public static var roleNewTalent: UIImage { load("DivoRoleNewTalent") }
     public static var saveMedia: UIImage { load("DivoSaveMedia") }
-    public static var searchAi: UIImage { load("DivoSearchAi") }
     public static var searchArrowProfile: UIImage { load("DivoSearchArrowProfile") }
     public static var searchChevronRight: UIImage { load("DivoSearchChevronRight") }
     public static var searchCloseIcon: UIImage { load("DivoSearchCloseIcon") }

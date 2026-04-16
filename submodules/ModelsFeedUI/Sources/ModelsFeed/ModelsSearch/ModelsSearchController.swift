@@ -123,6 +123,22 @@ public class ModelsSearchController: ViewController {
                 self.fetchGridResults(isFirstPage: true)
             }
         }
+
+        self.searchNode.onGridLikeTapped = { [weak self] feedId, isLiked in
+            self?.handleGridLike(feedId: feedId, isLiked: isLiked)
+        }
+
+        self.searchNode.onGridSaveTapped = { [weak self] userId, isSaved in
+            self?.handleGridSave(userId: userId, isSaved: isSaved)
+        }
+
+        self.searchNode.onGridShareTapped = { [weak self] item, image in
+            self?.handleGridShare(item: item, image: image)
+        }
+
+        self.searchNode.onFiltersClearTapped = { [weak self] in
+            self?.handleFiltersClear()
+        }
         
         self.displayNodeDidLoad()
 
@@ -215,6 +231,121 @@ public class ModelsSearchController: ViewController {
         self.view.window?.rootViewController?.present(navVC, animated: true)
     }
     
+    // MARK: - Grid Actions
+
+    private func handleGridLike(feedId: Int, isLiked: Bool) {
+        let oldItem = searchNode.gridItem(forFeedId: feedId)
+        let oldIsLiked = oldItem?.isLikedByUser ?? false
+        let oldLikesCount = oldItem?.likesCount ?? 0
+        let newLikesCount = max(0, oldLikesCount + (isLiked ? 1 : -1))
+
+        searchNode.applyGridLikeState(feedId: feedId, isLiked: isLiked, likesCount: newLikesCount)
+
+        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
+        let body = FollowRequest(id: feedId)
+
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+            } catch {
+                self.searchNode.applyGridLikeState(feedId: feedId, isLiked: oldIsLiked, likesCount: oldLikesCount)
+            }
+        }
+    }
+
+    private func handleGridSave(userId: Int, isSaved: Bool) {
+        let oldItem = searchNode.gridItem(forUserId: userId)
+        let oldIsSaved = oldItem?.isFavoriteByUser ?? false
+
+        searchNode.applyGridSaveState(userId: userId, isSaved: isSaved)
+
+        let path = isSaved ? "/follower/follow" : "/follower/unfollow"
+        let body = FollowRequest(id: userId)
+
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+            } catch {
+                self.searchNode.applyGridSaveState(userId: userId, isSaved: oldIsSaved)
+            }
+        }
+    }
+
+    private func handleGridShare(item: SearchUserDTO, image: UIImage?) {
+        guard let userId = item.user?.id else { return }
+        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(userId)")!
+        let shareItem = DivoShareItemSource(
+            url: shareURL,
+            title: item.title,
+            subtitle: item.user?.roleLabel ?? "",
+            image: image
+        )
+        let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
+        self.view.window?.rootViewController?.present(activityVC, animated: true)
+    }
+
+    private func handleFiltersClear() {
+        let oldFilters = currentFilters
+        let oldCount = oldFilters.activeFilterCount
+
+        currentFilters = SearchFilterState()
+        searchNode.updateActiveFiltersCount(0)
+
+        gridOffset = 0
+        hasMoreGridResults = true
+        isFetchingGrid = false
+
+        searchNode.showGridLoading(isFirstPage: true)
+
+        currentSearchTask?.cancel()
+        currentSearchTask = Task { @MainActor in
+            defer { isFetchingGrid = false }
+            isFetchingGrid = true
+
+            do {
+                let request = buildRequest(limit: gridLimit, offset: 0, query: currentQuery.isEmpty ? nil : currentQuery)
+                let response: ModelsSearchResponse = try await DivoAPIClient.shared.request(
+                    path: "/feedline/search",
+                    method: "POST",
+                    body: request
+                )
+
+                guard !Task.isCancelled else { return }
+
+                let totalCount = response.data.pagination.meta.totalCount
+                self.searchNode.updateGrid(
+                    results: response.data.items,
+                    totalCount: totalCount,
+                    isFirstPage: true,
+                    query: self.currentQuery
+                )
+                self.gridOffset = response.data.items.count
+                self.hasMoreGridResults = self.gridOffset < totalCount
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.currentFilters = oldFilters
+                self.searchNode.updateActiveFiltersCount(oldCount)
+                self.searchNode.showGridError()
+                self.searchNode.showSnackbar(
+                    message: DivoStrings.feedSearchResultsLoadFailed,
+                    style: .error,
+                    retryAction: { [weak self] in
+                        self?.handleFiltersClear()
+                    },
+                    persistent: true
+                )
+            }
+        }
+    }
+
     // MARK: - Network Requests
 
     private func loadDictionaries() {

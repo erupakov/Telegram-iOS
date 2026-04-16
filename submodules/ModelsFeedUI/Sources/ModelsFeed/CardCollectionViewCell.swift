@@ -129,6 +129,10 @@ final class CardCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override var isHighlighted: Bool {
+        didSet {}
+    }
+
     // MARK: - Setup
 
     private func setupViews() {
@@ -163,6 +167,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         currentLikesCount = max(0, currentLikesCount + (currentIsLiked ? 1 : -1))
         likesPill.setActive(currentIsLiked, animated: true)
         likesPill.setValue(Self.formatCount(currentLikesCount))
+        likesPill.popIcon()
         delegate?.cardCell(self, didTapLikeForFeedId: feedId, isLiked: currentIsLiked)
     }
 
@@ -172,6 +177,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         currentSavesCount = max(0, currentSavesCount + (currentIsSaved ? 1 : -1))
         savesPill.setActive(currentIsSaved, animated: true)
         savesPill.setValue(Self.formatCount(currentSavesCount))
+        savesPill.popIcon()
         delegate?.cardCell(self, didTapSaveForUserId: userId, isSaved: currentIsSaved)
     }
 
@@ -180,6 +186,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         currentLikesCount = likesCount
         likesPill.setActive(isLiked, animated: true)
         likesPill.setValue(Self.formatCount(likesCount))
+        likesPill.popIcon()
     }
 
     func rollbackSave(isSaved: Bool, savesCount: Int) {
@@ -187,6 +194,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         currentSavesCount = savesCount
         savesPill.setActive(isSaved, animated: true)
         savesPill.setValue(Self.formatCount(savesCount))
+        savesPill.popIcon()
     }
 
     // MARK: - Layout
@@ -469,6 +477,10 @@ final class StatPillView: UIView {
         let labelX: CGFloat = iconX + iconSize + 4
         let labelWidth = bounds.width - labelX - 4
         countLabel.frame = CGRect(x: labelX, y: 0, width: max(labelWidth, 0), height: bounds.height)
+    }
+
+    func popIcon() {
+        iconView.divoPopAnimate()
     }
 
     override var intrinsicContentSize: CGSize {

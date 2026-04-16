@@ -99,11 +99,11 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     private let rangeSlider = RangeSlider()
 
     private let deleteButton: UIButton = {
-        let deleteButton = UIButton(type: .system)
+        let deleteButton = UIButton(type: .custom)
         deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
         deleteButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
         deleteButton.titleLabel?.font = Font.helveticaNeue(18)
-        deleteButton.backgroundColor = DivoColorPalette.deleteButtonBackground
+        deleteButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
         deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         return deleteButton
@@ -150,6 +150,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         setupNavBar()
         setupUI()
         updateTextFields()
+        updateDeleteButtonState()
 
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tapGesture.cancelsTouchesInView = false
@@ -161,16 +162,13 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         customNavBar.translatesAutoresizingMaskIntoConstraints = false
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        backButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        backButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        
+        backButton.addDivoPressState(.pill)
+
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
-        saveButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        saveButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        
+        saveButton.addDivoPressState(.primary)
+
         closeCircleButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        closeCircleButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeCircleButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        closeCircleButton.addDivoPressState(.pill)
 
         titleLabel.text = filterTitle
 
@@ -248,6 +246,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         container.addSubview(rangeSlider)
 
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
+        deleteButton.addDivoPressState(.secondary)
 
         if isResetButton {
             view.addSubview(deleteButton)
@@ -330,8 +329,9 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     
     @objc private func sliderChanged() {
         updateTextFields()
+        updateDeleteButtonState()
     }
-    
+
     private func updateTextFields() {
         if isSingleValue {
             maxTextField.text = "\(Int(rangeSlider.upperValue))"
@@ -339,6 +339,17 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             minTextField.text = "\(Int(rangeSlider.lowerValue))"
             maxTextField.text = "\(Int(rangeSlider.upperValue))"
         }
+    }
+
+    private func updateDeleteButtonState() {
+        let isDefault: Bool
+        if isSingleValue {
+            isDefault = Int(rangeSlider.upperValue) == Int(rangeSlider.maximumValue)
+        } else {
+            isDefault = Int(rangeSlider.lowerValue) == Int(rangeSlider.minimumValue) && Int(rangeSlider.upperValue) == Int(rangeSlider.maximumValue)
+        }
+        deleteButton.isEnabled = !isDefault
+        deleteButton.backgroundColor = isDefault ? DivoColorPalette.buttonDisabledBackground : DivoColorPalette.secondaryButtonBackground
     }
     
     @objc private func textFieldDidChange(_ textField: UITextField) {
@@ -372,23 +383,10 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             rangeSlider.upperValue = CGFloat(clampedValue)
         }
         updateTextFields()
+        updateDeleteButtonState()
     }
 
     @objc private func dismissKeyboard() {
         view.endEditing(true)
-    }
-
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1, animations: {
-            sender.alpha = 0.6
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        })
-    }
-
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2, animations: {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        })
     }
 }

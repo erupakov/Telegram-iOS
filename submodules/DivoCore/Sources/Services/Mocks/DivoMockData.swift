@@ -404,8 +404,8 @@ public enum DivoMockData {
             "entity": "user",
             "type": "profile",
             "likesCount": \(i * 12),
-            "isLikedByUser": false,
-            "isFavoriteByUser": false,
+            "isLikedByUser": \(i == 1),
+            "isFavoriteByUser": \(i == 1),
             "user": {
                 "id": \(i),
                 "fullName": "\(name)",

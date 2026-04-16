@@ -76,7 +76,8 @@ final class SearchResultGridCell: UICollectionViewCell {
 
     private let bookmarkIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "bookmark")
+        iv.image = DivoImage.statSave.withRenderingMode(.alwaysTemplate)
+        iv.contentMode = .scaleAspectFit
         iv.tintColor = DivoColorPalette.primaryTextOnDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -92,6 +93,7 @@ final class SearchResultGridCell: UICollectionViewCell {
     
     private let heartIcon: UIImageView = {
         let iv = UIImageView()
+        iv.contentMode = .scaleAspectFit
         return iv
     }()
     
@@ -118,7 +120,23 @@ final class SearchResultGridCell: UICollectionViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
+    // MARK: - State & Callbacks
+
+    private var currentFeedId: Int?
+    private var currentUserId: Int?
+    private var currentIsLiked: Bool = false
+    private var currentIsSaved: Bool = false
+    private var currentLikesCount: Int = 0
+
+    var onLikeTapped: ((Int, Bool) -> Void)?
+    var onSaveTapped: ((Int, Bool) -> Void)?
+    var onShareTapped: (() -> Void)?
+
+    var coverImage: UIImage? {
+        backgroundImageView.image
+    }
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
@@ -128,6 +146,14 @@ final class SearchResultGridCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override var isHighlighted: Bool {
+        didSet {
+            UIView.animate(withDuration: isHighlighted ? 0.25 : 0.4, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
+                self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.96, y: 0.96) : .identity
+            })
+        }
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         
@@ -188,7 +214,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         
         contentView.addSubview(likesContainer)
         
-        heartIcon.image = UIImage(systemName: "heart")
+        heartIcon.image = DivoImage.statLike.withRenderingMode(.alwaysTemplate)
         heartIcon.tintColor = DivoColorPalette.primaryTextOnDark
         heartIcon.translatesAutoresizingMaskIntoConstraints = false
         likesContainer.contentView.addSubview(heartIcon)
@@ -198,6 +224,17 @@ final class SearchResultGridCell: UICollectionViewCell {
         contentView.addSubview(infoLabel)
         
         setupConstraints()
+
+        let likeTap = UITapGestureRecognizer(target: self, action: #selector(likeTapped))
+        likesContainer.addGestureRecognizer(likeTap)
+
+        bookmarkIcon.isUserInteractionEnabled = true
+        let saveTap = UITapGestureRecognizer(target: self, action: #selector(saveTapped))
+        bookmarkIcon.addGestureRecognizer(saveTap)
+
+        shareIcon.isUserInteractionEnabled = true
+        let shareTap = UITapGestureRecognizer(target: self, action: #selector(shareTapped))
+        shareIcon.addGestureRecognizer(shareTap)
     }
     
     private func setupConstraints() {
@@ -230,13 +267,13 @@ final class SearchResultGridCell: UICollectionViewCell {
             
             shareIcon.leadingAnchor.constraint(equalTo: actionsContainer.contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
             shareIcon.centerYAnchor.constraint(equalTo: actionsContainer.centerYAnchor),
-            shareIcon.widthAnchor.constraint(equalToConstant: 14),
-            shareIcon.heightAnchor.constraint(equalToConstant: 14),
-            
+            shareIcon.widthAnchor.constraint(equalToConstant: 16),
+            shareIcon.heightAnchor.constraint(equalToConstant: 16),
+
             bookmarkIcon.trailingAnchor.constraint(equalTo: actionsContainer.contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
             bookmarkIcon.centerYAnchor.constraint(equalTo: actionsContainer.centerYAnchor),
-            bookmarkIcon.widthAnchor.constraint(equalToConstant: 12),
-            bookmarkIcon.heightAnchor.constraint(equalToConstant: 14),
+            bookmarkIcon.widthAnchor.constraint(equalToConstant: 16),
+            bookmarkIcon.heightAnchor.constraint(equalToConstant: 16),
             
             likesContainer.topAnchor.constraint(equalTo: actionsContainer.bottomAnchor, constant: 12),
             likesContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -9),
@@ -244,8 +281,8 @@ final class SearchResultGridCell: UICollectionViewCell {
             
             heartIcon.leadingAnchor.constraint(equalTo: likesContainer.contentView.leadingAnchor, constant: 6),
             heartIcon.centerYAnchor.constraint(equalTo: likesContainer.centerYAnchor),
-            heartIcon.widthAnchor.constraint(equalToConstant: 12),
-            heartIcon.heightAnchor.constraint(equalToConstant: 12),
+            heartIcon.widthAnchor.constraint(equalToConstant: 16),
+            heartIcon.heightAnchor.constraint(equalToConstant: 16),
             
             likesLabel.leadingAnchor.constraint(equalTo: heartIcon.trailingAnchor, constant: 4),
             likesLabel.trailingAnchor.constraint(equalTo: likesContainer.contentView.trailingAnchor, constant: -6),
@@ -263,14 +300,23 @@ final class SearchResultGridCell: UICollectionViewCell {
     
     func configure(with item: SearchUserDTO, county: String?) {
         resetBlurState()
-        
+
         setNeedsLayout()
         layoutIfNeeded()
-        
+
+        currentFeedId = item.feedId
+        currentUserId = item.user?.id
+        currentIsLiked = item.isLikedByUser ?? false
+        currentIsSaved = item.isFavoriteByUser ?? false
+        currentLikesCount = item.likesCount ?? 0
+
         roleLabel.text = item.user?.roleLabel
-        
-        likesLabel.text = formatLikes(item.likesCount ?? 0)
+
+        likesLabel.text = formatLikes(currentLikesCount)
         nameLabel.text = item.title
+
+        updateLikeVisual()
+        updateSaveVisual()
         
         if let age = item.user?.age, let county = county  {
             infoLabel.text = "\(age) y.o" + " • " + county
@@ -314,15 +360,69 @@ final class SearchResultGridCell: UICollectionViewCell {
         }
         return "\(count)"
     }
-    
+
+    // MARK: - Visual State
+
+    private func updateLikeVisual() {
+        heartIcon.image = (currentIsLiked ? DivoImage.statLikeFilled : DivoImage.statLike).withRenderingMode(.alwaysTemplate)
+    }
+
+    private func updateSaveVisual() {
+        bookmarkIcon.image = (currentIsSaved ? DivoImage.statSaveFilled : DivoImage.statSave).withRenderingMode(.alwaysTemplate)
+    }
+
+    // MARK: - Actions
+
+    @objc private func likeTapped() {
+        guard let feedId = currentFeedId else { return }
+        currentIsLiked.toggle()
+        currentLikesCount = max(0, currentLikesCount + (currentIsLiked ? 1 : -1))
+        updateLikeVisual()
+        likesLabel.text = formatLikes(currentLikesCount)
+        heartIcon.divoPopAnimate()
+        onLikeTapped?(feedId, currentIsLiked)
+    }
+
+    @objc private func saveTapped() {
+        guard let userId = currentUserId else { return }
+        currentIsSaved.toggle()
+        updateSaveVisual()
+        bookmarkIcon.divoPopAnimate()
+        onSaveTapped?(userId, currentIsSaved)
+    }
+
+    @objc private func shareTapped() {
+        onShareTapped?()
+    }
+
+    // MARK: - Rollback
+
+    func rollbackLike(isLiked: Bool, likesCount: Int) {
+        currentIsLiked = isLiked
+        currentLikesCount = likesCount
+        updateLikeVisual()
+        likesLabel.text = formatLikes(currentLikesCount)
+        heartIcon.divoPopAnimate()
+    }
+
+    func rollbackSave(isSaved: Bool) {
+        currentIsSaved = isSaved
+        updateSaveVisual()
+        bookmarkIcon.divoPopAnimate()
+    }
+
     override func prepareForReuse() {
         super.prepareForReuse()
-        
+
         backgroundImageView.cancelImageLoad()
         backgroundImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         backgroundImageView.image = nil
         backgroundImageView.backgroundColor = DivoColorPalette.imagePlaceholderDark
-        
+
+        onLikeTapped = nil
+        onSaveTapped = nil
+        onShareTapped = nil
+
         resetBlurState()
     }
     

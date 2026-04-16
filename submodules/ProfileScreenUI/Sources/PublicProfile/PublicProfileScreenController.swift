@@ -100,7 +100,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,

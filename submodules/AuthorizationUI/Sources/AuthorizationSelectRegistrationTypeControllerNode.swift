@@ -289,7 +289,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
         
         let imageSize: CGSize = CGSize(width: 16, height: 12)
         self.backNode = ButtonWithIconNode(title: "Back", icon: backIcon, theme: theme, spacing: 10, imageSize: imageSize)
-        self.backNode.backgroundColor = DivoColorPalette.deleteButtonBackground
+        self.backNode.backgroundColor = DivoColorPalette.secondaryButtonBackground
         
         self.saveNode = ButtonWithIconNode(title: "Save", icon: nil, theme: theme, spacing: 10, imageSize: imageSize)
         self.saveNode.backgroundColor = DivoColorPalette.accentSecondary

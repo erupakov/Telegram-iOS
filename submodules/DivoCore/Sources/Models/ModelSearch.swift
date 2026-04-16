@@ -136,9 +136,9 @@ public struct SearchUserDTO: Decodable {
     public let description: String?
     public let entity: String?
     public let type: String?
-    public let likesCount: Int?
-    public let isLikedByUser: Bool?
-    public let isFavoriteByUser: Bool?
+    public var likesCount: Int?
+    public var isLikedByUser: Bool?
+    public var isFavoriteByUser: Bool?
     public let user: SearchUserInfo?
     public let files: [SearchFile]?
     public let searchImage: SearchFile?

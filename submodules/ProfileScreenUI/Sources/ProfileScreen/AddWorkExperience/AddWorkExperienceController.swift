@@ -40,7 +40,7 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: brownColor,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
             primaryTextColor: .black,
             backgroundColor: .white,
             opaqueBackgroundColor: .white,
@@ -110,7 +110,7 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         let theme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: brownColor,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
             primaryTextColor: .black,
             backgroundColor: .white,
             opaqueBackgroundColor: .white,

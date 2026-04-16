@@ -414,8 +414,7 @@ final class EditProfileNode: ASDisplayNode {
 
         navigationBar.onBackTapped = { [weak self] in self?.onBackTapped?() }
 
-        chancePhotoView.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        chancePhotoView.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        chancePhotoView.addDivoPressState(.pill)
     }
         
     private func getAppearanceId(for title: String?, in list: [AppearanceOption]?) -> Int {
@@ -965,20 +964,6 @@ final class EditProfileNode: ASDisplayNode {
 
         self.toggleSaving(active: true)
         self.saveAgencyProfile?(data)
-    }
-    
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1, animations: {
-            sender.alpha = 0.6
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        })
-    }
-    
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2, animations: {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        })
     }
     
     @objc private func genderTapped() {
