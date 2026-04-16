@@ -8,9 +8,12 @@ public final class DivoSnackbar {
 
     private weak var hostView: UIView?
     private var snackbarView: UIView?
+    private var hidingSnackbarView: UIView?
     private var hideTimer: Foundation.Timer?
     private var retryAction: (() -> Void)?
     private var bottomConstraint: NSLayoutConstraint?
+    private var currentMessage: String?
+    private var currentStyle: Style?
 
     public init() {}
 
@@ -24,7 +27,24 @@ public final class DivoSnackbar {
         retryAction: (() -> Void)? = nil,
         persistent: Bool = false
     ) {
+        // Дедупликация: если тот же снек уже на экране — не переанимировать
+        if snackbarView != nil, currentMessage == message, currentStyle == style {
+            self.retryAction = retryAction
+            hideTimer?.invalidate()
+            if !persistent {
+                hideTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                    self?.hide(animated: true)
+                }
+            }
+            return
+        }
+
         hide(animated: false)
+        if let hiding = hidingSnackbarView {
+            hiding.layer.removeAllAnimations()
+            hiding.removeFromSuperview()
+            hidingSnackbarView = nil
+        }
 
         let snack = UIView()
         snack.backgroundColor = style == .error
@@ -49,6 +69,8 @@ public final class DivoSnackbar {
         self.hostView = hostView
         self.retryAction = retryAction
         self.snackbarView = snack
+        self.currentMessage = message
+        self.currentStyle = style
         hostView.addSubview(snack)
         hostView.bringSubviewToFront(snack)
 
@@ -122,12 +144,18 @@ public final class DivoSnackbar {
         snackbarView = nil
         retryAction = nil
         bottomConstraint = nil
+        currentMessage = nil
+        currentStyle = nil
         if animated {
+            hidingSnackbarView = snack
             UIView.animate(withDuration: 0.2, animations: {
                 snack.alpha = 0
                 snack.transform = CGAffineTransform(translationX: 0, y: 20)
-            }, completion: { _ in
+            }, completion: { [weak self] _ in
                 snack.removeFromSuperview()
+                if self?.hidingSnackbarView === snack {
+                    self?.hidingSnackbarView = nil
+                }
             })
         } else {
             snack.removeFromSuperview()

@@ -89,4 +89,13 @@ public enum DivoConfig {
 
     public static let shareBaseURL = "https://api.divo.fashion"
     public static let shareHost = "api.divo.fashion"
+
+    // MARK: - Mock Mode
+
+    private static let mockKey = "DivoConfig.isMockEnabled"
+
+    public static var isMockEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: mockKey) }
+        set { UserDefaults.standard.set(newValue, forKey: mockKey) }
+    }
 }

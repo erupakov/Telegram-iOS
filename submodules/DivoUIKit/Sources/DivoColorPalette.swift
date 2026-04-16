@@ -147,6 +147,8 @@ public enum DivoColorPalette {
     public static let emptyCircleBackground = UIColor(white: 0.95, alpha: 1.0)
     public static let emptyIconTint = UIColor(white: 0.4, alpha: 1.0)
     public static let placeholderCardBackground = UIColor(white: 0.96, alpha: 1)
+    /// #E6E6E6 — skeleton-плейсхолдер (search grid, filter bar).
+    public static let skeletonBackground = UIColor(white: 230/255, alpha: 1.0)
 
     // MARK: - Settings rows / misc
     public static let settingsUsernameIconText = UIColor(white: 0.45, alpha: 1)

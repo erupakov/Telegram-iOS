@@ -108,8 +108,10 @@ final class ModelsSearchNode: ASDisplayNode {
     private let resultsTableView: UITableView = {
         let tableView = UITableView()
         tableView.separatorStyle = .none
-        tableView.isScrollEnabled = false
+        tableView.isScrollEnabled = true
         tableView.backgroundColor = .clear
+        tableView.keyboardDismissMode = .onDrag
+        tableView.showsVerticalScrollIndicator = false
         tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
@@ -120,7 +122,7 @@ final class ModelsSearchNode: ASDisplayNode {
         button.layer.cornerRadius = 26 // TODO: DS alignment — не в шкале Radius
         let image = DivoImage.searchFaceScan
         button.setImage(image, for: .normal)
-        button.tintColor = DivoColorPalette.accentSecondary
+        button.tintColor = DivoColorPalette.primaryTextOnDark
         button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -138,12 +140,13 @@ final class ModelsSearchNode: ASDisplayNode {
     private lazy var gridCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
-        layout.minimumInteritemSpacing = 12
-        layout.minimumLineSpacing = 16
+        layout.minimumInteritemSpacing = 10 // TODO: DS alignment — gap 10 не в шкале Spacing (s=8, m=16)
+        layout.minimumLineSpacing = 10    // TODO: DS alignment — gap 10 не в шкале Spacing
         
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.backgroundColor = .clear
         cv.isHidden = true
+        cv.keyboardDismissMode = .onDrag
         cv.translatesAutoresizingMaskIntoConstraints = false
         cv.showsVerticalScrollIndicator = false
         return cv
@@ -162,7 +165,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     private let autocompleteLoader: UIActivityIndicatorView = {
         let loader = UIActivityIndicatorView(style: .medium)
-        loader.color = DivoColorPalette.accentSecondary
+        loader.color = DivoColorPalette.accent
         loader.hidesWhenStopped = true
         loader.translatesAutoresizingMaskIntoConstraints = false
         return loader
@@ -170,7 +173,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let gridCenterLoader: UIActivityIndicatorView = {
         let loader = UIActivityIndicatorView(style: .large)
-        loader.color = DivoColorPalette.accentSecondary
+        loader.color = DivoColorPalette.accent
         loader.hidesWhenStopped = true
         loader.translatesAutoresizingMaskIntoConstraints = false
         return loader
@@ -249,6 +252,7 @@ final class ModelsSearchNode: ASDisplayNode {
         stackView.axis = .horizontal
         stackView.distribution = .fill
         stackView.alignment = .fill
+        stackView.isHidden = true
         stackView.translatesAutoresizingMaskIntoConstraints = false
         return stackView
     }()
@@ -260,22 +264,54 @@ final class ModelsSearchNode: ASDisplayNode {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
+    // MARK: - Skeleton Elements
+
+    private let filterSkeletonLeft: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.skeletonBackground
+        view.layer.cornerRadius = 9.5
+        view.clipsToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let filterSkeletonRight: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.skeletonBackground
+        view.layer.cornerRadius = 18
+        view.clipsToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let skeletonCount = 6
+
     private var currentResults:[SearchUserItem] = []
     
     private var resultsContainerHeightConstraint: NSLayoutConstraint?
     private var faceScanButtonBottomConstraint: NSLayoutConstraint?
+    private var gridTopToFilterStackConstraint: NSLayoutConstraint?
+    private var gridTopToSkeletonConstraint: NSLayoutConstraint?
     
     private var currentAutocompleteResults: [SearchUserDTO] = []
     private var currentGridResults: [SearchUserDTO] = []
     
     var onClosePressed: (() -> Void)?
     var onFilterPressed: (() -> Void)?
+    var onFaceScanPressed: (() -> Void)?
+    var onUserTapped: ((SearchUserDTO) -> Void)?
     var requestAutocomplete: ((String) -> Void)?
+    var cancelAutocomplete: (() -> Void)?
     var requestGridSearch: ((String) -> Void)?
     var loadMoreGridResults: (() -> Void)?
+    var onSearchCleared: (() -> Void)?
     
     private var searchTimer: Timer?
+    private var currentKeyboardHeight: CGFloat = 0
+    private var loaderDelayTimer: Timer?
     
     enum SearchMode {
         case idle
@@ -283,8 +319,24 @@ final class ModelsSearchNode: ASDisplayNode {
         case grid
     }
 
+    enum GridState {
+        case idle
+        case loading
+        case error
+        case empty
+        case results
+    }
+
+    enum PaginationState {
+        case idle
+        case loading
+        case error
+    }
+
     var mode: SearchMode = .idle
-    
+    private var gridState: GridState = .idle
+    private var paginationState: PaginationState = .idle
+
     private var currentTask: Task<Void, Never>?
     
     init(context: AccountContext, presentationData: PresentationData) {
@@ -297,10 +349,18 @@ final class ModelsSearchNode: ASDisplayNode {
     override func didLoad() {
         super.didLoad()
         setupUI()
-        
+
+        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboardTapped))
+        dismissTap.cancelsTouchesInView = false
+        view.addGestureRecognizer(dismissTap)
+
+        let dismissSwipe = UISwipeGestureRecognizer(target: self, action: #selector(dismissKeyboardTapped))
+        dismissSwipe.direction = .down
+        view.addGestureRecognizer(dismissSwipe)
+
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
-        
+
         searchTextField.becomeFirstResponder()
     }
     
@@ -465,8 +525,10 @@ final class ModelsSearchNode: ASDisplayNode {
             activeFiltersContainer.heightAnchor.constraint(equalToConstant: 36),
         ])
         
+        gridTopToFilterStackConstraint = gridCollectionView.topAnchor.constraint(equalTo: resultFilterStackView.bottomAnchor, constant: 12)
+        gridTopToFilterStackConstraint?.isActive = true
+
         NSLayoutConstraint.activate([
-            gridCollectionView.topAnchor.constraint(equalTo: resultFilterStackView.bottomAnchor, constant: 12),
             gridCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
             gridCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
             gridCollectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -482,6 +544,24 @@ final class ModelsSearchNode: ASDisplayNode {
         gridCollectionView.delegate = self
         gridCollectionView.dataSource = self
         gridCollectionView.register(SearchResultGridCell.self, forCellWithReuseIdentifier: "GridCell")
+        gridCollectionView.register(SearchResultSkeletonCell.self, forCellWithReuseIdentifier: SearchResultSkeletonCell.reuseIdentifier)
+
+        view.addSubview(filterSkeletonLeft)
+        view.addSubview(filterSkeletonRight)
+
+        NSLayoutConstraint.activate([
+            filterSkeletonRight.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor, constant: 10),
+            filterSkeletonRight.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
+            filterSkeletonRight.widthAnchor.constraint(equalToConstant: 104),
+            filterSkeletonRight.heightAnchor.constraint(equalToConstant: 36),
+
+            filterSkeletonLeft.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
+            filterSkeletonLeft.centerYAnchor.constraint(equalTo: filterSkeletonRight.centerYAnchor),
+            filterSkeletonLeft.widthAnchor.constraint(equalToConstant: 135),
+            filterSkeletonLeft.heightAnchor.constraint(equalToConstant: 19),
+        ])
+
+        gridTopToSkeletonConstraint = gridCollectionView.topAnchor.constraint(equalTo: filterSkeletonRight.bottomAnchor, constant: 12)
     }
     
     private func setupEmptyStateContainer() {
@@ -531,17 +611,21 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private func setupFaceScanActionButton() {
         let safeArea = view.safeAreaLayoutGuide
-        
+
         view.addSubview(faceScanButton)
-        
+
         faceScanButtonBottomConstraint = faceScanButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
         faceScanButtonBottomConstraint?.isActive = true
-        
+
         NSLayoutConstraint.activate([
             faceScanButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             faceScanButton.widthAnchor.constraint(equalToConstant: 52),
             faceScanButton.heightAnchor.constraint(equalToConstant: 52)
         ])
+
+        faceScanButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
+        faceScanButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        faceScanButton.addTarget(self, action: #selector(faceScanTapped), for: .touchUpInside)
     }
     
     
@@ -583,11 +667,6 @@ final class ModelsSearchNode: ASDisplayNode {
         updateResultFilterStackVisibility()
     }
     
-    func setFiltersButtonEnabled(_ isEnabled: Bool) {
-        filterButton.isEnabled = isEnabled
-        filterButton.alpha = isEnabled ? 1.0 : 0.5
-    }
-
     func showFiltersButtonLoading() {
         filterButton.isEnabled = false
         filterButton.setImage(nil, for: .normal)
@@ -605,40 +684,121 @@ final class ModelsSearchNode: ASDisplayNode {
     func showAutocompleteLoading() {
         currentAutocompleteResults = []
         resultsTableView.reloadData()
-        resultsContainer.isHidden = false
-        resultsContainerHeightConstraint?.constant = 64
         autocompleteLoader.startAnimating()
-        
-        UIView.animate(withDuration: 0.2) {
-            self.view.layoutIfNeeded()
+
+        let wasHidden = resultsContainer.isHidden
+        resultsContainerHeightConstraint?.constant = 64
+        resultsContainer.isHidden = false
+
+        if wasHidden {
+            view.layoutIfNeeded()
+        } else {
+            UIView.animate(withDuration: 0.2) {
+                self.view.layoutIfNeeded()
+            }
         }
+    }
+    
+    func hideAutocompleteLoading() {
+        loaderDelayTimer?.invalidate()
+        autocompleteLoader.stopAnimating()
+        resultsContainer.isHidden = true
+        resultsContainerHeightConstraint?.constant = 0
+        resultsContainer.layer.removeAllAnimations()
+        view.layoutIfNeeded()
     }
     
     func showGridLoading(isFirstPage: Bool) {
         self.mode = .grid
         self.searchTimer?.invalidate()
         self.currentTask?.cancel()
-        
+
         self.currentAutocompleteResults = []
         self.resultsTableView.reloadData()
         self.resultsContainer.isHidden = true
         self.resultsContainerHeightConstraint?.constant = 0
         self.autocompleteLoader.stopAnimating()
-        
+
         if isFirstPage {
-            gridCollectionView.isHidden = true
+            gridState = .loading
+            paginationState = .idle
+            gridCenterLoader.stopAnimating()
+            emptyStateContainer.isHidden = true
+            hideSnackbar(animated: false)
+
+            filterSkeletonLeft.isHidden = false
+            filterSkeletonRight.isHidden = false
+            filterSkeletonLeft.addShimmerOverlay()
+            filterSkeletonRight.addShimmerOverlay()
+            resultFilterStackView.isHidden = true
+
+            gridTopToFilterStackConstraint?.isActive = false
+            gridTopToSkeletonConstraint?.isActive = true
+
+            gridCollectionView.isHidden = false
             bottomBlurOverlay.isHidden = true
             resultsCountLabel.isHidden = true
-            emptyStateContainer.isHidden = true
-            updateResultFilterStackVisibility()
-            
-            gridCenterLoader.startAnimating()
+
+            gridCollectionView.reloadData()
+        }
+    }
+
+    func showGridError() {
+        gridState = .error
+        gridCenterLoader.stopAnimating()
+        emptyStateContainer.isHidden = true
+
+        filterSkeletonLeft.removeShimmerOverlay()
+        filterSkeletonRight.removeShimmerOverlay()
+        filterSkeletonLeft.isHidden = false
+        filterSkeletonRight.isHidden = false
+
+        gridTopToFilterStackConstraint?.isActive = false
+        gridTopToSkeletonConstraint?.isActive = true
+
+        gridCollectionView.isHidden = false
+        bottomBlurOverlay.isHidden = true
+
+        gridCollectionView.reloadData()
+    }
+
+    func showPaginationLoading() {
+        guard gridState == .results else { return }
+        let wasIdle = paginationState == .idle
+
+        if wasIdle {
+            let start = currentGridResults.count
+            let indexPaths = [IndexPath(item: start, section: 0), IndexPath(item: start + 1, section: 0)]
+            gridCollectionView.performBatchUpdates {
+                self.paginationState = .loading
+                self.gridCollectionView.insertItems(at: indexPaths)
+            }
+        } else {
+            paginationState = .loading
+            let start = currentGridResults.count
+            for i in 0..<2 {
+                if let cell = gridCollectionView.cellForItem(at: IndexPath(item: start + i, section: 0)) as? SearchResultSkeletonCell {
+                    cell.setShimmering(true)
+                }
+            }
+        }
+    }
+
+    func showPaginationError() {
+        guard gridState == .results else { return }
+        paginationState = .error
+        let start = currentGridResults.count
+        for i in 0..<2 {
+            if let cell = gridCollectionView.cellForItem(at: IndexPath(item: start + i, section: 0)) as? SearchResultSkeletonCell {
+                cell.setShimmering(false)
+            }
         }
     }
     
     func updateAutocomplete(results: [SearchUserDTO]) {
         guard mode == .autocomplete else { return }
         
+        loaderDelayTimer?.invalidate()
         autocompleteLoader.stopAnimating()
         
         currentAutocompleteResults = results
@@ -646,54 +806,86 @@ final class ModelsSearchNode: ASDisplayNode {
         
         if results.isEmpty {
             resultsContainer.isHidden = true
-            emptyStateContainer.isHidden = false
+            resultsContainerHeightConstraint?.constant = 0
+            view.layoutIfNeeded()
+            let hasQuery = !(searchTextField.text ?? "").isEmpty
+            emptyStateContainer.isHidden = !hasQuery
+            if hasQuery {
+                searchTextField.resignFirstResponder()
+            }
         } else {
             emptyStateContainer.isHidden = true
-            resultsContainer.isHidden = false
-            
-            let height = CGFloat(results.count) * 64 + 16
+            let wasHidden = resultsContainer.isHidden
+            let maxVisibleRows = 5
+            let visibleRows = min(results.count, maxVisibleRows)
+            let height = CGFloat(visibleRows) * 64 + 16
             resultsContainerHeightConstraint?.constant = height
-        }
-        
-        UIView.animate(withDuration: 0.2) {
-            self.view.layoutIfNeeded()
+            resultsContainer.isHidden = false
+
+            if wasHidden {
+                view.layoutIfNeeded()
+            } else {
+                UIView.animate(withDuration: 0.2) {
+                    self.view.layoutIfNeeded()
+                }
+            }
         }
     }
     
     func updateGrid(results: [SearchUserDTO], totalCount: Int, isFirstPage: Bool, query: String) {
         guard mode == .grid else { return }
-        
+
         gridCenterLoader.stopAnimating()
-        
+
         if isFirstPage {
             currentGridResults = results
-            
+
+            filterSkeletonLeft.removeShimmerOverlay()
+            filterSkeletonRight.removeShimmerOverlay()
+            filterSkeletonLeft.isHidden = true
+            filterSkeletonRight.isHidden = true
+
+            gridTopToSkeletonConstraint?.isActive = false
+            gridTopToFilterStackConstraint?.isActive = true
+
             if results.isEmpty {
+                gridState = .empty
                 emptyStateContainer.isHidden = false
                 gridCollectionView.isHidden = true
                 bottomBlurOverlay.isHidden = true
                 resultsCountLabel.isHidden = true
             } else {
+                gridState = .results
                 emptyStateContainer.isHidden = true
                 gridCollectionView.isHidden = false
                 bottomBlurOverlay.isHidden = false
                 resultsCountLabel.isHidden = false
-                
+
                 resultsCountLabel.text = query.isEmpty ? DivoStrings.feedSearchCountNoQuery(totalCount) : DivoStrings.feedSearchCount(totalCount, query)
-                gridCollectionView.reloadData()
             }
-            
+
+            gridCollectionView.reloadData()
+            gridCollectionView.setContentOffset(.zero, animated: false)
             updateResultFilterStackVisibility()
         } else {
+            let hadPagination = paginationState != .idle
             let start = currentGridResults.count
-            let end = start + results.count
-            
-            currentGridResults.append(contentsOf: results)
-            
-            let indexPaths = (start..<end).map { IndexPath(item: $0, section: 0) }
-            
-            gridCollectionView.performBatchUpdates {
-                gridCollectionView.insertItems(at: indexPaths)
+            let insertPaths = (start..<(start + results.count)).map { IndexPath(item: $0, section: 0) }
+
+            if hadPagination {
+                let skeletonPaths = [IndexPath(item: start, section: 0),
+                                     IndexPath(item: start + 1, section: 0)]
+                gridCollectionView.performBatchUpdates {
+                    self.paginationState = .idle
+                    self.currentGridResults.append(contentsOf: results)
+                    self.gridCollectionView.deleteItems(at: skeletonPaths)
+                    self.gridCollectionView.insertItems(at: insertPaths)
+                }
+            } else {
+                gridCollectionView.performBatchUpdates {
+                    self.currentGridResults.append(contentsOf: results)
+                    self.gridCollectionView.insertItems(at: insertPaths)
+                }
             }
         }
     }
@@ -719,17 +911,29 @@ final class ModelsSearchNode: ASDisplayNode {
         let text = searchTextField.text ?? ""
         
         searchTimer?.invalidate()
+        loaderDelayTimer?.invalidate()
         currentTask?.cancel()
+        cancelAutocomplete?()
         
+        gridState = .idle
+        paginationState = .idle
+        hideSnackbar(animated: true)
         resultsCountLabel.isHidden = true
         gridCollectionView.isHidden = true
         bottomBlurOverlay.isHidden = true
         emptyStateContainer.isHidden = true
+        filterSkeletonLeft.removeShimmerOverlay()
+        filterSkeletonRight.removeShimmerOverlay()
+        filterSkeletonLeft.isHidden = true
+        filterSkeletonRight.isHidden = true
+        gridTopToSkeletonConstraint?.isActive = false
+        gridTopToFilterStackConstraint?.isActive = true
         updateResultFilterStackVisibility()
         
         if text.isEmpty {
             mode = .autocomplete
             updateAutocomplete(results: [])
+            onSearchCleared?()
             return
         }
         
@@ -738,10 +942,13 @@ final class ModelsSearchNode: ASDisplayNode {
         searchTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
             guard let self else { return }
             
-            self.showAutocompleteLoading()
-            
             self.currentTask = Task { @MainActor in
                 self.requestAutocomplete?(text)
+            }
+            
+            self.loaderDelayTimer?.invalidate()
+            self.loaderDelayTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+                self?.showAutocompleteLoading()
             }
         }
     }
@@ -754,22 +961,47 @@ final class ModelsSearchNode: ASDisplayNode {
     @objc private func filterTapped() {
         onFilterPressed?()
     }
+
+    @objc private func faceScanTapped() {
+        searchTextField.resignFirstResponder()
+        onFaceScanPressed?()
+    }
+
+    @objc private func dismissKeyboardTapped() {
+        searchTextField.resignFirstResponder()
+    }
     
     @objc private func keyboardWillShow(notification: NSNotification) {
         guard let userInfo = notification.userInfo,
               let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        
+
+        currentKeyboardHeight = keyboardFrame.height
+
         UIView.animate(withDuration: 0.3) {
             let safeAreaBottom = self.view.safeAreaInsets.bottom
             self.faceScanButtonBottomConstraint?.constant = -(keyboardFrame.height - safeAreaBottom + 16)
             self.view.layoutIfNeeded()
         }
+
+        snackbar.updateBottomInset(snackbarBottomInset)
     }
-    
+
     @objc private func keyboardWillHide(notification: NSNotification) {
+        currentKeyboardHeight = 0
+
         UIView.animate(withDuration: 0.3) {
             self.faceScanButtonBottomConstraint?.constant = -16
             self.view.layoutIfNeeded()
+        }
+
+        snackbar.updateBottomInset(snackbarBottomInset)
+    }
+
+    private var snackbarBottomInset: CGFloat {
+        if currentKeyboardHeight > 0 {
+            return currentKeyboardHeight - view.safeAreaInsets.bottom + 16
+        } else {
+            return 16
         }
     }
     
@@ -785,7 +1017,7 @@ final class ModelsSearchNode: ASDisplayNode {
             in: self.view,
             message: message,
             style: style,
-            bottomInset: 16,
+            bottomInset: snackbarBottomInset,
             bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
@@ -843,45 +1075,72 @@ extension ModelsSearchNode: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         searchTextField.resignFirstResponder()
+        let item = currentAutocompleteResults[indexPath.row]
+        onUserTapped?(item)
     }
 }
 
 extension ModelsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
-    
+
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return currentGridResults.count
+        switch gridState {
+        case .loading, .error:
+            return skeletonCount
+        case .results:
+            return currentGridResults.count + (paginationState != .idle ? 2 : 0)
+        case .idle, .empty:
+            return 0
+        }
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GridCell", for: indexPath) as? SearchResultGridCell else {
+        switch gridState {
+        case .loading, .error:
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SearchResultSkeletonCell.reuseIdentifier, for: indexPath) as! SearchResultSkeletonCell
+            cell.setShimmering(gridState == .loading)
+            return cell
+        case .results:
+            if indexPath.item >= currentGridResults.count {
+                let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SearchResultSkeletonCell.reuseIdentifier, for: indexPath) as! SearchResultSkeletonCell
+                cell.setShimmering(paginationState == .loading)
+                return cell
+            }
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GridCell", for: indexPath) as? SearchResultGridCell else {
+                return UICollectionViewCell()
+            }
+            let item = currentGridResults[indexPath.item]
+            let flag = CountryHelper.emojiFlag(for: item.user?.city?.countryCode)
+            let county: String
+            if let countryName = item.user?.city?.countryName {
+                county = "\(flag) \(countryName)"
+            } else {
+                county = flag
+            }
+            cell.configure(with: item, county: county)
+            return cell
+        default:
             return UICollectionViewCell()
         }
-        let item = currentGridResults[indexPath.item]
-        let flag = CountryHelper.emojiFlag(for: item.user?.city?.countryCode)
-        let county: String
-        if let countryName = item.user?.city?.countryName {
-            county = "\(flag) \(countryName)"
-        } else {
-            county = flag
-        }
-        cell.configure(with: item, county: county)
-        return cell
     }
-        
+
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let width = (collectionView.bounds.width - 12) / 2
-        let height = width * 1.4
-        return CGSize(width: width, height: height)
+        let gap: CGFloat = 10 // TODO: DS alignment — gap 10 не в шкале Spacing
+        let width = (collectionView.bounds.width - gap) / 2
+        return CGSize(width: width, height: 240) // Figma: фиксированная высота, ширина — flex
     }
-    
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        
-    }
-    
+
     func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        guard gridState == .results else { return }
+        guard indexPath.item < currentGridResults.count else { return }
         let threshold = currentGridResults.count - 8
         if indexPath.item >= threshold && threshold > 0 {
             loadMoreGridResults?()
         }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard gridState == .results, indexPath.item < currentGridResults.count else { return }
+        let item = currentGridResults[indexPath.item]
+        onUserTapped?(item)
     }
 }

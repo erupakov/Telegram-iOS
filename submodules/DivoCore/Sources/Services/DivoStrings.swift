@@ -136,6 +136,11 @@ public enum DivoStrings {
     public static var feedSearchFiltersLoadFailed: String { L(en: "Failed to load filters", ru: "Не удалось загрузить фильтры", es: "Error al cargar filtros", pt: "Falha ao carregar filtros", zh: "加载筛选器失败") }
     public static var feedSearchResultsLoadFailed: String { L(en: "Failed to load search results", ru: "Не удалось загрузить результаты поиска", es: "Error al cargar resultados", pt: "Falha ao carregar resultados", zh: "加载搜索结果失败") }
 
+    // MARK: - Face Recognition
+
+    public static var faceRecognitionTitle: String { L(en: "Face Recognition", ru: "Поиск по фото", es: "Reconocimiento facial", pt: "Reconhecimento facial", zh: "人脸识别") }
+    public static var faceRecognitionComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
+
     // MARK: - Roles
 
     public static var roleModel: String { L(en: "model", ru: "модель", es: "modelo", pt: "modelo", zh: "模特") }
