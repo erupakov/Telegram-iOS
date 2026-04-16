@@ -20,7 +20,9 @@ public final class DivoAPIClient {
 
     private init() {
         self.baseURL = DivoConfig.baseURL
-        self.session = URLSession.shared
+        let config = URLSessionConfiguration.default
+        config.protocolClasses = [DivoMockURLProtocol.self] + (config.protocolClasses ?? [])
+        self.session = URLSession(configuration: config)
         networkMonitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
             self.connectivityLock.lock()
