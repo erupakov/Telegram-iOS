@@ -24,7 +24,9 @@ final class DateSelectionControl: UIControl {
     
     private let hiddenTextField = UITextField()
     let datePicker = UIDatePicker()
-    private let placeholder: String
+    private let placeholder: Int32
+    private let localeIdentifier: String
+    private var placeholderString: String?
     
     var onDateSelected: ((Int32) -> Void)?
     
@@ -34,8 +36,9 @@ final class DateSelectionControl: UIControl {
         return hiddenTextField.isFirstResponder
     }
     
-    init(placeholder: String) {
+    init(placeholder: Int32, localeIdentifier: String) {
         self.placeholder = placeholder
+        self.localeIdentifier = localeIdentifier
         super.init(frame: .zero)
         
         setupUI()
@@ -52,7 +55,13 @@ final class DateSelectionControl: UIControl {
         addSubview(valueLabel)
         addSubview(iconImageView)
         
-        valueLabel.text = placeholder
+        let date = Date(timeIntervalSince1970: TimeInterval(placeholder))
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: localeIdentifier)
+        formatter.dateFormat = "d MMM yyyy"
+        
+        placeholderString = formatter.string(from: date)
+        valueLabel.text = placeholderString
         
         NSLayoutConstraint.activate([
             valueLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -80,6 +89,8 @@ final class DateSelectionControl: UIControl {
             datePicker.preferredDatePickerStyle = .inline
         }
         
+        datePicker.tintColor = DivoColorPalette.accent
+        
         let container = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 380))
         container.backgroundColor = .systemBackground
         
@@ -93,9 +104,9 @@ final class DateSelectionControl: UIControl {
         hiddenTextField.addTarget(self, action: #selector(editingDidBegin), for: .editingDidBegin)
     }
     
-    func setDate(timestamp: Int32?, localeIdentifier: String) {
+    func setDate(timestamp: Int32?) {
         guard let timestamp = timestamp, timestamp > 0 else {
-            valueLabel.text = placeholder
+            valueLabel.text = placeholderString
             valueLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
             return
         }

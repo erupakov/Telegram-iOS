@@ -18,6 +18,10 @@ import ChatScheduleTimeController
 import Postbox
 import DivoUIKit
 
+protocol AddWorkExperienceDelegate: AnyObject {
+    func didUpdateWorkExperience(isEdit: Bool)
+}
+
 public class AddWorkExperienceController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
     private let editItem: WorkHistoryItem?
@@ -25,6 +29,8 @@ public class AddWorkExperienceController: ViewController, UINavigationController
     private var addWorkExperienceNode: AddWorkExperience {
         return self.displayNode as! AddWorkExperience
     }
+    
+    weak var delegate: AddWorkExperienceDelegate?
 
     public init(context: AccountContext, editItem: WorkHistoryItem? = nil) {
         self.context = context
@@ -49,10 +55,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
             self?.scheduleTimeController(type: type)
         }
         
-        self.addWorkExperienceNode.showAlert = { [weak self] text in
-            self?.showAlert(text: text)
-        }
-        
         self.addWorkExperienceNode.onSave = {[weak self] requestBody in
             self?.saveWorkExperience(body: requestBody)
         }
@@ -60,7 +62,16 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         self.addWorkExperienceNode.onBackTapped = { [weak self] in
             self?.navigationController?.popViewController(animated: true)
         }
-
+        
+        self.addWorkExperienceNode.requestAgencySearch = { [weak self] query in
+            self?.searchAgencies(query: query)
+        }
+        
+        self.addWorkExperienceNode.onLoadPhoto = { [weak self] id in
+            guard let id = id else { return }
+            self?.fetchAgencyLogo(agencyId: id)
+        }
+        
         self.displayNodeDidLoad()
         
         if let agencyId = self.editItem?.agencyId {
@@ -72,7 +83,37 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         self.addWorkExperienceNode.applyButtonTapped()
     }
     
+    // MARK: - Agency Search Request
+    private var searchTask: Task<Void, Never>?
+    
+    private func searchAgencies(query: String) {
+        searchTask?.cancel()
+        
+        searchTask = Task { @MainActor in
+            do {
+                let requestBody = AgencyListRequest(offset: 0, limit: 3, title: query)
+                
+                let response: AgencyListResponse = try await DivoAPIClient.shared.request(
+                    path: "/agency/list",
+                    method: "POST",
+                    body: requestBody
+                )
+                
+                guard !Task.isCancelled else { return }
+                
+                self.addWorkExperienceNode.updateAgencyResults(response.data.items)
+                
+            } catch {
+                if !Task.isCancelled {
+                    print("[DivoAPI] Agency search error: \(error)")
+                    self.addWorkExperienceNode.updateAgencyResults([])
+                }
+            }
+        }
+    }
+    
     private func fetchAgencyLogo(agencyId: Int) {
+        self.addWorkExperienceNode.currentPhoto = nil
         addWorkExperienceNode.loadAvatar(isLoading: true)
         Task {
             do {
@@ -89,23 +130,26 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                             addWorkExperienceNode.loadAvatar(isLoading: false)
                         }
                     }
+                } else {
+                    self.addWorkExperienceNode.currentPhoto = nil
+                    addWorkExperienceNode.loadAvatar(isLoading: false)
+                    self.addWorkExperienceNode.showSnackbar(
+                        message: DivoStrings.emptyPhoto,
+                        style: .success
+                    )
                 }
             } catch {
                 print("[DivoAPI] fetch edit agency logo error: \(error)")
+                self.addWorkExperienceNode.currentPhoto = nil
                 addWorkExperienceNode.loadAvatar(isLoading: false)
+                self.addWorkExperienceNode.showSnackbar(
+                    message: DivoStrings.failedToUploadPhoto,
+                    style: .error
+                )
             }
         }
     }
     
-    private func showAlert(text: String) {
-        let alertController = textAlertController(
-            context: context, title: nil,
-            text: text, actions:[
-                TextAlertAction(type: .genericAction, title: "Ok", action: {})
-            ])
-        present(alertController, in: .window(.root))
-    }
-
     private func scheduleTimeController(type: TimeType) {
         let peerId = PeerId(0)
         let controller = TimeController(
@@ -122,11 +166,11 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         present(controller, in: .window(.root))
     }
 
-    // MARK: - Network Request (Логика поднята сюда)
+    // MARK: - Network Request
     
     private func saveWorkExperience(body: CreateWorkHistoryRequest) {
         let path = editItem != nil ? "/model-work-history/\(editItem!.id)" : "/model-work-history"
-        
+        let isEdit = editItem != nil
         print("[DivoAPI] save work-history request: path=\(path), body=\(body)")
         
         Task { @MainActor in
@@ -139,19 +183,20 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                 
                 let msg = "OK: \(response.message ?? "nil")"
                 print("[DivoAPI] save success: \(msg)")
-                
-                self.addWorkExperienceNode.toggleSpinner(active: false)
-                self.showAlert(text: msg)
-                
+                                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.delegate?.didUpdateWorkExperience(isEdit: isEdit)
                     self.navigationController?.popViewController(animated: true)
                 }
                 
             } catch {
                 self.addWorkExperienceNode.toggleSpinner(active: false)
+                self.addWorkExperienceNode.showSnackbar(
+                    message: isEdit ? DivoStrings.workHistoryFailedUpdated : DivoStrings.workHistoryFailedCreate,
+                    style: .error
+                )
                 let errMsg = "Error: \(error.localizedDescription)"
                 print("[DivoAPI] save error: \(errMsg)")
-                self.showAlert(text: errMsg)
             }
         }
     }

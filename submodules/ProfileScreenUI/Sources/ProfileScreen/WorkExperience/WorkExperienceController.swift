@@ -59,6 +59,7 @@ public final class WorkExperienceController: TelegramBaseController {
 
     private func addWorkExperience() {
         let controller = AddWorkExperienceController(context: self.context)
+        controller.delegate = self
         self.push(controller)
     }
 
@@ -66,9 +67,7 @@ public final class WorkExperienceController: TelegramBaseController {
         self.navigationController?.popViewController(animated: true)
     }
 
-    override public func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        
+    private func fetchData() {
         model.isMyProfile ? getWorkMyHistory() : getWorkHistory()
     }
 
@@ -134,29 +133,36 @@ public final class WorkExperienceController: TelegramBaseController {
                 }
                 self.fetchAgencyLogos(for: structuredItems)
                 return
+            } else {
+                self.controllerNode.reloadWorkHistory(items: [])
             }
         }
     }
     
-    private func fetchAgencyLogos(for items: [WorkHistoryItem]) {
+    private func fetchAgencyLogos(for items:[WorkHistoryItem]) {
         Task {
             await withTaskGroup(of: Void.self) { group in
                 for item in items {
                     guard let agencyId = item.agencyId else { continue }
                     
                     group.addTask {
+                        var tempUrl: URL? = nil
+                        
                         do {
                             let response: AgencyDetailResponse = try await DivoAPIClient.shared.request(
                                 path: "/agency/\(agencyId)"
                             )
-                            
-                            if let urlString = response.data.photo?.fullUrl, let url = URL(string: urlString) {
-                                await MainActor.run {
-                                    self.controllerNode.updateAgencyLogo(itemId: item.id, url: url)
-                                }
+                            if let urlString = response.data.photo?.fullUrl {
+                                tempUrl = URL(string: urlString)
                             }
                         } catch {
                             print("[DivoAPI] fetch agency \(agencyId) error: \(error)")
+                        }
+                        
+                        let finalUrl = tempUrl
+                        
+                        await MainActor.run {
+                            self.controllerNode.updateAgencyLogo(itemId: item.id, url: finalUrl)
                         }
                     }
                 }
@@ -188,6 +194,7 @@ public final class WorkExperienceController: TelegramBaseController {
         }
 
         self.displayNodeDidLoad()
+        self.fetchData() 
     }
 
     private func showItemOptions(_ item: WorkHistoryItem) {
@@ -208,6 +215,7 @@ public final class WorkExperienceController: TelegramBaseController {
 
     private func editWorkExperience(_ item: WorkHistoryItem) {
         let controller = AddWorkExperienceController(context: self.context, editItem: item)
+        controller.delegate = self
         self.push(controller)
     }
 
@@ -219,10 +227,18 @@ public final class WorkExperienceController: TelegramBaseController {
                     method: "DELETE"
                 )
                 await MainActor.run {
-                    self.getWorkMyHistory()
+                    self.fetchData()
                 }
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.workHistoryDelete,
+                    style: .success
+                )
             } catch {
                 print("[DivoAPI] delete model-work-history/\(id) error: \(error)")
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.failedToDelete,
+                    style: .error
+                )
             }
         }
     }
@@ -233,3 +249,14 @@ public final class WorkExperienceController: TelegramBaseController {
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
 }
+
+extension WorkExperienceController: AddWorkExperienceDelegate {
+    func didUpdateWorkExperience(isEdit: Bool) {
+        self.fetchData()
+        self.controllerNode.showSnackbar(
+            message: isEdit ? DivoStrings.workHistoryUpdated : DivoStrings.workHistoryCreate,
+            style: .success
+        )
+    }
+}
+

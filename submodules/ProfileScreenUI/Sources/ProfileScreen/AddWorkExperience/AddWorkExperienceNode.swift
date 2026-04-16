@@ -4,7 +4,6 @@ import AsyncDisplayKit
 import UIKit
 import TelegramCore
 import DivoCore
-import SwiftSignalKit
 import TelegramPresentationData
 import TelegramUIPreferences
 import MergeLists
@@ -24,8 +23,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
     private let context: AccountContext
     private let editItem: WorkHistoryItem?
-    private var startTime: Int32 = 0
-    private var endTime: Int32 = 0
+    private var startTime: Int32?
+    private var endTime: Int32?
 
     private let topBarContainer: UIView = {
         let view = UIView()
@@ -125,8 +124,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         return label
     }()
 
-    private let startDateView = DateSelectionControl(placeholder: "27 Jun 2025")
-    private let endTimeView = DateSelectionControl(placeholder: "27 Jun 2025")
+    private let startDateView: DateSelectionControl
+    private let endTimeView: DateSelectionControl
 
     private let currentlyWorkingCheckbox: UIButton = {
         let button = UIButton(type: .custom)
@@ -176,20 +175,61 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
     
     private var keyboardHandler: DivoKeyboardHandler?
-
+    
+    // MARK: - Autocomplete Elements
+    private let autocompleteContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 16
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.1
+        view.layer.shadowOffset = CGSize(width: 0, height: 8)
+        view.layer.shadowRadius = 16
+        view.isHidden = true
+        view.clipsToBounds = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let autocompleteTableView: UITableView = {
+        let tv = UITableView()
+        tv.separatorStyle = .none
+        tv.backgroundColor = .clear
+        tv.isScrollEnabled = false
+        tv.clipsToBounds = false
+        tv.translatesAutoresizingMaskIntoConstraints = false
+        return tv
+    }()
+    
+    private let autocompleteLoader: UIActivityIndicatorView = {
+        let loader = UIActivityIndicatorView(style: .medium)
+        loader.color = DivoColorPalette.accent
+        loader.hidesWhenStopped = true
+        loader.translatesAutoresizingMaskIntoConstraints = false
+        return loader
+    }()
+    
+    private var autocompleteHeightConstraint: NSLayoutConstraint?
+    private var autocompleteBottomConstraint: NSLayoutConstraint?
+    private var currentAgencyResults: [AgencyItem] = []
+    private var isScrollLocked = false
+    
+    private var searchTimer: Timer?
+    
+    var requestAgencySearch: ((String) -> Void)?
+    
+    private var selectedAgencyId: Int? = nil
+    
     // MARK: - Callbacks
-
+    
     var scheduleTimeController: ((TimeType) -> Void)?
-    var showAlert: ((String) -> Void)?
     var onSave: ((CreateWorkHistoryRequest) -> Void)?
-    var onAddPhoto: (() -> Void)?
+    var onLoadPhoto: ((Int?) -> Void)?
     var onBackTapped: (() -> Void)?
-
+    
     var currentPhoto: UIImage? = nil {
         didSet {
             avatarImageView.image = currentPhoto
-            avatarEmptyImageView.isHidden = (currentPhoto != nil)
-            
             if currentPhoto != nil {
                 avatarImageView.alpha = 0
                 self.avatarImageView.alpha = 1.0
@@ -209,13 +249,25 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             font: Font.regular(16),
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
+        
+        let today = Date()
+        let oneMonthAgo = Calendar.current.date(byAdding: .month, value: -1, to: today) ?? today
+        
+        startDateView = DateSelectionControl(placeholder: Int32(oneMonthAgo.timeIntervalSince1970), localeIdentifier: DivoStrings.current.localeIdentifier)
+        endTimeView = DateSelectionControl(placeholder: Int32(today.timeIntervalSince1970), localeIdentifier: DivoStrings.current.localeIdentifier)
 
         super.init()
+        
+        startDateView.datePicker.maximumDate = today
+        startDateView.datePicker.date = oneMonthAgo
+        endTimeView.datePicker.maximumDate = today
+        endTimeView.datePicker.minimumDate = oneMonthAgo
+        endTimeView.datePicker.date = Date()
 
         self.backgroundColor = DivoColorPalette.screenBackground
         
         navigationBar.makeNavigationBar(
-            title: title: editItem != nil ? DivoStrings.navEditExperience.uppercased() : DivoStrings.navCreateExperience.uppercased(),
+            title: editItem != nil ? DivoStrings.navEditExperience.uppercased() : DivoStrings.navCreateExperience.uppercased(),
             backButtonConfiguration: .circle("chevron.left"),
             rightButtonConfiguration: editItem != nil ? .text(DivoStrings.save) : .text(DivoStrings.create),
             onBackTapped: { [weak self] in self?.onBackTapped?() },
@@ -226,6 +278,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             title: editItem != nil ? DivoStrings.saveChanges : DivoStrings.createNewWorkExperience,
             loading: editItem != nil ? DivoStrings.saving : DivoStrings.creatingNewWorkExperience
         )
+        updateApplyButtonState()
     }
 
     deinit {
@@ -276,7 +329,17 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
         contentView.addSubview(currentlyWorkingCheckbox)
         contentView.addSubview(currentlyWorkingLabel)
-
+        
+        contentView.addSubview(currentlyWorkingLabel)
+        
+        contentView.addSubview(autocompleteContainer)
+        autocompleteContainer.addSubview(autocompleteTableView)
+        autocompleteContainer.addSubview(autocompleteLoader)
+        
+        autocompleteTableView.delegate = self
+        autocompleteTableView.dataSource = self
+        autocompleteTableView.register(UITableViewCell.self, forCellReuseIdentifier: "AgencyCell")
+        
         view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
 
@@ -286,7 +349,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     }
 
     private func setupConstraints() {
-        let sidePadding: CGFloat = 16.0
         let avatarSize: CGFloat = 94.0
         
         let buttonBottomCns = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
@@ -297,7 +359,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
         NSLayoutConstraint.activate([
             // ScrollView
-            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 16),
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -324,76 +386,103 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             // Add Photo Button
             avatarEmptyImageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
             avatarEmptyImageView.centerYAnchor.constraint(equalTo: avatarContainer.centerYAnchor),
-            avatarEmptyImageView.widthAnchor.constraint(equalToConstant: 32),
-            avatarEmptyImageView.heightAnchor.constraint(equalToConstant: 32),
+            avatarEmptyImageView.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            avatarEmptyImageView.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             
             avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
             avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            avatarSpinner.widthAnchor.constraint(equalToConstant: 32),
-            avatarSpinner.heightAnchor.constraint(equalToConstant: 32),
+            avatarSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            avatarSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
 
             // Event info label
-            eventInfoLabel.topAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: 32),
-            eventInfoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
-            eventInfoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+            eventInfoLabel.topAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
+            eventInfoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            eventInfoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             // Name label & field
-            nameEventLabel.topAnchor.constraint(equalTo: eventInfoLabel.bottomAnchor, constant: 16),
-            nameEventLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
-            nameEventLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+            nameEventLabel.topAnchor.constraint(equalTo: eventInfoLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            nameEventLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            nameEventLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             nameEventTextField.view.topAnchor.constraint(equalTo: nameEventLabel.bottomAnchor, constant: 6),
-            nameEventTextField.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
-            nameEventTextField.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+            nameEventTextField.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            nameEventTextField.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             nameEventTextField.view.heightAnchor.constraint(equalToConstant: 48),
+            
+            autocompleteContainer.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: 4),
+            autocompleteContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            autocompleteContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            
+            autocompleteTableView.topAnchor.constraint(equalTo: autocompleteContainer.topAnchor),
+            autocompleteTableView.leadingAnchor.constraint(equalTo: autocompleteContainer.leadingAnchor),
+            autocompleteTableView.trailingAnchor.constraint(equalTo: autocompleteContainer.trailingAnchor),
+            autocompleteTableView.bottomAnchor.constraint(equalTo: autocompleteContainer.bottomAnchor),
+            
+            autocompleteLoader.centerXAnchor.constraint(equalTo: autocompleteContainer.centerXAnchor),
+            autocompleteLoader.centerYAnchor.constraint(equalTo: autocompleteContainer.centerYAnchor),
 
             // Date labels
-            startDateLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: 16),
-            startDateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+            startDateLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            startDateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
 
-            endTimeLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: 16),
+            endTimeLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             endTimeLabel.leadingAnchor.constraint(equalTo: endTimeView.leadingAnchor),
             
             startDateView.topAnchor.constraint(equalTo: startDateLabel.bottomAnchor, constant: 6),
-            startDateView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+            startDateView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             startDateView.heightAnchor.constraint(equalToConstant: 46),
             
             endTimeView.topAnchor.constraint(equalTo: endTimeLabel.bottomAnchor, constant: 6),
-            endTimeView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+            endTimeView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             endTimeView.heightAnchor.constraint(equalToConstant: 46),
 
             startDateView.widthAnchor.constraint(equalTo: endTimeView.widthAnchor),
             startDateView.trailingAnchor.constraint(equalTo: endTimeView.leadingAnchor, constant: -12),
 
-            currentlyWorkingCheckbox.topAnchor.constraint(equalTo: startDateView.bottomAnchor, constant: 16),
-            currentlyWorkingCheckbox.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: sidePadding),
+            currentlyWorkingCheckbox.topAnchor.constraint(equalTo: startDateView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            currentlyWorkingCheckbox.topAnchor.constraint(equalTo: endTimeView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            currentlyWorkingCheckbox.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
 
             currentlyWorkingLabel.centerYAnchor.constraint(equalTo: currentlyWorkingCheckbox.centerYAnchor),
             currentlyWorkingLabel.leadingAnchor.constraint(equalTo: currentlyWorkingCheckbox.trailingAnchor, constant: 6),
-            currentlyWorkingLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -sidePadding),
+            currentlyWorkingLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             currentlyWorkingCheckbox.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
 
             buttonBottomCns,
-            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
-            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
-            
+            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
             bottomFadeOverlayCns,
             bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomFadeOverlay.heightAnchor.constraint(equalToConstant: 160)
         ])
+
+        autocompleteHeightConstraint = autocompleteContainer.heightAnchor.constraint(equalToConstant: 0)
+        autocompleteHeightConstraint?.isActive = true
+        
+        autocompleteBottomConstraint = autocompleteContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
     }
 
     private func setupInteractions() {
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
         
         startDateView.onDateSelected = { [weak self] timestamp in
+            if let currentEndTime = self?.endTime {
+                if timestamp > currentEndTime {
+                    self?.endTime = timestamp
+                    self?.endTimeView.setDate(timestamp: timestamp)
+                }
+            }
+            self?.endTimeView.datePicker.minimumDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
             self?.updateTime(timestamp, type: .start)
+            self?.updateApplyButtonState()
         }
         
         endTimeView.onDateSelected = { [weak self] timestamp in
             self?.updateTime(timestamp, type: .end)
+            self?.updateApplyButtonState()
         }
         
         startDateView.onBeginEditing = { [weak self] in
@@ -421,6 +510,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             scrollToActiveField: { [weak self] in
                 guard let self else { return }
                 
+                if isScrollLocked { return }
+
                 if self.nameEventTextField.textField.isFirstResponder {
                     self.scrollToView(self.nameEventTextField.view)
                 }
@@ -439,17 +530,46 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             field.textField.returnKeyType = isLast ? .done : .next
             if !isLast {
                 let nextField = fields[index + 1]
-                field.onReturn = { [weak nextField] in
+                field.onReturn = {[weak nextField] in
                     nextField?.textField.becomeFirstResponder()
                 }
             }
             field.onBeginEditing = { [weak self, weak field] in
                 guard let self, let field else { return }
-                self.scrollToView(field.view)
+                
+                if field === self.nameEventTextField {
+                    self.scrollToViewToTop(self.eventInfoLabel)
+                } else {
+                    self.scrollToView(field.view)
+                }
             }
         }
+        
+        nameEventTextField.textField.addTarget(self, action: #selector(agencyTextChanged), for: .editingChanged)
     }
+    
+    private func updateApplyButtonState() {
+        guard let startTime = startTime, let endTime = endTime else { return applyButton.isEnabled = false }
+        let isAgencyNameFilled = !(nameEventTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        
+        let isAgencySelected = selectedAgencyId != nil
+        
+        let isStartDateFilled = startTime > 0
+        
+        let isEndDateValid: Bool
+        if currentlyWorkingCheckbox.isSelected {
+            isEndDateValid = true
+        } else {
+            isEndDateValid = endTime > 0 && endTime >= startTime
+        }
+        
+        let isFormValid = isAgencyNameFilled && isAgencySelected && isStartDateFilled && isEndDateValid
+        applyButton.isEnabled = isFormValid
+        
+    }
+    
     private func prefillEditData(_ item: WorkHistoryItem) {
+        self.selectedAgencyId = item.agencyId
         nameEventTextField.textField.text = item.agencyDisplayName ?? item.agencyName
         
         let inputFormatter = DateFormatter()
@@ -462,7 +582,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         
         if let startStr = item.startDate, let startDate = inputFormatter.date(from: startStr) {
             startTime = Int32(startDate.timeIntervalSince1970)
-            startDateView.setDate(timestamp: startTime, localeIdentifier: DivoStrings.current.localeIdentifier)
+            startDateView.setDate(timestamp: startTime)
         }
         
         if item.isCurrent == true {
@@ -471,8 +591,9 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             endTimeView.isHidden = true
         } else if let endStr = item.endDate, let endDate = inputFormatter.date(from: endStr) {
             endTime = Int32(endDate.timeIntervalSince1970)
-            endTimeView.setDate(timestamp: endTime, localeIdentifier: DivoStrings.current.localeIdentifier)
+            endTimeView.setDate(timestamp: endTime)
         }
+        updateApplyButtonState()
     }
 
     private static func formatDateForAPI(timestamp: Int32) -> String {
@@ -487,24 +608,97 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         let frame = targetView.frame.insetBy(dx: 0, dy: -16)
         scrollView.scrollRectToVisible(frame, animated: true)
     }
+    
+    private func scrollToViewToTop(_ targetView: UIView) {
+        guard !isScrollLocked else { return }
+        
+        let targetY = max(targetView.frame.minY, 0)
+        isScrollLocked = true
+        scrollView.isScrollEnabled = false
+        scrollView.setContentOffset(CGPoint(x: 0, y: targetY), animated: true)
+    }
+    
+    private func forceKeepScrollPosition() {
+        if isScrollLocked {
+            let targetY = max(eventInfoLabel.frame.minY, 0)
+            scrollView.contentOffset = CGPoint(x: 0, y: targetY)
+        }
+    }
+    
+    private func unlockScroll() {
+        isScrollLocked = false
+        scrollView.isScrollEnabled = true
+    }
+    
+    private func showAutocompleteLoading() {
+        autocompleteContainer.isHidden = false
+        autocompleteHeightConstraint?.constant = 44
+        autocompleteTableView.isHidden = true
+        autocompleteLoader.startAnimating()
+        UIView.animate(withDuration: 0.2) {
+            self.view.layoutIfNeeded()
+            self.forceKeepScrollPosition()
+        }
+    }
+    
+    private func hideAutocomplete() {
+        autocompleteBottomConstraint?.isActive = false
+        autocompleteHeightConstraint?.constant = 0
+        UIView.animate(withDuration: 0.2, animations: {
+            self.view.layoutIfNeeded()
+            self.forceKeepScrollPosition()
+        }) { _ in
+            self.autocompleteContainer.isHidden = true
+        }
+    }
+    
+    private func dissmisKeyboardAutocomplete() {
+        autocompleteBottomConstraint?.isActive = false
+        autocompleteHeightConstraint?.constant = 0
+        UIView.animate(withDuration: 0.2, animations: {
+            self.view.layoutIfNeeded()
+            self.autocompleteContainer.isHidden = true
+        })
+    }
+    
+    func updateAgencyResults(_ results: [AgencyItem]) {
+        autocompleteLoader.stopAnimating()
+        currentAgencyResults = results
+        
+        if results.isEmpty {
+            hideAutocomplete()
+        } else {
+            autocompleteTableView.isHidden = false
+            autocompleteTableView.reloadData()
+            
+            let height = CGFloat(results.count) * 44.0
+            autocompleteHeightConstraint?.constant = height
+            autocompleteBottomConstraint?.isActive = true
+            
+            UIView.animate(withDuration: 0.2) {
+                self.view.layoutIfNeeded()
+                self.forceKeepScrollPosition()
+            }
+        }
+    }
 
     func updateTime(_ timestamp: Int32, type: TimeType) {
-        let locale = DivoStrings.current.localeIdentifier
-        
         switch type {
         case .start:
             startTime = timestamp
-            startDateView.setDate(timestamp: timestamp, localeIdentifier: locale)
+            startDateView.setDate(timestamp: timestamp)
         case .end:
             endTime = timestamp
-            endTimeView.setDate(timestamp: timestamp, localeIdentifier: locale)
+            endTimeView.setDate(timestamp: timestamp)
         }
     }
     
     func loadAvatar(isLoading: Bool) {
         isLoading ? avatarSpinner.startAnimating() : avatarSpinner.stopAnimating()
         avatarSpinner.isHidden = !isLoading
-        avatarEmptyImageView.isHidden = isLoading
+        if currentPhoto == nil {
+            avatarEmptyImageView.isHidden = isLoading
+        }
     }
 
     func toggleSpinner(active: Bool) {
@@ -516,52 +710,123 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     @objc private func dismissKeyboard() {
         view.endEditing(true)
+        dissmisKeyboardAutocomplete()
+        unlockScroll()
     }
-
-    @objc private func addPhotoPressed() {
-        onAddPhoto?()
-    }
-    
+        
     @objc private func checkboxTapped() {
         currentlyWorkingCheckbox.isSelected.toggle()
         if currentlyWorkingCheckbox.isSelected {
+            endTime = Int32(Date().timeIntervalSince1970)
+            endTimeView.setDate(timestamp: endTime)
             endTimeLabel.isHidden = true
             endTimeView.isHidden = true
         } else {
+            endTime = Int32(Date().timeIntervalSince1970)
+            endTimeView.setDate(timestamp: endTime)
             endTimeLabel.isHidden = false
             endTimeView.isHidden = false
         }
-    }
-    
-    @objc private func backPressed() { onBackTapped?() }
-    
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1) { sender.alpha = 0.6; sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95) }
-    }
-    
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2) { sender.alpha = 1.0; sender.transform = .identity }
+        updateApplyButtonState()
     }
 
     @objc func applyButtonTapped() {
+        guard applyButton.isEnabled else { return }
+        view.endEditing(true)
+        
+        guard let startTime = startTime, let endTime = endTime else { return }
         let agencyName = nameEventTextField.textField.text ?? ""
-
         guard startTime > 0 else {
-            showAlert?(DivoStrings.pleaseFillStartDate)
             return
         }
-
         let isCurrent = currentlyWorkingCheckbox.isSelected
-
+        
         let body = CreateWorkHistoryRequest(
-            agencyId: nil,
+            agencyId: selectedAgencyId,
             agencyName: agencyName.isEmpty ? nil : agencyName,
             startDate: Self.formatDateForAPI(timestamp: startTime),
             endDate: isCurrent ? nil : (endTime > 0 ? Self.formatDateForAPI(timestamp: endTime) : nil),
             isCurrent: isCurrent
         )
-
+        
+        self.toggleSpinner(active: true)
         onSave?(body)
+    }
+    
+    @objc private func agencyTextChanged() {
+        self.selectedAgencyId = nil
+        updateApplyButtonState()
+        
+        let query = nameEventTextField.textField.text ?? ""
+        searchTimer?.invalidate()
+
+        showAutocompleteLoading()
+        
+        searchTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in
+            self?.requestAgencySearch?(query)
+        }
+    }
+    
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: 16,
+            bottomAnchor: applyButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
+    }
+}
+
+// MARK: - UITableViewDelegate & DataSource
+extension AddWorkExperience: UITableViewDelegate, UITableViewDataSource {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return currentAgencyResults.count
+    }
+    
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        return 44.0
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "AgencyCell", for: indexPath)
+        cell.backgroundColor = .clear
+        cell.textLabel?.font = Font.regular(16)
+        cell.textLabel?.textColor = DivoColorPalette.primaryText
+        cell.textLabel?.text = currentAgencyResults[indexPath.row].title
+        
+        cell.selectionStyle = .none
+        
+        let isSelectedAgency = currentAgencyResults[indexPath.row].id == selectedAgencyId
+        cell.accessoryType = isSelectedAgency ? .checkmark : .none
+        return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let selected = currentAgencyResults[indexPath.row]
+        
+        self.selectedAgencyId = selected.id
+        self.nameEventTextField.textField.text = selected.title
+
+        updateApplyButtonState()
+        
+        onLoadPhoto?(selectedAgencyId)
+        
+        dismissKeyboard()
     }
 }
 

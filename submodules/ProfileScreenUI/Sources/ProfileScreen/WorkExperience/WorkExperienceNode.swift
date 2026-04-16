@@ -236,8 +236,7 @@ final class WorkExperience: ASDisplayNode {
         renderList()
     }
     
-    
-    func updateAgencyLogo(itemId: Int, url: URL) {
+    func updateAgencyLogo(itemId: Int, url: URL?) {
         guard let cell = experienceCells[itemId],
               let item = rawItems.first(where: { $0.id == itemId }) else { return }
         
@@ -251,7 +250,6 @@ final class WorkExperience: ASDisplayNode {
         )
         
         let showOptions = model.isMyProfile && hasStructuredData
-        
         cell.configure(with: wItem, showOptions: showOptions, loadImage: true)
     }
     
@@ -285,7 +283,9 @@ final class WorkExperience: ASDisplayNode {
                 let cell = ExperienceView()
                 
                 let showOptions = model.isMyProfile && hasStructuredData
-                cell.configure(with: wItem, showOptions: showOptions)
+
+                let shouldLoadImmediately = (item.agencyId == nil)
+                cell.configure(with: wItem, showOptions: showOptions, loadImage: shouldLoadImmediately)
                 
                 if showOptions {
                     cell.onEditTapped = { [weak self] in
@@ -387,5 +387,29 @@ final class WorkExperience: ASDisplayNode {
         if durationString.isEmpty { durationString = DivoStrings.oneMonth }
 
         return "\(startString) - \(endString) · \(durationString)"
+    }
+    
+    
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: addExperienceButton.isHidden ? 40 : 16,
+            bottomAnchor: addExperienceButton.isHidden ? view.bottomAnchor : addExperienceButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }

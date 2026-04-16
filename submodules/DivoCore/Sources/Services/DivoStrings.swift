@@ -262,6 +262,12 @@ public enum DivoStrings {
     public static var followersCount: String { L(en: "followers", ru: "подписчиков", es: "seguidores", pt: "seguidores", zh: "粉丝") }
     public static var videoUnavailable: String { L(en: "Video unavailable", ru: "Видео недоступно", es: "Video no disponible", pt: "Vídeo indisponível", zh: "视频不可用") }
     public static var failedToDelete: String { L(en: "Failed to delete", ru: "Не удалось удалить", es: "Error al eliminar", pt: "Falha ao excluir", zh: "删除失败") }
+    public static var emptyPhoto: String { L(en: "Photo is missing", ru: "Фото отсутствует", es: "Falta la foto", pt: "Foto está faltando", zh: "照片缺失") }
+    public static var workHistoryUpdated: String { L(en: "The work history has been updated", ru: "История работы обновлена", es: "El historial laboral ha sido actualizado", pt: "O histórico de trabalho foi atualizado", zh: "工作经历已更新") }
+    public static var workHistoryFailedUpdated: String { L(en: "Couldn't update work history", ru: "Не удалось обновить историю работы", es: "No se pudo actualizar el historial laboral", pt: "Não foi possível atualizar o histórico de trabalho", zh: "无法更新工作经历") }
+    public static var workHistoryCreate: String { L(en: "Work history added", ru: "История работы добавлена", es: "Historial laboral agregado", pt: "Histórico de trabalho adicionado", zh: "工作经历已添加") }
+    public static var workHistoryFailedCreate: String { L(en: "Couldn't add work history", ru: "Не удалось добавить историю работы", es: "No se pudo agregar el historial laboral", pt: "Não foi possível adicionar o histórico de trabalho", zh: "无法添加工作经历") }
+    public static var workHistoryDelete: String { L(en: "Work history deleted", ru: "История работы удалена", es: "Historial laboral eliminado", pt: "Histórico de trabalho excluído", zh: "工作经历已删除") }
 
     // MARK: - Profile — Gender & Appearance
 

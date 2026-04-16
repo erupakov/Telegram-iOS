@@ -114,43 +114,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         return btn
     }()
     
-    private let customNavBar: UIView = {
-        let view = UIView()
-        view.backgroundColor = .clear
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = DivoStrings.feedSearchFilter
-        label.font = Font.medium(16)
-        label.textColor = DivoColorPalette.primaryText
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-    
-    private let resetButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle(DivoStrings.feedSearchReset, for: .normal)
-        btn.setTitleColor(DivoColorPalette.accent, for: .normal)
-        btn.titleLabel?.font = Font.regular(15)
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        return btn
-    }()
-    
-    private let closeButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.backgroundColor = .white
-        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
-        button.setImage(image, for: .normal)
-        button.tintColor = .black
-        button.layer.applyDivoShadow()
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
+    private let navigationBar = DivoNavigationBar()
     
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -163,6 +127,20 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     init(currentFilters: SearchFilterState) {
         self.currentFilters = currentFilters
         super.init(nibName: nil, bundle: nil)
+
+        navigationBar.makeNavigationBar(
+            title: DivoStrings.feedSearchFilter,
+            font: Font.medium(16),
+            backButtonConfiguration: .circle("xmark"),
+            rightButtonConfiguration: .text(DivoStrings.feedSearchReset),
+            onBackTapped: { [weak self] in
+                self?.navigationController?.dismiss(animated: true)
+            },
+            onCircleTextTapped: { [weak self] in
+                self?.resetTapped()
+            }
+        )
+
         setupAppearanceFilterItems()
     }
     
@@ -340,35 +318,12 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }
     
     private func setupCustomNavBar() {
-        view.addSubview(customNavBar)
-        customNavBar.addSubview(closeButton)
-        customNavBar.addSubview(titleLabel)
-        customNavBar.addSubview(resetButton)
-        
-        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
-        closeButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        closeButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        
-        resetButton.addTarget(self, action: #selector(resetTapped), for: .touchUpInside)
-        resetButton.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        resetButton.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        view.addSubview(navigationBar)
         
         NSLayoutConstraint.activate([
-            customNavBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
-            customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            customNavBar.heightAnchor.constraint(equalToConstant: 50),
-            
-            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            closeButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-            closeButton.widthAnchor.constraint(equalToConstant: 40),
-            closeButton.heightAnchor.constraint(equalToConstant: 40),
-            
-            titleLabel.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor),
-            
-            resetButton.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            resetButton.centerYAnchor.constraint(equalTo: customNavBar.centerYAnchor)
+            navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
     }
     
@@ -377,7 +332,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         scrollView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 20),
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 20),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),

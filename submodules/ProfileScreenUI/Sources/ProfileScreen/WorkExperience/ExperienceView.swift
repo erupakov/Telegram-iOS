@@ -131,26 +131,34 @@ final class ExperienceView: UIView {
         titleLabel.backgroundColor = .clear
         periodLabel.backgroundColor = .clear
         
-        avatarSpinner.startAnimating()
-        avatarSpinner.isHidden = false
+        logoEmptyImageView.isHidden = true
         
         if loadImage {
             if let url = item.logoURL {
+                avatarSpinner.startAnimating()
+                avatarSpinner.isHidden = false
+                
                 ImageLoader.shared.load(url: url) { [weak self] image in
                     guard let self else { return }
-                    self.logoImageView.alpha = 1.0
+                    self.avatarSpinner.stopAnimating()
+                    self.avatarSpinner.isHidden = true
+                    
                     if let image {
+                        self.logoImageView.alpha = 1.0
                         self.logoImageView.image = image
                         self.logoImageView.applyAvatarTopCropIfNeeded(image: image)
+                    } else {
+                        self.logoEmptyImageView.isHidden = false
                     }
                 }
-                avatarSpinner.stopAnimating()
-                avatarSpinner.isHidden = true
             } else {
                 avatarSpinner.stopAnimating()
                 avatarSpinner.isHidden = true
                 logoEmptyImageView.isHidden = false
             }
+        } else {
+            avatarSpinner.startAnimating()
+            avatarSpinner.isHidden = false
         }
     }
     
