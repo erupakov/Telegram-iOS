@@ -89,33 +89,33 @@ final class AuthorizationSequenceSignUpControllerNode: ASDisplayNode, UITextFiel
         ])
         
         self.talentNode = RoleSelectionNode(
-            roleImage: UIImage(bundleImageName: "Components/NewTalent"),
+            roleImage: DivoImage.signUpNewTalent,
             title: "NEW TALENT",
             description: "I don’t have any experience / have little experience. I’m new in.",
             typeOfRole: "TALENT"
         )
         self.modelNode = RoleSelectionNode(
-            roleImage: UIImage(bundleImageName: "Components/Model"),
+            roleImage: DivoImage.signUpModel,
             title: "MODEL",
             description: "I have working experience as a model. I’m professional.",
             typeOfRole: "MODEL"
         )
         self.agencyNode = RoleSelectionNode(
-            roleImage: UIImage(bundleImageName: "Components/Agencies"),
+            roleImage: DivoImage.signUpAgencies,
             title: "AGENCIES & SCOUTS",
             description: "Looking for / working with models.",
             typeOfRole: "AGENCIES"
         )
         self.fanNode = RoleSelectionNode(
-            roleImage: UIImage(bundleImageName: "Components/Fan"),
+            roleImage: DivoImage.signUpFan,
             title: "FAN",
             description: "I will view other users' content. I am a fan.",
             typeOfRole: "FAN"
         )
-        
+
         self.backgroundNode = ASImageNode()
         self.backgroundNode.contentMode = .scaleAspectFill
-        self.backgroundNode.image = UIImage(named: "Components/ChooseRoleBackground")
+        self.backgroundNode.image = DivoImage.signUpChooseRoleBackground
         self.backgroundNode.displaysAsynchronously = false
         
         super.init()

@@ -134,7 +134,7 @@ final class WorkExperience: ASDisplayNode {
         scrollView.addSubview(listBackgroundContainer)
         listBackgroundContainer.addSubview(listStackView)
         
-        let iconView = UIImageView(image: UIImage(bundleImageName: "Models/BadgeBaseWork"))
+        let iconView = UIImageView(image: DivoImage.badgeBaseWork)
         iconView.translatesAutoresizingMaskIntoConstraints = false
         iconView.widthAnchor.constraint(equalToConstant: 70).isActive = true
         iconView.heightAnchor.constraint(equalToConstant: 70).isActive = true
@@ -322,7 +322,7 @@ final class WorkExperience: ASDisplayNode {
         }
     }
 
-    
+
     // MARK: - Actions
     
     @objc private func addPressed() { openAddWorkExperience?() }

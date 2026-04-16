@@ -27,11 +27,13 @@ struct CountryHelper {
         return countries.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
-    static func emojiFlag(for countryCode: String) -> String {
+    static func emojiFlag(for countryCode: String?) -> String {
+        guard let code = countryCode, code.count == 2 else { return "" }
         let base: UInt32 = 127397
         var s = ""
-        for v in countryCode.uppercased().unicodeScalars {
-            s.unicodeScalars.append(UnicodeScalar(base + v.value)!)
+        for v in code.uppercased().unicodeScalars {
+            guard let scalar = UnicodeScalar(base + v.value) else { continue }
+            s.unicodeScalars.append(scalar)
         }
         return s
     }

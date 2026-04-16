@@ -74,7 +74,7 @@ public final class EventDetailController: TelegramBaseController {
         likeLabel.textColor = .white
         likeLabel.font = .systemFont(ofSize: 17, weight: .bold)
 
-        let likeImageView = UIImageView(image: UIImage(bundleImageName: "Components/HeartActionIcon")!)
+        let likeImageView = UIImageView(image: DivoImage.heartActionIcon)
         likeImageView.tintColor = .white
 
         let customLikeView = UIView(frame: CGRect(x: 0, y: 0, width: 60, height: 30))
@@ -93,7 +93,7 @@ public final class EventDetailController: TelegramBaseController {
             likeLabel.centerYAnchor.constraint(equalTo: customLikeView.centerYAnchor)
         ])
 
-        let likeButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Components/HeartActionIcon"), color: .white)
+        let likeButtonImg = generateTintedImage(image: DivoImage.heartActionIcon, color: .white)
         let shareButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/MessageSelectionAction"), color: .white)
         let bookmarkButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Instant View/Bookmark"), color: .white)
 

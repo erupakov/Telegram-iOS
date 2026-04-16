@@ -59,8 +59,7 @@ public final class ModelsFeedController: TelegramBaseController {
         let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.disabledButtonBackground, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
-        let icon: UIImage?
-        icon = UIImage(bundleImageName: "Components/IconModels")
+        let icon: UIImage = DivoImage.iconModels
         self.tabBarItem.title = DivoStrings.tabModels
         self.tabBarItem.image = icon
         self.tabBarItem.selectedImage = icon
@@ -145,15 +144,12 @@ public final class ModelsFeedController: TelegramBaseController {
             name: model.name,
             age: model.age ?? 0,
             location: model.country ?? "",
-            mainImageName: model.mainImageName,
-            avatarImageName: model.avatarImageName,
             isVerified: false,
             likesCount: "\(model.likesCount)",
             viewsCount: "\(model.viewsCount)",
             savesCount: "\(model.savesCount)",
             biography: "",
             socialMediaHandles: [],
-            galleryImageNames: [],
             galleryImageURLs: [],
             userId: model.userId,
             role: model.role,

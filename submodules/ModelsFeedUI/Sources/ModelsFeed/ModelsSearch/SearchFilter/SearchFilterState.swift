@@ -9,7 +9,7 @@ import Foundation
 import DivoCore
 import DivoUIKit
 
-struct FilterOptionApperanceItem {
+struct FilterOptionAppearanceItem {
     let id: Int
     let title: String
 }
@@ -37,12 +37,33 @@ struct SearchFilterState: Equatable {
     var eyeColor: [Int]?
     var skinColor: [Int]?
 
+    /// Единый источник правды «какие поля считаются активным фильтром».
+    /// Пустая строка/массив/`nil` — не активны; непустое значение — активно.
+    private var activeFieldFlags: [Bool] {
+        [
+            !roleIds.isEmpty,
+            !genderIds.isEmpty,
+            !countryIds.isEmpty,
+            !(city?.isEmpty ?? true),
+            ageRange != nil,
+            heightRange != nil,
+            weightRange != nil,
+            waistRange != nil,
+            hipsRange != nil,
+            shoeSizeRange != nil,
+            !(hairLength?.isEmpty ?? true),
+            !(hairColor?.isEmpty ?? true),
+            !(eyeColor?.isEmpty ?? true),
+            !(skinColor?.isEmpty ?? true)
+        ]
+    }
+
     var hasActiveFilters: Bool {
-        return !roleIds.isEmpty || !genderIds.isEmpty || !countryIds.isEmpty ||
-               !(city?.isEmpty ?? true) || ageRange != nil ||
-               heightRange != nil || weightRange != nil || waistRange != nil ||
-               hipsRange != nil || shoeSizeRange != nil || !(hairLength?.isEmpty ?? true) ||
-               !(hairColor?.isEmpty ?? true) || !(eyeColor?.isEmpty ?? true) || !(skinColor?.isEmpty ?? true)
+        activeFieldFlags.contains(true)
+    }
+
+    var activeFilterCount: Int {
+        activeFieldFlags.lazy.filter { $0 }.count
     }
 
     mutating func reset() {
@@ -69,7 +90,7 @@ struct SearchFilterState: Equatable {
         if !roleIds.isEmpty {
             return roleIds
         }
-        return["model", "new_face", "agency_employee", "brand", "photographer", "stylist", "media", "place"]
+        return ["model", "new_face", "agency_employee", "brand", "photographer", "stylist", "media", "place"]
     }
 
     var apiGenders: [String]? {
@@ -78,34 +99,11 @@ struct SearchFilterState: Equatable {
         }
         return nil
     }
-    
+
     var apiCountries: [String]? {
         if !countryIds.isEmpty {
             return countryIds
         }
         return nil
-    }
-    
-    var activeFilterCount: Int {
-        var count = 0
-        
-        if !roleIds.isEmpty { count += 1 }
-        if !genderIds.isEmpty { count += 1 }
-        
-        if !countryIds.isEmpty { count += 1 }
-        if let city = city, !city.isEmpty { count += 1 }
-        
-        if ageRange != nil { count += 1 }
-        if heightRange != nil { count += 1 }
-        if weightRange != nil { count += 1 }
-        if waistRange != nil { count += 1 }
-        if hipsRange != nil { count += 1 }
-        if shoeSizeRange != nil { count += 1 }
-        if hairLength != nil { count += 1 }
-        if hairColor != nil { count += 1 }
-        if eyeColor != nil { count += 1 }
-        if skinColor != nil { count += 1 }
-        
-        return count
     }
 }

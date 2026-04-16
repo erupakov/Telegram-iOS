@@ -33,7 +33,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let searchFieldContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.layer.applyDivoShadow()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -42,7 +42,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     private let searchIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(bundleImageName: "Components/Search/SearchFieldIcon") ?? UIImage(systemName: "magnifyingglass")
+        imageView.image = DivoImage.searchFieldIcon
         imageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -64,10 +64,10 @@ final class ModelsSearchNode: ASDisplayNode {
         
     private let filterButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        button.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
-        button.tintColor = .black
+        button.setImage(DivoImage.searchFilterIcon, for: .normal)
+        button.tintColor = DivoColorPalette.primaryText
         button.layer.applyDivoShadow()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -84,11 +84,11 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let closeButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .white
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        let image = UIImage(bundleImageName: "Components/Search/SearchCloseIcon") ?? UIImage(systemName: "xmark")
+        let image = DivoImage.searchCloseIcon
         button.setImage(image, for: .normal)
-        button.tintColor = .black
+        button.tintColor = DivoColorPalette.primaryText
         button.layer.applyDivoShadow()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -96,7 +96,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     private let resultsContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.card
         view.clipsToBounds = true
         view.layer.applyDivoShadow(radius: DivoDesignTokens.Shadow.radiusLarge)
@@ -118,7 +118,7 @@ final class ModelsSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = DivoColorPalette.accent
         button.layer.cornerRadius = 26 // TODO: DS alignment — не в шкале Radius
-        let image = UIImage(bundleImageName: "Components/Search/FaceScan") ?? UIImage(systemName: "person.fill.viewfinder")
+        let image = DivoImage.searchFaceScan
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.accentSecondary
         button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
@@ -129,7 +129,7 @@ final class ModelsSearchNode: ASDisplayNode {
     private let resultsCountLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 16, weight: .bold)
-        label.textColor = .black
+        label.textColor = DivoColorPalette.primaryText
         label.isHidden = true
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -187,7 +187,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let emptyStateIconContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.sheet
         view.layer.applyDivoShadow(opacity: 0.05) // TODO: DS alignment — non-DS opacity
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -226,7 +226,7 @@ final class ModelsSearchNode: ASDisplayNode {
     
     private let activeFiltersContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = 18 // TODO: DS alignment — не в шкале Radius
         view.layer.applyDivoShadow()
         view.isHidden = true
@@ -307,6 +307,7 @@ final class ModelsSearchNode: ASDisplayNode {
     deinit {
         NotificationCenter.default.removeObserver(self)
         searchTimer?.invalidate()
+        currentTask?.cancel()
     }
     
     
@@ -596,7 +597,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
     func hideFiltersButtonLoading() {
         filterButton.isEnabled = true
-        filterButton.setImage(UIImage(bundleImageName: "Components/Search/FilterIcon"), for: .normal)
+        filterButton.setImage(DivoImage.searchFilterIcon, for: .normal)
         filterButtonLoader.stopAnimating()
         filterButtonLoader.isHidden = true
     }
@@ -772,12 +773,6 @@ final class ModelsSearchNode: ASDisplayNode {
         }
     }
     
-    private static func flag(for countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2 else { return "" }
-        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
-        }
-    }
 
     // MARK: - Snackbar
 
@@ -861,15 +856,15 @@ extension ModelsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
         guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GridCell", for: indexPath) as? SearchResultGridCell else {
             return UICollectionViewCell()
         }
-        if let countryName = currentGridResults[indexPath.item].user?.city?.countryName {
-            cell.configure(
-                with: currentGridResults[indexPath.item],
-                county: "\(Self.flag(for: currentGridResults[indexPath.item].user?.city?.countryCode))"+" \(countryName)")
+        let item = currentGridResults[indexPath.item]
+        let flag = CountryHelper.emojiFlag(for: item.user?.city?.countryCode)
+        let county: String
+        if let countryName = item.user?.city?.countryName {
+            county = "\(flag) \(countryName)"
         } else {
-            cell.configure(
-                with: currentGridResults[indexPath.item],
-                county: "\(Self.flag(for: currentGridResults[indexPath.item].user?.city?.countryCode))")
+            county = flag
         }
+        cell.configure(with: item, county: county)
         return cell
     }
         

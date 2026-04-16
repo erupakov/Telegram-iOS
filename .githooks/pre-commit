@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# DIVO pre-commit hook: гоняем lint перед каждым коммитом.
+#
+# Установка: scripts/divo/install_hooks.sh (один раз на клон).
+# Обход (только в крайнем случае): git commit --no-verify
+#
+# Проверки прогоняются по всему репо, а не по staged-файлам, т.к. нарушения
+# R1/R2/R3/R5 не всегда локализованы в diff'е коммита (удалил .imageset —
+# broken R5 в unstaged файле). Полный прогон занимает <1 секунды.
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "[divo pre-commit] python3 не найден в PATH — пропускаю lint." >&2
+    exit 0
+fi
+
+python3 scripts/divo/lint_divo_images.py

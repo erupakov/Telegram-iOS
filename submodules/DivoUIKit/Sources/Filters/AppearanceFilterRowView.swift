@@ -47,7 +47,7 @@ public final class AppearanceFilterRowView: UIView {
         addSubview(valueLabel)
 
         let chevronImageView = UIImageView()
-        chevronImageView.image = UIImage(bundleImageName: "Components/Search/ChevronRight") ?? UIImage(systemName: "chevron.right")
+        chevronImageView.image = DivoImage.searchChevronRight
         chevronImageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         chevronImageView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(chevronImageView)

@@ -15,7 +15,7 @@ final class DateSelectionControl: UIControl {
     
     private let iconImageView: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Components/Calendar")
+        iv.image = DivoImage.calendar
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv

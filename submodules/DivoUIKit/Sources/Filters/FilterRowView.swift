@@ -42,7 +42,7 @@ public final class FilterRowView: UIView {
 
         titleLabel.text = title
 
-        let chevron = UIImageView(image: UIImage(bundleImageName: "Components/Search/ChevronRight") ?? UIImage(systemName: "chevron.right"))
+        let chevron = UIImageView(image: DivoImage.searchChevronRight)
         chevron.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         chevron.setContentHuggingPriority(.required, for: .horizontal)
         chevron.frame = CGRect(x: 0, y: 0, width: 20, height: 20)

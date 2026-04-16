@@ -24,7 +24,7 @@ final class ExperienceView: UIView {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.image = UIImage(bundleImageName: "Components/EmptyImageWork")
+        iv.image = DivoImage.emptyImageWork
         iv.isHidden = true
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -50,7 +50,7 @@ final class ExperienceView: UIView {
     
     private let optionsButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setImage(UIImage(bundleImageName: "Components/MoreActionIconBlack"), for: .normal)
+        btn.setImage(DivoImage.moreActionIconBlack, for: .normal)
         btn.tintColor = DivoColorPalette.primaryText
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
@@ -181,14 +181,14 @@ final class ExperienceView: UIView {
         if #available(iOS 14.0, *) {
             let editAction = UIAction(
                 title: DivoStrings.edit,
-                image: UIImage(bundleImageName: "Components/Pencil")
+                image: DivoImage.pencil,
             ) {[weak self] _ in
                 self?.onEditTapped?()
             }
             
             let deleteAction = UIAction(
                 title: DivoStrings.delete,
-                image: UIImage(bundleImageName: "Components/BasketWork"),
+                image: DivoImage.basketWork,
                 attributes: .destructive
             ) { [weak self] _ in
                 self?.onDeleteTapped?()

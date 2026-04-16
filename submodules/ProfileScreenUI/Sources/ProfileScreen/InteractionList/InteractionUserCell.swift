@@ -29,7 +29,7 @@ final class InteractionUserCell: UITableViewCell {
 
     private let premiumBadge: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(bundleImageName: "Components/CrownPremium")
+        iv.image = DivoImage.crownPremium
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv

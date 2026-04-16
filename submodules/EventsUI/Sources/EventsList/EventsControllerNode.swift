@@ -185,7 +185,7 @@ final class EventsControllerNode: ASDisplayNode {
         container.addSubview(circleView)
 
         let iconImageView = UIImageView()
-        iconImageView.image = UIImage(bundleImageName: "Components/IconEvents")?.withRenderingMode(.alwaysTemplate)
+        iconImageView.image = DivoImage.iconEvents.withRenderingMode(.alwaysTemplate)
         iconImageView.tintColor = theme.list.itemSecondaryTextColor
         iconImageView.contentMode = .scaleAspectFit
         iconImageView.translatesAutoresizingMaskIntoConstraints = false

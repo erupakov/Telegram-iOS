@@ -165,7 +165,7 @@ final class EditProfileNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.backgroundColor = DivoColorPalette.cardBackground
         button.translatesAutoresizingMaskIntoConstraints = false
-        let image = UIImage(bundleImageName: "Components/AddPhotoIcon")
+        let image = DivoImage.addPhotoIcon
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.accent
         button.layer.cornerRadius = DivoDesignTokens.Radius.l

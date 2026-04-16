@@ -149,15 +149,12 @@ public final class DivoSettingsController: TelegramBaseController {
             name: "",
             age: 0,
             location: "",
-            mainImageName: "",
-            avatarImageName: "",
             isVerified: false,
             likesCount: "0",
             viewsCount: "0",
             savesCount: "0",
             biography: "",
             socialMediaHandles: [],
-            galleryImageNames: [],
             isMyProfile: true
         )
         let profileController = PublicProfileScreenController(context: context, model: profileModel)

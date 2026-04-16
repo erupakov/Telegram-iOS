@@ -7,6 +7,7 @@
 
 import UIKit
 import Display
+import DivoUIKit
 
 final class GalleryStatusView: UIControl {
     
@@ -31,7 +32,7 @@ final class GalleryStatusView: UIControl {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.tintColor = .white
-        imageView.image = UIImage(bundleImageName: "Components/AddPhotoIcon")
+        imageView.image = DivoImage.addPhotoIcon
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isUserInteractionEnabled = false
         return imageView

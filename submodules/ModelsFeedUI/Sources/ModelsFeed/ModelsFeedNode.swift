@@ -163,11 +163,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private var stories: [StoryModel] {
         [
-            StoryModel(name: DivoStrings.addStory, avatarName: "Components/AddStoryAvatar", isLive: false, isAdd: true),
-            StoryModel(name: "Jack D.", avatarName: "Components/image5", isLive: false, isAdd: false),
-            StoryModel(name: "Joshua", avatarName: "", isLive: false, isAdd: false),
-            StoryModel(name: "waggles", avatarName: "", isLive: true, isAdd: false),
-            StoryModel(name: "steve.loves", avatarName: "", isLive: true, isAdd: false),
+            StoryModel(name: DivoStrings.addStory, avatar: nil, isLive: false, isAdd: true),
+            StoryModel(name: "Jack D.", avatar: DivoImage.storyAvatarStub5, isLive: false, isAdd: false),
+            StoryModel(name: "Joshua", avatar: nil, isLive: false, isAdd: false),
+            StoryModel(name: "waggles", avatar: nil, isLive: true, isAdd: false),
+            StoryModel(name: "steve.loves", avatar: nil, isLive: true, isAdd: false),
         ]
     }
 
@@ -345,7 +345,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                 let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
                 iv.image = UIImage(systemName: "plus", withConfiguration: config)
                 iv.tintColor = .black
-            } else if let img = UIImage(named: story.avatarName) {
+            } else if let img = story.avatar {
                 iv.image = img
             }
             floatingAvatars.append(iv)

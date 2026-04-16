@@ -105,8 +105,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
             }
             contentView.addSubview(addOverlay)
         } else {
-            let image = UIImage(named: model.avatarName) ?? UIImage(bundleImageName: model.avatarName)
-            if let image = image {
+            if let image = model.avatar {
                 avatarImageView.image = image
                 avatarImageView.contentMode = .scaleAspectFill
             }

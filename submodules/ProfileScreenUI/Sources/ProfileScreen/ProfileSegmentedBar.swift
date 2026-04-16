@@ -1,4 +1,5 @@
 import UIKit
+import DivoUIKit
 
 enum ProfileTab: Int {
     case photo = 0
@@ -38,23 +39,23 @@ final class ProfileSegmentedBar: UIView {
     private var indicatorCenterXConstraint: NSLayoutConstraint?
     private var indicatorWidthConstraint: NSLayoutConstraint!
     
-    private let myProfileIconNames: [String] = [
-        "Components/GridIcon",
-        "Components/FilmstripIcon"
+    private let myProfileIcons: [UIImage] = [
+        DivoImage.gridIcon,
+        DivoImage.filmstripIcon
     ]
-    
-    private let modelIconNames: [String] = [
-        "Components/GridIcon",
-        "Components/FilmstripIcon",
-        "Components/SaveMedia"
+
+    private let modelIcons: [UIImage] = [
+        DivoImage.gridIcon,
+        DivoImage.filmstripIcon,
+        DivoImage.saveMedia
     ]
-    
-    private let agencyIconNames: [String] = [
-        "Components/GridIcon",
-        "Components/FilmstripIcon",
-        "Components/AssociatedModels",
-        "Components/SaveMedia",
-        "Components/EventsAgency"
+
+    private let agencyIcons: [UIImage] = [
+        DivoImage.gridIcon,
+        DivoImage.filmstripIcon,
+        DivoImage.associatedModels,
+        DivoImage.saveMedia,
+        DivoImage.eventsAgency
     ]
     
     private var imageViews: [UIImageView] = []
@@ -106,26 +107,25 @@ final class ProfileSegmentedBar: UIView {
     }
     
     func configure(isAgency: Bool, isMyProfile: Bool, animated: Bool = true) {
-        let icons = isAgency ? agencyIconNames : (isMyProfile ? myProfileIconNames : modelIconNames)
-        
+        let icons = isAgency ? agencyIcons : (isMyProfile ? myProfileIcons : modelIcons)
+
         guard imageViews.count != icons.count else { return }
-        
+
         let updateActions = {
             self.buttonStack.arrangedSubviews.forEach {
                 self.buttonStack.removeArrangedSubview($0)
                 $0.removeFromSuperview()
             }
             self.imageViews.removeAll()
-            
-            for (index, iconName) in icons.enumerated() {
+
+            for (index, icon) in icons.enumerated() {
                 let containerView = UIView()
                 containerView.translatesAutoresizingMaskIntoConstraints = false
                 containerView.tag = index
-                
+
                 let iconImageView: UIImageView = {
                     let iv = UIImageView()
-                    let iconImage = UIImage(bundleImageName: iconName)?.withRenderingMode(.alwaysTemplate)
-                    iv.image = iconImage
+                    iv.image = icon.withRenderingMode(.alwaysTemplate)
                     iv.contentMode = .scaleAspectFit
                     iv.translatesAutoresizingMaskIntoConstraints = false
                     return iv

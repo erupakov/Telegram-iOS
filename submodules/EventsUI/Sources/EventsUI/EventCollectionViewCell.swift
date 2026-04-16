@@ -244,8 +244,8 @@ class ImageGalleryCell: UICollectionViewCell {
         ])
     }
 
-    func configure(with imageName: String) {
-        imageView.image = UIImage(bundleImageName: imageName)
+    func configure(with image: UIImage?) {
+        imageView.image = image
     }
 }
 

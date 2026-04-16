@@ -10,6 +10,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
+        "//submodules/AppBundle:AppBundle",
         "//submodules/Display:Display",
         "//submodules/DivoCore:DivoCore",
     ],

@@ -73,7 +73,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.image = UIImage(bundleImageName: "Components/EmptyImageWork")
+        iv.image = DivoImage.emptyImageWork
         iv.isHidden = false
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
