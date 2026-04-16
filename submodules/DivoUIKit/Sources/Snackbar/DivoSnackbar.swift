@@ -6,51 +6,12 @@ public final class DivoSnackbar {
         case error
     }
 
-    // MARK: - Global keyboard tracking
-
-    /// Глобальный трекер рамки клавиатуры в координатах окна.
-    /// Нужен, чтобы `show` знал текущую позицию клавиатуры даже если был вызван между нотификациями.
-    private static let keyboardTracker: KeyboardTracker = KeyboardTracker()
-
-    /// Прогревает глобальный keyboard-трекер. Вызывать при `loadDisplayNode`/`viewDidLoad`
-    /// экрана, где может одновременно быть клавиатура и snackbar, иначе при ленивой
-    /// инициализации трекер пропустит первое `keyboardWillChangeFrame` и не поднимет снек.
-    public static func prepareKeyboardTracking() {
-        _ = keyboardTracker
-    }
-
-    private final class KeyboardTracker {
-        private(set) var currentFrame: CGRect = .zero
-
-        init() {
-            let nc = NotificationCenter.default
-            nc.addObserver(self, selector: #selector(keyboardWillChange(_:)),
-                           name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-            nc.addObserver(self, selector: #selector(keyboardWillHide(_:)),
-                           name: UIResponder.keyboardWillHideNotification, object: nil)
-        }
-
-        @objc private func keyboardWillChange(_ note: Notification) {
-            if let frame = (note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
-                currentFrame = frame
-            }
-        }
-
-        @objc private func keyboardWillHide(_ note: Notification) {
-            currentFrame = .zero
-        }
-    }
-
-    // MARK: - Instance state
-
     private weak var hostView: UIView?
     private var snackbarView: UIView?
     private var hidingSnackbarView: UIView?
     private var hideTimer: Foundation.Timer?
     private var retryAction: (() -> Void)?
     private var bottomConstraint: NSLayoutConstraint?
-    private var baseBottomInset: CGFloat = 0
-    private var keyboardObservers: [NSObjectProtocol] = []
     private var currentMessage: String?
     private var currentStyle: Style?
 
@@ -66,9 +27,7 @@ public final class DivoSnackbar {
         retryAction: (() -> Void)? = nil,
         persistent: Bool = false
     ) {
-        // Убедимся, что глобальный трекер инициализирован
-        _ = DivoSnackbar.keyboardTracker
-
+        // Дедупликация: если тот же снек уже на экране — не переанимировать
         if snackbarView != nil, currentMessage == message, currentStyle == style {
             self.retryAction = retryAction
             hideTimer?.invalidate()
@@ -112,7 +71,6 @@ public final class DivoSnackbar {
         self.snackbarView = snack
         self.currentMessage = message
         self.currentStyle = style
-        self.baseBottomInset = bottomInset
         hostView.addSubview(snack)
         hostView.bringSubviewToFront(snack)
 
@@ -155,18 +113,12 @@ public final class DivoSnackbar {
             ])
         }
 
-        // Первичный layout + учёт клавиатуры, если она уже поднята к моменту show
-        hostView.layoutIfNeeded()
-        applyKeyboardOffset(animated: false, notification: nil)
-
         snack.alpha = 0
         snack.transform = CGAffineTransform(translationX: 0, y: 30)
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3, options: []) {
             snack.alpha = 1
             snack.transform = .identity
         }
-
-        registerKeyboardObservers()
 
         hideTimer?.invalidate()
         if !persistent {
@@ -177,8 +129,7 @@ public final class DivoSnackbar {
     }
 
     public func updateBottomInset(_ inset: CGFloat) {
-        baseBottomInset = inset
-        applyKeyboardOffset(animated: false, notification: nil)
+        bottomConstraint?.constant = -inset
     }
 
     public func bringToFront() {
@@ -189,7 +140,6 @@ public final class DivoSnackbar {
     public func hide(animated: Bool = true) {
         hideTimer?.invalidate()
         hideTimer = nil
-        removeKeyboardObservers()
         guard let snack = snackbarView else { return }
         snackbarView = nil
         retryAction = nil
@@ -210,75 +160,6 @@ public final class DivoSnackbar {
         } else {
             snack.removeFromSuperview()
         }
-    }
-
-    // MARK: - Keyboard tracking
-
-    /// Пересчитывает `bottomConstraint.constant` так, чтобы snack оказался не ниже
-    /// `keyboardTop - baseBottomInset`. Работает независимо от того, какой anchor передан в show.
-    private func applyKeyboardOffset(animated: Bool, notification: Notification?) {
-        guard let hostView = hostView,
-              let snack = snackbarView,
-              let bottomConstraint = bottomConstraint else { return }
-
-        // Сбрасываем на «нейтральное» значение, чтобы измерить естественную позицию snack
-        bottomConstraint.constant = -baseBottomInset
-        hostView.layoutIfNeeded()
-
-        let keyboardFrameInWindow: CGRect
-        if let notification,
-           let endFrame = (notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue {
-            keyboardFrameInWindow = endFrame
-        } else {
-            keyboardFrameInWindow = DivoSnackbar.keyboardTracker.currentFrame
-        }
-
-        let isKeyboardVisible = keyboardFrameInWindow != .zero
-            && (notification?.name != UIResponder.keyboardWillHideNotification)
-
-        var lift: CGFloat = 0
-        if isKeyboardVisible {
-            let keyboardInHost = hostView.convert(keyboardFrameInWindow, from: nil)
-            let snackMaxY = snack.frame.maxY
-            lift = max(0, snackMaxY - keyboardInHost.minY + baseBottomInset)
-        }
-
-        let newConstant = -(baseBottomInset + lift)
-        guard abs(newConstant - bottomConstraint.constant) > 0.5 else { return }
-
-        bottomConstraint.constant = newConstant
-
-        if animated, let notification {
-            let duration = (notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.25
-            let rawCurve = (notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? NSNumber)?.uintValue
-                ?? UInt(UIView.AnimationCurve.easeInOut.rawValue)
-            let options = UIView.AnimationOptions(rawValue: rawCurve << 16)
-            UIView.animate(withDuration: duration, delay: 0, options: options, animations: {
-                hostView.layoutIfNeeded()
-            })
-        } else {
-            hostView.layoutIfNeeded()
-        }
-    }
-
-    private func registerKeyboardObservers() {
-        removeKeyboardObservers()
-        let nc = NotificationCenter.default
-
-        let change = nc.addObserver(forName: UIResponder.keyboardWillChangeFrameNotification,
-                                    object: nil, queue: .main) { [weak self] note in
-            self?.applyKeyboardOffset(animated: true, notification: note)
-        }
-        let hideObs = nc.addObserver(forName: UIResponder.keyboardWillHideNotification,
-                                     object: nil, queue: .main) { [weak self] note in
-            self?.applyKeyboardOffset(animated: true, notification: note)
-        }
-        keyboardObservers = [change, hideObs]
-    }
-
-    private func removeKeyboardObservers() {
-        keyboardObservers.forEach { NotificationCenter.default.removeObserver($0) }
-        keyboardObservers.removeAll()
     }
 
     @objc private func snackbarTapped() {

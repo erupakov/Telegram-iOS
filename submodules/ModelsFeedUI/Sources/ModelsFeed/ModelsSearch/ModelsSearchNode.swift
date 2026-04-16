@@ -310,6 +310,7 @@ final class ModelsSearchNode: ASDisplayNode {
     var onSearchCleared: (() -> Void)?
     
     private var searchTimer: Timer?
+    private var currentKeyboardHeight: CGFloat = 0
     private var loaderDelayTimer: Timer?
     
     enum SearchMode {
@@ -973,18 +974,34 @@ final class ModelsSearchNode: ASDisplayNode {
     @objc private func keyboardWillShow(notification: NSNotification) {
         guard let userInfo = notification.userInfo,
               let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        
+
+        currentKeyboardHeight = keyboardFrame.height
+
         UIView.animate(withDuration: 0.3) {
             let safeAreaBottom = self.view.safeAreaInsets.bottom
             self.faceScanButtonBottomConstraint?.constant = -(keyboardFrame.height - safeAreaBottom + 16)
             self.view.layoutIfNeeded()
         }
+
+        snackbar.updateBottomInset(snackbarBottomInset)
     }
-    
+
     @objc private func keyboardWillHide(notification: NSNotification) {
+        currentKeyboardHeight = 0
+
         UIView.animate(withDuration: 0.3) {
             self.faceScanButtonBottomConstraint?.constant = -16
             self.view.layoutIfNeeded()
+        }
+
+        snackbar.updateBottomInset(snackbarBottomInset)
+    }
+
+    private var snackbarBottomInset: CGFloat {
+        if currentKeyboardHeight > 0 {
+            return currentKeyboardHeight - view.safeAreaInsets.bottom + 16
+        } else {
+            return 16
         }
     }
     
@@ -996,19 +1013,12 @@ final class ModelsSearchNode: ASDisplayNode {
     private let snackbar = DivoSnackbar()
 
     func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
-        let bottomAnchor: NSLayoutYAxisAnchor
-        if #available(iOS 15.0, *) {
-            bottomAnchor = view.keyboardLayoutGuide.topAnchor
-        } else {
-            bottomAnchor = view.safeAreaLayoutGuide.bottomAnchor
-        }
-        
         snackbar.show(
             in: self.view,
             message: message,
             style: style,
-            bottomInset: 16,
-            bottomAnchor: bottomAnchor,
+            bottomInset: snackbarBottomInset,
+            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
             persistent: persistent

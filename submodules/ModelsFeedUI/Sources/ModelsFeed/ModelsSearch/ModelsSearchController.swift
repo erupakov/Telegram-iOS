@@ -73,11 +73,6 @@ public class ModelsSearchController: ViewController {
     }
     
     override public func loadDisplayNode() {
-        // Прогреваем keyboard-трекер снекбара заранее: иначе при первом показе
-        // snackbar'а (ошибка автокомплита) трекер пропустит уже отправленное
-        // keyboardWillChangeFrame и снек окажется под клавиатурой.
-        DivoSnackbar.prepareKeyboardTracking()
-
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
 
         // MARK: - Bindings
@@ -140,6 +135,7 @@ public class ModelsSearchController: ViewController {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
     }
+
     
     private func openFaceRecognition() {
         let vc = FaceRecognitionController(context: self.context)

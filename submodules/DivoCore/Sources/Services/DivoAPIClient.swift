@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 public final class DivoAPIClient {
     public static let shared = DivoAPIClient()
@@ -7,9 +8,32 @@ public final class DivoAPIClient {
     private let baseURL: URL
     private let logger = DivoRequestLogger.shared
 
+    private let networkMonitor = NWPathMonitor()
+    private let connectivityLock = NSLock()
+    private var _isNetworkSatisfied = true
+
+    private var isNetworkSatisfied: Bool {
+        connectivityLock.lock()
+        defer { connectivityLock.unlock() }
+        return _isNetworkSatisfied
+    }
+
     private init() {
         self.baseURL = DivoConfig.baseURL
         self.session = URLSession.shared
+        networkMonitor.pathUpdateHandler = { [weak self] path in
+            guard let self else { return }
+            self.connectivityLock.lock()
+            self._isNetworkSatisfied = (path.status == .satisfied)
+            self.connectivityLock.unlock()
+        }
+        networkMonitor.start(queue: DispatchQueue(label: "DivoAPIClient.networkMonitor"))
+    }
+
+    private func checkConnectivity() throws {
+        guard isNetworkSatisfied else {
+            throw DivoAPIError.noInternetConnection
+        }
     }
 
     public func request<T: Decodable>(
@@ -24,6 +48,7 @@ public final class DivoAPIClient {
         method: String = "GET",
         body: (some Encodable)?
     ) async throws -> T {
+        try checkConnectivity()
         let url = URL(string: baseURL.absoluteString + path)!
         var request = URLRequest(url: url)
         request.httpMethod = method
@@ -94,6 +119,7 @@ public final class DivoAPIClient {
         method: String = "GET",
         body: (some Encodable)?
     ) async throws -> Data {
+        try checkConnectivity()
         let url = URL(string: baseURL.absoluteString + path)!
         var request = URLRequest(url: url)
         request.httpMethod = method
@@ -163,6 +189,7 @@ public final class DivoAPIClient {
         fileName: String = "photo.jpg",
         mimeType: String = "image/jpeg"
     ) async throws -> T {
+        try checkConnectivity()
         let url = URL(string: baseURL.absoluteString + path)!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -239,11 +266,13 @@ public final class DivoAPIClient {
 
 public enum DivoAPIError: Error, LocalizedError {
     case httpError(statusCode: Int, body: String = "")
+    case noInternetConnection
     case unknown
 
     public var errorDescription: String? {
         switch self {
         case .httpError(let code, _): return "HTTP \(code)"
+        case .noInternetConnection: return "No internet connection"
         case .unknown: return "Unknown API error"
         }
     }
