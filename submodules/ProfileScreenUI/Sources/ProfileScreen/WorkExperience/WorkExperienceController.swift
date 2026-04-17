@@ -43,7 +43,7 @@ public final class WorkExperienceController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: DivoColorPalette.accentCopperDeep,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
             primaryTextColor: .white,
             backgroundColor: .clear,
             opaqueBackgroundColor: .clear,

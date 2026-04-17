@@ -52,7 +52,7 @@ public class ProfileGalleryController: TelegramBaseController {
         let darkNavigationTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
             primaryTextColor: .white,
             backgroundColor: UIColor.black.withAlphaComponent(0.7),
             opaqueBackgroundColor: .black,

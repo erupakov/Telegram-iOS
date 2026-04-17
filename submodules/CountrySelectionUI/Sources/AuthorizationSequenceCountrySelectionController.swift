@@ -362,7 +362,7 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
         let darkNavTheme = NavigationBarTheme(
             overallDarkAppearance: true,
             buttonColor: DivoColorPalette.primaryTextOnDark,
-            disabledButtonColor: DivoColorPalette.disabledButtonBackground,
+            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
             primaryTextColor: DivoColorPalette.primaryTextOnDark,
             backgroundColor: DivoColorPalette.darkBackground,
             opaqueBackgroundColor: DivoColorPalette.darkBackground,
