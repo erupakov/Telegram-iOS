@@ -35,6 +35,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     private let userDetailData: UserDetail?
     private let updatePhoto: (UIImage?) -> Void
 
+    private var selectedAvatarImage: UIImage?
+    private var selectedAvatarUUID: String?
+
     weak var delegate: EditProfileDelegate?
     
     public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, updatePhoto: @escaping (UIImage?) -> Void) {
@@ -89,11 +92,24 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         self.editProfileNode.presentController = { [weak self] vc in
             self?.view.window?.rootViewController?.present(vc, animated: true)
         }
+        
+        self.editProfileNode.onAddWorkExperience = { [weak self] in
+            self?.openAddWorkExperience()
+        }
+        
+        self.editProfileNode.onEditWorkExperience = { [weak self] item in
+            self?.openEditWorkExperience(item: item)
+        }
+        
+        self.editProfileNode.onDeleteWorkExperience = { [weak self] itemId in
+            self?.deleteWorkExperience(itemId: itemId)
+        }
 
         self.displayNodeDidLoad()
 
         self.loadAppearanceDictionary()
         self.loadGenderDictionary()
+        self.loadWorkExperience()
     }
 
     private func loadAppearanceDictionary() {
@@ -135,8 +151,96 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         }
     }
     
-    private var selectedAvatarImage: UIImage?
-    private var selectedAvatarUUID: String?
+    private func loadWorkExperience() {
+        self.editProfileNode.setLoadingWorkExperience(true)
+        
+        Task { @MainActor in
+            do {
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history",
+                    method: "GET"
+                )
+                
+                await MainActor.run {
+                    self.editProfileNode.reloadWorkHistory(items: response.data.items)
+                }
+                self.fetchAgencyLogos(for: response.data.items)
+            } catch {
+                print("❌ Error loading work experience: \(error)")
+                // Пробуем загрузить legacy данные
+                if let userDetail = self.userDetailData {
+                    self.editProfileNode.reloadLegacyWorkHistory(model: userDetail)
+                } else {
+                    self.editProfileNode.setLoadingWorkExperience(false)
+                }
+            }
+        }
+    }
+
+    private func fetchAgencyLogos(for items:[WorkHistoryItem]) {
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for item in items {
+                    guard let agencyId = item.agencyId else { continue }
+                    
+                    group.addTask {
+                        var tempUrl: URL? = nil
+                        
+                        do {
+                            let response: AgencyDetailResponse = try await DivoAPIClient.shared.request(
+                                path: "/agency/\(agencyId)"
+                            )
+                            if let urlString = response.data.photo?.fullUrl {
+                                tempUrl = URL(string: urlString)
+                            }
+                        } catch {
+                            print("[DivoAPI] fetch agency \(agencyId) error: \(error)")
+                        }
+                        
+                        let finalUrl = tempUrl
+                        
+                        await MainActor.run {
+                            self.editProfileNode.updateAgencyLogo(itemId: item.id, url: finalUrl)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func openAddWorkExperience() {
+        let controller = AddWorkExperienceController(context: self.context)
+        controller.delegate = self
+        self.navigationController?.pushViewController(controller, animated: true)
+    }
+    
+    private func openEditWorkExperience(item: WorkHistoryItem) {
+        let controller = AddWorkExperienceController(context: self.context, editItem: item)
+        controller.delegate = self
+        self.navigationController?.pushViewController(controller, animated: true)
+    }
+
+    private func deleteWorkExperience(itemId: Int) {
+        Task { @MainActor in
+            do {
+                let _: WorkHistoryDeleteResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history/\(itemId)",
+                    method: "DELETE"
+                )
+                
+                // Обновляем локальные данные
+                var currentItems = self.editProfileNode.workRawItems
+                currentItems.removeAll { $0.id == itemId }
+                self.editProfileNode.reloadWorkHistory(items: currentItems)
+            } catch {
+                print("❌ Error deleting work experience: \(error)")
+                self.editProfileNode.showSnackbar(
+                    message: DivoStrings.failedToDelete,
+                    style: .error
+                )
+            }
+        }
+    }
 
     private func openPhotoGallery() {
         print("📸 Opening photo gallery...")
@@ -332,5 +436,16 @@ extension UIImage {
         let fixed = UIGraphicsGetImageFromCurrentImageContext() ?? self
         UIGraphicsEndImageContext()
         return fixed
+    }
+}
+
+
+extension EditProfileController: AddWorkExperienceDelegate {
+    func didUpdateWorkExperience(isEdit: Bool) {
+        self.loadWorkExperience()
+        self.editProfileNode.showSnackbar(
+            message: isEdit ? DivoStrings.workHistoryUpdated : DivoStrings.workHistoryCreate,
+            style: .success
+        )
     }
 }

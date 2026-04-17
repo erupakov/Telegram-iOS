@@ -114,7 +114,7 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         
         navigationBar.makeNavigationBar(
             title: DivoStrings.editSocialLinks.uppercased(),
-            backButtonConfiguration: .circle("chevron.left"),
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
             onBackTapped: { [weak self] in self?.onBackTapped?() }
         )
 

@@ -6,12 +6,12 @@ import UIKit
 import Display
 
 public enum BackButtonConfiguration {
-    case circle(String)
+    case circle(UIImage)
     case circleWithText
 }
 
 public enum RightButtonConfiguration {
-    case circle(UIColor, UIColor, String)
+    case circle(UIColor, UIColor, UIImage, DivoButtonStyle)
     case text(String)
 }
 
@@ -76,8 +76,9 @@ public final class DivoNavigationBar: UIView {
     }()
     
     private let textRightButton: UIButton = {
-        let btn = UIButton(type: .system)
+        let btn = UIButton(type: .custom)
         btn.setTitleColor(DivoColorPalette.accent, for: .normal)
+        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.regular(15)
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
@@ -86,7 +87,6 @@ public final class DivoNavigationBar: UIView {
     public override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
-        setupInteractions()
     }
     
     public required init?(coder: NSCoder) {
@@ -129,21 +129,13 @@ public final class DivoNavigationBar: UIView {
             textRightButton.heightAnchor.constraint(equalToConstant: 40),
         ])
     }
-    
-    private func setupInteractions() {
-        backTextButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-        circleRightButton.addTarget(self, action: #selector(circleRightTapped), for: .touchUpInside)
-        textRightButton.addTarget(self, action: #selector(circleTextTapped), for: .touchUpInside)
-        
-        for button in [backTextButton, backButton, circleRightButton, textRightButton] {
-            button.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-            button.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
-        }
-    }
-    
+
     public func setTitle(_ title: String) {
         titleLabel.text = title.uppercased()
+    }
+
+    public func setEnableRightButton(_ isEnabled: Bool) {
+        textRightButton.isEnabled = isEnabled
     }
     
     public func makeNavigationBar(
@@ -158,14 +150,15 @@ public final class DivoNavigationBar: UIView {
         self.titleLabel.text = title
         self.titleLabel.font = font
         switch backButtonConfiguration {
-        case .circle(let iamgeName):
+        case .circle(let image):
             backButton.isHidden = false
             backTextButton.isHidden = true
-            
-            let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-            let image = UIImage(systemName: iamgeName, withConfiguration: config)
+
             backButton.setImage(image, for: .normal)
             backButton.tintColor = DivoColorPalette.primaryText
+
+            backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+            backButton.addDivoPressState(.pill)
             
         case .circleWithText:
             backButton.isHidden = true
@@ -175,20 +168,24 @@ public final class DivoNavigationBar: UIView {
             backTextButton.isHidden = true
         }
         switch rightButtonConfiguration {
-        case .circle(let backgroundColor, let titleColor, let imageName):
+        case .circle(let backgroundColor, let titleColor, let image, let style):
             circleRightButton.isHidden = false
             textRightButton.isHidden = true
             
-            let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-            let image = UIImage(systemName: imageName, withConfiguration: config)
             circleRightButton.setImage(image, for: .normal)
             circleRightButton.tintColor = titleColor
             circleRightButton.backgroundColor = backgroundColor
-            
+
+            circleRightButton.addTarget(self, action: #selector(circleRightTapped), for: .touchUpInside)
+            circleRightButton.addDivoPressState(style)
+
         case .text(let title):
             circleRightButton.isHidden = true
             textRightButton.isHidden = false
             textRightButton.setTitle(title, for: .normal)
+
+            textRightButton.addTarget(self, action: #selector(circleTextTapped), for: .touchUpInside)
+            textRightButton.addDivoPressState(.text)
         case .none:
             circleRightButton.isHidden = true
             textRightButton.isHidden = true
@@ -208,19 +205,5 @@ public final class DivoNavigationBar: UIView {
     
     @objc private func circleTextTapped() {
         onCircleTextTapped?()
-    }
-
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1) {
-            sender.alpha = 0.7
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        }
-    }
-
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2) {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        }
     }
 }

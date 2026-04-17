@@ -82,8 +82,8 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         navigationBar.makeNavigationBar(
             title: title,
             font: Font.medium(16),
-            backButtonConfiguration: isOpenPresent ? .circle("xmark") : .circle("chevron.left"),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.primaryTextOnDark, "checkmark"),
+            backButtonConfiguration: isOpenPresent ? .circle(DivoImage.searchCloseIcon) : .circle(DivoImage.searchChevronLeft),
+            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.whiteСheckmark, .primary),
             onBackTapped: isOpenPresent ?
             { [weak self] in
                 self?.navigationController?.dismiss(animated: true)

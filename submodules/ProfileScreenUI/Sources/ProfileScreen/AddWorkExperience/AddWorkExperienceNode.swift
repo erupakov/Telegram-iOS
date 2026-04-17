@@ -268,7 +268,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         
         navigationBar.makeNavigationBar(
             title: editItem != nil ? DivoStrings.navEditExperience.uppercased() : DivoStrings.navCreateExperience.uppercased(),
-            backButtonConfiguration: .circle("chevron.left"),
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
             rightButtonConfiguration: editItem != nil ? .text(DivoStrings.save) : .text(DivoStrings.create),
             onBackTapped: { [weak self] in self?.onBackTapped?() },
             onCircleTextTapped: { [weak self] in self?.applyButtonTapped() }
@@ -549,7 +549,12 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     }
     
     private func updateApplyButtonState() {
-        guard let startTime = startTime, let endTime = endTime else { return applyButton.isEnabled = false }
+        guard let startTime = startTime, let endTime = endTime 
+        else { 
+            navigationBar.setEnableRightButton(false)
+            applyButton.isEnabled = false 
+            return
+        }
         let isAgencyNameFilled = !(nameEventTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
         
         let isAgencySelected = selectedAgencyId != nil
@@ -564,6 +569,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         }
         
         let isFormValid = isAgencyNameFilled && isAgencySelected && isStartDateFilled && isEndDateValid
+        navigationBar.setEnableRightButton(isFormValid)
         applyButton.isEnabled = isFormValid
         
     }

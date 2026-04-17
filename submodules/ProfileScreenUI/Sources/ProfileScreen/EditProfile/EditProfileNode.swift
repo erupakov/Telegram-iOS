@@ -73,7 +73,6 @@ final class EditProfileNode: ASDisplayNode {
         stack.axis = .vertical
         stack.spacing = 20
         stack.isLayoutMarginsRelativeArrangement = true
-        stack.layoutMargins = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right: DivoDesignTokens.Spacing.m)
         stack.insetsLayoutMarginsFromSafeArea = false
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
@@ -105,6 +104,7 @@ final class EditProfileNode: ASDisplayNode {
         sv.translatesAutoresizingMaskIntoConstraints = false
         sv.clipsToBounds = false
         sv.isScrollEnabled = false
+        sv.contentInsetAdjustmentBehavior = .never 
         return sv
     }()
     
@@ -134,6 +134,66 @@ final class EditProfileNode: ASDisplayNode {
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
+    
+    // MARK: - Work Experience UI (перенесено из WorkExperienceNode)
+    
+    private let workListBackgroundContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.clipsToBounds = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let workListStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
+    private let workEmptyStateContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true 
+        return view
+    }()
+
+    private var workEmptyStateHeightConstraint: NSLayoutConstraint?
+
+    private let workEmptyTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(26)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.noWorkExperienceYet.uppercased()
+        label.numberOfLines = 2
+        return label
+    }()
+    
+    private let workEmptySubTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.medium(16)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.noWorkExperienceSubtitle
+        label.numberOfLines = 3
+        return label
+    }()
+    
+    var workRawItems: [WorkHistoryItem] = []
+    private var workHasStructuredData = false
+    private var workIsLoading = true
+    private let workShimmerCount = 4
+    private var workExperienceCells: [Int: ExperienceView] = [:]
+    
+    var onEditWorkExperience: ((WorkHistoryItem) -> Void)?
+    var onDeleteWorkExperience: ((Int) -> Void)?
+    var onAddWorkExperience: (() -> Void)?
     
     
     // MARK: - Biography UI
@@ -167,6 +227,7 @@ final class EditProfileNode: ASDisplayNode {
         button.translatesAutoresizingMaskIntoConstraints = false
         let image = DivoImage.addPhotoIcon
         button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
         button.tintColor = DivoColorPalette.accent
         button.layer.cornerRadius = DivoDesignTokens.Radius.l
         button.layer.borderColor = DivoColorPalette.accent.cgColor
@@ -284,6 +345,7 @@ final class EditProfileNode: ASDisplayNode {
     private var lastContainerSize: CGSize = .zero
     private var keyboardHandler: DivoKeyboardHandler?
 
+
     // MARK: - Init
     
     init(context: AccountContext, presentationData: PresentationData, model: UserDetail?) {
@@ -344,7 +406,7 @@ final class EditProfileNode: ASDisplayNode {
         self.selectedAge = calculateAge(from: model?.birthday ?? "")
         
         navigationBar.makeNavigationBar(
-            backButtonConfiguration: .circle("chevron.left"),
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
             onBackTapped: { [weak self] in self?.onBackTapped?() }
         )
 
@@ -389,13 +451,21 @@ final class EditProfileNode: ASDisplayNode {
         initialSnapshot = makeSnapshot()
         applyButton.isEnabled = false
 
-        DispatchQueue.main.async {
-            self.updatePagerHeight()
-            if self.model?.role != "agency_employee" {
-                self.segmentedControl.setIndicatorProgress(0)
-            }
-            self.readyValue = true
+        self.view.layoutIfNeeded()
+        self.updatePagerHeight(animated: false)
+
+        self.updateApplyButtonUI() 
+        
+        if self.model?.role != "agency_employee" {
+            self.segmentedControl.setSelectedIndex(self.selectedIndex, animated: false)
+            self.segmentedControl.setIndicatorProgress(CGFloat(self.selectedIndex))
+            
+            let stepSize = UIScreen.main.bounds.width
+            let targetOffsetX = CGFloat(self.selectedIndex) * stepSize
+            self.horizontalPager.setContentOffset(CGPoint(x: targetOffsetX, y: 0), animated: false)
         }
+        
+        self.readyValue = true
         
         updateAppearanceValues()
     }
@@ -406,11 +476,7 @@ final class EditProfileNode: ASDisplayNode {
             self?.setSelectedIndex(index, animated: true)
         }
 
-        if model?.role == "agency_employee" {
-            applyButton.addTarget(self, action: #selector(self.saveAgencyButtonPressed), for: .touchUpInside)
-        } else {
-            applyButton.addTarget(self, action: #selector(self.saveButtonPressed), for: .touchUpInside)
-        }
+        applyButton.addTarget(self, action: #selector(self.mainActionButtonPressed), for: .touchUpInside)
 
         chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
 
@@ -419,8 +485,7 @@ final class EditProfileNode: ASDisplayNode {
             self?.updateSaveButtonState()
         }
 
-        chancePhotoView.addTarget(self, action: #selector(buttonPressed(_:)), for: .touchDown)
-        chancePhotoView.addTarget(self, action: #selector(buttonReleased(_:)), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        chancePhotoView.addDivoPressState(.pill)
     }
         
     private func getAppearanceId(for title: String?, in list: [AppearanceOption]?) -> Int {
@@ -479,8 +544,18 @@ final class EditProfileNode: ASDisplayNode {
     }
     
     private func setupTabs() {
-        mainStackView.addArrangedSubview(segmentedControl)
+
+        let segmentedControlView = UIView()
+        segmentedControlView.translatesAutoresizingMaskIntoConstraints = false
+        mainStackView.addArrangedSubview(segmentedControlView)
+
+        segmentedControlView.addSubview(segmentedControl)
+
         segmentedControl.heightAnchor.constraint(equalToConstant: 32).isActive = true
+        segmentedControl.leadingAnchor.constraint(equalTo: segmentedControlView.leadingAnchor, constant: DivoDesignTokens.Spacing.m).isActive = true
+        segmentedControl.trailingAnchor.constraint(equalTo: segmentedControlView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
+        segmentedControl.topAnchor.constraint(equalTo: segmentedControlView.topAnchor).isActive = true
+        segmentedControl.bottomAnchor.constraint(equalTo: segmentedControlView.bottomAnchor).isActive = true
     }
     
     private func setupPager() {
@@ -504,22 +579,23 @@ final class EditProfileNode: ASDisplayNode {
             contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor),
             contentWidthView.heightAnchor.constraint(equalTo: horizontalPager.heightAnchor),
             
-            bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor),
+            bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             bioStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
-            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
+            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
             
-            appearanceStackView.leadingAnchor.constraint(equalTo: bioStackView.trailingAnchor, constant: 32),
-            appearanceStackView.trailingAnchor.constraint(equalTo: experienceStackView.leadingAnchor, constant: 32),
+            appearanceStackView.leadingAnchor.constraint(equalTo: bioStackView.trailingAnchor, constant: DivoDesignTokens.Spacing.xl),
             appearanceStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
-            appearanceStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
+            appearanceStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
+            appearanceStackView.trailingAnchor.constraint(equalTo: experienceStackView.leadingAnchor, constant: -DivoDesignTokens.Spacing.xl),
             
             experienceStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
-            experienceStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
-            experienceStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor)
+            experienceStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
+            experienceStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
         ])
         
         setupBioContent()
         setupAppearanceContent()
+        setupExperienceContent()
     }
     
     private func setupAgencyPager() {
@@ -540,10 +616,10 @@ final class EditProfileNode: ASDisplayNode {
             contentWidthView.trailingAnchor.constraint(equalTo: horizontalPager.trailingAnchor),
             contentWidthView.heightAnchor.constraint(equalTo: horizontalPager.heightAnchor),
 
-            bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor),
+            bioStackView.leadingAnchor.constraint(equalTo: contentWidthView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             bioStackView.topAnchor.constraint(equalTo: contentWidthView.topAnchor),
-            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor),
-            bioStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor)
+            bioStackView.widthAnchor.constraint(equalTo: horizontalPager.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
+            bioStackView.trailingAnchor.constraint(equalTo: contentWidthView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
         ])
         
         setupBioContent()
@@ -573,15 +649,15 @@ final class EditProfileNode: ASDisplayNode {
             avatarImageSpinnerView.widthAnchor.constraint(equalToConstant: 100),
             avatarImageSpinnerView.heightAnchor.constraint(equalToConstant: 100),
 
-            chancePhotoView.trailingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 4),
+            chancePhotoView.trailingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DivoDesignTokens.Spacing.xs),
             chancePhotoView.bottomAnchor.constraint(equalTo: avatarImageView.bottomAnchor),
-            chancePhotoView.widthAnchor.constraint(equalToConstant: 32),
-            chancePhotoView.heightAnchor.constraint(equalToConstant: 32),
+            chancePhotoView.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            chancePhotoView.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             
             avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
             avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            avatarSpinner.widthAnchor.constraint(equalToConstant: 32),
-            avatarSpinner.heightAnchor.constraint(equalToConstant: 32),
+            avatarSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            avatarSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
         ])
         
         bioStackView.addArrangedSubview(avatarContainer)
@@ -651,6 +727,50 @@ final class EditProfileNode: ASDisplayNode {
         skinColorDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(skinColorTapped)))
 
         reloadAppearanceOptions()
+    }
+    
+    private func setupExperienceContent() {
+        let emptyContentStack = UIStackView(arrangedSubviews:[
+            UIImageView(image: DivoImage.badgeBaseWork),
+            workEmptyTitleLabel,
+            workEmptySubTitleLabel
+        ])
+        emptyContentStack.axis = .vertical
+        emptyContentStack.spacing = DivoDesignTokens.Spacing.m
+        emptyContentStack.alignment = .center
+        emptyContentStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        workEmptyStateContainer.addSubview(emptyContentStack)
+        
+        experienceStackView.addArrangedSubview(workListBackgroundContainer)
+        experienceStackView.addArrangedSubview(workEmptyStateContainer)
+        
+        workListBackgroundContainer.addSubview(workListStackView)
+        
+        workEmptyStateHeightConstraint = workEmptyStateContainer.heightAnchor.constraint(equalToConstant: 400)
+        workEmptyStateHeightConstraint?.isActive = true
+        
+        NSLayoutConstraint.activate([
+            workListBackgroundContainer.leadingAnchor.constraint(equalTo: experienceStackView.leadingAnchor),
+            workListBackgroundContainer.trailingAnchor.constraint(equalTo: experienceStackView.trailingAnchor),
+            workListBackgroundContainer.widthAnchor.constraint(equalTo: experienceStackView.widthAnchor),
+            
+            workListStackView.topAnchor.constraint(equalTo: workListBackgroundContainer.topAnchor),
+            workListStackView.leadingAnchor.constraint(equalTo: workListBackgroundContainer.leadingAnchor),
+            workListStackView.trailingAnchor.constraint(equalTo: workListBackgroundContainer.trailingAnchor),
+            workListStackView.bottomAnchor.constraint(equalTo: workListBackgroundContainer.bottomAnchor),
+
+            workEmptyStateContainer.leadingAnchor.constraint(equalTo: experienceStackView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            workEmptyStateContainer.trailingAnchor.constraint(equalTo: experienceStackView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            
+            emptyContentStack.centerXAnchor.constraint(equalTo: workEmptyStateContainer.centerXAnchor),
+            emptyContentStack.centerYAnchor.constraint(equalTo: workEmptyStateContainer.centerYAnchor),
+            emptyContentStack.leadingAnchor.constraint(equalTo: workEmptyStateContainer.leadingAnchor, constant: 40),
+            emptyContentStack.trailingAnchor.constraint(equalTo: workEmptyStateContainer.trailingAnchor, constant: -40)
+        ])
+        
+        updateWorkEmptyState()
+        renderWorkList()
     }
     
     private func reloadAppearanceOptions() {
@@ -815,7 +935,6 @@ final class EditProfileNode: ASDisplayNode {
         presentSheet(vc)
     }
 
-    
     private func presentSheet(_ vc: UIViewController) {
         let nav = UINavigationController(rootViewController: vc)
         nav.setNavigationBarHidden(true, animated: false) 
@@ -855,8 +974,132 @@ final class EditProfileNode: ASDisplayNode {
     }
 
     private func updateSaveButtonState() {
-        let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
-        applyButton.isEnabled = hasChanges
+        if selectedIndex == 2 {
+            applyButton.makeDivoButton(title: DivoStrings.addWorkExperience)
+            applyButton.isEnabled = true
+        } else {
+            applyButton.makeDivoButton(title: DivoStrings.save, loading: DivoStrings.saving)
+            let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
+            applyButton.isEnabled = hasChanges
+        }
+    }
+
+    private func updateApplyButtonUI() {
+        if selectedIndex == 2 {
+            applyButton.setTitle(DivoStrings.addWorkExperience, for: .normal)
+        } else {
+            applyButton.setTitle(DivoStrings.save, for: .normal)
+        }
+        updateSaveButtonState()
+    }
+
+    private func renderWorkList() {
+        workListStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        workExperienceCells.removeAll()
+        
+        if workIsLoading && workRawItems.isEmpty {
+            for _ in 0..<workShimmerCount {
+                let cell = ExperienceView()
+                cell.configureAsShimmer()
+                workListStackView.addArrangedSubview(cell)
+            }
+        } else {
+            for (_, item) in workRawItems.enumerated() {
+                
+                let logoURL: URL? = nil
+                
+                let period = Self.formatWorkPeriod(startDate: item.startDate, endDate: item.endDate, isCurrent: item.isCurrent)
+                
+                let wItem = WorkExperienceItem(
+                    id: item.id,
+                    companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
+                    period: period,
+                    logoURL: logoURL
+                )
+                
+                let cell = ExperienceView()
+                                
+                let shouldLoadImmediately = (item.agencyId == nil)
+                cell.configure(with: wItem, showOptions: true, loadImage: shouldLoadImmediately)
+                
+                cell.onEditTapped = { [weak self] in
+                    self?.onEditWorkExperience?(item)
+                }
+                    
+                cell.onDeleteTapped = { [weak self] in
+                    self?.onDeleteWorkExperience?(item.id)
+                }
+                
+                workExperienceCells[item.id] = cell
+                
+                workListStackView.addArrangedSubview(cell)
+            }
+        }
+        
+        workListBackgroundContainer.isHidden = (workIsLoading && workRawItems.isEmpty) ? false : workRawItems.isEmpty
+    }
+
+    private func updateWorkEmptyState() {
+        experienceStackView.isHidden = false
+        
+        if workIsLoading {
+            workEmptyStateContainer.isHidden = true
+            workListBackgroundContainer.isHidden = false
+        } else if workRawItems.isEmpty {
+            workEmptyStateContainer.isHidden = false
+            workListBackgroundContainer.isHidden = true
+        } else {
+            workEmptyStateContainer.isHidden = true
+            workListBackgroundContainer.isHidden = false
+        }
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.updatePagerHeight()
+        }
+    }
+    
+    private static func formatWorkPeriod(startDate: String?, endDate: String?, isCurrent: Bool?) -> String {
+        let inputFormatter = DateFormatter()
+        inputFormatter.dateFormat = "yyyy-MM-dd"
+        inputFormatter.locale = Locale(identifier: "en_US_POSIX")
+
+        guard let startStr = startDate, let start = inputFormatter.date(from: startStr) else {
+            return "—"
+        }
+
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "MMMM yyyy"
+        displayFormatter.locale = Locale(identifier: DivoStrings.current.localeIdentifier)
+
+        let startString = displayFormatter.string(from: start)
+        let endString: String
+        let end: Date
+
+        if isCurrent == true {
+            end = Date()
+            endString = DivoStrings.present
+        } else if let endStr = endDate, let endDate = inputFormatter.date(from: endStr) {
+            end = endDate
+            endString = displayFormatter.string(from: endDate)
+        } else {
+            end = Date()
+            endString = DivoStrings.present
+        }
+
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month], from: start, to: end)
+        let years = components.year ?? 0
+        let months = components.month ?? 0
+
+        var durationString = ""
+        if years > 0 { durationString += DivoStrings.yearsCount(years) }
+        if months > 0 {
+            if !durationString.isEmpty { durationString += " " }
+            durationString += DivoStrings.monthsCount(months)
+        }
+        if durationString.isEmpty { durationString = DivoStrings.oneMonth }
+
+        return "\(startString) - \(endString) · \(durationString)"
     }
 
     func setAvatarLoading(_ loading: Bool) {
@@ -890,10 +1133,25 @@ final class EditProfileNode: ASDisplayNode {
         guard newSize != lastContainerSize else { return }
         lastContainerSize = newSize
 
-        DispatchQueue.main.async {
-            self.updatePagerHeight()
-            if self.model?.role != "agency_employee" {
-                self.segmentedControl.setIndicatorProgress(CGFloat(self.selectedIndex))
+        let usedHeight: CGFloat = 350
+        let availableHeight = newSize.height - navigationBarHeight - usedHeight
+        let dynamicHeight = max(availableHeight, 300)
+        
+        if workEmptyStateHeightConstraint?.constant != dynamicHeight {
+            workEmptyStateHeightConstraint?.constant = dynamicHeight
+        }
+
+        self.view.layoutIfNeeded()
+        self.updatePagerHeight(animated: false)
+        
+        if self.model?.role != "agency_employee" {
+            self.segmentedControl.setIndicatorProgress(CGFloat(self.selectedIndex))
+                
+            let stepSize = newSize.width 
+            let targetOffsetX = CGFloat(self.selectedIndex) * stepSize
+                
+            if self.horizontalPager.contentOffset.x != targetOffsetX {
+                self.horizontalPager.setContentOffset(CGPoint(x: targetOffsetX, y: 0), animated: false)
             }
         }
     }
@@ -906,6 +1164,64 @@ final class EditProfileNode: ASDisplayNode {
     func configureGenderDictionaries(_ dict: GenderResponse) {
         self.genderDictionaries = dict
         
+    }
+
+    func setLoadingWorkExperience(_ loading: Bool) {
+        self.workIsLoading = loading
+        updateWorkEmptyState()
+        renderWorkList()
+    }
+    
+    func reloadWorkHistory(items: [WorkHistoryItem]) {
+        self.workIsLoading = false
+        self.workRawItems = items
+        self.workHasStructuredData = true
+        
+        updateWorkEmptyState()
+        renderWorkList()
+    }
+    
+    func reloadLegacyWorkHistory(model: UserDetail) {
+        self.workIsLoading = false
+        self.workRawItems = []
+        self.workHasStructuredData = false
+        
+        let experienceString = model.model?.workExperience ?? ""
+        let experienceNames = experienceString
+            .split(separator: ",")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        self.workRawItems = experienceNames.map { name in
+            WorkHistoryItem(
+                id: 0,
+                agencyId: nil,
+                agencyName: name,
+                agencyDisplayName: name,
+                startDate: nil,
+                endDate: nil,
+                isCurrent: false
+            )
+        }
+        
+        updateWorkEmptyState()
+        renderWorkList()
+    }
+    
+    func updateAgencyLogo(itemId: Int, url: URL?) {
+        guard let cell = workExperienceCells[itemId],
+              let item = workRawItems.first(where: { $0.id == itemId }) else { return }
+        
+        let period = Self.formatWorkPeriod(startDate: item.startDate, endDate: item.endDate, isCurrent: item.isCurrent)
+        
+        let wItem = WorkExperienceItem(
+            id: item.id,
+            companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
+            period: period,
+            logoURL: url
+        )
+        
+        cell.configure(with: wItem, showOptions: true, loadImage: true)
     }
     
     @objc private func appearanceCellTapped(_ gesture: UITapGestureRecognizer) {
@@ -920,7 +1236,6 @@ final class EditProfileNode: ASDisplayNode {
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
-
 
     @objc private func avatarTapped() {
         print("Change photo")
@@ -958,6 +1273,20 @@ final class EditProfileNode: ASDisplayNode {
         
         self.toggleSaving(active: true)
         self.saveProfile?(data)
+    }
+
+    @objc private func mainActionButtonPressed() {
+        self.view.endEditing(true)
+        
+        if selectedIndex == 2 {
+            workAddExperienceButtonTapped()
+        } else {
+            if model?.role == "agency_employee" {
+                saveAgencyButtonPressed()
+            } else {
+                saveButtonPressed()
+            }
+        }
     }
 
     @objc private func saveAgencyButtonPressed() {
@@ -1042,6 +1371,11 @@ final class EditProfileNode: ASDisplayNode {
             self?.updateSaveButtonState()
         }
     }
+    
+    @objc private func workAddExperienceButtonTapped() {
+        onAddWorkExperience?()
+    }
+    
 
     // MARK: - Snackbar
 
@@ -1090,10 +1424,11 @@ extension EditProfileNode: UITextFieldDelegate {
     private func setSelectedIndex(_ index: Int, animated: Bool) {
         guard selectedIndex != index else { return }
         selectedIndex = index
-        updatePagerHeight()
+        updateApplyButtonUI() 
+        self.updatePagerHeight(animated: animated)
         segmentedControl.setSelectedIndex(index, animated: animated)
 
-        let offsetX = CGFloat(index) * (horizontalPager.bounds.width + 32)
+        let offsetX = CGFloat(index) * (horizontalPager.bounds.width) // + 32)
 
         if animated {
             UIView.animate(withDuration: 0.3, delay: 0, options:[.curveEaseInOut, .allowUserInteraction], animations: {
@@ -1104,14 +1439,14 @@ extension EditProfileNode: UITextFieldDelegate {
         }
     }
         
-    private func updatePagerHeight() {
+    private func updatePagerHeight(animated: Bool = true) {
         bioStackView.layoutIfNeeded()
         appearanceStackView.layoutIfNeeded()
         experienceStackView.layoutIfNeeded()
 
-        let bioHeight = bioStackView.frame.height
-        let appHeight = appearanceStackView.frame.height
-        let experienceHeight = experienceStackView.frame.height
+        let bioHeight = bioStackView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+        let appHeight = appearanceStackView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+        let experienceHeight = experienceStackView.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
 
         var targetHeight = 0.0
         if selectedIndex == 0 {
@@ -1122,9 +1457,18 @@ extension EditProfileNode: UITextFieldDelegate {
             targetHeight = experienceHeight
         }
 
+        targetHeight += 0
+
         guard pagerHeightConstraint.constant != targetHeight else { return }
         pagerHeightConstraint.constant = targetHeight
-        self.view.layoutIfNeeded()
+        
+        if animated {
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut) {
+                self.view.layoutIfNeeded()
+            }
+        } else {
+            self.view.layoutIfNeeded()
+        }
     }
     
 }
@@ -1134,17 +1478,17 @@ extension EditProfileNode: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager, scrollView.bounds.width > 0 else { return }
 
-        let progress = scrollView.contentOffset.x / (scrollView.bounds.width + 32)
+        let progress = scrollView.contentOffset.x / (scrollView.bounds.width) // + 32)
         segmentedControl.setIndicatorProgress(progress)
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager else { return }
 
-        let page = Int(round(scrollView.contentOffset.x / (scrollView.bounds.width + 32)))
+        let page = Int(round(scrollView.contentOffset.x / (scrollView.bounds.width))) // + 32)))
         if selectedIndex != page {
             selectedIndex = page
-            updatePagerHeight()
+            self.updatePagerHeight(animated: true)
             segmentedControl.setSelectedIndex(page, animated: false)
         }
     }

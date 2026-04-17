@@ -116,7 +116,7 @@ public final class DivoButton: UIButton {
     override public var isEnabled: Bool {
         didSet {
             guard !isSaving else { return }
-            backgroundColor = isEnabled ? DivoColorPalette.accent : DivoColorPalette.disabledBackground
+            backgroundColor = isEnabled ? DivoColorPalette.accent : DivoColorPalette.buttonDisabledBackground
         }
     }
 

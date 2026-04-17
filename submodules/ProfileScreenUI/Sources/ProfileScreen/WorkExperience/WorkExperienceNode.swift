@@ -109,8 +109,8 @@ final class WorkExperience: ASDisplayNode {
         
         navigationBar.makeNavigationBar(
             title: DivoStrings.workExperience.uppercased(),
-            backButtonConfiguration: .circle("chevron.left"),
-            rightButtonConfiguration: model.isMyProfile ? .circle(DivoColorPalette.cardBackground, DivoColorPalette.primaryText, "plus") : nil,
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
+            rightButtonConfiguration: model.isMyProfile ? .circle(DivoColorPalette.cardBackground, DivoColorPalette.primaryText, DivoImage.plusWorkHistory, .pill) : nil,
             onBackTapped: { [weak self] in self?.onBackTapped?() },
             onCircleRightTapped: model.isMyProfile ? { [weak self] in self?.openAddWorkExperience?() } : nil
         )
@@ -167,7 +167,7 @@ final class WorkExperience: ASDisplayNode {
             listBackgroundContainer.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
             listBackgroundContainer.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             listBackgroundContainer.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            listBackgroundContainer.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -100),
+            listBackgroundContainer.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -40),
             listBackgroundContainer.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
             
             listStackView.topAnchor.constraint(equalTo: listBackgroundContainer.topAnchor),

@@ -114,7 +114,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }()
     
     private let navigationBar = DivoNavigationBar()
-
+    
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -132,15 +132,11 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
 
         navigationBar.makeNavigationBar(
             title: DivoStrings.feedSearchFilter,
-            font: Font.medium(16),
-            backButtonConfiguration: .circle("xmark"),
+            font: Font.regular(15),
+            backButtonConfiguration: .circle(DivoImage.searchCloseIcon),
             rightButtonConfiguration: .text(DivoStrings.feedSearchReset),
-            onBackTapped: { [weak self] in
-                self?.navigationController?.dismiss(animated: true)
-            },
-            onCircleTextTapped: { [weak self] in
-                self?.resetTapped()
-            }
+            onBackTapped: { [weak self] in self?.closeTapped() },
+            onCircleTextTapped: { [weak self] in self?.resetTapped() }
         )
 
         setupAppearanceFilterItems()
@@ -216,7 +212,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
-                        title: DivoStrings.weightKg,
+                        title: DivoStrings.paramWeight,
                         keyPath: \.weightRange,
                         min: 40,
                         max: 120
@@ -232,7 +228,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
-                        title: DivoStrings.waistCm,
+                        title: DivoStrings.paramWaist,
                         keyPath: \.waistRange,
                         min: 50,
                         max: 120
@@ -245,7 +241,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                     return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.hipsCm, keyPath: \.hipsRange, min: 70, max: 130) }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHips, keyPath: \.hipsRange, min: 70, max: 130) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.shoeSizeEU,
@@ -254,7 +250,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                     return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.shoeSizeEU, keyPath: \.shoeSizeRange, min: 35, max: 46) }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramShoeSize, keyPath: \.shoeSizeRange, min: 35, max: 46) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hairLength,
@@ -323,7 +319,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     private func setupCustomNavBar() {
         view.addSubview(navigationBar)
-
+        
         NSLayoutConstraint.activate([
             navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
             navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -337,6 +333,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         scrollView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
+            // scrollView.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 20),
             scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 20),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
@@ -507,11 +504,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
 
     private func updateResetButtonState() {
         let canReset = currentFilters.hasActiveFilters
-        resetButton.isEnabled = canReset
-        resetButton.setTitleColor(
-            canReset ? DivoColorPalette.accent : DivoColorPalette.disabledText,
-            for: .normal
-        )
+        navigationBar.setEnableRightButton(canReset)
     }
 
     private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T) where T: RangeFilterable {
