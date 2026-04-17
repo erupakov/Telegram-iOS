@@ -73,7 +73,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }()
         
     private let moreFiltersButton: UIButton = {
-        let btn = UIButton(type: .system)
+        let btn = UIButton(type: .custom)
         btn.setTitle(DivoStrings.feedSearchMoreFilters, for: .normal)
         btn.setTitleColor(DivoColorPalette.accent, for: .normal)
         btn.titleLabel?.font = Font.regular(15)
@@ -103,10 +103,9 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }()
     
     private let applyButton: UIButton = {
-        let btn = UIButton(type: .system)
+        let btn = UIButton(type: .custom)
         btn.setTitle(DivoStrings.feedSearchApplyFilter, for: .normal)
         btn.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
-        btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         btn.titleLabel?.font = Font.helveticaNeue(20)
         btn.backgroundColor = DivoColorPalette.accent
         btn.layer.cornerRadius = 28 // TODO: DS alignment — не в шкале Radius
@@ -115,7 +114,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }()
     
     private let navigationBar = DivoNavigationBar()
-    
+
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -124,8 +123,11 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         return scrollView
     }()
     
+    private let initialFilters: SearchFilterState
+
     init(currentFilters: SearchFilterState) {
         self.currentFilters = currentFilters
+        self.initialFilters = currentFilters
         super.init(nibName: nil, bundle: nil)
 
         navigationBar.makeNavigationBar(
@@ -158,7 +160,9 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         setupUI()
         updateUI()
         
-        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard)))
+        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        dismissTap.cancelsTouchesInView = false
+        view.addGestureRecognizer(dismissTap)
     }
     
     override func viewDidLayoutSubviews() {
@@ -319,7 +323,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     private func setupCustomNavBar() {
         view.addSubview(navigationBar)
-        
+
         NSLayoutConstraint.activate([
             navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: DivoDesignTokens.Spacing.m),
             navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -329,6 +333,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     private func setupUI() {
         view.addSubview(scrollView)
+        scrollView.keyboardDismissMode = .onDrag
         scrollView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
@@ -360,7 +365,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         let isAgency = DivoConfig.currentUserRole == .agency
         
         moreFiltersButton.addTarget(self, action: #selector(moreFiltersTapped), for: .touchUpInside)
-        
+        moreFiltersButton.addDivoPressState(.text)
+
         stackView.addArrangedSubview(moreFiltersButton)
         NSLayoutConstraint.activate([
             moreFiltersButton.heightAnchor.constraint(equalToConstant: 22),
@@ -386,6 +392,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         
         view.addSubview(applyButton)
         applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
+        applyButton.addDivoPressState(.primary)
         
         NSLayoutConstraint.activate([
             applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -492,8 +499,19 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         countryRow.setItems(currentFilters.countryTitles, emptyTitle: DivoStrings.feedSearchAllCountries)
 
         cityTextField.text = currentFilters.city
-        
+
         updateAppearanceValues()
+
+        updateResetButtonState()
+    }
+
+    private func updateResetButtonState() {
+        let canReset = currentFilters.hasActiveFilters
+        resetButton.isEnabled = canReset
+        resetButton.setTitleColor(
+            canReset ? DivoColorPalette.accent : DivoColorPalette.disabledText,
+            for: .normal
+        )
     }
 
     private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T) where T: RangeFilterable {
@@ -654,8 +672,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     @objc private func resetTapped() {
         currentFilters.reset()
-        updateUI()
-        reloadAppearanceOptions()
+        onApply?(currentFilters)
+        dismiss(animated: true)
     }
     
     @objc private func applyTapped() {
@@ -664,7 +682,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }
     
     @objc private func cityChanged() {
-        currentFilters.city = cityTextField.text
+        let text = cityTextField.text ?? ""
+        currentFilters.city = text.isEmpty ? nil : text
         updateUI()
     }
     
@@ -732,10 +751,20 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
     @objc private func countryTapped() {
         let selectedIds = currentFilters.countryIds
-        
+        let selectedSet = Set(selectedIds)
+
+        var orderedOptions = countryOptions
+        if !selectedSet.isEmpty {
+            let allOption = orderedOptions[0]
+            let rest = Array(orderedOptions.dropFirst())
+            let selected = rest.filter { selectedSet.contains($0.id) }
+            let unselected = rest.filter { !selectedSet.contains($0.id) }
+            orderedOptions = [allOption] + selected + unselected
+        }
+
         let vc = FilterOptionsController(
             title: DivoStrings.debugCountry,
-            options: countryOptions,
+            options: orderedOptions,
             selectedOptionIds: selectedIds,
             isMultiSelect: true,
             showSearch: true
@@ -755,19 +784,6 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
     
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1, animations: {
-            sender.alpha = 0.6
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        })
-    }
-    
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2, animations: {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        })
-    }
 }
 
 // Общий протокол для фильтров с числовыми диапазонами.

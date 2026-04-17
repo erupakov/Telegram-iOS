@@ -4,6 +4,7 @@ import Display
 public enum DivoColorPalette {
     // MARK: - Brand
     public static let accent = UIColor(hexString: "#FF772D")!           // DIVO orange
+    public static let accentPressed = UIColor(hexString: "#E0551A")!    // DIVO orange press state (darker)
     public static let accentSecondary = UIColor(hexString: "#BF7A54")!  // copper (hex-precise)
     /// Copper тёплый вариант 0.77/0.54/0.38 — Profile/Events/Auth buttons (визуально светлее accentSecondary).
     public static let accentCopperWarm = UIColor(red: 0.77, green: 0.54, blue: 0.38, alpha: 1.0)
@@ -79,10 +80,13 @@ public enum DivoColorPalette {
 
     // MARK: - Controls
     public static let shadow = UIColor.black                            // применяется с alpha 0.08/0.1
-    public static let disabledButtonBackground = UIColor(red: 0.322, green: 0.322, blue: 0.322, alpha: 1)
-    /// #343434 — delete/back button background на тёмном.
-    public static let deleteButtonBackground = UIColor(hexString: "#343434")!
-    public static let disabledBackground = UIColor(red: 228/255, green: 228/255, blue: 228/255, alpha: 1) // #E4E4E4
+    public static let navBarDisabledButtonColor = UIColor(red: 0.322, green: 0.322, blue: 0.322, alpha: 1)
+    /// #343434 — secondary button normal state.
+    public static let secondaryButtonBackground = UIColor(hexString: "#343434")!
+    /// #000000 — secondary button pressed state.
+    public static let secondaryButtonPressed = UIColor.black
+    /// #E4E4E4 — universal disabled button background (primary & secondary).
+    public static let buttonDisabledBackground = UIColor(hexString: "#E4E4E4")!
     /// 0.55 — неактивная иконка таба (DivoSettings).
     public static let tabInactiveIcon = UIColor(white: 0.55, alpha: 1)
     /// 0.2 — активная иконка таба.
@@ -149,6 +153,8 @@ public enum DivoColorPalette {
     public static let emptyCircleBackground = UIColor(white: 0.95, alpha: 1.0)
     public static let emptyIconTint = UIColor(white: 0.4, alpha: 1.0)
     public static let placeholderCardBackground = UIColor(white: 0.96, alpha: 1)
+    /// #E6E6E6 — skeleton-плейсхолдер (search grid, filter bar).
+    public static let skeletonBackground = UIColor(white: 230/255, alpha: 1.0)
 
     // MARK: - Settings rows / misc
     public static let settingsUsernameIconText = UIColor(white: 0.45, alpha: 1)

@@ -972,20 +972,6 @@ final class EditProfileNode: ASDisplayNode {
         self.saveAgencyProfile?(data)
     }
     
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1, animations: {
-            sender.alpha = 0.6
-            sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        })
-    }
-    
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2, animations: {
-            sender.alpha = 1.0
-            sender.transform = .identity
-        })
-    }
-    
     @objc private func genderTapped() {
         self.view.endEditing(true)
         guard let dict = genderDictionaries?.data else { return }

@@ -148,6 +148,11 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     self?.buildSections()
                     self?.tableView.reloadData()
                 }), action: {}),
+                Row(icon: "server.rack", title: "Mock API", subtitle: { DivoConfig.isMockEnabled ? "ON" : "OFF" }, accessory: .toggle(DivoConfig.isMockEnabled, { [weak self] enabled in
+                    DivoConfig.isMockEnabled = enabled
+                    self?.buildSections()
+                    self?.tableView.reloadData()
+                }), action: {}),
                 Row(icon: "tortoise.fill", title: DivoStrings.debugNetworkDelay, subtitle: {
                     self.delayLabel()
                 }, accessory: .chevron, action: { [weak self] in
@@ -305,6 +310,12 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
             let checkmark = (role == current) ? " ✓" : ""
             alert.addAction(UIAlertAction(title: role.displayName + checkmark, style: .default) { [weak self] _ in
                 DivoConfig.currentUserRole = role
+                switch role {
+                case .agency:
+                    DivoConfig.accessToken = DivoConfig.agencyToken
+                case .model, .fan, .newFace:
+                    DivoConfig.accessToken = DivoConfig.modelToken
+                }
                 self?.buildSections()
                 self?.tableView.reloadData()
             })

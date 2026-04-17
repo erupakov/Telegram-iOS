@@ -37,7 +37,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         self.editItem = editItem
 
         super.init(navigationBarPresentationData: nil)
-
     }
 
     required public init(coder aDecoder: NSCoder) {

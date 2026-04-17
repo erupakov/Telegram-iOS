@@ -213,8 +213,10 @@ private final class DebugTokenNode: ASDisplayNode {
         switch preset {
         case .agency:
             DivoConfig.accessToken = DivoConfig.agencyToken
+            DivoConfig.currentUserRole = .agency
         case .model:
             DivoConfig.accessToken = DivoConfig.modelToken
+            DivoConfig.currentUserRole = .model
         }
         updateCurrentTokenDisplay()
         updatePresetSelection()

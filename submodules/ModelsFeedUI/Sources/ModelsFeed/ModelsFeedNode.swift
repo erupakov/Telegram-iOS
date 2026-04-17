@@ -707,10 +707,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     method: "POST",
                     body: body
                 )
-                self.showSnackbar(
-                    message: isSaved ? DivoStrings.subscribed : DivoStrings.unsubscribed,
-                    style: .success
-                )
             } catch {
                 if removeFromFeed, var card = removedCard {
                     card.isFollowed = true
@@ -726,17 +722,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                         cell.rollbackSave(isSaved: !isSaved, savesCount: self.cards[currentIdx].savesCount)
                     }
                 }
-                self.showSnackbar(
-                    message: isSaved ? DivoStrings.subscribeFailed : DivoStrings.unsubscribeFailed,
-                    style: .error,
-                    retryAction: { [weak self] in
-                        guard let self, let currentIdx = self.cardIndex(forUserId: userId) else { return }
-                        let ip = IndexPath(item: currentIdx, section: 0)
-                        if let cell = self.mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
-                            self.cardCell(cell, didTapSaveForUserId: userId, isSaved: isSaved)
-                        }
-                    }
-                )
             }
         }
     }
@@ -757,10 +742,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     method: "POST",
                     body: body
                 )
-                self.showSnackbar(
-                    message: isLiked ? DivoStrings.liked : DivoStrings.unliked,
-                    style: .success
-                )
             } catch {
                 if let currentIdx = self.cardIndex(forFeedId: feedId) {
                     self.cards[currentIdx].isLiked = !isLiked
@@ -770,17 +751,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                         cell.rollbackLike(isLiked: !isLiked, likesCount: self.cards[currentIdx].likesCount)
                     }
                 }
-                self.showSnackbar(
-                    message: isLiked ? DivoStrings.likeFailed : DivoStrings.unlikeFailed,
-                    style: .error,
-                    retryAction: { [weak self] in
-                        guard let self, let currentIdx = self.cardIndex(forFeedId: feedId) else { return }
-                        let ip = IndexPath(item: currentIdx, section: 0)
-                        if let cell = self.mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
-                            self.cardCell(cell, didTapLikeForFeedId: feedId, isLiked: isLiked)
-                        }
-                    }
-                )
             }
         }
     }

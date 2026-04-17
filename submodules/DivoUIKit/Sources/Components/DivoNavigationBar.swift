@@ -102,7 +102,7 @@ public final class DivoNavigationBar: UIView {
         addSubview(titleLabel)
         addSubview(circleRightButton)
         addSubview(textRightButton)
-        
+
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 50),
             
@@ -201,7 +201,7 @@ public final class DivoNavigationBar: UIView {
     @objc private func backTapped() {
         onBackTapped?()
     }
-    
+
     @objc private func circleRightTapped() {
         onCircleRightTapped?()
     }

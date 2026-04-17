@@ -20,7 +20,8 @@ public final class DivoShareItemSource: NSObject, UIActivityItemSource {
     }
 
     public func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-        return url
+        let label = subtitle.isEmpty ? title : "\(title) — \(subtitle)"
+        return "\(label)\n\(url.absoluteString)"
     }
 
     public func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
