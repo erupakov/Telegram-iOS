@@ -140,6 +140,11 @@ public enum DivoStrings {
 
     public static var faceRecognitionTitle: String { L(en: "Face Recognition", ru: "Поиск по фото", es: "Reconocimiento facial", pt: "Reconhecimento facial", zh: "人脸识别") }
     public static var faceRecognitionComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
+    public static var faceRecognitionSheetTitle: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Buscar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似档案") }
+    public static var faceRecognitionSheetSubtitle: String { L(en: "Upload a photo to find models with a similar appearance", ru: "Загрузите фото, чтобы найти моделей с похожей внешностью", es: "Sube una foto para encontrar modelos con una apariencia similar", pt: "Envie uma foto para encontrar modelos com aparência semelhante", zh: "上传照片以查找外貌相似的模特") }
+    public static var faceRecognitionTakePhoto: String { L(en: "Take a photo", ru: "Сделать фото", es: "Tomar una foto", pt: "Tirar uma foto", zh: "拍照") }
+    public static var faceRecognitionChooseFromLibrary: String { L(en: "Choose from library", ru: "Выбрать из галереи", es: "Elegir de la galería", pt: "Escolher da galeria", zh: "从相册选择") }
+    public static var faceRecognitionUseDivoPhoto: String { L(en: "Use a DIVO profile photo", ru: "Использовать фото профиля DIVO", es: "Usar foto de perfil DIVO", pt: "Usar foto do perfil DIVO", zh: "使用DIVO头像") }
 
     // MARK: - Roles
 

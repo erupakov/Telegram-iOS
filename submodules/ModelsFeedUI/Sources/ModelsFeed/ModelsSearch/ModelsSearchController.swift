@@ -154,8 +154,53 @@ public class ModelsSearchController: ViewController {
 
     
     private func openFaceRecognition() {
-        let vc = FaceRecognitionController(context: self.context)
-        (self.navigationController as? NavigationController)?.pushViewController(vc)
+        let alert = UIAlertController(
+            title: nil,
+            message: nil,
+            preferredStyle: .actionSheet
+        )
+
+        let titleAttr = NSAttributedString(
+            string: DivoStrings.faceRecognitionSheetTitle,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 13, weight: .semibold),
+                .foregroundColor: DivoColorPalette.primaryText
+            ]
+        )
+        alert.setValue(titleAttr, forKey: "attributedTitle")
+
+        let messageAttr = NSAttributedString(
+            string: DivoStrings.faceRecognitionSheetSubtitle,
+            attributes: [
+                .font: UIFont.systemFont(ofSize: 13, weight: .regular),
+                .foregroundColor: DivoColorPalette.primaryText.withAlphaComponent(0.6)
+            ]
+        )
+        alert.setValue(messageAttr, forKey: "attributedMessage")
+
+        let takePhotoAction = UIAlertAction(title: DivoStrings.faceRecognitionTakePhoto, style: .default) { _ in
+            // TODO: open camera for face recognition
+        }
+        takePhotoAction.setValue(DivoColorPalette.primaryText, forKey: "titleTextColor")
+        alert.addAction(takePhotoAction)
+
+        let chooseAction = UIAlertAction(title: DivoStrings.faceRecognitionChooseFromLibrary, style: .default) { _ in
+            // TODO: open photo library for face recognition
+        }
+        chooseAction.setValue(DivoColorPalette.primaryText, forKey: "titleTextColor")
+        alert.addAction(chooseAction)
+
+        let divoAction = UIAlertAction(title: DivoStrings.faceRecognitionUseDivoPhoto, style: .default) { _ in
+            // TODO: pick DIVO profile photo for face recognition
+        }
+        divoAction.setValue(DivoColorPalette.primaryText, forKey: "titleTextColor")
+        alert.addAction(divoAction)
+
+        let cancelAction = UIAlertAction(title: DivoStrings.cancel, style: .cancel)
+        cancelAction.setValue(DivoColorPalette.accent, forKey: "titleTextColor")
+        alert.addAction(cancelAction)
+
+        self.view.window?.rootViewController?.present(alert, animated: true)
     }
 
     private func openModelScreen(for user: SearchUserDTO) {
