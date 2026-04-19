@@ -40,7 +40,6 @@ public enum DivoImage {
     public static var moreActionIcon: UIImage { load("DivoMoreActionIcon") }
     public static var moreActionIconBlack: UIImage { load("DivoMoreActionIconBlack") }
     public static var moreIcon: UIImage { load("DivoMoreIcon") }
-    public static var orangeСheckmark: UIImage { load("DivoOrangeСheckmark") }
     public static var pencil: UIImage { load("DivoPencil") }
     public static var plus: UIImage { load("DivoPlus") }
     public static var plusWorkHistory: UIImage { load("DivoPlusWorkHistory") }
@@ -60,7 +59,9 @@ public enum DivoImage {
     public static var searchFaceScan: UIImage { load("DivoSearchFaceScan") }
     public static var searchFieldIcon: UIImage { load("DivoSearchFieldIcon") }
     public static var searchFilterIcon: UIImage { load("DivoSearchFilterIcon") }
+    public static var searchOrangeСheckmark: UIImage { load("DivoSearchOrangeСheckmark") }
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
+    public static var searchWhiteСheckmark: UIImage { load("DivoSearchWhiteСheckmark") }
     public static var signUpAgencies: UIImage { load("DivoSignUpAgencies") }
     public static var signUpChooseRoleBackground: UIImage { load("DivoSignUpChooseRoleBackground") }
     public static var signUpFan: UIImage { load("DivoSignUpFan") }
@@ -81,7 +82,6 @@ public enum DivoImage {
     public static var storyAvatarStub8: UIImage { load("DivoStoryAvatarStub8") }
     public static var tikTokIcon: UIImage { load("DivoTikTokIcon") }
     public static var webIcon: UIImage { load("DivoWebIcon") }
-    public static var whiteСheckmark: UIImage { load("DivoWhiteСheckmark") }
     public static var youtubeIcon: UIImage { load("DivoYoutubeIcon") }
 
     private static func load(_ name: String) -> UIImage {
