@@ -10,6 +10,10 @@ public final class ImageLoader {
         cache.countLimit = 150
     }
 
+    public func cachedImage(for url: URL) -> UIImage? {
+        return cache.object(forKey: url as NSURL)
+    }
+
     public func load(url: URL, completion: @escaping (UIImage?) -> Void) {
         if let cached = cache.object(forKey: url as NSURL) {
             DispatchQueue.main.async { completion(cached) }

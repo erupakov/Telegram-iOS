@@ -114,6 +114,7 @@ public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
             if let newPosition = newPosition {
                 textField.selectedTextRange = textField.textRange(from: newPosition, to: newPosition)
             }
+            textField.sendActions(for: .editingChanged)
             return false
         }
 

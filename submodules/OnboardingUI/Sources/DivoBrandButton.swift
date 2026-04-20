@@ -13,23 +13,12 @@ public final class DivoBrandButton: UIButton {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public override var isHighlighted: Bool {
-        didSet {
-            if isHighlighted {
-                layer.removeAnimation(forKey: "opacity")
-                alpha = 0.55
-            } else {
-                alpha = 1.0
-                layer.animateAlpha(from: 0.55, to: 1.0, duration: 0.2)
-            }
-        }
-    }
-
     private func setup() {
         setTitleColor(.white, for: .normal)
         setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         titleLabel?.font = Font.helveticaNeue(20)
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = 28
+        addDivoPressState(.primary)
     }
 }

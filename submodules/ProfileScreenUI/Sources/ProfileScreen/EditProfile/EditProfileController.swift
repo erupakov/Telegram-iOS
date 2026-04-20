@@ -35,6 +35,10 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     private let userDetailData: UserDetail?
     private let updatePhoto: (UIImage?) -> Void
 
+    private var selectedAvatarImage: UIImage?
+    private var selectedAvatarUUID: String?
+    private let loadingOverlay = DivoLoadingOverlay()
+
     weak var delegate: EditProfileDelegate?
     
     public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, updatePhoto: @escaping (UIImage?) -> Void) {
@@ -89,11 +93,24 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         self.editProfileNode.presentController = { [weak self] vc in
             self?.view.window?.rootViewController?.present(vc, animated: true)
         }
+        
+        self.editProfileNode.onAddWorkExperience = { [weak self] in
+            self?.openAddWorkExperience()
+        }
+        
+        self.editProfileNode.onEditWorkExperience = { [weak self] item in
+            self?.openEditWorkExperience(item: item)
+        }
+        
+        self.editProfileNode.onDeleteWorkExperience = { [weak self] itemId in
+            self?.deleteWorkExperience(itemId: itemId)
+        }
 
         self.displayNodeDidLoad()
 
         self.loadAppearanceDictionary()
         self.loadGenderDictionary()
+        self.loadWorkExperience()
     }
 
     private func loadAppearanceDictionary() {
@@ -109,7 +126,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.editProfileNode.configureAppearanceDictionaries(response.data)
                 self.editProfileNode.toggleSpinner(active: false)
             } catch {
-                print("❌ Error loading appearance dictionary: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
             }
         }
@@ -129,18 +145,121 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.editProfileNode.toggleSpinner(active: false)
                 
             } catch {
-                print("❌ Error loading appearance dictionary: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
             }
         }
     }
     
-    private var selectedAvatarImage: UIImage?
-    private var selectedAvatarUUID: String?
+    private func loadWorkExperience() {
+        self.editProfileNode.setLoadingWorkExperience(true)
+
+        Task { @MainActor in
+            do {
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history",
+                    method: "GET"
+                )
+
+                self.editProfileNode.reloadWorkHistory(items: response.data.items)
+                self.fetchAgencyLogos(for: response.data.items)
+            } catch {
+                if let userDetail = self.userDetailData {
+                    self.editProfileNode.reloadLegacyWorkHistory(model: userDetail)
+                } else {
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.failedToLoadWorkHistory,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.loadWorkExperience()
+                        },
+                        persistent: true
+                    )
+                }
+            }
+        }
+    }
+
+    private func fetchAgencyLogos(for items:[WorkHistoryItem]) {
+        AgencyLogoFetcher.fetch(for: items) { [weak self] itemId, url in
+            self?.editProfileNode.updateAgencyLogo(itemId: itemId, url: url)
+        }
+    }
+    
+    private func openAddWorkExperience() {
+        let controller = AddWorkExperienceController(context: self.context)
+        controller.delegate = self
+        self.navigationController?.pushViewController(controller, animated: true)
+    }
+    
+    private func openEditWorkExperience(item: WorkHistoryItem) {
+        let controller = AddWorkExperienceController(context: self.context, editItem: item)
+        controller.delegate = self
+        self.navigationController?.pushViewController(controller, animated: true)
+    }
+
+    private func deleteWorkExperience(itemId: Int) {
+        let alert = UIAlertController(
+            title: DivoStrings.workHistoryDeleteConfirmTitle,
+            message: DivoStrings.workHistoryDeleteConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: DivoStrings.delete, style: .destructive) { [weak self] _ in
+            self?.performDeleteWorkExperience(itemId: itemId)
+        })
+        self.present(alert, animated: true)
+    }
+
+    private func performDeleteWorkExperience(itemId: Int) {
+        loadingOverlay.show(in: self.displayNode.view, message: DivoStrings.deleting)
+
+        Task {
+            do {
+                let _: WorkHistoryDeleteResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history/\(itemId)",
+                    method: "DELETE"
+                )
+            } catch {
+                await MainActor.run {
+                    self.loadingOverlay.hide()
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.failedToDelete,
+                        style: .error
+                    )
+                }
+                return
+            }
+
+            do {
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history"
+                )
+                let items = response.data.items
+                await MainActor.run {
+                    self.editProfileNode.reloadWorkHistory(items: items)
+                    self.loadingOverlay.hide()
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.workHistoryDelete,
+                        style: .success
+                    )
+                }
+                self.fetchAgencyLogos(for: items)
+            } catch {
+                await MainActor.run {
+                    var currentItems = self.editProfileNode.workRawItems
+                    currentItems.removeAll { $0.id == itemId }
+                    self.editProfileNode.reloadWorkHistory(items: currentItems)
+                    self.loadingOverlay.hide()
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.workHistoryDelete,
+                        style: .success
+                    )
+                }
+            }
+        }
+    }
 
     private func openPhotoGallery() {
-        print("📸 Opening photo gallery...")
-        
         if #available(iOS 14, *) {
             var configuration = PHPickerConfiguration()
             configuration.filter = .images
@@ -175,7 +294,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.selectedAvatarUUID = response.data?.uuid
                 self.editProfileNode.currentPhoto = selectedAvatarImage
                 self.editProfileNode.setAvatarLoading(false)
-                print("✅ Avatar uploaded, uuid: \(self.selectedAvatarUUID ?? "nil")")
             } catch {
                 self.editProfileNode.setAvatarLoading(false)
                 self.editProfileNode.showSnackbar(
@@ -199,13 +317,12 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     avatar: avatarUuid
                 )
 
-                let response: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
+                let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
                     path: "/user/update-profile",
                     method: "POST",
                     body: request
                 )
                 
-                print("✅ Profile successfully saved: \(response.message ?? "OK")")
 
                 self.delegate?.didUpdateProfileData()
                 self.navigationController?.popViewController(animated: true)
@@ -233,13 +350,12 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     photo: photoUuid
                 )
 
-                let response: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
+                let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
                     path: "/agency/update",
                     method: "POST",
                     body: request
                 )
                 
-                print("✅ Profile successfully saved: \(response.message ?? "OK")")
 
                 self.delegate?.didUpdateProfileData()
                 self.navigationController?.popViewController(animated: true)
@@ -332,5 +448,16 @@ extension UIImage {
         let fixed = UIGraphicsGetImageFromCurrentImageContext() ?? self
         UIGraphicsEndImageContext()
         return fixed
+    }
+}
+
+
+extension EditProfileController: AddWorkExperienceDelegate {
+    func didUpdateWorkExperience(isEdit: Bool) {
+        self.loadWorkExperience()
+        self.editProfileNode.showSnackbar(
+            message: isEdit ? DivoStrings.workHistoryUpdated : DivoStrings.workHistoryCreate,
+            style: .success
+        )
     }
 }

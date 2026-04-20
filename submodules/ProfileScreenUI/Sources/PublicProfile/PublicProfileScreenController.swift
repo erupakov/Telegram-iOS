@@ -298,6 +298,12 @@ public final class PublicProfileScreenController: TelegramBaseController {
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.push(historyController)
     }
+    
+    private func navigateToAddWorkExperience() {
+        let controller = AddWorkExperienceController(context: self.context)
+        controller.delegate = self
+        self.push(controller)
+    }
 
     private func navigateToAddModel() {
         let addModelController = AddModelController(context: self.context, presentationData: self.presentationData)
@@ -362,6 +368,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onAddModelTapped = { [weak self] in
             self?.navigateToAddModel()
+        }
+        
+        self.controllerNode.onAddWorkExperienceTapped = { [weak self] in
+            self?.navigateToAddWorkExperience()
         }
         
         self.displayNodeDidLoad()
@@ -935,6 +945,18 @@ extension PublicProfileScreenController: EditProfileDelegate {
 
         self.controllerNode.showSnackbar(
             message: DivoStrings.profileUpdated,
+            style: .success
+        )
+    }
+}
+
+extension PublicProfileScreenController: AddWorkExperienceDelegate {
+    func didUpdateWorkExperience(isEdit: Bool) {
+        self.profileLoaded = false
+        self.loadInitialData()
+
+        self.controllerNode.showSnackbar(
+            message: isEdit ? DivoStrings.workHistoryUpdated : DivoStrings.workHistoryCreate,
             style: .success
         )
     }

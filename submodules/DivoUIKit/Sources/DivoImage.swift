@@ -17,12 +17,15 @@ public enum DivoImage {
     public static var associatedModels: UIImage { load("DivoAssociatedModels") }
     public static var badgeBaseWork: UIImage { load("DivoBadgeBaseWork") }
     public static var basket: UIImage { load("DivoBasket") }
+    public static var basketWork: UIImage { load("DivoBasketWork") }
+    public static var calendar: UIImage { load("DivoCalendar") }
     public static var checkbox: UIImage { load("DivoCheckbox") }
     public static var checkboxSelected: UIImage { load("DivoCheckboxSelected") }
     public static var chevronDown: UIImage { load("DivoChevronDown") }
     public static var contactEditAction: UIImage { load("DivoContactEditAction") }
     public static var crownPremium: UIImage { load("DivoCrownPremium") }
     public static var defWork: UIImage { load("DivoDefWork") }
+    public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
     public static var filmstripIcon: UIImage { load("DivoFilmstripIcon") }
@@ -35,8 +38,11 @@ public enum DivoImage {
     public static var instaIcon: UIImage { load("DivoInstaIcon") }
     public static var link: UIImage { load("DivoLink") }
     public static var moreActionIcon: UIImage { load("DivoMoreActionIcon") }
+    public static var moreActionIconBlack: UIImage { load("DivoMoreActionIconBlack") }
     public static var moreIcon: UIImage { load("DivoMoreIcon") }
+    public static var pencil: UIImage { load("DivoPencil") }
     public static var plus: UIImage { load("DivoPlus") }
+    public static var plusWorkHistory: UIImage { load("DivoPlusWorkHistory") }
     public static var profileEditAction: UIImage { load("DivoProfileEditAction") }
     public static var profileLevelInfo2: UIImage { load("DivoProfileLevelInfo2") }
     public static var profileLevelInfo3: UIImage { load("DivoProfileLevelInfo3") }
@@ -47,12 +53,15 @@ public enum DivoImage {
     public static var roleNewTalent: UIImage { load("DivoRoleNewTalent") }
     public static var saveMedia: UIImage { load("DivoSaveMedia") }
     public static var searchArrowProfile: UIImage { load("DivoSearchArrowProfile") }
+    public static var searchChevronLeft: UIImage { load("DivoSearchChevronLeft") }
     public static var searchChevronRight: UIImage { load("DivoSearchChevronRight") }
     public static var searchCloseIcon: UIImage { load("DivoSearchCloseIcon") }
     public static var searchFaceScan: UIImage { load("DivoSearchFaceScan") }
     public static var searchFieldIcon: UIImage { load("DivoSearchFieldIcon") }
     public static var searchFilterIcon: UIImage { load("DivoSearchFilterIcon") }
+    public static var searchOrangeCheckmark: UIImage { load("DivoSearchOrangeCheckmark") }
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
+    public static var searchWhiteCheckmark: UIImage { load("DivoSearchWhiteCheckmark") }
     public static var signUpAgencies: UIImage { load("DivoSignUpAgencies") }
     public static var signUpChooseRoleBackground: UIImage { load("DivoSignUpChooseRoleBackground") }
     public static var signUpFan: UIImage { load("DivoSignUpFan") }
