@@ -85,7 +85,6 @@ public final class WorkExperienceController: TelegramBaseController {
                 )
                 structuredItems = response.data.items
             } catch {
-                print("[DivoAPI] model-work-history error: \(error)")
             }
 
             if !structuredItems.isEmpty {
@@ -108,7 +107,6 @@ public final class WorkExperienceController: TelegramBaseController {
                 await MainActor.run {
                     self.controllerNode.setLoading(false)
                 }
-                print("[DivoAPI] user/\(userId) fallback error: \(error)")
             }
         }
     }
@@ -124,7 +122,6 @@ public final class WorkExperienceController: TelegramBaseController {
                 )
                 structuredItems = response.data.items
             } catch {
-                print("[DivoAPI] model-work-history error: \(error)")
             }
             
             if !structuredItems.isEmpty {
@@ -156,7 +153,6 @@ public final class WorkExperienceController: TelegramBaseController {
                                 tempUrl = URL(string: urlString)
                             }
                         } catch {
-                            print("[DivoAPI] fetch agency \(agencyId) error: \(error)")
                         }
                         
                         let finalUrl = tempUrl
@@ -197,22 +193,6 @@ public final class WorkExperienceController: TelegramBaseController {
         self.fetchData() 
     }
 
-    private func showItemOptions(_ item: WorkHistoryItem) {
-        let name = item.agencyDisplayName ?? item.agencyName ?? "Unknown"
-        let alertController = textAlertController(
-            context: context, title: name,
-            text: DivoStrings.chooseAnAction, actions: [
-                TextAlertAction(type: .genericAction, title: DivoStrings.edit, action: {
-                    self.editWorkExperience(item)
-                }),
-                TextAlertAction(type: .destructiveAction, title: DivoStrings.delete, action: {
-                    self.deleteWorkHistory(id: item.id)
-                }),
-                TextAlertAction(type: .defaultAction, title: DivoStrings.cancel, action: {})
-            ])
-        present(alertController, in: .window(.root))
-    }
-
     private func editWorkExperience(_ item: WorkHistoryItem) {
         let controller = AddWorkExperienceController(context: self.context, editItem: item)
         controller.delegate = self
@@ -234,7 +214,6 @@ public final class WorkExperienceController: TelegramBaseController {
                     style: .success
                 )
             } catch {
-                print("[DivoAPI] delete model-work-history/\(id) error: \(error)")
                 self.controllerNode.showSnackbar(
                     message: DivoStrings.failedToDelete,
                     style: .error

@@ -48,8 +48,8 @@ final class DateSelectionControl: UIControl {
     required init?(coder: NSCoder) { fatalError() }
     
     private func setupUI() {
-        self.backgroundColor = .white
-        self.layer.cornerRadius = 23
+        self.backgroundColor = DivoColorPalette.cardBackground
+        self.layer.cornerRadius = DivoDesignTokens.Radius.pill
         self.translatesAutoresizingMaskIntoConstraints = false
         
         addSubview(valueLabel)
@@ -92,7 +92,7 @@ final class DateSelectionControl: UIControl {
         datePicker.tintColor = DivoColorPalette.accent
         
         let container = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 380))
-        container.backgroundColor = .systemBackground
+        container.backgroundColor = DivoColorPalette.cardBackground
         
         datePicker.frame = CGRect(x: DivoDesignTokens.Spacing.m, y: DivoDesignTokens.Spacing.m, width: container.bounds.width - DivoDesignTokens.Spacing.xl, height: container.bounds.height - DivoDesignTokens.Spacing.xl)
         datePicker.autoresizingMask = [.flexibleWidth, .flexibleHeight]

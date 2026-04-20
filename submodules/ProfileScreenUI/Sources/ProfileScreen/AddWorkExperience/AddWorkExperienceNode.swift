@@ -1,17 +1,10 @@
 import Display
 import UIKit
 import AsyncDisplayKit
-import UIKit
 import TelegramCore
 import DivoCore
-import TelegramPresentationData
-import TelegramUIPreferences
-import MergeLists
 import AccountContext
-import SearchUI
-import ChatListSearchItemHeader
 import AppBundle
-import ItemListUI
 import DivoUIKit
 
 enum TimeType {
@@ -26,13 +19,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private var startTime: Int32?
     private var endTime: Int32?
 
-    private let topBarContainer: UIView = {
-        let view = UIView()
-        view.backgroundColor = .clear
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-        
     private let navigationBar = DivoNavigationBar()
     
     // MARK: - UI Elements
@@ -62,7 +48,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = 47
-        iv.backgroundColor = .white
+        iv.backgroundColor = DivoColorPalette.cardBackground
         iv.layer.borderWidth = 1
         iv.layer.borderColor = DivoColorPalette.accent.cgColor
         iv.translatesAutoresizingMaskIntoConstraints = false
@@ -179,7 +165,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     // MARK: - Autocomplete Elements
     private let autocompleteContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = 16
         view.layer.shadowColor = UIColor.black.cgColor
         view.layer.shadowOpacity = 0.1
@@ -658,7 +644,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         }
     }
     
-    private func dissmisKeyboardAutocomplete() {
+    private func dismissKeyboardAutocomplete() {
         autocompleteBottomConstraint?.isActive = false
         autocompleteHeightConstraint?.constant = 0
         UIView.animate(withDuration: 0.2, animations: {
@@ -716,7 +702,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     @objc private func dismissKeyboard() {
         view.endEditing(true)
-        dissmisKeyboardAutocomplete()
+        dismissKeyboardAutocomplete()
         unlockScroll()
     }
         
@@ -792,9 +778,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         )
     }
 
-    func hideSnackbar(animated: Bool) {
-        snackbar.hide(animated: animated)
-    }
 }
 
 // MARK: - UITableViewDelegate & DataSource

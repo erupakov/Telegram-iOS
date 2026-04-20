@@ -5,17 +5,11 @@ import AsyncDisplayKit
 import SwiftSignalKit
 import TelegramCore
 import DivoCore
-import MessageUI
 import TelegramPresentationData
 import AccountContext
-import ShareController
-import AlertUI
 import PresentationDataUtils
-import SearchUI
-import LegacyMediaPickerUI
-import CountrySelectionUI
-import ChatScheduleTimeController
 import Postbox
+import ChatScheduleTimeController
 import DivoUIKit
 
 protocol AddWorkExperienceDelegate: AnyObject {
@@ -78,10 +72,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         }
     }
 
-    @objc private func createPressed() {
-        self.addWorkExperienceNode.applyButtonTapped()
-    }
-    
     // MARK: - Agency Search Request
     private var searchTask: Task<Void, Never>?
     
@@ -104,7 +94,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                 
             } catch {
                 if !Task.isCancelled {
-                    print("[DivoAPI] Agency search error: \(error)")
                     self.addWorkExperienceNode.updateAgencyResults([])
                 }
             }
@@ -138,7 +127,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                     )
                 }
             } catch {
-                print("[DivoAPI] fetch edit agency logo error: \(error)")
                 self.addWorkExperienceNode.currentPhoto = nil
                 addWorkExperienceNode.loadAvatar(isLoading: false)
                 self.addWorkExperienceNode.showSnackbar(
@@ -170,23 +158,17 @@ public class AddWorkExperienceController: ViewController, UINavigationController
     private func saveWorkExperience(body: CreateWorkHistoryRequest) {
         let path = editItem != nil ? "/model-work-history/\(editItem!.id)" : "/model-work-history"
         let isEdit = editItem != nil
-        print("[DivoAPI] save work-history request: path=\(path), body=\(body)")
-        
         Task { @MainActor in
             do {
-                let response: WorkHistorySaveResponse = try await DivoAPIClient.shared.request(
+                let _: WorkHistorySaveResponse = try await DivoAPIClient.shared.request(
                     path: path,
                     method: "POST",
                     body: body
                 )
                 
-                let msg = "OK: \(response.message ?? "nil")"
-                print("[DivoAPI] save success: \(msg)")
-                                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.delegate?.didUpdateWorkExperience(isEdit: isEdit)
-                    self.navigationController?.popViewController(animated: true)
-                }
+                self.addWorkExperienceNode.toggleSpinner(active: false)
+                self.delegate?.didUpdateWorkExperience(isEdit: isEdit)
+                self.navigationController?.popViewController(animated: true)
                 
             } catch {
                 self.addWorkExperienceNode.toggleSpinner(active: false)
@@ -194,8 +176,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                     message: isEdit ? DivoStrings.workHistoryFailedUpdated : DivoStrings.workHistoryFailedCreate,
                     style: .error
                 )
-                let errMsg = "Error: \(error.localizedDescription)"
-                print("[DivoAPI] save error: \(errMsg)")
             }
         }
     }

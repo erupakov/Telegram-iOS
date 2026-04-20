@@ -69,7 +69,7 @@ final class ExperienceView: UIView {
     private func setupUI() {
         translatesAutoresizingMaskIntoConstraints = false
         heightAnchor.constraint(equalToConstant: 80).isActive = true
-        backgroundColor = .white
+        backgroundColor = DivoColorPalette.cardBackground
         
         avatarSpinner.translatesAutoresizingMaskIntoConstraints = false
         avatarSpinner.isHidden = true

@@ -20,7 +20,6 @@ final class WorkExperience: ASDisplayNode {
     private var presentationData: PresentationData
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
-    var showItemOptions: ((WorkHistoryItem) -> Void)?
     var openAddWorkExperience: (() -> Void)?
     var onBackTapped: (() -> Void)?
     
@@ -39,7 +38,7 @@ final class WorkExperience: ASDisplayNode {
     
     private let listBackgroundContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -327,14 +326,6 @@ final class WorkExperience: ASDisplayNode {
     
     @objc private func addPressed() { openAddWorkExperience?() }
     @objc private func backPressed() { onBackTapped?() }
-    
-    @objc private func buttonPressed(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.1) { sender.alpha = 0.6; sender.transform = CGAffineTransform(scaleX: 0.95, y: 0.95) }
-    }
-    
-    @objc private func buttonReleased(_ sender: UIButton) {
-        UIView.animate(withDuration: 0.2) { sender.alpha = 1.0; sender.transform = .identity }
-    }
     
     
     // MARK: - Layout Update

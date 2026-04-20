@@ -125,7 +125,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.editProfileNode.configureAppearanceDictionaries(response.data)
                 self.editProfileNode.toggleSpinner(active: false)
             } catch {
-                print("❌ Error loading appearance dictionary: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
             }
         }
@@ -145,7 +144,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.editProfileNode.toggleSpinner(active: false)
                 
             } catch {
-                print("❌ Error loading appearance dictionary: \(error)")
                 self.editProfileNode.toggleSpinner(active: false)
             }
         }
@@ -166,7 +164,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 }
                 self.fetchAgencyLogos(for: response.data.items)
             } catch {
-                print("❌ Error loading work experience: \(error)")
                 // Пробуем загрузить legacy данные
                 if let userDetail = self.userDetailData {
                     self.editProfileNode.reloadLegacyWorkHistory(model: userDetail)
@@ -194,7 +191,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                                 tempUrl = URL(string: urlString)
                             }
                         } catch {
-                            print("[DivoAPI] fetch agency \(agencyId) error: \(error)")
                         }
                         
                         let finalUrl = tempUrl
@@ -233,7 +229,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 currentItems.removeAll { $0.id == itemId }
                 self.editProfileNode.reloadWorkHistory(items: currentItems)
             } catch {
-                print("❌ Error deleting work experience: \(error)")
                 self.editProfileNode.showSnackbar(
                     message: DivoStrings.failedToDelete,
                     style: .error
@@ -243,8 +238,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     }
 
     private func openPhotoGallery() {
-        print("📸 Opening photo gallery...")
-        
         if #available(iOS 14, *) {
             var configuration = PHPickerConfiguration()
             configuration.filter = .images
@@ -279,7 +272,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.selectedAvatarUUID = response.data?.uuid
                 self.editProfileNode.currentPhoto = selectedAvatarImage
                 self.editProfileNode.setAvatarLoading(false)
-                print("✅ Avatar uploaded, uuid: \(self.selectedAvatarUUID ?? "nil")")
             } catch {
                 self.editProfileNode.setAvatarLoading(false)
                 self.editProfileNode.showSnackbar(
@@ -303,13 +295,12 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     avatar: avatarUuid
                 )
 
-                let response: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
+                let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
                     path: "/user/update-profile",
                     method: "POST",
                     body: request
                 )
                 
-                print("✅ Profile successfully saved: \(response.message ?? "OK")")
 
                 self.delegate?.didUpdateProfileData()
                 self.navigationController?.popViewController(animated: true)
@@ -337,13 +328,12 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     photo: photoUuid
                 )
 
-                let response: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
+                let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
                     path: "/agency/update",
                     method: "POST",
                     body: request
                 )
                 
-                print("✅ Profile successfully saved: \(response.message ?? "OK")")
 
                 self.delegate?.didUpdateProfileData()
                 self.navigationController?.popViewController(animated: true)

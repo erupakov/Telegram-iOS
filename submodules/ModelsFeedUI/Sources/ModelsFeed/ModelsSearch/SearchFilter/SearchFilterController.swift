@@ -333,7 +333,6 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         scrollView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
-            // scrollView.topAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: 20),
             scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 20),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),

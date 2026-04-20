@@ -2,9 +2,6 @@ import UIKit
 import DivoCore
 import Display
 
-import UIKit
-import Display
-
 public enum BackButtonConfiguration {
     case circle(UIImage)
     case circleWithText
@@ -52,7 +49,7 @@ public final class DivoNavigationBar: UIView {
         
         button.setTitle(DivoStrings.back, for: .normal)
         button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 15, weight: .medium)
+        button.titleLabel?.font = Font.medium(15)
         
         button.imageEdgeInsets = UIEdgeInsets(top: 0, left: -4, bottom: 0, right: 4)
         button.titleEdgeInsets = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: -4)

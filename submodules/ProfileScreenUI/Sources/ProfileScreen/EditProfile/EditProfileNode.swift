@@ -1428,7 +1428,7 @@ extension EditProfileNode: UITextFieldDelegate {
         self.updatePagerHeight(animated: animated)
         segmentedControl.setSelectedIndex(index, animated: animated)
 
-        let offsetX = CGFloat(index) * (horizontalPager.bounds.width) // + 32)
+        let offsetX = CGFloat(index) * horizontalPager.bounds.width
 
         if animated {
             UIView.animate(withDuration: 0.3, delay: 0, options:[.curveEaseInOut, .allowUserInteraction], animations: {
@@ -1457,8 +1457,6 @@ extension EditProfileNode: UITextFieldDelegate {
             targetHeight = experienceHeight
         }
 
-        targetHeight += 0
-
         guard pagerHeightConstraint.constant != targetHeight else { return }
         pagerHeightConstraint.constant = targetHeight
         
@@ -1478,14 +1476,14 @@ extension EditProfileNode: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager, scrollView.bounds.width > 0 else { return }
 
-        let progress = scrollView.contentOffset.x / (scrollView.bounds.width) // + 32)
+        let progress = scrollView.contentOffset.x / scrollView.bounds.width
         segmentedControl.setIndicatorProgress(progress)
     }
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         guard scrollView == horizontalPager else { return }
 
-        let page = Int(round(scrollView.contentOffset.x / (scrollView.bounds.width))) // + 32)))
+        let page = Int(round(scrollView.contentOffset.x / scrollView.bounds.width))
         if selectedIndex != page {
             selectedIndex = page
             self.updatePagerHeight(animated: true)
