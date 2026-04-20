@@ -28,6 +28,7 @@ public final class WorkExperienceController: TelegramBaseController {
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
     private let createWorkExperienceDisposable = MetaDisposable()
+    private let loadingOverlay = DivoLoadingOverlay()
 
     private var presentationData: PresentationData
 
@@ -40,24 +41,7 @@ public final class WorkExperienceController: TelegramBaseController {
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
 
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: DivoColorPalette.accentCopperDeep,
-            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .black,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
-//
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
-
-        super.init(context: context, navigationBarPresentationData: navigationBarData)
-
-        updateNavigation()
+        super.init(context: context, navigationBarPresentationData: nil)
     }
 
     deinit {
@@ -70,24 +54,13 @@ public final class WorkExperienceController: TelegramBaseController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func updateNavigation() {
-        self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-
-        self.title = DivoStrings.workExperience
-
-        if model.isMyProfile {
-            let addItem = UIBarButtonItem(image: DivoImage.addIcon, style: .plain, target: self, action: #selector(self.addPressed))
-            addItem.tintColor = DivoColorPalette.accentCopperTint
-            self.navigationItem.rightBarButtonItem = addItem
-        }
-    }
-
     @objc private func addPressed() {
         addWorkExperience()
     }
 
     private func addWorkExperience() {
         let controller = AddWorkExperienceController(context: self.context)
+        controller.delegate = self
         self.push(controller)
     }
 
@@ -95,9 +68,8 @@ public final class WorkExperienceController: TelegramBaseController {
         self.navigationController?.popViewController(animated: true)
     }
 
-    override public func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        getWorkHistory()
+    private func fetchData() {
+        model.isMyProfile ? getWorkMyHistory() : getWorkHistory()
     }
 
     private func getWorkHistory() {
@@ -107,25 +79,21 @@ public final class WorkExperienceController: TelegramBaseController {
             return
         }
         Task {
-            // Try structured API first
-            var structuredItems: [WorkHistoryItem] = []
             do {
                 let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
                     path: "/model-work-history?userId=\(userId)"
                 )
-                structuredItems = response.data.items
-            } catch {
-                print("[DivoAPI] model-work-history error: \(error)")
-            }
-
-            if !structuredItems.isEmpty {
-                await MainActor.run {
-                    self.controllerNode.reloadWorkHistory(items: structuredItems)
+                let items = response.data.items
+                if !items.isEmpty {
+                    await MainActor.run {
+                        self.controllerNode.reloadWorkHistory(items: items)
+                    }
+                    self.fetchAgencyLogos(for: items)
+                    return
                 }
-                return
+            } catch {
             }
 
-            // Fallback: parse workExperience text from user profile
             do {
                 let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/user/\(userId)"
@@ -135,13 +103,54 @@ public final class WorkExperienceController: TelegramBaseController {
                 }
             } catch {
                 await MainActor.run {
-                    self.controllerNode.setLoading(false)
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.failedToLoadWorkHistory,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.getWorkHistory()
+                        },
+                        persistent: true
+                    )
                 }
-                print("[DivoAPI] user/\(userId) fallback error: \(error)")
             }
         }
     }
 
+    private func getWorkMyHistory() {
+        controllerNode.setLoading(true)
+
+        Task {
+            do {
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history"
+                )
+                let items = response.data.items
+                await MainActor.run {
+                    self.controllerNode.reloadWorkHistory(items: items)
+                }
+                if !items.isEmpty {
+                    self.fetchAgencyLogos(for: items)
+                }
+            } catch {
+                await MainActor.run {
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.failedToLoadWorkHistory,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.getWorkMyHistory()
+                        },
+                        persistent: true
+                    )
+                }
+            }
+        }
+    }
+    
+    private func fetchAgencyLogos(for items:[WorkHistoryItem]) {
+        AgencyLogoFetcher.fetch(for: items) { [weak self] itemId, url in
+            self?.controllerNode.updateAgencyLogo(itemId: itemId, url: url)
+        }
+    }
 
     override public func loadDisplayNode() {
         self.displayNode = WorkExperience(
@@ -150,51 +159,90 @@ public final class WorkExperienceController: TelegramBaseController {
             presentationData: self.presentationData,
             model: model)
 
-        self.controllerNode.showItemOptions = { [weak self] item in
-            self?.showItemOptions(item)
+        self.controllerNode.onEditItem = { [weak self] item in
+            self?.editWorkExperience(item)
+        }
+        
+        self.controllerNode.onDeleteItem = { [weak self] item in
+            self?.deleteWorkHistory(item: item)
         }
 
         self.controllerNode.openAddWorkExperience = { [weak self] in
             self?.addWorkExperience()
         }
-
+        
+        self.controllerNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
 
         self.displayNodeDidLoad()
-    }
-
-    private func showItemOptions(_ item: WorkHistoryItem) {
-        let name = item.agencyDisplayName ?? item.agencyName ?? "Unknown"
-        let alertController = textAlertController(
-            context: context, title: name,
-            text: DivoStrings.chooseAnAction, actions: [
-                TextAlertAction(type: .genericAction, title: DivoStrings.edit, action: {
-                    self.editWorkExperience(item)
-                }),
-                TextAlertAction(type: .destructiveAction, title: DivoStrings.delete, action: {
-                    self.deleteWorkHistory(id: item.id)
-                }),
-                TextAlertAction(type: .defaultAction, title: DivoStrings.cancel, action: {})
-            ])
-        present(alertController, in: .window(.root))
+        self.fetchData() 
     }
 
     private func editWorkExperience(_ item: WorkHistoryItem) {
         let controller = AddWorkExperienceController(context: self.context, editItem: item)
+        controller.delegate = self
         self.push(controller)
     }
 
-    private func deleteWorkHistory(id: Int) {
+    private func deleteWorkHistory(item: WorkHistoryItem) {
+        let alert = UIAlertController(
+            title: DivoStrings.workHistoryDeleteConfirmTitle,
+            message: DivoStrings.workHistoryDeleteConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: DivoStrings.delete, style: .destructive) { [weak self] _ in
+            self?.performDeleteWorkHistory(item: item)
+        })
+        self.present(alert, animated: true)
+    }
+
+    private func performDeleteWorkHistory(item: WorkHistoryItem) {
+        loadingOverlay.show(in: self.displayNode.view, message: DivoStrings.deleting)
+
         Task {
             do {
                 let _: WorkHistoryDeleteResponse = try await DivoAPIClient.shared.request(
-                    path: "/model-work-history/\(id)",
+                    path: "/model-work-history/\(item.id)",
                     method: "DELETE"
                 )
+            } catch {
                 await MainActor.run {
-                    self.getWorkHistory()
+                    self.loadingOverlay.hide()
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.failedToDelete,
+                        style: .error
+                    )
+                }
+                return
+            }
+
+            do {
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history"
+                )
+                let items = response.data.items
+                await MainActor.run {
+                    self.controllerNode.reloadWorkHistory(items: items)
+                    self.loadingOverlay.hide()
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.workHistoryDelete,
+                        style: .success
+                    )
+                }
+                if !items.isEmpty {
+                    self.fetchAgencyLogos(for: items)
                 }
             } catch {
-                print("[DivoAPI] delete model-work-history/\(id) error: \(error)")
+                await MainActor.run {
+                    self.controllerNode.removeItem(id: item.id)
+                    self.loadingOverlay.hide()
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.workHistoryDelete,
+                        style: .success
+                    )
+                }
             }
         }
     }
@@ -205,3 +253,14 @@ public final class WorkExperienceController: TelegramBaseController {
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
 }
+
+extension WorkExperienceController: AddWorkExperienceDelegate {
+    func didUpdateWorkExperience(isEdit: Bool) {
+        self.fetchData()
+        self.controllerNode.showSnackbar(
+            message: isEdit ? DivoStrings.workHistoryUpdated : DivoStrings.workHistoryCreate,
+            style: .success
+        )
+    }
+}
+

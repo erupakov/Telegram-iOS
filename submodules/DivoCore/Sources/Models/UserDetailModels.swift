@@ -290,6 +290,8 @@ public struct AgencyListData: Decodable {
 public struct AgencyItem: Decodable {
     public let id: Int
     public let title: String
+    public let username: String?
+    public let photo: UserFile?
 }
 
 public struct AppearanceDictionaryResponse: Codable {
@@ -383,6 +385,16 @@ public struct AddGalleryResponse: Decodable {
     public let message: String?
     public let data: UserPhoto?
     public let errors: String?
+}
+
+// MARK: - Agency
+
+public struct AgencyDetailResponse: Decodable {
+    public let data: AgencyDetailData
+}
+
+public struct AgencyDetailData: Decodable {
+    public let photo: UserFile?
 }
 
 // MARK: - Agency Models List

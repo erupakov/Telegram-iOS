@@ -646,6 +646,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onAddModelTapped: (() -> Void)?
     private let emptyModelsPlaceholderNode: EmptyModelsPlaceholderNode
     
+    var onAddWorkExperienceTapped: (() -> Void)?
     
     // MARK: - Init
     
@@ -932,8 +933,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     @objc private func addWorkHistoryTapped() {
-        let controller = AddWorkExperienceController(context: self.context)
-        self.controller?.push(controller)
+        onAddWorkExperienceTapped?()
     }
 
     private func setupSocialMediaContainer() {

@@ -275,6 +275,12 @@ public enum DivoStrings {
     public static var workHistoryDelete: String { L(en: "Work history deleted", ru: "История работы удалена", es: "Historial laboral eliminado", pt: "Histórico de trabalho excluído", zh: "工作经历已删除") }
     public static var premiumLabel: String { L(en: "Premium", ru: "Премиум", es: "Premium", pt: "Premium", zh: "高级版") }
     public static var failedLoadInteractionList: String { L(en: "Couldn't upload data", ru: "Не удалось загрузить данные", es: "No se pudieron cargar los datos", pt: "Não foi possível carregar os dados", zh: "无法加载数据") }
+    public static var workHistoryDeleteConfirmTitle: String { L(en: "Delete work experience?", ru: "Удалить опыт работы?", es: "¿Eliminar experiencia laboral?", pt: "Excluir experiência de trabalho?", zh: "删除工作经历？") }
+    public static var workHistoryDeleteConfirmMessage: String { L(en: "This action cannot be undone", ru: "Это действие нельзя отменить", es: "Esta acción no se puede deshacer", pt: "Esta ação não pode ser desfeita", zh: "此操作无法撤消") }
+    public static var failedToLoadWorkHistory: String { L(en: "Failed to load work history", ru: "Не удалось загрузить историю работы", es: "Error al cargar el historial laboral", pt: "Falha ao carregar o histórico de trabalho", zh: "无法加载工作经历") }
+    public static var connectionProblem: String { L(en: "Connection problem", ru: "Проблема с соединением", es: "Problema de conexión", pt: "Problema de conexão", zh: "连接问题") }
+    public static var searchError: String { L(en: "Search error", ru: "Ошибка поиска", es: "Error de búsqueda", pt: "Erro de pesquisa", zh: "搜索错误") }
+    public static var deleting: String { L(en: "Deleting…", ru: "Удаление…", es: "Eliminando…", pt: "Excluindo…", zh: "删除中…") }
 
     // MARK: - Profile — Gender & Appearance
 
@@ -318,14 +324,15 @@ public enum DivoStrings {
     public static var workExperience: String { L(en: "Work experience", ru: "Опыт работы", es: "Experiencia laboral", pt: "Experiência profissional", zh: "工作经历") }
     public static var noWorkExperienceYet: String { L(en: "THERE ARE NO WORK\nEXPERIENCE YET.", ru: "ОПЫТА РАБОТЫ\nПОКА НЕТ.", es: "AÚN NO HAY\nEXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ\nEXPERIÊNCIA.", zh: "暂无\n工作经历。") }
     public static var noWorkExperienceSubtitle: String { L(en: "Click the button below\nto add your work\nexperience", ru: "Нажмите кнопку ниже,\nчтобы добавить\nопыт работы", es: "Haga clic en el botón\npara agregar su\nexperiencia", pt: "Clique no botão abaixo\npara adicionar sua\nexperiência", zh: "点击下方按钮\n添加您的\n工作经历") }
-    public static var addWorkExperience: String { L(en: "Add Work Experience", ru: "Добавить опыт работы", es: "Agregar experiencia", pt: "Adicionar experiência", zh: "添加工作经历") }
+    public static var addWorkExperience: String { L(en: "Add work experience", ru: "Добавить опыт работы", es: "Agregar experiencia laboral", pt: "Adicionar experiência profissional", zh: "添加工作经验") }
     public static var workExperienceInfo: String { L(en: "Work experience info", ru: "Информация об опыте работы", es: "Información de experiencia", pt: "Informações da experiência", zh: "工作经历信息") }
     public static var enterAgencyName: String { L(en: "Enter agency name", ru: "Введите название агентства", es: "Ingrese el nombre de la agencia", pt: "Insira o nome da agência", zh: "输入经纪公司名称") }
     public static var startDate: String { L(en: "Start date", ru: "Дата начала", es: "Fecha de inicio", pt: "Data de início", zh: "开始日期") }
     public static var endDate: String { L(en: "End date", ru: "Дата окончания", es: "Fecha de fin", pt: "Data de término", zh: "结束日期") }
     public static var currentlyWorking: String { L(en: "I am currently working in this role", ru: "Я сейчас работаю на этой позиции", es: "Actualmente trabajo en este puesto", pt: "Estou atualmente nesta função", zh: "我目前在此职位工作") }
-    public static var saveChanges: String { L(en: "Save Changes", ru: "Сохранить изменения", es: "Guardar cambios", pt: "Salvar alterações", zh: "保存更改") }
-    public static var createNewWorkExperience: String { L(en: "Create New Work Experience", ru: "Создать опыт работы", es: "Crear nueva experiencia", pt: "Criar nova experiência", zh: "创建新工作经历") }
+    public static var saveChanges: String { L(en: "Save changes", ru: "Сохранить изменения", es: "Guardar cambios", pt: "Salvar alterações", zh: "保存更改") }
+    public static var createNewWorkExperience: String { L(en: "Create new work experience", ru: "Создать новый опыт работы", es: "Crear nueva experiencia laboral", pt: "Criar nova experiência profissional", zh: "创建新的工作经验") }
+    public static var creatingNewWorkExperience: String { L(en: "Creating...", ru: "Создание...", es: "Creando...", pt: "Criando...", zh: "创建中...") }
     public static var pleaseFillStartDate: String { L(en: "Please fill in the start date", ru: "Пожалуйста, укажите дату начала", es: "Por favor, ingrese la fecha de inicio", pt: "Por favor, preencha a data de início", zh: "请填写开始日期") }
     public static var currentAgency: String { L(en: "Current Agency", ru: "Текущее агентство", es: "Agencia actual", pt: "Agência atual", zh: "当前经纪公司") }
     public static var seeHistory: String { L(en: "SEE HISTORY", ru: "ИСТОРИЯ", es: "VER HISTORIAL", pt: "VER HISTÓRICO", zh: "查看历史") }
