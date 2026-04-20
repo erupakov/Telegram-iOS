@@ -83,7 +83,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             title: title,
             font: Font.medium(16),
             backButtonConfiguration: isOpenPresent ? .circle(DivoImage.searchCloseIcon) : .circle(DivoImage.searchChevronLeft),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteСheckmark, .primary),
+            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteCheckmark, .primary),
             onBackTapped: isOpenPresent ?
             { [weak self] in
                 self?.navigationController?.dismiss(animated: true)

@@ -108,7 +108,7 @@ public final class FilterOptionsController: UIViewController {
             title: title,
             font: Font.medium(16),
             backButtonConfiguration: isOpenPresent ? .circle(DivoImage.searchCloseIcon) : .circle(DivoImage.searchChevronLeft),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteСheckmark, .primary),
+            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteCheckmark, .primary),
             onBackTapped: isOpenPresent ?
             { [weak self] in
                 self?.navigationController?.dismiss(animated: true)
@@ -282,7 +282,7 @@ public final class FilterOptionsController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(label)
 
-        let checkmark = UIImageView(image: DivoImage.searchOrangeСheckmark)
+        let checkmark = UIImageView(image: DivoImage.searchOrangeCheckmark)
         checkmark.tintColor = DivoColorPalette.accent
         checkmark.translatesAutoresizingMaskIntoConstraints = false
         checkmark.isHidden = !isSelected
