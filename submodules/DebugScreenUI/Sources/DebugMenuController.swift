@@ -137,6 +137,15 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     self.onPush?(c)
                 }),
             ]),
+            (header: "Reset Flags", rows: [
+                Row(icon: "face.smiling", title: "Face Search Info", subtitle: {
+                    UserDefaults.standard.bool(forKey: "Divo.faceSearchInfoShown") ? "Shown" : "Not shown"
+                }, accessory: .toggle(UserDefaults.standard.bool(forKey: "Divo.faceSearchInfoShown"), { [weak self] enabled in
+                    UserDefaults.standard.set(enabled, forKey: "Divo.faceSearchInfoShown")
+                    self?.buildSections()
+                    self?.tableView.reloadData()
+                }), action: {}),
+            ]),
             (header: DivoStrings.debugNetwork, rows: [
                 Row(icon: "speedometer", title: DivoStrings.debugNetworkOverlay, subtitle: { "" }, accessory: .toggle(overlayEnabled, { [weak self] enabled in
                     UserDefaults.standard.set(enabled, forKey: "DivoNetworkOverlay.enabled")

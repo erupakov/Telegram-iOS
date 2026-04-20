@@ -138,13 +138,18 @@ public enum DivoStrings {
 
     // MARK: - Face Recognition
 
-    public static var faceRecognitionTitle: String { L(en: "Face Recognition", ru: "Поиск по фото", es: "Reconocimiento facial", pt: "Reconhecimento facial", zh: "人脸识别") }
-    public static var faceRecognitionComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
     public static var faceRecognitionSheetTitle: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Buscar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似档案") }
     public static var faceRecognitionSheetSubtitle: String { L(en: "Upload a photo to find models with a similar appearance", ru: "Загрузите фото, чтобы найти моделей с похожей внешностью", es: "Sube una foto para encontrar modelos con una apariencia similar", pt: "Envie uma foto para encontrar modelos com aparência semelhante", zh: "上传照片以查找外貌相似的模特") }
     public static var faceRecognitionTakePhoto: String { L(en: "Take a photo", ru: "Сделать фото", es: "Tomar una foto", pt: "Tirar uma foto", zh: "拍照") }
     public static var faceRecognitionChooseFromLibrary: String { L(en: "Choose from library", ru: "Выбрать из галереи", es: "Elegir de la galería", pt: "Escolher da galeria", zh: "从相册选择") }
     public static var faceRecognitionUseDivoPhoto: String { L(en: "Use a DIVO profile photo", ru: "Использовать фото профиля DIVO", es: "Usar foto de perfil DIVO", pt: "Usar foto do perfil DIVO", zh: "使用DIVO头像") }
+    public static var faceSearchInfoTitle: String { L(en: "How face search works", ru: "Как работает поиск по фото", es: "Cómo funciona la búsqueda facial", pt: "Como funciona a busca facial", zh: "人脸搜索的工作原理") }
+    public static var faceSearchInfoMessage: String { L(en: "We analyse your photo to find DIVO profiles with a similar appearance. Your photo is used for this search only and is not stored or shared.\n\nResults are ranked by visual similarity. Use the filters to narrow down by location, role, and other criteria.", ru: "Мы анализируем ваше фото, чтобы найти профили DIVO с похожей внешностью. Фото используется только для этого поиска и не сохраняется.\n\nРезультаты ранжируются по визуальному сходству. Используйте фильтры, чтобы уточнить по локации, роли и другим критериям.", es: "Analizamos tu foto para encontrar perfiles DIVO con apariencia similar. Tu foto se usa solo para esta búsqueda y no se almacena ni comparte.\n\nLos resultados se clasifican por similitud visual. Usa los filtros para refinar por ubicación, rol y otros criterios.", pt: "Analisamos sua foto para encontrar perfis DIVO com aparência semelhante. Sua foto é usada apenas para esta busca e não é armazenada ou compartilhada.\n\nOs resultados são classificados por similaridade visual. Use os filtros para refinar por localização, função e outros critérios.", zh: "我们分析您的照片以查找外貌相似的DIVO档案。您的照片仅用于此次搜索，不会被存储或分享。\n\n结果按视觉相似度排列。使用筛选器按位置、角色和其他条件缩小范围。") }
+    public static var faceSearchInfoButton: String { L(en: "Got it, let's search", ru: "Понятно, начать поиск", es: "Entendido, buscar", pt: "Entendi, vamos buscar", zh: "明白了，开始搜索") }
+    public static var faceSearchScreenTitle: String { L(en: "FACE SEARCH", ru: "ПОИСК ПО ФОТО", es: "BÚSQUEDA FACIAL", pt: "BUSCA FACIAL", zh: "人脸搜索") }
+    public static var faceSearchChangePhoto: String { L(en: "Change photo", ru: "Изменить фото", es: "Cambiar foto", pt: "Alterar foto", zh: "更换照片") }
+    public static var faceSearchFindProfiles: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Buscar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似档案") }
+    public static var faceSearchSortedByScore: String { L(en: "Results are sorted by visual similarity score", ru: "Результаты отсортированы по степени сходства", es: "Resultados ordenados por similitud visual", pt: "Resultados ordenados por pontuação de similaridade", zh: "结果按视觉相似度排序") }
 
     // MARK: - Roles
 
