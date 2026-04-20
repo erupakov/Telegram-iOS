@@ -75,8 +75,7 @@ public final class DivoButton: UIButton {
             spinner.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
-        addTarget(self, action: #selector(handleTouchDown), for: .touchDown)
-        addTarget(self, action: #selector(handleTouchUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
+        addDivoPressState(.primary)
     }
 
     // MARK: - Attributed titles
@@ -109,6 +108,12 @@ public final class DivoButton: UIButton {
             .foregroundColor: DivoColorPalette.primaryTextOnDark,
         ]
         return NSAttributedString(string: loadingTitle, attributes: attr)
+    }
+
+    // MARK: - Highlight suppression
+
+    override public var isHighlighted: Bool {
+        didSet {}
     }
 
     // MARK: - Enabled / disabled
@@ -179,19 +184,4 @@ public final class DivoButton: UIButton {
         hostView.viewWithTag(Self.blockingOverlayTag)?.removeFromSuperview()
     }
 
-    // MARK: - Press state
-
-    @objc private func handleTouchDown() {
-        UIView.animate(withDuration: 0.1) {
-            self.alpha = 0.6
-            self.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-        }
-    }
-
-    @objc private func handleTouchUp() {
-        UIView.animate(withDuration: 0.2) {
-            self.alpha = 1.0
-            self.transform = .identity
-        }
-    }
 }

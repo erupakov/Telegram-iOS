@@ -56,30 +56,31 @@ private final class DivoButtonPressHandler: NSObject {
 
     @objc func pressed() {
         guard let btn = button else { return }
+        let s = DivoDesignTokens.PressState.scale
         switch style {
         case .primary:
-            UIView.animate(withDuration: 0.1) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.pressDuration) {
                 btn.backgroundColor = DivoColorPalette.accentPressed
-                btn.transform = CGAffineTransform(scaleX: 0.98, y: 0.98)
+                btn.transform = CGAffineTransform(scaleX: s, y: s)
             }
         case .secondary:
-            UIView.animate(withDuration: 0.1) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.pressDuration) {
                 btn.backgroundColor = DivoColorPalette.secondaryButtonPressed
-                btn.transform = CGAffineTransform(scaleX: 0.98, y: 0.98)
+                btn.transform = CGAffineTransform(scaleX: s, y: s)
             }
         case .pill:
-            UIView.animate(withDuration: 0.1) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.pressDuration) {
                 btn.alpha = 0.85
-                btn.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
+                btn.transform = CGAffineTransform(scaleX: s, y: s)
             }
         case .text:
-            UIView.animate(withDuration: 0.1) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.pressDuration) {
                 btn.alpha = 0.5
             }
         case .accentInline:
-            UIView.animate(withDuration: 0.1) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.pressDuration) {
                 btn.backgroundColor = DivoColorPalette.accentPressed
-                btn.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+                btn.transform = CGAffineTransform(scaleX: s, y: s)
             }
         }
     }
@@ -88,22 +89,22 @@ private final class DivoButtonPressHandler: NSObject {
         guard let btn = button else { return }
         switch style {
         case .primary:
-            UIView.animate(withDuration: 0.2) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.releaseDuration) {
                 btn.backgroundColor = btn.isEnabled ? DivoColorPalette.accent : DivoColorPalette.buttonDisabledBackground
                 btn.transform = .identity
             }
         case .secondary:
-            UIView.animate(withDuration: 0.2) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.releaseDuration) {
                 btn.backgroundColor = btn.isEnabled ? DivoColorPalette.secondaryButtonBackground : DivoColorPalette.buttonDisabledBackground
                 btn.transform = .identity
             }
         case .pill, .text:
-            UIView.animate(withDuration: 0.2) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.releaseDuration) {
                 btn.alpha = 1.0
                 btn.transform = .identity
             }
         case .accentInline:
-            UIView.animate(withDuration: 0.2) {
+            UIView.animate(withDuration: DivoDesignTokens.PressState.releaseDuration) {
                 btn.backgroundColor = DivoColorPalette.accent
                 btn.transform = .identity
             }

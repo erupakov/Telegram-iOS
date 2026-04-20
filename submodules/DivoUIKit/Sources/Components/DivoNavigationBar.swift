@@ -63,7 +63,7 @@ public final class DivoNavigationBar: UIView {
     
     private let circleRightButton: UIButton = {
         let button = UIButton(type: .custom)
-
+        button.adjustsImageWhenHighlighted = false
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         
         button.layer.applyDivoShadow()
@@ -170,6 +170,7 @@ public final class DivoNavigationBar: UIView {
             textRightButton.isHidden = true
             
             circleRightButton.setImage(image, for: .normal)
+            circleRightButton.setImage(image, for: .highlighted)
             circleRightButton.tintColor = titleColor
             circleRightButton.backgroundColor = backgroundColor
 

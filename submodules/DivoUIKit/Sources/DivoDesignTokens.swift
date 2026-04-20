@@ -65,10 +65,12 @@ public enum DivoDesignTokens {
         public static let alpha: CGFloat = 0.65
         /// 0.4 — alpha при нажатии для ячеек с прозрачным фоном (AppearanceFilterRowView, option cells).
         public static let alphaOnClear: CGFloat = 0.4
-        /// 0.07s — длительность анимации нажатия.
-        public static let pressDuration: TimeInterval = 0.07
-        /// 0.25s — длительность анимации отпускания.
-        public static let releaseDuration: TimeInterval = 0.25
+        /// 0.95 — единый scale-коэффициент при нажатии для всех кнопок.
+        public static let scale: CGFloat = 0.95
+        /// 0.1s — длительность анимации нажатия.
+        public static let pressDuration: TimeInterval = 0.1
+        /// 0.2s — длительность анимации отпускания.
+        public static let releaseDuration: TimeInterval = 0.2
     }
 
     // MARK: - Spacing
