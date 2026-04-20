@@ -37,7 +37,6 @@ public enum DivoImage {
     public static var moreActionIcon: UIImage { load("DivoMoreActionIcon") }
     public static var moreIcon: UIImage { load("DivoMoreIcon") }
     public static var plus: UIImage { load("DivoPlus") }
-    public static var plusWorkHistory: UIImage { load("DivoPlusWorkHistory") }
     public static var premiumIcon: UIImage { load("DivoPremiumIcon") }
     public static var profileEditAction: UIImage { load("DivoProfileEditAction") }
     public static var profileLevelInfo2: UIImage { load("DivoProfileLevelInfo2") }
@@ -55,9 +54,7 @@ public enum DivoImage {
     public static var searchFaceScan: UIImage { load("DivoSearchFaceScan") }
     public static var searchFieldIcon: UIImage { load("DivoSearchFieldIcon") }
     public static var searchFilterIcon: UIImage { load("DivoSearchFilterIcon") }
-    public static var searchOrangeCheckmark: UIImage { load("DivoSearchOrangeCheckmark") }
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
-    public static var searchWhiteCheckmark: UIImage { load("DivoSearchWhiteCheckmark") }
     public static var signUpAgencies: UIImage { load("DivoSignUpAgencies") }
     public static var signUpChooseRoleBackground: UIImage { load("DivoSignUpChooseRoleBackground") }
     public static var signUpFan: UIImage { load("DivoSignUpFan") }
