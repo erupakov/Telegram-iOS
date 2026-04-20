@@ -11,6 +11,8 @@ Lint для DIVO-ассетов.
   [R5] DivoImage.swift синхронизирован со списком .imageset в DivoCoreImages.xcassets
   [R6] в DIVO-модулях все UIImage(named:/bundleImageName:) должны резолвиться
        в реально существующий .imageset (с учётом namespace)
+  [R7] имена .imageset в DivoCoreImages.xcassets содержат только ASCII-символы
+       (ловит случайную кириллицу, которая визуально неотличима от латиницы)
 
 Зачем:
   R1 — визуально отличать DIVO-ресурсы от Telegram в навигации по xcassets.
@@ -26,6 +28,9 @@ Lint для DIVO-ассетов.
        раньше возвращают nil в рантайме (пустая картинка на UI и никаких ошибок
        сборки). Такие «мёртвые» строки остаются после рефакторингов и не
        подсвечиваются ни R4, ни компилятором.
+  R7 — кириллические «С», «А», «Т», «О» и др. визуально неотличимы от латинских,
+       но ломают совпадение имён между .imageset и DivoImage.swift, между кодом
+       и бандлом. Ловим любые не-ASCII символы в именах ассетов.
 
 Как запускать:
   python3 scripts/divo/lint_divo_images.py           — прогнать все проверки
@@ -369,6 +374,23 @@ def check_r6_string_references_resolve(report: LintReport) -> None:
                 )
 
 
+def check_r7_no_non_ascii_in_names(report: LintReport) -> None:
+    """Имена .imageset должны содержать только ASCII (ловит случайную кириллицу)."""
+    if not DIVO_XCASSETS.is_dir():
+        return
+    for imageset_dir, name in iter_imagesets(DIVO_XCASSETS):
+        non_ascii = [(i, ch) for i, ch in enumerate(name) if ord(ch) > 127]
+        if non_ascii:
+            chars = ", ".join(
+                f"'{ch}' (U+{ord(ch):04X}) позиция {i}" for i, ch in non_ascii
+            )
+            report.add(
+                "R7",
+                f"{relpath(imageset_dir)}: имя '{name}' содержит не-ASCII символы: "
+                f"{chars}. Скорее всего кириллица вместо латиницы — переименуй.",
+            )
+
+
 # ---------- main ----------
 
 def main() -> int:
@@ -380,9 +402,10 @@ def main() -> int:
     check_r4_no_string_literals(report)
     check_r5_divoimage_in_sync(report)
     check_r6_string_references_resolve(report)
+    check_r7_no_non_ascii_in_names(report)
 
     if report.ok:
-        print(f"{GREEN}{BOLD}[divo-lint]{RESET} OK — все 6 проверок прошли.")
+        print(f"{GREEN}{BOLD}[divo-lint]{RESET} OK — все 7 проверок прошли.")
         return 0
 
     print(f"{RED}{BOLD}[divo-lint]{RESET} нарушения ({len(report.errors)}):")
