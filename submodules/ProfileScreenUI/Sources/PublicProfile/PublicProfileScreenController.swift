@@ -842,7 +842,11 @@ extension PublicProfileScreenController {
 extension PublicProfileScreenController {
     
     private func presentInteractionSheet(type: InteractionListType) {
-        let sheetVC = InteractionListViewController(type: type)
+        let sheetVC = InteractionListViewController(type: type, isMyProfile: isMyProfile)
+        sheetVC.onUserTapped = { [weak self] user in
+            sheetVC.dismiss(animated: true, completion: nil)
+            self?.openModelScreen(for: user)
+        }
         
         sheetVC.requestData = { [weak self] offset, completion in
             self?.loadInteractionData(type: type, offset: offset, completion: completion)
@@ -860,8 +864,31 @@ extension PublicProfileScreenController {
         
         self.present(sheetVC, animated: true, completion: nil)
     }
+
+    private func openModelScreen(for user: InteractionUser) {
+        let mainImageURL = user.avatarUrl
+            .flatMap { CDNURLHelper.convertToCDNURL($0) }
+
+        let profileModel = ProfileModel(
+            name: user.name,
+            age: 0,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: user.id,
+            role: user.role,
+            mainImageURL: mainImageURL,
+            avatarImageURL: mainImageURL
+        )
+        let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
     
-    private func loadInteractionData(type: InteractionListType, offset: Int, completion: @escaping ([InteractionUser], Bool) -> Void) {
+    private func loadInteractionData(type: InteractionListType, offset: Int, completion: @escaping ([InteractionUser], Bool, Bool) -> Void) {
         guard self.userID != -1 else { return }
         
         let limit = 20
@@ -905,12 +932,12 @@ extension PublicProfileScreenController {
                 let hasMore = (offset + apiItems.count) < totalCount
                 
                 await MainActor.run {
-                    completion(mappedUsers, hasMore)
+                    completion(mappedUsers, hasMore, false)
                 }
                 
             } catch {
                 print("❌ [INTERACTIONS] Error loading data for \(type.title): \(error)")
-                await MainActor.run { completion([], false) }
+                await MainActor.run { completion([], false, true) }
             }
         }
     }
