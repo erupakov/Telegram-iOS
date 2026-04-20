@@ -43,6 +43,7 @@ public enum DivoImage {
     public static var pencil: UIImage { load("DivoPencil") }
     public static var plus: UIImage { load("DivoPlus") }
     public static var plusWorkHistory: UIImage { load("DivoPlusWorkHistory") }
+    public static var premiumIcon: UIImage { load("DivoPremiumIcon") }
     public static var profileEditAction: UIImage { load("DivoProfileEditAction") }
     public static var profileLevelInfo2: UIImage { load("DivoProfileLevelInfo2") }
     public static var profileLevelInfo3: UIImage { load("DivoProfileLevelInfo3") }

@@ -3,8 +3,10 @@ import UIKit
 public final class DivoSegmentedSpinner: UIView {
 
     private var isAnimating = false
+    private let segmentColor: UIColor
 
-    public override init(frame: CGRect) {
+    public init(frame: CGRect = .zero, color: UIColor = .black) {
+        self.segmentColor = color
         super.init(frame: frame)
         backgroundColor = .clear
         setupSegments()
@@ -38,7 +40,7 @@ public final class DivoSegmentedSpinner: UIView {
                 y: center.y + dist * sin(angle)
             )
             seg.cornerRadius = cornerRadius
-            seg.backgroundColor = UIColor.black.withAlphaComponent(opacities[i]).cgColor
+            seg.backgroundColor = segmentColor.withAlphaComponent(opacities[i]).cgColor
             seg.transform = CATransform3DMakeRotation(angle + .pi / 2.0, 0, 0, 1)
             layer.addSublayer(seg)
         }

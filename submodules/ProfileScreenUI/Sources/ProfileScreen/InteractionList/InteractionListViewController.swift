@@ -1,6 +1,5 @@
 import UIKit
 import Display
-import TelegramCore
 import DivoCore
 import DivoUIKit
 
@@ -10,6 +9,11 @@ struct InteractionUser {
     let role: String
     let avatarUrl: String?
     let isPremium: Bool
+}
+
+struct InteractionPage {
+    let users: [InteractionUser]
+    let hasMore: Bool
 }
 
 enum InteractionListType {
@@ -31,12 +35,33 @@ final class InteractionListViewController: UIViewController {
     private var users: [InteractionUser] = []
     private var filteredUsers: [InteractionUser] = []
 
-    var requestData: ((Int, @escaping ([InteractionUser], Bool) -> Void) -> Void)?
+    var requestData: ((Int, @escaping (Result<InteractionPage, Error>) -> Void) -> Void)?
     
     private var currentOffset: Int = 0
     private let limit: Int = 20
     private var isLoadingMore: Bool = false
     private var hasMorePages: Bool = true
+    private var isMyProfile: Bool
+
+    var onUserTapped: ((InteractionUser) -> Void)?
+
+    private let errorContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+    
+    private let errorTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(16)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
+        label.numberOfLines = 2
+        return label
+    }()
     
     private let emptyContainer: UIView = {
         let view = UIView()
@@ -47,20 +72,22 @@ final class InteractionListViewController: UIViewController {
     private let emptyTitleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(26)
-        label.textColor = .black
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
+        label.numberOfLines = 2
         return label
     }()
     
     private let emptySubTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(16)
-        label.textColor = DivoColorPalette.primaryText
+        label.font = Font.regular(16)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
+        label.numberOfLines = 0
         return label
     }()
 
@@ -74,13 +101,50 @@ final class InteractionListViewController: UIViewController {
         return label
     }()
 
-    private let searchBar: UISearchBar = {
-        let searchBar = UISearchBar()
-        searchBar.placeholder = DivoStrings.search
-        searchBar.searchBarStyle = .minimal
-        searchBar.translatesAutoresizingMaskIntoConstraints = false
-        searchBar.isHidden = true
-        return searchBar
+    private let searchFieldContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+    
+    private let searchIcon: UIImageView = {
+        let imageView = UIImageView()
+        imageView.image = DivoImage.searchFieldIcon
+        imageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
+    }()
+    
+    private let searchTextField: UITextField = {
+        let field = UITextField()
+        field.font = Font.regular(14)
+        field.textColor = DivoColorPalette.primaryText
+        field.tintColor = DivoColorPalette.accentSecondary
+        field.placeholder = DivoStrings.search
+        field.clearButtonMode = .whileEditing
+        field.autocorrectionType = .no
+        field.returnKeyType = .search
+        field.translatesAutoresizingMaskIntoConstraints = false
+        return field
+    }()
+
+    private let searchFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.cgColor,
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+            ]
+            gradient.locations = [0, 0.45]
+        }
+        return view
     }()
 
     private let tableView: UITableView = {
@@ -90,25 +154,31 @@ final class InteractionListViewController: UIViewController {
         tv.translatesAutoresizingMaskIntoConstraints = false
         tv.isHidden = true
         tv.showsVerticalScrollIndicator = false
+        tv.backgroundColor = DivoColorPalette.screenBackground
+        tv.contentInset = UIEdgeInsets(top: 10, left: 0, bottom: 0, right: 0)
+        tv.keyboardDismissMode = .onDrag
         return tv
     }()
 
-    private let footerSpinner: UIActivityIndicatorView = {
-        let indicator = UIActivityIndicatorView(style: .medium)
-        indicator.hidesWhenStopped = true
-        indicator.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 50)
-        return indicator
-    }()
+    private let loadingSpinner = DivoSegmentedSpinner()
 
-    private let loadingIndicator: UIActivityIndicatorView = {
-        let indicator = UIActivityIndicatorView(style: .medium)
-        indicator.hidesWhenStopped = true
-        indicator.translatesAutoresizingMaskIntoConstraints = false
-        return indicator
-    }()
+    private let footerSpinner: DivoSegmentedSpinner
 
-    init(type: InteractionListType) {
+    init(type: InteractionListType, isMyProfile: Bool) {
+        self.isMyProfile = isMyProfile
         self.listType = type
+
+        let footerView = UIView(frame: CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 60))
+        let spinner = DivoSegmentedSpinner(frame: CGRect(x: 0, y: 0, width: 32, height: 32))
+
+        spinner.center = footerView.center
+        spinner.autoresizingMask = [.flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin, .flexibleBottomMargin]
+
+        footerView.addSubview(spinner)
+        self.footerSpinner = spinner
+        self.footerSpinner.isHidden = true
+        tableView.tableFooterView = footerView
+
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -119,8 +189,6 @@ final class InteractionListViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-
-        tableView.tableFooterView = footerSpinner
         loadInitialData()
     }
 
@@ -128,34 +196,67 @@ final class InteractionListViewController: UIViewController {
         view.backgroundColor = DivoColorPalette.screenBackground
         titleLabel.text = listType.title
 
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
+
+        view.addSubview(errorContainer)
+        errorContainer.addSubview(errorTitleLabel)
+
         view.addSubview(emptyContainer)
         emptyContainer.addSubview(emptyTitleLabel)
         emptyContainer.addSubview(emptySubTitleLabel)
 
         view.addSubview(titleLabel)
-        view.addSubview(searchBar)
+        view.addSubview(searchFieldContainer)
+        searchFieldContainer.addSubview(searchIcon)
+        searchFieldContainer.addSubview(searchTextField)
         view.addSubview(tableView)
-        view.addSubview(loadingIndicator)
+        view.addSubview(loadingSpinner)
+        loadingSpinner.translatesAutoresizingMaskIntoConstraints = false
+        loadingSpinner.isHidden = true
+        view.addSubview(searchFadeOverlay)
 
-        searchBar.delegate = self
+        searchTextField.delegate = self
+        searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
         tableView.dataSource = self
         tableView.delegate = self
 
+        let elementHeight: CGFloat = 40.0
+        
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            searchBar.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
-            searchBar.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
-            searchBar.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            searchFieldContainer.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 20),
+            searchFieldContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            searchFieldContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            searchFieldContainer.heightAnchor.constraint(equalToConstant: elementHeight),
 
-            tableView.topAnchor.constraint(equalTo: searchBar.bottomAnchor),
+            searchIcon.leadingAnchor.constraint(equalTo: searchFieldContainer.leadingAnchor, constant: 14),
+            searchIcon.centerYAnchor.constraint(equalTo: searchFieldContainer.centerYAnchor),
+            searchIcon.widthAnchor.constraint(equalToConstant: 20),
+            searchIcon.heightAnchor.constraint(equalToConstant: 20),
+
+            searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
+            searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
+            searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor),
+
+            searchFadeOverlay.topAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor),
+            searchFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            searchFadeOverlay.heightAnchor.constraint(equalToConstant: 60),
+
+            tableView.topAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            loadingSpinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingSpinner.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            loadingSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            loadingSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             
             emptyContainer.topAnchor.constraint(equalTo: view.topAnchor),
             emptyContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -164,103 +265,211 @@ final class InteractionListViewController: UIViewController {
             
             emptyTitleLabel.centerXAnchor.constraint(equalTo: emptyContainer.centerXAnchor),
             emptyTitleLabel.centerYAnchor.constraint(equalTo: emptyContainer.centerYAnchor),
-            emptyTitleLabel.leadingAnchor.constraint(equalTo: emptyContainer.leadingAnchor, constant: 8),
-            emptyTitleLabel.trailingAnchor.constraint(equalTo: emptyContainer.trailingAnchor, constant: -8),
+            emptyTitleLabel.leadingAnchor.constraint(equalTo: emptyContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyTitleLabel.trailingAnchor.constraint(equalTo: emptyContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
             emptySubTitleLabel.topAnchor.constraint(equalTo: emptyTitleLabel.bottomAnchor, constant: 10),
-            emptySubTitleLabel.leadingAnchor.constraint(equalTo: emptyContainer.leadingAnchor, constant: 8),
-            emptySubTitleLabel.trailingAnchor.constraint(equalTo: emptyContainer.trailingAnchor, constant: -8),
+            emptySubTitleLabel.leadingAnchor.constraint(equalTo: emptyContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptySubTitleLabel.trailingAnchor.constraint(equalTo: emptyContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             emptySubTitleLabel.bottomAnchor.constraint(lessThanOrEqualTo: emptyContainer.bottomAnchor),
+
+            errorContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            errorContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            errorContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            errorContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            errorTitleLabel.centerXAnchor.constraint(equalTo: errorContainer.centerXAnchor),
+            errorTitleLabel.centerYAnchor.constraint(equalTo: errorContainer.centerYAnchor),
+            errorTitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            errorTitleLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
         ])
     }
 
     private func configure(with isEmptyTable: Bool, emptyTitle: String? = nil, emptySubTitle: String? = nil) {
         if isEmptyTable {
             emptyContainer.isHidden = false
-            searchBar.isHidden = true
+            searchFieldContainer.isHidden = true
+            searchFadeOverlay.isHidden = true
             tableView.isHidden = true
+            errorContainer.isHidden = true
             
-            emptyTitleLabel.text = emptyTitle
+            emptyTitleLabel.text = emptyTitle?.uppercased()
             emptySubTitleLabel.text = emptySubTitle
         } else {
             emptyContainer.isHidden = true
-            searchBar.isHidden = false
+            searchFieldContainer.isHidden = false
+            searchFadeOverlay.isHidden = false
             tableView.isHidden = false
+
         }
     }
     
     private func loadInitialData() {
-        loadingIndicator.startAnimating()
+        loadingSpinner.startAnimating()
+        loadingSpinner.isHidden = false
+        errorContainer.isHidden = true
+        hideSnackbar(animated: false)
         currentOffset = 0
         isLoadingMore = true
-        
-        requestData?(0) { [weak self] newUsers, hasMore in
+
+        requestData?(0) { [weak self] result in
             guard let self = self else { return }
             self.isLoadingMore = false
-            self.hasMorePages = hasMore
-            
-            self.currentOffset = self.limit
-            
-            self.users = newUsers
-            self.filteredUsers = newUsers
-            
+
             DispatchQueue.main.async {
-                self.loadingIndicator.stopAnimating()
-                self.updateEmptyState()
-                self.tableView.reloadData()
-            }
-        }
-    }
-    
-    private func loadNextPage() {
-        guard !isLoadingMore, hasMorePages, searchBar.text?.isEmpty ?? true else { return }
-        
-        isLoadingMore = true
-        footerSpinner.startAnimating()
-        
-        let startIndex = self.filteredUsers.count
-        
-        requestData?(currentOffset) { [weak self] newUsers, hasMore in
-            guard let self = self else { return }
-            
-            self.currentOffset += self.limit
-            self.isLoadingMore = false
-            self.hasMorePages = hasMore
-            
-            self.users.append(contentsOf: newUsers)
-            self.filteredUsers = self.users
-            
-            DispatchQueue.main.async {
-                self.footerSpinner.stopAnimating()
-                
-                if !newUsers.isEmpty {
-                    let indexPaths = (0..<newUsers.count).map {
-                        IndexPath(row: startIndex + $0, section: 0)
-                    }
-                    
-                    self.tableView.performBatchUpdates({
-                        self.tableView.insertRows(at: indexPaths, with: .fade)
-                    }, completion: nil)
-                    
-                } else {
-                    self.hasMorePages = false
+                self.loadingSpinner.stopAnimating()
+                self.loadingSpinner.isHidden = true
+
+                switch result {
+                case .failure(let error):
+                    let message = self.errorMessage(for: error)
+                    self.errorTitleLabel.text = message
+                    self.errorContainer.isHidden = false
+                    self.showSnackbar(
+                        message: message,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.loadInitialData()
+                        },
+                        persistent: true
+                    )
+
+                case .success(let page):
+                    self.errorContainer.isHidden = true
+                    self.hasMorePages = page.hasMore
+                    self.currentOffset = self.limit
+                    self.users = page.users
+                    self.filteredUsers = page.users
+                    self.updateEmptyState()
+                    self.tableView.reloadData()
                 }
             }
         }
     }
     
+    private func loadNextPage() {
+        guard !isLoadingMore, hasMorePages, searchTextField.text?.isEmpty ?? true else { return }
+
+        isLoadingMore = true
+        footerSpinner.startAnimating()
+        footerSpinner.isHidden = false
+
+        let startIndex = self.filteredUsers.count
+
+        requestData?(currentOffset) { [weak self] result in
+            guard let self = self else { return }
+            self.isLoadingMore = false
+
+            DispatchQueue.main.async {
+                self.footerSpinner.stopAnimating()
+                self.footerSpinner.isHidden = true
+
+                switch result {
+                case .failure(let error):
+                    self.showSnackbar(
+                        message: self.errorMessage(for: error),
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.loadNextPage()
+                        }
+                    )
+
+                case .success(let page):
+                    self.currentOffset += self.limit
+                    self.hasMorePages = page.hasMore
+                    self.users.append(contentsOf: page.users)
+
+                    let searchText = self.searchTextField.text ?? ""
+
+                    if !searchText.isEmpty {
+                        self.filteredUsers = self.users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
+                        self.tableView.reloadData()
+                    } else {
+                        self.filteredUsers = self.users
+
+                        if !page.users.isEmpty {
+                            let currentRowCount = self.tableView.numberOfRows(inSection: 0)
+                            if currentRowCount == startIndex {
+                                let indexPaths = (0..<page.users.count).map {
+                                    IndexPath(row: startIndex + $0, section: 0)
+                                }
+                                self.tableView.performBatchUpdates({
+                                    self.tableView.insertRows(at: indexPaths, with: .fade)
+                                }, completion: nil)
+                            } else {
+                                self.tableView.reloadData()
+                            }
+                        } else {
+                            self.hasMorePages = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func updateEmptyState() {
         if filteredUsers.isEmpty {
             if self.listType == .likes {
+                isMyProfile ? 
+                configure(with: true, emptyTitle: DivoStrings.noLikesYetMyProfile, emptySubTitle: DivoStrings.noLikesSubtitleMyProfile) :
                 configure(with: true, emptyTitle: DivoStrings.noLikesYet, emptySubTitle: DivoStrings.noLikesSubtitle)
             } else if self.listType == .saves {
+                isMyProfile ? 
+                configure(with: true, emptyTitle: DivoStrings.nothingSavedYetMyProfile, emptySubTitle: DivoStrings.nothingSavedSubtitleMyProfile) :
                 configure(with: true, emptyTitle: DivoStrings.nothingSavedYet, emptySubTitle: DivoStrings.nothingSavedSubtitle)
             } else if self.listType == .views {
+                isMyProfile ? 
+                configure(with: true, emptyTitle: DivoStrings.noProfileViewedYetMyProfile, emptySubTitle: DivoStrings.noProfileViewedSubtitleMyProfile) :
                 configure(with: true, emptyTitle: DivoStrings.noProfileViewedYet, emptySubTitle: DivoStrings.noProfileViewedSubtitle)
             }
         } else {
             configure(with: false)
         }
+    }
+
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+
+    @objc private func searchTextChanged() {
+        let searchText = searchTextField.text ?? ""
+        if searchText.isEmpty {
+            filteredUsers = users
+        } else {
+            filteredUsers = users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
+        }
+        tableView.reloadData()
+    }
+
+    private func errorMessage(for error: Error) -> String {
+        if error is DivoAPIError, case .noInternetConnection = error as! DivoAPIError {
+            return DivoStrings.connectionProblem
+        }
+        return DivoStrings.failedLoadInteractionList
+    }
+
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: 16,
+            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }
 
@@ -270,21 +479,23 @@ extension InteractionListViewController: UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: InteractionUserCell.reuseIdentifier, for: indexPath) as! InteractionUserCell
-        cell.configure(with: filteredUsers[indexPath.row])
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: InteractionUserCell.reuseIdentifier, for: indexPath) as? InteractionUserCell  else {
+            return UITableViewCell()
+        }
+        cell.configure(with: filteredUsers[indexPath.row], searchText: searchTextField.text ?? "")
         return cell
     }
 }
 
 extension InteractionListViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 74
+        return 68
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let user = filteredUsers[indexPath.row]
-        print("Open profile: \(user.name)")
+        onUserTapped?(user)
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -292,21 +503,22 @@ extension InteractionListViewController: UITableViewDelegate {
         let contentHeight = scrollView.contentSize.height
         let height = scrollView.frame.size.height
         
-        // Подгружаем данные за 200 поинтов до конца списка
         if offsetY > contentHeight - height - 200 {
             loadNextPage()
         }
     }
 }
 
-extension InteractionListViewController: UISearchBarDelegate {
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText.isEmpty {
-            filteredUsers = users
-        } else {
-            filteredUsers = users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
-        }
-        tableView.reloadData()
+extension InteractionListViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
     }
 }
 
+
+// MARK: - GradientView
+
+private final class GradientView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
+}

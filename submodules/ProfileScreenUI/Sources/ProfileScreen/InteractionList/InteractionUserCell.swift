@@ -1,6 +1,5 @@
 import UIKit
 import Display
-import TelegramCore
 import DivoCore
 import DivoUIKit
 
@@ -11,7 +10,7 @@ final class InteractionUserCell: UITableViewCell {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 30
+        iv.layer.cornerRadius = 26
         iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         iv.translatesAutoresizingMaskIntoConstraints = false
         iv.tintColor = .lightGray
@@ -20,32 +19,51 @@ final class InteractionUserCell: UITableViewCell {
 
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(16)
+        label.font = Font.medium(16)
         label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
         return label
     }()
 
-    private let premiumBadge: UIImageView = {
+    private let premiumBadgeContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = 11
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let premiumBadgeIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = DivoImage.crownPremium
+        iv.image = DivoImage.premiumIcon
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
 
+    private let premiumBadgeLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.medium(11)
+        label.textColor = DivoColorPalette.accent
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.premiumLabel
+        label.numberOfLines = 1
+        return label
+    }()
+
     private let roleLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(14)
+        label.font = Font.regular(14)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
         return label
     }()
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
+        selectionStyle = .none
+        backgroundColor = .clear
         setupViews()
     }
 
@@ -56,6 +74,7 @@ final class InteractionUserCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         avatarImageView.image = nil
+        avatarImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         avatarImageView.stopShimmering()
         avatarImageView.alpha = 1.0
         avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
@@ -64,32 +83,53 @@ final class InteractionUserCell: UITableViewCell {
     private func setupViews() {
         contentView.addSubview(avatarImageView)
         contentView.addSubview(nameLabel)
-        contentView.addSubview(premiumBadge)
+        contentView.addSubview(premiumBadgeContainer)
+        premiumBadgeContainer.addSubview(premiumBadgeIcon)
+        premiumBadgeContainer.addSubview(premiumBadgeLabel)
         contentView.addSubview(roleLabel)
 
         NSLayoutConstraint.activate([
-            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 60),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 60),
+            avatarImageView.widthAnchor.constraint(equalToConstant: 52),
+            avatarImageView.heightAnchor.constraint(equalToConstant: 52),
 
-            nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 12),
+            nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
             nameLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),
 
-            premiumBadge.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 6),
-            premiumBadge.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
-            premiumBadge.widthAnchor.constraint(equalToConstant: 16),
-            premiumBadge.heightAnchor.constraint(equalToConstant: 16),
+            premiumBadgeContainer.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            premiumBadgeContainer.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
+            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: 22),
+
+            premiumBadgeIcon.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
+            premiumBadgeIcon.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
+            premiumBadgeIcon.leadingAnchor.constraint(equalTo: premiumBadgeContainer.leadingAnchor, constant: 6),
+
+            premiumBadgeLabel.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
+            premiumBadgeLabel.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
+            premiumBadgeLabel.leadingAnchor.constraint(equalTo: premiumBadgeIcon.trailingAnchor, constant: 2),
+            premiumBadgeLabel.trailingAnchor.constraint(equalTo: premiumBadgeContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
 
             roleLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
             roleLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2)
         ])
     }
 
-    func configure(with user: InteractionUser) {
-        nameLabel.text = user.name
+    func configure(with user: InteractionUser, searchText: String = "") {
+        if !searchText.isEmpty {
+            let attributed = NSMutableAttributedString(string: user.name)
+            let range = (user.name.lowercased() as NSString).range(of: searchText.lowercased())
+            if range.location != NSNotFound {
+                attributed.addAttribute(.foregroundColor, value: DivoColorPalette.accent, range: range)
+            }
+            nameLabel.attributedText = attributed
+        } else {
+            nameLabel.attributedText = nil
+            nameLabel.text = user.name
+        }
         roleLabel.text = user.role
-        premiumBadge.isHidden = !user.isPremium
+        premiumBadgeContainer.isHidden = !user.isPremium
         
         avatarImageView.startShimmering()
         
@@ -101,8 +141,9 @@ final class InteractionUserCell: UITableViewCell {
                     if let image = image {
                         self.avatarImageView.alpha = 0
                         self.avatarImageView.image = image
+                        self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
                         self.avatarImageView.backgroundColor = .clear
-                        
+
                         UIView.animate(withDuration: 0.3) {
                             self.avatarImageView.alpha = 1.0
                         }
@@ -122,6 +163,17 @@ final class InteractionUserCell: UITableViewCell {
         avatarImageView.image = UIImage(systemName: "person.crop.circle.fill")
         avatarImageView.tintColor = .lightGray
         avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
+    }
+
+    override func setHighlighted(_ highlighted: Bool, animated: Bool) {
+        super.setHighlighted(highlighted, animated: animated)
+        let duration = highlighted ? DivoDesignTokens.PressState.pressDuration : DivoDesignTokens.PressState.releaseDuration
+        UIView.animate(withDuration: duration) {
+            self.contentView.alpha = highlighted ? DivoDesignTokens.PressState.alpha : 1.0
+            self.contentView.transform = highlighted
+                ? CGAffineTransform(scaleX: DivoDesignTokens.PressState.scale, y: DivoDesignTokens.PressState.scale)
+                : .identity
+        }
     }
 }
 
