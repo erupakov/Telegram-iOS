@@ -239,7 +239,7 @@ final class WorkExperience: ASDisplayNode {
         guard let cell = experienceCells[itemId],
               let item = rawItems.first(where: { $0.id == itemId }) else { return }
         
-        let period = Self.formatWorkPeriod(startDate: item.startDate, endDate: item.endDate, isCurrent: item.isCurrent)
+        let period = item.formattedPeriod
         
         let wItem = WorkExperienceItem(
             id: item.id,
@@ -270,7 +270,7 @@ final class WorkExperience: ASDisplayNode {
                 
                 let logoURL: URL? = nil
                 
-                let period = Self.formatWorkPeriod(startDate: item.startDate, endDate: item.endDate, isCurrent: item.isCurrent)
+                let period = item.formattedPeriod
                 
                 let wItem = WorkExperienceItem(
                     id: item.id,
@@ -334,53 +334,7 @@ final class WorkExperience: ASDisplayNode {
         self.containerLayout = (layout, navigationBarHeight)
     }
 
-    
-    // MARK: - Period Formatting
-    private static func formatWorkPeriod(startDate: String?, endDate: String?, isCurrent: Bool?) -> String {
-        let inputFormatter = DateFormatter()
-        inputFormatter.dateFormat = "yyyy-MM-dd"
-        inputFormatter.locale = Locale(identifier: "en_US_POSIX")
 
-        guard let startStr = startDate, let start = inputFormatter.date(from: startStr) else {
-            return "—"
-        }
-
-        let displayFormatter = DateFormatter()
-        displayFormatter.dateFormat = "MMMM yyyy"
-        displayFormatter.locale = Locale(identifier: DivoStrings.current.localeIdentifier)
-
-        let startString = displayFormatter.string(from: start)
-        let endString: String
-        let end: Date
-
-        if isCurrent == true {
-            end = Date()
-            endString = DivoStrings.present
-        } else if let endStr = endDate, let endDate = inputFormatter.date(from: endStr) {
-            end = endDate
-            endString = displayFormatter.string(from: endDate)
-        } else {
-            end = Date()
-            endString = DivoStrings.present
-        }
-
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month], from: start, to: end)
-        let years = components.year ?? 0
-        let months = components.month ?? 0
-
-        var durationString = ""
-        if years > 0 { durationString += DivoStrings.yearsCount(years) }
-        if months > 0 {
-            if !durationString.isEmpty { durationString += " " }
-            durationString += DivoStrings.monthsCount(months)
-        }
-        if durationString.isEmpty { durationString = DivoStrings.oneMonth }
-
-        return "\(startString) - \(endString) · \(durationString)"
-    }
-    
-    
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style

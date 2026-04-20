@@ -119,20 +119,20 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                         }
                     }
                 } else {
-                    self.addWorkExperienceNode.currentPhoto = nil
-                    addWorkExperienceNode.loadAvatar(isLoading: false)
-                    self.addWorkExperienceNode.showSnackbar(
-                        message: DivoStrings.emptyPhoto,
-                        style: .success
-                    )
+                    await MainActor.run {
+                        self.addWorkExperienceNode.currentPhoto = nil
+                        self.addWorkExperienceNode.loadAvatar(isLoading: false)
+                    }
                 }
             } catch {
-                self.addWorkExperienceNode.currentPhoto = nil
-                addWorkExperienceNode.loadAvatar(isLoading: false)
-                self.addWorkExperienceNode.showSnackbar(
-                    message: DivoStrings.failedToUploadPhoto,
-                    style: .error
-                )
+                await MainActor.run {
+                    self.addWorkExperienceNode.currentPhoto = nil
+                    self.addWorkExperienceNode.loadAvatar(isLoading: false)
+                    self.addWorkExperienceNode.showSnackbar(
+                        message: DivoStrings.failedToUploadPhoto,
+                        style: .error
+                    )
+                }
             }
         }
     }

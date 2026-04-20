@@ -175,32 +175,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     }
 
     private func fetchAgencyLogos(for items:[WorkHistoryItem]) {
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for item in items {
-                    guard let agencyId = item.agencyId else { continue }
-                    
-                    group.addTask {
-                        var tempUrl: URL? = nil
-                        
-                        do {
-                            let response: AgencyDetailResponse = try await DivoAPIClient.shared.request(
-                                path: "/agency/\(agencyId)"
-                            )
-                            if let urlString = response.data.photo?.fullUrl {
-                                tempUrl = URL(string: urlString)
-                            }
-                        } catch {
-                        }
-                        
-                        let finalUrl = tempUrl
-                        
-                        await MainActor.run {
-                            self.editProfileNode.updateAgencyLogo(itemId: item.id, url: finalUrl)
-                        }
-                    }
-                }
-            }
+        AgencyLogoFetcher.fetch(for: items) { [weak self] itemId, url in
+            self?.editProfileNode.updateAgencyLogo(itemId: itemId, url: url)
         }
     }
     

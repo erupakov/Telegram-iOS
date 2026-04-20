@@ -241,7 +241,7 @@ final class EditProfileNode: ASDisplayNode {
     
     private let avatarSpinner = DivoSegmentedSpinner()
     
-    private let nameEventTextField: DivoTextField
+    private let nameTextField: DivoTextField
     private let aboutEventTextField: DivoTextView
     
     
@@ -371,13 +371,13 @@ final class EditProfileNode: ASDisplayNode {
             bio = model?.model?.description ?? DivoStrings.fillInInfoAboutYou
         }
         
-        self.nameEventTextField = DivoTextField(title: name, prefix: "")
-        self.nameEventTextField.textField.attributedPlaceholder = NSAttributedString(
+        self.nameTextField = DivoTextField(title: name, prefix: "")
+        self.nameTextField.textField.attributedPlaceholder = NSAttributedString(
             string: placeholder,
             font: Font.regular(16),
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
-        self.nameEventTextField.isUserInteractionEnabled = true
+        self.nameTextField.isUserInteractionEnabled = true
         
         self.aboutEventTextField = DivoTextView(title: bioTitle, initialText: bio)
 
@@ -429,8 +429,8 @@ final class EditProfileNode: ASDisplayNode {
 
         scrollView.keyboardDismissMode = .interactive
 
-        self.nameEventTextField.textField.returnKeyType = .next
-        self.nameEventTextField.textField.delegate = self
+        self.nameTextField.textField.returnKeyType = .next
+        self.nameTextField.textField.delegate = self
 
         keyboardHandler = DivoKeyboardHandler(
             scrollView: scrollView,
@@ -480,7 +480,7 @@ final class EditProfileNode: ASDisplayNode {
 
         chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
 
-        nameEventTextField.textField.addTarget(self, action: #selector(nameFieldDidChange), for: .editingChanged)
+        nameTextField.textField.addTarget(self, action: #selector(nameFieldDidChange), for: .editingChanged)
         aboutEventTextField.onTextChange = { [weak self] _ in
             self?.updateSaveButtonState()
         }
@@ -663,15 +663,15 @@ final class EditProfileNode: ASDisplayNode {
         bioStackView.addArrangedSubview(avatarContainer)
         avatarContainer.widthAnchor.constraint(equalTo: bioStackView.widthAnchor).isActive = true
         
-        nameEventTextField.view.translatesAutoresizingMaskIntoConstraints = false
+        nameTextField.view.translatesAutoresizingMaskIntoConstraints = false
         aboutEventTextField.translatesAutoresizingMaskIntoConstraints = false
         
-        bioStackView.addArrangedSubview(nameEventTextField.view)
+        bioStackView.addArrangedSubview(nameTextField.view)
         bioStackView.addArrangedSubview(aboutEventTextField)
         
         NSLayoutConstraint.activate([
-            nameEventTextField.view.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
-            nameEventTextField.view.heightAnchor.constraint(equalToConstant: 48),
+            nameTextField.view.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
+            nameTextField.view.heightAnchor.constraint(equalToConstant: 48),
 
             aboutEventTextField.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
             aboutEventTextField.heightAnchor.constraint(equalToConstant: 140)
@@ -958,7 +958,7 @@ final class EditProfileNode: ASDisplayNode {
 
     private func makeSnapshot() -> ProfileSnapshot {
         ProfileSnapshot(
-            name: nameEventTextField.textField.text ?? "",
+            name: nameTextField.textField.text ?? "",
             bio: aboutEventTextField.text,
             genderId: selectedGenderId,
             height: selectedHeight,
@@ -1008,7 +1008,7 @@ final class EditProfileNode: ASDisplayNode {
                 
                 let logoURL: URL? = nil
                 
-                let period = Self.formatWorkPeriod(startDate: item.startDate, endDate: item.endDate, isCurrent: item.isCurrent)
+                let period = item.formattedPeriod
                 
                 let wItem = WorkExperienceItem(
                     id: item.id,
@@ -1058,50 +1058,6 @@ final class EditProfileNode: ASDisplayNode {
         }
     }
     
-    private static func formatWorkPeriod(startDate: String?, endDate: String?, isCurrent: Bool?) -> String {
-        let inputFormatter = DateFormatter()
-        inputFormatter.dateFormat = "yyyy-MM-dd"
-        inputFormatter.locale = Locale(identifier: "en_US_POSIX")
-
-        guard let startStr = startDate, let start = inputFormatter.date(from: startStr) else {
-            return "—"
-        }
-
-        let displayFormatter = DateFormatter()
-        displayFormatter.dateFormat = "MMMM yyyy"
-        displayFormatter.locale = Locale(identifier: DivoStrings.current.localeIdentifier)
-
-        let startString = displayFormatter.string(from: start)
-        let endString: String
-        let end: Date
-
-        if isCurrent == true {
-            end = Date()
-            endString = DivoStrings.present
-        } else if let endStr = endDate, let endDate = inputFormatter.date(from: endStr) {
-            end = endDate
-            endString = displayFormatter.string(from: endDate)
-        } else {
-            end = Date()
-            endString = DivoStrings.present
-        }
-
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month], from: start, to: end)
-        let years = components.year ?? 0
-        let months = components.month ?? 0
-
-        var durationString = ""
-        if years > 0 { durationString += DivoStrings.yearsCount(years) }
-        if months > 0 {
-            if !durationString.isEmpty { durationString += " " }
-            durationString += DivoStrings.monthsCount(months)
-        }
-        if durationString.isEmpty { durationString = DivoStrings.oneMonth }
-
-        return "\(startString) - \(endString) · \(durationString)"
-    }
-
     func setAvatarLoading(_ loading: Bool) {
         if loading {
             avatarSpinner.startAnimating()
@@ -1212,7 +1168,7 @@ final class EditProfileNode: ASDisplayNode {
         guard let cell = workExperienceCells[itemId],
               let item = workRawItems.first(where: { $0.id == itemId }) else { return }
         
-        let period = Self.formatWorkPeriod(startDate: item.startDate, endDate: item.endDate, isCurrent: item.isCurrent)
+        let period = item.formattedPeriod
         
         let wItem = WorkExperienceItem(
             id: item.id,
@@ -1251,7 +1207,7 @@ final class EditProfileNode: ASDisplayNode {
         self.view.endEditing(true)
         
         let data = UpdateBiographyPageRequest(
-            fullName: self.nameEventTextField.textField.text ?? "",
+            fullName: self.nameTextField.textField.text ?? "",
             gender: self.selectedGenderId,
             model: UpdateBiographyPageRequest.ModelData(
                 description: self.aboutEventTextField.text,
@@ -1293,7 +1249,7 @@ final class EditProfileNode: ASDisplayNode {
         self.view.endEditing(true)
         let data = UpdateDescriptionAgencyRequest(
             agencyId: model?.agency?.id,
-            title: self.nameEventTextField.textField.text,
+            title: self.nameTextField.textField.text,
             description: self.aboutEventTextField.text
         )
 
@@ -1415,7 +1371,7 @@ extension EditProfileNode: UITextFieldDelegate {
     }
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        if textField === nameEventTextField.textField {
+        if textField === nameTextField.textField {
             aboutEventTextField.textView.becomeFirstResponder()
         }
         return false

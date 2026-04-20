@@ -50,7 +50,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         iv.layer.cornerRadius = 47
         iv.backgroundColor = DivoColorPalette.cardBackground
         iv.layer.borderWidth = 1
-        iv.layer.borderColor = DivoColorPalette.accent.cgColor
+        iv.layer.borderColor = DivoColorPalette.borderWorkHistoryImage.cgColor
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -71,7 +71,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         return avatarSpinner
     }()
 
-    private let eventInfoLabel: UILabel = {
+    private let workInfoLabel: UILabel = {
         let label = UILabel()
         label.text = DivoStrings.workExperienceInfo
         label.font = Font.medium(16)
@@ -80,7 +80,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         return label
     }()
 
-    private let nameEventLabel: UILabel = {
+    private let agencyNameLabel: UILabel = {
         let label = UILabel()
         label.text = DivoStrings.agencyName
         label.font = Font.regular(14)
@@ -89,7 +89,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         return label
     }()
 
-    private let nameEventTextField: DivoTextField
+    private let agencyNameTextField: DivoTextField
 
     private let startDateLabel: UILabel = {
         let label = UILabel()
@@ -229,8 +229,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         self.context = context
         self.editItem = editItem
         
-        self.nameEventTextField = DivoTextField(title: "", prefix: "")
-        self.nameEventTextField.textField.attributedPlaceholder = NSAttributedString(
+        self.agencyNameTextField = DivoTextField(title: "", prefix: "")
+        self.agencyNameTextField.textField.attributedPlaceholder = NSAttributedString(
             string: DivoStrings.enterAgencyName,
             font: Font.regular(16),
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
@@ -301,11 +301,11 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         avatarSpinner.translatesAutoresizingMaskIntoConstraints = false
         avatarContainer.addSubview(avatarSpinner)
 
-        contentView.addSubview(eventInfoLabel)
-        contentView.addSubview(nameEventLabel)
+        contentView.addSubview(workInfoLabel)
+        contentView.addSubview(agencyNameLabel)
         
-        nameEventTextField.view.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(nameEventTextField.view)
+        agencyNameTextField.view.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(agencyNameTextField.view)
         
         contentView.addSubview(startDateLabel)
         contentView.addSubview(endTimeLabel)
@@ -314,8 +314,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         contentView.addSubview(endTimeView)
 
         contentView.addSubview(currentlyWorkingCheckbox)
-        contentView.addSubview(currentlyWorkingLabel)
-        
         contentView.addSubview(currentlyWorkingLabel)
         
         contentView.addSubview(autocompleteContainer)
@@ -330,6 +328,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         view.addSubview(applyButton)
 
         currentlyWorkingCheckbox.addTarget(self, action: #selector(checkboxTapped), for: .touchUpInside)
+        currentlyWorkingCheckbox.addDivoPressState(.pill)
 
         setupConstraints()
     }
@@ -381,21 +380,21 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             avatarSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
 
             // Event info label
-            eventInfoLabel.topAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
-            eventInfoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            eventInfoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            workInfoLabel.topAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
+            workInfoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            workInfoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             // Name label & field
-            nameEventLabel.topAnchor.constraint(equalTo: eventInfoLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
-            nameEventLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            nameEventLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            agencyNameLabel.topAnchor.constraint(equalTo: workInfoLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            agencyNameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            agencyNameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
-            nameEventTextField.view.topAnchor.constraint(equalTo: nameEventLabel.bottomAnchor, constant: 6),
-            nameEventTextField.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            nameEventTextField.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            nameEventTextField.view.heightAnchor.constraint(equalToConstant: 48),
+            agencyNameTextField.view.topAnchor.constraint(equalTo: agencyNameLabel.bottomAnchor, constant: 6),
+            agencyNameTextField.view.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            agencyNameTextField.view.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            agencyNameTextField.view.heightAnchor.constraint(equalToConstant: 48),
             
-            autocompleteContainer.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: 4),
+            autocompleteContainer.topAnchor.constraint(equalTo: agencyNameTextField.view.bottomAnchor, constant: 4),
             autocompleteContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             autocompleteContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
@@ -408,10 +407,10 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             autocompleteLoader.centerYAnchor.constraint(equalTo: autocompleteContainer.centerYAnchor),
 
             // Date labels
-            startDateLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            startDateLabel.topAnchor.constraint(equalTo: agencyNameTextField.view.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             startDateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
 
-            endTimeLabel.topAnchor.constraint(equalTo: nameEventTextField.view.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            endTimeLabel.topAnchor.constraint(equalTo: agencyNameTextField.view.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             endTimeLabel.leadingAnchor.constraint(equalTo: endTimeView.leadingAnchor),
             
             startDateView.topAnchor.constraint(equalTo: startDateLabel.bottomAnchor, constant: 6),
@@ -486,7 +485,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         scrollView.addGestureRecognizer(dismissTap)
         scrollView.keyboardDismissMode = .interactive
         
-        let fields = [nameEventTextField]
+        let fields = [agencyNameTextField]
         keyboardHandler = DivoKeyboardHandler(
             scrollView: scrollView,
             buttonConstraint: applyButtonBottomConstraint!,
@@ -498,8 +497,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
                 
                 if isScrollLocked { return }
 
-                if self.nameEventTextField.textField.isFirstResponder {
-                    self.scrollToView(self.nameEventTextField.view)
+                if self.agencyNameTextField.textField.isFirstResponder {
+                    self.scrollToView(self.agencyNameTextField.view)
                 }
                 else if self.startDateView.isActive {
                     self.scrollToView(self.startDateView)
@@ -523,15 +522,15 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             field.onBeginEditing = { [weak self, weak field] in
                 guard let self, let field else { return }
                 
-                if field === self.nameEventTextField {
-                    self.scrollToViewToTop(self.eventInfoLabel)
+                if field === self.agencyNameTextField {
+                    self.scrollToViewToTop(self.workInfoLabel)
                 } else {
                     self.scrollToView(field.view)
                 }
             }
         }
         
-        nameEventTextField.textField.addTarget(self, action: #selector(agencyTextChanged), for: .editingChanged)
+        agencyNameTextField.textField.addTarget(self, action: #selector(agencyTextChanged), for: .editingChanged)
     }
     
     private func updateApplyButtonState() {
@@ -541,7 +540,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             applyButton.isEnabled = false 
             return
         }
-        let isAgencyNameFilled = !(nameEventTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+        let isAgencyNameFilled = !(agencyNameTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
         
         let isAgencySelected = selectedAgencyId != nil
         
@@ -562,7 +561,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     private func prefillEditData(_ item: WorkHistoryItem) {
         self.selectedAgencyId = item.agencyId
-        nameEventTextField.textField.text = item.agencyDisplayName ?? item.agencyName
+        agencyNameTextField.textField.text = item.agencyDisplayName ?? item.agencyName
         
         let inputFormatter = DateFormatter()
         inputFormatter.dateFormat = "yyyy-MM-dd"
@@ -612,7 +611,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     private func forceKeepScrollPosition() {
         if isScrollLocked {
-            let targetY = max(eventInfoLabel.frame.minY, 0)
+            let targetY = max(workInfoLabel.frame.minY, 0)
             scrollView.contentOffset = CGPoint(x: 0, y: targetY)
         }
     }
@@ -727,7 +726,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         view.endEditing(true)
         
         guard let startTime = startTime, let endTime = endTime else { return }
-        let agencyName = nameEventTextField.textField.text ?? ""
+        let agencyName = agencyNameTextField.textField.text ?? ""
         guard startTime > 0 else {
             return
         }
@@ -749,7 +748,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         self.selectedAgencyId = nil
         updateApplyButtonState()
         
-        let query = nameEventTextField.textField.text ?? ""
+        let query = agencyNameTextField.textField.text ?? ""
         searchTimer?.invalidate()
 
         showAutocompleteLoading()
@@ -809,7 +808,7 @@ extension AddWorkExperience: UITableViewDelegate, UITableViewDataSource {
         let selected = currentAgencyResults[indexPath.row]
         
         self.selectedAgencyId = selected.id
-        self.nameEventTextField.textField.text = selected.title
+        self.agencyNameTextField.textField.text = selected.title
 
         updateApplyButtonState()
         

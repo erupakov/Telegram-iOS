@@ -178,6 +178,9 @@ final class ExperienceView: UIView {
     }
     
     private func setupMenu() {
+        optionsButton.adjustsImageWhenHighlighted = false
+        optionsButton.addDivoPressState(.pill)
+
         if #available(iOS 14.0, *) {
             let editAction = UIAction(
                 title: DivoStrings.edit,

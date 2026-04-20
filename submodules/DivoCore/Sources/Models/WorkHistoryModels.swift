@@ -38,6 +38,52 @@ public struct WorkHistoryItem: Decodable {
     }
 }
 
+extension WorkHistoryItem {
+    public var formattedPeriod: String {
+        let inputFormatter = DateFormatter()
+        inputFormatter.dateFormat = "yyyy-MM-dd"
+        inputFormatter.locale = Locale(identifier: "en_US_POSIX")
+
+        guard let startStr = startDate, let start = inputFormatter.date(from: startStr) else {
+            return "—"
+        }
+
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "MMMM yyyy"
+        displayFormatter.locale = Locale(identifier: DivoStrings.current.localeIdentifier)
+
+        let startString = displayFormatter.string(from: start)
+        let endString: String
+        let end: Date
+
+        if isCurrent == true {
+            end = Date()
+            endString = DivoStrings.present
+        } else if let endStr = endDate, let endDate = inputFormatter.date(from: endStr) {
+            end = endDate
+            endString = displayFormatter.string(from: endDate)
+        } else {
+            end = Date()
+            endString = DivoStrings.present
+        }
+
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month], from: start, to: end)
+        let years = components.year ?? 0
+        let months = components.month ?? 0
+
+        var durationString = ""
+        if years > 0 { durationString += DivoStrings.yearsCount(years) }
+        if months > 0 {
+            if !durationString.isEmpty { durationString += " " }
+            durationString += DivoStrings.monthsCount(months)
+        }
+        if durationString.isEmpty { durationString = DivoStrings.oneMonth }
+
+        return "\(startString) - \(endString) · \(durationString)"
+    }
+}
+
 public struct WorkHistoryDeleteResponse: Decodable {
     public let message: String?
     public let errors: [String]?
