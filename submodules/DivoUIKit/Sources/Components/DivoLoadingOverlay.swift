@@ -1,4 +1,5 @@
 import UIKit
+import Display
 
 public final class DivoLoadingOverlay: UIView {
 
@@ -6,7 +7,7 @@ public final class DivoLoadingOverlay: UIView {
 
     private let messageLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        label.font = Font.medium(14)
         label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
