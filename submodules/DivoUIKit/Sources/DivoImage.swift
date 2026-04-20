@@ -49,12 +49,15 @@ public enum DivoImage {
     public static var roleNewTalent: UIImage { load("DivoRoleNewTalent") }
     public static var saveMedia: UIImage { load("DivoSaveMedia") }
     public static var searchArrowProfile: UIImage { load("DivoSearchArrowProfile") }
+    public static var searchChevronLeft: UIImage { load("DivoSearchChevronLeft") }
     public static var searchChevronRight: UIImage { load("DivoSearchChevronRight") }
     public static var searchCloseIcon: UIImage { load("DivoSearchCloseIcon") }
     public static var searchFaceScan: UIImage { load("DivoSearchFaceScan") }
     public static var searchFieldIcon: UIImage { load("DivoSearchFieldIcon") }
     public static var searchFilterIcon: UIImage { load("DivoSearchFilterIcon") }
+    public static var searchOrangeCheckmark: UIImage { load("DivoSearchOrangeCheckmark") }
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
+    public static var searchWhiteCheckmark: UIImage { load("DivoSearchWhiteCheckmark") }
     public static var signUpAgencies: UIImage { load("DivoSignUpAgencies") }
     public static var signUpChooseRoleBackground: UIImage { load("DivoSignUpChooseRoleBackground") }
     public static var signUpFan: UIImage { load("DivoSignUpFan") }
