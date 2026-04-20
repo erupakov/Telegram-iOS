@@ -92,6 +92,7 @@ final class WorkExperience: ASDisplayNode {
     private var isLoading = true
     private let shimmerCount = 4
     private var experienceCells:[Int: ExperienceView] = [:]
+    private var cachedLogoURLs: [Int: URL] = [:]
 
     
     // MARK: - Init
@@ -235,7 +236,31 @@ final class WorkExperience: ASDisplayNode {
         renderList()
     }
     
+    func indexOfItem(id: Int) -> Int {
+        return rawItems.firstIndex(where: { $0.id == id }) ?? rawItems.count
+    }
+
+    func removeItem(id: Int) {
+        rawItems.removeAll { $0.id == id }
+        if let cell = experienceCells.removeValue(forKey: id) {
+            cell.removeFromSuperview()
+        }
+        cachedLogoURLs.removeValue(forKey: id)
+        updateEmptyState()
+        listBackgroundContainer.isHidden = rawItems.isEmpty
+    }
+
+    func insertItem(_ item: WorkHistoryItem, at index: Int) {
+        let safeIndex = min(index, rawItems.count)
+        rawItems.insert(item, at: safeIndex)
+        updateEmptyState()
+        renderList()
+    }
+
     func updateAgencyLogo(itemId: Int, url: URL?) {
+        if let url = url {
+            cachedLogoURLs[itemId] = url
+        }
         guard let cell = experienceCells[itemId],
               let item = rawItems.first(where: { $0.id == itemId }) else { return }
         
@@ -267,23 +292,22 @@ final class WorkExperience: ASDisplayNode {
             }
         } else {
             for (_, item) in rawItems.enumerated() {
-                
-                let logoURL: URL? = nil
-                
+                let logoURL = cachedLogoURLs[item.id]
+
                 let period = item.formattedPeriod
-                
+
                 let wItem = WorkExperienceItem(
                     id: item.id,
                     companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
                     period: period,
                     logoURL: logoURL
                 )
-                
-                let cell = ExperienceView()
-                
-                let showOptions = model.isMyProfile && hasStructuredData
 
-                let shouldLoadImmediately = (item.agencyId == nil)
+                let cell = ExperienceView()
+
+                let showOptions = model.isMyProfile && hasStructuredData
+                let hasLogo = logoURL != nil
+                let shouldLoadImmediately = hasLogo || (item.agencyId == nil)
                 cell.configure(with: wItem, showOptions: showOptions, loadImage: shouldLoadImmediately)
                 
                 if showOptions {

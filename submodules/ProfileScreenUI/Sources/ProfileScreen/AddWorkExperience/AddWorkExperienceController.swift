@@ -94,7 +94,10 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                 
             } catch {
                 if !Task.isCancelled {
-                    self.addWorkExperienceNode.updateAgencyResults([])
+                    let isOffline: Bool
+                    if case DivoAPIError.noInternetConnection = error { isOffline = true } else { isOffline = false }
+                    let message = isOffline ? DivoStrings.connectionProblem : DivoStrings.searchError
+                    self.addWorkExperienceNode.showAutocompleteError(message: message)
                 }
             }
         }
@@ -128,10 +131,6 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                 await MainActor.run {
                     self.addWorkExperienceNode.currentPhoto = nil
                     self.addWorkExperienceNode.loadAvatar(isLoading: false)
-                    self.addWorkExperienceNode.showSnackbar(
-                        message: DivoStrings.failedToUploadPhoto,
-                        style: .error
-                    )
                 }
             }
         }

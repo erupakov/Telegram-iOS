@@ -30,7 +30,6 @@ final class ExperienceView: UIView {
         return iv
     }()
     
-    private let avatarSpinner = DivoSegmentedSpinner()
     
     private let titleLabel: UILabel = {
         let label = UILabel()
@@ -71,11 +70,7 @@ final class ExperienceView: UIView {
         heightAnchor.constraint(equalToConstant: 80).isActive = true
         backgroundColor = DivoColorPalette.cardBackground
         
-        avatarSpinner.translatesAutoresizingMaskIntoConstraints = false
-        avatarSpinner.isHidden = true
-        
         addSubview(logoImageView)
-        addSubview(avatarSpinner)
         addSubview(logoEmptyImageView)
         
         let textStack = UIStackView(arrangedSubviews: [titleLabel, periodLabel])
@@ -96,11 +91,6 @@ final class ExperienceView: UIView {
             logoEmptyImageView.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
             logoEmptyImageView.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             logoEmptyImageView.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
-            
-            avatarSpinner.centerXAnchor.constraint(equalTo: logoImageView.centerXAnchor),
-            avatarSpinner.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
-            avatarSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
-            avatarSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             
             textStack.leadingAnchor.constraint(equalTo: logoImageView.trailingAnchor, constant: 12),
             textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -132,33 +122,31 @@ final class ExperienceView: UIView {
         periodLabel.backgroundColor = .clear
         
         logoEmptyImageView.isHidden = true
-        
+        logoImageView.removeShimmerOverlay()
+
         if loadImage {
             if let url = item.logoURL {
-                avatarSpinner.startAnimating()
-                avatarSpinner.isHidden = false
-                
-                ImageLoader.shared.load(url: url) { [weak self] image in
-                    guard let self else { return }
-                    self.avatarSpinner.stopAnimating()
-                    self.avatarSpinner.isHidden = true
-                    
-                    if let image {
-                        self.logoImageView.alpha = 1.0
-                        self.logoImageView.image = image
-                        self.logoImageView.applyAvatarTopCropIfNeeded(image: image)
-                    } else {
-                        self.logoEmptyImageView.isHidden = false
+                if let cached = ImageLoader.shared.cachedImage(for: url) {
+                    logoImageView.image = cached
+                    logoImageView.applyAvatarTopCropIfNeeded(image: cached)
+                } else {
+                    logoImageView.addShimmerOverlay()
+                    ImageLoader.shared.load(url: url) { [weak self] image in
+                        guard let self else { return }
+                        self.logoImageView.removeShimmerOverlay()
+                        if let image {
+                            self.logoImageView.image = image
+                            self.logoImageView.applyAvatarTopCropIfNeeded(image: image)
+                        } else {
+                            self.logoEmptyImageView.isHidden = false
+                        }
                     }
                 }
             } else {
-                avatarSpinner.stopAnimating()
-                avatarSpinner.isHidden = true
                 logoEmptyImageView.isHidden = false
             }
         } else {
-            avatarSpinner.startAnimating()
-            avatarSpinner.isHidden = false
+            logoImageView.addShimmerOverlay()
         }
     }
     
@@ -166,11 +154,12 @@ final class ExperienceView: UIView {
         titleLabel.text = " "
         periodLabel.text = " "
         optionsButton.isHidden = true
-        
-        logoImageView.backgroundColor = DivoColorPalette.separatorSystem
-        titleLabel.backgroundColor = DivoColorPalette.separatorSystem
-        periodLabel.backgroundColor = DivoColorPalette.separatorSystem
-               
+        logoEmptyImageView.isHidden = true
+
+        logoImageView.addShimmerOverlay()
+        titleLabel.addShimmerOverlay()
+        periodLabel.addShimmerOverlay()
+
         titleLabel.layer.cornerRadius = 4
         titleLabel.clipsToBounds = true
         periodLabel.layer.cornerRadius = 4

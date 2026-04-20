@@ -28,8 +28,10 @@ final class DateSelectionControl: UIControl {
     private let localeIdentifier: String
     private var placeholderString: String?
     
+    private(set) var hasSelection = false
+
     var onDateSelected: ((Int32) -> Void)?
-    
+
     var onBeginEditing: (() -> Void)?
     
     var isActive: Bool {
@@ -106,10 +108,12 @@ final class DateSelectionControl: UIControl {
     
     func setDate(timestamp: Int32?) {
         guard let timestamp = timestamp, timestamp > 0 else {
+            hasSelection = false
             valueLabel.text = placeholderString
             valueLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
             return
         }
+        hasSelection = true
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: localeIdentifier)
@@ -120,6 +124,11 @@ final class DateSelectionControl: UIControl {
     }
     
     @objc private func editingDidBegin() {
+        if !hasSelection {
+            hasSelection = true
+            valueLabel.textColor = DivoColorPalette.primaryText
+            onDateSelected?(Int32(datePicker.date.timeIntervalSince1970))
+        }
         onBeginEditing?()
     }
     
@@ -135,12 +144,9 @@ final class DateSelectionControl: UIControl {
         hiddenTextField.becomeFirstResponder()
     }
     
-    @objc private func doneTapped() {
-        hiddenTextField.resignFirstResponder()
-        onDateSelected?(Int32(datePicker.date.timeIntervalSince1970))
-    }
-    
     @objc private func dateChanged() {
+        hasSelection = true
+        valueLabel.textColor = DivoColorPalette.primaryText
         onDateSelected?(Int32(datePicker.date.timeIntervalSince1970))
     }
 }

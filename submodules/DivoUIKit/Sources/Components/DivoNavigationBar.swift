@@ -105,7 +105,6 @@ public final class DivoNavigationBar: UIView {
             
             backTextButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             backTextButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            backTextButton.widthAnchor.constraint(equalToConstant: 40),
             backTextButton.heightAnchor.constraint(equalToConstant: 40),
             
             backButton.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -160,6 +159,8 @@ public final class DivoNavigationBar: UIView {
         case .circleWithText:
             backButton.isHidden = true
             backTextButton.isHidden = false
+            backTextButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+            backTextButton.addDivoPressState(.pill)
         case .none:
             backButton.isHidden = true
             backTextButton.isHidden = true

@@ -37,6 +37,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
     private var selectedAvatarImage: UIImage?
     private var selectedAvatarUUID: String?
+    private let loadingOverlay = DivoLoadingOverlay()
 
     weak var delegate: EditProfileDelegate?
     
@@ -151,24 +152,28 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     
     private func loadWorkExperience() {
         self.editProfileNode.setLoadingWorkExperience(true)
-        
+
         Task { @MainActor in
             do {
                 let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
                     path: "/model-work-history",
                     method: "GET"
                 )
-                
-                await MainActor.run {
-                    self.editProfileNode.reloadWorkHistory(items: response.data.items)
-                }
+
+                self.editProfileNode.reloadWorkHistory(items: response.data.items)
                 self.fetchAgencyLogos(for: response.data.items)
             } catch {
-                // Пробуем загрузить legacy данные
                 if let userDetail = self.userDetailData {
                     self.editProfileNode.reloadLegacyWorkHistory(model: userDetail)
                 } else {
-                    self.editProfileNode.setLoadingWorkExperience(false)
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.failedToLoadWorkHistory,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.loadWorkExperience()
+                        },
+                        persistent: true
+                    )
                 }
             }
         }
@@ -193,22 +198,63 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     }
 
     private func deleteWorkExperience(itemId: Int) {
-        Task { @MainActor in
+        let alert = UIAlertController(
+            title: DivoStrings.workHistoryDeleteConfirmTitle,
+            message: DivoStrings.workHistoryDeleteConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: DivoStrings.delete, style: .destructive) { [weak self] _ in
+            self?.performDeleteWorkExperience(itemId: itemId)
+        })
+        self.present(alert, animated: true)
+    }
+
+    private func performDeleteWorkExperience(itemId: Int) {
+        loadingOverlay.show(in: self.displayNode.view, message: DivoStrings.deleting)
+
+        Task {
             do {
                 let _: WorkHistoryDeleteResponse = try await DivoAPIClient.shared.request(
                     path: "/model-work-history/\(itemId)",
                     method: "DELETE"
                 )
-                
-                // Обновляем локальные данные
-                var currentItems = self.editProfileNode.workRawItems
-                currentItems.removeAll { $0.id == itemId }
-                self.editProfileNode.reloadWorkHistory(items: currentItems)
             } catch {
-                self.editProfileNode.showSnackbar(
-                    message: DivoStrings.failedToDelete,
-                    style: .error
+                await MainActor.run {
+                    self.loadingOverlay.hide()
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.failedToDelete,
+                        style: .error
+                    )
+                }
+                return
+            }
+
+            do {
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
+                    path: "/model-work-history"
                 )
+                let items = response.data.items
+                await MainActor.run {
+                    self.editProfileNode.reloadWorkHistory(items: items)
+                    self.loadingOverlay.hide()
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.workHistoryDelete,
+                        style: .success
+                    )
+                }
+                self.fetchAgencyLogos(for: items)
+            } catch {
+                await MainActor.run {
+                    var currentItems = self.editProfileNode.workRawItems
+                    currentItems.removeAll { $0.id == itemId }
+                    self.editProfileNode.reloadWorkHistory(items: currentItems)
+                    self.loadingOverlay.hide()
+                    self.editProfileNode.showSnackbar(
+                        message: DivoStrings.workHistoryDelete,
+                        style: .success
+                    )
+                }
             }
         }
     }

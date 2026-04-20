@@ -116,19 +116,18 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private let currentlyWorkingCheckbox: UIButton = {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
-        
+
         let uncheckedImage = UIImage(systemName: "square")?
             .withTintColor(DivoColorPalette.primaryText.withAlphaComponent(0.4), renderingMode: .alwaysOriginal)
         let checkedImage = UIImage(systemName: "checkmark.square.fill")?
             .withTintColor(DivoColorPalette.accent, renderingMode: .alwaysOriginal)
-        
+
         button.setImage(uncheckedImage, for: .normal)
         button.setImage(checkedImage, for: .selected)
-        
-        button.contentVerticalAlignment = .fill
-        button.contentHorizontalAlignment = .fill
-        button.imageView?.contentMode = .scaleAspectFit
-        
+
+        button.contentVerticalAlignment = .center
+        button.contentHorizontalAlignment = .center
+
         return button
     }()
 
@@ -138,6 +137,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         label.font = Font.regular(14)
         label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
+        label.isUserInteractionEnabled = true
         return label
     }()
 
@@ -166,7 +166,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private let autocompleteContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
-        view.layer.cornerRadius = 16
+        view.layer.cornerRadius = DivoDesignTokens.Radius.m
         view.layer.shadowColor = UIColor.black.cgColor
         view.layer.shadowOpacity = 0.1
         view.layer.shadowOffset = CGSize(width: 0, height: 8)
@@ -181,8 +181,12 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         let tv = UITableView()
         tv.separatorStyle = .none
         tv.backgroundColor = .clear
-        tv.isScrollEnabled = false
-        tv.clipsToBounds = false
+        tv.clipsToBounds = true
+        tv.layer.cornerRadius = DivoDesignTokens.Radius.m
+        tv.contentInsetAdjustmentBehavior = .never
+        if #available(iOS 15.0, *) {
+            tv.sectionHeaderTopPadding = 0
+        }
         tv.translatesAutoresizingMaskIntoConstraints = false
         return tv
     }()
@@ -195,16 +199,28 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         return loader
     }()
     
+    private let autocompleteErrorLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.secondaryText
+        label.textAlignment = .center
+        label.isHidden = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
     private var autocompleteHeightConstraint: NSLayoutConstraint?
     private var autocompleteBottomConstraint: NSLayoutConstraint?
     private var currentAgencyResults: [AgencyItem] = []
     private var isScrollLocked = false
     
     private var searchTimer: Timer?
+    private let dismissTapDelegate = DismissTapDelegate()
     
     var requestAgencySearch: ((String) -> Void)?
     
     private var selectedAgencyId: Int? = nil
+    private var initialSnapshot: FormSnapshot?
     
     // MARK: - Callbacks
     
@@ -319,16 +335,18 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         contentView.addSubview(autocompleteContainer)
         autocompleteContainer.addSubview(autocompleteTableView)
         autocompleteContainer.addSubview(autocompleteLoader)
+        autocompleteContainer.addSubview(autocompleteErrorLabel)
         
         autocompleteTableView.delegate = self
         autocompleteTableView.dataSource = self
-        autocompleteTableView.register(UITableViewCell.self, forCellReuseIdentifier: "AgencyCell")
+        autocompleteTableView.register(AgencySearchCell.self, forCellReuseIdentifier: AgencySearchCell.reuseIdentifier)
         
         view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
 
         currentlyWorkingCheckbox.addTarget(self, action: #selector(checkboxTapped), for: .touchUpInside)
         currentlyWorkingCheckbox.addDivoPressState(.pill)
+        currentlyWorkingLabel.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(checkboxTapped)))
 
         setupConstraints()
     }
@@ -406,6 +424,11 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             autocompleteLoader.centerXAnchor.constraint(equalTo: autocompleteContainer.centerXAnchor),
             autocompleteLoader.centerYAnchor.constraint(equalTo: autocompleteContainer.centerYAnchor),
 
+            autocompleteErrorLabel.centerXAnchor.constraint(equalTo: autocompleteContainer.centerXAnchor),
+            autocompleteErrorLabel.centerYAnchor.constraint(equalTo: autocompleteContainer.centerYAnchor),
+            autocompleteErrorLabel.leadingAnchor.constraint(equalTo: autocompleteContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            autocompleteErrorLabel.trailingAnchor.constraint(equalTo: autocompleteContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
             // Date labels
             startDateLabel.topAnchor.constraint(equalTo: agencyNameTextField.view.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             startDateLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -427,6 +450,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             currentlyWorkingCheckbox.topAnchor.constraint(equalTo: startDateView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             currentlyWorkingCheckbox.topAnchor.constraint(equalTo: endTimeView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             currentlyWorkingCheckbox.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            currentlyWorkingCheckbox.widthAnchor.constraint(equalToConstant: 44),
+            currentlyWorkingCheckbox.heightAnchor.constraint(equalToConstant: 44),
 
             currentlyWorkingLabel.centerYAnchor.constraint(equalTo: currentlyWorkingCheckbox.centerYAnchor),
             currentlyWorkingLabel.leadingAnchor.constraint(equalTo: currentlyWorkingCheckbox.trailingAnchor, constant: 6),
@@ -448,6 +473,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         autocompleteHeightConstraint?.isActive = true
         
         autocompleteBottomConstraint = autocompleteContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
+        autocompleteBottomConstraint?.priority = .defaultHigh
     }
 
     private func setupInteractions() {
@@ -474,7 +500,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             guard let self else { return }
             self.scrollToView(self.startDateView)
         }
-        
+
         endTimeView.onBeginEditing = { [weak self] in
             guard let self else { return }
             self.scrollToView(self.endTimeView)
@@ -482,6 +508,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         dismissTap.cancelsTouchesInView = false
+        dismissTapDelegate.excludedView = autocompleteContainer
+        dismissTap.delegate = dismissTapDelegate
         scrollView.addGestureRecognizer(dismissTap)
         scrollView.keyboardDismissMode = .interactive
         
@@ -533,30 +561,31 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         agencyNameTextField.textField.addTarget(self, action: #selector(agencyTextChanged), for: .editingChanged)
     }
     
+    private func currentFormSnapshot() -> FormSnapshot {
+        FormSnapshot(
+            agencyName: agencyNameTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+            startTime: startTime,
+            endTime: endTime,
+            isCurrent: currentlyWorkingCheckbox.isSelected
+        )
+    }
+
     private func updateApplyButtonState() {
-        guard let startTime = startTime, let endTime = endTime 
-        else { 
-            navigationBar.setEnableRightButton(false)
-            applyButton.isEnabled = false 
-            return
-        }
+        let isCurrent = currentlyWorkingCheckbox.isSelected
         let isAgencyNameFilled = !(agencyNameTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-        
-        let isAgencySelected = selectedAgencyId != nil
-        
-        let isStartDateFilled = startTime > 0
-        
-        let isEndDateValid: Bool
-        if currentlyWorkingCheckbox.isSelected {
-            isEndDateValid = true
-        } else {
-            isEndDateValid = endTime > 0 && endTime >= startTime
+        let isStartDateSelected = startDateView.hasSelection
+        let isEndDateSelected = isCurrent || endTimeView.hasSelection
+
+        let isDatesValid = isCurrent || (endTime ?? 0) >= (startTime ?? 0)
+        var isFormValid = isAgencyNameFilled && isStartDateSelected && isEndDateSelected && isDatesValid
+
+        if let initial = initialSnapshot {
+            let isDirty = currentFormSnapshot() != initial
+            isFormValid = isFormValid && isDirty
         }
-        
-        let isFormValid = isAgencyNameFilled && isAgencySelected && isStartDateFilled && isEndDateValid
+
         navigationBar.setEnableRightButton(isFormValid)
         applyButton.isEnabled = isFormValid
-        
     }
     
     private func prefillEditData(_ item: WorkHistoryItem) {
@@ -584,6 +613,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             endTime = Int32(endDate.timeIntervalSince1970)
             endTimeView.setDate(timestamp: endTime)
         }
+        initialSnapshot = currentFormSnapshot()
         updateApplyButtonState()
     }
 
@@ -623,8 +653,10 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     private func showAutocompleteLoading() {
         autocompleteContainer.isHidden = false
+        contentView.bringSubviewToFront(autocompleteContainer)
         autocompleteHeightConstraint?.constant = 44
         autocompleteTableView.isHidden = true
+        autocompleteErrorLabel.isHidden = true
         autocompleteLoader.startAnimating()
         UIView.animate(withDuration: 0.2) {
             self.view.layoutIfNeeded()
@@ -654,22 +686,37 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     
     func updateAgencyResults(_ results: [AgencyItem]) {
         autocompleteLoader.stopAnimating()
+        autocompleteErrorLabel.isHidden = true
         currentAgencyResults = results
-        
+
         if results.isEmpty {
             hideAutocomplete()
         } else {
             autocompleteTableView.isHidden = false
             autocompleteTableView.reloadData()
-            
-            let height = CGFloat(results.count) * 44.0
+
+            let height = CGFloat(results.count) * 64.0
             autocompleteHeightConstraint?.constant = height
             autocompleteBottomConstraint?.isActive = true
-            
+
             UIView.animate(withDuration: 0.2) {
                 self.view.layoutIfNeeded()
                 self.forceKeepScrollPosition()
             }
+        }
+    }
+
+    func showAutocompleteError(message: String) {
+        autocompleteLoader.stopAnimating()
+        autocompleteTableView.isHidden = true
+        autocompleteErrorLabel.text = message
+        autocompleteErrorLabel.isHidden = false
+
+        autocompleteContainer.isHidden = false
+        autocompleteHeightConstraint?.constant = 44
+        UIView.animate(withDuration: 0.2) {
+            self.view.layoutIfNeeded()
+            self.forceKeepScrollPosition()
         }
     }
 
@@ -713,8 +760,9 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             endTimeLabel.isHidden = true
             endTimeView.isHidden = true
         } else {
-            endTime = Int32(Date().timeIntervalSince1970)
-            endTimeView.setDate(timestamp: endTime)
+            let restored = initialSnapshot?.endTime ?? Int32(Date().timeIntervalSince1970)
+            endTime = restored
+            endTimeView.setDate(timestamp: restored)
             endTimeLabel.isHidden = false
             endTimeView.isHidden = false
         }
@@ -724,19 +772,17 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     @objc func applyButtonTapped() {
         guard applyButton.isEnabled else { return }
         view.endEditing(true)
-        
-        guard let startTime = startTime, let endTime = endTime else { return }
-        let agencyName = agencyNameTextField.textField.text ?? ""
-        guard startTime > 0 else {
-            return
-        }
+
         let isCurrent = currentlyWorkingCheckbox.isSelected
-        
+        guard let startTime = startTime, startTime > 0 else { return }
+        guard isCurrent || endTime != nil else { return }
+        let agencyName = agencyNameTextField.textField.text ?? ""
+
         let body = CreateWorkHistoryRequest(
             agencyId: selectedAgencyId,
             agencyName: agencyName.isEmpty ? nil : agencyName,
             startDate: Self.formatDateForAPI(timestamp: startTime),
-            endDate: isCurrent ? nil : (endTime > 0 ? Self.formatDateForAPI(timestamp: endTime) : nil),
+            endDate: isCurrent ? nil : (endTime.flatMap { $0 > 0 ? Self.formatDateForAPI(timestamp: $0) : nil }),
             isCurrent: isCurrent
         )
         
@@ -786,20 +832,14 @@ extension AddWorkExperience: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 44.0
+        return 64.0
     }
-    
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "AgencyCell", for: indexPath)
-        cell.backgroundColor = .clear
-        cell.textLabel?.font = Font.regular(16)
-        cell.textLabel?.textColor = DivoColorPalette.primaryText
-        cell.textLabel?.text = currentAgencyResults[indexPath.row].title
-        
-        cell.selectionStyle = .none
-        
-        let isSelectedAgency = currentAgencyResults[indexPath.row].id == selectedAgencyId
-        cell.accessoryType = isSelectedAgency ? .checkmark : .none
+        let cell = tableView.dequeueReusableCell(withIdentifier: AgencySearchCell.reuseIdentifier, for: indexPath) as! AgencySearchCell
+        let item = currentAgencyResults[indexPath.row]
+        let query = agencyNameTextField.textField.text ?? ""
+        cell.configure(with: item, query: query, isSelected: item.id == selectedAgencyId)
         return cell
     }
     
@@ -818,6 +858,27 @@ extension AddWorkExperience: UITableViewDelegate, UITableViewDataSource {
     }
 }
 
+
+// MARK: - FormSnapshot
+
+private struct FormSnapshot: Equatable {
+    let agencyName: String?
+    let startTime: Int32?
+    let endTime: Int32?
+    let isCurrent: Bool
+}
+
+// MARK: - DismissTapDelegate
+
+private final class DismissTapDelegate: NSObject, UIGestureRecognizerDelegate {
+    weak var excludedView: UIView?
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let excluded = excludedView, !excluded.isHidden else { return true }
+        let location = gestureRecognizer.location(in: excluded)
+        return !excluded.bounds.contains(location)
+    }
+}
 
 // MARK: - GradientView
 

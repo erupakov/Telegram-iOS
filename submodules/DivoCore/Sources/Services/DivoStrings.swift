@@ -273,6 +273,12 @@ public enum DivoStrings {
     public static var workHistoryCreate: String { L(en: "Work history added", ru: "История работы добавлена", es: "Historial laboral agregado", pt: "Histórico de trabalho adicionado", zh: "工作经历已添加") }
     public static var workHistoryFailedCreate: String { L(en: "Couldn't add work history", ru: "Не удалось добавить историю работы", es: "No se pudo agregar el historial laboral", pt: "Não foi possível adicionar o histórico de trabalho", zh: "无法添加工作经历") }
     public static var workHistoryDelete: String { L(en: "Work history deleted", ru: "История работы удалена", es: "Historial laboral eliminado", pt: "Histórico de trabalho excluído", zh: "工作经历已删除") }
+    public static var workHistoryDeleteConfirmTitle: String { L(en: "Delete work experience?", ru: "Удалить опыт работы?", es: "¿Eliminar experiencia laboral?", pt: "Excluir experiência de trabalho?", zh: "删除工作经历？") }
+    public static var workHistoryDeleteConfirmMessage: String { L(en: "This action cannot be undone", ru: "Это действие нельзя отменить", es: "Esta acción no se puede deshacer", pt: "Esta ação não pode ser desfeita", zh: "此操作无法撤消") }
+    public static var failedToLoadWorkHistory: String { L(en: "Failed to load work history", ru: "Не удалось загрузить историю работы", es: "Error al cargar el historial laboral", pt: "Falha ao carregar o histórico de trabalho", zh: "无法加载工作经历") }
+    public static var connectionProblem: String { L(en: "Connection problem", ru: "Проблема с соединением", es: "Problema de conexión", pt: "Problema de conexão", zh: "连接问题") }
+    public static var searchError: String { L(en: "Search error", ru: "Ошибка поиска", es: "Error de búsqueda", pt: "Erro de pesquisa", zh: "搜索错误") }
+    public static var deleting: String { L(en: "Deleting…", ru: "Удаление…", es: "Eliminando…", pt: "Excluindo…", zh: "删除中…") }
 
     // MARK: - Profile — Gender & Appearance
 
