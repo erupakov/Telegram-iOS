@@ -1,6 +1,5 @@
 import UIKit
 import Display
-import TelegramCore
 import DivoCore
 import DivoUIKit
 
@@ -75,6 +74,7 @@ final class InteractionUserCell: UITableViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         avatarImageView.image = nil
+        avatarImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         avatarImageView.stopShimmering()
         avatarImageView.alpha = 1.0
         avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
@@ -116,8 +116,18 @@ final class InteractionUserCell: UITableViewCell {
         ])
     }
 
-    func configure(with user: InteractionUser) {
-        nameLabel.text = user.name
+    func configure(with user: InteractionUser, searchText: String = "") {
+        if !searchText.isEmpty {
+            let attributed = NSMutableAttributedString(string: user.name)
+            let range = (user.name.lowercased() as NSString).range(of: searchText.lowercased())
+            if range.location != NSNotFound {
+                attributed.addAttribute(.foregroundColor, value: DivoColorPalette.accent, range: range)
+            }
+            nameLabel.attributedText = attributed
+        } else {
+            nameLabel.attributedText = nil
+            nameLabel.text = user.name
+        }
         roleLabel.text = user.role
         premiumBadgeContainer.isHidden = !user.isPremium
         
@@ -131,8 +141,9 @@ final class InteractionUserCell: UITableViewCell {
                     if let image = image {
                         self.avatarImageView.alpha = 0
                         self.avatarImageView.image = image
+                        self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
                         self.avatarImageView.backgroundColor = .clear
-                        
+
                         UIView.animate(withDuration: 0.3) {
                             self.avatarImageView.alpha = 1.0
                         }
@@ -156,11 +167,11 @@ final class InteractionUserCell: UITableViewCell {
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        let duration = highlighted ? 0.1 : 0.2
+        let duration = highlighted ? DivoDesignTokens.PressState.pressDuration : DivoDesignTokens.PressState.releaseDuration
         UIView.animate(withDuration: duration) {
-            self.contentView.alpha = highlighted ? 0.6 : 1.0
+            self.contentView.alpha = highlighted ? DivoDesignTokens.PressState.alpha : 1.0
             self.contentView.transform = highlighted
-                ? CGAffineTransform(scaleX: 0.98, y: 0.98)
+                ? CGAffineTransform(scaleX: DivoDesignTokens.PressState.scale, y: DivoDesignTokens.PressState.scale)
                 : .identity
         }
     }

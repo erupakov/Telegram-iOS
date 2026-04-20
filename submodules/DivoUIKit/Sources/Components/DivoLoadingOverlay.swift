@@ -3,7 +3,7 @@ import Display
 
 public final class DivoLoadingOverlay: UIView {
 
-    private let spinner = DivoSegmentedSpinner()
+    private let spinner = DivoSegmentedSpinner(color: DivoColorPalette.accent)
 
     private let messageLabel: UILabel = {
         let label = UILabel()

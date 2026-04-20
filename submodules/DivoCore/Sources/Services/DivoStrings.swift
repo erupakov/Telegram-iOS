@@ -273,8 +273,6 @@ public enum DivoStrings {
     public static var workHistoryCreate: String { L(en: "Work history added", ru: "История работы добавлена", es: "Historial laboral agregado", pt: "Histórico de trabalho adicionado", zh: "工作经历已添加") }
     public static var workHistoryFailedCreate: String { L(en: "Couldn't add work history", ru: "Не удалось добавить историю работы", es: "No se pudo agregar el historial laboral", pt: "Não foi possível adicionar o histórico de trabalho", zh: "无法添加工作经历") }
     public static var workHistoryDelete: String { L(en: "Work history deleted", ru: "История работы удалена", es: "Historial laboral eliminado", pt: "Histórico de trabalho excluído", zh: "工作经历已删除") }
-    public static var premiumLabel: String { L(en: "Premium", ru: "Премиум", es: "Premium", pt: "Premium", zh: "高级版") }
-    public static var failedLoadInteractionList: String { L(en: "Couldn't upload data", ru: "Не удалось загрузить данные", es: "No se pudieron cargar los datos", pt: "Não foi possível carregar os dados", zh: "无法加载数据") }
     public static var workHistoryDeleteConfirmTitle: String { L(en: "Delete work experience?", ru: "Удалить опыт работы?", es: "¿Eliminar experiencia laboral?", pt: "Excluir experiência de trabalho?", zh: "删除工作经历？") }
     public static var workHistoryDeleteConfirmMessage: String { L(en: "This action cannot be undone", ru: "Это действие нельзя отменить", es: "Esta acción no se puede deshacer", pt: "Esta ação não pode ser desfeita", zh: "此操作无法撤消") }
     public static var failedToLoadWorkHistory: String { L(en: "Failed to load work history", ru: "Не удалось загрузить историю работы", es: "Error al cargar el historial laboral", pt: "Falha ao carregar o histórico de trabalho", zh: "无法加载工作经历") }
@@ -306,6 +304,8 @@ public enum DivoStrings {
     public static var likes: String { L(en: "LIKES", ru: "НРАВИТСЯ", es: "ME GUSTA", pt: "CURTIDAS", zh: "喜欢") }
     public static var viewed: String { L(en: "VIEWED", ru: "ПРОСМОТРЫ", es: "VISTOS", pt: "VISUALIZADOS", zh: "已查看") }
     public static var saved: String { L(en: "SAVED", ru: "СОХРАНЁННЫЕ", es: "GUARDADOS", pt: "SALVOS", zh: "已收藏") }
+    public static var premiumLabel: String { L(en: "Premium", ru: "Премиум", es: "Premium", pt: "Premium", zh: "高级版") }
+    public static var failedLoadInteractionList: String { L(en: "Couldn't load data", ru: "Не удалось загрузить данные", es: "No se pudieron cargar los datos", pt: "Não foi possível carregar os dados", zh: "无法加载数据") }
     public static var noLikesYet: String { L(en: "No likes yet.", ru: "Пока нет лайков.", es: "Aún no hay me gusta.", pt: "Ainda sem curtidas.", zh: "暂无点赞。") }
     public static var noLikesSubtitle: String { L(en: "Likes will show up here.", ru: "Здесь будут отображаться лайки.", es: "Los me gusta aparecerán aquí.", pt: "As curtidas aparecerão aqui.", zh: "点赞将显示在这里。") }
     public static var nothingSavedYet: String { L(en: "Nothing saved yet.", ru: "Пока ничего не сохранено.", es: "Aún no hay nada guardado.", pt: "Ainda nada salvo.", zh: "暂无保存内容。") }
@@ -315,7 +315,7 @@ public enum DivoStrings {
     public static var noLikesYetMyProfile: String { L(en: "No likes yet.", ru: "Пока нет лайков.", es: "Aún no hay me gusta.", pt: "Ainda sem curtidas.", zh: "暂无点赞。") }
     public static var noLikesSubtitleMyProfile: String { L(en: "Here you’ll see everyone who liked you.", ru: "Здесь вы увидите всех, кому вы понравились.", es: "Aquí verás a todos los que te dieron me gusta.", pt: "Aqui você verá todos que curtiram você.", zh: "这里会显示所有点赞过你的人。") }
     public static var nothingSavedYetMyProfile: String { L(en: "Nothing saved yet.", ru: "Пока ничего не сохранено.", es: "Aún no hay nada guardado.", pt: "Ainda nada salvo.", zh: "暂无保存内容。") }
-    public static var nothingSavedSubtitleMyProfile: String { L(en: "Save model to easily find them later.", ru: "Сохраните модель, чтобы легко найти её позже.", es: "Guarda el modelo para encontrarlo fácilmente más tarde.", pt: "Salve o modelo para encontrá-lo facilmente mais tarde.", zh: "保存模特以便稍后轻松找到。") }
+    public static var nothingSavedSubtitleMyProfile: String { L(en: "No one's saved your profile yet.", ru: "Ваш профиль пока никто не сохранил.", es: "Nadie ha guardado tu perfil aún.", pt: "Ninguém salvou seu perfil ainda.", zh: "尚未有人保存你的资料。") }
     public static var noProfileViewedYetMyProfile: String { L(en: "No profile views yet.", ru: "Пока нет просмотров профиля.", es: "Aún no hay visitas al perfil.", pt: "Ainda sem visualizações de perfil.", zh: "暂无资料浏览。") }
     public static var noProfileViewedSubtitleMyProfile: String { L(en: "No one’s viewed your profile yet.", ru: "Ваш профиль пока никто не просматривал.", es: "Nadie ha visto tu perfil aún.", pt: "Ninguém visualizou seu perfil ainda.", zh: "尚未有人浏览过你的资料。") }
     

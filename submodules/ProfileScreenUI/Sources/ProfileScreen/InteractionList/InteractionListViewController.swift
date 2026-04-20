@@ -1,6 +1,5 @@
 import UIKit
 import Display
-import TelegramCore
 import DivoCore
 import DivoUIKit
 
@@ -10,6 +9,11 @@ struct InteractionUser {
     let role: String
     let avatarUrl: String?
     let isPremium: Bool
+}
+
+struct InteractionPage {
+    let users: [InteractionUser]
+    let hasMore: Bool
 }
 
 enum InteractionListType {
@@ -31,7 +35,7 @@ final class InteractionListViewController: UIViewController {
     private var users: [InteractionUser] = []
     private var filteredUsers: [InteractionUser] = []
 
-    var requestData: ((Int, @escaping ([InteractionUser], Bool, Bool) -> Void) -> Void)?
+    var requestData: ((Int, @escaping (Result<InteractionPage, Error>) -> Void) -> Void)?
     
     private var currentOffset: Int = 0
     private let limit: Int = 20
@@ -52,7 +56,6 @@ final class InteractionListViewController: UIViewController {
         let label = UILabel()
         label.font = Font.regular(16)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
-        label.text = DivoStrings.serverUnavailable
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
@@ -153,6 +156,7 @@ final class InteractionListViewController: UIViewController {
         tv.showsVerticalScrollIndicator = false
         tv.backgroundColor = DivoColorPalette.screenBackground
         tv.contentInset = UIEdgeInsets(top: 10, left: 0, bottom: 0, right: 0)
+        tv.keyboardDismissMode = .onDrag
         return tv
     }()
 
@@ -191,6 +195,10 @@ final class InteractionListViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = DivoColorPalette.screenBackground
         titleLabel.text = listType.title
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
 
         view.addSubview(errorContainer)
         errorContainer.addSubview(errorTitleLabel)
@@ -285,7 +293,7 @@ final class InteractionListViewController: UIViewController {
             tableView.isHidden = true
             errorContainer.isHidden = true
             
-            emptyTitleLabel.text = emptyTitle
+            emptyTitleLabel.text = emptyTitle?.uppercased()
             emptySubTitleLabel.text = emptySubTitle
         } else {
             emptyContainer.isHidden = true
@@ -299,96 +307,101 @@ final class InteractionListViewController: UIViewController {
     private func loadInitialData() {
         loadingSpinner.startAnimating()
         loadingSpinner.isHidden = false
+        errorContainer.isHidden = true
+        hideSnackbar(animated: false)
         currentOffset = 0
         isLoadingMore = true
-        
-        requestData?(0) { [weak self] newUsers, hasMore, error in
-            guard let self = self, !error else { 
-                self?.showSnackbar(
-                    message: DivoStrings.failedLoadInteractionList,
-                    style: .error
-                )
-                self?.loadingSpinner.stopAnimating()
-                self?.loadingSpinner.isHidden = true
-                self?.errorContainer.isHidden = false
-                return 
-            }
-            self.errorContainer.isHidden = true
+
+        requestData?(0) { [weak self] result in
+            guard let self = self else { return }
             self.isLoadingMore = false
-            self.hasMorePages = hasMore
-            
-            self.currentOffset = self.limit
-            
-            self.users = newUsers
-            self.filteredUsers = newUsers
-            
+
             DispatchQueue.main.async {
                 self.loadingSpinner.stopAnimating()
                 self.loadingSpinner.isHidden = true
-                self.updateEmptyState()
-                self.tableView.reloadData()
+
+                switch result {
+                case .failure(let error):
+                    let message = self.errorMessage(for: error)
+                    self.errorTitleLabel.text = message
+                    self.errorContainer.isHidden = false
+                    self.showSnackbar(
+                        message: message,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.loadInitialData()
+                        },
+                        persistent: true
+                    )
+
+                case .success(let page):
+                    self.errorContainer.isHidden = true
+                    self.hasMorePages = page.hasMore
+                    self.currentOffset = self.limit
+                    self.users = page.users
+                    self.filteredUsers = page.users
+                    self.updateEmptyState()
+                    self.tableView.reloadData()
+                }
             }
         }
     }
     
     private func loadNextPage() {
-        // Проверка searchTextField.text?.isEmpty ?? true здесь защищает от старта пагинации во время поиска, 
-        // но не спасает, если поиск начался ПОСЛЕ старта пагинации.
         guard !isLoadingMore, hasMorePages, searchTextField.text?.isEmpty ?? true else { return }
-        
+
         isLoadingMore = true
         footerSpinner.startAnimating()
         footerSpinner.isHidden = false
-        
+
         let startIndex = self.filteredUsers.count
-        
-        requestData?(currentOffset) { [weak self] newUsers, hasMore, error in
+
+        requestData?(currentOffset) { [weak self] result in
             guard let self = self else { return }
-            
-            self.currentOffset += self.limit
             self.isLoadingMore = false
-            self.hasMorePages = hasMore
-            
-            // 1. Добавляем новых пользователей в общий массив
-            self.users.append(contentsOf: newUsers)
-            
+
             DispatchQueue.main.async {
                 self.footerSpinner.stopAnimating()
                 self.footerSpinner.isHidden = true
-                
-                let searchText = self.searchTextField.text ?? ""
-                
-                // 2. Проверяем, ввел ли пользователь что-то в поиск, пока шел запрос
-                if !searchText.isEmpty {
-                    // Фильтруем заново с учетом пришедших новых данных
-                    self.filteredUsers = self.users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
-                    
-                    // Так как список был отфильтрован, insertRows делать нельзя (индексы сдвинуты).
-                    // Просто обновляем таблицу.
-                    self.tableView.reloadData()
-                } else {
-                    // Поиска нет. Обновляем отображаемый массив всеми данными
-                    self.filteredUsers = self.users
-                    
-                    if !newUsers.isEmpty {
-                        // 3. Защита от крэша (Fallback)
-                        // Убеждаемся, что таблица действительно содержит то количество строк, которое мы ожидаем
-                        let currentRowCount = self.tableView.numberOfRows(inSection: 0)
-                        
-                        if currentRowCount == startIndex {
-                            let indexPaths = (0..<newUsers.count).map {
-                                IndexPath(row: startIndex + $0, section: 0)
-                            }
-                            self.tableView.performBatchUpdates({
-                                self.tableView.insertRows(at: indexPaths, with: .fade)
-                            }, completion: nil)
-                        } else {
-                            // Если количество строк не совпадает (например, таблица обновилась по другой причине),
-                            // безопасно обновляем всю таблицу без анимации вставки
-                            self.tableView.reloadData()
+
+                switch result {
+                case .failure(let error):
+                    self.showSnackbar(
+                        message: self.errorMessage(for: error),
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.loadNextPage()
                         }
+                    )
+
+                case .success(let page):
+                    self.currentOffset += self.limit
+                    self.hasMorePages = page.hasMore
+                    self.users.append(contentsOf: page.users)
+
+                    let searchText = self.searchTextField.text ?? ""
+
+                    if !searchText.isEmpty {
+                        self.filteredUsers = self.users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
+                        self.tableView.reloadData()
                     } else {
-                        self.hasMorePages = false
+                        self.filteredUsers = self.users
+
+                        if !page.users.isEmpty {
+                            let currentRowCount = self.tableView.numberOfRows(inSection: 0)
+                            if currentRowCount == startIndex {
+                                let indexPaths = (0..<page.users.count).map {
+                                    IndexPath(row: startIndex + $0, section: 0)
+                                }
+                                self.tableView.performBatchUpdates({
+                                    self.tableView.insertRows(at: indexPaths, with: .fade)
+                                }, completion: nil)
+                            } else {
+                                self.tableView.reloadData()
+                            }
+                        } else {
+                            self.hasMorePages = false
+                        }
                     }
                 }
             }
@@ -415,6 +428,10 @@ final class InteractionListViewController: UIViewController {
         }
     }
 
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
+
     @objc private func searchTextChanged() {
         let searchText = searchTextField.text ?? ""
         if searchText.isEmpty {
@@ -423,6 +440,13 @@ final class InteractionListViewController: UIViewController {
             filteredUsers = users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
         }
         tableView.reloadData()
+    }
+
+    private func errorMessage(for error: Error) -> String {
+        if error is DivoAPIError, case .noInternetConnection = error as! DivoAPIError {
+            return DivoStrings.connectionProblem
+        }
+        return DivoStrings.failedLoadInteractionList
     }
 
     // MARK: - Snackbar
@@ -458,7 +482,7 @@ extension InteractionListViewController: UITableViewDataSource {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: InteractionUserCell.reuseIdentifier, for: indexPath) as? InteractionUserCell  else {
             return UITableViewCell()
         }
-        cell.configure(with: filteredUsers[indexPath.row])
+        cell.configure(with: filteredUsers[indexPath.row], searchText: searchTextField.text ?? "")
         return cell
     }
 }

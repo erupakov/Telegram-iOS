@@ -854,8 +854,9 @@ extension PublicProfileScreenController {
     private func presentInteractionSheet(type: InteractionListType) {
         let sheetVC = InteractionListViewController(type: type, isMyProfile: isMyProfile)
         sheetVC.onUserTapped = { [weak self] user in
-            sheetVC.dismiss(animated: true, completion: nil)
-            self?.openModelScreen(for: user)
+            sheetVC.dismiss(animated: true) {
+                self?.openModelScreen(for: user)
+            }
         }
         
         sheetVC.requestData = { [weak self] offset, completion in
@@ -898,19 +899,18 @@ extension PublicProfileScreenController {
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
     
-    private func loadInteractionData(type: InteractionListType, offset: Int, completion: @escaping ([InteractionUser], Bool, Bool) -> Void) {
+    private func loadInteractionData(type: InteractionListType, offset: Int, completion: @escaping (Result<InteractionPage, Error>) -> Void) {
         guard self.userID != -1 else { return }
-        
+
         let limit = 20
         Task {
             do {
                 let path = isMyProfile ? "/user/engagement?offset=\(offset)&limit=\(limit)" : "/user/engagement?offset=\(offset)&limit=\(limit)&userId=\(self.userID)"
                 let response: UserEngagementResponse = try await DivoAPIClient.shared.request(path: path, method: "GET")
-                
+
                 var apiItems: [EngagementItem] = []
                 var totalCount = 0
-                
-                // ИСПРАВЛЕНИЕ: Гибкое получение total
+
                 switch type {
                 case .likes:
                     apiItems = response.data?.liked?.items ?? []
@@ -922,7 +922,7 @@ extension PublicProfileScreenController {
                     apiItems = response.data?.followed?.items ?? []
                     totalCount = response.data?.followed?.pagination?.meta?.totalCount ?? response.data?.followed?.pagination?.total ?? 0
                 }
-                
+
                 let mappedUsers = apiItems.compactMap { item -> InteractionUser? in
                     guard let id = item.id else { return nil }
                     let avatarUrl = item.avatar?.fullUrl
@@ -938,16 +938,15 @@ extension PublicProfileScreenController {
                         isPremium: false
                     )
                 }
-                
+
                 let hasMore = (offset + apiItems.count) < totalCount
-                
+
                 await MainActor.run {
-                    completion(mappedUsers, hasMore, false)
+                    completion(.success(InteractionPage(users: mappedUsers, hasMore: hasMore)))
                 }
-                
+
             } catch {
-                print("❌ [INTERACTIONS] Error loading data for \(type.title): \(error)")
-                await MainActor.run { completion([], false, true) }
+                await MainActor.run { completion(.failure(error)) }
             }
         }
     }
