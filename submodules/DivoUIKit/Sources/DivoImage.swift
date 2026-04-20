@@ -48,7 +48,6 @@ public enum DivoImage {
     public static var roleNewTalent: UIImage { load("DivoRoleNewTalent") }
     public static var saveMedia: UIImage { load("DivoSaveMedia") }
     public static var searchArrowProfile: UIImage { load("DivoSearchArrowProfile") }
-    public static var searchChevronLeft: UIImage { load("DivoSearchChevronLeft") }
     public static var searchChevronRight: UIImage { load("DivoSearchChevronRight") }
     public static var searchCloseIcon: UIImage { load("DivoSearchCloseIcon") }
     public static var searchFaceScan: UIImage { load("DivoSearchFaceScan") }
