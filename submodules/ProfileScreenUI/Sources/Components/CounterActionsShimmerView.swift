@@ -14,9 +14,9 @@ class CounterActionsShimmerView: UIView {
     
     private let stackView: UIStackView = {
         let stack = UIStackView()
-        stack.axis = .horizontal
+        stack.axis = .vertical
         stack.distribution = .fillEqually
-        stack.spacing = 8
+        stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
@@ -25,7 +25,6 @@ class CounterActionsShimmerView: UIView {
     private lazy var placeholder1 = createPlaceholder()
     private lazy var placeholder2 = createPlaceholder()
     private lazy var placeholder3 = createPlaceholder()
-    private lazy var placeholder4 = createPlaceholder()
     
     // MARK: - Init
     
@@ -53,7 +52,6 @@ class CounterActionsShimmerView: UIView {
         stackView.addArrangedSubview(placeholder1)
         stackView.addArrangedSubview(placeholder2)
         stackView.addArrangedSubview(placeholder3)
-        stackView.addArrangedSubview(placeholder4)
     }
     
     private func setupConstraints() {
@@ -69,7 +67,7 @@ class CounterActionsShimmerView: UIView {
     private func createPlaceholder() -> UIView {
         let view = UIView()
         view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 6
+        view.layer.cornerRadius = 15
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }
@@ -78,14 +76,14 @@ class CounterActionsShimmerView: UIView {
     
     func startAnimation() {
         // Запускаем шиммер на каждом из 4 элементов
-        [placeholder1, placeholder2, placeholder3, placeholder4].forEach {
+        [placeholder1, placeholder2, placeholder3].forEach {
             $0.stopShimmering() // на всякий случай сбрасываем старую
             $0.startShimmering()
         }
     }
     
     func stopAnimation() {
-        [placeholder1, placeholder2, placeholder3, placeholder4].forEach {
+        [placeholder1, placeholder2, placeholder3].forEach {
             $0.stopShimmering()
         }
     }

@@ -63,6 +63,8 @@ public enum DivoImage {
     public static var searchOrangeCheckmark: UIImage { load("DivoSearchOrangeCheckmark") }
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
     public static var searchWhiteCheckmark: UIImage { load("DivoSearchWhiteCheckmark") }
+    public static var sendDM: UIImage { load("DivoSendDM") }
+    public static var share: UIImage { load("DivoShare") }
     public static var signUpAgencies: UIImage { load("DivoSignUpAgencies") }
     public static var signUpChooseRoleBackground: UIImage { load("DivoSignUpChooseRoleBackground") }
     public static var signUpFan: UIImage { load("DivoSignUpFan") }

@@ -7,23 +7,11 @@
 
 import UIKit
 import DivoCore
+import DivoUIKit
 
 class ProfileHeaderShimmerView: UIView {
     
     // MARK: - UI Elements (Placeholders)
-    
-    private let avatarPlaceholder: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let ringView: AvatarStrokeView = {
-        let view = AvatarStrokeView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
     
     private let namePlaceholder: UIView = {
         let view = UIView()
@@ -33,18 +21,18 @@ class ProfileHeaderShimmerView: UIView {
         return view
     }()
     
-    private let crownPlaceholder: UIView = {
+    private let premiumBadgePlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 8
+        view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
-    private let tagPlaceholder: UIView = {
+    private let rolePlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 6
+        view.layer.cornerRadius = DivoDesignTokens.Radius.m
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -52,7 +40,7 @@ class ProfileHeaderShimmerView: UIView {
     private let infoPlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 6
+        view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -71,69 +59,64 @@ class ProfileHeaderShimmerView: UIView {
     
     override func layoutSubviews() {
         super.layoutSubviews()
-        
-        let avatarSize: CGFloat = 80
-        avatarPlaceholder.layer.cornerRadius = avatarSize / 2
-        ringView.layer.cornerRadius = (avatarSize + 10) / 2
-        
+
         startAnimation()
     }
     
     private func setupViews() {
-        addSubview(ringView)
-        addSubview(avatarPlaceholder)
         addSubview(namePlaceholder)
-        addSubview(crownPlaceholder)
-        addSubview(tagPlaceholder)
+        addSubview(premiumBadgePlaceholder)
+        addSubview(rolePlaceholder)
         addSubview(infoPlaceholder)
     }
     
     private func setupConstraints() {
-        let avatarSize: CGFloat = 80
+        let nameWidth: CGFloat = 180
+        let premiumBadgeWidth: CGFloat = 80
+        let roleWidth: CGFloat = 100
+        let infoWidth: CGFloat = 140
         
         NSLayoutConstraint.activate([
-            avatarPlaceholder.leadingAnchor.constraint(equalTo: leadingAnchor),
-            avatarPlaceholder.centerYAnchor.constraint(equalTo: centerYAnchor),
-            avatarPlaceholder.widthAnchor.constraint(equalToConstant: avatarSize),
-            avatarPlaceholder.heightAnchor.constraint(equalToConstant: avatarSize),
+            // namePlaceholder
+            namePlaceholder.topAnchor.constraint(equalTo: topAnchor),
+            namePlaceholder.leadingAnchor.constraint(equalTo: leadingAnchor),
+            namePlaceholder.widthAnchor.constraint(equalToConstant: nameWidth),
+            namePlaceholder.heightAnchor.constraint(equalToConstant: 64), // Примерная высота под 2 строки шрифта 32
             
-            ringView.centerXAnchor.constraint(equalTo: avatarPlaceholder.centerXAnchor),
-            ringView.centerYAnchor.constraint(equalTo: avatarPlaceholder.centerYAnchor),
-            ringView.widthAnchor.constraint(equalToConstant: avatarSize + 10),
-            ringView.heightAnchor.constraint(equalToConstant: avatarSize + 10),
+            // premiumBadgePlaceholder
+            premiumBadgePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            premiumBadgePlaceholder.bottomAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: -4),
+            premiumBadgePlaceholder.widthAnchor.constraint(equalToConstant: premiumBadgeWidth),
+            premiumBadgePlaceholder.heightAnchor.constraint(equalToConstant: 22),
+            premiumBadgePlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             
-            namePlaceholder.leadingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: 10),
-            namePlaceholder.bottomAnchor.constraint(equalTo: tagPlaceholder.topAnchor, constant: -12),
-            namePlaceholder.widthAnchor.constraint(equalToConstant: 180),
-            namePlaceholder.heightAnchor.constraint(equalToConstant: 64),
+            // rolePlaceholder
+            rolePlaceholder.topAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: 6),
+            rolePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.leadingAnchor),
+            rolePlaceholder.widthAnchor.constraint(equalToConstant: roleWidth),
+            rolePlaceholder.heightAnchor.constraint(equalToConstant: 22),
+            rolePlaceholder.bottomAnchor.constraint(equalTo: bottomAnchor),
             
-            crownPlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.trailingAnchor, constant: 8),
-            crownPlaceholder.centerYAnchor.constraint(equalTo: avatarPlaceholder.centerYAnchor),
-            crownPlaceholder.widthAnchor.constraint(equalToConstant: 24),
-            crownPlaceholder.heightAnchor.constraint(equalToConstant: 24),
-            
-            tagPlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.leadingAnchor),
-
-            tagPlaceholder.widthAnchor.constraint(equalToConstant: 100),
-            tagPlaceholder.heightAnchor.constraint(equalToConstant: 20),
-            
-            infoPlaceholder.leadingAnchor.constraint(equalTo: tagPlaceholder.trailingAnchor, constant: 10),
-            infoPlaceholder.centerYAnchor.constraint(equalTo: tagPlaceholder.centerYAnchor),
-            infoPlaceholder.topAnchor.constraint(equalTo: crownPlaceholder.bottomAnchor, constant: 10),
-            infoPlaceholder.widthAnchor.constraint(equalToConstant: 120),
-            infoPlaceholder.heightAnchor.constraint(equalToConstant: 20)
+            // infoPlaceholder
+            infoPlaceholder.leadingAnchor.constraint(equalTo: rolePlaceholder.trailingAnchor, constant: 10),
+            infoPlaceholder.centerYAnchor.constraint(equalTo: rolePlaceholder.centerYAnchor),
+            infoPlaceholder.widthAnchor.constraint(equalToConstant: infoWidth),
+            infoPlaceholder.heightAnchor.constraint(equalToConstant: 20),
+            infoPlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
         ])
     }
     
+    // MARK: - Animation
+    
     func startAnimation() {
-        [avatarPlaceholder, namePlaceholder, crownPlaceholder, tagPlaceholder, infoPlaceholder].forEach {
+        [namePlaceholder, premiumBadgePlaceholder, rolePlaceholder, infoPlaceholder].forEach {
             $0.stopShimmering()
             $0.startShimmering()
         }
     }
     
     func stopAnimation() {
-        [avatarPlaceholder, namePlaceholder, crownPlaceholder, tagPlaceholder, infoPlaceholder].forEach {
+        [namePlaceholder, premiumBadgePlaceholder, rolePlaceholder, infoPlaceholder].forEach {
             $0.stopShimmering()
         }
     }

@@ -58,7 +58,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var headerHeightConstraint: NSLayoutConstraint!
     private var socialHeightConstraint: NSLayoutConstraint!
     private let iconPlaceholder = "HeartActionIcon"
-    private let fixedHeaderHeight: CGFloat = 540.0
+    private let fixedHeaderHeight: CGFloat = 570.0
     private let fixedProfileHeaderHeight: CGFloat = 240.0
     
     private let scrollView: UIScrollView = {
@@ -86,13 +86,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }()
     
     private let blurredHeaderImageView: UIVisualEffectView = {
-        let effect = UIBlurEffect(style: .systemChromeMaterialDark)
+        let effect = UIBlurEffect(style: .systemUltraThinMaterialDark)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isUserInteractionEnabled = false
         return view
     }()
-    
+
     private let headerImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -112,20 +112,22 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     var currentPhoto: UIImage? = nil {
         didSet {
-            if let currentPhoto = self.currentPhoto {
-                profileHeaderView.changeAvatar(with: currentPhoto)
-            } else {
-                profileHeaderView.changeAvatar(with: nil)
-            }
+
         }
     }
     
     // MARK: - Profile Header Section
+
+    private let profileHeaderWrapper: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
     private lazy var infoStack: UIStackView = {
         let infoStack = UIStackView()
         infoStack.axis = .vertical
-        infoStack.alignment = .leading
+        infoStack.alignment = .fill
         infoStack.spacing = 0
         infoStack.translatesAutoresizingMaskIntoConstraints = false
         return infoStack
@@ -140,8 +142,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private lazy var counterActionsStack: UIStackView = {
         let stack = UIStackView()
-        stack.axis = .horizontal
+        stack.axis = .vertical
         stack.distribution = .fillEqually
+        stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.setContentCompressionResistancePriority(.required, for: .horizontal)
         return stack
@@ -158,16 +161,75 @@ final class PublicProfileScreenNode: ASDisplayNode {
         actionsShimmerView.translatesAutoresizingMaskIntoConstraints = false
         return actionsShimmerView
     }()
-    
+
+    private let sendShareContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = false
+        return view
+    }()
+
+    private lazy var dmShareStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.distribution = .fill 
+        stack.alignment = .center
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.isHidden = true
+        return stack
+    }()
+
+    private lazy var dmShareShimmerStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.distribution = .fill 
+        stack.alignment = .center
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private let shareButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.share
+        button.setImage(image, for: .normal)
+        button.tintColor = DivoColorPalette.cardBackground
+
+        button.backgroundColor = DivoColorPalette.statPillBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        button.layer.masksToBounds = true
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let shareShimmerButton: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private let dmButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .black.withAlphaComponent(0.15)
-        button.layer.cornerRadius = 6
-        button.layer.borderWidth = 0.0
-        button.layer.borderColor = UIColor.clear.cgColor
+        button.backgroundColor = DivoColorPalette.statPillBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        button.layer.masksToBounds = true
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.isHidden = true
         return button
+    }()
+
+    private let dmShimmerButton: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private enum ActionViewTags {
@@ -178,23 +240,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
         static let counterCountLabel = 9_202
         static let counterNameLabel = 9_203
     }
-    
-    private let likesView: UIControl = {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        return control
+
+    private let likesView: StatPillView = {
+        let pill = StatPillView(icon: DivoImage.statLike, filledIcon: DivoImage.statLikeFilled)
+        pill.isUserInteractionEnabled = true
+        return pill
     }()
-    
-    private let viewsView: UIControl = {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        return control
-    }()
-    
-    private let savesView: UIControl = {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        return control
+    private let viewsView = StatPillView(icon: DivoImage.statView)
+    private let savesView: StatPillView = {
+        let pill = StatPillView(icon: DivoImage.statSave, filledIcon: DivoImage.statSaveFilled)
+        pill.isUserInteractionEnabled = true
+        return pill
     }()
     
     
@@ -616,6 +672,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onGalleryItemTapped: ((ProfileTab, Int) -> Void)?
     var onSocialLinkTapped: ((String) -> Void)?
     var onEventButtonTapped: ((Int) -> Void)?
+    var onBackTapped: (() -> Void)?
+    var onEditProfileTapped: (() -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -645,9 +703,94 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     var onAddModelTapped: (() -> Void)?
     private let emptyModelsPlaceholderNode: EmptyModelsPlaceholderNode
+
+    // MARK: - NavigationBar
     
     var onAddWorkExperienceTapped: (() -> Void)?
+
+    // private let navBarBlurView: UIVisualEffectView = {
+    //     // Для темной темы отлично подходит systemChromeMaterialDark или systemUltraThinMaterialDark
+    //     let effect = UIBlurEffect(style: .systemUltraThinMaterialDark) 
+    //     let view = UIVisualEffectView(effect: effect)
+    //     view.translatesAutoresizingMaskIntoConstraints = false
+    //     view.alpha = 0.0 // Сначала он полностью прозрачный
+    //     view.isUserInteractionEnabled = false // Чтобы не блокировать нажатия
+    //     return view
+    // }()
+
+    private let customNavBar: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
+    private let closeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.searchChevronLeft
+        button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
+        button.tintColor = DivoColorPalette.cardBackground
+
+        button.backgroundColor = DivoColorPalette.statPillBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        button.layer.masksToBounds = true
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let rightButtonContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.statPillBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.layer.masksToBounds = true
+        view.layer.borderWidth = 0.5
+        view.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let rightButtonsStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = DivoDesignTokens.Spacing.xs
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private let editButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.profileEditAction
+        button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
+        button.tintColor = DivoColorPalette.cardBackground
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private var editButtonWidthConstraint: NSLayoutConstraint?
+
+    private let moreButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.moreActionIcon
+        button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
+        button.tintColor = DivoColorPalette.cardBackground
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let whiteSheetBackground: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.screenBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+
     // MARK: - Init
     
     init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel) {
@@ -711,6 +854,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
             currentAgencyShimmerView.stopShimmering()
             currentAgencyShimmerView.startShimmering()
         }
+
+        if !dmShareShimmerStack.isHidden {
+            dmShimmerButton.stopShimmering()
+            dmShimmerButton.startShimmering()
+            shareShimmerButton.stopShimmering()
+            shareShimmerButton.startShimmering()
+        }
         
         updateSegmentedBarPosition()
     }
@@ -729,6 +879,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupContent() {
         setupHeaderImageView()
         setupBlurredHeaderImageView()
+        setupCustomNavBar()
         setupScrollView()
         setupContentViewStack()
         setupSegmentedBar()
@@ -736,15 +887,130 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupAllCollectionsLayers()
         setupSimilarProfiles()
     }
+
+    private func setupCustomNavBar() {
+        view.addSubview(customNavBar)
+        // customNavBar.insertSubview(navBarBlurView, at: 0)
+        customNavBar.addSubview(closeButton)
+        customNavBar.addSubview(rightButtonContainer)
+
+        rightButtonContainer.addSubview(rightButtonsStack)
+        rightButtonsStack.addArrangedSubview(editButton)
+        rightButtonsStack.addArrangedSubview(moreButton)
+        
+        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        closeButton.addDivoPressState(.pill)
+
+        editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
+        editButton.addDivoPressState(.pill)
+        moreButton.addTarget(self, action: #selector(moreButtonTapped), for: .touchUpInside)
+        moreButton.addDivoPressState(.pill)
+
+        NSLayoutConstraint.activate([
+            customNavBar.topAnchor.constraint(equalTo: view.topAnchor),
+            customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            customNavBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 52),
+
+            // navBarBlurView.topAnchor.constraint(equalTo: customNavBar.topAnchor),
+            // navBarBlurView.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor),
+            // navBarBlurView.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor),
+            // navBarBlurView.bottomAnchor.constraint(equalTo: customNavBar.bottomAnchor),
+            
+            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: 16),
+            closeButton.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
+            closeButton.widthAnchor.constraint(equalToConstant: 40),
+            closeButton.heightAnchor.constraint(equalToConstant: 40),
+
+            rightButtonContainer.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -16),
+            rightButtonContainer.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
+            rightButtonContainer.heightAnchor.constraint(equalToConstant: 40),
+
+            rightButtonsStack.leadingAnchor.constraint(equalTo: rightButtonContainer.leadingAnchor),
+            rightButtonsStack.trailingAnchor.constraint(equalTo: rightButtonContainer.trailingAnchor),
+            rightButtonsStack.topAnchor.constraint(equalTo: rightButtonContainer.topAnchor),
+            rightButtonsStack.bottomAnchor.constraint(equalTo: rightButtonContainer.bottomAnchor),
+
+            editButton.widthAnchor.constraint(equalToConstant: 40),
+            editButton.heightAnchor.constraint(equalToConstant: 40),
+
+            moreButton.widthAnchor.constraint(equalToConstant: 40),
+            moreButton.heightAnchor.constraint(equalToConstant: 40),
+        ])
+
+        if !model.isMyProfile {
+            editButton.isHidden = true 
+        }
+    }
+
+    @objc private func closeTapped() {
+        onBackTapped?()
+    }
+
+    @objc private func editButtonTapped() {
+        animateNavBarButton(editButton)
+        onEditProfileTapped?()
+    }
+
+    @objc private func moreButtonTapped() {
+        animateNavBarButton(moreButton)
+        // TODO: логика нажатия more
+    }
+
+    private func animateNavBarButton(_ button: UIButton) {
+        UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseOut, animations: {
+            button.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+            button.alpha = 0.6
+        }) { _ in
+            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseOut, animations: {
+                button.transform = .identity
+                button.alpha = 1.0
+            })
+        }
+    }
+    
+    // @objc private func rightButtonContainerTapped(_ gesture: UITapGestureRecognizer) {
+    //     let location = gesture.location(in: rightButtonContainer)
+        
+    //     if model.isMyProfile, editButton.frame.contains(location) {
+    //         UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseOut, animations: {
+    //             self.editButton.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+    //             self.editButton.alpha = 0.6
+    //         }) { _ in
+    //             UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseOut, animations: {
+    //                 self.editButton.transform = .identity
+    //                 self.editButton.alpha = 1.0
+    //             })
+    //         }
+    //         return
+    //     }
+        
+    //     if moreButton.frame.contains(location) {
+    //         UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseOut, animations: {
+    //             self.moreButton.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+    //             self.moreButton.alpha = 0.6
+    //         }) { _ in
+    //             UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseOut, animations: {
+    //                 self.moreButton.transform = .identity
+    //                 self.moreButton.alpha = 1.0
+    //             })
+    //         }
+    //         return
+    //     }
+    // }
     
     private func setupHeaderImageView() {
         self.view.addSubview(headerImageView)
+        self.view.addSubview(headerSpinner)
         
         NSLayoutConstraint.activate([
             headerImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
             headerImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             headerImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             headerImageView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+
+            headerSpinner.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            headerSpinner.centerYAnchor.constraint(equalTo: self.view.centerYAnchor, constant: -50),
         ])
     }
     
@@ -761,6 +1027,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private func setupScrollView() {
         self.view.addSubview(scrollView)
+
+        scrollView.addSubview(whiteSheetBackground) 
         
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
@@ -800,8 +1068,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     private func setupContentLayout() {
-        setupHeaderContainer()
         setupCounterActionsContainer()
+        setupProfileHeaderContainer()
+        setupSendShareContainer()
         setupProfileInfoContainer()
         setupCurrentAgencyContainer()
         setupAddWorkHistoryContainer()
@@ -809,64 +1078,129 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupSegmentedBarPlaceholder()
     }
     
-    private func setupHeaderContainer() {
-        contentViewStack.addArrangedSubview(headerContainer)
-        headerHeightConstraint = headerContainer.heightAnchor.constraint(equalToConstant: fixedHeaderHeight)
-        headerHeightConstraint.isActive = true
-        
-        headerContainer.addSubview(infoStack)
-        headerContainer.addSubview(headerSpinner)
-        infoStack.addArrangedSubview(profileHeaderView)
-        // Шиммер как overlay поверх profileHeaderView (не arranged subview),
-        // чтобы избежать UIStackView-анимации при переключении isHidden
-        profileHeaderShimmerView.translatesAutoresizingMaskIntoConstraints = false
-        infoStack.addSubview(profileHeaderShimmerView)
-        
-        NSLayoutConstraint.activate([
-            headerContainer.widthAnchor.constraint(equalTo: contentViewStack.widthAnchor),
-            
-            headerSpinner.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
-            headerSpinner.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor, constant: -150),
-
-            infoStack.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
-            infoStack.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
-            infoStack.heightAnchor.constraint(equalToConstant: 85),
-            profileHeaderShimmerView.leadingAnchor.constraint(equalTo: infoStack.leadingAnchor),
-            profileHeaderShimmerView.trailingAnchor.constraint(equalTo: infoStack.trailingAnchor),
-            profileHeaderShimmerView.topAnchor.constraint(equalTo: infoStack.topAnchor),
-            profileHeaderShimmerView.bottomAnchor.constraint(equalTo: infoStack.bottomAnchor),
-        ])
-    }
-    
     private func setupCounterActionsContainer() {
         contentViewStack.addArrangedSubview(counterActionsContainer)
         counterActionsContainer.addSubview(actionsShimmerView)
         counterActionsContainer.addSubview(counterActionsStack)
         
-        counterActionsStack.addArrangedSubview(dmButton)
         counterActionsStack.addArrangedSubview(likesView)
         counterActionsStack.addArrangedSubview(viewsView)
         counterActionsStack.addArrangedSubview(savesView)
+
+        likesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        viewsView.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        savesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
         
         NSLayoutConstraint.activate([
-            counterActionsContainer.topAnchor.constraint(equalTo: infoStack.bottomAnchor, constant: 20),
-            counterActionsContainer.heightAnchor.constraint(equalToConstant: 36),
+            // Убрали жесткую высоту и topAnchor! Стек сам решит, какого он размера.
+            counterActionsContainer.topAnchor.constraint(equalTo: contentViewStack.topAnchor, constant: DivoDesignTokens.Spacing.m),
             counterActionsContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
             counterActionsContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
             
-            actionsShimmerView.leadingAnchor.constraint(equalTo: counterActionsContainer.leadingAnchor, constant: 16),
-            actionsShimmerView.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -16),
+            actionsShimmerView.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             actionsShimmerView.topAnchor.constraint(equalTo: counterActionsContainer.topAnchor),
             actionsShimmerView.bottomAnchor.constraint(equalTo: counterActionsContainer.bottomAnchor),
+            actionsShimmerView.widthAnchor.constraint(equalToConstant: 70),
             
-            counterActionsStack.leadingAnchor.constraint(equalTo: counterActionsContainer.leadingAnchor, constant: 16),
-            counterActionsStack.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -16),
+            counterActionsStack.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             counterActionsStack.topAnchor.constraint(equalTo: counterActionsContainer.topAnchor),
             counterActionsStack.bottomAnchor.constraint(equalTo: counterActionsContainer.bottomAnchor),
         ])
         
-        contentViewStack.setCustomSpacing(12, after: counterActionsStack)
-        contentViewStack.setCustomSpacing(12, after: actionsShimmerView)
+        // Расстояние между счетчиками и Именем
+        contentViewStack.setCustomSpacing(60, after: counterActionsContainer)
+
+        likesView.addTarget(self, action: #selector(likesViewDidTap), for: .touchUpInside)
+        viewsView.addTarget(self, action: #selector(viewsViewDidTap), for: .touchUpInside)
+        savesView.addTarget(self, action: #selector(savesViewDidTap), for: .touchUpInside)
+    }
+
+    // Раньше это был setupHeaderContainer, мы избавились от него полностью!
+    private func setupProfileHeaderContainer() {
+        // 1. Добавляем обертку в главный стек
+        contentViewStack.addArrangedSubview(profileHeaderWrapper)
+        
+        // 2. В обертку кладем infoStack
+        profileHeaderWrapper.addSubview(infoStack)
+        infoStack.addArrangedSubview(profileHeaderView)
+        
+        profileHeaderShimmerView.translatesAutoresizingMaskIntoConstraints = false
+        infoStack.addSubview(profileHeaderShimmerView)
+        
+        NSLayoutConstraint.activate([
+            // 3. Безопасно делаем отступы от краев обертки
+            infoStack.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor),
+            infoStack.bottomAnchor.constraint(equalTo: profileHeaderWrapper.bottomAnchor),
+            infoStack.leadingAnchor.constraint(equalTo: profileHeaderWrapper.leadingAnchor, constant: 16),
+            infoStack.trailingAnchor.constraint(equalTo: profileHeaderWrapper.trailingAnchor, constant: -16),
+            
+            profileHeaderShimmerView.leadingAnchor.constraint(equalTo: infoStack.leadingAnchor),
+            profileHeaderShimmerView.trailingAnchor.constraint(equalTo: infoStack.trailingAnchor),
+            profileHeaderShimmerView.topAnchor.constraint(equalTo: infoStack.topAnchor),
+            profileHeaderShimmerView.bottomAnchor.constraint(equalTo: infoStack.bottomAnchor),
+        ])
+        
+        // Расстояние между именем и кнопками (обрати внимание, отступ делаем после WRAPPER)
+        contentViewStack.setCustomSpacing(16, after: profileHeaderWrapper)
+        contentViewStack.setCustomSpacing(16, after: profileHeaderShimmerView)
+    }
+
+    private func setupSendShareContainer() {
+        contentViewStack.addArrangedSubview(sendShareContainer)
+        sendShareContainer.addSubview(dmShareStack)
+        
+        dmShareStack.addArrangedSubview(dmButton)
+        dmButton.addDivoPressState(.pill)
+        
+        let spacer = UIView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        dmShareStack.addArrangedSubview(spacer)
+        
+        dmShareStack.addArrangedSubview(shareButton)
+        shareButton.addDivoPressState(.pill)
+
+        sendShareContainer.addSubview(dmShareShimmerStack)
+        dmShareShimmerStack.addArrangedSubview(dmShimmerButton)
+        
+        let spacerShimmer = UIView()
+        spacerShimmer.translatesAutoresizingMaskIntoConstraints = false
+        spacerShimmer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        dmShareShimmerStack.addArrangedSubview(spacerShimmer)
+        
+        dmShareShimmerStack.addArrangedSubview(shareShimmerButton)
+        
+        NSLayoutConstraint.activate([
+            // Высота контейнера
+            sendShareContainer.heightAnchor.constraint(equalToConstant: 44),
+            sendShareContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
+            sendShareContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
+            
+            // Отступы стека от краев экрана
+            dmShareStack.leadingAnchor.constraint(equalTo: sendShareContainer.leadingAnchor, constant: 16),
+            dmShareStack.trailingAnchor.constraint(equalTo: sendShareContainer.trailingAnchor, constant: -16),
+            dmShareStack.topAnchor.constraint(equalTo: sendShareContainer.topAnchor),
+            dmShareStack.bottomAnchor.constraint(equalTo: sendShareContainer.bottomAnchor),
+            
+            dmButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            shareButton.widthAnchor.constraint(equalToConstant: 40),
+            shareButton.heightAnchor.constraint(equalToConstant: 40),
+
+            // Отступы стека от краев экрана
+            dmShareShimmerStack.leadingAnchor.constraint(equalTo: sendShareContainer.leadingAnchor, constant: 16),
+            dmShareShimmerStack.trailingAnchor.constraint(equalTo: sendShareContainer.trailingAnchor, constant: -16),
+            dmShareShimmerStack.topAnchor.constraint(equalTo: sendShareContainer.topAnchor),
+            dmShareShimmerStack.bottomAnchor.constraint(equalTo: sendShareContainer.bottomAnchor),
+            
+            dmShimmerButton.heightAnchor.constraint(equalToConstant: 40),
+            dmShimmerButton.widthAnchor.constraint(equalToConstant: 100),
+            
+            shareShimmerButton.widthAnchor.constraint(equalToConstant: 40),
+            shareShimmerButton.heightAnchor.constraint(equalToConstant: 40),
+        ])
+
+        contentViewStack.setCustomSpacing(44, after: sendShareContainer)
     }
     
     private func setupProfileInfoContainer() {
@@ -875,6 +1209,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
         profileInfoContainer.addSubview(profileInfoShimmerView)
         
         NSLayoutConstraint.activate([
+            whiteSheetBackground.topAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: -20),
+            whiteSheetBackground.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            whiteSheetBackground.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            whiteSheetBackground.bottomAnchor.constraint(equalTo: contentViewStack.bottomAnchor, constant: 500),
+
             profileInfoContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
             profileInfoContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
             
@@ -889,7 +1228,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             profileInfoShimmerView.bottomAnchor.constraint(equalTo: profileInfoContainer.bottomAnchor),
         ])
         
-        contentViewStack.setCustomSpacing(20, after: profileInfoView)
+        contentViewStack.setCustomSpacing(52, after: profileInfoView)
     }
     
     private func setupCurrentAgencyContainer() {
@@ -1210,7 +1549,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             socialShimmerView.isHidden = true
 
             currentAgencyShimmerView.isHidden = true
-
             // Принудительно обновляем layout внутри CATransaction,
             // чтобы изменения фреймов тоже не были анимированы
             self.contentViewStack.setNeedsLayout()
@@ -1224,8 +1562,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func applyGradientBlurMask() {
         let blurHeight = blurredHeaderImageView.bounds.height
         guard blurHeight > 0 else { return }
-        let blurStartPoint = blurHeight * 0.02
-        let blurFullPoint = blurHeight * 0.55
+        let blurStartPoint = blurHeight * 0.22
+        let blurFullPoint = blurHeight * 0.35
         
         let gradientLayer = CAGradientLayer()
         gradientLayer.frame = blurredHeaderImageView.bounds
@@ -1243,7 +1581,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         blurredHeaderImageView.layer.mask = gradientLayer
     }
-    
+
     // Настройка SegmentedBar для прилипания
     private func updateSegmentedBarPosition() {
         guard let (_, navigationBarHeight) = self.containerLayout else { return }
@@ -1267,18 +1605,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Настройка кнопки чата/загрузки фотографии
     private func setupDmButtonContent() {
-        var iconImageName = "Chat/Context Menu/MessageBubble"
-        var labelText = DivoStrings.sendDM
-        if model.isMyProfile {
-            iconImageName = "Avatar/AddAvatarIconLarge"
-            labelText = DivoStrings.uploadYourPhotos
-        }
-
-        // Важно: не пересоздаем subviews каждый раз (иначе UI заметно дергается при обновлениях)
         if let iconImageView = dmButton.viewWithTag(ActionViewTags.dmIcon) as? UIImageView,
            let label = dmButton.viewWithTag(ActionViewTags.dmLabel) as? UILabel {
-            iconImageView.image = UIImage(bundleImageName: iconImageName)
-            label.text = labelText
+            iconImageView.image = DivoImage.sendDM
+            label.text = DivoStrings.sendDM
             return
         }
 
@@ -1286,7 +1616,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         let iconImageView: UIImageView = {
             let imageView = UIImageView()
-            imageView.image = UIImage(bundleImageName: iconImageName)
+            imageView.image = DivoImage.sendDM
             imageView.tintColor = .white
             imageView.contentMode = .scaleAspectFit
             imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -1296,8 +1626,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         let label: UILabel = {
             let label = UILabel()
-            label.text = labelText
-            label.textColor = .white
+            label.text = DivoStrings.sendDM
+            label.textColor = DivoColorPalette.primaryTextOnDark
             label.font = Font.helveticaNeue(13)
             label.translatesAutoresizingMaskIntoConstraints = false
             label.tag = ActionViewTags.dmLabel
@@ -1319,96 +1649,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         NSLayoutConstraint.activate([
             stackView.centerXAnchor.constraint(equalTo: dmButton.centerXAnchor),
             stackView.centerYAnchor.constraint(equalTo: dmButton.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 20),
-            iconImageView.heightAnchor.constraint(equalToConstant: 20),
-            label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24)
+            
+            stackView.leadingAnchor.constraint(equalTo: dmButton.leadingAnchor, constant: 12),
+            stackView.trailingAnchor.constraint(equalTo: dmButton.trailingAnchor, constant: -12),
+            
+            iconImageView.widthAnchor.constraint(equalToConstant: 24),
+            iconImageView.heightAnchor.constraint(equalToConstant: 24),
+            // label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24)
         ])
-    }
-
-    // Создание кнопок счетчиков (лайки, просмотры, сохраненки)
-    private func setupCounterView(_ container: UIControl, count: String, name: String, iconName: String) {
-        // Важно: не пересоздаем subviews/constraints каждый раз.
-        // Иначе при повторных updateWithUserDetail / refresh будет заметный «рывок».
-        if let iconImageView = container.viewWithTag(ActionViewTags.counterIcon) as? UIImageView,
-           let countLabel = container.viewWithTag(ActionViewTags.counterCountLabel) as? UILabel,
-           let nameLabel = container.viewWithTag(ActionViewTags.counterNameLabel) as? UILabel {
-            iconImageView.image = UIImage(bundleImageName: iconName)
-            countLabel.text = count
-            nameLabel.text = name
-            return
-        }
-
-        container.subviews.forEach { $0.removeFromSuperview() }
-        
-        let icon: UIImageView = {
-            let imageView = UIImageView()
-            imageView.image = UIImage(bundleImageName: iconName)
-            imageView.tintColor = .white
-            imageView.contentMode = .scaleAspectFit
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            imageView.widthAnchor.constraint(equalToConstant: 20).isActive = true
-            imageView.heightAnchor.constraint(equalToConstant: 20).isActive = true
-            imageView.tag = ActionViewTags.counterIcon
-            return imageView
-        }()
-        
-        let countLabel: UILabel = {
-            let label = UILabel()
-            label.text = count
-            label.font = UIFont.boldSystemFont(ofSize: 14)
-            label.textColor = .white
-            label.tag = ActionViewTags.counterCountLabel
-            return label
-        }()
-        
-        let nameLabel: UILabel = {
-            let label = UILabel()
-            label.text = name
-            label.font = UIFont.systemFont(ofSize: 10)
-            label.textColor = .white
-            label.tag = ActionViewTags.counterNameLabel
-            return label
-        }()
-        
-        let countStack: UIStackView = {
-            let stack = UIStackView(arrangedSubviews: [icon, countLabel])
-            stack.axis = .horizontal
-            stack.spacing = 2
-            stack.alignment = .center
-            stack.translatesAutoresizingMaskIntoConstraints = false
-            return stack
-        }()
-        
-        let mainStack: UIStackView = {
-            let stack = UIStackView(arrangedSubviews: [countStack, nameLabel])
-            stack.axis = .horizontal
-            stack.spacing = 4
-            stack.alignment = .center
-            stack.translatesAutoresizingMaskIntoConstraints = false
-            stack.isUserInteractionEnabled = false
-            return stack
-        }()
-        
-        container.addSubview(mainStack)
-        
-        NSLayoutConstraint.activate([
-            mainStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            mainStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            mainStack.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 0),
-            mainStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: 0),
-        ])
-        
-        container.removeTarget(nil, action: nil, for: .allEvents)
-        container.addTarget(self, action: #selector(handleTouchDown(_:)), for: [.touchDown, .touchDragEnter])
-        container.addTarget(self, action: #selector(handleTouchUp(_:)), for:[.touchUpInside, .touchUpOutside, .touchCancel, .touchDragExit])
-        
-        if container === likesView {
-            container.addTarget(self, action: #selector(likesViewDidTap), for: .touchUpInside)
-        } else if container === viewsView {
-            container.addTarget(self, action: #selector(viewsViewDidTap), for: .touchUpInside)
-        } else if container === savesView {
-            container.addTarget(self, action: #selector(savesViewDidTap), for: .touchUpInside)
-        }
     }
     
     // Создание кнопок социальных сетей
@@ -1609,23 +1857,28 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Первоначальная настройка титула NavigationBar
     private func setupNavigationBarTitle(name: String, info: String? = nil) {
-        // Проверяем, не создаем ли мы titleView повторно
         if let existingTitleView = self.navigationBarTitleView {
             existingTitleView.configure(name: name, info: info)
         } else {
             let titleView = ProfileNavigationBarTitleView()
-            
+            titleView.translatesAutoresizingMaskIntoConstraints = false // Обязательно добавляем
             titleView.configure(name: name, info: info)
             
             self.navigationBarTitleView = titleView
             
-            if let controller = self.controller {
-                controller.navigationItem.titleView = titleView
-            }
+            // 1. Добавляем в кастомный NavBar
+            self.customNavBar.addSubview(titleView)
+            
+            // 2. Располагаем по центру, защищая от наезда на боковые кнопки
+            NSLayoutConstraint.activate([
+                titleView.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
+                titleView.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
+                titleView.leadingAnchor.constraint(greaterThanOrEqualTo: closeButton.trailingAnchor, constant: 12),
+                titleView.trailingAnchor.constraint(lessThanOrEqualTo: rightButtonContainer.leadingAnchor, constant: -12)
+            ])
         }
 
-        // Важно: после загрузки titleView НЕ должен появляться мгновенно.
-        // Делаем состояние консистентным сразу после конфигурации.
+        // Делаем состояние консистентным сразу после конфигурации
         if !titleVisibilityActivated {
             navigationBarTitleView?.alpha = 0.0
         }
@@ -1635,37 +1888,53 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление титула NavigationBar
     private func updateNavigationBarTitleVisibility() {
         guard let titleView = navigationBarTitleView,
-              let (_, navigationBarHeight) = self.containerLayout else { return }
+            let (_, navigationBarHeight) = self.containerLayout else { return }
 
-        // Пока мы не активировали механику появления заголовка (после загрузки данных),
-        // держим его скрытым — он должен появляться только при скролле.
         guard titleVisibilityActivated else {
-            if titleView.alpha != 0.0 {
-                titleView.alpha = 0.0
-            }
+            if titleView.alpha != 0.0 { titleView.alpha = 0.0 }
             return
         }
         
         let offsetY = scrollView.contentOffset.y
+        // Вычисляем динамически, где реально находится имя
+        let nameY = infoStack.frame.minY > 0 ? infoStack.frame.minY : 360.0
         
-        let headerBottomPoint = fixedProfileHeaderHeight - navigationBarHeight
-        
-        let startShowingOffset = headerBottomPoint - 40
-        let fullyVisibleOffset = headerBottomPoint + 60
+        let startShowingOffset = nameY - navigationBarHeight - 40
+        let fullyVisibleOffset = nameY - navigationBarHeight + 20
         
         var alpha: CGFloat = 0.0
-        
-        if offsetY < startShowingOffset {
-            alpha = 0.0
-        } else if offsetY >= fullyVisibleOffset {
-            alpha = 1.0
-        } else {
-            alpha = (offsetY - startShowingOffset) / (fullyVisibleOffset - startShowingOffset)
-        }
+        if offsetY < startShowingOffset { alpha = 0.0 }
+        else if offsetY >= fullyVisibleOffset { alpha = 1.0 }
+        else { alpha = (offsetY - startShowingOffset) / (fullyVisibleOffset - startShowingOffset) }
         
         if titleView.alpha != alpha {
             titleView.alpha = alpha
         }
+        
+        // 1. Фон НавБара
+        customNavBar.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(alpha)
+        // navBarBlurView.alpha = alpha
+        // customNavBar.backgroundColor = .clear
+        
+        // 2. Иконки кнопок меняют цвет от белого до темного
+        let iconColor = UIColor.white.blend(with: DivoColorPalette.primaryText, alpha: alpha)
+        closeButton.tintColor = iconColor
+        editButton.tintColor = iconColor
+        moreButton.tintColor = iconColor
+        
+        // 3. Фон кнопок (от стекла к легкому серому на белом)
+        let bgStartColor = DivoColorPalette.statPillBackground 
+        let bgEndColor = DivoColorPalette.cardBackground
+        let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: alpha)
+        
+        closeButton.backgroundColor = currentBgColor
+        rightButtonContainer.backgroundColor = currentBgColor
+        
+        // 4. Границы прячем
+        let borderStartColor = DivoColorPalette.statPillBorder.cgColor
+        let borderEndColor = UIColor.clear.cgColor
+        closeButton.layer.borderColor = alpha > 0.5 ? borderEndColor : borderStartColor
+        rightButtonContainer.layer.borderColor = alpha > 0.5 ? borderEndColor : borderStartColor
     }
     
     // Активация анимации заголовка навбара
@@ -1754,7 +2023,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         navigationBarTitleHeightConstraint.isActive = false
         navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight)
         navigationBarTitleHeightConstraint.isActive = true
-        contentViewStack.setCustomSpacing((-235 - navigationBarHeight), after: headerContainer)
         
         applyGradientBlurMask()
         
@@ -1813,16 +2081,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             currentAgencyContainer.removeFromSuperview()
             segmentedBar.configure(isAgency: true, isMyProfile: isMyProfile)
             self.addWorkHistoryContainer.removeFromSuperview()
-
-            if let avatarURLString = detail.agency?.photo?.fullUrl {
-                if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
-                    ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-                        if let image = image {
-                            self?.profileHeaderView.changeAvatar(with: image)
-                        }
-                    }
-                }
-            }
         } else {
             let age = detail.birthday.flatMap { calculateAge(from: $0) } ?? 0
             setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(DivoStrings.ageString(age)) • \(detail.city?.name ?? "")")
@@ -1849,16 +2107,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 currentAgencyView.configure(name: detail.model?.agency?.title, logoURL: logoURL)
             }
             segmentedBar.configure(isAgency: false, isMyProfile: isMyProfile)
-
-            if let avatarURLString = detail.avatar?.fullUrl {
-                if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
-                    ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-                        if let image = image {
-                            self?.profileHeaderView.changeAvatar(with: image)
-                        }
-                    }
-                }
-            }
         }
 
         var socialLinks: [String] = []
@@ -1873,11 +2121,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if !isMyProfile {
             similarProfilesCollectionContainer.isHidden = false
-            dmButton.isHidden = false
+            sendShareContainer.isHidden = false
+            dmShareStack.isHidden = false
+            dmShareShimmerStack.isHidden = true
             setupDmButtonContent()
             titleEditContainer.removeFromSuperview()
         } else {
+            sendShareContainer.isHidden = true
             titleEditContainer.isHidden = !socialLinks.isEmpty ? false : true
+            contentViewStack.setCustomSpacing(44, after: profileHeaderWrapper)
         }
         
         UIView.performWithoutAnimation {
@@ -1913,9 +2165,37 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     func updateEngagementStats(likes: Int, views: Int, saves: Int) {
-        setupCounterView(likesView, count: "\(likes)", name: DivoStrings.counterLike, iconName: "Instant View/Favorite")
-        setupCounterView(viewsView, count: "\(views)", name: DivoStrings.counterViewed, iconName: "Instant View/Visibility")
-        setupCounterView(savesView, count: "\(saves)", name: DivoStrings.counterSave, iconName: "Instant View/Bookmark")
+        likesView.setValue(Self.formatCount(likes))
+        viewsView.setValue(Self.formatCount(views))
+        savesView.setValue(Self.formatCount(saves))
+    }
+
+    /// Formats count to max 4 characters: 999 → "999", 1K, 288K, 1.5M, 10M, 1.5B
+    static func formatCount(_ count: Int) -> String {
+        if count >= 1_000_000_000 {
+            let value = Double(count) / 1_000_000_000.0
+            if value >= 10 {
+                return "\(Int(value))B"
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))B"
+            }
+            return "\(formatted)B"
+        } else if count >= 1_000_000 {
+            let value = Double(count) / 1_000_000.0
+            if value >= 10 {
+                return "\(Int(value))M"
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))M"
+            }
+            return "\(formatted)M"
+        } else if count >= 1_000 {
+            return "\(count / 1_000)K"
+        }
+        return "\(count)"
     }
     
     // Добавление фотографий в галерею пагинацией
@@ -3092,5 +3372,120 @@ extension PublicProfileScreenNode: CurrentAgencyViewDelegate {
     func didTapSeeHistory() {
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.controller?.push(historyController)
+    }
+}
+
+
+
+
+final class StatPillView: UIControl {
+    private let iconView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .center
+        iv.tintColor = .white
+        return iv
+    }()
+
+    private let countLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .white
+        label.font = UIFont(name: "HelveticaNeue", size: 12) ?? UIFont.systemFont(ofSize: 12, weight: .regular)
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+        return label
+    }()
+
+    private let normalIcon: UIImage?
+    private let filledIcon: UIImage?
+
+    init(icon: UIImage, filledIcon: UIImage? = nil) {
+        self.normalIcon = icon.withRenderingMode(.alwaysTemplate)
+        self.filledIcon = filledIcon?.withRenderingMode(.alwaysTemplate)
+        super.init(frame: .zero)
+        backgroundColor = DivoColorPalette.statPillBackground
+        layer.cornerRadius = 15 // TODO: DS alignment — не в шкале Radius
+        layer.masksToBounds = true
+        layer.borderWidth = 0.5
+        layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+
+        iconView.image = normalIcon
+
+        addSubview(iconView)
+        addSubview(countLabel)
+
+        translatesAutoresizingMaskIntoConstraints = false
+        heightAnchor.constraint(equalToConstant: 30).isActive = true
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func setValue(_ text: String) {
+        countLabel.text = text
+        setNeedsLayout()
+    }
+
+    func setActive(_ active: Bool, animated: Bool = false) {
+        let change = {
+            if active {
+                self.backgroundColor = .white
+                self.layer.borderColor = UIColor.white.cgColor
+                self.iconView.tintColor = .black
+                self.countLabel.textColor = .black
+                if let filled = self.filledIcon {
+                    self.iconView.image = filled
+                }
+            } else {
+                self.backgroundColor = DivoColorPalette.statPillBackground
+                self.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+                self.iconView.tintColor = .white
+                self.countLabel.textColor = .white
+                self.iconView.image = self.normalIcon
+            }
+        }
+        if animated {
+            UIView.animate(withDuration: 0.2, animations: change)
+        } else {
+            change()
+        }
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let iconSize: CGFloat = 16
+        let iconX: CGFloat = 8
+        let iconY: CGFloat = (bounds.height - iconSize) / 2
+        iconView.frame = CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)
+        let labelX: CGFloat = iconX + iconSize + 4
+        let labelWidth = bounds.width - labelX - 4
+        countLabel.frame = CGRect(x: labelX, y: 0, width: max(labelWidth, 0), height: bounds.height)
+    }
+
+    func popIcon() {
+        iconView.divoPopAnimate()
+    }
+
+    override var intrinsicContentSize: CGSize {
+        return CGSize(width: 64, height: 30)
+    }
+
+    override func sizeThatFits(_ size: CGSize) -> CGSize {
+        return intrinsicContentSize
+    }
+}
+
+extension UIColor {
+    func blend(with color: UIColor, alpha: CGFloat) -> UIColor {
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        self.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        color.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        return UIColor(
+            red: r1 + (r2 - r1) * alpha,
+            green: g1 + (g2 - g1) * alpha,
+            blue: b1 + (b2 - b1) * alpha,
+            alpha: a1 + (a2 - a1) * alpha
+        )
     }
 }

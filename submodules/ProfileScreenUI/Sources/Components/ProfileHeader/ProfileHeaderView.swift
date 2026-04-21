@@ -51,103 +51,69 @@ struct UserProfileViewModel {
 
 class ProfileHeaderView: UIView {
     
-    private let ringView: AvatarStrokeView = {
-        let view = AvatarStrokeView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let avatarImageView: UIImageView = {
-        let iv = UIImageView()
-        iv.contentMode = .scaleAspectFill
-        iv.clipsToBounds = true
-        iv.image = UIImage(systemName: "person.crop.circle.fill")
-        iv.tintColor = .lightGray
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-
-    /// В обычном `.scaleAspectFill` кроп центрируется. Для портретных фото это часто «съедает» верх (голову).
-    /// Поэтому для аватарки мы делаем квадратный кроп с приоритетом верхней части.
-    private func applyAvatarContentsRect(for image: UIImage?) {
-        // Держим реализацию в одном месте, чтобы поведение совпадало со списками.
-        avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-    }
-    
-    private let avatarSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        return spinner
-    }()
-    
-    private let onlineStatusView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemGreen
-        view.layer.borderColor = DivoColorPalette.avatarStrokeQuiet.cgColor
-        view.layer.borderWidth = 3
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(34)
-        label.textColor = .white
+        label.textColor = DivoColorPalette.cardBackground
         label.numberOfLines = 2
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
-    private let crownIconView: UIImageView = {
-        let iv = UIImageView()
-        iv.image = DivoImage.crownPremium
-        iv.tintColor = .white
-        iv.contentMode = .center
-        iv.backgroundColor = DivoColorPalette.accentCopperMutedBorder
-        iv.layer.borderWidth = 1
-        iv.layer.borderColor = UIColor.white.withAlphaComponent(0.5).cgColor
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-    
-    private let tagContainer: GradientTagView = {
-        let view = GradientTagView()
+    // ДОБАВЛЕНО: Ссылка на констрейнт высоты
+    private var nameLabelHeightConstraint: NSLayoutConstraint!
+
+    private let premiumBadgeContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
-    private let tagIcon: UIImageView = {
+
+    private let premiumBadgeIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = UIImage(systemName: "diamond.fill")
-        iv.tintColor = .white
+        iv.image = DivoImage.premiumIcon
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
+
+    private let premiumBadgeLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.medium(11)
+        label.textColor = DivoColorPalette.accent
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.premiumLabel
+        label.numberOfLines = 1
+        return label
+    }()
     
-    private let tagLabel: PaddedLabel = { 
-        let label = PaddedLabel()
-        label.textInsets = UIEdgeInsets(top: 1, left: 0, bottom: 0, right: 0) 
-        label.font = Font.helveticaNeue(10)
-        label.textColor = .white
-        label.numberOfLines = 0
+    private let roleContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.roleBadgeBlue
+        view.layer.cornerRadius = DivoDesignTokens.Radius.m
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let roleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(11)
+        label.textColor = DivoColorPalette.primaryTextOnDark
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
     private let infoLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(14)
-        label.textColor = .white
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.cardBackground
         label.translatesAutoresizingMaskIntoConstraints = false
         label.setContentHuggingPriority(.required, for: .horizontal)
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
         return label
     }()
-    
     
     // MARK: - Init
     
@@ -161,158 +127,76 @@ class ProfileHeaderView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        
-        let avatarSize: CGFloat = 80
-        avatarImageView.layer.cornerRadius = avatarSize / 2
-        
-        onlineStatusView.layer.cornerRadius = 8
-        crownIconView.layer.cornerRadius = 12
-        tagContainer.layer.cornerRadius = 12
-    }
-    
     private func setupViews() {
-        addSubview(ringView)
-        addSubview(avatarImageView)
-        addSubview(avatarSpinner)
-        addSubview(onlineStatusView)
-        
         addSubview(nameLabel)
-        addSubview(crownIconView)
+
+        addSubview(premiumBadgeContainer)
+        premiumBadgeContainer.addSubview(premiumBadgeIcon)
+        premiumBadgeContainer.addSubview(premiumBadgeLabel)
         
-        addSubview(tagContainer)
-        tagContainer.addSubview(tagIcon)
-        tagContainer.addSubview(tagLabel)
+        addSubview(roleContainer)
+        roleContainer.addSubview(roleLabel)
         
         addSubview(infoLabel)
     }
     
     private func setupConstraints() {
-        let avatarSize: CGFloat = 80
-        
+        nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        premiumBadgeContainer.setContentCompressionResistancePriority(.required, for: .horizontal)
+        premiumBadgeLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+
         NSLayoutConstraint.activate([
-            avatarImageView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            avatarImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: avatarSize),
-            avatarImageView.heightAnchor.constraint(equalToConstant: avatarSize),
-            
-            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
-            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            
-            ringView.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
-            ringView.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            ringView.widthAnchor.constraint(equalToConstant: avatarSize + 10),
-            ringView.heightAnchor.constraint(equalToConstant: avatarSize + 10),
-            
-            onlineStatusView.trailingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: -8),
-            onlineStatusView.bottomAnchor.constraint(equalTo: ringView.bottomAnchor, constant: -5),
-            onlineStatusView.widthAnchor.constraint(equalToConstant: 16),
-            onlineStatusView.heightAnchor.constraint(equalToConstant: 16),
-            
-            nameLabel.leadingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: 10),
-            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: crownIconView.leadingAnchor, constant: -8),
-            nameLabel.bottomAnchor.constraint(equalTo: tagContainer.topAnchor, constant: -8),
+            nameLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
 
-            crownIconView.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 8),
-            crownIconView.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
-            crownIconView.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            crownIconView.widthAnchor.constraint(equalToConstant: 24),
-            crownIconView.heightAnchor.constraint(equalToConstant: 24),
-            
-            tagContainer.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
-            tagContainer.heightAnchor.constraint(equalToConstant: 24),
-            tagContainer.centerYAnchor.constraint(equalTo: infoLabel.centerYAnchor),
-            
-            tagIcon.leadingAnchor.constraint(equalTo: tagContainer.leadingAnchor, constant: 8),
-            tagIcon.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor),
-            tagIcon.widthAnchor.constraint(equalToConstant: 16),
-            tagIcon.heightAnchor.constraint(equalToConstant: 16),
+            premiumBadgeContainer.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 8),
+            premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            premiumBadgeContainer.bottomAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: -4),
+            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: 22),
 
-            tagLabel.leadingAnchor.constraint(equalTo: tagIcon.trailingAnchor, constant: 4),
-            tagLabel.trailingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: -8),
-            tagLabel.centerYAnchor.constraint(equalTo: tagContainer.centerYAnchor),
+            premiumBadgeIcon.centerYAnchor.constraint(equalTo: premiumBadgeContainer.centerYAnchor),
+            premiumBadgeIcon.leadingAnchor.constraint(equalTo: premiumBadgeContainer.leadingAnchor, constant: 6),
+
+            premiumBadgeLabel.centerYAnchor.constraint(equalTo: premiumBadgeContainer.centerYAnchor),
+            premiumBadgeLabel.leadingAnchor.constraint(equalTo: premiumBadgeIcon.trailingAnchor, constant: 2),
+            premiumBadgeLabel.trailingAnchor.constraint(equalTo: premiumBadgeContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
             
-            tagContainer.topAnchor.constraint(equalTo: crownIconView.bottomAnchor, constant: 10),
-            infoLabel.leadingAnchor.constraint(equalTo: tagContainer.trailingAnchor, constant: 10),
+            roleContainer.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 5),
+            roleContainer.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
+            roleContainer.heightAnchor.constraint(equalToConstant: 22),
+            roleContainer.bottomAnchor.constraint(equalTo: bottomAnchor),
+            
+            roleLabel.leadingAnchor.constraint(equalTo: roleContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
+            roleLabel.centerYAnchor.constraint(equalTo: roleContainer.centerYAnchor),
+            roleLabel.trailingAnchor.constraint(equalTo: roleContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
+
+            infoLabel.leadingAnchor.constraint(equalTo: roleContainer.trailingAnchor, constant: 10),
+            infoLabel.centerYAnchor.constraint(equalTo: roleContainer.centerYAnchor),
             infoLabel.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
         ])
     }
     
     func configure(with viewModel: UserProfileViewModel) {
-        let text = viewModel.name.uppercased()
-        let paragraphStyle = NSMutableParagraphStyle()
-        let lineHeight = Font.helveticaNeue(34).lineHeight * 0.95
-        paragraphStyle.minimumLineHeight = lineHeight
-        paragraphStyle.maximumLineHeight = lineHeight
-        paragraphStyle.alignment = .left
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: Font.helveticaNeue(34),
+        let font = Font.helveticaNeue(32)
+        let attributes:[NSAttributedString.Key: Any] = [
+            .font: font,
             .foregroundColor: UIColor.white,
-            .kern: 0.5,
-            .paragraphStyle: paragraphStyle,
-            .baselineOffset: -2.0
+            .kern: 0.5
         ]
-        nameLabel.attributedText = NSAttributedString(string: text, attributes: attributes)
-        tagLabel.text = viewModel.role.title
-        switch viewModel.role {
-        case .model:
-            tagIcon.image = DivoImage.roleModel.withRenderingMode(.alwaysTemplate)
-            tagContainer.apply(style: .bronzeGradient)
-            tagIcon.tintColor = .white
-            tagLabel.textColor = .white
-        case .agency:
-            tagIcon.image = DivoImage.roleAgency.withRenderingMode(.alwaysTemplate)
-            tagContainer.apply(style: .plainWhite)
-            tagIcon.tintColor = .black
-            tagLabel.textColor = .black
-        case .newFace:
-            tagIcon.image = DivoImage.roleNewTalent.withRenderingMode(.alwaysTemplate)
-            tagContainer.apply(style: .plainWhite)
-            tagIcon.tintColor = .black
-            tagLabel.textColor = .black
-        }
         
+        nameLabel.attributedText = NSAttributedString(string: viewModel.name, attributes: attributes)
+        
+        roleLabel.text = viewModel.role.title
+
         var fullLocationString: String
-        if let age = viewModel.age  {
+        if let age = viewModel.age {
             fullLocationString = "\(DivoStrings.ageString(age)) • \(viewModel.countryFlag) \(viewModel.location)"
         } else {
             fullLocationString = "\(viewModel.countryFlag) \(viewModel.location)"
         }
         infoLabel.text = fullLocationString
         
-        onlineStatusView.isHidden = !viewModel.isOnline
-        crownIconView.isHidden = !viewModel.isPremium
-        
-        // Важно: в текущей архитектуре аватар может приезжать отдельно через `changeAvatar(with:)`.
-        // В `configure` часто передают `avatarImage: nil`, и если здесь сбрасывать contentsRect,
-        // то после повторного открытия экрана можно снова получить «центральный» кроп и обрезание головы.
-        // Поэтому:
-        // - если image есть -> выставляем и применяем кроп
-        // - если image нет -> НЕ трогаем contentsRect (оставляем то, что было выставлено в changeAvatar)
-        if let image = viewModel.avatarImage {
-            applyAvatarContentsRect(for: image)
-            avatarImageView.image = image
-        }
-    }
-    
-    func changeAvatar(with image: UIImage?) {
-        if let image = image {
-            avatarImageView.image = image
-            applyAvatarContentsRect(for: image)
-        } else {
-            avatarImageView.image = UIImage(systemName: "person.crop.circle.fill")
-            applyAvatarContentsRect(for: nil)
-        }
-    }
-    
-    func toggleSpinner(active: Bool) {
-        if active {
-            avatarSpinner.startAnimating()
-            avatarImageView.alpha = 0.5
-        } else {
-            avatarSpinner.stopAnimating()
-            avatarImageView.alpha = 1.0
-        }
+        premiumBadgeContainer.isHidden = !viewModel.isPremium
+
+        self.layoutIfNeeded()
     }
 }

@@ -97,24 +97,28 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.isMyProfile = model.isMyProfile
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .clear,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear
-        )
+        // let darkNavigationTheme = NavigationBarTheme(
+        //     overallDarkAppearance: false,
+        //     buttonColor: .white,
+        //     disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
+        //     primaryTextColor: .white,
+        //     backgroundColor: .clear,
+        //     opaqueBackgroundColor: .clear,
+        //     enableBackgroundBlur: false,
+        //     separatorColor: .clear,
+        //     badgeBackgroundColor: .clear,
+        //     badgeStrokeColor: .clear,
+        //     badgeTextColor: .clear,
+        //     style: .glass,
+        //     glassStyle: .clear
+        // )
         
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
+        // let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
 
-        super.init(context: context, navigationBarPresentationData: navigationBarData)
-        updateNavigation()
+        // super.init(context: context, navigationBarPresentationData: navigationBarData)
+        // updateNavigation()
+
+        super.init(context: context, navigationBarPresentationData: nil)
     }
     
     deinit {
@@ -126,27 +130,27 @@ public final class PublicProfileScreenController: TelegramBaseController {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func updateNavigation() {
-        self.statusBar.statusBarStyle = .White
+    // private func updateNavigation() {
+    //     self.statusBar.statusBarStyle = .White
 
-        let moreButtonImg = generateTintedImage(image: DivoImage.moreActionIcon, color: .white)
-        let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
+    //     let moreButtonImg = generateTintedImage(image: DivoImage.moreActionIcon, color: .white)
+    //     let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
 
-        if isMyProfile {
-            let editButtonImg = generateTintedImage(image: DivoImage.profileEditAction, color: .white)
+    //     if isMyProfile {
+    //         let editButtonImg = generateTintedImage(image: DivoImage.profileEditAction, color: .white)
             
-            let editButton = UIBarButtonItem(
-                image: editButtonImg,
-                style: .plain,
-                target: self,
-                action: #selector(self.showEditMenuPressed)
-            )
+    //         let editButton = UIBarButtonItem(
+    //             image: editButtonImg,
+    //             style: .plain,
+    //             target: self,
+    //             action: #selector(self.showEditMenuPressed)
+    //         )
             
-            self.navigationItem.rightBarButtonItems = [editButton, moreButton]
-        } else {
-            self.navigationItem.rightBarButtonItems = [moreButton]
-        }
-    }
+    //         self.navigationItem.rightBarButtonItems = [editButton, moreButton]
+    //     } else {
+    //         self.navigationItem.rightBarButtonItems = [moreButton]
+    //     }
+    // }
     
     @objc private func showEditMenuPressed() {
         // debug: removed
@@ -368,6 +372,14 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onAddModelTapped = { [weak self] in
             self?.navigateToAddModel()
+        }
+
+        self.controllerNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
+
+        self.controllerNode.onEditProfileTapped = { [weak self] in
+            self?.showEditMenuPressed()
         }
         
         self.controllerNode.onAddWorkExperienceTapped = { [weak self] in
