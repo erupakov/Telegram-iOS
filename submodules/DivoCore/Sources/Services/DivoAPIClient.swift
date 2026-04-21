@@ -95,7 +95,7 @@ public final class DivoAPIClient {
 
             guard (200...299).contains(http.statusCode) else {
                 let body = String(data: data, encoding: .utf8) ?? ""
-                print("❌ API Error [\(http.statusCode)] \(url.absoluteString): \(body)")
+                divoLog("API Error [\(http.statusCode)] \(url.absoluteString): \(body)", level: .error)
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
             }
 
@@ -244,7 +244,7 @@ public final class DivoAPIClient {
 
             guard (200...299).contains(http.statusCode) else {
                 let body = String(data: data, encoding: .utf8) ?? ""
-                print("❌ Upload Error [\(http.statusCode)]: \(body)")
+                divoLog("Upload Error [\(http.statusCode)]: \(body)", level: .error)
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
             }
 
@@ -252,8 +252,8 @@ public final class DivoAPIClient {
                 return try JSONDecoder().decode(T.self, from: data)
             } catch {
                 let body = String(data: data, encoding: .utf8) ?? "nil"
-                print("❌ Decode error [\(path)]: \(error)")
-                print("❌ Response body: \(body)")
+                divoLog("Decode error [\(path)]: \(error)", level: .error)
+                divoLog("Response body: \(body)", level: .error)
                 throw error
             }
         } catch {
@@ -335,7 +335,7 @@ public final class DivoAPIClient {
 
             guard (200...299).contains(http.statusCode) else {
                 let body = String(data: data, encoding: .utf8) ?? ""
-                print("❌ Upload Error [\(http.statusCode)]: \(body)")
+                divoLog("Upload Error [\(http.statusCode)]: \(body)", level: .error)
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
             }
 
@@ -343,8 +343,8 @@ public final class DivoAPIClient {
                 return try JSONDecoder().decode(T.self, from: data)
             } catch {
                 let body = String(data: data, encoding: .utf8) ?? "nil"
-                print("❌ Decode error [\(path)]: \(error)")
-                print("❌ Response body: \(body)")
+                divoLog("Decode error [\(path)]: \(error)", level: .error)
+                divoLog("Response body: \(body)", level: .error)
                 throw error
             }
         } catch {

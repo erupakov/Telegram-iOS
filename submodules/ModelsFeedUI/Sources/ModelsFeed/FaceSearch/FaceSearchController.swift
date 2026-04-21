@@ -83,7 +83,7 @@ public final class FaceSearchController: ViewController {
                 }
 
                 let faceIndex = 0
-                let rawData: Data = try await DivoAPIClient.shared.uploadRawData(
+                let searchResponse: FRSearchResponse = try await DivoAPIClient.shared.upload(
                     path: "/fr/search",
                     fileData: imageData,
                     fields: [
@@ -93,11 +93,6 @@ public final class FaceSearchController: ViewController {
                     ]
                 )
 
-                // DEBUG: показать raw response — убрать после отладки
-                let rawString = String(data: rawData, encoding: .utf8) ?? "nil"
-                self.showDebugResponseAlert(rawString)
-
-                let searchResponse = try JSONDecoder().decode(FRSearchResponse.self, from: rawData)
                 self.finishLoading()
                 self.showResults(searchResponse.results, detectResponse: detectResponse)
             } catch {
@@ -119,20 +114,6 @@ public final class FaceSearchController: ViewController {
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default))
-        self.present(alert, animated: true)
-    }
-
-    // DEBUG: убрать после отладки
-    private func showDebugResponseAlert(_ body: String) {
-        let alert = UIAlertController(
-            title: "DEBUG: /fr/search response",
-            message: body,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "Copy", style: .default) { _ in
-            UIPasteboard.general.string = body
-        })
-        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
         self.present(alert, animated: true)
     }
 

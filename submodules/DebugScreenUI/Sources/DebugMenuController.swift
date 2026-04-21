@@ -131,6 +131,14 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     let c = DebugRequestLogsController(context: self.context)
                     self.onPush?(c)
                 }),
+                Row(icon: "terminal", title: "Console Logs", subtitle: {
+                    let count = DivoConsoleLogger.shared.getEntries().count
+                    return "\(count)"
+                }, accessory: .chevron, action: { [weak self] in
+                    guard let self = self else { return }
+                    let c = DebugConsoleLogsController(context: self.context)
+                    self.onPush?(c)
+                }),
                 Row(icon: "person.crop.circle", title: DivoStrings.debugUser, subtitle: { "" }, accessory: .chevron, action: { [weak self] in
                     guard let self = self else { return }
                     let c = DebugUserInfoController(context: self.context)
