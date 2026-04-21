@@ -165,6 +165,10 @@ public enum DivoColorPalette {
     // MARK: - Feed typography
     public static let feedTitleText = UIColor(white: 0.2, alpha: 1.0)
 
+    // MARK: - Semantic states
+    /// Красная рамка / текст ошибки (face detect no-face, validation).
+    public static let errorState = UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)
+
     // MARK: - Snackbar
     public static let snackbarError = UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)
     public static let snackbarSuccess = UIColor(red: 12/255, green: 138/255, blue: 81/255, alpha: 1)

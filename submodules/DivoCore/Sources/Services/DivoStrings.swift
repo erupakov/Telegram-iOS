@@ -156,6 +156,18 @@ public enum DivoStrings {
     public static var faceSearchResultsTitle: String { L(en: "Results", ru: "Результаты", es: "Resultados", pt: "Resultados", zh: "结果") }
     public static var faceSearchNoResults: String { L(en: "No similar profiles found", ru: "Похожие профили не найдены", es: "No se encontraron perfiles similares", pt: "Nenhum perfil semelhante encontrado", zh: "未找到相似档案") }
     public static var faceSearchMatchPercent: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配") }
+    public static var faceSearchScanning: String { L(en: "Analysing facial features...", ru: "Анализируем черты лица...", es: "Analizando rasgos faciales...", pt: "Analisando características faciais...", zh: "正在分析面部特征...") }
+    public static var faceSearchNoFaceDetected: String { L(en: "No face detected", ru: "Лицо не обнаружено", es: "No se detectó rostro", pt: "Nenhum rosto detectado", zh: "未检测到人脸") }
+    public static var faceSearchNoFaceTip: String { L(en: "Try a photo with a clearly visible face", ru: "Попробуйте фото с чётко видимым лицом", es: "Prueba con una foto donde el rostro sea visible", pt: "Tente uma foto com o rosto claramente visível", zh: "请尝试使用面部清晰可见的照片") }
+    public static var faceSearchNoFaceDescription: String { L(en: "Please use a photo where a face is clearly visible — front-facing, well-lit, and unobstructed.", ru: "Используйте фото, на котором лицо чётко видно — анфас, хорошо освещённое, без перекрытий.", es: "Usa una foto donde el rostro sea claramente visible — de frente, bien iluminado y sin obstrucciones.", pt: "Use uma foto onde o rosto esteja claramente visível — de frente, bem iluminado e sem obstruções.", zh: "请使用面部清晰可见的照片——正面、光线充足且无遮挡。") }
+    public static var faceSearchNoFaceBullet1: String { L(en: "Avoid sunglasses, masks, or heavy cropping.", ru: "Избегайте солнцезащитных очков, масок и сильной обрезки.", es: "Evita gafas de sol, mascarillas o recortes excesivos.", pt: "Evite óculos de sol, máscaras ou cortes excessivos.", zh: "避免佩戴太阳镜、口罩或过度裁剪。") }
+    public static var faceSearchNoFaceBullet2: String { L(en: "Full-face photos work best — not side profiles.", ru: "Лучше всего подходят фото анфас, а не в профиль.", es: "Las fotos de frente funcionan mejor — no perfiles laterales.", pt: "Fotos de frente funcionam melhor — não perfis laterais.", zh: "正面照片效果最佳——不要侧面照。") }
+    public static var faceSearchFaceSelected: String { L(en: "Face selected — ready to search", ru: "Лицо выбрано — готово к поиску", es: "Rostro seleccionado — listo para buscar", pt: "Rosto selecionado — pronto para buscar", zh: "已选择人脸 - 准备搜索") }
+    public static func faceSearchMultipleFaces(_ count: Int) -> String { L(en: "\(count) faces detected — tap one to search", ru: "Обнаружено лиц: \(count) — нажмите для поиска", es: "\(count) rostros detectados — toca uno para buscar", pt: "\(count) rostos detectados — toque em um para buscar", zh: "检测到\(count)张人脸 - 点击选择") }
+    public static var faceSearchRetry: String { L(en: "Retry", ru: "Повторить", es: "Reintentar", pt: "Tentar novamente", zh: "重试") }
+    public static var faceSearchErrorNoInternet: String { L(en: "No internet connection", ru: "Нет подключения к интернету", es: "Sin conexión a internet", pt: "Sem conexão com a internet", zh: "无网络连接") }
+    public static var faceSearchErrorGeneric: String { L(en: "Something went wrong", ru: "Что-то пошло не так", es: "Algo salió mal", pt: "Algo deu errado", zh: "出了点问题") }
+    public static var faceSearchErrorTip: String { L(en: "Check your connection and try again", ru: "Проверьте соединение и попробуйте снова", es: "Verifica tu conexión e intenta de nuevo", pt: "Verifique sua conexão e tente novamente", zh: "请检查网络连接并重试") }
 
     // MARK: - Roles
 
