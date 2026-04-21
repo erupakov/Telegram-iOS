@@ -28,6 +28,7 @@ public enum DivoImage {
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
+    public static var faceSearchInfo: UIImage { load("DivoFaceSearchInfo") }
     public static var filmstripIcon: UIImage { load("DivoFilmstripIcon") }
     public static var genderIcon: UIImage { load("DivoGenderIcon") }
     public static var gridIcon: UIImage { load("DivoGridIcon") }
