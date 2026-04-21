@@ -81,6 +81,7 @@ public final class FaceSearchController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
+        faceSearchNode?.applyState(detectState)
     }
 
     override public func viewDidAppear(_ animated: Bool) {
@@ -364,6 +365,8 @@ private final class FaceSearchNode: ASDisplayNode {
     }()
 
     private var photoAspectConstraint: NSLayoutConstraint?
+    private var photoTopConstraint: NSLayoutConstraint?
+    private var photoCenterYConstraint: NSLayoutConstraint?
     private var currentImageSize: CGSize = .zero
 
     init(image: UIImage) {
@@ -393,12 +396,18 @@ private final class FaceSearchNode: ASDisplayNode {
 
     private func applyAspectRatio(for image: UIImage) {
         photoAspectConstraint?.isActive = false
-        guard image.size.width > 0 else { return }
+        photoAspectConstraint = nil
+
+        guard image.size.width > 0, image.size.height > 0 else { return }
+
         let ratio = image.size.height / image.size.width
-        let constraint = photoContainer.heightAnchor.constraint(equalTo: photoContainer.widthAnchor, multiplier: ratio)
-        constraint.priority = .defaultHigh
-        constraint.isActive = true
-        photoAspectConstraint = constraint
+        let hc = photoContainer.heightAnchor.constraint(equalTo: photoContainer.widthAnchor, multiplier: ratio)
+        hc.priority = UILayoutPriority(751)
+        hc.isActive = true
+        photoAspectConstraint = hc
+
+        view.setNeedsLayout()
+        view.layoutIfNeeded()
     }
 
     private func setupUI() {
@@ -428,7 +437,6 @@ private final class FaceSearchNode: ASDisplayNode {
             titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            photoContainer.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.l),
             photoContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             photoContainer.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             photoContainer.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -478,9 +486,18 @@ private final class FaceSearchNode: ASDisplayNode {
             findButton.heightAnchor.constraint(equalToConstant: 56),
         ])
 
-        let preferredWidth = photoContainer.widthAnchor.constraint(equalTo: view.widthAnchor, constant: -2 * DivoDesignTokens.Spacing.m)
-        preferredWidth.priority = .defaultLow
+        let preferredWidth = photoContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m)
+        preferredWidth.priority = UILayoutPriority(750)
         preferredWidth.isActive = true
+        let preferredTrailing = photoContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
+        preferredTrailing.priority = UILayoutPriority(750)
+        preferredTrailing.isActive = true
+
+        photoTopConstraint = photoContainer.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.l)
+        photoTopConstraint?.isActive = true
+
+        photoCenterYConstraint = photoContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20)
+        photoCenterYConstraint?.isActive = false
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         changePhotoButton.addTarget(self, action: #selector(changePhotoTapped), for: .touchUpInside)
@@ -495,6 +512,13 @@ private final class FaceSearchNode: ASDisplayNode {
 
     func applyState(_ state: FaceDetectState) {
         faceOverlayView.clearErrorBorder()
+        findButton.isHidden = false
+        changePhotoButton.isHidden = false
+        hintLabel.isHidden = false
+        photoTopConstraint?.isActive = true
+        photoCenterYConstraint?.isActive = false
+        statusLabel.attributedText = nil
+        statusLabel.text = nil
 
         switch state {
         case .idle:
@@ -563,26 +587,16 @@ private final class FaceSearchNode: ASDisplayNode {
     }
 
     func setSearchLoading(_ loading: Bool) {
-        findButton.isEnabled = !loading
-        changePhotoButton.isEnabled = !loading
         if loading {
-            findButton.setTitle(nil, for: .normal)
-            let spinner = UIActivityIndicatorView(style: .medium)
-            spinner.color = .white
-            spinner.tag = 999
-            spinner.translatesAutoresizingMaskIntoConstraints = false
-            findButton.addSubview(spinner)
-            NSLayoutConstraint.activate([
-                spinner.centerXAnchor.constraint(equalTo: findButton.centerXAnchor),
-                spinner.centerYAnchor.constraint(equalTo: findButton.centerYAnchor)
-            ])
-            spinner.startAnimating()
+            setScanningVisible(true)
+            faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
+            setSearchCenteredLayout(true)
         } else {
-            findButton.setTitle(DivoStrings.faceSearchFindProfiles, for: .normal)
-            if let spinner = findButton.viewWithTag(999) as? UIActivityIndicatorView {
-                spinner.stopAnimating()
-                spinner.removeFromSuperview()
-            }
+            setScanningVisible(false)
+            setSearchCenteredLayout(false)
+            statusLabel.attributedText = nil
+            statusLabel.text = nil
+            statusLabel.alpha = 0
         }
     }
 
@@ -595,6 +609,27 @@ private final class FaceSearchNode: ASDisplayNode {
         } else {
             scanLineView.stopAnimating()
             scanLineView.isHidden = true
+        }
+    }
+
+    private func setSearchCenteredLayout(_ centered: Bool) {
+        if centered {
+            statusLabel.attributedText = nil
+            statusLabel.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? Font.bold(20)
+            statusLabel.textColor = DivoColorPalette.primaryText
+            statusLabel.text = DivoStrings.faceSearchScanning
+            statusLabel.alpha = 1
+            faceBanner.isHidden = true
+        }
+
+        photoTopConstraint?.isActive = !centered
+        photoCenterYConstraint?.isActive = centered
+        findButton.isHidden = centered
+        changePhotoButton.isHidden = centered
+        hintLabel.isHidden = centered
+
+        UIView.animate(withDuration: 0.3) {
+            self.view.layoutIfNeeded()
         }
     }
 

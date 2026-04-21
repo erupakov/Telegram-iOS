@@ -10,6 +10,8 @@ final class FaceOverlayView: UIView {
     private var imageSize: CGSize = .zero
     private var selectedIndex: Int?
     private var bracketLayers: [(index: Int, layers: [CAShapeLayer])] = []
+    private var dimmingLayer: CAShapeLayer?
+    private var selectionBorderLayer: CAShapeLayer?
     private var errorBorderLayer: CAShapeLayer?
 
     override init(frame: CGRect) {
@@ -31,14 +33,14 @@ final class FaceOverlayView: UIView {
 
     func setSelectedIndex(_ index: Int?) {
         self.selectedIndex = index
-        updateBracketAppearance()
+        rebuildOverlay()
     }
 
     // MARK: - Layout
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        rebuildBrackets()
+        rebuildOverlay()
         if errorBorderLayer != nil {
             rebuildErrorBorder()
         }
@@ -46,21 +48,43 @@ final class FaceOverlayView: UIView {
 
     // MARK: - Drawing
 
-    private func rebuildBrackets() {
+    private func rebuildOverlay() {
         bracketLayers.forEach { $0.layers.forEach { $0.removeFromSuperlayer() } }
         bracketLayers.removeAll()
+        dimmingLayer?.removeFromSuperlayer()
+        dimmingLayer = nil
+        selectionBorderLayer?.removeFromSuperlayer()
+        selectionBorderLayer = nil
         gestureRecognizers?.forEach { removeGestureRecognizer($0) }
 
         guard imageSize.width > 0, imageSize.height > 0 else { return }
 
-        for face in faces {
-            let rect = convertBBoxToViewRect(face.bbox)
-            let layers = createCornerBrackets(in: rect)
-            layers.forEach { layer.addSublayer($0) }
-            bracketLayers.append((index: face.index, layers: layers))
+        let hasSelection = selectedIndex != nil
+
+        if hasSelection {
+            rebuildDimming()
         }
 
-        updateBracketAppearance()
+        for face in faces {
+            let rect = convertBBoxToViewRect(face.bbox)
+            let isSelected = face.index == selectedIndex
+
+            if isSelected {
+                let cornerRadius = min(rect.width, rect.height) * 0.12
+                let border = CAShapeLayer()
+                border.path = UIBezierPath(roundedRect: rect, cornerRadius: cornerRadius).cgPath
+                border.strokeColor = DivoColorPalette.accent.cgColor
+                border.fillColor = nil
+                border.lineWidth = 3
+                layer.addSublayer(border)
+                selectionBorderLayer = border
+            } else {
+                let color: UIColor = hasSelection ? .white : DivoColorPalette.accent
+                let layers = createCornerBrackets(in: rect, color: color)
+                layers.forEach { layer.addSublayer($0) }
+                bracketLayers.append((index: face.index, layers: layers))
+            }
+        }
 
         if faces.count > 1 {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
@@ -68,10 +92,29 @@ final class FaceOverlayView: UIView {
         }
     }
 
+    private func rebuildDimming() {
+        guard let selectedIndex = selectedIndex,
+              let selectedFace = faces.first(where: { $0.index == selectedIndex }) else { return }
+
+        let selectedRect = convertBBoxToViewRect(selectedFace.bbox)
+        let cornerRadius = min(selectedRect.width, selectedRect.height) * 0.12
+
+        let fullPath = UIBezierPath(rect: bounds)
+        let cutoutPath = UIBezierPath(roundedRect: selectedRect, cornerRadius: cornerRadius)
+        fullPath.append(cutoutPath)
+        fullPath.usesEvenOddFillRule = true
+
+        let dimming = CAShapeLayer()
+        dimming.path = fullPath.cgPath
+        dimming.fillRule = .evenOdd
+        dimming.fillColor = UIColor.black.withAlphaComponent(0.56).cgColor
+        layer.addSublayer(dimming)
+        dimmingLayer = dimming
+    }
+
     private func convertBBoxToViewRect(_ bbox: FRBoundingBox) -> CGRect {
         let scaleX = bounds.width / imageSize.width
         let scaleY = bounds.height / imageSize.height
-        // aspectFill: image is scaled by max, centered, clipped
         let scale = max(scaleX, scaleY)
 
         let scaledW = imageSize.width * scale
@@ -87,28 +130,24 @@ final class FaceOverlayView: UIView {
         return CGRect(x: x, y: y, width: w, height: h)
     }
 
-    private func createCornerBrackets(in rect: CGRect) -> [CAShapeLayer] {
+    private func createCornerBrackets(in rect: CGRect, color: UIColor) -> [CAShapeLayer] {
         let bracketLength = min(rect.width, rect.height) * 0.25
         let cornerRadius = min(rect.width, rect.height) * 0.06
         let lineWidth: CGFloat = 3
 
         let corners: [(arm1End: CGPoint, arcCenter: CGPoint, arm2End: CGPoint, startAngle: CGFloat, endAngle: CGFloat)] = [
-            // top-left: vertical arm goes down, arc turns, horizontal arm goes right
             (arm1End: CGPoint(x: rect.minX, y: rect.minY + bracketLength),
              arcCenter: CGPoint(x: rect.minX + cornerRadius, y: rect.minY + cornerRadius),
              arm2End: CGPoint(x: rect.minX + bracketLength, y: rect.minY),
              startAngle: .pi, endAngle: -.pi / 2),
-            // top-right: horizontal arm goes left, arc turns, vertical arm goes down
             (arm1End: CGPoint(x: rect.maxX - bracketLength, y: rect.minY),
              arcCenter: CGPoint(x: rect.maxX - cornerRadius, y: rect.minY + cornerRadius),
              arm2End: CGPoint(x: rect.maxX, y: rect.minY + bracketLength),
              startAngle: -.pi / 2, endAngle: 0),
-            // bottom-right: vertical arm goes up, arc turns, horizontal arm goes left
             (arm1End: CGPoint(x: rect.maxX, y: rect.maxY - bracketLength),
              arcCenter: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius),
              arm2End: CGPoint(x: rect.maxX - bracketLength, y: rect.maxY),
              startAngle: 0, endAngle: .pi / 2),
-            // bottom-left: horizontal arm goes right, arc turns, vertical arm goes up
             (arm1End: CGPoint(x: rect.minX + bracketLength, y: rect.maxY),
              arcCenter: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius),
              arm2End: CGPoint(x: rect.minX, y: rect.maxY - bracketLength),
@@ -133,22 +172,11 @@ final class FaceOverlayView: UIView {
 
             let shape = CAShapeLayer()
             shape.path = path.cgPath
-            shape.strokeColor = DivoColorPalette.accent.cgColor
+            shape.strokeColor = color.cgColor
             shape.fillColor = nil
             shape.lineWidth = lineWidth
             shape.lineCap = .round
             return shape
-        }
-    }
-
-    private func updateBracketAppearance() {
-        let hasSelection = selectedIndex != nil
-        for entry in bracketLayers {
-            let isSelected = entry.index == selectedIndex
-            let alpha: Float = hasSelection && !isSelected ? 0.3 : 1.0
-            for shape in entry.layers {
-                shape.opacity = alpha
-            }
         }
     }
 
@@ -189,6 +217,10 @@ extension FaceOverlayView {
         selectedIndex = nil
         bracketLayers.forEach { $0.layers.forEach { $0.removeFromSuperlayer() } }
         bracketLayers.removeAll()
+        dimmingLayer?.removeFromSuperlayer()
+        dimmingLayer = nil
+        selectionBorderLayer?.removeFromSuperlayer()
+        selectionBorderLayer = nil
 
         rebuildErrorBorder()
     }
