@@ -150,6 +150,12 @@ public enum DivoStrings {
     public static var faceSearchChangePhoto: String { L(en: "Change photo", ru: "Изменить фото", es: "Cambiar foto", pt: "Alterar foto", zh: "更换照片") }
     public static var faceSearchFindProfiles: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Buscar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似档案") }
     public static var faceSearchSortedByScore: String { L(en: "Results are sorted by visual similarity score", ru: "Результаты отсортированы по степени сходства", es: "Resultados ordenados por similitud visual", pt: "Resultados ordenados por pontuação de similaridade", zh: "结果按视觉相似度排序") }
+    public static var faceSearchNoFacesTitle: String { L(en: "No faces found", ru: "Лица не найдены", es: "No se encontraron rostros", pt: "Nenhum rosto encontrado", zh: "未找到人脸") }
+    public static var faceSearchNoFacesMessage: String { L(en: "We couldn't detect any faces in this photo. Please try another one.", ru: "Не удалось распознать лица на этом фото. Попробуйте другое.", es: "No pudimos detectar rostros en esta foto. Intenta con otra.", pt: "Não conseguimos detectar rostos nesta foto. Tente outra.", zh: "未能在此照片中检测到人脸，请尝试其他照片。") }
+    public static var faceSearchErrorTitle: String { L(en: "Search error", ru: "Ошибка поиска", es: "Error de búsqueda", pt: "Erro de busca", zh: "搜索错误") }
+    public static var faceSearchResultsTitle: String { L(en: "Results", ru: "Результаты", es: "Resultados", pt: "Resultados", zh: "结果") }
+    public static var faceSearchNoResults: String { L(en: "No similar profiles found", ru: "Похожие профили не найдены", es: "No se encontraron perfiles similares", pt: "Nenhum perfil semelhante encontrado", zh: "未找到相似档案") }
+    public static var faceSearchMatchPercent: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配") }
 
     // MARK: - Roles
 

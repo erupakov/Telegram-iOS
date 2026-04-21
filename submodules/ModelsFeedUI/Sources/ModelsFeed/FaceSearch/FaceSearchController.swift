@@ -10,7 +10,8 @@ import DivoUIKit
 public final class FaceSearchController: ViewController {
     private let context: AccountContext
     private var presentationData: PresentationData
-    private let selectedImage: UIImage
+    private var selectedImage: UIImage
+    private var isLoading = false
 
     var onChangePhoto: (() -> Void)?
 
@@ -38,8 +39,8 @@ public final class FaceSearchController: ViewController {
         node.onChangePhotoPressed = { [weak self] in
             self?.onChangePhoto?()
         }
-        node.onFindPressed = {
-            // TODO: send photo to face search API
+        node.onFindPressed = { [weak self] in
+            self?.startFaceSearch()
         }
         self.displayNode = node
         self.displayNodeDidLoad()
@@ -51,7 +52,108 @@ public final class FaceSearchController: ViewController {
     }
 
     public func updateImage(_ image: UIImage) {
+        self.selectedImage = image
         (self.displayNode as? FaceSearchNode)?.updateImage(image)
+    }
+
+    // MARK: - Face Search Flow
+
+    private var faceSearchNode: FaceSearchNode? {
+        self.displayNode as? FaceSearchNode
+    }
+
+    private func startFaceSearch() {
+        guard !isLoading else { return }
+        guard let imageData = selectedImage.jpegData(compressionQuality: 0.85) else { return }
+
+        isLoading = true
+        faceSearchNode?.setLoading(true)
+
+        Task { @MainActor in
+            do {
+                let detectResponse: FRDetectResponse = try await DivoAPIClient.shared.upload(
+                    path: "/fr/detect",
+                    fileData: imageData
+                )
+
+                guard !detectResponse.faces.isEmpty else {
+                    self.showNoFacesAlert()
+                    self.finishLoading()
+                    return
+                }
+
+                let faceIndex = 0
+                let rawData: Data = try await DivoAPIClient.shared.uploadRawData(
+                    path: "/fr/search",
+                    fileData: imageData,
+                    fields: [
+                        "face_index": "\(faceIndex)",
+                        "top_k": "20",
+                        "k_ratio": "0.3"
+                    ]
+                )
+
+                // DEBUG: показать raw response — убрать после отладки
+                let rawString = String(data: rawData, encoding: .utf8) ?? "nil"
+                self.showDebugResponseAlert(rawString)
+
+                let searchResponse = try JSONDecoder().decode(FRSearchResponse.self, from: rawData)
+                self.finishLoading()
+                self.showResults(searchResponse.results, detectResponse: detectResponse)
+            } catch {
+                self.finishLoading()
+                self.showErrorAlert(error)
+            }
+        }
+    }
+
+    private func finishLoading() {
+        isLoading = false
+        faceSearchNode?.setLoading(false)
+    }
+
+    private func showNoFacesAlert() {
+        let alert = UIAlertController(
+            title: DivoStrings.faceSearchNoFacesTitle,
+            message: DivoStrings.faceSearchNoFacesMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        self.present(alert, animated: true)
+    }
+
+    // DEBUG: убрать после отладки
+    private func showDebugResponseAlert(_ body: String) {
+        let alert = UIAlertController(
+            title: "DEBUG: /fr/search response",
+            message: body,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Copy", style: .default) { _ in
+            UIPasteboard.general.string = body
+        })
+        alert.addAction(UIAlertAction(title: "OK", style: .cancel))
+        self.present(alert, animated: true)
+    }
+
+    private func showErrorAlert(_ error: Error) {
+        let alert = UIAlertController(
+            title: DivoStrings.faceSearchErrorTitle,
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        self.present(alert, animated: true)
+    }
+
+    private func showResults(_ results: [FRSearchResult], detectResponse: FRDetectResponse) {
+        let controller = FaceSearchResultsController(
+            context: self.context,
+            results: results
+        )
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(controller)
+        }
     }
 }
 
@@ -89,11 +191,19 @@ private final class FaceSearchNode: ASDisplayNode {
         return label
     }()
 
+    private let photoContainer: UIView = {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        return container
+    }()
+
     private let photoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 32
+        imageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        imageView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
@@ -167,7 +277,7 @@ private final class FaceSearchNode: ASDisplayNode {
         photoAspectConstraint?.isActive = false
         guard image.size.width > 0 else { return }
         let ratio = image.size.height / image.size.width
-        let constraint = photoImageView.heightAnchor.constraint(equalTo: photoImageView.widthAnchor, multiplier: ratio)
+        let constraint = photoContainer.heightAnchor.constraint(equalTo: photoContainer.widthAnchor, multiplier: ratio)
         constraint.priority = .defaultHigh
         constraint.isActive = true
         photoAspectConstraint = constraint
@@ -176,9 +286,11 @@ private final class FaceSearchNode: ASDisplayNode {
     private func setupUI() {
         let safeArea = view.safeAreaLayoutGuide
 
+        photoContainer.addSubview(photoImageView)
+
         view.addSubview(backButton)
         view.addSubview(titleLabel)
-        view.addSubview(photoImageView)
+        view.addSubview(photoContainer)
         view.addSubview(changePhotoButton)
         view.addSubview(findButton)
         view.addSubview(hintLabel)
@@ -192,13 +304,18 @@ private final class FaceSearchNode: ASDisplayNode {
             titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            photoImageView.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.l),
-            photoImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            photoImageView.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            photoImageView.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            photoImageView.bottomAnchor.constraint(lessThanOrEqualTo: findButton.topAnchor, constant: -(DivoDesignTokens.Spacing.m + 40 + DivoDesignTokens.Spacing.s)),
+            photoContainer.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.l),
+            photoContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            photoContainer.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            photoContainer.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            photoContainer.bottomAnchor.constraint(lessThanOrEqualTo: findButton.topAnchor, constant: -(DivoDesignTokens.Spacing.m + 40 + DivoDesignTokens.Spacing.s)),
 
-            changePhotoButton.topAnchor.constraint(equalTo: photoImageView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            photoImageView.topAnchor.constraint(equalTo: photoContainer.topAnchor),
+            photoImageView.leadingAnchor.constraint(equalTo: photoContainer.leadingAnchor),
+            photoImageView.trailingAnchor.constraint(equalTo: photoContainer.trailingAnchor),
+            photoImageView.bottomAnchor.constraint(equalTo: photoContainer.bottomAnchor),
+
+            changePhotoButton.topAnchor.constraint(equalTo: photoContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             changePhotoButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             changePhotoButton.heightAnchor.constraint(equalToConstant: 40),
 
@@ -212,13 +329,37 @@ private final class FaceSearchNode: ASDisplayNode {
             findButton.heightAnchor.constraint(equalToConstant: 56),
         ])
 
-        let preferredWidth = photoImageView.widthAnchor.constraint(equalTo: view.widthAnchor, constant: -2 * DivoDesignTokens.Spacing.m)
+        let preferredWidth = photoContainer.widthAnchor.constraint(equalTo: view.widthAnchor, constant: -2 * DivoDesignTokens.Spacing.m)
         preferredWidth.priority = .defaultLow
         preferredWidth.isActive = true
 
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         changePhotoButton.addTarget(self, action: #selector(changePhotoTapped), for: .touchUpInside)
         findButton.addTarget(self, action: #selector(findTapped), for: .touchUpInside)
+    }
+
+    func setLoading(_ loading: Bool) {
+        findButton.isEnabled = !loading
+        changePhotoButton.isEnabled = !loading
+        if loading {
+            findButton.setTitle(nil, for: .normal)
+            let spinner = UIActivityIndicatorView(style: .medium)
+            spinner.color = .white
+            spinner.tag = 999
+            spinner.translatesAutoresizingMaskIntoConstraints = false
+            findButton.addSubview(spinner)
+            NSLayoutConstraint.activate([
+                spinner.centerXAnchor.constraint(equalTo: findButton.centerXAnchor),
+                spinner.centerYAnchor.constraint(equalTo: findButton.centerYAnchor)
+            ])
+            spinner.startAnimating()
+        } else {
+            findButton.setTitle(DivoStrings.faceSearchFindProfiles, for: .normal)
+            if let spinner = findButton.viewWithTag(999) as? UIActivityIndicatorView {
+                spinner.stopAnimating()
+                spinner.removeFromSuperview()
+            }
+        }
     }
 
     @objc private func backTapped() { onBackPressed?() }
