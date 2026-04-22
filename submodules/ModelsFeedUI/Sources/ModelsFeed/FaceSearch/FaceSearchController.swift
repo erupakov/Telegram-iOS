@@ -182,7 +182,7 @@ public final class FaceSearchController: ViewController {
                 guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
-                self.showResults(searchResponse.results, detectResponse: self.detectResponse)
+                self.showResults(searchResponse.results, bbox: searchResponse.bbox)
             } catch {
                 guard let self else { return }
                 self.isSearching = false
@@ -213,11 +213,12 @@ public final class FaceSearchController: ViewController {
         )
     }
 
-    private func showResults(_ results: [FRSearchResult], detectResponse: FRDetectResponse?) {
+    private func showResults(_ results: [FRSearchResult], bbox: FRBoundingBox?) {
         let controller = FaceSearchResultsController(
             context: self.context,
             results: results,
             sourceImage: self.selectedImage,
+            faceBBox: bbox,
             threshold: Self.searchThreshold
         )
         if let nav = self.navigationController as? NavigationController {

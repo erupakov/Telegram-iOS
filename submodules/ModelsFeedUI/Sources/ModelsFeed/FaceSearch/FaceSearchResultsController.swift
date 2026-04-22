@@ -12,17 +12,20 @@ final class FaceSearchResultsController: ViewController {
     private let context: AccountContext
     private let results: [FRSearchResult]
     private let sourceImage: UIImage?
+    private let faceBBox: FRBoundingBox?
     private let threshold: Double
 
     init(
         context: AccountContext,
         results: [FRSearchResult],
         sourceImage: UIImage?,
+        faceBBox: FRBoundingBox?,
         threshold: Double
     ) {
         self.context = context
         self.results = results
         self.sourceImage = sourceImage
+        self.faceBBox = faceBBox
         self.threshold = threshold
         super.init(navigationBarPresentationData: nil)
     }
@@ -35,6 +38,7 @@ final class FaceSearchResultsController: ViewController {
         let node = FaceSearchResultsNode(
             results: self.results,
             sourceImage: self.sourceImage,
+            faceBBox: self.faceBBox,
             threshold: self.threshold
         )
         node.onBackPressed = { [weak self] in
@@ -125,6 +129,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
 
     private let results: [FRSearchResult]
     private let sourceImage: UIImage?
+    private let faceBBox: FRBoundingBox?
     private let threshold: Double
 
     // MARK: Top bar
@@ -235,9 +240,10 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         return view
     }()
 
-    init(results: [FRSearchResult], sourceImage: UIImage?, threshold: Double) {
+    init(results: [FRSearchResult], sourceImage: UIImage?, faceBBox: FRBoundingBox?, threshold: Double) {
         self.results = results
         self.sourceImage = sourceImage
+        self.faceBBox = faceBBox
         self.threshold = threshold
         super.init()
         self.backgroundColor = DivoColorPalette.screenBackground
@@ -313,7 +319,11 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     }
 
     private func applyContent() {
-        avatarImageView.image = sourceImage
+        if let sourceImage, let faceBBox {
+            avatarImageView.image = Self.cropFaceSquare(from: sourceImage, bbox: faceBBox, padding: 16)
+        } else {
+            avatarImageView.image = sourceImage
+        }
 
         let percent = Int((threshold * 100).rounded())
         let resultsCountText = DivoStrings.faceSearchResultsCount(results.count)
@@ -384,5 +394,34 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard indexPath.item < results.count else { return }
         onResultTapped?(results[indexPath.item])
+    }
+
+    // MARK: - Helpers
+
+    private static func cropFaceSquare(from image: UIImage, bbox: FRBoundingBox, padding: CGFloat) -> UIImage {
+        let imageSize = image.size
+        guard imageSize.width > 0, imageSize.height > 0 else { return image }
+
+        let faceWidth = CGFloat(bbox.x2 - bbox.x1)
+        let faceHeight = CGFloat(bbox.y2 - bbox.y1)
+        let side = max(faceWidth, faceHeight) + 2 * padding
+
+        let centerX = CGFloat(bbox.x1 + bbox.x2) / 2
+        let centerY = CGFloat(bbox.y1 + bbox.y2) / 2
+
+        var cropX = centerX - side / 2
+        var cropY = centerY - side / 2
+        var cropSide = side
+
+        cropX = max(0, cropX)
+        cropY = max(0, cropY)
+        cropSide = min(cropSide, imageSize.width - cropX)
+        cropSide = min(cropSide, imageSize.height - cropY)
+        guard cropSide > 0 else { return image }
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: cropSide, height: cropSide))
+        return renderer.image { _ in
+            image.draw(at: CGPoint(x: -cropX, y: -cropY))
+        }
     }
 }
