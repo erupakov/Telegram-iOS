@@ -295,8 +295,11 @@ private final class FaceSearchNode: ASDisplayNode {
 
     private let faceBanner: UIView = {
         let banner = UIView()
-        banner.backgroundColor = DivoColorPalette.accent
-        banner.isHidden = true
+        banner.backgroundColor = DivoColorPalette.cardBackground
+        banner.layer.cornerRadius = 16
+        banner.layer.borderWidth = 1
+        banner.clipsToBounds = true
+        banner.alpha = 0
         banner.translatesAutoresizingMaskIntoConstraints = false
         return banner
     }()
@@ -304,8 +307,9 @@ private final class FaceSearchNode: ASDisplayNode {
     private let faceBannerLabel: UILabel = {
         let label = UILabel()
         label.font = Font.medium(14)
-        label.textColor = .white
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
+        label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -369,6 +373,7 @@ private final class FaceSearchNode: ASDisplayNode {
     private var photoAspectConstraint: NSLayoutConstraint?
     private var photoTopConstraint: NSLayoutConstraint?
     private var photoCenterYConstraint: NSLayoutConstraint?
+    private var changeTopWithBanner: NSLayoutConstraint?
     private var currentImageSize: CGSize = .zero
 
     init(image: UIImage) {
@@ -391,7 +396,7 @@ private final class FaceSearchNode: ASDisplayNode {
         self.currentImageSize = image.size
         applyAspectRatio(for: image)
         faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
-        faceBanner.isHidden = true
+        setBannerVisible(false, animated: false)
         applyState(.idle)
     }
 
@@ -419,11 +424,11 @@ private final class FaceSearchNode: ASDisplayNode {
         photoContainer.addSubview(scanLineView)
 
         faceBanner.addSubview(faceBannerLabel)
-        photoContainer.addSubview(faceBanner)
 
         view.addSubview(backButton)
         view.addSubview(titleLabel)
         view.addSubview(photoContainer)
+        view.addSubview(faceBanner)
         view.addSubview(statusLabel)
         view.addSubview(changePhotoButton)
         view.addSubview(findButton)
@@ -441,7 +446,6 @@ private final class FaceSearchNode: ASDisplayNode {
             photoContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             photoContainer.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             photoContainer.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            photoContainer.bottomAnchor.constraint(lessThanOrEqualTo: changePhotoButton.topAnchor, constant: -(DivoDesignTokens.Spacing.m + DivoDesignTokens.Spacing.s)),
 
             photoImageView.topAnchor.constraint(equalTo: photoContainer.topAnchor),
             photoImageView.leadingAnchor.constraint(equalTo: photoContainer.leadingAnchor),
@@ -458,21 +462,20 @@ private final class FaceSearchNode: ASDisplayNode {
             scanLineView.trailingAnchor.constraint(equalTo: photoContainer.trailingAnchor),
             scanLineView.bottomAnchor.constraint(equalTo: photoContainer.bottomAnchor),
 
-            faceBanner.leadingAnchor.constraint(equalTo: photoContainer.leadingAnchor),
-            faceBanner.trailingAnchor.constraint(equalTo: photoContainer.trailingAnchor),
-            faceBanner.bottomAnchor.constraint(equalTo: photoContainer.bottomAnchor),
-            faceBanner.heightAnchor.constraint(equalToConstant: 48),
+            faceBanner.topAnchor.constraint(equalTo: photoContainer.bottomAnchor, constant: 10),
+            faceBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            faceBanner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            faceBanner.heightAnchor.constraint(greaterThanOrEqualToConstant: 48),
 
-            faceBannerLabel.centerXAnchor.constraint(equalTo: faceBanner.centerXAnchor),
-            faceBannerLabel.centerYAnchor.constraint(equalTo: faceBanner.centerYAnchor),
-            faceBannerLabel.leadingAnchor.constraint(greaterThanOrEqualTo: faceBanner.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            faceBannerLabel.trailingAnchor.constraint(lessThanOrEqualTo: faceBanner.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            faceBannerLabel.topAnchor.constraint(equalTo: faceBanner.topAnchor, constant: 8),
+            faceBannerLabel.bottomAnchor.constraint(equalTo: faceBanner.bottomAnchor, constant: -8),
+            faceBannerLabel.leadingAnchor.constraint(equalTo: faceBanner.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            faceBannerLabel.trailingAnchor.constraint(equalTo: faceBanner.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             statusLabel.topAnchor.constraint(equalTo: photoContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.l),
             statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.l),
 
-            changePhotoButton.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             changePhotoButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             changePhotoButton.heightAnchor.constraint(equalToConstant: 40),
             changePhotoButton.bottomAnchor.constraint(lessThanOrEqualTo: findButton.topAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -500,6 +503,15 @@ private final class FaceSearchNode: ASDisplayNode {
         photoCenterYConstraint = photoContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20)
         photoCenterYConstraint?.isActive = false
 
+        let changeTopPhoto = changePhotoButton.topAnchor.constraint(greaterThanOrEqualTo: photoContainer.bottomAnchor, constant: 16)
+        changeTopPhoto.isActive = true
+        let changeTopStatus = changePhotoButton.topAnchor.constraint(greaterThanOrEqualTo: statusLabel.bottomAnchor, constant: 16)
+        changeTopStatus.isActive = true
+        let changeTopResting = changePhotoButton.topAnchor.constraint(equalTo: photoContainer.bottomAnchor, constant: 16)
+        changeTopResting.priority = UILayoutPriority(250)
+        changeTopResting.isActive = true
+        changeTopWithBanner = changePhotoButton.topAnchor.constraint(greaterThanOrEqualTo: faceBanner.bottomAnchor, constant: 16)
+
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         changePhotoButton.addTarget(self, action: #selector(changePhotoTapped), for: .touchUpInside)
         findButton.addTarget(self, action: #selector(findTapped), for: .touchUpInside)
@@ -523,7 +535,7 @@ private final class FaceSearchNode: ASDisplayNode {
         switch state {
         case .idle:
             setScanningVisible(false)
-            faceBanner.isHidden = true
+            setBannerVisible(false, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = false
             findButton.backgroundColor = DivoColorPalette.buttonDisabledBackground
@@ -533,7 +545,7 @@ private final class FaceSearchNode: ASDisplayNode {
 
         case .scanning:
             setScanningVisible(true)
-            faceBanner.isHidden = true
+            setBannerVisible(false, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = false
             findButton.backgroundColor = DivoColorPalette.buttonDisabledBackground
@@ -543,7 +555,7 @@ private final class FaceSearchNode: ASDisplayNode {
 
         case .noFaces:
             setScanningVisible(false)
-            faceBanner.isHidden = true
+            setBannerVisible(false, animated: true)
             statusLabel.attributedText = makeNoFacesText()
             statusLabel.alpha = 1
             findButton.isEnabled = false
@@ -556,9 +568,8 @@ private final class FaceSearchNode: ASDisplayNode {
         case .singleFace(let face):
             setScanningVisible(false)
             faceBannerLabel.text = DivoStrings.faceSearchFaceSelected
-            faceBanner.backgroundColor = .white
-            faceBannerLabel.textColor = DivoColorPalette.primaryText
-            faceBanner.isHidden = false
+            applySelectedBannerStyle()
+            setBannerVisible(true, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = true
             findButton.backgroundColor = DivoColorPalette.accent
@@ -573,9 +584,12 @@ private final class FaceSearchNode: ASDisplayNode {
             faceBannerLabel.text = hasSelection
                 ? DivoStrings.faceSearchFaceSelected
                 : DivoStrings.faceSearchMultipleFaces(faces.count)
-            faceBanner.backgroundColor = hasSelection ? .white : DivoColorPalette.accent
-            faceBannerLabel.textColor = hasSelection ? DivoColorPalette.primaryText : .white
-            faceBanner.isHidden = false
+            if hasSelection {
+                applySelectedBannerStyle()
+            } else {
+                applyMultipleBannerStyle()
+            }
+            setBannerVisible(true, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = hasSelection
             findButton.backgroundColor = hasSelection ? DivoColorPalette.accent : DivoColorPalette.buttonDisabledBackground
@@ -583,6 +597,34 @@ private final class FaceSearchNode: ASDisplayNode {
             hintLabel.attributedText = makeBottomText(DivoStrings.faceSearchSortedByScore)
             hintLabel.alpha = 1
             faceOverlayView.configure(faces: faces, imageSize: currentImageSize, selectedIndex: selected)
+        }
+    }
+
+    private func applySelectedBannerStyle() {
+        faceBanner.backgroundColor = DivoColorPalette.cardBackground
+        faceBanner.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.1).cgColor
+    }
+
+    private func applyMultipleBannerStyle() {
+        faceBanner.backgroundColor = DivoColorPalette.faceBannerMultipleBackground
+        faceBanner.layer.borderColor = DivoColorPalette.accent.withAlphaComponent(0.5).cgColor
+    }
+
+    private func setBannerVisible(_ visible: Bool, animated: Bool) {
+        let targetAlpha: CGFloat = visible ? 1 : 0
+        let needsLayoutChange = (changeTopWithBanner?.isActive ?? false) != visible
+        guard faceBanner.alpha != targetAlpha || needsLayoutChange else { return }
+
+        changeTopWithBanner?.isActive = visible
+
+        let block = {
+            self.faceBanner.alpha = targetAlpha
+            self.view.layoutIfNeeded()
+        }
+        if animated {
+            UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut], animations: block)
+        } else {
+            block()
         }
     }
 
@@ -619,7 +661,7 @@ private final class FaceSearchNode: ASDisplayNode {
             statusLabel.textColor = DivoColorPalette.primaryText
             statusLabel.text = DivoStrings.faceSearchScanning
             statusLabel.alpha = 1
-            faceBanner.isHidden = true
+            setBannerVisible(false, animated: false)
         }
 
         photoTopConstraint?.isActive = !centered

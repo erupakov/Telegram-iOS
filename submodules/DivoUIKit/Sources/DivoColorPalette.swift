@@ -19,6 +19,8 @@ public enum DivoColorPalette {
     public static let roleBadgeBlue = UIColor(red: 34/255, green: 98/255, blue: 216/255, alpha: 1)
     public static let roleBadgeCopperTint = UIColor(red: 0.95, green: 0.92, blue: 0.90, alpha: 1)
     public static let borderWorkHistoryImage = UIColor(hexString: "#F6F6F6")!
+    /// #F3E7E1 — фон информационной плашки face search при multiple faces без selection.
+    public static let faceBannerMultipleBackground = UIColor(hexString: "#F3E7E1")!
     
     // MARK: - Text (DIVO)
     public static let primaryText = UIColor(hexString: "#222222")!
