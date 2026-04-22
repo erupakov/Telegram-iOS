@@ -257,9 +257,10 @@ public class ModelsSearchController: ViewController {
     }
 
     private func openFaceSearchScreen(with image: UIImage) {
-        if let existing = activeFaceSearchController {
+        if let existing = activeFaceSearchController, existing.navigationController != nil {
             existing.updateImage(image)
         } else {
+            activeFaceSearchController = nil
             let controller = FaceSearchController(context: self.context, image: image)
             controller.onChangePhoto = { [weak self] in
                 self?.openChangePhotoSheet()

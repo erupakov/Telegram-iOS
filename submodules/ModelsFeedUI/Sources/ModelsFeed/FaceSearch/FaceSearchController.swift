@@ -119,12 +119,13 @@ public final class FaceSearchController: ViewController {
         faceSearchNode?.hideSnackbar()
         transition(to: .scanning)
 
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
             do {
                 let response: FRDetectResponse = try await DivoAPIClient.shared.upload(
                     path: "/fr/detect",
                     fileData: imageData
                 )
+                guard let self else { return }
                 self.detectResponse = response
 
                 switch response.faces.count {
@@ -136,6 +137,7 @@ public final class FaceSearchController: ViewController {
                     self.transition(to: .multipleFaces(response.faces, selected: nil))
                 }
             } catch {
+                guard let self else { return }
                 if Self.isConnectionFailure(error) {
                     self.transition(to: .idle)
                     self.showNetworkError(error) { [weak self] in
@@ -167,7 +169,7 @@ public final class FaceSearchController: ViewController {
         faceSearchNode?.hideSnackbar()
         faceSearchNode?.setSearchLoading(true)
 
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
             do {
                 let searchResponse: FRSearchResponse = try await DivoAPIClient.shared.upload(
                     path: "/fr/search",
@@ -178,11 +180,12 @@ public final class FaceSearchController: ViewController {
                         "k_ratio": "\(Self.searchThreshold)"
                     ]
                 )
-
+                guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
                 self.showResults(searchResponse.results, detectResponse: self.detectResponse)
             } catch {
+                guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
                 self.showNetworkError(error) { [weak self] in
