@@ -35,6 +35,8 @@ enum FaceDetectState {
 // MARK: - Controller
 
 public final class FaceSearchController: ViewController {
+    private static let searchThreshold: Double = 0.3
+
     private let context: AccountContext
     private var presentationData: PresentationData
     private var selectedImage: UIImage
@@ -173,7 +175,7 @@ public final class FaceSearchController: ViewController {
                     fields: [
                         "face_index": "\(faceIndex)",
                         "top_k": "20",
-                        "k_ratio": "0.3"
+                        "k_ratio": "\(Self.searchThreshold)"
                     ]
                 )
 
@@ -216,7 +218,9 @@ public final class FaceSearchController: ViewController {
     private func showResults(_ results: [FRSearchResult], detectResponse: FRDetectResponse?) {
         let controller = FaceSearchResultsController(
             context: self.context,
-            results: results
+            results: results,
+            sourceImage: self.selectedImage,
+            threshold: Self.searchThreshold
         )
         if let nav = self.navigationController as? NavigationController {
             nav.pushViewController(controller)
@@ -373,6 +377,7 @@ private final class FaceSearchNode: ASDisplayNode {
     private var photoTopConstraint: NSLayoutConstraint?
     private var photoCenterYConstraint: NSLayoutConstraint?
     private var changeTopWithBanner: NSLayoutConstraint?
+    private var changeTopStatusConstraint: NSLayoutConstraint?
     private var currentImageSize: CGSize = .zero
 
     init(image: UIImage) {
@@ -504,8 +509,7 @@ private final class FaceSearchNode: ASDisplayNode {
 
         let changeTopPhoto = changePhotoButton.topAnchor.constraint(greaterThanOrEqualTo: photoContainer.bottomAnchor, constant: 16)
         changeTopPhoto.isActive = true
-        let changeTopStatus = changePhotoButton.topAnchor.constraint(greaterThanOrEqualTo: statusLabel.bottomAnchor, constant: 16)
-        changeTopStatus.isActive = true
+        changeTopStatusConstraint = changePhotoButton.topAnchor.constraint(greaterThanOrEqualTo: statusLabel.bottomAnchor, constant: 16)
         let changeTopResting = changePhotoButton.topAnchor.constraint(equalTo: photoContainer.bottomAnchor, constant: 16)
         changeTopResting.priority = UILayoutPriority(250)
         changeTopResting.isActive = true
@@ -530,6 +534,7 @@ private final class FaceSearchNode: ASDisplayNode {
         photoCenterYConstraint?.isActive = false
         statusLabel.attributedText = nil
         statusLabel.text = nil
+        changeTopStatusConstraint?.isActive = false
 
         switch state {
         case .idle:
@@ -555,6 +560,7 @@ private final class FaceSearchNode: ASDisplayNode {
             setBannerVisible(false, animated: true)
             statusLabel.attributedText = makeNoFacesText()
             statusLabel.alpha = 1
+            changeTopStatusConstraint?.isActive = true
             findButton.isEnabled = false
             changePhotoButton.isEnabled = true
             hintLabel.attributedText = makeBottomText(DivoStrings.faceSearchSortedByScore)
@@ -655,6 +661,7 @@ private final class FaceSearchNode: ASDisplayNode {
             statusLabel.textColor = DivoColorPalette.primaryText
             statusLabel.text = DivoStrings.faceSearchScanning
             statusLabel.alpha = 1
+            view.bringSubviewToFront(statusLabel)
             setBannerVisible(false, animated: false)
         }
 
@@ -664,9 +671,13 @@ private final class FaceSearchNode: ASDisplayNode {
         changePhotoButton.isHidden = centered
         hintLabel.isHidden = centered
 
-        UIView.animate(withDuration: 0.3) {
+        UIView.animate(withDuration: 0.3, animations: {
             self.view.layoutIfNeeded()
-        }
+        }, completion: { [weak self] _ in
+            if centered {
+                self?.statusLabel.alpha = 1
+            }
+        })
     }
 
     private func makeNoFacesText() -> NSAttributedString {
