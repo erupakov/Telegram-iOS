@@ -342,7 +342,6 @@ private final class FaceSearchNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         button.setTitle(DivoStrings.faceSearchFindProfiles, for: .normal)
         button.setTitleColor(.white, for: .normal)
-        button.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         button.titleLabel?.font = Font.helveticaNeue(20)
         button.backgroundColor = DivoColorPalette.accent
         button.layer.cornerRadius = 28
@@ -538,7 +537,6 @@ private final class FaceSearchNode: ASDisplayNode {
             setBannerVisible(false, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = false
-            findButton.backgroundColor = DivoColorPalette.buttonDisabledBackground
             changePhotoButton.isEnabled = true
             hintLabel.alpha = 1
             faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
@@ -548,7 +546,6 @@ private final class FaceSearchNode: ASDisplayNode {
             setBannerVisible(false, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = false
-            findButton.backgroundColor = DivoColorPalette.buttonDisabledBackground
             changePhotoButton.isEnabled = false
             hintLabel.alpha = 0
             faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
@@ -559,7 +556,6 @@ private final class FaceSearchNode: ASDisplayNode {
             statusLabel.attributedText = makeNoFacesText()
             statusLabel.alpha = 1
             findButton.isEnabled = false
-            findButton.backgroundColor = DivoColorPalette.buttonDisabledBackground
             changePhotoButton.isEnabled = true
             hintLabel.attributedText = makeBottomText(DivoStrings.faceSearchSortedByScore)
             hintLabel.alpha = 1
@@ -572,7 +568,6 @@ private final class FaceSearchNode: ASDisplayNode {
             setBannerVisible(true, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = true
-            findButton.backgroundColor = DivoColorPalette.accent
             changePhotoButton.isEnabled = true
             hintLabel.attributedText = makeBottomText(DivoStrings.faceSearchSortedByScore)
             hintLabel.alpha = 1
@@ -592,7 +587,6 @@ private final class FaceSearchNode: ASDisplayNode {
             setBannerVisible(true, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = hasSelection
-            findButton.backgroundColor = hasSelection ? DivoColorPalette.accent : DivoColorPalette.buttonDisabledBackground
             changePhotoButton.isEnabled = true
             hintLabel.attributedText = makeBottomText(DivoStrings.faceSearchSortedByScore)
             hintLabel.alpha = 1

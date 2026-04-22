@@ -15,7 +15,6 @@ public final class DivoBrandButton: UIButton {
 
     private func setup() {
         setTitleColor(.white, for: .normal)
-        setTitleColor(DivoColorPalette.disabledText, for: .disabled)
         titleLabel?.font = Font.helveticaNeue(20)
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = 28
