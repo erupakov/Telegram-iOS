@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import CoreImage
 import Display
 import AsyncDisplayKit
 import AccountContext
@@ -116,7 +117,6 @@ public final class FaceSearchController: ViewController {
     private func runDetect() {
         guard let imageData = selectedImage.jpegData(compressionQuality: 0.85) else { return }
 
-        faceSearchNode?.hideSnackbar()
         transition(to: .scanning)
 
         Task { @MainActor [weak self] in
@@ -140,7 +140,7 @@ public final class FaceSearchController: ViewController {
                 guard let self else { return }
                 if Self.isConnectionFailure(error) {
                     self.transition(to: .idle)
-                    self.showNetworkError(error) { [weak self] in
+                    self.presentError { [weak self] in
                         self?.runDetect()
                     }
                 } else {
@@ -166,7 +166,6 @@ public final class FaceSearchController: ViewController {
         guard let imageData = selectedImage.jpegData(compressionQuality: 0.85) else { return }
 
         isSearching = true
-        faceSearchNode?.hideSnackbar()
         faceSearchNode?.setSearchLoading(true)
 
         Task { @MainActor [weak self] in
@@ -188,7 +187,7 @@ public final class FaceSearchController: ViewController {
                 guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
-                self.showNetworkError(error) { [weak self] in
+                self.presentError { [weak self] in
                     self?.handleFindPressed()
                 }
             }
@@ -205,16 +204,12 @@ public final class FaceSearchController: ViewController {
         return false
     }
 
-    private func showNetworkError(_ error: Error, retryAction: @escaping () -> Void) {
-        let message: String
-        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
-            message = DivoStrings.faceSearchErrorNoInternet
-        } else {
-            message = DivoStrings.faceSearchErrorGeneric
-        }
-        faceSearchNode?.showSnackbar(
-            message: message,
-            retryAction: retryAction
+    private func presentError(retryAction: @escaping () -> Void) {
+        faceSearchNode?.applyError(
+            title: DivoStrings.faceSearchInterruptedTitle,
+            subtitle: DivoStrings.faceSearchInterruptedSubtitle,
+            retryTitle: DivoStrings.faceSearchRetrySearch,
+            onRetry: retryAction
         )
     }
 
@@ -238,8 +233,6 @@ private final class FaceSearchNode: ASDisplayNode {
     var onChangePhotoPressed: (() -> Void)?
     var onFindPressed: (() -> Void)?
     var onFaceSelected: ((Int) -> Void)?
-
-    private let snackbar = DivoSnackbar()
 
     private let backButton: UIButton = {
         let button = UIButton(type: .custom)
@@ -376,6 +369,60 @@ private final class FaceSearchNode: ASDisplayNode {
         return label
     }()
 
+    // MARK: - Error state
+
+    private let errorContainer: UIView = {
+        let v = UIView()
+        v.isHidden = true
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let errorIconView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFit
+        iv.image = DivoImage.faceSearchError
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let errorTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? Font.bold(20)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let errorSubtitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let retrySearchButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.setTitle(DivoStrings.faceSearchRetrySearch, for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = Font.helveticaNeue(20)
+        button.backgroundColor = DivoColorPalette.accent
+        button.layer.cornerRadius = 28
+        button.isHidden = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addDivoPressState(.primary)
+        return button
+    }()
+
+    private var retryAction: (() -> Void)?
+    private var originalPhotoImage: UIImage?
+    private var isErrorVisible = false
+
     private var photoAspectConstraint: NSLayoutConstraint?
     private var photoTopConstraint: NSLayoutConstraint?
     private var photoCenterYConstraint: NSLayoutConstraint?
@@ -399,6 +446,7 @@ private final class FaceSearchNode: ASDisplayNode {
     }
 
     func updateImage(_ image: UIImage) {
+        originalPhotoImage = nil
         self.photoImageView.image = image
         self.currentImageSize = image.size
         applyAspectRatio(for: image)
@@ -432,6 +480,10 @@ private final class FaceSearchNode: ASDisplayNode {
 
         faceBanner.addSubview(faceBannerLabel)
 
+        errorContainer.addSubview(errorIconView)
+        errorContainer.addSubview(errorTitleLabel)
+        errorContainer.addSubview(errorSubtitleLabel)
+
         view.addSubview(backButton)
         view.addSubview(titleLabel)
         view.addSubview(photoContainer)
@@ -440,6 +492,8 @@ private final class FaceSearchNode: ASDisplayNode {
         view.addSubview(changePhotoButton)
         view.addSubview(findButton)
         view.addSubview(hintLabel)
+        view.addSubview(errorContainer)
+        view.addSubview(retrySearchButton)
 
         NSLayoutConstraint.activate([
             backButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: DivoDesignTokens.Spacing.s),
@@ -495,7 +549,35 @@ private final class FaceSearchNode: ASDisplayNode {
             findButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.l),
             findButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.l),
             findButton.heightAnchor.constraint(equalToConstant: 56),
+
+            retrySearchButton.bottomAnchor.constraint(equalTo: safeArea.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            retrySearchButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.l),
+            retrySearchButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.l),
+            retrySearchButton.heightAnchor.constraint(equalToConstant: 56),
+
+            errorContainer.topAnchor.constraint(greaterThanOrEqualTo: photoContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            errorContainer.bottomAnchor.constraint(lessThanOrEqualTo: retrySearchButton.topAnchor, constant: -DivoDesignTokens.Spacing.m),
+            errorContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.l),
+            errorContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.l),
+
+            errorIconView.topAnchor.constraint(equalTo: errorContainer.topAnchor),
+            errorIconView.centerXAnchor.constraint(equalTo: errorContainer.centerXAnchor),
+            errorIconView.widthAnchor.constraint(equalToConstant: 68),
+            errorIconView.heightAnchor.constraint(equalToConstant: 68),
+
+            errorTitleLabel.topAnchor.constraint(equalTo: errorIconView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            errorTitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor),
+            errorTitleLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor),
+
+            errorSubtitleLabel.topAnchor.constraint(equalTo: errorTitleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.xs),
+            errorSubtitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor),
+            errorSubtitleLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor),
+            errorSubtitleLabel.bottomAnchor.constraint(equalTo: errorContainer.bottomAnchor),
         ])
+
+        let errorResting = errorContainer.topAnchor.constraint(equalTo: photoContainer.bottomAnchor, constant: 60)
+        errorResting.priority = UILayoutPriority(250)
+        errorResting.isActive = true
 
         let preferredWidth = photoContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m)
         preferredWidth.priority = UILayoutPriority(750)
@@ -521,6 +603,7 @@ private final class FaceSearchNode: ASDisplayNode {
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         changePhotoButton.addTarget(self, action: #selector(changePhotoTapped), for: .touchUpInside)
         findButton.addTarget(self, action: #selector(findTapped), for: .touchUpInside)
+        retrySearchButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
 
         faceOverlayView.onFaceSelected = { [weak self] index in
             self?.onFaceSelected?(index)
@@ -530,6 +613,7 @@ private final class FaceSearchNode: ASDisplayNode {
     // MARK: - State Application
 
     func applyState(_ state: FaceDetectState) {
+        clearErrorIfNeeded()
         findButton.isHidden = false
         changePhotoButton.isHidden = false
         hintLabel.isHidden = false
@@ -633,6 +717,7 @@ private final class FaceSearchNode: ASDisplayNode {
 
     func setSearchLoading(_ loading: Bool) {
         if loading {
+            clearErrorIfNeeded()
             setScanningVisible(true)
             faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
             setSearchCenteredLayout(true)
@@ -642,6 +727,71 @@ private final class FaceSearchNode: ASDisplayNode {
             statusLabel.attributedText = nil
             statusLabel.text = nil
             statusLabel.alpha = 0
+        }
+    }
+
+    // MARK: - Error state
+
+    func applyError(
+        title: String,
+        subtitle: String,
+        retryTitle: String,
+        onRetry: @escaping () -> Void
+    ) {
+        isErrorVisible = true
+        retryAction = onRetry
+
+        errorTitleLabel.text = title.uppercased()
+        errorSubtitleLabel.text = subtitle
+        retrySearchButton.setTitle(retryTitle, for: .normal)
+
+        setScanningVisible(false)
+        setBannerVisible(false, animated: false)
+        setSearchCenteredLayout(false)
+
+        statusLabel.attributedText = nil
+        statusLabel.text = nil
+        statusLabel.alpha = 0
+        faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
+
+        findButton.isHidden = true
+        changePhotoButton.isHidden = true
+        hintLabel.isHidden = true
+
+        setPhotoDesaturated(true)
+
+        errorContainer.isHidden = false
+        retrySearchButton.isHidden = false
+        view.bringSubviewToFront(errorContainer)
+        view.bringSubviewToFront(retrySearchButton)
+    }
+
+    private func clearErrorIfNeeded() {
+        guard isErrorVisible else { return }
+        isErrorVisible = false
+        retryAction = nil
+        errorContainer.isHidden = true
+        retrySearchButton.isHidden = true
+        setPhotoDesaturated(false)
+    }
+
+    private func setPhotoDesaturated(_ desaturated: Bool) {
+        if desaturated {
+            guard originalPhotoImage == nil, let image = photoImageView.image else { return }
+            originalPhotoImage = image
+            guard let ci = CIImage(image: image) else { return }
+            let filter = CIFilter(name: "CIColorControls")
+            filter?.setValue(ci, forKey: kCIInputImageKey)
+            filter?.setValue(0.15, forKey: "inputSaturation")
+            filter?.setValue(-0.05, forKey: "inputBrightness")
+            guard let output = filter?.outputImage,
+                  let cg = CIContext().createCGImage(output, from: output.extent) else { return }
+            photoImageView.image = UIImage(cgImage: cg, scale: image.scale, orientation: image.imageOrientation)
+        } else {
+            if let original = originalPhotoImage {
+                photoImageView.image = original
+                originalPhotoImage = nil
+            }
         }
     }
 
@@ -762,28 +912,10 @@ private final class FaceSearchNode: ASDisplayNode {
         )
     }
 
-    // MARK: - Snackbar
-
-    func showSnackbar(message: String, retryAction: @escaping () -> Void) {
-        snackbar.show(
-            in: view,
-            message: message,
-            style: .error,
-            bottomInset: 0,
-            bottomAnchor: findButton.bottomAnchor,
-            retryTitle: DivoStrings.faceSearchRetry,
-            retryAction: retryAction,
-            persistent: true
-        )
-    }
-
-    func hideSnackbar() {
-        snackbar.hide(animated: true)
-    }
-
     // MARK: - Actions
 
     @objc private func backTapped() { onBackPressed?() }
     @objc private func changePhotoTapped() { onChangePhotoPressed?() }
     @objc private func findTapped() { onFindPressed?() }
+    @objc private func retryTapped() { retryAction?() }
 }

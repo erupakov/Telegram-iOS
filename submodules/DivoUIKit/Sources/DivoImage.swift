@@ -29,6 +29,7 @@ public enum DivoImage {
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
     public static var faceSearchEmpty: UIImage { load("DivoFaceSearchEmpty") }
+    public static var faceSearchError: UIImage { load("DivoFaceSearchError") }
     public static var faceSearchInfo: UIImage { load("DivoFaceSearchInfo") }
     public static var filmstripIcon: UIImage { load("DivoFilmstripIcon") }
     public static var genderIcon: UIImage { load("DivoGenderIcon") }
