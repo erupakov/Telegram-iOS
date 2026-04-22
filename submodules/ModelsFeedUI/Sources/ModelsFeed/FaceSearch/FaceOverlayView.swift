@@ -12,7 +12,6 @@ final class FaceOverlayView: UIView {
     private var bracketLayers: [(index: Int, layers: [CAShapeLayer])] = []
     private var dimmingLayer: CAShapeLayer?
     private var selectionBorderLayer: CAShapeLayer?
-    private var errorBorderLayer: CAShapeLayer?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -41,9 +40,6 @@ final class FaceOverlayView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         rebuildOverlay()
-        if errorBorderLayer != nil {
-            rebuildErrorBorder()
-        }
     }
 
     // MARK: - Drawing
@@ -205,45 +201,5 @@ final class FaceOverlayView: UIView {
         if let face = bestFace {
             onFaceSelected?(face.index)
         }
-    }
-}
-
-// MARK: - Error border
-
-extension FaceOverlayView {
-
-    func showErrorBorder() {
-        faces = []
-        selectedIndex = nil
-        bracketLayers.forEach { $0.layers.forEach { $0.removeFromSuperlayer() } }
-        bracketLayers.removeAll()
-        dimmingLayer?.removeFromSuperlayer()
-        dimmingLayer = nil
-        selectionBorderLayer?.removeFromSuperlayer()
-        selectionBorderLayer = nil
-
-        rebuildErrorBorder()
-    }
-
-    func clearErrorBorder() {
-        errorBorderLayer?.removeFromSuperlayer()
-        errorBorderLayer = nil
-    }
-
-    private func rebuildErrorBorder() {
-        errorBorderLayer?.removeFromSuperlayer()
-
-        let inset: CGFloat = 60
-        let rect = bounds.insetBy(dx: inset, dy: inset)
-        guard rect.width > 0, rect.height > 0 else { return }
-
-        let shape = CAShapeLayer()
-        let cornerRadius = min(rect.width, rect.height) * 0.06
-        shape.path = UIBezierPath(roundedRect: rect, cornerRadius: cornerRadius).cgPath
-        shape.strokeColor = DivoColorPalette.errorState.cgColor
-        shape.fillColor = nil
-        shape.lineWidth = 2
-        layer.addSublayer(shape)
-        errorBorderLayer = shape
     }
 }

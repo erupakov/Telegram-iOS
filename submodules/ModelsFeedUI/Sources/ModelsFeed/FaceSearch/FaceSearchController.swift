@@ -134,13 +134,13 @@ public final class FaceSearchController: ViewController {
                     self.transition(to: .multipleFaces(response.faces, selected: nil))
                 }
             } catch {
-                if Self.isNoFaceError(error) {
-                    self.transition(to: .noFaces)
-                } else {
+                if Self.isConnectionFailure(error) {
                     self.transition(to: .idle)
                     self.showNetworkError(error) { [weak self] in
                         self?.runDetect()
                     }
+                } else {
+                    self.transition(to: .noFaces)
                 }
             }
         }
@@ -190,12 +190,14 @@ public final class FaceSearchController: ViewController {
         }
     }
 
-    private static func isNoFaceError(_ error: Error) -> Bool {
-        guard let apiError = error as? DivoAPIError,
-              case .httpError(statusCode: 400, body: let body) = apiError else {
-            return false
+    private static func isConnectionFailure(_ error: Error) -> Bool {
+        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
+            return true
         }
-        return body.contains("No face detected") || body.contains("no face")
+        if error is URLError {
+            return true
+        }
+        return false
     }
 
     private func showNetworkError(_ error: Error, retryAction: @escaping () -> Void) {
@@ -388,7 +390,6 @@ private final class FaceSearchNode: ASDisplayNode {
         self.photoImageView.image = image
         self.currentImageSize = image.size
         applyAspectRatio(for: image)
-        faceOverlayView.clearErrorBorder()
         faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
         faceBanner.isHidden = true
         applyState(.idle)
@@ -511,7 +512,6 @@ private final class FaceSearchNode: ASDisplayNode {
     // MARK: - State Application
 
     func applyState(_ state: FaceDetectState) {
-        faceOverlayView.clearErrorBorder()
         findButton.isHidden = false
         changePhotoButton.isHidden = false
         hintLabel.isHidden = false
@@ -551,7 +551,7 @@ private final class FaceSearchNode: ASDisplayNode {
             changePhotoButton.isEnabled = true
             hintLabel.attributedText = makeBottomText(DivoStrings.faceSearchSortedByScore)
             hintLabel.alpha = 1
-            faceOverlayView.showErrorBorder()
+            faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
 
         case .singleFace(let face):
             setScanningVisible(false)
