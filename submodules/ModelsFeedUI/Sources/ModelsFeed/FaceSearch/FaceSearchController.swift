@@ -42,7 +42,6 @@ public final class FaceSearchController: ViewController {
     private var presentationData: PresentationData
     private var selectedImage: UIImage
     private var detectState: FaceDetectState = .idle
-    private var detectResponse: FRDetectResponse?
     private var isSearching = false
 
     var onChangePhoto: (() -> Void)?
@@ -96,7 +95,6 @@ public final class FaceSearchController: ViewController {
 
     public func updateImage(_ image: UIImage) {
         self.selectedImage = image
-        self.detectResponse = nil
         (self.displayNode as? FaceSearchNode)?.updateImage(image)
         runDetect()
     }
@@ -126,7 +124,6 @@ public final class FaceSearchController: ViewController {
                     fileData: imageData
                 )
                 guard let self else { return }
-                self.detectResponse = response
 
                 switch response.faces.count {
                 case 0:
@@ -569,6 +566,7 @@ private final class FaceSearchNode: ASDisplayNode {
             errorTitleLabel.topAnchor.constraint(equalTo: errorIconView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             errorTitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor),
             errorTitleLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor),
+            errorTitleLabel.heightAnchor.constraint(greaterThanOrEqualToConstant: 30),
 
             errorSubtitleLabel.topAnchor.constraint(equalTo: errorTitleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.xs),
             errorSubtitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor),

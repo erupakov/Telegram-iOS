@@ -154,7 +154,7 @@ public enum DivoColorPalette {
     public static let emptySubtitleText = UIColor(white: 0.4, alpha: 1)
     public static let emptyPrimaryDark = UIColor(white: 0.1, alpha: 1)
     public static let emptySubtitleLight = UIColor(white: 0.5, alpha: 1)
-    public static let emptyCircleBackground = UIColor(white: 0.95, alpha: 1.0)
+    public static let emptyCircleBackground = UIColor(white: 1.0, alpha: 0.8) // #FFFFFFCC
     public static let emptyIconTint = UIColor(white: 0.4, alpha: 1.0)
     public static let placeholderCardBackground = UIColor(white: 0.96, alpha: 1)
     /// #E6E6E6 — skeleton-плейсхолдер (search grid, filter bar).

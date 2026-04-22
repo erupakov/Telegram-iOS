@@ -103,7 +103,7 @@ final class SearchResultGridCell: UICollectionViewCell {
 
     private let matchPercentContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
@@ -400,9 +400,9 @@ final class SearchResultGridCell: UICollectionViewCell {
     func configure(with item: SearchUserDTO, county: String?) {
         let infoText: String?
         if let age = item.user?.age, let county = county {
-            infoText = "\(age) y.o" + " • " + county
+            infoText = DivoStrings.ageString(age) + " • " + county
         } else if let age = item.user?.age {
-            infoText = "\(age) y.o"
+            infoText = DivoStrings.ageString(age)
         } else {
             infoText = county
         }
@@ -446,9 +446,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         applyVariant(viewModel.variant, role: viewModel.roleLabel)
 
         if let url = viewModel.imageURL {
-            backgroundImageView.loadImage(from: url) { [weak self] image in
-                self?.backgroundImageView.applyAvatarTopCropIfNeeded(image: image)
-            }
+            backgroundImageView.loadImage(from: url)
         }
 
         DispatchQueue.main.async { [weak self] in
@@ -473,10 +471,11 @@ final class SearchResultGridCell: UICollectionViewCell {
             likesContainer.isHidden = true
 
             let percentInt = Int((percent * 100).rounded())
-            matchPercentLabel.text = "\(percentInt)% match"
-            matchPercentLabel.textColor = percentInt < 89 ? DivoColorPalette.matchPercentMuted : DivoColorPalette.accent
+            let isHighMatch = percentInt >= 90
+            matchPercentLabel.text = DivoStrings.faceSearchMatchPercentBadge(percentInt)
+            matchPercentLabel.textColor = isHighMatch ? DivoColorPalette.accent : DivoColorPalette.matchPercentMuted
             matchPercentContainer.isHidden = false
-            if percentInt > 90 {
+            if isHighMatch {
                 matchPercentContainer.layer.borderWidth = 2
                 matchPercentContainer.layer.borderColor = DivoColorPalette.accent.cgColor
             } else {

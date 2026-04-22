@@ -318,7 +318,7 @@ public class ModelsSearchController: ViewController {
 
         let profileModel = ProfileModel(
             name: user.title,
-            age: user.user?.age ?? 0,
+            age: user.user?.age,
             location: user.user?.city?.name ?? "",
             isVerified: false,
             likesCount: "\(user.likesCount ?? 0)",

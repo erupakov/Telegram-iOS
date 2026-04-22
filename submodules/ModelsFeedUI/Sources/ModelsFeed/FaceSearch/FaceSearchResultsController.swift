@@ -65,7 +65,7 @@ final class FaceSearchResultsController: ViewController {
         let mainImageURL = result.image.flatMap(URL.init(string:))
         let model = ProfileModel(
             name: result.fullName ?? "",
-            age: FaceSearchResultsMapper.computeAge(from: result.birthday) ?? 0,
+            age: FaceSearchResultsMapper.computeAge(from: result.birthday),
             location: FaceSearchResultsMapper.hardcodedCountry,
             isVerified: false,
             likesCount: "0",
@@ -102,7 +102,7 @@ enum FaceSearchResultsMapper {
         let age = computeAge(from: result.birthday)
         let infoText: String
         if let age {
-            infoText = "\(age) y.o" + " • " + hardcodedCountry
+            infoText = DivoStrings.ageString(age) + " • " + hardcodedCountry
         } else {
             infoText = hardcodedCountry
         }
@@ -137,18 +137,6 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     private let backButton: UIButton = {
         let button = UIButton(type: .custom)
         button.setImage(DivoImage.searchChevronLeft, for: .normal)
-        button.tintColor = DivoColorPalette.primaryText
-        button.backgroundColor = DivoColorPalette.cardBackground
-        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        button.layer.applyDivoShadow()
-        button.addDivoPressState(.pill)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
-    private let filterButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.setImage(DivoImage.searchFilterIcon, for: .normal)
         button.tintColor = DivoColorPalette.primaryText
         button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
@@ -260,7 +248,6 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
 
         view.addSubview(backButton)
         view.addSubview(titleLabel)
-        view.addSubview(filterButton)
         view.addSubview(avatarImageView)
         view.addSubview(headerLabel)
         view.addSubview(profilesFoundLabel)
@@ -273,11 +260,6 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
             backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             backButton.widthAnchor.constraint(equalToConstant: 40),
             backButton.heightAnchor.constraint(equalToConstant: 40),
-
-            filterButton.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
-            filterButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            filterButton.widthAnchor.constraint(equalToConstant: 40),
-            filterButton.heightAnchor.constraint(equalToConstant: 40),
 
             titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
