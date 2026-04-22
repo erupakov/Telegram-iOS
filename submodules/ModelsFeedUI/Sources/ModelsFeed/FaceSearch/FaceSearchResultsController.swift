@@ -219,6 +219,8 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.backgroundColor = .clear
         cv.alwaysBounceVertical = true
+        cv.showsVerticalScrollIndicator = false
+        cv.showsHorizontalScrollIndicator = false
         cv.register(SearchResultGridCell.self, forCellWithReuseIdentifier: "FaceMatchCell")
         cv.dataSource = self
         cv.delegate = self

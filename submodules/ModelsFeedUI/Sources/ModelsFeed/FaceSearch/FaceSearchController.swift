@@ -704,12 +704,24 @@ private final class FaceSearchNode: ASDisplayNode {
 
         changeTopWithBanner?.isActive = visible
 
+        if visible {
+            faceBanner.transform = CGAffineTransform(translationX: 0, y: -6)
+        }
+
         let block = {
             self.faceBanner.alpha = targetAlpha
+            self.faceBanner.transform = .identity
             self.view.layoutIfNeeded()
         }
         if animated {
-            UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut], animations: block)
+            UIView.animate(
+                withDuration: 0.5,
+                delay: 0,
+                usingSpringWithDamping: 0.88,
+                initialSpringVelocity: 0.2,
+                options: [.curveEaseInOut, .allowUserInteraction],
+                animations: block
+            )
         } else {
             block()
         }
