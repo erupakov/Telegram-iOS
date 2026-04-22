@@ -266,7 +266,6 @@ public final class FilterOptionsController: UIViewController {
     private func updateDeleteButtonState() {
         let isDefault = selectedOptionIds.isEmpty
         deleteButton.isEnabled = !isDefault
-        deleteButton.backgroundColor = isDefault ? DivoColorPalette.buttonDisabledBackground : DivoColorPalette.secondaryButtonBackground
     }
 
     private func createOptionCell(option: FilterOptionItem, isSelected: Bool, isLast: Bool) -> UIView {

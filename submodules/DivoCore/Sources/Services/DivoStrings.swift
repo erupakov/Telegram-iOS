@@ -148,14 +148,16 @@ public enum DivoStrings {
     public static var faceSearchInfoButton: String { L(en: "Got it, let's search", ru: "Понятно, начать поиск", es: "Entendido, buscar", pt: "Entendi, vamos buscar", zh: "明白了，开始搜索") }
     public static var faceSearchScreenTitle: String { L(en: "FACE SEARCH", ru: "ПОИСК ПО ФОТО", es: "BÚSQUEDA FACIAL", pt: "BUSCA FACIAL", zh: "人脸搜索") }
     public static var faceSearchChangePhoto: String { L(en: "Change photo", ru: "Изменить фото", es: "Cambiar foto", pt: "Alterar foto", zh: "更换照片") }
+    public static var faceSearchTryDifferentPhoto: String { L(en: "Try a different photo", ru: "Попробовать другое фото", es: "Probar con otra foto", pt: "Tentar outra foto", zh: "尝试其他照片") }
     public static var faceSearchFindProfiles: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Buscar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似档案") }
     public static var faceSearchSortedByScore: String { L(en: "Results are sorted by visual similarity score", ru: "Результаты отсортированы по степени сходства", es: "Resultados ordenados por similitud visual", pt: "Resultados ordenados por pontuação de similaridade", zh: "结果按视觉相似度排序") }
     public static var faceSearchNoFacesTitle: String { L(en: "No faces found", ru: "Лица не найдены", es: "No se encontraron rostros", pt: "Nenhum rosto encontrado", zh: "未找到人脸") }
     public static var faceSearchNoFacesMessage: String { L(en: "We couldn't detect any faces in this photo. Please try another one.", ru: "Не удалось распознать лица на этом фото. Попробуйте другое.", es: "No pudimos detectar rostros en esta foto. Intenta con otra.", pt: "Não conseguimos detectar rostos nesta foto. Tente outra.", zh: "未能在此照片中检测到人脸，请尝试其他照片。") }
     public static var faceSearchErrorTitle: String { L(en: "Search error", ru: "Ошибка поиска", es: "Error de búsqueda", pt: "Erro de busca", zh: "搜索错误") }
     public static var faceSearchResultsTitle: String { L(en: "Results", ru: "Результаты", es: "Resultados", pt: "Resultados", zh: "结果") }
-    public static var faceSearchNoResults: String { L(en: "No similar profiles found", ru: "Похожие профили не найдены", es: "No se encontraron perfiles similares", pt: "Nenhum perfil semelhante encontrado", zh: "未找到相似档案") }
+    public static var faceSearchNoResults: String { L(en: "No matching profiles found", ru: "Подходящие профили не найдены", es: "No se encontraron perfiles coincidentes", pt: "Nenhum perfil correspondente encontrado", zh: "未找到匹配的档案") }
     public static var faceSearchMatchPercent: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配") }
+    public static func faceSearchMatchPercentBadge(_ percent: Int) -> String { L(en: "\(percent)% match", ru: "\(percent)% сходство", es: "\(percent)% coincidencia", pt: "\(percent)% similaridade", zh: "\(percent)% 匹配") }
     public static var faceSearchScanning: String { L(en: "Analysing facial features...", ru: "Анализируем черты лица...", es: "Analizando rasgos faciales...", pt: "Analisando características faciais...", zh: "正在分析面部特征...") }
     public static var faceSearchNoFaceDetected: String { L(en: "No face detected", ru: "Лицо не обнаружено", es: "No se detectó rostro", pt: "Nenhum rosto detectado", zh: "未检测到人脸") }
     public static var faceSearchNoFaceTip: String { L(en: "Try a photo with a clearly visible face", ru: "Попробуйте фото с чётко видимым лицом", es: "Prueba con una foto donde el rostro sea visible", pt: "Tente uma foto com o rosto claramente visível", zh: "请尝试使用面部清晰可见的照片") }
@@ -165,9 +167,19 @@ public enum DivoStrings {
     public static var faceSearchFaceSelected: String { L(en: "Face selected — ready to search", ru: "Лицо выбрано — готово к поиску", es: "Rostro seleccionado — listo para buscar", pt: "Rosto selecionado — pronto para buscar", zh: "已选择人脸 - 准备搜索") }
     public static func faceSearchMultipleFaces(_ count: Int) -> String { L(en: "\(count) faces detected — tap one to search", ru: "Обнаружено лиц: \(count) — нажмите для поиска", es: "\(count) rostros detectados — toca uno para buscar", pt: "\(count) rostos detectados — toque em um para buscar", zh: "检测到\(count)张人脸 - 点击选择") }
     public static var faceSearchRetry: String { L(en: "Retry", ru: "Повторить", es: "Reintentar", pt: "Tentar novamente", zh: "重试") }
+    public static var faceSearchRetrySearch: String { L(en: "Retry search", ru: "Повторить поиск", es: "Reintentar búsqueda", pt: "Tentar busca novamente", zh: "重新搜索") }
     public static var faceSearchErrorNoInternet: String { L(en: "No internet connection", ru: "Нет подключения к интернету", es: "Sin conexión a internet", pt: "Sem conexão com a internet", zh: "无网络连接") }
     public static var faceSearchErrorGeneric: String { L(en: "Something went wrong", ru: "Что-то пошло не так", es: "Algo salió mal", pt: "Algo deu errado", zh: "出了点问题") }
     public static var faceSearchErrorTip: String { L(en: "Check your connection and try again", ru: "Проверьте соединение и попробуйте снова", es: "Verifica tu conexión e intenta de nuevo", pt: "Verifique sua conexão e tente novamente", zh: "请检查网络连接并重试") }
+    public static var faceSearchInterruptedTitle: String { L(en: "Search interrupted", ru: "Поиск прерван", es: "Búsqueda interrumpida", pt: "Busca interrompida", zh: "搜索已中断") }
+    public static var faceSearchInterruptedSubtitle: String { L(en: "Connection lost during analysis. Photo is ready — just retry", ru: "Соединение потеряно при анализе. Фото готово — просто повторите", es: "Se perdió la conexión durante el análisis. La foto está lista — solo reinténtalo", pt: "Conexão perdida durante a análise. A foto está pronta — é só tentar novamente", zh: "分析过程中连接中断。照片已就绪 — 请重试") }
+    public static var faceSearchSimilarProfilesTitle: String { L(en: "Similar profiles", ru: "Похожие профили", es: "Perfiles similares", pt: "Perfis semelhantes", zh: "相似档案") }
+    public static func faceSearchResultsCount(_ count: Int) -> String { L(en: "\(count) results", ru: "Результатов: \(count)", es: "\(count) resultados", pt: "\(count) resultados", zh: "\(count) 个结果") }
+    public static func faceSearchSimilarityThreshold(_ percent: Int) -> String { L(en: "Similarity \(percent)%+", ru: "Сходство от \(percent)%", es: "Similitud \(percent)%+", pt: "Similaridade \(percent)%+", zh: "相似度 \(percent)%+") }
+    public static func faceSearchProfilesFound(_ count: Int) -> String { L(en: "\(count) profiles found", ru: "Найдено профилей: \(count)", es: "\(count) perfiles encontrados", pt: "\(count) perfis encontrados", zh: "找到 \(count) 个档案") }
+    public static var faceSearchSortedBy: String { L(en: "Sorted by:", ru: "Сортировка:", es: "Ordenado por:", pt: "Ordenado por:", zh: "排序依据：") }
+    public static var faceSearchSortMatch: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配度") }
+    public static var faceSearchNoResultsSubtitle: String { L(en: "We couldn't find profiles visually similar to this photo. Try a different photo with a clearer, front-facing face.", ru: "Мы не нашли профили, визуально похожие на это фото. Попробуйте другое фото — с чётко видимым лицом, смотрящим в камеру.", es: "No encontramos perfiles visualmente similares a esta foto. Prueba con otra foto que muestre un rostro más claro, mirando de frente.", pt: "Não encontramos perfis visualmente semelhantes a esta foto. Tente outra foto com o rosto mais nítido e voltado para a câmera.", zh: "未找到与此照片视觉上相似的档案。请尝试使用面部更清晰、正面朝向的其他照片。") }
 
     // MARK: - Roles
 

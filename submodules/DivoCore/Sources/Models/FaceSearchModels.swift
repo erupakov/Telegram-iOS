@@ -41,8 +41,36 @@ public struct FRFaceInfo: Decodable {
 }
 
 public struct FRSearchResult: Decodable {
+    public let userId: Int?
+    public let fullName: String?
+    public let birthday: String?
+    public let cityId: Int?
     public let image: String?
     public let index: Int?
     public let rank: Int?
     public let score: Double
+
+    private enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case fullName = "full_name"
+        case birthday
+        case cityId = "city_id"
+        case image
+        case index
+        case rank
+        case score
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.userId = try container.decodeIfPresent(Int.self, forKey: .userId)
+        self.fullName = try container.decodeIfPresent(String.self, forKey: .fullName)
+        let rawBirthday = try container.decodeIfPresent(String.self, forKey: .birthday)
+        self.birthday = (rawBirthday == "null") ? nil : rawBirthday
+        self.cityId = try container.decodeIfPresent(Int.self, forKey: .cityId)
+        self.image = try container.decodeIfPresent(String.self, forKey: .image)
+        self.index = try container.decodeIfPresent(Int.self, forKey: .index)
+        self.rank = try container.decodeIfPresent(Int.self, forKey: .rank)
+        self.score = try container.decode(Double.self, forKey: .score)
+    }
 }

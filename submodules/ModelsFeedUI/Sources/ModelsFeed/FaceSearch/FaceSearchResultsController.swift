@@ -6,17 +6,28 @@ import AccountContext
 import TelegramPresentationData
 import DivoCore
 import DivoUIKit
+import ProfileScreenUI
 
 final class FaceSearchResultsController: ViewController {
     private let context: AccountContext
     private let results: [FRSearchResult]
+    private let sourceImage: UIImage?
+    private let faceBBox: FRBoundingBox?
+    private let threshold: Double
 
-    init(context: AccountContext, results: [FRSearchResult]) {
+    init(
+        context: AccountContext,
+        results: [FRSearchResult],
+        sourceImage: UIImage?,
+        faceBBox: FRBoundingBox?,
+        threshold: Double
+    ) {
         self.context = context
         self.results = results
-        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        self.sourceImage = sourceImage
+        self.faceBBox = faceBBox
+        self.threshold = threshold
         super.init(navigationBarPresentationData: nil)
-        _ = presentationData
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -24,7 +35,12 @@ final class FaceSearchResultsController: ViewController {
     }
 
     override func loadDisplayNode() {
-        let node = FaceSearchResultsNode(results: self.results)
+        let node = FaceSearchResultsNode(
+            results: self.results,
+            sourceImage: self.sourceImage,
+            faceBBox: self.faceBBox,
+            threshold: self.threshold
+        )
         node.onBackPressed = { [weak self] in
             guard let self else { return }
             if let nav = self.navigationController as? NavigationController {
@@ -32,6 +48,9 @@ final class FaceSearchResultsController: ViewController {
             } else {
                 self.dismiss()
             }
+        }
+        node.onResultTapped = { [weak self] result in
+            self?.openProfile(for: result)
         }
         self.displayNode = node
         self.displayNodeDidLoad()
@@ -41,14 +60,79 @@ final class FaceSearchResultsController: ViewController {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
     }
+
+    private func openProfile(for result: FRSearchResult) {
+        let mainImageURL = result.image.flatMap(URL.init(string:))
+        let model = ProfileModel(
+            name: result.fullName ?? "",
+            age: FaceSearchResultsMapper.computeAge(from: result.birthday),
+            location: FaceSearchResultsMapper.hardcodedCountry,
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: result.userId,
+            role: nil,
+            mainImageURL: mainImageURL,
+            avatarImageURL: mainImageURL
+        )
+        let controller = PublicProfileScreenController(context: self.context, model: model)
+        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+    }
+}
+
+// MARK: - Mapper
+
+enum FaceSearchResultsMapper {
+    static let hardcodedCountry = "🇺🇸 USA"
+    static let rolePlaceholder = "Ждём сервер"
+
+    static func computeAge(from birthday: String?) -> Int? {
+        guard let birthday, !birthday.isEmpty else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        guard let date = formatter.date(from: birthday) else { return nil }
+        return Calendar.current.dateComponents([.year], from: date, to: Date()).year
+    }
+
+    static func viewModel(from result: FRSearchResult) -> SearchCardViewModel {
+        let age = computeAge(from: result.birthday)
+        let infoText: String
+        if let age {
+            infoText = DivoStrings.ageString(age) + " • " + hardcodedCountry
+        } else {
+            infoText = hardcodedCountry
+        }
+        return SearchCardViewModel(
+            variant: .faceMatch(percent: result.score),
+            feedId: nil,
+            userId: result.userId,
+            name: result.fullName,
+            infoText: infoText,
+            roleLabel: rolePlaceholder,
+            likesCount: 0,
+            isLikedByUser: false,
+            isFavoriteByUser: false,
+            imageURL: result.image.flatMap(URL.init(string:))
+        )
+    }
 }
 
 // MARK: - Node
 
 private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     var onBackPressed: (() -> Void)?
+    var onResultTapped: ((FRSearchResult) -> Void)?
 
     private let results: [FRSearchResult]
+    private let sourceImage: UIImage?
+    private let faceBBox: FRBoundingBox?
+    private let threshold: Double
+
+    // MARK: Top bar
 
     private let backButton: UIButton = {
         let button = UIButton(type: .custom)
@@ -65,7 +149,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.attributedText = NSAttributedString(
-            string: DivoStrings.faceSearchResultsTitle.uppercased(),
+            string: DivoStrings.faceSearchSimilarProfilesTitle.uppercased(),
             attributes: [
                 .font: Font.helveticaNeue(20),
                 .foregroundColor: DivoColorPalette.primaryText,
@@ -77,46 +161,86 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         return label
     }()
 
+    // MARK: Header row (avatar + results count + threshold)
+
+    private let avatarImageView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFill
+        iv.clipsToBounds = true
+        iv.layer.cornerRadius = 26
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let headerLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(20)
+        label.textColor = DivoColorPalette.primaryText
+        label.numberOfLines = 1
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    // MARK: Sub-header ("N profiles found" + "Sorted by: match")
+
+    private let profilesFoundLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(16)
+        label.textColor = DivoColorPalette.primaryText
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let sortedByLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+        label.numberOfLines = 1
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    // MARK: Grid + empty
+
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
-        layout.minimumInteritemSpacing = DivoDesignTokens.Spacing.s
-        layout.minimumLineSpacing = DivoDesignTokens.Spacing.m
-        layout.sectionInset = UIEdgeInsets(
-            top: DivoDesignTokens.Spacing.m,
-            left: DivoDesignTokens.Spacing.m,
-            bottom: DivoDesignTokens.Spacing.m,
-            right: DivoDesignTokens.Spacing.m
-        )
+        layout.scrollDirection = .vertical
+        layout.minimumInteritemSpacing = 10
+        layout.minimumLineSpacing = 10
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.backgroundColor = .clear
-        cv.register(FaceSearchResultCell.self, forCellWithReuseIdentifier: FaceSearchResultCell.reuseId)
+        cv.alwaysBounceVertical = true
+        cv.showsVerticalScrollIndicator = false
+        cv.showsHorizontalScrollIndicator = false
+        cv.register(SearchResultGridCell.self, forCellWithReuseIdentifier: "FaceMatchCell")
         cv.dataSource = self
         cv.delegate = self
         cv.translatesAutoresizingMaskIntoConstraints = false
         return cv
     }()
 
-    private let emptyLabel: UILabel = {
-        let label = UILabel()
-        label.text = DivoStrings.faceSearchNoResults
-        label.textColor = DivoColorPalette.secondaryText
-        label.font = Font.regular(15)
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.isHidden = true
-        return label
+    private let emptyStateView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
     }()
 
-    init(results: [FRSearchResult]) {
+    init(results: [FRSearchResult], sourceImage: UIImage?, faceBBox: FRBoundingBox?, threshold: Double) {
         self.results = results
+        self.sourceImage = sourceImage
+        self.faceBBox = faceBBox
+        self.threshold = threshold
         super.init()
-        self.backgroundColor = DivoColorPalette.cardBackground
+        self.backgroundColor = DivoColorPalette.screenBackground
     }
 
     override func didLoad() {
         super.didLoad()
         setupUI()
-        emptyLabel.isHidden = !results.isEmpty
+        applyContent()
     }
 
     private func setupUI() {
@@ -124,8 +248,12 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
 
         view.addSubview(backButton)
         view.addSubview(titleLabel)
+        view.addSubview(avatarImageView)
+        view.addSubview(headerLabel)
+        view.addSubview(profilesFoundLabel)
+        view.addSubview(sortedByLabel)
         view.addSubview(collectionView)
-        view.addSubview(emptyLabel)
+        view.addSubview(emptyStateView)
 
         NSLayoutConstraint.activate([
             backButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: DivoDesignTokens.Spacing.s),
@@ -136,16 +264,89 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
             titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            collectionView.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
+            avatarImageView.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            avatarImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            avatarImageView.widthAnchor.constraint(equalToConstant: 52),
+            avatarImageView.heightAnchor.constraint(equalToConstant: 52),
+
+            headerLabel.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
+            headerLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            headerLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            profilesFoundLabel.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            profilesFoundLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+
+            sortedByLabel.centerYAnchor.constraint(equalTo: profilesFoundLabel.centerYAnchor),
+            sortedByLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            collectionView.topAnchor.constraint(equalTo: profilesFoundLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            emptyStateView.topAnchor.constraint(equalTo: backButton.bottomAnchor),
+            emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            emptyStateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
+        collectionView.contentInset = UIEdgeInsets(
+            top: 0,
+            left: DivoDesignTokens.Spacing.m,
+            bottom: DivoDesignTokens.Spacing.m,
+            right: DivoDesignTokens.Spacing.m
+        )
+
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
+    }
+
+    private func applyContent() {
+        if let sourceImage, let faceBBox {
+            avatarImageView.image = Self.cropFaceSquare(from: sourceImage, bbox: faceBBox, padding: 16)
+        } else {
+            avatarImageView.image = sourceImage
+        }
+
+        let percent = Int((threshold * 100).rounded())
+        let resultsCountText = DivoStrings.faceSearchResultsCount(results.count)
+        let thresholdText = DivoStrings.faceSearchSimilarityThreshold(percent)
+        headerLabel.text = "\(resultsCountText) · \(thresholdText)"
+
+        profilesFoundLabel.text = DivoStrings.faceSearchProfilesFound(results.count)
+
+        let sortedByAttr = NSMutableAttributedString(
+            string: DivoStrings.faceSearchSortedBy + " ",
+            attributes: [.foregroundColor: DivoColorPalette.systemLabelPlaceholder]
+        )
+        sortedByAttr.append(NSAttributedString(
+            string: DivoStrings.faceSearchSortMatch,
+            attributes: [.foregroundColor: DivoColorPalette.primaryText]
+        ))
+        sortedByLabel.attributedText = sortedByAttr
+
+        if results.isEmpty {
+            showEmptyState()
+        }
+    }
+
+    private func showEmptyState() {
+        collectionView.isHidden = true
+        avatarImageView.isHidden = true
+        headerLabel.isHidden = true
+        profilesFoundLabel.isHidden = true
+        sortedByLabel.isHidden = true
+        emptyStateView.isHidden = false
+
+        emptyStateView.configure(DivoEmptyStateView.Configuration(
+            icon: DivoImage.faceSearchEmpty,
+            title: DivoStrings.faceSearchNoResults,
+            subtitle: DivoStrings.faceSearchNoResultsSubtitle,
+            ctaTitle: DivoStrings.faceSearchTryDifferentPhoto,
+            onCTATapped: { [weak self] in
+                self?.onBackPressed?()
+            }
+        ))
+        emptyStateView.animateAppearance()
     }
 
     @objc private func backTapped() { onBackPressed?() }
@@ -157,121 +358,52 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: FaceSearchResultCell.reuseId, for: indexPath) as! FaceSearchResultCell
-        cell.configure(with: results[indexPath.item])
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FaceMatchCell", for: indexPath) as! SearchResultGridCell
+        let result = results[indexPath.item]
+        cell.configure(with: FaceSearchResultsMapper.viewModel(from: result))
         return cell
     }
 
     // MARK: - UICollectionViewDelegateFlowLayout
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let spacing = DivoDesignTokens.Spacing.s + DivoDesignTokens.Spacing.m * 2
-        let width = (collectionView.bounds.width - spacing) / 2
-        return CGSize(width: width, height: width * 1.4)
+        let gap: CGFloat = 10
+        let sideInsets = DivoDesignTokens.Spacing.m * 2
+        let width = (collectionView.bounds.width - gap - sideInsets) / 2
+        return CGSize(width: width, height: 240)
     }
 
-}
-
-// MARK: - Cell
-
-private final class FaceSearchResultCell: UICollectionViewCell {
-    static let reuseId = "FaceSearchResultCell"
-
-    private let imageView: UIImageView = {
-        let iv = UIImageView()
-        iv.contentMode = .scaleAspectFill
-        iv.clipsToBounds = true
-        iv.translatesAutoresizingMaskIntoConstraints = false
-        return iv
-    }()
-
-    private let scoreLabel: UILabel = {
-        let label = UILabel()
-        label.font = Font.helveticaNeue(14)
-        label.textColor = DivoColorPalette.primaryTextOnDark
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-    }()
-
-    private let gradientView: UIView = {
-        let v = UIView()
-        v.translatesAutoresizingMaskIntoConstraints = false
-        v.isUserInteractionEnabled = false
-        return v
-    }()
-
-    private var gradientLayer: CAGradientLayer?
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        setupUI()
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard indexPath.item < results.count else { return }
+        onResultTapped?(results[indexPath.item])
     }
 
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    // MARK: - Helpers
 
-    override var isHighlighted: Bool {
-        didSet {
-            UIView.animate(withDuration: isHighlighted ? 0.25 : 0.4, delay: 0, options: [.curveEaseInOut, .allowUserInteraction]) {
-                self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.96, y: 0.96) : .identity
-            }
+    private static func cropFaceSquare(from image: UIImage, bbox: FRBoundingBox, padding: CGFloat) -> UIImage {
+        let imageSize = image.size
+        guard imageSize.width > 0, imageSize.height > 0 else { return image }
+
+        let faceWidth = CGFloat(bbox.x2 - bbox.x1)
+        let faceHeight = CGFloat(bbox.y2 - bbox.y1)
+        let side = max(faceWidth, faceHeight) + 2 * padding
+
+        let centerX = CGFloat(bbox.x1 + bbox.x2) / 2
+        let centerY = CGFloat(bbox.y1 + bbox.y2) / 2
+
+        var cropX = centerX - side / 2
+        var cropY = centerY - side / 2
+        var cropSide = side
+
+        cropX = max(0, cropX)
+        cropY = max(0, cropY)
+        cropSide = min(cropSide, imageSize.width - cropX)
+        cropSide = min(cropSide, imageSize.height - cropY)
+        guard cropSide > 0 else { return image }
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: cropSide, height: cropSide))
+        return renderer.image { _ in
+            image.draw(at: CGPoint(x: -cropX, y: -cropY))
         }
-    }
-
-    private func setupUI() {
-        contentView.layer.cornerRadius = DivoDesignTokens.Radius.l
-        contentView.clipsToBounds = true
-        contentView.backgroundColor = DivoColorPalette.imagePlaceholderDark
-
-        contentView.addSubview(imageView)
-        contentView.addSubview(gradientView)
-        contentView.addSubview(scoreLabel)
-
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-
-            gradientView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            gradientView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            gradientView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            gradientView.heightAnchor.constraint(equalTo: contentView.heightAnchor, multiplier: 0.3),
-
-            scoreLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.s),
-            scoreLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
-            scoreLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
-        ])
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        if gradientLayer == nil {
-            let gl = CAGradientLayer()
-            gl.colors = [UIColor.clear.cgColor, UIColor.black.withAlphaComponent(0.6).cgColor]
-            gl.locations = [0.0, 1.0]
-            gl.frame = gradientView.bounds
-            gradientView.layer.insertSublayer(gl, at: 0)
-            gradientLayer = gl
-        } else {
-            gradientLayer?.frame = gradientView.bounds
-        }
-    }
-
-    func configure(with result: FRSearchResult) {
-        let percent = Int(result.score * 100)
-        scoreLabel.text = "\(percent)% \(DivoStrings.faceSearchMatchPercent)"
-
-        if let urlString = result.image, let url = URL(string: urlString) {
-            imageView.loadImage(from: url)
-        }
-    }
-
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        imageView.cancelImageLoad()
-        imageView.image = nil
-        scoreLabel.text = nil
     }
 }

@@ -142,7 +142,7 @@ public final class ModelsFeedController: TelegramBaseController {
     private func showProfile(_ model: CardModel) {
         let profileModel = ProfileModel(
             name: model.name,
-            age: model.age ?? 0,
+            age: model.age,
             location: model.country ?? "",
             isVerified: false,
             likesCount: "\(model.likesCount)",

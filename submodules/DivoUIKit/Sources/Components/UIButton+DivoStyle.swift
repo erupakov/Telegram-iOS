@@ -3,8 +3,10 @@ import ObjectiveC
 
 /// Стили кнопок дизайн-системы DIVO.
 ///
-/// Централизует press-state, disabled-state и цвета для всех стандартных кнопок.
-/// Заменяет дублированные `buttonPressed`/`buttonReleased` пары в контроллерах.
+/// Централизует press-state и disabled-state для всех стандартных кнопок.
+/// Для `.primary` и `.secondary` автоматически переключает фон
+/// (enabled ↔ `buttonDisabledBackground`) при смене `isEnabled` — через KVO.
+/// Вызывающему коду достаточно выставлять `btn.isEnabled`, без ручного `backgroundColor`.
 ///
 /// Использование:
 /// ```
@@ -47,11 +49,44 @@ extension UIButton {
 private final class DivoButtonPressHandler: NSObject {
     let style: DivoButtonStyle
     weak var button: UIButton?
+    private var enabledObservation: NSKeyValueObservation?
 
     init(style: DivoButtonStyle, button: UIButton) {
         self.style = style
         self.button = button
         super.init()
+        observeIsEnabled()
+        applyEnabledBackground()
+        applyDisabledTitleColor()
+    }
+
+    private func applyDisabledTitleColor() {
+        guard let btn = button else { return }
+        switch style {
+        case .primary, .secondary:
+            btn.setTitleColor(DivoColorPalette.disabledText, for: .disabled)
+        case .pill, .text, .accentInline:
+            break
+        }
+    }
+
+    private func observeIsEnabled() {
+        enabledObservation = button?.observe(\.isEnabled, options: [.new]) { [weak self] _, _ in
+            self?.applyEnabledBackground()
+        }
+    }
+
+    private func enabledBackground() -> UIColor? {
+        switch style {
+        case .primary: return DivoColorPalette.accent
+        case .secondary: return DivoColorPalette.secondaryButtonBackground
+        case .pill, .text, .accentInline: return nil
+        }
+    }
+
+    private func applyEnabledBackground() {
+        guard let btn = button, let bg = enabledBackground() else { return }
+        btn.backgroundColor = btn.isEnabled ? bg : DivoColorPalette.buttonDisabledBackground
     }
 
     @objc func pressed() {

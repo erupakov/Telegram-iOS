@@ -257,9 +257,10 @@ public class ModelsSearchController: ViewController {
     }
 
     private func openFaceSearchScreen(with image: UIImage) {
-        if let existing = activeFaceSearchController {
+        if let existing = activeFaceSearchController, existing.navigationController != nil {
             existing.updateImage(image)
         } else {
+            activeFaceSearchController = nil
             let controller = FaceSearchController(context: self.context, image: image)
             controller.onChangePhoto = { [weak self] in
                 self?.openChangePhotoSheet()
@@ -317,7 +318,7 @@ public class ModelsSearchController: ViewController {
 
         let profileModel = ProfileModel(
             name: user.title,
-            age: user.user?.age ?? 0,
+            age: user.user?.age,
             location: user.user?.city?.name ?? "",
             isVerified: false,
             likesCount: "\(user.likesCount ?? 0)",

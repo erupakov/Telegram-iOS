@@ -4,7 +4,7 @@ import TelegramCore
 public struct ProfileModel {
     var name: String
     var lastName: String?
-    let age: Int
+    let age: Int?
     let location: String
     let isVerified: Bool
 
@@ -29,7 +29,7 @@ public struct ProfileModel {
     public init(
         name: String,
         lastName: String? = nil,
-        age: Int,
+        age: Int?,
         location: String,
         isVerified: Bool,
         likesCount: String,

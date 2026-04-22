@@ -286,6 +286,30 @@ public enum DivoMockData {
     }
     """.data(using: .utf8)!
 
+    // MARK: - /fr/detect (1 face, чтобы можно было нажать Find)
+
+    static let frDetect = """
+    {
+        "faces": [
+            {
+                "area": 0.25,
+                "bbox": {"x1": 0.3, "x2": 0.7, "y1": 0.2, "y2": 0.6},
+                "index": 0
+            }
+        ]
+    }
+    """.data(using: .utf8)!
+
+    // MARK: - /fr/search (empty — для проверки empty state)
+
+    static let frSearchEmpty = """
+    {
+        "bbox": {"x1": 0.3, "x2": 0.7, "y1": 0.2, "y2": 0.6},
+        "face_info": {"age": null, "emotion": null, "gender": null, "race": null},
+        "results": []
+    }
+    """.data(using: .utf8)!
+
     // MARK: - /event/list (empty)
 
     static let emptyEventList = """
