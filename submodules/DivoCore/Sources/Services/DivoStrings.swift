@@ -183,6 +183,9 @@ public enum DivoStrings {
     public static var faceSearchSortedBy: String { L(en: "Sorted by:", ru: "Сортировка:", es: "Ordenado por:", pt: "Ordenado por:", zh: "排序依据：") }
     public static var faceSearchSortMatch: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配度") }
     public static var faceSearchNoResultsSubtitle: String { L(en: "We couldn't find profiles visually similar to this photo. Try a different photo with a clearer, front-facing face.", ru: "Мы не нашли профили, визуально похожие на это фото. Попробуйте другое фото — с чётко видимым лицом, смотрящим в камеру.", es: "No encontramos perfiles visualmente similares a esta foto. Prueba con otra foto que muestre un rostro más claro, mirando de frente.", pt: "Não encontramos perfis visualmente semelhantes a esta foto. Tente outra foto com o rosto mais nítido e voltado para a câmera.", zh: "未找到与此照片视觉上相似的档案。请尝试使用面部更清晰、正面朝向的其他照片。") }
+    public static var faceSearchFilterTitle: String { L(en: "Filter results", ru: "Фильтр результатов", es: "Filtrar resultados", pt: "Filtrar resultados", zh: "筛选结果") }
+    public static var faceSearchFilterSimilarity: String { L(en: "Minimum similarity", ru: "Минимальное сходство", es: "Similitud mínima", pt: "Similaridade mínima", zh: "最低相似度") }
+    public static var faceSearchFilterSimilarityHint: String { L(en: "Higher values show fewer but closer matches", ru: "Чем выше значение, тем меньше, но ближе совпадений", es: "Valores más altos muestran menos coincidencias, pero más cercanas", pt: "Valores mais altos mostram menos correspondências, porém mais próximas", zh: "数值越高，匹配结果越少但越精准") }
 
     // MARK: - Roles
 
