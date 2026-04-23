@@ -49,6 +49,10 @@ final class FaceSearchResultsController: ViewController {
                 self.dismiss()
             }
         }
+        node.onBrowseAllProfiles = { [weak self] in
+            guard let self, let nav = self.navigationController as? NavigationController else { return }
+            nav.popToRoot(animated: true)
+        }
         node.onResultTapped = { [weak self] result in
             self?.openProfile(for: result)
         }
@@ -125,6 +129,7 @@ enum FaceSearchResultsMapper {
 
 private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     var onBackPressed: (() -> Void)?
+    var onBrowseAllProfiles: (() -> Void)?
     var onResultTapped: ((FRSearchResult) -> Void)?
 
     private let results: [FRSearchResult]
@@ -344,6 +349,10 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
             ctaTitle: DivoStrings.faceSearchTryDifferentPhoto,
             onCTATapped: { [weak self] in
                 self?.onBackPressed?()
+            },
+            secondaryCtaTitle: DivoStrings.faceSearchBrowseAllProfiles,
+            onSecondaryCTATapped: { [weak self] in
+                self?.onBrowseAllProfiles?()
             }
         ))
         emptyStateView.animateAppearance()

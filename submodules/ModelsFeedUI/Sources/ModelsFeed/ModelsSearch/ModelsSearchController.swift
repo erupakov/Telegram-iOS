@@ -185,9 +185,11 @@ public class ModelsSearchController: ViewController {
                     actionSheet?.dismissAnimated()
                     self?.handleFaceSearchSource(.gallery)
                 },
-                ActionSheetButtonItem(title: DivoStrings.faceRecognitionUseDivoPhoto, color: .accent) { [weak actionSheet] in
+                ActionSheetButtonItem(title: DivoStrings.faceRecognitionUseDivoPhoto, color: .accent) { [weak self, weak actionSheet] in
                     actionSheet?.dismissAnimated()
-                    // TODO: pick DIVO profile photo for face recognition
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        self?.openProfileSearchSheet()
+                    }
                 }
             ]),
             ActionSheetItemGroup(items: [
@@ -197,7 +199,8 @@ public class ModelsSearchController: ViewController {
             ])
         ])
 
-        self.present(actionSheet, in: .window(.root))
+        let presenter = self.activeFaceSearchController ?? self
+        presenter.present(actionSheet, in: .window(.root))
     }
 
     private enum FaceSearchSource {
@@ -256,6 +259,45 @@ public class ModelsSearchController: ViewController {
         }
     }
 
+    private func openProfileSearchSheet() {
+        let sheet = DivoProfileSearchSheetController()
+        sheet.onProfileSelected = { [weak self] user in
+            self?.loadProfilePhotoAndOpenFaceSearch(for: user)
+        }
+        presentingWindow?.rootViewController?.present(sheet, animated: true)
+    }
+
+    private func loadProfilePhotoAndOpenFaceSearch(for user: SearchUserDTO) {
+        guard let urlString = user.searchImage?.fullUrl,
+              let url = CDNURLHelper.convertToCDNURL(urlString) else {
+            self.searchNode.showSnackbar(
+                message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                style: .error
+            )
+            return
+        }
+
+        let overlay = DivoLoadingOverlay()
+        if let host = self.view.window?.rootViewController?.view {
+            overlay.show(in: host, message: "")
+        }
+
+        ImageLoader.shared.load(url: url) { [weak self] image in
+            overlay.hide()
+            guard let self else { return }
+            guard let image else {
+                self.searchNode.showSnackbar(
+                    message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                    style: .error,
+                    retryAction: { [weak self] in self?.loadProfilePhotoAndOpenFaceSearch(for: user) },
+                    persistent: true
+                )
+                return
+            }
+            self.openFaceSearchScreen(with: image)
+        }
+    }
+
     private func openFaceSearchScreen(with image: UIImage) {
         if let existing = activeFaceSearchController, existing.navigationController != nil {
             existing.updateImage(image)
@@ -263,53 +305,11 @@ public class ModelsSearchController: ViewController {
             activeFaceSearchController = nil
             let controller = FaceSearchController(context: self.context, image: image)
             controller.onChangePhoto = { [weak self] in
-                self?.openChangePhotoSheet()
+                self?.openFaceRecognition()
             }
             activeFaceSearchController = controller
             (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
         }
-    }
-
-    private func openChangePhotoSheet() {
-        let theme = ActionSheetControllerTheme(
-            dimColor: UIColor(white: 0, alpha: 0.5),
-            backgroundType: .light,
-            itemBackgroundColor: DivoColorPalette.cardBackground,
-            itemHighlightedBackgroundColor: DivoColorPalette.screenBackground,
-            standardActionTextColor: DivoColorPalette.primaryText,
-            destructiveActionTextColor: DivoColorPalette.accent,
-            disabledActionTextColor: DivoColorPalette.disabledText,
-            primaryTextColor: DivoColorPalette.primaryText,
-            secondaryTextColor: DivoColorPalette.secondaryText,
-            controlAccentColor: DivoColorPalette.accent,
-            controlColor: DivoColorPalette.secondaryText,
-            switchFrameColor: DivoColorPalette.separatorSystem,
-            switchContentColor: DivoColorPalette.accent,
-            switchHandleColor: DivoColorPalette.cardBackground,
-            baseFontSize: 17.0
-        )
-        let actionSheet = ActionSheetController(theme: theme)
-
-        actionSheet.setItemGroups([
-            ActionSheetItemGroup(items: [
-                ActionSheetButtonItem(title: DivoStrings.faceRecognitionTakePhoto, color: .accent) { [weak self, weak actionSheet] in
-                    actionSheet?.dismissAnimated()
-                    self?.openPhotoPicker(.camera)
-                },
-                ActionSheetButtonItem(title: DivoStrings.faceRecognitionChooseFromLibrary, color: .accent) { [weak self, weak actionSheet] in
-                    actionSheet?.dismissAnimated()
-                    self?.openPhotoPicker(.gallery)
-                }
-            ]),
-            ActionSheetItemGroup(items: [
-                ActionSheetButtonItem(title: DivoStrings.cancel, color: .destructive, font: .bold) { [weak actionSheet] in
-                    actionSheet?.dismissAnimated()
-                }
-            ])
-        ])
-
-        let presenter = self.activeFaceSearchController ?? self
-        presenter.present(actionSheet, in: .window(.root))
     }
 
     private func openModelScreen(for user: SearchUserDTO) {
