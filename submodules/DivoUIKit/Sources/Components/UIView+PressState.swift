@@ -40,6 +40,28 @@ extension UIView {
     }
 }
 
+extension UITableViewCell {
+
+    /// Press-state для ячеек списков: белая заливка `contentView` + лёгкий scale.
+    ///
+    /// Вызывать из `setHighlighted(_:animated:)`. Используется в DIVO-ячейках, которые
+    /// живут на сером/экранном фоне (поиск DIVO-профиля, списки interaction).
+    public func applyDivoListHighlight(_ highlighted: Bool) {
+        let duration = highlighted
+            ? DivoDesignTokens.PressState.pressDuration
+            : DivoDesignTokens.PressState.releaseDuration
+        UIView.animate(withDuration: duration) {
+            self.contentView.backgroundColor = highlighted
+                ? DivoColorPalette.cardBackground
+                : .clear
+            let scale = DivoDesignTokens.PressState.scaleListRow
+            self.contentView.transform = highlighted
+                ? CGAffineTransform(scaleX: scale, y: scale)
+                : .identity
+        }
+    }
+}
+
 private final class PressStateHandler: NSObject, UIGestureRecognizerDelegate {
     weak var targetView: UIView?
     var pressAlpha: CGFloat = DivoDesignTokens.PressState.alpha

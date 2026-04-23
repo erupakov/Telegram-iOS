@@ -359,13 +359,7 @@ private final class DivoProfileSearchCell: UITableViewCell {
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        let duration = highlighted ? 0.1 : 0.2
-        UIView.animate(withDuration: duration) {
-            self.contentView.alpha = highlighted ? 0.6 : 1.0
-            self.contentView.transform = highlighted
-                ? CGAffineTransform(scaleX: 0.98, y: 0.98)
-                : .identity
-        }
+        applyDivoListHighlight(highlighted)
     }
 
     private static func highlightedName(_ name: String, query: String) -> NSAttributedString {
