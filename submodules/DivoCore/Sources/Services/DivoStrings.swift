@@ -157,6 +157,10 @@ public enum DivoStrings {
     public static var addPhoto: String { L(en: "Add Photo", ru: "Добавить фото", es: "Agregar foto", pt: "Adicionar foto", zh: "添加照片") }
     public static var addVideo: String { L(en: "Add Video", ru: "Добавить видео", es: "Agregar video", pt: "Adicionar vídeo", zh: "添加视频") }
 
+    public static var findSimilar: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Encontrar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似资料") }
+    public static var reportProfile: String { L(en: "Report this profile", ru: "Пожаловаться на профиль", es: "Reportar este perfil", pt: "Denunciar este perfil", zh: "举报此资料") }
+    public static var blockUser: String { L(en: "Block user", ru: "Заблокировать пользователя", es: "Bloquear usuario", pt: "Bloquear usuário", zh: "屏蔽用户") }
+
     // MARK: - Profile Counters & Actions
 
     public static var counterLike: String { L(en: "Like", ru: "Нравится", es: "Me gusta", pt: "Curtir", zh: "喜欢") }
@@ -324,7 +328,7 @@ public enum DivoStrings {
     public static var workExperience: String { L(en: "Work experience", ru: "Опыт работы", es: "Experiencia laboral", pt: "Experiência profissional", zh: "工作经历") }
     public static var noWorkExperienceYet: String { L(en: "THERE ARE NO WORK\nEXPERIENCE YET.", ru: "ОПЫТА РАБОТЫ\nПОКА НЕТ.", es: "AÚN NO HAY\nEXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ\nEXPERIÊNCIA.", zh: "暂无\n工作经历。") }
     public static var noWorkExperienceSubtitle: String { L(en: "Click the button below\nto add your work\nexperience", ru: "Нажмите кнопку ниже,\nчтобы добавить\nопыт работы", es: "Haga clic en el botón\npara agregar su\nexperiencia", pt: "Clique no botão abaixo\npara adicionar sua\nexperiência", zh: "点击下方按钮\n添加您的\n工作经历") }
-    public static var addWorkExperience: String { L(en: "Add work experience", ru: "Добавить опыт работы", es: "Agregar experiencia laboral", pt: "Adicionar experiência profissional", zh: "添加工作经验") }
+    public static var addWorkExperience: String { L(en: "+ Add work history", ru: "+ Добавить опыт работы", es: "+ Agregar experiencia laboral", pt: "+ Adicionar experiência de trabalho", zh: "+ 添加工作经历") }
     public static var workExperienceInfo: String { L(en: "Work experience info", ru: "Информация об опыте работы", es: "Información de experiencia", pt: "Informações da experiência", zh: "工作经历信息") }
     public static var enterAgencyName: String { L(en: "Enter agency name", ru: "Введите название агентства", es: "Ingrese el nombre de la agencia", pt: "Insira o nome da agência", zh: "输入经纪公司名称") }
     public static var startDate: String { L(en: "Start date", ru: "Дата начала", es: "Fecha de inicio", pt: "Data de início", zh: "开始日期") }

@@ -59,7 +59,6 @@ class ProfileHeaderView: UIView {
         return label
     }()
     
-    // ДОБАВЛЕНО: Ссылка на констрейнт высоты
     private var nameLabelHeightConstraint: NSLayoutConstraint!
 
     private let premiumBadgeContainer: UIView = {
@@ -92,7 +91,7 @@ class ProfileHeaderView: UIView {
     private let roleContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.roleBadgeBlue
-        view.layer.cornerRadius = DivoDesignTokens.Radius.m
+        view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -148,9 +147,9 @@ class ProfileHeaderView: UIView {
         NSLayoutConstraint.activate([
             nameLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
 
-            premiumBadgeContainer.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: 8),
+            premiumBadgeContainer.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
             premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
-            premiumBadgeContainer.bottomAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: -4),
+            premiumBadgeContainer.bottomAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
             premiumBadgeContainer.heightAnchor.constraint(equalToConstant: 22),
 
             premiumBadgeIcon.centerYAnchor.constraint(equalTo: premiumBadgeContainer.centerYAnchor),
@@ -179,7 +178,7 @@ class ProfileHeaderView: UIView {
         let font = Font.helveticaNeue(32)
         let attributes:[NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: UIColor.white,
+            .foregroundColor: DivoColorPalette.cardBackground,
             .kern: 0.5
         ]
         

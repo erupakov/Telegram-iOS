@@ -15,15 +15,15 @@ class ProfileHeaderShimmerView: UIView {
     
     private let namePlaceholder: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 8
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.s
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
     private let premiumBadgePlaceholder: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
         view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -31,15 +31,15 @@ class ProfileHeaderShimmerView: UIView {
     
     private let rolePlaceholder: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = DivoDesignTokens.Radius.m
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
     private let infoPlaceholder: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
         view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -71,37 +71,28 @@ class ProfileHeaderShimmerView: UIView {
     }
     
     private func setupConstraints() {
-        let nameWidth: CGFloat = 180
-        let premiumBadgeWidth: CGFloat = 80
-        let roleWidth: CGFloat = 100
-        let infoWidth: CGFloat = 140
-        
         NSLayoutConstraint.activate([
-            // namePlaceholder
             namePlaceholder.topAnchor.constraint(equalTo: topAnchor),
             namePlaceholder.leadingAnchor.constraint(equalTo: leadingAnchor),
-            namePlaceholder.widthAnchor.constraint(equalToConstant: nameWidth),
-            namePlaceholder.heightAnchor.constraint(equalToConstant: 64), // Примерная высота под 2 строки шрифта 32
+            namePlaceholder.widthAnchor.constraint(equalToConstant: 180),
+            namePlaceholder.heightAnchor.constraint(equalToConstant: 64),
             
-            // premiumBadgePlaceholder
             premiumBadgePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
-            premiumBadgePlaceholder.bottomAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: -4),
-            premiumBadgePlaceholder.widthAnchor.constraint(equalToConstant: premiumBadgeWidth),
+            premiumBadgePlaceholder.bottomAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
+            premiumBadgePlaceholder.widthAnchor.constraint(equalToConstant: 80),
             premiumBadgePlaceholder.heightAnchor.constraint(equalToConstant: 22),
             premiumBadgePlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             
-            // rolePlaceholder
             rolePlaceholder.topAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: 6),
             rolePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.leadingAnchor),
-            rolePlaceholder.widthAnchor.constraint(equalToConstant: roleWidth),
+            rolePlaceholder.widthAnchor.constraint(equalToConstant: 100),
             rolePlaceholder.heightAnchor.constraint(equalToConstant: 22),
             rolePlaceholder.bottomAnchor.constraint(equalTo: bottomAnchor),
             
-            // infoPlaceholder
             infoPlaceholder.leadingAnchor.constraint(equalTo: rolePlaceholder.trailingAnchor, constant: 10),
             infoPlaceholder.centerYAnchor.constraint(equalTo: rolePlaceholder.centerYAnchor),
-            infoPlaceholder.widthAnchor.constraint(equalToConstant: infoWidth),
-            infoPlaceholder.heightAnchor.constraint(equalToConstant: 20),
+            infoPlaceholder.widthAnchor.constraint(equalToConstant: 140),
+            infoPlaceholder.heightAnchor.constraint(equalToConstant: 22),
             infoPlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
         ])
     }

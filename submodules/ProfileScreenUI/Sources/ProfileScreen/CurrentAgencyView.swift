@@ -22,8 +22,8 @@ final class CurrentAgencyView: UIView {
     
     private let containerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .black.withAlphaComponent(0.12)
-        view.layer.cornerRadius = 8
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -31,10 +31,9 @@ final class CurrentAgencyView: UIView {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = DivoStrings.currentAgency
-        label.font = Font.helveticaNeue(12)
-        label.textColor = .white
+        label.font = Font.regular(12)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
         return label
     }()
     
@@ -42,18 +41,28 @@ final class CurrentAgencyView: UIView {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 12
-        iv.backgroundColor = .white
+        iv.layer.cornerRadius = 30
+        iv.backgroundColor = DivoColorPalette.cardBackground
+        iv.layer.borderWidth = 1
+        iv.layer.borderColor = DivoColorPalette.borderWorkHistoryImage.cgColor
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
     
+    
     private let agencyNameLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(12)
-        label.textColor = .white
+        label.font = Font.medium(16)
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
+        return label
+    }()
+    
+    private let periodLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
@@ -61,7 +70,7 @@ final class CurrentAgencyView: UIView {
         let button = UIButton(type: .system)
         button.titleLabel?.font = Font.helveticaNeue(10)
         button.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 20).isActive = true
-        button.setTitleColor(.white.withAlphaComponent(0.82), for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
         button.setTitle(DivoStrings.seeHistory, for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -83,7 +92,13 @@ final class CurrentAgencyView: UIView {
         
         containerView.addSubview(titleLabel)
         containerView.addSubview(logoImageView)
-        containerView.addSubview(agencyNameLabel)
+        
+        let textStack = UIStackView(arrangedSubviews: [agencyNameLabel, periodLabel])
+        textStack.axis = .vertical
+        textStack.spacing = DivoDesignTokens.Spacing.xs
+        textStack.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(textStack)
+        
         containerView.addSubview(seeHistoryButton)
         
         seeHistoryButton.addTarget(self, action: #selector(historyTapped), for: .touchUpInside)
@@ -97,22 +112,22 @@ final class CurrentAgencyView: UIView {
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: bottomAnchor),
             
-            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 14),
-            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+            titleLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
+            titleLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            titleLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
-            logoImageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 14),
-            logoImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 16),
-            logoImageView.widthAnchor.constraint(equalToConstant: 24),
-            logoImageView.heightAnchor.constraint(equalToConstant: 24),
-            logoImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -14),
+            logoImageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
+            logoImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            logoImageView.widthAnchor.constraint(equalToConstant: 60),
+            logoImageView.heightAnchor.constraint(equalToConstant: 60),
+            logoImageView.bottomAnchor.constraint(equalTo: seeHistoryButton.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
             
-            agencyNameLabel.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
-            agencyNameLabel.leadingAnchor.constraint(equalTo: logoImageView.trailingAnchor, constant: 10),
-            agencyNameLabel.trailingAnchor.constraint(lessThanOrEqualTo: seeHistoryButton.leadingAnchor, constant: -8),
+            textStack.leadingAnchor.constraint(equalTo: logoImageView.trailingAnchor, constant: 10),
+            textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
-            seeHistoryButton.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
-            seeHistoryButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16)
+            seeHistoryButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            seeHistoryButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
         ])
     }
     
@@ -121,20 +136,15 @@ final class CurrentAgencyView: UIView {
     }
     
     func configure(name: String?, logoURL: URL?) {
-        // Обновление текста может попасть внутрь чужих animation-блоков (layoutIfNeeded),
-        // поэтому делаем его явно без анимации и сразу фиксируем layout.
         UIView.performWithoutAnimation {
             self.agencyNameLabel.text = name?.uppercased() ?? DivoStrings.unknownAgency
             self.agencyNameLabel.layer.removeAllAnimations()
             self.layoutIfNeeded()
         }
 
-        // Не сбрасываем картинку каждый раз в nil — это вызывает заметное «мигание/анимацию» блока.
-        // Перезагружаем только если URL действительно изменился.
         guard lastLogoURL != logoURL else { return }
         lastLogoURL = logoURL
 
-        // Если url нет — чистим изображение (без анимации).
         guard let url = logoURL else {
             UIView.performWithoutAnimation {
                 self.logoImageView.image = nil

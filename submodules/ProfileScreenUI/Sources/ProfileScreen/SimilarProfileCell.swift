@@ -18,27 +18,25 @@ final class SimilarProfileCell: UICollectionViewCell {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 6
-        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
+        iv.layer.cornerRadius = DivoDesignTokens.Radius.m
+        iv.backgroundColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
 
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(12)
+        label.font = Font.helveticaNeue(10)
         label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
         return label
     }()
 
     private let infoLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(12)
+        label.font = Font.regular(10)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
         return label
     }()
 
@@ -48,11 +46,11 @@ final class SimilarProfileCell: UICollectionViewCell {
         self.layer.shadowColor = UIColor.black.cgColor
         self.layer.shadowOpacity = 0.12
         self.layer.shadowOffset = CGSize(width: 0, height: 4)
-        self.layer.shadowRadius = 8
+        self.layer.shadowRadius = DivoDesignTokens.Radius.s
         self.layer.masksToBounds = false
 
-        contentView.backgroundColor = .white
-        contentView.layer.cornerRadius = 8
+        contentView.backgroundColor = DivoColorPalette.cardBackground
+        contentView.layer.cornerRadius = DivoDesignTokens.Radius.l
         contentView.clipsToBounds = true
 
         contentView.addSubview(imageView)
@@ -60,19 +58,19 @@ final class SimilarProfileCell: UICollectionViewCell {
         contentView.addSubview(infoLabel)
 
         NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 4),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
-            imageView.heightAnchor.constraint(equalTo: contentView.heightAnchor, constant: -56),
+            imageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 3),
+            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 3),
+            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -3),
+            imageView.heightAnchor.constraint(equalTo: contentView.heightAnchor, constant: -43),
 
-            nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
-            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
+            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
+            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
 
-            infoLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 4),
-            infoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
-            infoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
-            infoLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -8)
+            infoLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
+            infoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
+            infoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
+            infoLabel.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.s)
         ])
     }
 

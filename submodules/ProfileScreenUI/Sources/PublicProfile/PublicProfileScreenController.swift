@@ -97,26 +97,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.isMyProfile = model.isMyProfile
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
-        // let darkNavigationTheme = NavigationBarTheme(
-        //     overallDarkAppearance: false,
-        //     buttonColor: .white,
-        //     disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
-        //     primaryTextColor: .white,
-        //     backgroundColor: .clear,
-        //     opaqueBackgroundColor: .clear,
-        //     enableBackgroundBlur: false,
-        //     separatorColor: .clear,
-        //     badgeBackgroundColor: .clear,
-        //     badgeStrokeColor: .clear,
-        //     badgeTextColor: .clear,
-        //     style: .glass,
-        //     glassStyle: .clear
-        // )
-        
-        // let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
-
-        // super.init(context: context, navigationBarPresentationData: navigationBarData)
-        // updateNavigation()
 
         super.init(context: context, navigationBarPresentationData: nil)
     }
@@ -128,79 +108,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
     
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    // private func updateNavigation() {
-    //     self.statusBar.statusBarStyle = .White
-
-    //     let moreButtonImg = generateTintedImage(image: DivoImage.moreActionIcon, color: .white)
-    //     let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
-
-    //     if isMyProfile {
-    //         let editButtonImg = generateTintedImage(image: DivoImage.profileEditAction, color: .white)
-            
-    //         let editButton = UIBarButtonItem(
-    //             image: editButtonImg,
-    //             style: .plain,
-    //             target: self,
-    //             action: #selector(self.showEditMenuPressed)
-    //         )
-            
-    //         self.navigationItem.rightBarButtonItems = [editButton, moreButton]
-    //     } else {
-    //         self.navigationItem.rightBarButtonItems = [moreButton]
-    //     }
-    // }
-    
-    @objc private func showEditMenuPressed() {
-        // debug: removed
-
-        var items: [EditMenuViewController.MenuItem] = [
-            .init(title: DivoStrings.editProfile, action: { [weak self] in
-                self?.navigateToEditProfile()
-            }),
-            .init(title: DivoStrings.changeBackground, action: { [weak self] in
-                self?.navigateToChangeBackground()
-            }),
-            .init(title: DivoStrings.editSocialLinksMenu, action: { [weak self] in
-                self?.navigateToEditSocialLinks()
-            })
-        ]
-
-        if self.userRole != .agency {
-            items.append(.init(title: DivoStrings.manageWorkExperience, action: { [weak self] in
-                self?.navigateToManageExperience()
-            }))
-        } else {
-            items.append(.init(title: DivoStrings.addModel, action: { [weak self] in
-                self?.navigateToAddModel()
-            }))
-            items.append(.init(title: DivoStrings.createEvent, action: { [weak self] in
-                self?.navigateToCreateEvent()
-            }))
-        }
-
-        items.append(.init(title: DivoStrings.addPhoto, action: { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddPhoto()
-            }
-        }))
-
-        items.append(.init(title: DivoStrings.addVideo, action: { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddVideo()
-            }
-        }))
-
-        var sourcePoint = CGPoint(x: UIScreen.main.bounds.width - 20, y: 90)
-
-        if let (_, navigationBarHeight) = self.containerLayout {
-            sourcePoint.y = navigationBarHeight
-        }
-
-        let menuVC = EditMenuViewController(items: items, sourcePoint: sourcePoint)
-
-        self.present(menuVC, animated: false, completion: nil)
     }
 
     private func navigateToCreateEvent() {
@@ -341,12 +248,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.controllerNode.onEditLinksTapped = { [weak self] in
             self?.navigateToEditSocialLinks()
         }
-        
-        self.controllerNode.onAddPhotoTapped = { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddPhoto()
-            }
-        }
 
         self.controllerNode.onAddVideoTapped = { [weak self] in
             if #available(iOS 14, *) {
@@ -377,16 +278,81 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.controllerNode.onBackTapped = { [weak self] in
             self?.navigationController?.popViewController(animated: true)
         }
-
-        self.controllerNode.onEditProfileTapped = { [weak self] in
-            self?.showEditMenuPressed()
-        }
         
         self.controllerNode.onAddWorkExperienceTapped = { [weak self] in
             self?.navigateToAddWorkExperience()
         }
-        
+
+        self.controllerNode.onGridShareTapped = { [weak self] item, image in
+            self?.handleGridShare(item: item, image: image)
+        }
+
+        // self.controllerNode.onFaceScanTapped = { [weak self] in
+
+        // }
+
+        // self.controllerNode.onReportProfileTapped = { [weak self] in
+
+        // }
+
+        // self.controllerNode.onBlockTapped = { [weak self] in
+
+        // }
+
+        // self.controllerNode.storiesButtonTapped = { [weak self] in
+
+        // }
+
+        self.controllerNode.onEditProfileTapped = { [weak self] in
+            self?.navigateToEditProfile()
+        }
+
+        self.controllerNode.onChangeBackgrounTapped = { [weak self] in
+            self?.navigateToChangeBackground()
+        }
+
+        self.controllerNode.onEditSocialLinksTapped = { [weak self] in
+            self?.navigateToEditSocialLinks()
+        }
+
+        self.controllerNode.onManageWorkExperienceTapped = { [weak self] in
+            self?.navigateToManageExperience()
+        }
+
+        self.controllerNode.onAddModelTapped = { [weak self] in
+            self?.navigateToAddModel()
+        }
+
+        self.controllerNode.onCreateEventTapped = { [weak self] in
+            self?.navigateToCreateEvent()
+        }
+
+        self.controllerNode.onAddVideoTapped = { [weak self] in
+            if #available(iOS 14, *) {
+                self?.navigateToAddVideo()
+            }
+        }
+
+        self.controllerNode.onAddPhotoTapped = { [weak self] in
+            if #available(iOS 14, *) {
+                self?.navigateToAddPhoto()
+            }
+        }
+
         self.displayNodeDidLoad()
+    }
+
+    private func handleGridShare(item: UserDetail?, image: UIImage?) {
+        guard let item = item else { return }
+        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(item.id)")!
+        let shareItem = DivoShareItemSource(
+            url: shareURL,
+            title: item.fullName ?? "",
+            subtitle: item.roleLabel ?? "",
+            image: image
+        )
+        let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
+        self.view.window?.rootViewController?.present(activityVC, animated: true)
     }
     
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {

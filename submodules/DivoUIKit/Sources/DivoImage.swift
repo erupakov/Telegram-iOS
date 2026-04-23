@@ -18,6 +18,7 @@ public enum DivoImage {
     public static var badgeBaseWork: UIImage { load("DivoBadgeBaseWork") }
     public static var basket: UIImage { load("DivoBasket") }
     public static var basketWork: UIImage { load("DivoBasketWork") }
+    public static var block: UIImage { load("DivoBlock") }
     public static var calendar: UIImage { load("DivoCalendar") }
     public static var checkbox: UIImage { load("DivoCheckbox") }
     public static var checkboxSelected: UIImage { load("DivoCheckboxSelected") }
@@ -28,6 +29,7 @@ public enum DivoImage {
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
+    public static var faceScanBlack: UIImage { load("DivoFaceScanBlack") }
     public static var filmstripIcon: UIImage { load("DivoFilmstripIcon") }
     public static var genderIcon: UIImage { load("DivoGenderIcon") }
     public static var gridIcon: UIImage { load("DivoGridIcon") }
@@ -49,6 +51,7 @@ public enum DivoImage {
     public static var profileLevelInfo3: UIImage { load("DivoProfileLevelInfo3") }
     public static var profileLevelProgressIcon: UIImage { load("DivoProfileLevelProgressIcon") }
     public static var profileLevelWarningIcon: UIImage { load("DivoProfileLevelWarningIcon") }
+    public static var report: UIImage { load("DivoReport") }
     public static var roleAgency: UIImage { load("DivoRoleAgency") }
     public static var roleModel: UIImage { load("DivoRoleModel") }
     public static var roleNewTalent: UIImage { load("DivoRoleNewTalent") }
@@ -75,6 +78,7 @@ public enum DivoImage {
     public static var statSave: UIImage { load("DivoStatSave") }
     public static var statSaveFilled: UIImage { load("DivoStatSaveFilled") }
     public static var statView: UIImage { load("DivoStatView") }
+    public static var stories: UIImage { load("DivoStories") }
     public static var storyAvatarStub1: UIImage { load("DivoStoryAvatarStub1") }
     public static var storyAvatarStub2: UIImage { load("DivoStoryAvatarStub2") }
     public static var storyAvatarStub3: UIImage { load("DivoStoryAvatarStub3") }
