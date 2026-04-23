@@ -314,6 +314,9 @@ public final class DivoAPIClient {
             try await Task.sleep(nanoseconds: UInt64(uploadDelay * 1_000_000_000))
         }
 
+        let fieldsDetail = fields.map { "\($0.key)=\($0.value)" }.sorted().joined(separator: ", ")
+        let uploadBody = "\(fileName) (\(fileData.count) bytes) | \(fieldsDetail)"
+
         let start = CFAbsoluteTimeGetCurrent()
         do {
             let (data, response) = try await session.upload(for: request, from: body)
@@ -325,7 +328,7 @@ public final class DivoAPIClient {
                 path: path,
                 statusCode: http?.statusCode,
                 duration: duration,
-                requestBody: "\(fileName) (\(fileData.count) bytes) + \(fields.count) fields",
+                requestBody: uploadBody,
                 responseBody: String(data: data, encoding: .utf8)
             )
 
@@ -355,7 +358,7 @@ public final class DivoAPIClient {
                     path: path,
                     statusCode: nil,
                     duration: duration,
-                    requestBody: "\(fileName) (\(fileData.count) bytes) + \(fields.count) fields",
+                    requestBody: uploadBody,
                     error: error.localizedDescription
                 )
             }
@@ -400,6 +403,9 @@ public final class DivoAPIClient {
 
         body.append("--\(boundary)--\r\n".data(using: .utf8)!)
 
+        let fieldsDetail = fields.map { "\($0.key)=\($0.value)" }.sorted().joined(separator: ", ")
+        let uploadBody = "\(fileName) (\(fileData.count) bytes) | \(fieldsDetail)"
+
         let start = CFAbsoluteTimeGetCurrent()
         do {
             let (data, response) = try await session.upload(for: request, from: body)
@@ -411,7 +417,7 @@ public final class DivoAPIClient {
                 path: path,
                 statusCode: http?.statusCode,
                 duration: duration,
-                requestBody: "\(fileName) (\(fileData.count) bytes) + \(fields.count) fields",
+                requestBody: uploadBody,
                 responseBody: String(data: data, encoding: .utf8)
             )
 
@@ -433,7 +439,7 @@ public final class DivoAPIClient {
                     path: path,
                     statusCode: nil,
                     duration: duration,
-                    requestBody: "\(fileName) (\(fileData.count) bytes) + \(fields.count) fields",
+                    requestBody: uploadBody,
                     error: error.localizedDescription
                 )
             }
