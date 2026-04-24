@@ -26,6 +26,8 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     private let maxLinesCollapsed: Int = 3
     private var isExpanded: Bool = false
     
+    private var currentAppearanceExpandedState: Bool? = nil
+    
     private var biographyText: String = ""
     private var appearanceData: [AppearanceAttribute] = []
     
@@ -219,6 +221,10 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         super.init(frame: .zero)
         
         addExperienceButton.makeDivoButton(title: DivoStrings.addWorkExperience, buttonFont: Font.helveticaNeue(14), radius: 18)
+        addExperienceButton.setImage(DivoImage.whitePlus.withRenderingMode(.alwaysTemplate), for: .normal)
+        addExperienceButton.setImage(DivoImage.whitePlus.withRenderingMode(.alwaysTemplate), for: .highlighted)
+        addExperienceButton.tintColor = DivoColorPalette.primaryTextOnDark
+        addExperienceButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
         
         addExperienceButton.addTarget(self, action: #selector(addPressed), for: .touchUpInside)
         
@@ -237,6 +243,8 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     func update(biography: String, appearance: [AppearanceAttribute], experience: ExperienceNode? = nil, isMyProfile: Bool, isAgency: Bool = false) {
         self.biographyText = biography
         self.appearanceData = appearance
+        
+        self.currentAppearanceExpandedState = nil
         
         var titles: [String] = [DivoStrings.biographyTitle]
         var newActiveContainers: [UIView] = [bioContainer]
@@ -480,9 +488,12 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     private func updateContent(animated: Bool) {
         contentLabel.text = biographyText
         contentLabel.numberOfLines = isExpanded ? 0 : maxLinesCollapsed
-        
-        let dataToShow = isExpanded ? appearanceData : Array(appearanceData.prefix(4))
-        rebuildAppearanceGrid(with: dataToShow)
+
+        if currentAppearanceExpandedState != isExpanded {
+            currentAppearanceExpandedState = isExpanded
+            let dataToShow = isExpanded ? appearanceData : Array(appearanceData.prefix(4))
+            rebuildAppearanceGrid(with: dataToShow)
+        }
         
         var shouldShowBioSeeMore = false
         var shouldShowAppSeeMore = false

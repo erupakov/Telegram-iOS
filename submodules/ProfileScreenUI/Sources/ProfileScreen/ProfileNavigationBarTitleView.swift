@@ -56,6 +56,8 @@ final class ProfileNavigationBarTitleView: UIView {
         NSLayoutConstraint.activate([
             containerStack.centerYAnchor.constraint(equalTo: centerYAnchor),
             containerStack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            containerStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            containerStack.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
         
     }

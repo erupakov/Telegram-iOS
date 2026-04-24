@@ -154,8 +154,8 @@ public enum DivoStrings {
     public static var changeBackground: String { L(en: "Change Profile Background", ru: "Сменить фон профиля", es: "Cambiar fondo de perfil", pt: "Alterar fundo do perfil", zh: "更换资料背景") }
     public static var editSocialLinksMenu: String { L(en: "Edit Social Links", ru: "Редактировать ссылки", es: "Editar redes sociales", pt: "Editar redes sociais", zh: "编辑社交链接") }
     public static var manageWorkExperience: String { L(en: "Manage Work Experience", ru: "Управление опытом работы", es: "Gestionar experiencia", pt: "Gerenciar experiência", zh: "管理工作经历") }
-    public static var addPhoto: String { L(en: "Add Photo", ru: "Добавить фото", es: "Agregar foto", pt: "Adicionar foto", zh: "添加照片") }
-    public static var addVideo: String { L(en: "Add Video", ru: "Добавить видео", es: "Agregar video", pt: "Adicionar vídeo", zh: "添加视频") }
+    public static var addPhoto: String { L(en: "Add new photo", ru: "Добавить новое фото", es: "Agregar nueva foto", pt: "Adicionar nova foto", zh: "添加新照片") }
+    public static var addVideo: String { L(en: "Add new video", ru: "Добавить новое видео", es: "Agregar nuevo vídeo", pt: "Adicionar novo vídeo", zh: "添加新视频") }
 
     public static var findSimilar: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Encontrar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似资料") }
     public static var reportProfile: String { L(en: "Report this profile", ru: "Пожаловаться на профиль", es: "Reportar este perfil", pt: "Denunciar este perfil", zh: "举报此资料") }
@@ -167,6 +167,7 @@ public enum DivoStrings {
     public static var counterViewed: String { L(en: "Viewed", ru: "Просмотры", es: "Visto", pt: "Visto", zh: "已查看") }
     public static var counterSave: String { L(en: "Save", ru: "Сохранить", es: "Guardar", pt: "Salvar", zh: "收藏") }
     public static var uploadYourPhotos: String { L(en: "Upload your photos", ru: "Загрузите фото", es: "Sube tus fotos", pt: "Envie suas fotos", zh: "上传您的照片") }
+    public static var noPhotosYet: String { L(en: "No photos yet", ru: "Фото пока нет", es: "Aún no hay fotos", pt: "Ainda sem fotos", zh: "暂无照片") }
     public static var uploadYourVideos: String { L(en: "Upload your videos", ru: "Загрузите видео", es: "Sube tus videos", pt: "Envie seus vídeos", zh: "上传您的视频") }
     public static var noVideosYet: String { L(en: "No videos yet", ru: "Видео пока нет", es: "Sin videos aún", pt: "Sem vídeos ainda", zh: "暂无视频") }
     public static var noChannelsYet: String { L(en: "No channels yet", ru: "Каналов пока нет", es: "Sin canales aún", pt: "Sem canais ainda", zh: "暂无频道") }
@@ -328,7 +329,7 @@ public enum DivoStrings {
     public static var workExperience: String { L(en: "Work experience", ru: "Опыт работы", es: "Experiencia laboral", pt: "Experiência profissional", zh: "工作经历") }
     public static var noWorkExperienceYet: String { L(en: "THERE ARE NO WORK\nEXPERIENCE YET.", ru: "ОПЫТА РАБОТЫ\nПОКА НЕТ.", es: "AÚN NO HAY\nEXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ\nEXPERIÊNCIA.", zh: "暂无\n工作经历。") }
     public static var noWorkExperienceSubtitle: String { L(en: "Click the button below\nto add your work\nexperience", ru: "Нажмите кнопку ниже,\nчтобы добавить\nопыт работы", es: "Haga clic en el botón\npara agregar su\nexperiencia", pt: "Clique no botão abaixo\npara adicionar sua\nexperiência", zh: "点击下方按钮\n添加您的\n工作经历") }
-    public static var addWorkExperience: String { L(en: "+ Add work history", ru: "+ Добавить опыт работы", es: "+ Agregar experiencia laboral", pt: "+ Adicionar experiência de trabalho", zh: "+ 添加工作经历") }
+    public static var addWorkExperience: String { L(en: "Add work history", ru: "Добавить опыт работы", es: "Agregar experiencia laboral", pt: "Adicionar experiência de trabalho", zh: "添加工作经历") }
     public static var workExperienceInfo: String { L(en: "Work experience info", ru: "Информация об опыте работы", es: "Información de experiencia", pt: "Informações da experiência", zh: "工作经历信息") }
     public static var enterAgencyName: String { L(en: "Enter agency name", ru: "Введите название агентства", es: "Ingrese el nombre de la agencia", pt: "Insira o nome da agência", zh: "输入经纪公司名称") }
     public static var startDate: String { L(en: "Start date", ru: "Дата начала", es: "Fecha de inicio", pt: "Data de início", zh: "开始日期") }

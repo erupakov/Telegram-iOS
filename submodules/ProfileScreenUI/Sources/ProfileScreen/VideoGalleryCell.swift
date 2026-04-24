@@ -91,7 +91,7 @@ final class VideoGalleryCell: UICollectionViewCell {
 
     private let shimmerContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.imagePlaceholderDark
+        view.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -202,26 +202,26 @@ final class VideoGalleryCell: UICollectionViewCell {
             shimmerContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             shimmerContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
 
-            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 4),
-            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -4),
-            titleLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4),
+            titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.xs),
+            titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.xs),
+            titleLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
 
             durationContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -6),
-            durationContainer.bottomAnchor.constraint(equalTo: titleLabel.topAnchor, constant: -6),
+            durationContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6),
 
             durationLabel.topAnchor.constraint(equalTo: durationContainer.topAnchor, constant: 2),
             durationLabel.bottomAnchor.constraint(equalTo: durationContainer.bottomAnchor, constant: -2),
-            durationLabel.leadingAnchor.constraint(equalTo: durationContainer.leadingAnchor, constant: 4),
-            durationLabel.trailingAnchor.constraint(equalTo: durationContainer.trailingAnchor, constant: -4)
+            durationLabel.leadingAnchor.constraint(equalTo: durationContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.xs),
+            durationLabel.trailingAnchor.constraint(equalTo: durationContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.xs)
         ])
 
         NSLayoutConstraint.activate([
             fallbackContainer.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
             fallbackContainer.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            fallbackContainer.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 8),
-            fallbackContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -8),
+            fallbackContainer.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
+            fallbackContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
 
-            fallbackIconView.topAnchor.constraint(equalTo: fallbackContainer.topAnchor, constant: 8),
+            fallbackIconView.topAnchor.constraint(equalTo: fallbackContainer.topAnchor, constant: DivoDesignTokens.Spacing.s),
             fallbackIconView.centerXAnchor.constraint(equalTo: fallbackContainer.centerXAnchor),
             fallbackIconView.widthAnchor.constraint(equalToConstant: 18),
             fallbackIconView.heightAnchor.constraint(equalToConstant: 18),
@@ -229,7 +229,7 @@ final class VideoGalleryCell: UICollectionViewCell {
             fallbackLabel.topAnchor.constraint(equalTo: fallbackIconView.bottomAnchor, constant: 6),
             fallbackLabel.leadingAnchor.constraint(equalTo: fallbackContainer.leadingAnchor, constant: 10),
             fallbackLabel.trailingAnchor.constraint(equalTo: fallbackContainer.trailingAnchor, constant: -10),
-            fallbackLabel.bottomAnchor.constraint(equalTo: fallbackContainer.bottomAnchor, constant: -8)
+            fallbackLabel.bottomAnchor.constraint(equalTo: fallbackContainer.bottomAnchor, constant: -DivoDesignTokens.Spacing.s)
         ])
     }
 

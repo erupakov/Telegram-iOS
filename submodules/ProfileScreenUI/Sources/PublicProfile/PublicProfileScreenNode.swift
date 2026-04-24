@@ -366,7 +366,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let view = ProfileSegmentedBar()
         view.delegate = self
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.12)
+        return view
+    }()
+    
+    private let segmentedBarContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
@@ -377,20 +382,28 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return view
     }()
     
+    private let segmentedBarShimmer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
     private var segmentedBarTopConstraint: NSLayoutConstraint?
-    private let segmentedBarHeight: CGFloat = 40.0
+    private let segmentedBarHeight: CGFloat = 32.0
     
     
     // MARK: - Gallery Collections Section
     
     private let collectionsContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .clear
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.clipsToBounds = true
         return view
     }()
-    
+
     
     // MARK: - Tabs & Swipe Logic Variables
     
@@ -769,6 +782,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return view
     }()
 
+    private let floatingAddButton: DivoButton = {
+        let button = DivoButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.3
+        button.layer.shadowOffset = CGSize(width: 0, height: 4)
+        button.layer.shadowRadius = DivoDesignTokens.Radius.s
+        button.isHidden = true
+        return button
+    }()
+
 
     // MARK: - Init
     
@@ -831,6 +855,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if !socialShimmerView.isHidden {
             socialShimmerView.startAnimation()
         }
+
+        if !segmentedBarShimmer.isHidden {
+            segmentedBarShimmer.stopShimmering()
+            segmentedBarShimmer.startShimmering()
+        }
         
         if !dmShareShimmerStack.isHidden {
             dmShimmerButton.stopShimmering()
@@ -862,6 +891,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupContentLayout()
         setupAllCollectionsLayers()
         setupSimilarProfiles()
+        setupFloatingButton()
     }
 
     private func setupCustomNavBar() {
@@ -1087,9 +1117,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.view.addSubview(segmentedBar)
         
         NSLayoutConstraint.activate([
-            segmentedBar.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            segmentedBar.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            segmentedBar.heightAnchor.constraint(equalToConstant: segmentedBarHeight)
+            segmentedBar.centerXAnchor.constraint(equalTo: contentViewStack.centerXAnchor),
+            segmentedBar.heightAnchor.constraint(equalToConstant: segmentedBarHeight),
         ])
         
         segmentedBarTopConstraint = segmentedBar.topAnchor.constraint(equalTo: self.view.topAnchor)
@@ -1150,9 +1179,33 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // Расстояние между счетчиками и Именем
         contentViewStack.setCustomSpacing(60, after: counterActionsContainer)
 
-        likesView.addTarget(self, action: #selector(likesViewDidTap), for: .touchUpInside)
-        viewsView.addTarget(self, action: #selector(viewsViewDidTap), for: .touchUpInside)
-        savesView.addTarget(self, action: #selector(savesViewDidTap), for: .touchUpInside)
+        likesView.onIconTap = { [weak self] in
+            self?.likesPillTapped()
+        }
+
+        likesView.onLabelTap = { [weak self] in
+            self?.likesViewDidTap()
+        }
+        
+        viewsView.onAnyTap = { [weak self] in
+            self?.viewsViewDidTap()
+        }
+        
+        savesView.onIconTap = { [weak self] in
+            self?.savesPillTapped()
+        }
+
+        savesView.onLabelTap = { [weak self] in
+            self?.savesViewDidTap()
+        }
+    }
+    
+    @objc private func likesPillTapped() {
+        likesView.setActive(true, animated: true)
+    }
+    
+    @objc private func savesPillTapped() {
+        savesView.setActive(true, animated: true)
     }
 
     // Раньше это был setupHeaderContainer, мы избавились от него полностью!
@@ -1337,15 +1390,23 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     private func setupSegmentedBarPlaceholder() {
-        contentViewStack.addArrangedSubview(segmentedBarPlaceholder)
+        contentViewStack.addArrangedSubview(segmentedBarContainer)
+        segmentedBarContainer.addSubview(segmentedBarPlaceholder)
+        segmentedBarContainer.addSubview(segmentedBarShimmer)
         
         NSLayoutConstraint.activate([
-            segmentedBarPlaceholder.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor, constant: 0),
-            segmentedBarPlaceholder.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor, constant: 0),
-            segmentedBarPlaceholder.heightAnchor.constraint(equalToConstant: 40),
+            segmentedBarContainer.centerXAnchor.constraint(equalTo: contentViewStack.centerXAnchor),
+            segmentedBarContainer.heightAnchor.constraint(equalToConstant: 32),
+            
+            segmentedBarPlaceholder.centerXAnchor.constraint(equalTo: segmentedBarContainer.centerXAnchor),
+            segmentedBarPlaceholder.heightAnchor.constraint(equalToConstant: 32),
+            
+            segmentedBarShimmer.centerXAnchor.constraint(equalTo: segmentedBarContainer.centerXAnchor),
+            segmentedBarShimmer.heightAnchor.constraint(equalToConstant: 32),
+            segmentedBarShimmer.widthAnchor.constraint(equalToConstant: 172),
         ])
         
-        contentViewStack.setCustomSpacing(0, after: segmentedBarPlaceholder)
+        contentViewStack.setCustomSpacing(10, after: segmentedBarContainer)
     }
     
     private func setupAllCollectionsLayers() {
@@ -1519,6 +1580,18 @@ final class PublicProfileScreenNode: ASDisplayNode {
         contentViewStack.setCustomSpacing(0, after: eventGalleryCollectionView)
         contentViewStack.setCustomSpacing(0, after: eventGalleryStatusView)
     }
+
+    private func setupFloatingButton() {
+        self.view.addSubview(floatingAddButton)
+        
+        NSLayoutConstraint.activate([
+            floatingAddButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            floatingAddButton.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            floatingAddButton.heightAnchor.constraint(equalToConstant: 40),
+        ])
+        
+        floatingAddButton.addTarget(self, action: #selector(floatingAddButtonTapped), for: .touchUpInside)
+    }
     
     // Настройка шиммеров
     private func configureNodes() {
@@ -1532,6 +1605,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         profileInfoView.isHidden = true
         
         socialShimmerView.isHidden = false
+
+        segmentedBarShimmer.isHidden = false
+        segmentedBarPlaceholder.isHidden = true
+        segmentedBar.isHidden = true
     }
     
     // Убираем шиммеры, после загрузки
@@ -1561,6 +1638,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
             profileInfoView.isHidden = false
             
             socialShimmerView.isHidden = true
+
+            segmentedBarShimmer.isHidden = true
+            segmentedBarPlaceholder.isHidden = false
+            segmentedBar.isHidden = false
 
             // Принудительно обновляем layout внутри CATransaction,
             // чтобы изменения фреймов тоже не были анимированы
@@ -1602,12 +1683,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let finalY = max(naturalY, stickyY)
         
         segmentedBarTopConstraint?.constant = finalY
-        
-        if finalY <= stickyY + 1 {
-            segmentedBar.backgroundColor = UIColor.black.withAlphaComponent(0.65)
-        } else {
-            segmentedBar.backgroundColor = UIColor.black.withAlphaComponent(0.12)
-        }
     }
     
     // Настройка кнопки чата/загрузки фотографии
@@ -1874,15 +1949,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
             existingTitleView.configure(name: name, info: info)
         } else {
             let titleView = ProfileNavigationBarTitleView()
-            titleView.translatesAutoresizingMaskIntoConstraints = false // Обязательно добавляем
+            titleView.translatesAutoresizingMaskIntoConstraints = false
             titleView.configure(name: name, info: info)
             
             self.navigationBarTitleView = titleView
             
-            // 1. Добавляем в кастомный NavBar
             self.customNavBar.addSubview(titleView)
             
-            // 2. Располагаем по центру, защищая от наезда на боковые кнопки
             NSLayoutConstraint.activate([
                 titleView.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
                 titleView.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
@@ -1891,7 +1964,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             ])
         }
 
-        // Делаем состояние консистентным сразу после конфигурации
         if !titleVisibilityActivated {
             navigationBarTitleView?.alpha = 0.0
         }
@@ -1930,6 +2002,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // 2. Иконки кнопок меняют цвет от белого до темного
         let iconColor = UIColor.white.blend(with: DivoColorPalette.primaryText, alpha: alpha)
         closeButton.tintColor = iconColor
+        storiesButton.tintColor = iconColor
         editButton.tintColor = iconColor
         moreButton.tintColor = iconColor
         
@@ -2260,7 +2333,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             if isMyProfile {
                 self.galleryStatusView.configure(isLoading: false, text: DivoStrings.uploadYourPhotos, isMyProfile: true)
             } else {
-                self.galleryStatusView.configure(isLoading: false, text: DivoStrings.noVideosYet, isMyProfile: false)
+                self.galleryStatusView.configure(isLoading: false, text: DivoStrings.noPhotosYet, isMyProfile: false)
             }
             self.galleryCollectionView.isHidden = !hasPhotos
             self.galleryCollectionView.reloadData()
@@ -2284,6 +2357,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.checkAndLoadMoreGalleryPhotos()
             })
         }
+        updateFloatingButton(for: currentTab)
     }
     
     // Обновление высоты коллекции галереи
@@ -2341,6 +2415,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.galleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func finishPhotoUpload(photo: UserPhoto) {
@@ -2349,6 +2424,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             galleryPhotos[0] = photo
             galleryCollectionView.reloadItems(at: [IndexPath(item: 0, section: 0)])
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func cancelPhotoUpload() {
@@ -2369,6 +2445,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.galleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
 
     // Добавление одной новой фотографии в начало (после успешной загрузки)
@@ -2401,6 +2478,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.galleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func removePhoto(withId id: Int) {
@@ -2427,6 +2505,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.galleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
     
     // Сброс пагинации галереи
@@ -2440,6 +2519,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             controller.clearGalleryData()
         }
         print("🔄 [PAGINATION] Reset gallery pagination state")
+        updateFloatingButton(for: currentTab)
     }
     
     // Флаг загрузки галереи
@@ -2489,6 +2569,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let controller = self.controller as? PublicProfileScreenController {
             controller.loadVideoGalleryPage(userId: userId, offset: 0)
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func appendVideoGalleryItems(_ items: [UserVideoItem], pagination: Meta, isMyProfile: Bool) {
@@ -2565,6 +2646,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 }
             }, completion: nil)
         }
+        updateFloatingButton(for: currentTab)
     }
     
     // Обновление высоты видео галереи
@@ -2616,6 +2698,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.videoGalleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func finishVideoUpload(video: UserPhoto) {
@@ -2624,6 +2707,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             videoGalleryItems[0] = video
             videoGalleryCollectionView.reloadItems(at: [IndexPath(item: 0, section: 0)])
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func cancelVideoUpload() {
@@ -2644,6 +2728,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.videoGalleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
 
     func insertNewVideo(_ video: UserPhoto) {
@@ -2675,6 +2760,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.videoGalleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func removeVideo(withId id: Int) {
@@ -2699,6 +2785,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.videoGalleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
     
     // Загрузка следующей страницы видео
@@ -2736,6 +2823,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             controller.clearGalleryData()
         }
         print("🔄 [VIDEO] Reset video gallery pagination state")
+        updateFloatingButton(for: currentTab)
     }
     
     // Флаг загрузки галереи видео
@@ -2925,12 +3013,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func calculateCollectionsContainerHeight() -> CGFloat {
         guard let (layout, navBarHeight) = self.containerLayout else { return 160 }
         
-        let emptyPlaceholderHeight = max(160, layout.size.height - navBarHeight - self.segmentedBarHeight)
+        let fullScreenAvailableHeight = max(160, layout.size.height - navBarHeight - self.segmentedBarHeight - 10) //10 - отступ от сегмент бара до коллекций
         
         func heightFor(isEmpty: Bool, constraint: NSLayoutConstraint, isModelTab: Bool = false) -> CGFloat {
             if isEmpty {
-                return (isModelTab && model.isMyProfile && modelRole == .agency) ? emptyPlaceholderHeight : 160
+                if model.isMyProfile {
+                    return fullScreenAvailableHeight
+                }
+                
+                return 160
             }
+            
+            if model.isMyProfile {
+                return max(constraint.constant, fullScreenAvailableHeight)
+            }
+            
             return constraint.constant
         }
         
@@ -2966,9 +3063,94 @@ final class PublicProfileScreenNode: ASDisplayNode {
             }
         }
     }
+
+    // Метод, который меняет внешний вид кнопки в зависимости от таба
+    private func updateFloatingButton(for tab: ProfileTab) {
+        guard model.isMyProfile else {
+            if !floatingAddButton.isHidden {
+                floatingAddButton.isHidden = true
+            }
+            return
+        }
+        
+        var title = ""
+        var icon = UIImage()
+        var isVisible = true
+        
+        switch tab {
+        case .photo:
+            title = DivoStrings.addPhoto
+            icon = DivoImage.photoIcon
+            isVisible = !galleryPhotos.isEmpty
+            
+        case .video:
+            title = DivoStrings.addVideo
+            icon = DivoImage.videoIcon
+            isVisible = !videoGalleryItems.isEmpty
+            
+        case .models:
+            if modelRole == .agency {
+                title = DivoStrings.addModel
+                icon = DivoImage.associatedModels
+                isVisible = !modelGalleryItems.isEmpty
+            } else {
+                isVisible = false
+            }
+            
+        case .events:
+            title = DivoStrings.createEvent
+            icon = DivoImage.eventsAgency
+            isVisible = !eventGalleryItems.isEmpty
+            
+        case .channels:
+            isVisible = false
+        }
+        
+        if isVisible {
+            floatingAddButton.makeDivoButton(title: title, buttonFont: Font.helveticaNeue(16), radius: 20)
+            floatingAddButton.setImage(icon.withRenderingMode(.alwaysTemplate), for: .normal)
+            floatingAddButton.setImage(icon.withRenderingMode(.alwaysTemplate), for: .highlighted)
+            floatingAddButton.tintColor = DivoColorPalette.primaryTextOnDark
+            floatingAddButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
+            
+            if floatingAddButton.isHidden {
+                floatingAddButton.alpha = 0
+                floatingAddButton.isHidden = false
+                UIView.animate(withDuration: 0.3) {
+                    self.floatingAddButton.alpha = 1.0
+                }
+            } else {
+                UIView.transition(with: floatingAddButton, duration: 0.2, options: .transitionCrossDissolve, animations: nil, completion: nil)
+            }
+        } else {
+            if !floatingAddButton.isHidden {
+                UIView.animate(withDuration: 0.3, animations: {
+                    self.floatingAddButton.alpha = 0.0
+                }) { _ in
+                    self.floatingAddButton.isHidden = true
+                }
+            }
+        }
+    }
     
     
     // MARK: - @objc
+
+    // Метод, который вызывает нужный Action в зависимости от открытого таба
+    @objc private func floatingAddButtonTapped() {
+        switch currentTab {
+        case .photo:
+            onAddPhotoTapped?()
+        case .video:
+            onAddVideoTapped?()
+        case .models:
+            onAddModelTapped?()
+        case .events:
+            onAddEventTapped?()
+        case .channels:
+            break
+        }
+    }
 
     @objc private func addModelBtnTapped() {
         onAddModelTapped?()
@@ -3427,106 +3609,6 @@ extension PublicProfileScreenNode: CurrentAgencyViewDelegate {
     func didTapSeeHistory() {
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.controller?.push(historyController)
-    }
-}
-
-
-
-
-final class StatPillView: UIControl {
-    private let iconView: UIImageView = {
-        let iv = UIImageView()
-        iv.contentMode = .center
-        iv.tintColor = .white
-        return iv
-    }()
-
-    private let countLabel: UILabel = {
-        let label = UILabel()
-        label.textColor = .white
-        label.font = UIFont(name: "HelveticaNeue", size: 12) ?? UIFont.systemFont(ofSize: 12, weight: .regular)
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.7
-        return label
-    }()
-
-    private let normalIcon: UIImage?
-    private let filledIcon: UIImage?
-
-    init(icon: UIImage, filledIcon: UIImage? = nil) {
-        self.normalIcon = icon.withRenderingMode(.alwaysTemplate)
-        self.filledIcon = filledIcon?.withRenderingMode(.alwaysTemplate)
-        super.init(frame: .zero)
-        backgroundColor = DivoColorPalette.statPillBackground
-        layer.cornerRadius = 15 // TODO: DS alignment — не в шкале Radius
-        layer.masksToBounds = true
-        layer.borderWidth = 0.5
-        layer.borderColor = DivoColorPalette.statPillBorder.cgColor
-
-        iconView.image = normalIcon
-
-        addSubview(iconView)
-        addSubview(countLabel)
-
-        translatesAutoresizingMaskIntoConstraints = false
-        heightAnchor.constraint(equalToConstant: 30).isActive = true
-    }
-
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    func setValue(_ text: String) {
-        countLabel.text = text
-        setNeedsLayout()
-    }
-
-    func setActive(_ active: Bool, animated: Bool = false) {
-        let change = {
-            if active {
-                self.backgroundColor = .white
-                self.layer.borderColor = UIColor.white.cgColor
-                self.iconView.tintColor = .black
-                self.countLabel.textColor = .black
-                if let filled = self.filledIcon {
-                    self.iconView.image = filled
-                }
-            } else {
-                self.backgroundColor = DivoColorPalette.statPillBackground
-                self.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
-                self.iconView.tintColor = .white
-                self.countLabel.textColor = .white
-                self.iconView.image = self.normalIcon
-            }
-        }
-        if animated {
-            UIView.animate(withDuration: 0.2, animations: change)
-        } else {
-            change()
-        }
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        let iconSize: CGFloat = 16
-        let iconX: CGFloat = 8
-        let iconY: CGFloat = (bounds.height - iconSize) / 2
-        iconView.frame = CGRect(x: iconX, y: iconY, width: iconSize, height: iconSize)
-        let labelX: CGFloat = iconX + iconSize + 4
-        let labelWidth = bounds.width - labelX - 4
-        countLabel.frame = CGRect(x: labelX, y: 0, width: max(labelWidth, 0), height: bounds.height)
-    }
-
-    func popIcon() {
-        iconView.divoPopAnimate()
-    }
-
-    override var intrinsicContentSize: CGSize {
-        return CGSize(width: 64, height: 30)
-    }
-
-    override func sizeThatFits(_ size: CGSize) -> CGSize {
-        return intrinsicContentSize
     }
 }
 

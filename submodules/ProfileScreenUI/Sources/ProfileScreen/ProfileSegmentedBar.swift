@@ -13,210 +13,180 @@ protocol ProfileSegmentedBarDelegate: AnyObject {
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int)
 }
 
-final class ProfileSegmentedBar: UIView {
+public final class ProfileSegmentedBar: UIView {
     
     weak var delegate: ProfileSegmentedBarDelegate?
     
-    private let buttonStack: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.spacing = 0
-        stack.distribution = .fillEqually
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
+    public private(set) var selectedIndex: Int = 0
+    
+    private let itemWidth: CGFloat = 54.0 
+    private let padding: CGFloat = 1.0   
+    
+    public override var intrinsicContentSize: CGSize {
+        let count = CGFloat(max(1, tabButtons.count))
+        let totalWidth = (count * itemWidth) + (padding * 2)
+        return CGSize(width: totalWidth, height: UIView.noIntrinsicMetric)
+    }
+    
+    // MARK: - UI Elements
+    
+    private let backgroundView: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.masksToBounds = true
+        return view
     }()
     
     private let indicatorView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 2
-        view.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.clipsToBounds = true
+        view.backgroundColor = DivoColorPalette.screenBackground
+        view.layer.masksToBounds = true
         return view
     }()
     
-    private var indicatorCenterXConstraint: NSLayoutConstraint?
-    private var indicatorWidthConstraint: NSLayoutConstraint!
+    private var tabButtons: [UIButton] = []
+    
+    // MARK: - Data
     
     private let myProfileIcons: [UIImage] = [
-        DivoImage.gridIcon,
-        DivoImage.filmstripIcon
+        DivoImage.photoIcon,
+        DivoImage.videoIcon
     ]
 
     private let modelIcons: [UIImage] = [
-        DivoImage.gridIcon,
-        DivoImage.filmstripIcon,
-        DivoImage.saveMedia
+        DivoImage.photoIcon,
+        DivoImage.videoIcon,
+        DivoImage.channelIcon
     ]
 
     private let agencyIcons: [UIImage] = [
-        DivoImage.gridIcon,
-        DivoImage.filmstripIcon,
+        DivoImage.photoIcon,
+        DivoImage.videoIcon,
         DivoImage.associatedModels,
-        DivoImage.saveMedia,
+        DivoImage.channelIcon,
         DivoImage.eventsAgency
     ]
     
-    private var imageViews: [UIImageView] = []
-    
-    private let indicatorTargetWidth: CGFloat = 44.0
-    
-    private var selectedIndex: Int = 0 {
-        didSet {
-            guard oldValue != selectedIndex else { return }
-            updateButtonStyles()
-            moveIndicator(to: selectedIndex, animated: true)
-            delegate?.segmentedBar(self, didSelectIndex: selectedIndex)
-        }
-    }
+    private var currentIcons: [UIImage] = []
 
-    func selectIndex(_ index: Int) {
-        guard index >= 0 && index < imageViews.count else { return }
-        selectedIndex = index
-    }
-
+    // MARK: - Init
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
-        setupView()
         self.backgroundColor = .clear
-        
-        configure(isAgency: false, isMyProfile: false)
+        setup()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func setupView() {
-        addSubview(buttonStack)
-        addSubview(indicatorView)
-        
-        NSLayoutConstraint.activate([
-            buttonStack.topAnchor.constraint(equalTo: topAnchor),
-            buttonStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            buttonStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            buttonStack.heightAnchor.constraint(equalToConstant: 44),
-            
-            indicatorView.bottomAnchor.constraint(equalTo: buttonStack.bottomAnchor, constant: -4),
-            indicatorView.heightAnchor.constraint(equalToConstant: 2.0)
-        ])
-        
-        indicatorWidthConstraint = indicatorView.widthAnchor.constraint(equalToConstant: indicatorTargetWidth)
-        indicatorWidthConstraint.isActive = true
+    // MARK: - Setup
+    
+    private func setup() {
+        addSubview(backgroundView)
+        backgroundView.addSubview(indicatorView)
     }
     
+    // MARK: - Configuration
+    
     func configure(isAgency: Bool, isMyProfile: Bool, animated: Bool = true) {
-        let icons = isAgency ? agencyIcons : (isMyProfile ? myProfileIcons : modelIcons)
-
-        guard imageViews.count != icons.count else { return }
+        let newIcons = isAgency ? agencyIcons : (isMyProfile ? myProfileIcons : modelIcons)
+        
+        guard currentIcons != newIcons else { return }
+        currentIcons = newIcons
 
         let updateActions = {
-            self.buttonStack.arrangedSubviews.forEach {
-                self.buttonStack.removeArrangedSubview($0)
-                $0.removeFromSuperview()
-            }
-            self.imageViews.removeAll()
+            self.tabButtons.forEach { $0.removeFromSuperview() }
+            self.tabButtons.removeAll()
 
-            for (index, icon) in icons.enumerated() {
-                let containerView = UIView()
-                containerView.translatesAutoresizingMaskIntoConstraints = false
-                containerView.tag = index
-
-                let iconImageView: UIImageView = {
-                    let iv = UIImageView()
-                    iv.image = icon.withRenderingMode(.alwaysTemplate)
-                    iv.contentMode = .scaleAspectFit
-                    iv.translatesAutoresizingMaskIntoConstraints = false
-                    return iv
-                }()
+            for (index, icon) in newIcons.enumerated() {
+                let button = UIButton(type: .custom)
+                button.setImage(icon, for: .normal)
+                button.tag = index
+                button.addTarget(self, action: #selector(self.tabTapped(_:)), for: .touchUpInside)
                 
-                containerView.addSubview(iconImageView)
-                
-                let tapGesture = UITapGestureRecognizer(target: self, action: #selector(self.iconTapped(_:)))
-                containerView.addGestureRecognizer(tapGesture)
-                containerView.isUserInteractionEnabled = true
-                
-                NSLayoutConstraint.activate([
-                    iconImageView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-                    iconImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
-                    iconImageView.widthAnchor.constraint(equalToConstant: 24),
-                    iconImageView.heightAnchor.constraint(equalToConstant: 24)
-                ])
-                
-                self.buttonStack.addArrangedSubview(containerView)
-                self.imageViews.append(iconImageView)
+                self.backgroundView.addSubview(button)
+                self.tabButtons.append(button)
             }
             
             self.selectedIndex = 0
-            
-            self.updateButtonStyles()
-            self.setupInitialIndicatorState()
+            self.invalidateIntrinsicContentSize()
+            self.setNeedsLayout()
             self.layoutIfNeeded()
         }
         
         if animated && self.window != nil {
-            let transition = CATransition()
-            transition.duration = 0.2
-            transition.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            transition.type = .moveIn
-            transition.subtype = .fromBottom
-            self.layer.add(transition, forKey: "curtainTransition")
-            
-            updateActions()
-            
+            UIView.transition(with: self, duration: 0.25, options: .transitionCrossDissolve, animations: updateActions, completion: nil)
         } else {
             updateActions()
         }
     }
     
-    private func setupInitialIndicatorState() {
-        guard !buttonStack.arrangedSubviews.isEmpty else { return }
-        
-        indicatorCenterXConstraint?.isActive = false
-        
-        let firstButton = buttonStack.arrangedSubviews[0]
-        indicatorCenterXConstraint = indicatorView.centerXAnchor.constraint(equalTo: firstButton.centerXAnchor)
-        indicatorCenterXConstraint?.isActive = true
-    }
+    // MARK: - Layout
     
-    @objc private func iconTapped(_ sender: UITapGestureRecognizer) {
-        guard let view = sender.view else { return }
-        selectedIndex = view.tag
+    public override func layoutSubviews() {
+        super.layoutSubviews()
+        backgroundView.frame = bounds
+        backgroundView.layer.cornerRadius = bounds.height / 2
+        layoutIndicator()
     }
-    
-    private func updateButtonStyles() {
-        for (index, imageView) in imageViews.enumerated() {
-            imageView.tintColor = index == selectedIndex ? .white : .white.withAlphaComponent(0.4)
+
+    private func layoutIndicator() {
+        guard selectedIndex < tabButtons.count, !tabButtons.isEmpty else { return }
+        
+        let tabCount = CGFloat(tabButtons.count)
+        let padding: CGFloat = 2
+        let segmentWidth = (bounds.width - padding * 2) / tabCount
+        let indicatorX = padding + CGFloat(selectedIndex) * segmentWidth
+        let indicatorHeight = bounds.height - padding * 2
+
+        indicatorView.frame = CGRect(x: indicatorX, y: padding, width: segmentWidth, height: indicatorHeight)
+        indicatorView.layer.cornerRadius = indicatorHeight / 2
+
+        for (i, button) in tabButtons.enumerated() {
+            button.frame = CGRect(x: padding + CGFloat(i) * segmentWidth, y: 0, width: segmentWidth, height: bounds.height)
         }
     }
-    
-    private func moveIndicator(to index: Int, animated: Bool) {
-        guard index >= 0, index < buttonStack.arrangedSubviews.count else { return }
-        
-        let targetButton = buttonStack.arrangedSubviews[index]
-        
-        if let existing = indicatorCenterXConstraint {
-            existing.isActive = false
+
+    // MARK: - User Tap
+
+    @objc private func tabTapped(_ sender: UIButton) {
+        let index = sender.tag
+        guard index != selectedIndex else { return }
+        selectedIndex = index
+
+        let haptic = UIImpactFeedbackGenerator(style: .light)
+        haptic.impactOccurred()
+
+        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+            self.layoutIndicator()
         }
-        
-        let newConstraint = indicatorView.centerXAnchor.constraint(equalTo: targetButton.centerXAnchor)
-        newConstraint.isActive = true
-        self.indicatorCenterXConstraint = newConstraint
-        
+        delegate?.segmentedBar(self, didSelectIndex: index)
+    }
+
+    // MARK: - Programmatic Selection
+
+    public func selectIndex(_ index: Int, animated: Bool = true) {
+        guard index != selectedIndex, index >= 0, index < tabButtons.count else { return }
+        selectedIndex = index
+
         if animated {
-            UIView.animate(
-                withDuration: 0.3,
-                delay: 0,
-                usingSpringWithDamping: 0.8,
-                initialSpringVelocity: 0.5,
-                options: [.curveEaseOut],
-                animations: {
-                    self.layoutIfNeeded()
-                }, completion: nil
-            )
+            UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+                self.layoutIndicator()
+            }
         } else {
-            self.layoutIfNeeded()
+            layoutIndicator()
         }
+    }
+
+    /// Позволяет индикатору двигаться плавно при свайпе в UIScrollView
+    public func setIndicatorProgress(_ progress: CGFloat) {
+        guard bounds.width > 0, !tabButtons.isEmpty else { return }
+        let tabCount = CGFloat(tabButtons.count)
+        let padding: CGFloat = 2
+        let segmentWidth = (bounds.width - padding * 2) / tabCount
+        let indicatorX = padding + progress * segmentWidth
+        indicatorView.frame.origin.x = indicatorX
     }
 }

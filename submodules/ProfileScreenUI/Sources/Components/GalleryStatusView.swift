@@ -13,16 +13,14 @@ final class GalleryStatusView: UIControl {
     
     private let containerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .black.withAlphaComponent(0.12)
-        view.layer.cornerRadius = 6
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isUserInteractionEnabled = false
         return view
     }()
     
-    private let spinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .medium)
-        spinner.color = .white
+    private let loadingSpinner: DivoSegmentedSpinner = {
+        let spinner = DivoSegmentedSpinner()
         spinner.translatesAutoresizingMaskIntoConstraints = false
         spinner.isUserInteractionEnabled = false
         return spinner
@@ -31,8 +29,7 @@ final class GalleryStatusView: UIControl {
     private let statusImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
-        imageView.tintColor = .white
-        imageView.image = DivoImage.addPhotoIcon
+        imageView.image = DivoImage.addMediaProfile
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isUserInteractionEnabled = false
         return imageView
@@ -40,23 +37,19 @@ final class GalleryStatusView: UIControl {
     
     private let statusLabel: UILabel = {
         let label = UILabel()
-        label.textColor = .white
-        label.font = Font.helveticaNeue(10)
+        label.textColor = DivoColorPalette.primaryText
+        label.font = Font.regular(10)
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.isUserInteractionEnabled = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 20).isActive = true
         return label
     }()
     
-    private lazy var contentStack: UIStackView = {
-        let stack = UIStackView(arrangedSubviews: [spinner, statusImageView, statusLabel])
-        stack.axis = .vertical
-        stack.spacing = 8
-        stack.alignment = .center
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.isUserInteractionEnabled = false
-        return stack
+    private lazy var contentView: UIView = {
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.isUserInteractionEnabled = false
+        return contentView
     }()
     
     override init(frame: CGRect) {
@@ -72,16 +65,33 @@ final class GalleryStatusView: UIControl {
     private func setupViews() {
         statusImageView.isHidden = true
         addSubview(containerView)
-        containerView.addSubview(contentStack)
+        containerView.addSubview(contentView)
+        contentView.addSubview(loadingSpinner)
+        contentView.addSubview(statusImageView)
+        contentView.addSubview(statusLabel)
         
         NSLayoutConstraint.activate([
             containerView.centerXAnchor.constraint(equalTo: centerXAnchor),
-            contentStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            contentView.centerYAnchor.constraint(equalTo: centerYAnchor),
             containerView.widthAnchor.constraint(equalToConstant: 140),
             containerView.heightAnchor.constraint(equalToConstant: 70),
             
-            contentStack.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
-            contentStack.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+            contentView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            contentView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+            
+            loadingSpinner.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            loadingSpinner.centerYAnchor.constraint(equalTo: containerView.centerYAnchor, constant: -DivoDesignTokens.Spacing.l),
+            loadingSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            loadingSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            
+            statusImageView.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            statusImageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor, constant: -DivoDesignTokens.Spacing.l),
+            statusImageView.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            statusImageView.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            
+            statusLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            statusLabel.topAnchor.constraint(equalTo: statusImageView.bottomAnchor, constant: DivoDesignTokens.Spacing.xs),
+            statusLabel.topAnchor.constraint(equalTo: loadingSpinner.bottomAnchor, constant: DivoDesignTokens.Spacing.xs),
         ])
     }
     
@@ -92,12 +102,13 @@ final class GalleryStatusView: UIControl {
         statusLabel.text = text
         if isLoading {
             statusImageView.isHidden = true
-            spinner.isHidden = false
-            spinner.startAnimating()
+            loadingSpinner.isHidden = false
+            loadingSpinner.startAnimating()
+            
             self.isEnabled = false
         } else {
-            spinner.isHidden = true
-            spinner.stopAnimating()
+            loadingSpinner.isHidden = true
+            loadingSpinner.stopAnimating()
             statusImageView.isHidden = !isMyProfile
             self.isEnabled = isMyProfile
         }
@@ -106,12 +117,12 @@ final class GalleryStatusView: UIControl {
     func loadingSpinner(isLoading: Bool) {
         if isLoading {
             statusImageView.isHidden = true
-            spinner.isHidden = false
-            spinner.startAnimating()
+            loadingSpinner.isHidden = false
+            loadingSpinner.startAnimating()
             self.isEnabled = false
         } else {
-            spinner.isHidden = true
-            spinner.stopAnimating()
+            loadingSpinner.isHidden = true
+            loadingSpinner.stopAnimating()
             statusImageView.isHidden = false
             self.isEnabled = true
         }
