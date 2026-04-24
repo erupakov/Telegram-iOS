@@ -132,7 +132,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
 
         navigationBar.makeNavigationBar(
             title: DivoStrings.feedSearchFilter,
-            font: Font.regular(15),
+            font: Font.medium(16),
             backButtonConfiguration: .circle(DivoImage.searchCloseIcon),
             rightButtonConfiguration: .text(DivoStrings.feedSearchReset),
             onBackTapped: { [weak self] in self?.closeTapped() },

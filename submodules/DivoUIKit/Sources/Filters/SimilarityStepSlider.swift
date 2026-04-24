@@ -26,7 +26,7 @@ public final class SimilarityStepSlider: UIControl {
     }
 
     public var labelFormatter: (CGFloat) -> String = { value in
-        "\(Int((value * 100).rounded()))"
+        "\(Int((value * 100).rounded()))%"
     }
 
     private let trackLayer = CALayer()
@@ -35,9 +35,9 @@ public final class SimilarityStepSlider: UIControl {
     private var markLayers: [CALayer] = []
     private var stepLabels: [UILabel] = []
 
-    private let thumbWidth: CGFloat = 28
+    private let thumbWidth: CGFloat = 24
     private let trackHeight: CGFloat = 4
-    private let markDiameter: CGFloat = 8
+    private let markDiameter: CGFloat = 10
     private let labelTopOffset: CGFloat = 14
 
     private var previousLocation: CGPoint = .zero
@@ -51,7 +51,7 @@ public final class SimilarityStepSlider: UIControl {
     public required init?(coder: NSCoder) { fatalError() }
 
     public override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: 58)
+        CGSize(width: UIView.noIntrinsicMetric, height: 40)
     }
 
     public override func layoutSubviews() {
@@ -69,7 +69,7 @@ public final class SimilarityStepSlider: UIControl {
         highlightLayer.cornerRadius = trackHeight / 2
         layer.addSublayer(highlightLayer)
 
-        thumbLayer.backgroundColor = UIColor.white.cgColor
+        thumbLayer.backgroundColor = DivoColorPalette.accent.cgColor
         thumbLayer.cornerRadius = thumbWidth / 2
         thumbLayer.applyDivoShadow(
             opacity: 0.15,
@@ -94,6 +94,7 @@ public final class SimilarityStepSlider: UIControl {
             label.font = Font.regular(12)
             label.textColor = DivoColorPalette.systemLabelPlaceholder
             label.textAlignment = .center
+            label.lineBreakMode = .byClipping
             label.translatesAutoresizingMaskIntoConstraints = false
             addSubview(label)
             return label
@@ -104,6 +105,11 @@ public final class SimilarityStepSlider: UIControl {
             let markLayer = CALayer()
             markLayer.backgroundColor = DivoColorPalette.accent.withAlphaComponent(0.4).cgColor
             markLayer.cornerRadius = markDiameter / 2
+            markLayer.applyDivoShadow(
+                opacity: 0.15,
+                radius: DivoDesignTokens.Shadow.thumbRadius,
+                offset: DivoDesignTokens.Shadow.thumbOffset
+            )
             layer.insertSublayer(markLayer, above: trackLayer)
             return markLayer
         }
@@ -123,36 +129,46 @@ public final class SimilarityStepSlider: UIControl {
     }
 
     private func positionForIndex(_ index: Int) -> CGFloat {
-        guard steps.count > 1 else { return thumbWidth / 2 }
-        let usableWidth = bounds.width - thumbWidth
-        let percent = CGFloat(index) / CGFloat(steps.count - 1)
-        return thumbWidth / 2 + usableWidth * percent
+        guard steps.count > 1 else { return bounds.width / 2 }
+        let n = (bounds.width - 30) / 7
+        return CGFloat(index + 1) * n + CGFloat(index) * 6
     }
 
     private func indexNearest(to x: CGFloat) -> Int {
-        guard !steps.isEmpty else { return 0 }
-        let usableWidth = bounds.width - thumbWidth
-        guard usableWidth > 0 else { return 0 }
-        let clampedX = min(max(x, thumbWidth / 2), bounds.width - thumbWidth / 2)
-        let percent = (clampedX - thumbWidth / 2) / usableWidth
-        let raw = percent * CGFloat(steps.count - 1)
-        return max(0, min(steps.count - 1, Int(raw.rounded())))
+        guard steps.count > 1 else { return 0 }
+        var closest = 0
+        var closestDist = CGFloat.greatestFiniteMagnitude
+        for i in 0..<steps.count {
+            let dist = abs(x - positionForIndex(i))
+            if dist < closestDist {
+                closestDist = dist
+                closest = i
+            }
+        }
+        return closest
     }
 
     private func updateLayerFrames(animated: Bool) {
         guard bounds.width > 0 else { return }
 
         let trackY = (thumbWidth - trackHeight) / 2
-        let trackRect = CGRect(x: thumbWidth / 2, y: trackY, width: bounds.width - thumbWidth, height: trackHeight)
+        let trackRect = CGRect(x: 0, y: trackY, width: bounds.width, height: trackHeight)
 
         let thumbCenter = positionForIndex(selectedIndex)
-        let highlightRect = CGRect(x: thumbWidth / 2, y: trackY, width: max(0, thumbCenter - thumbWidth / 2), height: trackHeight)
+        let highlightRect = CGRect(x: 0, y: trackY, width: thumbCenter, height: trackHeight)
         let thumbRect = CGRect(x: thumbCenter - thumbWidth / 2, y: 0, width: thumbWidth, height: thumbWidth)
 
-        let apply = {
+        if animated {
+            let timing = CAMediaTimingFunction(controlPoints: 0.25, 1.0, 0.5, 1.0)
+
+            CATransaction.begin()
+            CATransaction.setAnimationDuration(0.3)
+            CATransaction.setAnimationTimingFunction(timing)
+
             self.trackLayer.frame = trackRect
             self.highlightLayer.frame = highlightRect
             self.thumbLayer.frame = thumbRect
+
             for (i, markLayer) in self.markLayers.enumerated() {
                 let center = self.positionForIndex(i)
                 markLayer.frame = CGRect(
@@ -161,22 +177,42 @@ public final class SimilarityStepSlider: UIControl {
                     width: self.markDiameter,
                     height: self.markDiameter
                 )
-                markLayer.backgroundColor = (i <= self.selectedIndex
-                    ? UIColor.white
-                    : DivoColorPalette.accent.withAlphaComponent(0.4)
+                markLayer.backgroundColor = (i < self.selectedIndex
+                    ? DivoColorPalette.accent
+                    : UIColor.white
                 ).cgColor
             }
-        }
 
-        if animated {
-            CATransaction.begin()
-            CATransaction.setAnimationDuration(0.2)
-            apply()
             CATransaction.commit()
+
+            let pop = CAKeyframeAnimation(keyPath: "transform.scale")
+            pop.values = [1.0, 1.15, 0.95, 1.0]
+            pop.keyTimes = [0, 0.35, 0.7, 1.0]
+            pop.duration = 0.3
+            pop.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            thumbLayer.add(pop, forKey: "thumbPop")
         } else {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            apply()
+
+            self.trackLayer.frame = trackRect
+            self.highlightLayer.frame = highlightRect
+            self.thumbLayer.frame = thumbRect
+
+            for (i, markLayer) in self.markLayers.enumerated() {
+                let center = self.positionForIndex(i)
+                markLayer.frame = CGRect(
+                    x: center - self.markDiameter / 2,
+                    y: (self.thumbWidth - self.markDiameter) / 2,
+                    width: self.markDiameter,
+                    height: self.markDiameter
+                )
+                markLayer.backgroundColor = (i < self.selectedIndex
+                    ? DivoColorPalette.accent
+                    : UIColor.white
+                ).cgColor
+            }
+
             CATransaction.commit()
         }
     }
@@ -184,23 +220,45 @@ public final class SimilarityStepSlider: UIControl {
     private func layoutStepLabels() {
         for (i, label) in stepLabels.enumerated() {
             let center = positionForIndex(i)
-            label.sizeToFit()
-            let width = max(label.bounds.width, 24)
+            let text = label.text ?? ""
+            let mediumSize = (text as NSString).size(withAttributes: [.font: Font.medium(12)])
+            let width = max(ceil(mediumSize.width) + 10, 24)
+            let height = ceil(mediumSize.height)
+            let trackBottom = (thumbWidth - trackHeight) / 2 + trackHeight
             label.frame = CGRect(
-                x: center - width / 2,
-                y: thumbWidth + labelTopOffset,
+                x: center - 14,
+                y: trackBottom + labelTopOffset,
                 width: width,
-                height: label.bounds.height
+                height: height
             )
         }
         updateLabelHighlight()
     }
 
-    private func updateLabelHighlight() {
+    private func updateLabelHighlight(animated: Bool = false) {
         for (i, label) in stepLabels.enumerated() {
             let isSelected = i == selectedIndex
-            label.textColor = isSelected ? DivoColorPalette.primaryText : DivoColorPalette.systemLabelPlaceholder
-            label.font = isSelected ? Font.medium(12) : Font.regular(12)
+            let targetColor = isSelected ? DivoColorPalette.primaryText : DivoColorPalette.systemLabelPlaceholder
+            let targetFont = isSelected ? Font.medium(12) : Font.regular(12)
+            let targetScale: CGFloat = isSelected ? 1.15 : 1.0
+
+            if animated {
+                UIView.animate(
+                    withDuration: 0.35,
+                    delay: 0,
+                    usingSpringWithDamping: 0.7,
+                    initialSpringVelocity: 0.5,
+                    options: [.curveEaseOut]
+                ) {
+                    label.transform = CGAffineTransform(scaleX: targetScale, y: targetScale)
+                    label.textColor = targetColor
+                }
+                label.font = targetFont
+            } else {
+                label.textColor = targetColor
+                label.font = targetFont
+                label.transform = CGAffineTransform(scaleX: targetScale, y: targetScale)
+            }
         }
     }
 
@@ -215,7 +273,7 @@ public final class SimilarityStepSlider: UIControl {
             let newIndex = indexNearest(to: location.x)
             if newIndex != selectedIndex {
                 selectedIndex = newIndex
-                updateLabelHighlight()
+                updateLabelHighlight(animated: true)
                 UISelectionFeedbackGenerator().selectionChanged()
             }
             previousLocation = location
@@ -231,7 +289,7 @@ public final class SimilarityStepSlider: UIControl {
         let newIndex = indexNearest(to: location.x)
         if newIndex != selectedIndex {
             selectedIndex = newIndex
-            updateLabelHighlight()
+            updateLabelHighlight(animated: true)
             UISelectionFeedbackGenerator().selectionChanged()
         }
     }

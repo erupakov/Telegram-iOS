@@ -131,8 +131,8 @@ public enum DivoStrings {
     public static var feedSearchCountry: String { L(en: "Search by country", ru: "Поиск по стране", es: "Buscar por país", pt: "Pesquisar por país", zh: "按国家搜索") }
     public static var feedSearchAllCountries: String { L(en: "All countries", ru: "Все страны", es: "Todos los países", pt: "Todos os países", zh: "所有国家") }
     public static var feedSearchResetParameter: String { L(en: "Reset parameter", ru: "Сбросить параметр", es: "Restablecer parámetro", pt: "Redefinir parâmetro", zh: "重置参数") }
-    public static var feedSearchMoreFilters: String { L(en: "More filters", ru: "Больше фильтров", es: "Más filtros", pt: "Mais filtros", zh: "更多筛选") }
-    public static var feedSearchLessFilters: String { L(en: "Less filters", ru: "Меньше фильтров", es: "Menos filtros", pt: "Menos filtros", zh: "更少筛选") }
+    public static var feedSearchMoreFilters: String { L(en: "More parameters", ru: "Больше параметров", es: "Más parámetros", pt: "Mais parâmetros", zh: "更多参数") }
+    public static var feedSearchLessFilters: String { L(en: "Less parameters", ru: "Меньше параметров", es: "Menos parámetros", pt: "Menos parâmetros", zh: "更少参数") }
     public static var feedSearchFiltersLoadFailed: String { L(en: "Failed to load filters", ru: "Не удалось загрузить фильтры", es: "Error al cargar filtros", pt: "Falha ao carregar filtros", zh: "加载筛选器失败") }
     public static var feedSearchResultsLoadFailed: String { L(en: "Failed to load search results", ru: "Не удалось загрузить результаты поиска", es: "Error al cargar resultados", pt: "Falha ao carregar resultados", zh: "加载搜索结果失败") }
 
@@ -176,6 +176,8 @@ public enum DivoStrings {
     public static var faceSearchErrorTip: String { L(en: "Check your connection and try again", ru: "Проверьте соединение и попробуйте снова", es: "Verifica tu conexión e intenta de nuevo", pt: "Verifique sua conexão e tente novamente", zh: "请检查网络连接并重试") }
     public static var faceSearchInterruptedTitle: String { L(en: "Search interrupted", ru: "Поиск прерван", es: "Búsqueda interrumpida", pt: "Busca interrompida", zh: "搜索已中断") }
     public static var faceSearchInterruptedSubtitle: String { L(en: "Connection lost during analysis. Photo is ready — just retry", ru: "Соединение потеряно при анализе. Фото готово — просто повторите", es: "Se perdió la conexión durante el análisis. La foto está lista — solo reinténtalo", pt: "Conexão perdida durante a análise. A foto está pronta — é só tentar novamente", zh: "分析过程中连接中断。照片已就绪 — 请重试") }
+    public static var faceSearchServerErrorTitle: String { L(en: "Server error", ru: "Ошибка сервера", es: "Error del servidor", pt: "Erro do servidor", zh: "服务器错误") }
+    public static var faceSearchServerErrorSubtitle: String { L(en: "Something went wrong. Photo is ready — just retry", ru: "Что-то пошло не так. Фото готово — просто повторите", es: "Algo salió mal. La foto está lista — solo reinténtalo", pt: "Algo deu errado. A foto está pronta — é só tentar novamente", zh: "出了点问题。照片已就绪 — 请重试") }
     public static var faceSearchSimilarProfilesTitle: String { L(en: "Similar profiles", ru: "Похожие профили", es: "Perfiles similares", pt: "Perfis semelhantes", zh: "相似档案") }
     public static func faceSearchResultsCount(_ count: Int) -> String { L(en: "\(count) results", ru: "Результатов: \(count)", es: "\(count) resultados", pt: "\(count) resultados", zh: "\(count) 个结果") }
     public static func faceSearchSimilarityThreshold(_ percent: Int) -> String { L(en: "Similarity \(percent)%+", ru: "Сходство от \(percent)%", es: "Similitud \(percent)%+", pt: "Similaridade \(percent)%+", zh: "相似度 \(percent)%+") }
@@ -186,6 +188,9 @@ public enum DivoStrings {
     public static var faceSearchFilterTitle: String { L(en: "Filter results", ru: "Фильтр результатов", es: "Filtrar resultados", pt: "Filtrar resultados", zh: "筛选结果") }
     public static var faceSearchFilterSimilarity: String { L(en: "Minimum similarity", ru: "Минимальное сходство", es: "Similitud mínima", pt: "Similaridade mínima", zh: "最低相似度") }
     public static var faceSearchFilterSimilarityHint: String { L(en: "Higher values show fewer but closer matches", ru: "Чем выше значение, тем меньше, но ближе совпадений", es: "Valores más altos muestran menos coincidencias, pero más cercanas", pt: "Valores mais altos mostram menos correspondências, porém mais próximas", zh: "数值越高，匹配结果越少但越精准") }
+    public static func faceSearchFallbackMessage(original: Int, actual: Int) -> String { L(en: "No results at \(original)% similarity — showing results at \(actual)% instead.", ru: "Нет результатов при \(original)% сходства — показываем результаты при \(actual)%.", es: "Sin resultados al \(original)% de similitud — mostrando resultados al \(actual)%.", pt: "Sem resultados com \(original)% de similaridade — mostrando resultados com \(actual)%.", zh: "在 \(original)% 相似度下无结果 — 改为显示 \(actual)% 的结果。") }
+    public static var faceSearchAdjustFilters: String { L(en: "Adjust filters", ru: "Настроить", es: "Ajustar filtros", pt: "Ajustar filtros", zh: "调整筛选") }
+    public static var faceSearchNoResultsWithFilters: String { L(en: "No results found — try adjusting your filters", ru: "Ничего не найдено — попробуйте изменить фильтры", es: "Sin resultados — intenta ajustar los filtros", pt: "Sem resultados — tente ajustar os filtros", zh: "未找到结果 — 请尝试调整筛选条件") }
 
     // MARK: - Roles
 

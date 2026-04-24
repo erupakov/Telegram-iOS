@@ -119,29 +119,29 @@ public final class FaceSearchController: ViewController {
 
         Task { @MainActor [weak self] in
             do {
-                let response: FRDetectResponse = try await DivoAPIClient.shared.upload(
+                async let response: FRDetectResponse = DivoAPIClient.shared.upload(
                     path: "/fr/detect",
                     fileData: imageData
                 )
+                async let minimumDelay: Void = Task.sleep(nanoseconds: 1_300_000_000)
+
+                let detectResult = try await response
+                _ = try? await minimumDelay
                 guard let self else { return }
 
-                switch response.faces.count {
+                switch detectResult.faces.count {
                 case 0:
                     self.transition(to: .noFaces)
                 case 1:
-                    self.transition(to: .singleFace(response.faces[0]))
+                    self.transition(to: .singleFace(detectResult.faces[0]))
                 default:
-                    self.transition(to: .multipleFaces(response.faces, selected: nil))
+                    self.transition(to: .multipleFaces(detectResult.faces, selected: nil))
                 }
             } catch {
                 guard let self else { return }
-                if Self.isConnectionFailure(error) {
-                    self.transition(to: .idle)
-                    self.presentError { [weak self] in
-                        self?.runDetect()
-                    }
-                } else {
-                    self.transition(to: .noFaces)
+                self.transition(to: .idle)
+                self.presentError(for: error) { [weak self] in
+                    self?.runDetect()
                 }
             }
         }
@@ -167,7 +167,7 @@ public final class FaceSearchController: ViewController {
 
         Task { @MainActor [weak self] in
             do {
-                let searchResponse: FRSearchResponse = try await DivoAPIClient.shared.upload(
+                async let searchResponse: FRSearchResponse = DivoAPIClient.shared.upload(
                     path: "/fr/search",
                     fileData: imageData,
                     fields: [
@@ -176,15 +176,19 @@ public final class FaceSearchController: ViewController {
                         "k_ratio": "\(Self.searchThreshold)"
                     ]
                 )
+                async let minimumDelay: Void = Task.sleep(nanoseconds: 1_300_000_000)
+
+                let result = try await searchResponse
+                _ = try? await minimumDelay
                 guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
-                self.showResults(searchResponse.results, bbox: searchResponse.bbox, imageData: imageData, faceIndex: faceIndex)
+                self.showResults(result.results, bbox: result.bbox, imageData: imageData, faceIndex: faceIndex)
             } catch {
                 guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
-                self.presentError { [weak self] in
+                self.presentError(for: error) { [weak self] in
                     self?.handleFindPressed()
                 }
             }
@@ -201,10 +205,19 @@ public final class FaceSearchController: ViewController {
         return false
     }
 
-    private func presentError(retryAction: @escaping () -> Void) {
+    private func presentError(for error: Error, retryAction: @escaping () -> Void) {
+        let title: String
+        let subtitle: String
+        if Self.isConnectionFailure(error) {
+            title = DivoStrings.faceSearchInterruptedTitle
+            subtitle = DivoStrings.faceSearchInterruptedSubtitle
+        } else {
+            title = DivoStrings.faceSearchServerErrorTitle
+            subtitle = DivoStrings.faceSearchServerErrorSubtitle
+        }
         faceSearchNode?.applyError(
-            title: DivoStrings.faceSearchInterruptedTitle,
-            subtitle: DivoStrings.faceSearchInterruptedSubtitle,
+            title: title,
+            subtitle: subtitle,
             retryTitle: DivoStrings.faceSearchRetrySearch,
             onRetry: retryAction
         )

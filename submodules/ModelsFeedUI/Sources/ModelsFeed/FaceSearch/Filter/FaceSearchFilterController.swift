@@ -47,14 +47,15 @@ final class FaceSearchFilterController: UIViewController {
     private let similarityCard: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
-        view.layer.cornerRadius = DivoDesignTokens.Radius.l
+        view.layer.cornerRadius = 16
+        view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
     private let similarityTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.medium(16)
+        label.font = Font.regular(16)
         label.textColor = DivoColorPalette.primaryText
         label.text = DivoStrings.faceSearchFilterSimilarity
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -63,8 +64,8 @@ final class FaceSearchFilterController: UIViewController {
 
     private let similarityValueLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.medium(16)
-        label.textColor = DivoColorPalette.accent
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.textAlignment = .right
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -153,7 +154,7 @@ final class FaceSearchFilterController: UIViewController {
 
         navigationBar.makeNavigationBar(
             title: DivoStrings.faceSearchFilterTitle,
-            font: Font.regular(15),
+            font: Font.medium(16),
             backButtonConfiguration: .circle(DivoImage.searchCloseIcon),
             rightButtonConfiguration: .text(DivoStrings.feedSearchReset),
             onBackTapped: { [weak self] in self?.closeTapped() },
@@ -284,7 +285,7 @@ final class FaceSearchFilterController: UIViewController {
         scrollView.addSubview(stackView)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 20),
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 18),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -298,9 +299,6 @@ final class FaceSearchFilterController: UIViewController {
 
         setupSimilarityCard()
         stackView.addArrangedSubview(similarityCard)
-
-        stackView.setCustomSpacing(DivoDesignTokens.Spacing.s, after: similarityCard)
-        stackView.addArrangedSubview(similarityHintLabel)
 
         let innerStack = UIStackView(arrangedSubviews: [roleRow, countryRow])
         innerStack.axis = .vertical
@@ -354,20 +352,26 @@ final class FaceSearchFilterController: UIViewController {
         similarityCard.addSubview(similarityTitleLabel)
         similarityCard.addSubview(similarityValueLabel)
         similarityCard.addSubview(similaritySlider)
+        similarityCard.addSubview(similarityHintLabel)
 
         NSLayoutConstraint.activate([
-            similarityTitleLabel.topAnchor.constraint(equalTo: similarityCard.topAnchor, constant: DivoDesignTokens.Spacing.m),
-            similarityTitleLabel.leadingAnchor.constraint(equalTo: similarityCard.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            similarityTitleLabel.topAnchor.constraint(equalTo: similarityCard.topAnchor, constant: 12),
+            similarityTitleLabel.leadingAnchor.constraint(equalTo: similarityCard.leadingAnchor, constant: 18),
 
-            similarityValueLabel.centerYAnchor.constraint(equalTo: similarityTitleLabel.centerYAnchor),
-            similarityValueLabel.trailingAnchor.constraint(equalTo: similarityCard.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            similarityValueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: similarityTitleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            similarityValueLabel.topAnchor.constraint(equalTo: similarityCard.topAnchor, constant: 14),
+            similarityValueLabel.trailingAnchor.constraint(equalTo: similarityCard.trailingAnchor, constant: -18),
 
-            similaritySlider.topAnchor.constraint(equalTo: similarityTitleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
-            similaritySlider.leadingAnchor.constraint(equalTo: similarityCard.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            similaritySlider.trailingAnchor.constraint(equalTo: similarityCard.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            similaritySlider.heightAnchor.constraint(equalToConstant: 58),
-            similaritySlider.bottomAnchor.constraint(equalTo: similarityCard.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
+            similaritySlider.topAnchor.constraint(equalTo: similarityCard.topAnchor, constant: 38),
+            similaritySlider.leadingAnchor.constraint(equalTo: similarityCard.leadingAnchor, constant: 18),
+            similaritySlider.trailingAnchor.constraint(equalTo: similarityCard.trailingAnchor, constant: -18),
+            similaritySlider.heightAnchor.constraint(equalToConstant: 40),
+
+            similarityCard.heightAnchor.constraint(greaterThanOrEqualToConstant: 118),
+
+            similarityHintLabel.topAnchor.constraint(equalTo: similaritySlider.bottomAnchor, constant: 12),
+            similarityHintLabel.leadingAnchor.constraint(equalTo: similarityCard.leadingAnchor, constant: 18),
+            similarityHintLabel.trailingAnchor.constraint(equalTo: similarityCard.trailingAnchor, constant: -18),
+            similarityHintLabel.bottomAnchor.constraint(equalTo: similarityCard.bottomAnchor, constant: -12)
         ])
     }
 
