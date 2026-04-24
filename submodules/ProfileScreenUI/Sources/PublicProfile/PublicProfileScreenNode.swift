@@ -659,7 +659,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onReportProfileTapped: (() -> Void)?
     var onBlockTapped: (() -> Void)?
 
-    var onEditProfileTapped: (() -> Void)?
+    var onEditProfileTapped: ((Int) -> Void)?
     var onChangeBackgrounTapped: (() -> Void)?
     var onEditSocialLinksTapped: (() -> Void)?
     var onManageWorkExperienceTapped: (() -> Void)?
@@ -1071,7 +1071,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 title: DivoStrings.editProfile,
                 image: nil,
             ) {[weak self] _ in
-                self?.onEditProfileTapped?()
+                self?.onEditProfileTapped?(0)
             }
             
             let changeBackgroundAction = UIAction(
@@ -1109,25 +1109,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.onCreateEventTapped?()
             }
 
-            let addPhotoAction = UIAction(
-                title: DivoStrings.addPhoto,
-                image: nil,
-            ) { [weak self] _ in
-                self?.onAddPhotoTapped?()
-            }
-
-            let addVideoAction = UIAction(
-                title: DivoStrings.addVideo,
-                image: nil,
-            ) { [weak self] _ in
-                self?.onAddVideoTapped?()
-            }
-
             if isMyProfile {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction, addPhotoAction, addVideoAction])
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
                 editButton.menu = menu
             } else {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, addModelAction, createEventAction, addPhotoAction, addVideoAction])
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, addModelAction, createEventAction])
                 editButton.menu = menu
             }
             
@@ -1212,6 +1198,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupSocialMediaContainer()
         setupSegmentedBarPlaceholder()
         setupMovingBlur()
+        setupFloatingButton()
     }
 
     private func setupMovingBlur() {
@@ -1410,10 +1397,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         ])
         
         contentViewStack.setCustomSpacing(12, after: profileInfoView)
-    }
-
-    @objc private func addWorkHistoryTapped() {
-        onAddWorkExperienceTapped?()
     }
 
     private func setupSocialMediaContainer() {
@@ -1754,6 +1737,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let finalY = max(naturalY, stickyY)
         
         segmentedBarTopConstraint?.constant = finalY
+        updateFloatingButton(for: currentTab)
     }
     
     // Настройка кнопки чата/загрузки фотографии
@@ -2272,7 +2256,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
         self.modelDetail = detail
-        var bio: String
+        var bio: String?
         var appearance: [AppearanceAttribute]
 
         self.modelRole = Role(apiRole: detail.role)
@@ -2313,8 +2297,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             bio = (detail.model?.description?.isEmpty == false)
             ? (detail.model?.description ?? "")
-            :  (isMyProfile ? Self.mockBiographyMyProfileText : Self.mockBiographyText)
-            
+            :  nil
+
             appearance = buildAppearanceList(from: detail.model?.appearance, gender: detail.gender)
             
             var experience: ExperienceNode? = nil
@@ -2326,7 +2310,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
             UIView.performWithoutAnimation {
                 profileInfoView.update(biography: bio, appearance: appearance, experience: experience, isMyProfile: isMyProfile)
                 profileInfoView.openAddWorkExperience = { [weak self] in
-                    self?.addWorkHistoryTapped()
+                    self?.onEditProfileTapped?(2)
+                }
+                profileInfoView.openEditBio = { [weak self] in
+                    self?.onEditProfileTapped?(0)
+                }
+                profileInfoView.openEditApperance = { [weak self] in
+                    self?.onEditProfileTapped?(1)
                 }
                 profileInfoView.layoutIfNeeded()
             }
@@ -2658,7 +2648,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             controller.clearGalleryData()
         }
         print("🔄 [PAGINATION] Reset gallery pagination state")
-        updateFloatingButton(for: currentTab)
     }
     
     // Флаг загрузки галереи
@@ -2962,7 +2951,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             controller.clearGalleryData()
         }
         print("🔄 [VIDEO] Reset video gallery pagination state")
-        updateFloatingButton(for: currentTab)
     }
     
     // Флаг загрузки галереи видео

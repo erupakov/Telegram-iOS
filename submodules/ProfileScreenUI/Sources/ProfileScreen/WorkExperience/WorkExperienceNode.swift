@@ -116,11 +116,6 @@ final class WorkExperience: ASDisplayNode {
         )
         
         addExperienceButton.makeDivoButton(title: DivoStrings.addWorkExperience)
-        addExperienceButton.setTitle(DivoStrings.addWorkExperience, for: .normal)
-        addExperienceButton.setImage(DivoImage.plus.withRenderingMode(.alwaysTemplate), for: .normal)
-        addExperienceButton.setImage(DivoImage.plus.withRenderingMode(.alwaysTemplate), for: .highlighted)
-        addExperienceButton.tintColor = DivoColorPalette.primaryTextOnDark
-        addExperienceButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
     }
 
     override func didLoad() {

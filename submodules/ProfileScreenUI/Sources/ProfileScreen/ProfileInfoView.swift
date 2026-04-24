@@ -133,18 +133,96 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         return view
     }()
     
-    private let emptyTitleLabel: UILabel = {
+    private let empryWorkIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.image = DivoImage.emptyWorkProfile
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+    
+    private let emptyWorkTitleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(16)
         label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = DivoStrings.noWorkExperienceYet.uppercased()
+        label.text = DivoStrings.noWorkExperienceYetProfile.uppercased()
         label.numberOfLines = 2
         return label
     }()
     
     private let addExperienceButton = DivoButton()
+    
+    private lazy var emptyBioView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private lazy var emptyInternalBioView: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.roundCorners(.allCorners, radius: DivoDesignTokens.Radius.l)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let empryBioIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.image = DivoImage.emptyBioProfile
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+    
+    private let emptyBioTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(16)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.noBioYetProfile.uppercased()
+        label.numberOfLines = 2
+        return label
+    }()
+    
+    private let addBioButton = DivoButton()
+    
+    private lazy var emptyAppearanceView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private lazy var emptyInternalAppearanceView: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.roundCorners(.allCorners, radius: DivoDesignTokens.Radius.l)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let empryAppearanceIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.image = DivoImage.emptyAppearanceProfile
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+    
+    private let emptyAppearanceTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(16)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.noAppearanceYetProfile.uppercased()
+        label.numberOfLines = 2
+        return label
+    }()
+    
+    private let addAppearanceButton = DivoButton()
 
     private let bioVerticalStack: UIStackView = {
         let stack = UIStackView()
@@ -214,6 +292,8 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     }()
     
     var openAddWorkExperience: (() -> Void)?
+    var openEditBio: (() -> Void)?
+    var openEditApperance: (() -> Void)?
     
     // MARK: - Init
     
@@ -226,7 +306,26 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         addExperienceButton.tintColor = DivoColorPalette.primaryTextOnDark
         addExperienceButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
         
+        
         addExperienceButton.addTarget(self, action: #selector(addPressed), for: .touchUpInside)
+        
+        addBioButton.makeDivoButton(title: DivoStrings.addBioProfile, buttonFont: Font.helveticaNeue(14), radius: 18)
+        addBioButton.setImage(DivoImage.whitePlus.withRenderingMode(.alwaysTemplate), for: .normal)
+        addBioButton.setImage(DivoImage.whitePlus.withRenderingMode(.alwaysTemplate), for: .highlighted)
+        addBioButton.tintColor = DivoColorPalette.primaryTextOnDark
+        addBioButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
+        
+        addBioButton.addTarget(self, action: #selector(addBioPressed), for: .touchUpInside)
+        
+        addAppearanceButton.makeDivoButton(title: DivoStrings.addAppearanceProfile, buttonFont: Font.helveticaNeue(14), radius: 18)
+        if let image = UIImage(bundleImageName: "Components/whitePlus")?.withRenderingMode(.alwaysTemplate) {
+            addAppearanceButton.setImage(image, for: .normal)
+            addAppearanceButton.setImage(image, for: .highlighted)
+            addAppearanceButton.tintColor = DivoColorPalette.primaryTextOnDark
+            addAppearanceButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
+        }
+        
+        addAppearanceButton.addTarget(self, action: #selector(addAppearancePressed), for: .touchUpInside)
         
         setupViews()
         configureActions()
@@ -240,18 +339,30 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     
     // MARK: - Public Updates
     
-    func update(biography: String, appearance: [AppearanceAttribute], experience: ExperienceNode? = nil, isMyProfile: Bool, isAgency: Bool = false) {
-        self.biographyText = biography
+    func update(biography: String?, appearance: [AppearanceAttribute], experience: ExperienceNode? = nil, isMyProfile: Bool, isAgency: Bool = false) {
         self.appearanceData = appearance
         
         self.currentAppearanceExpandedState = nil
-        
+            
         var titles: [String] = [DivoStrings.biographyTitle]
-        var newActiveContainers: [UIView] = [bioContainer]
+        var newActiveContainers: [UIView] = []
+        
+        if let biography = biography {
+            self.biographyText = biography
+            newActiveContainers.append(bioContainer)
+        } else {
+            newActiveContainers.append(emptyBioView)
+            addBioButton.isHidden = !isMyProfile
+            empryBioIcon.isHidden = isMyProfile
+        }
         
         if !appearance.isEmpty {
             titles.append(DivoStrings.appearanceTitle)
             newActiveContainers.append(appearanceContainer)
+        } else {
+            newActiveContainers.append(emptyAppearanceView)
+            addAppearanceButton.isHidden = !isMyProfile
+            empryAppearanceIcon.isHidden = isMyProfile
         }
         
         if !isAgency {
@@ -263,6 +374,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
             } else {
                 newActiveContainers.append(emptyCurrentAgencyView)
                 addExperienceButton.isHidden = !isMyProfile
+                empryWorkIcon.isHidden = isMyProfile
             }
         }
         
@@ -290,7 +402,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         updateContent(animated: false)
     }
     
-    func update(biography: String) {
+    func update(biography: String?) {
         update(biography: biography, appearance:[], experience: nil, isMyProfile: false, isAgency: true)
     }
     
@@ -334,27 +446,50 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         // Внутренние компоненты
         bioContainer.addSubview(bioInternalContainer)
         appearanceContainer.addSubview(appearanceInternalContainer)
+        
         experienceContainer.addSubview(experienceInternalContainer)
         emptyCurrentAgencyView.addSubview(emptyInternalCurrentAgencyView)
         
         experienceInternalContainer.addSubview(currentAgencyView)
+                
+        let emptyWorkStack = UIStackView(arrangedSubviews: [empryWorkIcon, emptyWorkTitleLabel, addExperienceButton])
+        emptyWorkStack.distribution = .fill
+        emptyWorkStack.spacing = DivoDesignTokens.Spacing.s
+        emptyWorkStack.alignment = .center
+        emptyWorkStack.axis = .vertical
+        emptyWorkStack.translatesAutoresizingMaskIntoConstraints = false
         
-        let stack = UIStackView(arrangedSubviews: [emptyTitleLabel, addExperienceButton])
-        stack.distribution = .fill
-        stack.spacing = 12
-        stack.alignment = .center
-        stack.axis = .vertical
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        
-        emptyInternalCurrentAgencyView.addSubview(stack)
+        emptyInternalCurrentAgencyView.addSubview(emptyWorkStack)
         
         bioInternalContainer.addSubview(bioVerticalStack)
         bioVerticalStack.addArrangedSubview(contentLabel)
         bioVerticalStack.addArrangedSubview(bioSeeMoreWrapper)
         
+        emptyBioView.addSubview(emptyInternalBioView)
+        
+        let emptyBioStack = UIStackView(arrangedSubviews: [empryBioIcon, emptyBioTitleLabel, addBioButton])
+        emptyBioStack.distribution = .fill
+        emptyBioStack.spacing = DivoDesignTokens.Spacing.s
+        emptyBioStack.alignment = .center
+        emptyBioStack.axis = .vertical
+        emptyBioStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        emptyInternalBioView.addSubview(emptyBioStack)
+        
         appearanceInternalContainer.addSubview(appearanceVerticalStack)
         appearanceVerticalStack.addArrangedSubview(appearanceStack)
         appearanceVerticalStack.addArrangedSubview(appearanceSeeMoreWrapper)
+        
+        emptyAppearanceView.addSubview(emptyInternalAppearanceView)
+        
+        let emptyAppearanceStack = UIStackView(arrangedSubviews: [empryAppearanceIcon, emptyAppearanceTitleLabel, addAppearanceButton])
+        emptyAppearanceStack.distribution = .fill
+        emptyAppearanceStack.spacing = DivoDesignTokens.Spacing.s
+        emptyAppearanceStack.alignment = .center
+        emptyAppearanceStack.axis = .vertical
+        emptyAppearanceStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        emptyInternalAppearanceView.addSubview(emptyAppearanceStack)
         
         pagerHeightConstraint = horizontalPager.heightAnchor.constraint(equalToConstant: 50)
         segmentedControlHeightConstraint = segmentedControlContainer.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl)
@@ -416,11 +551,33 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
             emptyInternalCurrentAgencyView.trailingAnchor.constraint(equalTo: emptyCurrentAgencyView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             emptyInternalCurrentAgencyView.bottomAnchor.constraint(equalTo: emptyCurrentAgencyView.bottomAnchor),
             
-            stack.topAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.topAnchor, constant: 35),
-            stack.leadingAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            stack.trailingAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            stack.bottomAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.bottomAnchor, constant: -35),
+            emptyWorkStack.topAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyWorkStack.leadingAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyWorkStack.trailingAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            emptyWorkStack.bottomAnchor.constraint(equalTo: emptyInternalCurrentAgencyView.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
             addExperienceButton.heightAnchor.constraint(equalToConstant: 36),
+            
+            emptyInternalBioView.topAnchor.constraint(equalTo: emptyBioView.topAnchor),
+            emptyInternalBioView.leadingAnchor.constraint(equalTo: emptyBioView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyInternalBioView.trailingAnchor.constraint(equalTo: emptyBioView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            emptyInternalBioView.bottomAnchor.constraint(equalTo: emptyBioView.bottomAnchor),
+            
+            emptyBioStack.topAnchor.constraint(equalTo: emptyInternalBioView.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyBioStack.leadingAnchor.constraint(equalTo: emptyInternalBioView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyBioStack.trailingAnchor.constraint(equalTo: emptyInternalBioView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            emptyBioStack.bottomAnchor.constraint(equalTo: emptyInternalBioView.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            addBioButton.heightAnchor.constraint(equalToConstant: 36),
+            
+            emptyInternalAppearanceView.topAnchor.constraint(equalTo: emptyAppearanceView.topAnchor),
+            emptyInternalAppearanceView.leadingAnchor.constraint(equalTo: emptyAppearanceView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyInternalAppearanceView.trailingAnchor.constraint(equalTo: emptyAppearanceView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            emptyInternalAppearanceView.bottomAnchor.constraint(equalTo: emptyAppearanceView.bottomAnchor),
+            
+            emptyAppearanceStack.topAnchor.constraint(equalTo: emptyInternalAppearanceView.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyAppearanceStack.leadingAnchor.constraint(equalTo: emptyInternalAppearanceView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            emptyAppearanceStack.trailingAnchor.constraint(equalTo: emptyInternalAppearanceView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            emptyAppearanceStack.bottomAnchor.constraint(equalTo: emptyInternalAppearanceView.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            addAppearanceButton.heightAnchor.constraint(equalToConstant: 36),
         ])
     }
     
@@ -433,6 +590,8 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         appearanceContainer.removeFromSuperview()
         experienceContainer.removeFromSuperview()
         emptyCurrentAgencyView.removeFromSuperview()
+        emptyBioView.removeFromSuperview()
+        emptyAppearanceView.removeFromSuperview()
         
         var previousView: UIView? = nil
         
@@ -626,6 +785,8 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     }
     
     @objc private func addPressed() { openAddWorkExperience?() }
+    @objc private func addBioPressed() { openEditBio?() }
+    @objc private func addAppearancePressed() { openEditApperance?() }
     
     // MARK: - UIScrollViewDelegate (Синхронизация свайпа)
     
@@ -647,7 +808,6 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         }
     }
 }
-
 
 // Расширение для подсчета строк
 private extension String {
@@ -732,4 +892,3 @@ extension UIView {
         self.clipsToBounds = true
     }
 }
-

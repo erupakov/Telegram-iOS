@@ -348,9 +348,10 @@ final class EditProfileNode: ASDisplayNode {
 
     // MARK: - Init
     
-    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?) {
+    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?, selectedIndex: Int = 0) {
         self.context = context
         self.model = model
+        self.selectedIndex = selectedIndex
         
         self.presentationData = presentationData
         self.presentationDataPromise = Promise(self.presentationData)
@@ -977,11 +978,6 @@ final class EditProfileNode: ASDisplayNode {
         if selectedIndex == 2 {
             applyButton.makeDivoButton(title: DivoStrings.addWorkExperience)
             applyButton.isEnabled = true
-            applyButton.setTitle(DivoStrings.addWorkExperience, for: .normal)
-            applyButton.setImage(DivoImage.plus.withRenderingMode(.alwaysTemplate), for: .normal)
-            applyButton.setImage(DivoImage.plus.withRenderingMode(.alwaysTemplate), for: .highlighted)
-            applyButton.tintColor = DivoColorPalette.primaryTextOnDark
-            applyButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
         } else {
             applyButton.makeDivoButton(title: DivoStrings.save, loading: DivoStrings.saving)
             let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
@@ -992,10 +988,6 @@ final class EditProfileNode: ASDisplayNode {
     private func updateApplyButtonUI() {
         if selectedIndex == 2 {
             applyButton.setTitle(DivoStrings.addWorkExperience, for: .normal)
-            applyButton.setImage(DivoImage.plus.withRenderingMode(.alwaysTemplate), for: .normal)
-            applyButton.setImage(DivoImage.plus.withRenderingMode(.alwaysTemplate), for: .highlighted)
-            applyButton.tintColor = DivoColorPalette.primaryTextOnDark
-            applyButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
         } else {
             applyButton.setTitle(DivoStrings.save, for: .normal)
         }

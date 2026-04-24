@@ -158,9 +158,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.present(picker, animated: true)
     }
 
-    private func navigateToEditProfile() {
+    private func navigateToEditProfile(selectedIndex: Int = 0) {
         // debug: removed
-        let editProfileController = EditProfileController(context: self.context, presentationData: self.presentationData, userDetailData: userDetailModel, updatePhoto: { [weak self] image in
+    let editProfileController = EditProfileController(context: self.context, presentationData: self.presentationData, userDetailData: userDetailModel, selectedIndex: selectedIndex, updatePhoto: { [weak self] image in    
             self?.controllerNode.currentPhoto = image
         })
         editProfileController.delegate = self
@@ -303,8 +303,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         // }
 
-        self.controllerNode.onEditProfileTapped = { [weak self] in
-            self?.navigateToEditProfile()
+        self.controllerNode.onEditProfileTapped = { [weak self] index in
+            self?.navigateToEditProfile(selectedIndex: index)
         }
 
         self.controllerNode.onChangeBackgrounTapped = { [weak self] in

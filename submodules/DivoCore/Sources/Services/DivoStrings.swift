@@ -323,6 +323,11 @@ public enum DivoStrings {
     public static var nothingSavedSubtitleMyProfile: String { L(en: "No one's saved your profile yet.", ru: "Ваш профиль пока никто не сохранил.", es: "Nadie ha guardado tu perfil aún.", pt: "Ninguém salvou seu perfil ainda.", zh: "尚未有人保存你的资料。") }
     public static var noProfileViewedYetMyProfile: String { L(en: "No profile views yet.", ru: "Пока нет просмотров профиля.", es: "Aún no hay visitas al perfil.", pt: "Ainda sem visualizações de perfil.", zh: "暂无资料浏览。") }
     public static var noProfileViewedSubtitleMyProfile: String { L(en: "No one’s viewed your profile yet.", ru: "Ваш профиль пока никто не просматривал.", es: "Nadie ha visto tu perfil aún.", pt: "Ninguém visualizou seu perfil ainda.", zh: "尚未有人浏览过你的资料。") }
+    public static var noWorkExperienceYetProfile: String { L(en: "THERE ARE NO WORK EXPERIENCE YET.", ru: "ОПЫТ РАБОТЫ ПОКА ОТСУТСТВУЕТ.", es: "AÚN NO HAY EXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ EXPERIÊNCIA DE TRABALHO.", zh: "暂无工作经历。") }
+    public static var noBioYetProfile: String { L(en: "This model hasn't filled in their bio", ru: "Модель ещё не заполнила информацию о себе", es: "Esta modelo no ha completado su biografía", pt: "Esta modelo ainda não preencheu sua biografia", zh: "该模特尚未填写个人简介") }
+    public static var noAppearanceYetProfile: String { L(en: "Model parameters are not filled in", ru: "Параметры модели не заполнены", es: "Los parámetros de la modelo no están completados", pt: "Os parâmetros da modelo não foram preenchidos", zh: "模特参数未填写") }
+    public static var addBioProfile: String { L(en: "Fill in bio", ru: "Заполнить информацию о себе", es: "Completar biografía", pt: "Preencher biografia", zh: "填写个人简介") }
+    public static var addAppearanceProfile: String { L(en: "Add your parameters", ru: "Добавить параметры", es: "Añadir tus parámetros", pt: "Adicionar seus parâmetros", zh: "添加个人参数") }
     
     // MARK: - Work Experience
 

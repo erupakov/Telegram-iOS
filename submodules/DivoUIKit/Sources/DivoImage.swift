@@ -28,7 +28,10 @@ public enum DivoImage {
     public static var contactEditAction: UIImage { load("DivoContactEditAction") }
     public static var crownPremium: UIImage { load("DivoCrownPremium") }
     public static var defWork: UIImage { load("DivoDefWork") }
+    public static var emptyAppearanceProfile: UIImage { load("DivoEmptyAppearanceProfile") }
+    public static var emptyBioProfile: UIImage { load("DivoEmptyBioProfile") }
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
+    public static var emptyWorkProfile: UIImage { load("DivoEmptyWorkProfile") }
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
     public static var faceScanBlack: UIImage { load("DivoFaceScanBlack") }

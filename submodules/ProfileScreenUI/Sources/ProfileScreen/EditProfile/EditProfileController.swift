@@ -38,13 +38,15 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     private var selectedAvatarImage: UIImage?
     private var selectedAvatarUUID: String?
     private let loadingOverlay = DivoLoadingOverlay()
+    private let selectedIndex: Int
 
     weak var delegate: EditProfileDelegate?
     
-    public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, updatePhoto: @escaping (UIImage?) -> Void) {
+    public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, selectedIndex: Int = 0, updatePhoto: @escaping (UIImage?) -> Void) {
         self.context = context
         self.userDetailData = userDetailData
         self.updatePhoto = updatePhoto
+        self.selectedIndex = selectedIndex
         
         self.presentationData = presentationData
         
@@ -69,7 +71,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         self.displayNode = EditProfileNode(
             context: self.context,
             presentationData: self.presentationData,
-            model: userDetailData
+            model: userDetailData,
+            selectedIndex: selectedIndex
         )
         
         self.editProfileNode.updateTitle(userDetailData?.role == "agency_employee" ? DivoStrings.agencyProfile : DivoStrings.myProfile)

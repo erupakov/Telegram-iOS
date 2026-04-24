@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "EmptyAppearanceProfile.pdf",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
