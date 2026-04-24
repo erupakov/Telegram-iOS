@@ -131,6 +131,7 @@ public enum DivoStrings {
     public static var feedSearchCountry: String { L(en: "Search by country", ru: "Поиск по стране", es: "Buscar por país", pt: "Pesquisar por país", zh: "按国家搜索") }
     public static var feedSearchAllCountries: String { L(en: "All countries", ru: "Все страны", es: "Todos los países", pt: "Todos os países", zh: "所有国家") }
     public static var feedSearchResetParameter: String { L(en: "Reset parameter", ru: "Сбросить параметр", es: "Restablecer parámetro", pt: "Redefinir parâmetro", zh: "重置参数") }
+    public static var feedSearchResetFilters: String { L(en: "Reset filters", ru: "Сбросить фильтры", es: "Restablecer filtros", pt: "Redefinir filtros", zh: "重置筛选") }
     public static var feedSearchMoreFilters: String { L(en: "More parameters", ru: "Больше параметров", es: "Más parámetros", pt: "Mais parâmetros", zh: "更多参数") }
     public static var feedSearchLessFilters: String { L(en: "Less parameters", ru: "Меньше параметров", es: "Menos parámetros", pt: "Menos parâmetros", zh: "更少参数") }
     public static var feedSearchFiltersLoadFailed: String { L(en: "Failed to load filters", ru: "Не удалось загрузить фильтры", es: "Error al cargar filtros", pt: "Falha ao carregar filtros", zh: "加载筛选器失败") }
@@ -470,6 +471,9 @@ public enum DivoStrings {
     public static var loadingTalentsList: String { L(en: "LOADING TALENTS...", ru: "ЗАГРУЗКА ТАЛАНТОВ...", es: "CARGANDO TALENTOS...", pt: "CARREGANDO TALENTOS...", zh: "加载新人才...") }
     public static var loadingAgenciesList: String { L(en: "LOADING AGENCIES...", ru: "ЗАГРУЗКА АГЕНТСТВ...", es: "CARGANDO AGENCIAS...", pt: "CARREGANDO AGÊNCIAS...", zh: "加载经纪公司...") }
     public static var retry: String { L(en: "Retry", ru: "Повторить", es: "Reintentar", pt: "Tentar novamente", zh: "重试") }
+    public static var feedLoadErrorTitle: String { L(en: "Couldn't load models", ru: "Не удалось загрузить модели", es: "No se pudieron cargar modelos", pt: "Não foi possível carregar modelos", zh: "无法加载模特") }
+    public static var feedLoadErrorSubtitle: String { L(en: "Something went wrong on our end.\nCheck your connection and try again.", ru: "Что-то пошло не так.\nПроверьте подключение и попробуйте снова.", es: "Algo salió mal de nuestro lado.\nVerifique su conexión e inténtelo de nuevo.", pt: "Algo deu errado do nosso lado.\nVerifique sua conexão e tente novamente.", zh: "我们这边出了点问题。\n请检查连接并重试。") }
+    public static var feedPaginationError: String { L(en: "Failed to load more", ru: "Не удалось загрузить ещё", es: "Error al cargar más", pt: "Falha ao carregar mais", zh: "加载更多失败") }
     public static var profileSaved: String { L(en: "Saved", ru: "Сохранено", es: "Guardado", pt: "Salvo", zh: "已保存") }
     public static var viewAction: String { L(en: "View", ru: "Смотреть", es: "Ver", pt: "Ver", zh: "查看") }
     public static var yearsOld: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }

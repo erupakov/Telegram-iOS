@@ -523,6 +523,24 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         return label
     }()
 
+    private let headerShimmer: ShimmerView = {
+        let view = ShimmerView()
+        view.layer.cornerRadius = 8
+        view.layer.masksToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let profilesFoundShimmer: ShimmerView = {
+        let view = ShimmerView()
+        view.layer.cornerRadius = 8
+        view.layer.masksToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private let activeFiltersContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
@@ -578,6 +596,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         button.setTitleColor(DivoColorPalette.accent, for: .normal)
         button.titleLabel?.font = Font.helveticaNeue(14)
         button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        button.addDivoPressState(.text)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -648,7 +667,9 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         view.addSubview(filterButton)
         view.addSubview(avatarImageView)
         view.addSubview(headerLabel)
+        view.addSubview(headerShimmer)
         view.addSubview(profilesFoundLabel)
+        view.addSubview(profilesFoundShimmer)
         view.addSubview(activeFiltersContainer)
         activeFiltersContainer.addSubview(activeFiltersLabel)
         activeFiltersContainer.addSubview(activeFiltersClearButton)
@@ -684,8 +705,18 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
             headerLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
             headerLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
+            headerShimmer.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
+            headerShimmer.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            headerShimmer.widthAnchor.constraint(equalToConstant: 140),
+            headerShimmer.heightAnchor.constraint(equalToConstant: 20),
+
             profilesFoundLabel.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             profilesFoundLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+
+            profilesFoundShimmer.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            profilesFoundShimmer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            profilesFoundShimmer.widthAnchor.constraint(equalToConstant: 120),
+            profilesFoundShimmer.heightAnchor.constraint(equalToConstant: 16),
 
             activeFiltersContainer.centerYAnchor.constraint(equalTo: profilesFoundLabel.centerYAnchor),
             activeFiltersContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -833,6 +864,17 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
 
     func setLoading(_ loading: Bool) {
         isShowingSkeleton = loading
+        headerLabel.alpha = loading ? 0 : 1
+        profilesFoundLabel.alpha = loading ? 0 : 1
+        headerShimmer.isHidden = !loading
+        profilesFoundShimmer.isHidden = !loading
+        if loading {
+            headerShimmer.startShimmer()
+            profilesFoundShimmer.startShimmer()
+        } else {
+            headerShimmer.stopShimmer()
+            profilesFoundShimmer.stopShimmer()
+        }
         collectionView.reloadData()
     }
 

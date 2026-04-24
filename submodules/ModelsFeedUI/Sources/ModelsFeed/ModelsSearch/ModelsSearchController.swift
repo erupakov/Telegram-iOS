@@ -17,6 +17,7 @@ import AccountContext
 import CountrySelectionUI
 import ProfileScreenUI
 import PhotosUI
+import AVFoundation
 
 public class ModelsSearchController: ViewController {
     private let context: AccountContext
@@ -237,10 +238,28 @@ public class ModelsSearchController: ViewController {
         switch source {
         case .camera:
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
-            let picker = UIImagePickerController()
-            picker.sourceType = .camera
-            picker.delegate = self
-            rootVC.present(picker, animated: true)
+            let status = AVCaptureDevice.authorizationStatus(for: .video)
+            switch status {
+            case .authorized:
+                let picker = UIImagePickerController()
+                picker.sourceType = .camera
+                picker.delegate = self
+                rootVC.present(picker, animated: true)
+            case .notDetermined:
+                AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self?.openPhotoPicker(.camera)
+                        }
+                    }
+                }
+            case .denied, .restricted:
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            @unknown default:
+                break
+            }
         case .gallery:
             if #available(iOS 14, *) {
                 var config = PHPickerConfiguration()

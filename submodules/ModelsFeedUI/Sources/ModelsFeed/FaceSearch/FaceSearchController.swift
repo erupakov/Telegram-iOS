@@ -139,9 +139,13 @@ public final class FaceSearchController: ViewController {
                 }
             } catch {
                 guard let self else { return }
-                self.transition(to: .idle)
-                self.presentError(for: error) { [weak self] in
-                    self?.runDetect()
+                if let apiError = error as? DivoAPIError, case .httpError(let code, _) = apiError, code == 400 {
+                    self.transition(to: .noFaces)
+                } else {
+                    self.transition(to: .idle)
+                    self.presentError(for: error) { [weak self] in
+                        self?.runDetect()
+                    }
                 }
             }
         }

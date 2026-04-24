@@ -226,6 +226,20 @@ final class ModelsSearchNode: ASDisplayNode {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
+
+    private let emptyStateResetButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.setTitle(DivoStrings.feedSearchResetFilters, for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = Font.medium(14)
+        button.backgroundColor = DivoColorPalette.secondaryButtonBackground
+        button.layer.cornerRadius = 20
+        button.contentEdgeInsets = UIEdgeInsets(top: 10, left: 24, bottom: 10, right: 24)
+        button.addDivoPressState(.secondary)
+        button.isHidden = true
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
     
     private let activeFiltersContainer: UIView = {
         let view = UIView()
@@ -596,33 +610,42 @@ final class ModelsSearchNode: ASDisplayNode {
         emptyStateIconContainer.addSubview(emptyStateIcon)
         emptyStateContainer.addSubview(emptyStateTitle)
         emptyStateContainer.addSubview(emptyStateSubtitle)
-        
+        emptyStateContainer.addSubview(emptyStateResetButton)
+        emptyStateResetButton.addTarget(self, action: #selector(emptyStateResetTapped), for: .touchUpInside)
+
         NSLayoutConstraint.activate([
             emptyStateContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyStateContainer.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -20),
             emptyStateContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
             emptyStateContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
-            
+
             emptyStateIconContainer.centerXAnchor.constraint(equalTo: emptyStateContainer.centerXAnchor),
             emptyStateIconContainer.topAnchor.constraint(equalTo: emptyStateContainer.topAnchor),
             emptyStateIconContainer.widthAnchor.constraint(equalToConstant: 68),
             emptyStateIconContainer.heightAnchor.constraint(equalToConstant: 68),
-            
+
             emptyStateIcon.centerXAnchor.constraint(equalTo: emptyStateIconContainer.centerXAnchor),
             emptyStateIcon.centerYAnchor.constraint(equalTo: emptyStateIconContainer.centerYAnchor),
             emptyStateIcon.widthAnchor.constraint(equalToConstant: 28),
             emptyStateIcon.heightAnchor.constraint(equalToConstant: 28),
-            
+
             emptyStateTitle.topAnchor.constraint(equalTo: emptyStateIconContainer.bottomAnchor, constant: 24),
             emptyStateTitle.leadingAnchor.constraint(equalTo: emptyStateContainer.leadingAnchor),
             emptyStateTitle.trailingAnchor.constraint(equalTo: emptyStateContainer.trailingAnchor),
-            emptyStateTitle.bottomAnchor.constraint(equalTo: emptyStateSubtitle.topAnchor, constant: -DivoDesignTokens.Spacing.s),
-            
+
             emptyStateSubtitle.topAnchor.constraint(equalTo: emptyStateTitle.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             emptyStateSubtitle.leadingAnchor.constraint(equalTo: emptyStateContainer.leadingAnchor),
             emptyStateSubtitle.trailingAnchor.constraint(equalTo: emptyStateContainer.trailingAnchor),
-            emptyStateSubtitle.bottomAnchor.constraint(equalTo: emptyStateContainer.bottomAnchor)
+
+            emptyStateResetButton.topAnchor.constraint(equalTo: emptyStateSubtitle.bottomAnchor, constant: 20),
+            emptyStateResetButton.centerXAnchor.constraint(equalTo: emptyStateContainer.centerXAnchor),
+            emptyStateResetButton.heightAnchor.constraint(equalToConstant: 40),
+            emptyStateResetButton.bottomAnchor.constraint(equalTo: emptyStateContainer.bottomAnchor)
         ])
+    }
+
+    @objc private func emptyStateResetTapped() {
+        onFiltersClearTapped?()
     }
     
     private func updateResultFilterStackVisibility() {
@@ -664,6 +687,7 @@ final class ModelsSearchNode: ASDisplayNode {
             activeFiltersContainer.alpha = 1
             activeFiltersContainer.isHidden = true
         }
+        emptyStateResetButton.isHidden = count == 0
         updateResultFilterStackVisibility()
     }
     
