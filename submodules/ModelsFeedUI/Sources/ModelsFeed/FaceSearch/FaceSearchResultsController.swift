@@ -82,6 +82,15 @@ final class FaceSearchResultsController: ViewController {
         node.onFallbackAccept = { [weak self] similarity in
             self?.acceptFallback(similarity: similarity)
         }
+        node.onLikeTapped = { [weak self] feedId, isLiked in
+            self?.handleLike(feedId: feedId, isLiked: isLiked)
+        }
+        node.onSaveTapped = { [weak self] userId, isSaved in
+            self?.handleSave(userId: userId, isSaved: isSaved)
+        }
+        node.onShareTapped = { [weak self] result, image in
+            self?.handleShare(result: result, image: image)
+        }
         node.updateFilterBadge(count: currentFilters.activeFilterCount)
         self.displayNode = node
         self.displayNodeDidLoad()
@@ -245,7 +254,7 @@ final class FaceSearchResultsController: ViewController {
                 let originalPercent = Int((filters.similarity * 100).rounded())
                 let actualPercent = Int((fallbackSimilarity * 100).rounded())
                 self.resultsNode?.updateResults(response.results, threshold: fallbackSimilarity)
-                self.resultsNode?.showFallbackBanner(originalPercent: originalPercent, actualPercent: actualPercent, similarity: fallbackSimilarity)
+                self.resultsNode?.showFallbackBanner(originalPercent: originalPercent, actualPercent: actualPercent, similarity: fallbackSimilarity, originalThreshold: filters.similarity)
                 return
             }
         }
@@ -295,12 +304,58 @@ final class FaceSearchResultsController: ViewController {
         return fields
     }
 
+    private func handleLike(feedId: Int, isLiked: Bool) {
+        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
+        let body = FollowRequest(id: feedId)
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+            } catch {
+                // TODO: rollback
+            }
+        }
+    }
+
+    private func handleSave(userId: Int, isSaved: Bool) {
+        let path = isSaved ? "/follower/follow" : "/follower/unfollow"
+        let body = FollowRequest(id: userId)
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+            } catch {
+                // TODO: rollback
+            }
+        }
+    }
+
+    private func handleShare(result: FRSearchResult, image: UIImage?) {
+        guard let userId = result.userId else { return }
+        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(userId)")!
+        let shareItem = DivoShareItemSource(
+            url: shareURL,
+            title: result.fullName ?? "",
+            subtitle: FaceSearchResultsMapper.roleLabel(for: result.role) ?? "",
+            image: image
+        )
+        let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
+        self.view.window?.rootViewController?.present(activityVC, animated: true)
+    }
+
     private func openProfile(for result: FRSearchResult) {
         let mainImageURL = result.image.flatMap(URL.init(string:))
+        let location = FaceSearchResultsMapper.countryText(code: result.countryCode, name: result.countryName) ?? ""
         let model = ProfileModel(
             name: result.fullName ?? "",
             age: FaceSearchResultsMapper.computeAge(from: result.birthday),
-            location: FaceSearchResultsMapper.hardcodedCountry,
+            location: location,
             isVerified: false,
             likesCount: "0",
             viewsCount: "0",
@@ -308,7 +363,7 @@ final class FaceSearchResultsController: ViewController {
             biography: "",
             socialMediaHandles: [],
             userId: result.userId,
-            role: nil,
+            role: result.role,
             mainImageURL: mainImageURL,
             avatarImageURL: mainImageURL
         )
@@ -320,8 +375,6 @@ final class FaceSearchResultsController: ViewController {
 // MARK: - Mapper
 
 enum FaceSearchResultsMapper {
-    static let hardcodedCountry = "🇺🇸 USA"
-    static let rolePlaceholder = "Ждём сервер"
 
     static func computeAge(from birthday: String?) -> Int? {
         guard let birthday, !birthday.isEmpty else { return nil }
@@ -332,21 +385,43 @@ enum FaceSearchResultsMapper {
         return Calendar.current.dateComponents([.year], from: date, to: Date()).year
     }
 
+    static func countryText(code: String?, name: String?) -> String? {
+        guard let name else { return nil }
+        let flag = CountryHelper.emojiFlag(for: code)
+        return "\(flag) \(name)"
+    }
+
+    static func roleLabel(for role: String?) -> String? {
+        switch role {
+        case "model": return DivoStrings.debugModel
+        case "new_face": return DivoStrings.debugNewTalent
+        case "agency_employee": return DivoStrings.debugAgency
+        default: return role
+        }
+    }
+
     static func viewModel(from result: FRSearchResult) -> SearchCardViewModel {
         let age = computeAge(from: result.birthday)
+        let country = countryText(code: result.countryCode, name: result.countryName)
+
         let infoText: String
-        if let age {
-            infoText = DivoStrings.ageString(age) + " • " + hardcodedCountry
+        if let age, let country {
+            infoText = DivoStrings.ageString(age) + " • " + country
+        } else if let age {
+            infoText = DivoStrings.ageString(age)
+        } else if let country {
+            infoText = country
         } else {
-            infoText = hardcodedCountry
+            infoText = ""
         }
+
         return SearchCardViewModel(
             variant: .faceMatch(percent: result.score),
             feedId: nil,
             userId: result.userId,
             name: result.fullName,
-            infoText: infoText,
-            roleLabel: rolePlaceholder,
+            infoText: infoText.isEmpty ? nil : infoText,
+            roleLabel: roleLabel(for: result.role),
             likesCount: 0,
             isLikedByUser: false,
             isFavoriteByUser: false,
@@ -364,6 +439,9 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     var onFilterPressed: (() -> Void)?
     var onFiltersClear: (() -> Void)?
     var onFallbackAccept: ((Double) -> Void)?
+    var onLikeTapped: ((Int, Bool) -> Void)?
+    var onSaveTapped: ((Int, Bool) -> Void)?
+    var onShareTapped: ((FRSearchResult, UIImage?) -> Void)?
 
     private var results: [FRSearchResult]
     private let sourceImage: UIImage?
@@ -505,6 +583,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     }()
 
     private var fallbackSimilarity: Double?
+    private var originalSimilarity: Double?
     private var isShowingSkeleton = false
     private let skeletonCount = 6
     private var collectionTopToSubheader: NSLayoutConstraint?
@@ -703,7 +782,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         } else {
             hideEmptyState()
             collectionView.reloadData()
-            collectionView.setContentOffset(CGPoint(x: 0, y: -collectionView.contentInset.top), animated: false)
+            collectionView.setContentOffset(CGPoint(x: -collectionView.contentInset.left, y: -collectionView.contentInset.top), animated: false)
         }
     }
 
@@ -814,9 +893,12 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         emptyStateView.isHidden = true
     }
 
-    func showFallbackBanner(originalPercent: Int, actualPercent: Int, similarity: Double) {
+    func showFallbackBanner(originalPercent: Int, actualPercent: Int, similarity: Double, originalThreshold: Double) {
         fallbackSimilarity = similarity
+        originalSimilarity = originalThreshold
         fallbackLabel.text = DivoStrings.faceSearchFallbackMessage(original: originalPercent, actual: actualPercent)
+        self.threshold = originalThreshold
+        updateHeaderTexts()
         profilesFoundLabel.text = DivoStrings.faceSearchProfilesFound(0)
 
         collectionTopToSubheader?.isActive = false
@@ -873,7 +955,8 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     @objc private func fallbackAcceptTapped() {
         if let similarity = fallbackSimilarity {
             hideFallbackBanner()
-            profilesFoundLabel.text = DivoStrings.faceSearchProfilesFound(results.count)
+            self.threshold = similarity
+            updateHeaderTexts()
             view.layoutIfNeeded()
             onFallbackAccept?(similarity)
         } else {
@@ -896,6 +979,16 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FaceMatchCell", for: indexPath) as! SearchResultGridCell
         let result = results[indexPath.item]
         cell.configure(with: FaceSearchResultsMapper.viewModel(from: result))
+        cell.onLikeTapped = { [weak self] feedId, isLiked in
+            self?.onLikeTapped?(feedId, isLiked)
+        }
+        cell.onSaveTapped = { [weak self] userId, isSaved in
+            self?.onSaveTapped?(userId, isSaved)
+        }
+        cell.onShareTapped = { [weak self, weak cell] in
+            guard let self, let cell else { return }
+            self.onShareTapped?(result, cell.coverImage)
+        }
         return cell
     }
 

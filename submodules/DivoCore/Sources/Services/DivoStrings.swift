@@ -160,7 +160,7 @@ public enum DivoStrings {
     public static var faceSearchResultsTitle: String { L(en: "Results", ru: "Результаты", es: "Resultados", pt: "Resultados", zh: "结果") }
     public static var faceSearchNoResults: String { L(en: "No matching profiles found", ru: "Подходящие профили не найдены", es: "No se encontraron perfiles coincidentes", pt: "Nenhum perfil correspondente encontrado", zh: "未找到匹配的档案") }
     public static var faceSearchMatchPercent: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配") }
-    public static func faceSearchMatchPercentBadge(_ percent: Int) -> String { L(en: "\(percent)% match", ru: "\(percent)% сходство", es: "\(percent)% coincidencia", pt: "\(percent)% similaridade", zh: "\(percent)% 匹配") }
+    public static func faceSearchMatchPercentBadge(_ percent: Int) -> String { "\(percent)%" }
     public static var faceSearchScanning: String { L(en: "Analysing facial features...", ru: "Анализируем черты лица...", es: "Analizando rasgos faciales...", pt: "Analisando características faciais...", zh: "正在分析面部特征...") }
     public static var faceSearchNoFaceDetected: String { L(en: "No face detected", ru: "Лицо не обнаружено", es: "No se detectó rostro", pt: "Nenhum rosto detectado", zh: "未检测到人脸") }
     public static var faceSearchNoFaceTip: String { L(en: "Try a photo with a clearly visible face", ru: "Попробуйте фото с чётко видимым лицом", es: "Prueba con una foto donde el rostro sea visible", pt: "Tente uma foto com o rosto claramente visível", zh: "请尝试使用面部清晰可见的照片") }

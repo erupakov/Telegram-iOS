@@ -468,8 +468,8 @@ final class SearchResultGridCell: UICollectionViewCell {
 
         case .faceMatch(let percent):
             roleContainer.isHidden = true
-            actionsContainer.isHidden = true
-            likesContainer.isHidden = true
+            actionsContainer.isHidden = false
+            likesContainer.isHidden = false
 
             let percentInt = Int((percent * 100).rounded())
             let isHighMatch = percentInt >= 90
