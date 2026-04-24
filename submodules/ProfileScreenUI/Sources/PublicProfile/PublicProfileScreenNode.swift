@@ -801,6 +801,20 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var currentIsSaved: Bool = false
     private var isSavingProcess: Bool = false
 
+    private let navBarBlurView: UIVisualEffectView = {
+        let effect = UIBlurEffect(style: .systemUltraThinMaterialLight)
+        let view = UIVisualEffectView(effect: effect)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.alpha = 0.0
+        view.isUserInteractionEnabled = false
+        return view
+    }()
+
+    private let navBarWhiteGradientLayer = CAGradientLayer()
+
+    private var isNavBarBackgroundHidden: Bool = false  // true = прозрачный, false = цветной
+    private var isAnimatingNavBarBackground: Bool = false  // защита от множественных анимаций
+    private var currentBlurAlpha: CGFloat = 0.0
 
     // MARK: - Init
     
@@ -847,7 +861,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         scrollView.contentSize = CGSize(width: stackWidth, height: contentHeight)
         
         applyGradientBlurMask()
-        // updateNavBarBlurMask()
+        updateNavBarBlurMask()
         
         if !profileInfoShimmerView.isHidden {
             profileSegmentedInfoShimmerView.stopShimmering()
@@ -892,22 +906,79 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private func setupContent() {
         setupHeaderImageView()
-        setupCustomNavBar()
-        setupScrollView()
+        setupScrollView()        
+        setupTopBlur()            
+        setupCustomNavBar()        
         setupContentViewStack()
-        setupSegmentedBar()
+        setupSegmentedBar()      
         setupContentLayout()
         setupAllCollectionsLayers()
         setupSimilarProfiles()
-        setupFloatingButton()
     }
+    
+    private func setupTopBlur() {
+        view.addSubview(navBarBlurView)
+        
+        NSLayoutConstraint.activate([
+            navBarBlurView.topAnchor.constraint(equalTo: view.topAnchor),
+            navBarBlurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navBarBlurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navBarBlurView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 280)
+        ])
+    }
+    
+    private func updateNavBarBlurMask() {
+        let bounds = navBarBlurView.bounds
+        guard bounds.height > 0 else { return }
+        
+        // 1. ЦВЕТОВОЙ ГРАДИЕНТ (Linear Gradient из Figma)
+        if navBarWhiteGradientLayer.superlayer == nil {
+            navBarBlurView.contentView.layer.insertSublayer(navBarWhiteGradientLayer, at: 0)
+        }
+        navBarWhiteGradientLayer.frame = bounds
+        navBarWhiteGradientLayer.colors = [
+            UIColor.white.withAlphaComponent(0.7412).cgColor, 
+            UIColor.white.withAlphaComponent(0.70).cgColor,  
+            UIColor.white.withAlphaComponent(0.10).cgColor, 
+            UIColor.white.withAlphaComponent(0.0).cgColor, 
+            UIColor.clear.cgColor                          
+        ]
+        
+        navBarWhiteGradientLayer.locations = [
+            0.0,
+            0.18,
+            0.35,
+            0.4000,
+            1.0000
+        ]
+        
+        let maskLayer = CAGradientLayer()
+        maskLayer.frame = bounds
+        
+        maskLayer.colors = [
+            UIColor.black.cgColor, 
+            UIColor.black.cgColor, 
+            UIColor.black.withAlphaComponent(0.4).cgColor, 
+            UIColor.clear.cgColor  
+        ]
+        
+        maskLayer.locations = [
+            0.0,
+            0.4,
+            0.50,
+            1.0
+        ]
+        
+        navBarBlurView.layer.mask = maskLayer
+    }
+
 
     private func setupCustomNavBar() {
         view.addSubview(customNavBar)
         
         customNavBar.addSubview(closeButton)
         customNavBar.addSubview(rightButtonContainer)
-
+        
         rightButtonContainer.addSubview(rightButtonsStack)
         rightButtonsStack.addArrangedSubview(storiesButton)
         rightButtonsStack.addArrangedSubview(editButton)
@@ -915,10 +986,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         closeButton.addDivoPressState(.pill)
-
+        
         storiesButton.addTarget(self, action: #selector(storiesTapped), for: .touchUpInside)
         storiesButton.addDivoPressState(.pill)
-
+        
         NSLayoutConstraint.activate([
             customNavBar.topAnchor.constraint(equalTo: view.topAnchor),
             customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -929,29 +1000,29 @@ final class PublicProfileScreenNode: ASDisplayNode {
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
             closeButton.widthAnchor.constraint(equalToConstant: 40),
             closeButton.heightAnchor.constraint(equalToConstant: 40),
-
+            
             rightButtonContainer.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             rightButtonContainer.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
             rightButtonContainer.heightAnchor.constraint(equalToConstant: 40),
-
+            
             rightButtonsStack.leadingAnchor.constraint(equalTo: rightButtonContainer.leadingAnchor),
             rightButtonsStack.trailingAnchor.constraint(equalTo: rightButtonContainer.trailingAnchor),
             rightButtonsStack.topAnchor.constraint(equalTo: rightButtonContainer.topAnchor),
             rightButtonsStack.bottomAnchor.constraint(equalTo: rightButtonContainer.bottomAnchor),
-
+            
             storiesButton.widthAnchor.constraint(equalToConstant: 40),
             storiesButton.heightAnchor.constraint(equalToConstant: 40),
-
+            
             editButton.widthAnchor.constraint(equalToConstant: 40),
             editButton.heightAnchor.constraint(equalToConstant: 40),
-
+            
             moreButton.widthAnchor.constraint(equalToConstant: 40),
             moreButton.heightAnchor.constraint(equalToConstant: 40),
         ])
-
+        
         if !model.isMyProfile {
             storiesButton.isHidden = true
-            editButton.isHidden = true 
+            editButton.isHidden = true
         } else {
             moreButton.isHidden = true
         }
@@ -1971,54 +2042,111 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Обновление титула NavigationBar
+    private func updateNavBarBackgroundWithAnimation(blurAlpha: CGFloat, titleAlpha: CGFloat) {
+        let hideThreshold: CGFloat = 0.8   // > 0.8 → скрываем фон
+        let showThreshold: CGFloat = 0.9   // < 0.9 → показываем фон (с гистерезисом)
+        
+        var shouldHideBackground: Bool? = nil
+        
+        if blurAlpha > hideThreshold && !isNavBarBackgroundHidden {
+            // Пора прятать фон
+            shouldHideBackground = true
+        } else if blurAlpha < showThreshold && isNavBarBackgroundHidden {
+            // Пора показывать фон
+            shouldHideBackground = false
+        }
+        
+        guard let shouldHide = shouldHideBackground, !isAnimatingNavBarBackground else { return }
+        
+        isAnimatingNavBarBackground = true
+        
+        let targetAlpha: CGFloat = shouldHide ? 0 : titleAlpha
+        let targetColor = DivoColorPalette.screenBackground.withAlphaComponent(targetAlpha)
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut]) {
+            self.customNavBar.backgroundColor = targetColor
+        } completion: { _ in
+            self.isNavBarBackgroundHidden = shouldHide
+            self.isAnimatingNavBarBackground = false
+        }
+    }
+    
     private func updateNavigationBarTitleVisibility() {
         guard let titleView = navigationBarTitleView,
-            let (_, navigationBarHeight) = self.containerLayout else { return }
-
+              let (_, navigationBarHeight) = self.containerLayout else { return }
+        
         guard titleVisibilityActivated else {
             if titleView.alpha != 0.0 { titleView.alpha = 0.0 }
             return
         }
         
         let offsetY = scrollView.contentOffset.y
-        // Вычисляем динамически, где реально находится имя
+        
+        // =========================================================
+        // ФАЗА 1: Исчезновение Имени -> Появление титула и цвета НавБара
+        // =========================================================
         let nameY = infoStack.frame.minY > 0 ? infoStack.frame.minY : 360.0
         
-        let startShowingOffset = nameY - navigationBarHeight - 40
-        let fullyVisibleOffset = nameY - navigationBarHeight + 20
+        let titleStartShowingOffset = nameY - navigationBarHeight - 40
+        let titleFullyVisibleOffset = nameY - navigationBarHeight + 20
         
-        var alpha: CGFloat = 0.0
-        if offsetY < startShowingOffset { alpha = 0.0 }
-        else if offsetY >= fullyVisibleOffset { alpha = 1.0 }
-        else { alpha = (offsetY - startShowingOffset) / (fullyVisibleOffset - startShowingOffset) }
+        var titleAlpha: CGFloat = 0.0
+        if offsetY < titleStartShowingOffset { titleAlpha = 0.0 }
+        else if offsetY >= titleFullyVisibleOffset { titleAlpha = 1.0 }
+        else { titleAlpha = (offsetY - titleStartShowingOffset) / (titleFullyVisibleOffset - titleStartShowingOffset) }
         
-        if titleView.alpha != alpha {
-            titleView.alpha = alpha
+        if titleView.alpha != titleAlpha {
+            titleView.alpha = titleAlpha
         }
         
-        // 1. Фон НавБара
-        customNavBar.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(alpha)
-
-        // 2. Иконки кнопок меняют цвет от белого до темного
-        let iconColor = UIColor.white.blend(with: DivoColorPalette.primaryText, alpha: alpha)
+        // =========================================================
+        // ФАЗА 2: Закрепление SegmentedBar -> Появление Блюра
+        // =========================================================
+        let segmentedY = segmentedBarPlaceholder.frame.minY > 0 ? segmentedBarPlaceholder.frame.minY : 600.0
+        
+        let blurStartOffset = segmentedY - navigationBarHeight
+        let blurFullyVisibleOffset = blurStartOffset + 30
+        
+        var blurAlpha: CGFloat = 0.0
+        if offsetY < blurStartOffset { blurAlpha = 0.0 }
+        else if offsetY >= blurFullyVisibleOffset { blurAlpha = 1.0 }
+        else { blurAlpha = (offsetY - blurStartOffset) / (blurFullyVisibleOffset - blurStartOffset) }
+        
+        currentBlurAlpha = blurAlpha
+        navBarBlurView.alpha = blurAlpha
+        
+        // =========================================================
+        // ФАЗА 3: Управление фоном навбара с анимацией
+        // =========================================================
+        updateNavBarBackgroundWithAnimation(blurAlpha: blurAlpha, titleAlpha: titleAlpha)
+        
+        // Если фон не скрыт и нет активной анимации — обновляем его в реальном времени
+        if !isNavBarBackgroundHidden && !isAnimatingNavBarBackground {
+            customNavBar.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(titleAlpha)
+        }
+        
+        // =========================================================
+        // ОСТАЛЬНЫЕ UI ЭЛЕМЕНТЫ
+        // =========================================================
+        
+        let maxProgress = max(titleAlpha, blurAlpha)
+        let iconColor = UIColor.white.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
         closeButton.tintColor = iconColor
         storiesButton.tintColor = iconColor
         editButton.tintColor = iconColor
         moreButton.tintColor = iconColor
         
-        // 3. Фон кнопок (от стекла к легкому серому на белом)
-        let bgStartColor = DivoColorPalette.statPillBackground 
+        let bgStartColor = DivoColorPalette.statPillBackground
         let bgEndColor = DivoColorPalette.cardBackground
-        let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: alpha)
+        let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: maxProgress)
         
         closeButton.backgroundColor = currentBgColor
         rightButtonContainer.backgroundColor = currentBgColor
         
-        // 4. Границы прячем
         let borderStartColor = DivoColorPalette.statPillBorder.cgColor
         let borderEndColor = UIColor.clear.cgColor
-        closeButton.layer.borderColor = alpha > 0.5 ? borderEndColor : borderStartColor
-        rightButtonContainer.layer.borderColor = alpha > 0.5 ? borderEndColor : borderStartColor
+        closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
+        rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
     }
     
     // Активация анимации заголовка навбара
@@ -2109,6 +2237,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         navigationBarTitleHeightConstraint.isActive = true
         
         applyGradientBlurMask()
+        updateNavBarBlurMask()
         
         updateAllCollectionViewHeights(layout: layout)
         updateCollectionsContainerHeight(animated: false)
