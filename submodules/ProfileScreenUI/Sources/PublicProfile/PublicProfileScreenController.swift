@@ -481,6 +481,46 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
         return "Something went wrong. Please try again."
     }
+
+    // Метод для лайка профиля
+    func toggleLikeProfile(userId: Int, isLiked: Bool, completion: @escaping (Bool) -> Void) {
+        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
+        let body = FollowRequest(id: userId)
+        
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+                completion(true)
+            } catch {
+                print("❌ [LIKE] Error toggling like for user \(userId): \(error)")
+                completion(false)
+            }
+        }
+    }
+    
+    // Метод для подписки/сохранения профиля
+    func toggleSaveProfile(userId: Int, isSaved: Bool, completion: @escaping (Bool) -> Void) {
+        let path = isSaved ? "/follower/follow" : "/follower/unfollow"
+        let body = FollowRequest(id: userId)
+        
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+                completion(true)
+            } catch {
+                print("❌ [SAVE/FOLLOW] Error toggling save for user \(userId): \(error)")
+                completion(false)
+            }
+        }
+    }
 }
 
 // MARK: - Загрузка фотографий

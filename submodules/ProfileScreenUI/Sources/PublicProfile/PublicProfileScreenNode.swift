@@ -793,6 +793,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return button
     }()
 
+    private var currentLikesCount: Int = 0
+    private var currentIsLiked: Bool = false
+    private var isLikingProcess: Bool = false
+    
+    private var currentSavesCount: Int = 0
+    private var currentIsSaved: Bool = false
+    private var isSavingProcess: Bool = false
+
 
     // MARK: - Init
     
@@ -1198,14 +1206,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         savesView.onLabelTap = { [weak self] in
             self?.savesViewDidTap()
         }
-    }
-    
-    @objc private func likesPillTapped() {
-        likesView.setActive(true, animated: true)
-    }
-    
-    @objc private func savesPillTapped() {
-        savesView.setActive(true, animated: true)
     }
 
     // Раньше это был setupHeaderContainer, мы избавились от него полностью!
@@ -2272,10 +2272,20 @@ final class PublicProfileScreenNode: ASDisplayNode {
         activateTitleVisibility()
     }
 
-    func updateEngagementStats(likes: Int, views: Int, saves: Int) {
+    func updateEngagementStats(likes: Int, views: Int, saves: Int, isLiked: Bool = false, isSaved: Bool = false) {
+        self.currentLikesCount = likes
+        self.currentIsLiked = isLiked
+        
+        self.currentSavesCount = saves
+        self.currentIsSaved = isSaved
+        
         likesView.setValue(Self.formatCount(likes))
+        likesView.setActive(isLiked, animated: false)
+        
         viewsView.setValue(Self.formatCount(views))
+        
         savesView.setValue(Self.formatCount(saves))
+        savesView.setActive(isSaved, animated: false)
     }
 
     /// Formats count to max 4 characters: 999 → "999", 1K, 288K, 1.5M, 10M, 1.5B
@@ -3135,6 +3145,62 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     
     // MARK: - @objc
+
+    @objc private func likesPillTapped() {
+        guard let userId = model.userId, !isLikingProcess else { return }
+        
+        isLikingProcess = true
+        
+        currentIsLiked.toggle()
+        currentLikesCount = max(0, currentLikesCount + (currentIsLiked ? 1 : -1))
+        
+        likesView.setActive(currentIsLiked, animated: true)
+        likesView.setValue(Self.formatCount(currentLikesCount))
+        likesView.popIcon()
+        
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.toggleLikeProfile(userId: userId, isLiked: currentIsLiked) {[weak self] success in
+                guard let self = self else { return }
+                self.isLikingProcess = false
+                
+                if !success {
+                    self.currentIsLiked.toggle()
+                    self.currentLikesCount = max(0, self.currentLikesCount + (self.currentIsLiked ? 1 : -1))
+                    
+                    self.likesView.setActive(self.currentIsLiked, animated: true)
+                    self.likesView.setValue(Self.formatCount(self.currentLikesCount))
+                }
+            }
+        }
+    }
+    
+    @objc private func savesPillTapped() {
+        guard let userId = model.userId, !isSavingProcess else { return }
+        
+        isSavingProcess = true
+        
+        currentIsSaved.toggle()
+        currentSavesCount = max(0, currentSavesCount + (currentIsSaved ? 1 : -1))
+        
+        savesView.setActive(currentIsSaved, animated: true)
+        savesView.setValue(Self.formatCount(currentSavesCount))
+        savesView.popIcon()
+        
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.toggleSaveProfile(userId: userId, isSaved: currentIsSaved) { [weak self] success in
+                guard let self = self else { return }
+                self.isSavingProcess = false
+                
+                if !success {
+                    self.currentIsSaved.toggle()
+                    self.currentSavesCount = max(0, self.currentSavesCount + (self.currentIsSaved ? 1 : -1))
+                    
+                    self.savesView.setActive(self.currentIsSaved, animated: true)
+                    self.savesView.setValue(Self.formatCount(self.currentSavesCount))
+                }
+            }
+        }
+    }
 
     // Метод, который вызывает нужный Action в зависимости от открытого таба
     @objc private func floatingAddButtonTapped() {
