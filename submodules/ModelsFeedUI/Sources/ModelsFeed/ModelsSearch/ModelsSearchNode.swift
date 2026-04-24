@@ -711,6 +711,7 @@ final class ModelsSearchNode: ASDisplayNode {
     func showGridLoading(isFirstPage: Bool) {
         self.mode = .grid
         self.searchTimer?.invalidate()
+        self.loaderDelayTimer?.invalidate()
         self.currentTask?.cancel()
 
         self.currentAutocompleteResults = []

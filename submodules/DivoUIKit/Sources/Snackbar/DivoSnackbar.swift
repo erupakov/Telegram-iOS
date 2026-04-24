@@ -81,7 +81,7 @@ public final class DivoSnackbar {
             snack.leadingAnchor.constraint(equalTo: hostView.leadingAnchor, constant: 8),
             snack.trailingAnchor.constraint(equalTo: hostView.trailingAnchor, constant: -8),
             bottom,
-            snack.heightAnchor.constraint(equalToConstant: 50)
+            snack.heightAnchor.constraint(greaterThanOrEqualToConstant: 50)
         ])
 
         if style == .error, retryAction != nil, let retryTitle, !retryTitle.isEmpty {
@@ -90,19 +90,19 @@ public final class DivoSnackbar {
             retryButton.titleLabel?.font = UIFont(name: "HelveticaNeue-Bold", size: 14) ?? UIFont.boldSystemFont(ofSize: 14)
             retryButton.setTitleColor(.white, for: .normal)
             retryButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+            retryButton.setContentCompressionResistancePriority(.required, for: .horizontal)
             retryButton.addTarget(self, action: #selector(snackbarRetryTapped), for: .touchUpInside)
             retryButton.translatesAutoresizingMaskIntoConstraints = false
             snack.addSubview(retryButton)
 
             NSLayoutConstraint.activate([
-                retryButton.trailingAnchor.constraint(equalTo: snack.trailingAnchor, constant: -4),
-                retryButton.topAnchor.constraint(equalTo: snack.topAnchor),
-                retryButton.bottomAnchor.constraint(equalTo: snack.bottomAnchor),
+                retryButton.trailingAnchor.constraint(equalTo: snack.trailingAnchor, constant: -16),
+                retryButton.centerYAnchor.constraint(equalTo: snack.centerYAnchor),
 
                 titleLabel.leadingAnchor.constraint(equalTo: snack.leadingAnchor, constant: 16),
                 titleLabel.trailingAnchor.constraint(equalTo: retryButton.leadingAnchor, constant: -12),
-                titleLabel.topAnchor.constraint(equalTo: snack.topAnchor),
-                titleLabel.bottomAnchor.constraint(equalTo: snack.bottomAnchor)
+                titleLabel.topAnchor.constraint(equalTo: snack.topAnchor, constant: 12),
+                titleLabel.bottomAnchor.constraint(equalTo: snack.bottomAnchor, constant: -12)
             ])
         } else {
             NSLayoutConstraint.activate([

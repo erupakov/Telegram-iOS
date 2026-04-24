@@ -607,12 +607,14 @@ public class ModelsSearchController: ViewController {
         let hairColor = self.currentFilters.hairColor?.isEmpty == true ? nil : self.currentFilters.hairColor
         let hairLength = self.currentFilters.hairLength?.isEmpty == true ? nil : self.currentFilters.hairLength
 
+        let hasModelParams = gender != nil || age != nil || weight != nil || height != nil || waist != nil || shoesSize != nil || hips != nil || eyeColor != nil || skinColor != nil || hairColor != nil || hairLength != nil
+
         return ModelsSearchRequest(
             offset: offset,
             limit: limit,
             query: query,
             role: role,
-            modelParameters: ModelSearchParameters(
+            modelParameters: hasModelParams ? ModelSearchParameters(
                 gender: gender,
                 age: age,
                 weight: weight,
@@ -624,7 +626,7 @@ public class ModelsSearchController: ViewController {
                 skinColor: skinColor,
                 hairColor: hairColor,
                 hairLength: hairLength
-            )
+            ) : nil
         )
     }
     
