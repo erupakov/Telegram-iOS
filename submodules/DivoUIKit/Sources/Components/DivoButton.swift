@@ -121,15 +121,6 @@ public final class DivoButton: UIButton {
         didSet {}
     }
 
-    // MARK: - Enabled / disabled
-
-    override public var isEnabled: Bool {
-        didSet {
-            guard !isSaving else { return }
-            backgroundColor = isEnabled ? DivoColorPalette.accent : DivoColorPalette.buttonDisabledBackground
-        }
-    }
-
     // MARK: - Saving state
 
     /// Переключает кнопку в состояние saving и добавляет блокирующий overlay на `hostView`.

@@ -131,11 +131,28 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     let c = DebugRequestLogsController(context: self.context)
                     self.onPush?(c)
                 }),
+                Row(icon: "terminal", title: "Console Logs", subtitle: {
+                    let count = DivoConsoleLogger.shared.getEntries().count
+                    return "\(count)"
+                }, accessory: .chevron, action: { [weak self] in
+                    guard let self = self else { return }
+                    let c = DebugConsoleLogsController(context: self.context)
+                    self.onPush?(c)
+                }),
                 Row(icon: "person.crop.circle", title: DivoStrings.debugUser, subtitle: { "" }, accessory: .chevron, action: { [weak self] in
                     guard let self = self else { return }
                     let c = DebugUserInfoController(context: self.context)
                     self.onPush?(c)
                 }),
+            ]),
+            (header: "Reset Flags", rows: [
+                Row(icon: "face.smiling", title: "Face Search Info", subtitle: {
+                    UserDefaults.standard.bool(forKey: "Divo.faceSearchInfoShown") ? "Shown" : "Not shown"
+                }, accessory: .toggle(UserDefaults.standard.bool(forKey: "Divo.faceSearchInfoShown"), { [weak self] enabled in
+                    UserDefaults.standard.set(enabled, forKey: "Divo.faceSearchInfoShown")
+                    self?.buildSections()
+                    self?.tableView.reloadData()
+                }), action: {}),
             ]),
             (header: DivoStrings.debugNetwork, rows: [
                 Row(icon: "speedometer", title: DivoStrings.debugNetworkOverlay, subtitle: { "" }, accessory: .toggle(overlayEnabled, { [weak self] enabled in

@@ -19,6 +19,10 @@ public enum DivoColorPalette {
     public static let roleBadgeBlue = UIColor(red: 34/255, green: 98/255, blue: 216/255, alpha: 1)
     public static let roleBadgeCopperTint = UIColor(red: 0.95, green: 0.92, blue: 0.90, alpha: 1)
     public static let borderWorkHistoryImage = UIColor(hexString: "#F6F6F6")!
+    /// #F3E7E1 — фон информационной плашки face search при multiple faces без selection.
+    public static let faceBannerMultipleBackground = UIColor(hexString: "#F3E7E1")!
+    /// #C16B3E — приглушённый оранжевый текст плашки процента face search при совпадении < 89%.
+    public static let matchPercentMuted = UIColor(hexString: "#C16B3E")!
     
     // MARK: - Text (DIVO)
     public static let primaryText = UIColor(hexString: "#222222")!
@@ -150,7 +154,7 @@ public enum DivoColorPalette {
     public static let emptySubtitleText = UIColor(white: 0.4, alpha: 1)
     public static let emptyPrimaryDark = UIColor(white: 0.1, alpha: 1)
     public static let emptySubtitleLight = UIColor(white: 0.5, alpha: 1)
-    public static let emptyCircleBackground = UIColor(white: 0.95, alpha: 1.0)
+    public static let emptyCircleBackground = UIColor(white: 1.0, alpha: 0.8) // #FFFFFFCC
     public static let emptyIconTint = UIColor(white: 0.4, alpha: 1.0)
     public static let placeholderCardBackground = UIColor(white: 0.96, alpha: 1)
     /// #E6E6E6 — skeleton-плейсхолдер (search grid, filter bar).
@@ -164,6 +168,10 @@ public enum DivoColorPalette {
 
     // MARK: - Feed typography
     public static let feedTitleText = UIColor(white: 0.2, alpha: 1.0)
+
+    // MARK: - Semantic states
+    /// Красная рамка / текст ошибки (face detect no-face, validation).
+    public static let errorState = UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)
 
     // MARK: - Snackbar
     public static let snackbarError = UIColor(red: 223/255, green: 28/255, blue: 65/255, alpha: 1)

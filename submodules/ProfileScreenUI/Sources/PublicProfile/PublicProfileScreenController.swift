@@ -144,6 +144,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         configuration.selectionLimit = 1
         let picker = PHPickerViewController(configuration: configuration)
         picker.delegate = self
+        picker.view.tintColor = DivoColorPalette.accent
         self.present(picker, animated: true)
     }
 
@@ -155,6 +156,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         configuration.selectionLimit = 1
         let picker = PHPickerViewController(configuration: configuration)
         picker.delegate = self
+        picker.view.tintColor = DivoColorPalette.accent
         self.present(picker, animated: true)
     }
 
@@ -180,6 +182,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                     
                     let picker = PHPickerViewController(configuration: configuration)
                     picker.delegate = self
+                    picker.view.tintColor = DivoColorPalette.accent
                     self?.present(picker, animated: true)
                 }
             }

@@ -451,6 +451,7 @@ extension CreateEventController: PHPickerViewControllerDelegate {
         
         let picker = PHPickerViewController(configuration: config)
         picker.delegate = self
+        picker.view.tintColor = DivoColorPalette.accent
         self.present(picker, animated: true)
     }
     

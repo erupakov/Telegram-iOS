@@ -16,6 +16,7 @@ import TelegramPresentationData
 import AccountContext
 import CountrySelectionUI
 import ProfileScreenUI
+import PhotosUI
 
 public class ModelsSearchController: ViewController {
     private let context: AccountContext
@@ -154,8 +155,161 @@ public class ModelsSearchController: ViewController {
 
     
     private func openFaceRecognition() {
-        let vc = FaceRecognitionController(context: self.context)
-        (self.navigationController as? NavigationController)?.pushViewController(vc)
+        let theme = ActionSheetControllerTheme(
+            dimColor: UIColor(white: 0, alpha: 0.5),
+            backgroundType: .light,
+            itemBackgroundColor: DivoColorPalette.cardBackground,
+            itemHighlightedBackgroundColor: DivoColorPalette.screenBackground,
+            standardActionTextColor: DivoColorPalette.primaryText,
+            destructiveActionTextColor: DivoColorPalette.accent,
+            disabledActionTextColor: DivoColorPalette.disabledText,
+            primaryTextColor: DivoColorPalette.primaryText,
+            secondaryTextColor: DivoColorPalette.secondaryText,
+            controlAccentColor: DivoColorPalette.accent,
+            controlColor: DivoColorPalette.secondaryText,
+            switchFrameColor: DivoColorPalette.separatorSystem,
+            switchContentColor: DivoColorPalette.accent,
+            switchHandleColor: DivoColorPalette.cardBackground,
+            baseFontSize: 17.0
+        )
+        let actionSheet = ActionSheetController(theme: theme)
+
+        actionSheet.setItemGroups([
+            ActionSheetItemGroup(items: [
+                DivoActionSheetHeaderItem(title: DivoStrings.faceRecognitionSheetTitle, subtitle: DivoStrings.faceRecognitionSheetSubtitle),
+                ActionSheetButtonItem(title: DivoStrings.faceRecognitionTakePhoto, color: .accent) { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    self?.handleFaceSearchSource(.camera)
+                },
+                ActionSheetButtonItem(title: DivoStrings.faceRecognitionChooseFromLibrary, color: .accent) { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    self?.handleFaceSearchSource(.gallery)
+                },
+                ActionSheetButtonItem(title: DivoStrings.faceRecognitionUseDivoPhoto, color: .accent) { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    // TODO: pick DIVO profile photo for face recognition
+                }
+            ]),
+            ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: DivoStrings.cancel, color: .destructive, font: .bold) { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                }
+            ])
+        ])
+
+        self.present(actionSheet, in: .window(.root))
+    }
+
+    private enum FaceSearchSource {
+        case camera
+        case gallery
+    }
+
+    private var pendingFaceSearchSource: FaceSearchSource?
+    private weak var activeFaceSearchController: FaceSearchController?
+
+    private func handleFaceSearchSource(_ source: FaceSearchSource) {
+        if FaceSearchInfoDialog.wasShown {
+            openPhotoPicker(source)
+        } else {
+            pendingFaceSearchSource = source
+            let dialog = FaceSearchInfoDialog()
+            dialog.modalPresentationStyle = .overFullScreen
+            dialog.modalTransitionStyle = .crossDissolve
+            dialog.onDismissed = { [weak self] in
+                guard let self, let source = self.pendingFaceSearchSource else { return }
+                self.pendingFaceSearchSource = nil
+                self.openPhotoPicker(source)
+            }
+            self.view.window?.rootViewController?.present(dialog, animated: false)
+        }
+    }
+
+    private var presentingWindow: UIWindow? {
+        self.view.window ?? activeFaceSearchController?.view.window
+    }
+
+    private func openPhotoPicker(_ source: FaceSearchSource) {
+        guard let rootVC = presentingWindow?.rootViewController else { return }
+        switch source {
+        case .camera:
+            guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
+            let picker = UIImagePickerController()
+            picker.sourceType = .camera
+            picker.delegate = self
+            rootVC.present(picker, animated: true)
+        case .gallery:
+            if #available(iOS 14, *) {
+                var config = PHPickerConfiguration()
+                config.filter = .images
+                config.selectionLimit = 1
+                let picker = PHPickerViewController(configuration: config)
+                picker.delegate = self
+                picker.view.tintColor = DivoColorPalette.accent
+                rootVC.present(picker, animated: true)
+            } else {
+                let picker = UIImagePickerController()
+                picker.sourceType = .photoLibrary
+                picker.delegate = self
+                rootVC.present(picker, animated: true)
+            }
+        }
+    }
+
+    private func openFaceSearchScreen(with image: UIImage) {
+        if let existing = activeFaceSearchController, existing.navigationController != nil {
+            existing.updateImage(image)
+        } else {
+            activeFaceSearchController = nil
+            let controller = FaceSearchController(context: self.context, image: image)
+            controller.onChangePhoto = { [weak self] in
+                self?.openChangePhotoSheet()
+            }
+            activeFaceSearchController = controller
+            (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+        }
+    }
+
+    private func openChangePhotoSheet() {
+        let theme = ActionSheetControllerTheme(
+            dimColor: UIColor(white: 0, alpha: 0.5),
+            backgroundType: .light,
+            itemBackgroundColor: DivoColorPalette.cardBackground,
+            itemHighlightedBackgroundColor: DivoColorPalette.screenBackground,
+            standardActionTextColor: DivoColorPalette.primaryText,
+            destructiveActionTextColor: DivoColorPalette.accent,
+            disabledActionTextColor: DivoColorPalette.disabledText,
+            primaryTextColor: DivoColorPalette.primaryText,
+            secondaryTextColor: DivoColorPalette.secondaryText,
+            controlAccentColor: DivoColorPalette.accent,
+            controlColor: DivoColorPalette.secondaryText,
+            switchFrameColor: DivoColorPalette.separatorSystem,
+            switchContentColor: DivoColorPalette.accent,
+            switchHandleColor: DivoColorPalette.cardBackground,
+            baseFontSize: 17.0
+        )
+        let actionSheet = ActionSheetController(theme: theme)
+
+        actionSheet.setItemGroups([
+            ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: DivoStrings.faceRecognitionTakePhoto, color: .accent) { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    self?.openPhotoPicker(.camera)
+                },
+                ActionSheetButtonItem(title: DivoStrings.faceRecognitionChooseFromLibrary, color: .accent) { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    self?.openPhotoPicker(.gallery)
+                }
+            ]),
+            ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: DivoStrings.cancel, color: .destructive, font: .bold) { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                }
+            ])
+        ])
+
+        let presenter = self.activeFaceSearchController ?? self
+        presenter.present(actionSheet, in: .window(.root))
     }
 
     private func openModelScreen(for user: SearchUserDTO) {
@@ -164,7 +318,7 @@ public class ModelsSearchController: ViewController {
 
         let profileModel = ProfileModel(
             name: user.title,
-            age: user.user?.age ?? 0,
+            age: user.user?.age,
             location: user.user?.city?.name ?? "",
             isVerified: false,
             likesCount: "\(user.likesCount ?? 0)",
@@ -579,5 +733,35 @@ public class ModelsSearchController: ViewController {
                 }
             }
         }
+    }
+}
+
+// MARK: - PHPickerViewControllerDelegate
+
+@available(iOS 14, *)
+extension ModelsSearchController: PHPickerViewControllerDelegate {
+    public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else { return }
+        provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+            guard let image = object as? UIImage else { return }
+            DispatchQueue.main.async {
+                self?.openFaceSearchScreen(with: image)
+            }
+        }
+    }
+}
+
+// MARK: - UIImagePickerControllerDelegate
+
+extension ModelsSearchController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+        picker.dismiss(animated: true)
+        guard let image = info[.originalImage] as? UIImage else { return }
+        self.openFaceSearchScreen(with: image)
+    }
+
+    public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
     }
 }

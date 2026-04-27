@@ -244,7 +244,6 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             isDefault = Int(rangeSlider.lowerValue) == Int(rangeSlider.minimumValue) && Int(rangeSlider.upperValue) == Int(rangeSlider.maximumValue)
         }
         deleteButton.isEnabled = !isDefault
-        deleteButton.backgroundColor = isDefault ? DivoColorPalette.buttonDisabledBackground : DivoColorPalette.secondaryButtonBackground
     }
     
     @objc private func textFieldDidChange(_ textField: UITextField) {

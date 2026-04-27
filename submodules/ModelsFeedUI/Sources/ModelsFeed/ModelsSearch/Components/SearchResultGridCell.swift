@@ -21,6 +21,49 @@ struct FullSearchItem {
     let imageName: String
 }
 
+/// View model универсальной карточки результата (search + face search).
+public struct SearchCardViewModel {
+    public enum Variant {
+        case search
+        case faceMatch(percent: Double) // 0...1
+    }
+
+    public let variant: Variant
+    public let feedId: Int?
+    public let userId: Int?
+    public let name: String?
+    public let infoText: String?
+    public let roleLabel: String?
+    public let likesCount: Int
+    public let isLikedByUser: Bool
+    public let isFavoriteByUser: Bool
+    public let imageURL: URL?
+
+    public init(
+        variant: Variant,
+        feedId: Int?,
+        userId: Int?,
+        name: String?,
+        infoText: String?,
+        roleLabel: String?,
+        likesCount: Int,
+        isLikedByUser: Bool,
+        isFavoriteByUser: Bool,
+        imageURL: URL?
+    ) {
+        self.variant = variant
+        self.feedId = feedId
+        self.userId = userId
+        self.name = name
+        self.infoText = infoText
+        self.roleLabel = roleLabel
+        self.likesCount = likesCount
+        self.isLikedByUser = isLikedByUser
+        self.isFavoriteByUser = isFavoriteByUser
+        self.imageURL = imageURL
+    }
+}
+
 final class SearchResultGridCell: UICollectionViewCell {
     
     private let backgroundImageView: UIImageView = {
@@ -49,8 +92,42 @@ final class SearchResultGridCell: UICollectionViewCell {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
+
     private let roleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(11)
+        label.textColor = DivoColorPalette.primaryTextOnDark
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let matchPercentContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = 11
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let matchPercentLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFont(name: "HelveticaNeue-Bold", size: 11) ?? UIFont.boldSystemFont(ofSize: 11)
+        label.textColor = DivoColorPalette.accent
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let bottomRoleContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.roleBadgeBlue
+        view.layer.cornerRadius = DivoDesignTokens.Radius.m
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let bottomRoleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(11)
         label.textColor = DivoColorPalette.primaryTextOnDark
@@ -206,7 +283,13 @@ final class SearchResultGridCell: UICollectionViewCell {
         
         contentView.addSubview(roleContainer)
         roleContainer.addSubview(roleLabel)
-        
+
+        contentView.addSubview(matchPercentContainer)
+        matchPercentContainer.addSubview(matchPercentLabel)
+
+        contentView.addSubview(bottomRoleContainer)
+        bottomRoleContainer.addSubview(bottomRoleLabel)
+
         contentView.addSubview(actionsContainer)
         
         actionsContainer.contentView.addSubview(shareIcon)
@@ -255,10 +338,18 @@ final class SearchResultGridCell: UICollectionViewCell {
             roleContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             roleContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 9),
             roleContainer.heightAnchor.constraint(equalToConstant: 24),
-            
+
             roleLabel.leadingAnchor.constraint(equalTo: roleContainer.leadingAnchor, constant: 6),
             roleLabel.trailingAnchor.constraint(equalTo: roleContainer.trailingAnchor, constant: -6),
             roleLabel.centerYAnchor.constraint(equalTo: roleContainer.centerYAnchor),
+
+            matchPercentContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
+            matchPercentContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 9),
+            matchPercentContainer.heightAnchor.constraint(equalToConstant: 22),
+
+            matchPercentLabel.leadingAnchor.constraint(equalTo: matchPercentContainer.leadingAnchor, constant: 8),
+            matchPercentLabel.trailingAnchor.constraint(equalTo: matchPercentContainer.trailingAnchor, constant: -8),
+            matchPercentLabel.centerYAnchor.constraint(equalTo: matchPercentContainer.centerYAnchor),
             
             actionsContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             actionsContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -9),
@@ -294,48 +385,106 @@ final class SearchResultGridCell: UICollectionViewCell {
             
             nameLabel.bottomAnchor.constraint(equalTo: infoLabel.topAnchor, constant: -4),
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
-            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12)
+            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
+
+            bottomRoleContainer.bottomAnchor.constraint(equalTo: nameLabel.topAnchor, constant: -6),
+            bottomRoleContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            bottomRoleContainer.heightAnchor.constraint(equalToConstant: 24),
+
+            bottomRoleLabel.leadingAnchor.constraint(equalTo: bottomRoleContainer.leadingAnchor, constant: 6),
+            bottomRoleLabel.trailingAnchor.constraint(equalTo: bottomRoleContainer.trailingAnchor, constant: -6),
+            bottomRoleLabel.centerYAnchor.constraint(equalTo: bottomRoleContainer.centerYAnchor)
         ])
     }
     
     func configure(with item: SearchUserDTO, county: String?) {
+        let infoText: String?
+        if let age = item.user?.age, let county = county {
+            infoText = DivoStrings.ageString(age) + " • " + county
+        } else if let age = item.user?.age {
+            infoText = DivoStrings.ageString(age)
+        } else {
+            infoText = county
+        }
+
+        let imageURL = item.searchImage?.fullUrl.flatMap { CDNURLHelper.convertToCDNURL($0) }
+
+        let viewModel = SearchCardViewModel(
+            variant: .search,
+            feedId: item.feedId,
+            userId: item.user?.id,
+            name: item.title,
+            infoText: infoText,
+            roleLabel: item.user?.roleLabel,
+            likesCount: item.likesCount ?? 0,
+            isLikedByUser: item.isLikedByUser ?? false,
+            isFavoriteByUser: item.isFavoriteByUser ?? false,
+            imageURL: imageURL
+        )
+        configure(with: viewModel)
+    }
+
+    func configure(with viewModel: SearchCardViewModel) {
         resetBlurState()
 
         setNeedsLayout()
         layoutIfNeeded()
 
-        currentFeedId = item.feedId
-        currentUserId = item.user?.id
-        currentIsLiked = item.isLikedByUser ?? false
-        currentIsSaved = item.isFavoriteByUser ?? false
-        currentLikesCount = item.likesCount ?? 0
+        currentFeedId = viewModel.feedId
+        currentUserId = viewModel.userId
+        currentIsLiked = viewModel.isLikedByUser
+        currentIsSaved = viewModel.isFavoriteByUser
+        currentLikesCount = viewModel.likesCount
 
-        roleLabel.text = item.user?.roleLabel
-
+        nameLabel.text = viewModel.name
+        infoLabel.text = viewModel.infoText
         likesLabel.text = formatLikes(currentLikesCount)
-        nameLabel.text = item.title
 
         updateLikeVisual()
         updateSaveVisual()
-        
-        if let age = item.user?.age, let county = county  {
-            infoLabel.text = "\(age) y.o" + " • " + county
-        } else if let age = item.user?.age {
-            infoLabel.text = "\(age) y.o"
-        } else if let county = county {
-            infoLabel.text = county
+
+        applyVariant(viewModel.variant, role: viewModel.roleLabel)
+
+        if let url = viewModel.imageURL {
+            backgroundImageView.loadImage(from: url)
         }
-        
-        if let avatarURLString = item.searchImage?.fullUrl,
-           let url = CDNURLHelper.convertToCDNURL(avatarURLString) {
-            backgroundImageView.loadImage(from: url) { [weak self] image in
-                self?.backgroundImageView.applyAvatarTopCropIfNeeded(image: image)
-            }
-        }
-        
+
         DispatchQueue.main.async { [weak self] in
             self?.layoutIfNeeded()
             self?.animateBlurAppearance()
+        }
+    }
+
+    private func applyVariant(_ variant: SearchCardViewModel.Variant, role: String?) {
+        switch variant {
+        case .search:
+            roleLabel.text = role
+            roleContainer.isHidden = (role == nil)
+            matchPercentContainer.isHidden = true
+            bottomRoleContainer.isHidden = true
+            actionsContainer.isHidden = false
+            likesContainer.isHidden = false
+
+        case .faceMatch(let percent):
+            roleContainer.isHidden = true
+            actionsContainer.isHidden = true
+            likesContainer.isHidden = true
+
+            let percentInt = Int((percent * 100).rounded())
+            let isHighMatch = percentInt >= 90
+            matchPercentLabel.text = DivoStrings.faceSearchMatchPercentBadge(percentInt)
+            matchPercentLabel.textColor = isHighMatch ? DivoColorPalette.accent : DivoColorPalette.matchPercentMuted
+            matchPercentContainer.isHidden = false
+            if isHighMatch {
+                matchPercentContainer.layer.borderWidth = 2
+                matchPercentContainer.layer.borderColor = DivoColorPalette.accent.cgColor
+            } else {
+                matchPercentContainer.layer.borderWidth = 0
+                matchPercentContainer.layer.borderColor = nil
+            }
+
+            bottomRoleLabel.text = role
+            bottomRoleContainer.isHidden = (role == nil)
         }
     }
     

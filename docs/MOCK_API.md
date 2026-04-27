@@ -45,6 +45,8 @@ Mock `/user/info` (свой профиль) возвращает данные в
 | `/agency/list` | GET | 3 агентства |
 | `/agency/{id}/models/list` | GET | Пустой список |
 | `/model-work-history` | GET | Пустой список |
+| `/fr/detect` | POST | 1 лицо (чтобы можно было нажать Find) |
+| `/fr/search` | POST | Пустой массив (empty state для face search) |
 
 ### Action-эндпоинты (возвращают `{"message": "OK"}`)
 

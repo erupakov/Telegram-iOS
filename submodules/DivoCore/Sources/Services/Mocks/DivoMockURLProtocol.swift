@@ -64,6 +64,10 @@ public final class DivoMockURLProtocol: URLProtocol {
             return DivoMockData.agencyList
         case _ where path.hasSuffix("/model-work-history"):
             return DivoMockData.emptyWorkHistory
+        case _ where path.hasSuffix("/fr/detect"):
+            return DivoMockData.frDetect
+        case _ where path.hasSuffix("/fr/search"):
+            return DivoMockData.frSearchEmpty
         default:
             break
         }
