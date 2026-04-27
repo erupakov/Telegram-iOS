@@ -1237,7 +1237,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             blurredHeaderImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             
             blurredHeaderImageView.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor, constant: -40),
-            blurredHeaderImageView.bottomAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: 20)
+            blurredHeaderImageView.bottomAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: -20)
         ])
     }
     
@@ -3204,7 +3204,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoHeightConstraint.constant = max(vHeight, 1.0)
         
         // Channels
-        let cHeight = CGFloat(channelGalleryItems.count) * 76.0
+        let cHeight = CGFloat(channelGalleryItems.count) * 66.0
         channelHeightConstraint.constant = max(cHeight, 1.0)
         
         // Models
@@ -3668,7 +3668,7 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
                     || collectionView == modelGalleryCollectionView
                     || collectionView == eventGalleryCollectionView {
             guard let (layout, _) = self.containerLayout else { return .zero }
-            return CGSize(width: layout.size.width, height: 74)
+            return CGSize(width: layout.size.width, height: 66)
         }
         return CGSize()
     }
@@ -3678,10 +3678,11 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
             return 6
         } else if collectionView == galleryCollectionView
                     || collectionView == videoGalleryCollectionView
-                    || collectionView == channelGalleryCollectionView
                     || collectionView == modelGalleryCollectionView
                     || collectionView == eventGalleryCollectionView {
             return 1.0
+        } else if collectionView == channelGalleryCollectionView {
+            return 0
         }
         return 0
     }
@@ -3691,10 +3692,11 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
             return 6
         } else if collectionView == galleryCollectionView
                     || collectionView == videoGalleryCollectionView
-                    || collectionView == channelGalleryCollectionView
                     || collectionView == modelGalleryCollectionView
                     || collectionView == eventGalleryCollectionView {
             return 1.0
+        } else if collectionView == channelGalleryCollectionView {
+            return 0
         }
         return 0
     }
