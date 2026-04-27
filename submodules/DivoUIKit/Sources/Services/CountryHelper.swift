@@ -1,20 +1,12 @@
-//
-//  CountryHelper.swift
-//  divo-ios
-//
-//  Created by Michail Shagovitov on 07.04.2026.
-//
-
 import Foundation
-import DivoUIKit
 
-struct CountryHelper {
-    static func getAllCountries() -> [FilterOptionItem] {
+public struct CountryHelper {
+    public static func getAllCountries() -> [FilterOptionItem] {
         var countries: [FilterOptionItem] = []
 
         let preferredLocale = Locale.preferredLanguages.first ?? "en"
         let localizationLocale = Locale(identifier: preferredLocale)
-        
+
         for regionCode in Locale.isoRegionCodes {
             if let countryName = localizationLocale.localizedString(forRegionCode: regionCode) {
                 let flag = emojiFlag(for: regionCode)
@@ -27,7 +19,7 @@ struct CountryHelper {
         return countries.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
-    static func emojiFlag(for countryCode: String?) -> String {
+    public static func emojiFlag(for countryCode: String?) -> String {
         guard let code = countryCode, code.count == 2 else { return "" }
         let base: UInt32 = 127397
         var s = ""

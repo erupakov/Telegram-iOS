@@ -16,6 +16,7 @@ import TelegramPresentationData
 import AccountContext
 import CountrySelectionUI
 import ProfileScreenUI
+import FaceSearchUI
 import PhotosUI
 import AVFoundation
 
@@ -335,6 +336,9 @@ public class ModelsSearchController: ViewController {
             controller.onChangePhoto = { [weak self] in
                 self?.openFaceRecognition()
             }
+            controller.onOpenProfile = { [weak self] result in
+                self?.openFaceSearchProfile(for: result)
+            }
             activeFaceSearchController = controller
             (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
         }
@@ -361,6 +365,28 @@ public class ModelsSearchController: ViewController {
         )
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
+
+    private func openFaceSearchProfile(for result: FRSearchResult) {
+        let mainImageURL = result.image.flatMap(URL.init(string:))
+        let location = FaceSearchResultsMapper.countryText(code: result.countryCode, name: result.countryName) ?? ""
+        let model = ProfileModel(
+            name: result.fullName ?? "",
+            age: FaceSearchResultsMapper.computeAge(from: result.birthday),
+            location: location,
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: result.userId,
+            role: result.role,
+            mainImageURL: mainImageURL,
+            avatarImageURL: mainImageURL
+        )
+        let controller = PublicProfileScreenController(context: self.context, model: model)
+        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
     }
 
     private func openFilters() {
@@ -578,6 +604,9 @@ public class ModelsSearchController: ViewController {
             historyEntryId: item.id,
             needsInitialLoad: true
         )
+        controller.onOpenProfile = { [weak self] result in
+            self?.openFaceSearchProfile(for: result)
+        }
         (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
     }
 

@@ -44,7 +44,8 @@ public final class FaceSearchController: ViewController {
     private var detectState: FaceDetectState = .idle
     private var isSearching = false
 
-    var onChangePhoto: (() -> Void)?
+    public var onChangePhoto: (() -> Void)?
+    public var onOpenProfile: ((FRSearchResult) -> Void)?
 
     public init(context: AccountContext, image: UIImage) {
         self.context = context
@@ -245,6 +246,9 @@ public final class FaceSearchController: ViewController {
             initialFilters: initialFilters,
             historyEntryId: historyEntryId
         )
+        controller.onOpenProfile = { [weak self] result in
+            self?.onOpenProfile?(result)
+        }
         if let nav = self.navigationController as? NavigationController {
             nav.pushViewController(controller)
         }

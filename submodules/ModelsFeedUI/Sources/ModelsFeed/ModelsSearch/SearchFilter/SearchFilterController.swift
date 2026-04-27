@@ -778,20 +778,3 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     
 }
 
-// Общий протокол для фильтров с числовыми диапазонами.
-protocol RangeFilterable: Comparable {
-    var doubleValue: Double { get }
-    init(_ value: Double)
-}
-
-extension Int: RangeFilterable {
-    var doubleValue: Double { return Double(self) }
-}
-
-extension Double: RangeFilterable {
-    var doubleValue: Double { return self }
-}
-
-extension Float: RangeFilterable {
-    var doubleValue: Double { return Double(self) }
-}

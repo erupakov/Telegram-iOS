@@ -7,24 +7,24 @@ import TelegramPresentationData
 import DivoCore
 import DivoUIKit
 
-final class FaceSearchHistoryController: ViewController {
+public final class FaceSearchHistoryController: ViewController {
     private let context: AccountContext
     private var presentationData: PresentationData
 
-    var onItemTapped: ((FaceSearchHistoryItem) -> Void)?
-    var onStartFaceSearch: (() -> Void)?
+    public var onItemTapped: ((FaceSearchHistoryItem) -> Void)?
+    public var onStartFaceSearch: (() -> Void)?
 
-    init(context: AccountContext) {
+    public init(context: AccountContext) {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         super.init(navigationBarPresentationData: nil)
     }
 
-    required init(coder aDecoder: NSCoder) {
+    required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    override func loadDisplayNode() {
+    override public func loadDisplayNode() {
         let items = FaceSearchHistoryStorage.shared.loadAll()
         let node = FaceSearchHistoryScreenNode(items: items)
 
@@ -55,7 +55,7 @@ final class FaceSearchHistoryController: ViewController {
         self.displayNodeDidLoad()
     }
 
-    override func viewWillAppear(_ animated: Bool) {
+    override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
     }

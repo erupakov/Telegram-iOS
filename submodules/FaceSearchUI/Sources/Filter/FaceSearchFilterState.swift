@@ -2,24 +2,24 @@ import Foundation
 import DivoCore
 import DivoUIKit
 
-struct FaceSearchFilterState: Equatable {
-    static let similaritySteps: [Double] = [0.30, 0.45, 0.60, 0.75, 0.85, 1.00]
-    static let defaultSimilarity: Double = 0.30
+public struct FaceSearchFilterState: Equatable {
+    public static let similaritySteps: [Double] = [0.30, 0.45, 0.60, 0.75, 0.85, 1.00]
+    public static let defaultSimilarity: Double = 0.30
 
-    var similarity: Double = FaceSearchFilterState.defaultSimilarity
+    public var similarity: Double = FaceSearchFilterState.defaultSimilarity
 
-    var roleIds: [String] = []
-    var roleTitles: [String] = []
+    public var roleIds: [String] = []
+    public var roleTitles: [String] = []
 
-    var countryIds: [String] = []
-    var countryTitles: [String] = []
+    public var countryIds: [String] = []
+    public var countryTitles: [String] = []
 
-    var ageRange: ClosedRange<Int>?
-    var heightRange: ClosedRange<Double>?
-    var waistRange: ClosedRange<Double>?
-    var hipsRange: ClosedRange<Double>?
-    var shoeSizeRange: ClosedRange<Double>?
-    var hairLength: [Int]?
+    public var ageRange: ClosedRange<Int>?
+    public var heightRange: ClosedRange<Double>?
+    public var waistRange: ClosedRange<Double>?
+    public var hipsRange: ClosedRange<Double>?
+    public var shoeSizeRange: ClosedRange<Double>?
+    public var hairLength: [Int]?
 
     private var activeFieldFlags: [Bool] {
         [
@@ -35,15 +35,15 @@ struct FaceSearchFilterState: Equatable {
         ]
     }
 
-    var hasActiveFilters: Bool {
+    public var hasActiveFilters: Bool {
         activeFieldFlags.contains(true)
     }
 
-    var activeFilterCount: Int {
+    public var activeFilterCount: Int {
         activeFieldFlags.lazy.filter { $0 }.count
     }
 
-    mutating func reset() {
+    public mutating func reset() {
         similarity = FaceSearchFilterState.defaultSimilarity
         roleIds = []
         roleTitles = []
@@ -57,11 +57,13 @@ struct FaceSearchFilterState: Equatable {
         hairLength = nil
     }
 
-    var apiRoles: [String]? {
+    public var apiRoles: [String]? {
         roleIds.isEmpty ? nil : roleIds
     }
 
-    var apiCountries: [String]? {
+    public var apiCountries: [String]? {
         countryIds.isEmpty ? nil : countryIds
     }
+
+    public init() {}
 }

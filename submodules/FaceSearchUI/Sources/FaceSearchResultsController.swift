@@ -6,9 +6,8 @@ import AccountContext
 import TelegramPresentationData
 import DivoCore
 import DivoUIKit
-import ProfileScreenUI
 
-enum FaceSearchResultsState {
+public enum FaceSearchResultsState {
     case loading
     case results(items: [FRSearchResult], threshold: Double)
     case empty
@@ -17,7 +16,7 @@ enum FaceSearchResultsState {
     case noResultsWithFilters
 }
 
-final class FaceSearchResultsController: ViewController {
+public final class FaceSearchResultsController: ViewController {
     private let context: AccountContext
     private let imageData: Data
     private let sourceImage: UIImage?
@@ -32,7 +31,9 @@ final class FaceSearchResultsController: ViewController {
     private var historyEntryId: String?
     private var state: FaceSearchResultsState
 
-    init(
+    public var onOpenProfile: ((FRSearchResult) -> Void)?
+
+    public init(
         context: AccountContext,
         imageData: Data,
         results: [FRSearchResult],
@@ -57,7 +58,7 @@ final class FaceSearchResultsController: ViewController {
         super.init(navigationBarPresentationData: nil)
     }
 
-    required init(coder aDecoder: NSCoder) {
+    required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -65,7 +66,7 @@ final class FaceSearchResultsController: ViewController {
         currentTask?.cancel()
     }
 
-    override func loadDisplayNode() {
+    override public func loadDisplayNode() {
         let node = FaceSearchResultsNode(
             results: self.results,
             sourceImage: self.sourceImage,
@@ -111,14 +112,14 @@ final class FaceSearchResultsController: ViewController {
         self.displayNodeDidLoad()
     }
 
-    override func viewWillAppear(_ animated: Bool) {
+    override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
     }
 
     private var isFirstAppearance = true
 
-    override func viewDidAppear(_ animated: Bool) {
+    override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if isFirstAppearance {
             isFirstAppearance = false
@@ -401,33 +402,15 @@ final class FaceSearchResultsController: ViewController {
     }
 
     private func openProfile(for result: FRSearchResult) {
-        let mainImageURL = result.image.flatMap(URL.init(string:))
-        let location = FaceSearchResultsMapper.countryText(code: result.countryCode, name: result.countryName) ?? ""
-        let model = ProfileModel(
-            name: result.fullName ?? "",
-            age: FaceSearchResultsMapper.computeAge(from: result.birthday),
-            location: location,
-            isVerified: false,
-            likesCount: "0",
-            viewsCount: "0",
-            savesCount: "0",
-            biography: "",
-            socialMediaHandles: [],
-            userId: result.userId,
-            role: result.role,
-            mainImageURL: mainImageURL,
-            avatarImageURL: mainImageURL
-        )
-        let controller = PublicProfileScreenController(context: self.context, model: model)
-        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+        onOpenProfile?(result)
     }
 }
 
 // MARK: - Mapper
 
-enum FaceSearchResultsMapper {
+public enum FaceSearchResultsMapper {
 
-    static func computeAge(from birthday: String?) -> Int? {
+    public static func computeAge(from birthday: String?) -> Int? {
         guard let birthday, !birthday.isEmpty else { return nil }
         let formatter = DateFormatter()
         formatter.dateFormat = "dd.MM.yyyy"
@@ -436,13 +419,13 @@ enum FaceSearchResultsMapper {
         return Calendar.current.dateComponents([.year], from: date, to: Date()).year
     }
 
-    static func countryText(code: String?, name: String?) -> String? {
+    public static func countryText(code: String?, name: String?) -> String? {
         guard let name else { return nil }
         let flag = CountryHelper.emojiFlag(for: code)
         return "\(flag) \(name)"
     }
 
-    static func roleLabel(for role: String?) -> String? {
+    public static func roleLabel(for role: String?) -> String? {
         switch role {
         case "model": return DivoStrings.debugModel
         case "new_face": return DivoStrings.debugNewTalent
@@ -451,7 +434,7 @@ enum FaceSearchResultsMapper {
         }
     }
 
-    static func cropFaceSquare(from image: UIImage, bbox: FRBoundingBox, padding: CGFloat) -> UIImage {
+    public static func cropFaceSquare(from image: UIImage, bbox: FRBoundingBox, padding: CGFloat) -> UIImage {
         let imageSize = image.size
         guard imageSize.width > 0, imageSize.height > 0 else { return image }
 
@@ -478,7 +461,7 @@ enum FaceSearchResultsMapper {
         }
     }
 
-    static func viewModel(from result: FRSearchResult) -> SearchCardViewModel {
+    public static func viewModel(from result: FRSearchResult) -> SearchCardViewModel {
         let age = computeAge(from: result.birthday)
         let country = countryText(code: result.countryCode, name: result.countryName)
 
