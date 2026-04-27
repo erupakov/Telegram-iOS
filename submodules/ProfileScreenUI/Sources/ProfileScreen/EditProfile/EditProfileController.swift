@@ -31,9 +31,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     }
 
     private var presentationData: PresentationData
-    private var presentationDataDisposable: Any?
     private let userDetailData: UserDetail?
-    private let updatePhoto: (UIImage?) -> Void
 
     private var selectedAvatarImage: UIImage?
     private var selectedAvatarUUID: String?
@@ -42,20 +40,14 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
     weak var delegate: EditProfileDelegate?
     
-    public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, selectedIndex: Int = 0, updatePhoto: @escaping (UIImage?) -> Void) {
+    public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, selectedIndex: Int = 0) {
         self.context = context
         self.userDetailData = userDetailData
-        self.updatePhoto = updatePhoto
         self.selectedIndex = selectedIndex
         
         self.presentationData = presentationData
         
         super.init(navigationBarPresentationData: nil)
-
-        self.presentationDataDisposable = (context.sharedContext.presentationData
-                                           |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            self?.presentationData = presentationData
-        })
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -64,7 +56,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        (self.presentationDataDisposable as? Disposable)?.dispose()
     }
 
     override public func loadDisplayNode() {

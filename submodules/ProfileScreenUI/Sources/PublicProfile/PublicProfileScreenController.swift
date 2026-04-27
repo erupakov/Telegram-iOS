@@ -163,10 +163,12 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToEditProfile(selectedIndex: Int = 0) {
-        // debug: removed
-    let editProfileController = EditProfileController(context: self.context, presentationData: self.presentationData, userDetailData: userDetailModel, selectedIndex: selectedIndex, updatePhoto: { [weak self] image in    
-            self?.controllerNode.currentPhoto = image
-        })
+        let editProfileController = EditProfileController(
+            context: self.context, 
+            presentationData: self.presentationData, 
+            userDetailData: userDetailModel, 
+            selectedIndex: selectedIndex
+        )
         editProfileController.delegate = self
         self.push(editProfileController)
     }

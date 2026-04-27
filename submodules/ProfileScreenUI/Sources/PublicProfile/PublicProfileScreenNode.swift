@@ -105,19 +105,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return iv
     }()
 
-    private let headerSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
+    private let headerSpinner: DivoSegmentedSpinner = {
+        let spinner = DivoSegmentedSpinner(color: DivoColorPalette.cardBackground)
         spinner.translatesAutoresizingMaskIntoConstraints = false
+        spinner.isUserInteractionEnabled = false
+        spinner.isHidden = true
         return spinner
     }()
-    
-    var currentPhoto: UIImage? = nil {
-        didSet {
-
-        }
-    }
     
     // MARK: - Profile Header Section
 
@@ -1176,7 +1170,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
             headerImageView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
 
             headerSpinner.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
-            headerSpinner.centerYAnchor.constraint(equalTo: self.view.centerYAnchor, constant: -50),
+            headerSpinner.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 200),
+            headerSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            headerSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
         ])
     }
     
@@ -1277,24 +1273,30 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // Расстояние между счетчиками и Именем
         contentViewStack.setCustomSpacing(60, after: counterActionsContainer)
 
-        likesView.onIconTap = { [weak self] in
-            self?.likesPillTapped()
+        if model.isMyProfile {
+            likesView.onAnyTap = { [weak self] in
+                self?.likesViewDidTap()
+            }
+            savesView.onAnyTap = { [weak self] in
+                self?.savesViewDidTap()
+            }
+            
+        } else {
+            likesView.onIconTap = { [weak self] in
+                self?.likesPillTapped()
+            }
+            likesView.onLabelTap = { [weak self] in
+                self?.likesViewDidTap()
+            }
+            savesView.onIconTap = { [weak self] in
+                self?.savesPillTapped()
+            }
+            savesView.onLabelTap = { [weak self] in
+                self?.savesViewDidTap()
+            }
         }
-
-        likesView.onLabelTap = { [weak self] in
-            self?.likesViewDidTap()
-        }
-        
         viewsView.onAnyTap = { [weak self] in
             self?.viewsViewDidTap()
-        }
-        
-        savesView.onIconTap = { [weak self] in
-            self?.savesPillTapped()
-        }
-
-        savesView.onLabelTap = { [weak self] in
-            self?.savesViewDidTap()
         }
     }
 
@@ -2315,9 +2317,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func setBackgroundLoading(_ loading: Bool) {
         if loading {
             headerSpinner.startAnimating()
+            headerSpinner.isHidden = false
             headerImageView.alpha = 0.5
         } else {
             headerSpinner.stopAnimating()
+            headerSpinner.isHidden = true
             headerImageView.alpha = 1.0
         }
     }
@@ -2519,17 +2523,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if !galleryInitialized {
             self.galleryPhotos = []
             galleryInitialized = true
-            // debug: pagination logs removed
         }
         
+        let existingIds = Set(self.galleryPhotos.map { $0.id })
+        let uniqueNewPhotos = newPhotos.filter { !existingIds.contains($0.id) }
+        
         let previousCount = self.galleryPhotos.count
-        self.galleryPhotos.append(contentsOf: newPhotos)
+        self.galleryPhotos.append(contentsOf: uniqueNewPhotos)
         
         self.galleryCurrentOffset = serverOffset
         self.galleryHasMore = self.galleryPhotos.count < totalCount
         self.galleryIsLoading = false
-        
-        // debug: pagination logs removed
         
         if previousCount == 0 {
             let hasPhotos = !self.galleryPhotos.isEmpty
@@ -2549,8 +2553,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                 self?.checkAndLoadMoreGalleryPhotos()
             }
-        } else {
-            let newIndices = (previousCount..<(previousCount + newPhotos.count)).map { IndexPath(item: $0, section: 0) }
+        } else if !uniqueNewPhotos.isEmpty {
+            let newIndices = (previousCount..<(previousCount + uniqueNewPhotos.count)).map { IndexPath(item: $0, section: 0) }
             self.galleryCollectionView.performBatchUpdates({
                 self.galleryCollectionView.insertItems(at: newIndices)
                 if let layout = self.containerLayout?.0 {
