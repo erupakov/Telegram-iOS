@@ -402,7 +402,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 }
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
-                self.loadSimilarProfiles(photoId: detail.avatar?.photoId)
+                if !isMyProfile {
+                    self.loadSimilarProfiles(photoId: detail.avatar?.photoId)
+                }
             }
         }
     }

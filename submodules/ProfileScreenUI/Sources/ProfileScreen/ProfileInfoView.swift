@@ -378,7 +378,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
             }
         }
         
-        if currentTabTitles != titles {
+        if currentTabTitles != titles || activeContainers != newActiveContainers {
             currentTabTitles = titles
             activeContainers = newActiveContainers
             rebuildPagerLayout()
