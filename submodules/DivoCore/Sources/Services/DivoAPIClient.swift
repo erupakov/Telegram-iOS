@@ -80,26 +80,58 @@ public final class DivoAPIClient {
             let http = response as? HTTPURLResponse
             let responseString = String(data: data, encoding: .utf8)
 
-            logger.log(
-                method: method,
-                path: path,
-                statusCode: http?.statusCode,
-                duration: duration,
-                requestBody: requestBodyString,
-                responseBody: responseString
-            )
-
             guard let http = http else {
+                logger.log(
+                    method: method,
+                    path: path,
+                    statusCode: nil,
+                    duration: duration,
+                    requestBody: requestBodyString,
+                    responseBody: responseString,
+                    error: "No HTTPURLResponse"
+                )
                 throw DivoAPIError.unknown
             }
 
             guard (200...299).contains(http.statusCode) else {
                 let body = String(data: data, encoding: .utf8) ?? ""
+                logger.log(
+                    method: method,
+                    path: path,
+                    statusCode: http.statusCode,
+                    duration: duration,
+                    requestBody: requestBodyString,
+                    responseBody: responseString,
+                    error: "HTTP \(http.statusCode)"
+                )
                 divoLog("API Error [\(http.statusCode)] \(url.absoluteString): \(body)", level: .error)
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
             }
 
-            return try JSONDecoder().decode(T.self, from: data)
+            do {
+                let result = try JSONDecoder().decode(T.self, from: data)
+                logger.log(
+                    method: method,
+                    path: path,
+                    statusCode: http.statusCode,
+                    duration: duration,
+                    requestBody: requestBodyString,
+                    responseBody: responseString
+                )
+                return result
+            } catch {
+                logger.log(
+                    method: method,
+                    path: path,
+                    statusCode: http.statusCode,
+                    duration: duration,
+                    requestBody: requestBodyString,
+                    responseBody: responseString,
+                    error: String(describing: error)
+                )
+                divoLog("Decode error [\(path)]: \(error)", level: .error)
+                throw DivoAPIError.decodingError(underlying: error)
+            }
         } catch {
             let duration = CFAbsoluteTimeGetCurrent() - start
             if !(error is DivoAPIError) {
@@ -109,7 +141,7 @@ public final class DivoAPIClient {
                     statusCode: nil,
                     duration: duration,
                     requestBody: requestBodyString,
-                    error: error.localizedDescription
+                    error: String(describing: error)
                 )
             }
             throw error
@@ -450,12 +482,14 @@ public final class DivoAPIClient {
 
 public enum DivoAPIError: Error, LocalizedError {
     case httpError(statusCode: Int, body: String = "")
+    case decodingError(underlying: Error)
     case noInternetConnection
     case unknown
 
     public var errorDescription: String? {
         switch self {
         case .httpError(let code, _): return "HTTP \(code)"
+        case .decodingError(let err): return "Decoding: \(err)"
         case .noInternetConnection: return "No internet connection"
         case .unknown: return "Unknown API error"
         }

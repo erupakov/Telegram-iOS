@@ -193,6 +193,19 @@ public enum DivoStrings {
     public static var faceSearchAdjustFilters: String { L(en: "Adjust filters", ru: "Настроить", es: "Ajustar filtros", pt: "Ajustar filtros", zh: "调整筛选") }
     public static var faceSearchNoResultsWithFilters: String { L(en: "No results found — try adjusting your filters", ru: "Ничего не найдено — попробуйте изменить фильтры", es: "Sin resultados — intenta ajustar los filtros", pt: "Sem resultados — tente ajustar os filtros", zh: "未找到结果 — 请尝试调整筛选条件") }
 
+    // MARK: - Face Search History
+
+    public static var faceSearchHistoryTitle: String { L(en: "Recent face searches", ru: "Недавние поиски по фото", es: "Búsquedas faciales recientes", pt: "Buscas faciais recentes", zh: "最近的人脸搜索") }
+    public static var faceSearchHistorySeeAll: String { L(en: "See all", ru: "Все", es: "Ver todo", pt: "Ver tudo", zh: "查看全部") }
+    public static func faceSearchHistoryResultsFound(_ count: Int) -> String { L(en: "\(count) results found", ru: "Найдено результатов: \(count)", es: "\(count) resultados encontrados", pt: "\(count) resultados encontrados", zh: "找到 \(count) 个结果") }
+    public static var faceSearchHistoryScreenTitle: String { L(en: "Face search history", ru: "История поиска по фото", es: "Historial de búsqueda facial", pt: "Histórico de busca facial", zh: "人脸搜索历史") }
+    public static var faceSearchHistoryClearAll: String { L(en: "Clear All", ru: "Очистить", es: "Borrar todo", pt: "Limpar tudo", zh: "清除全部") }
+    public static var faceSearchHistoryNoFilters: String { L(en: "No filters", ru: "Без фильтров", es: "Sin filtros", pt: "Sem filtros", zh: "无筛选") }
+    public static func faceSearchHistorySimilarity(_ percent: Int) -> String { L(en: "Similarity \(percent)%", ru: "Сходство \(percent)%", es: "Similitud \(percent)%", pt: "Similaridade \(percent)%", zh: "相似度 \(percent)%") }
+    public static var faceSearchHistoryNoSearchesTitle: String { L(en: "No searches yet", ru: "Поисков пока нет", es: "Sin búsquedas aún", pt: "Nenhuma busca ainda", zh: "暂无搜索") }
+    public static var faceSearchHistoryNoSearchesSubtitle: String { L(en: "Your face match searches will appear here automatically.", ru: "Ваши поиски по фото появятся здесь автоматически.", es: "Tus búsquedas faciales aparecerán aquí automáticamente.", pt: "Suas buscas faciais aparecerão aqui automaticamente.", zh: "您的人脸搜索将自动显示在此处。") }
+    public static var faceSearchHistoryStartSearch: String { L(en: "Start a face search", ru: "Начать поиск по фото", es: "Iniciar búsqueda facial", pt: "Iniciar busca facial", zh: "开始人脸搜索") }
+
     // MARK: - Roles
 
     public static var roleModel: String { L(en: "model", ru: "модель", es: "modelo", pt: "modelo", zh: "模特") }

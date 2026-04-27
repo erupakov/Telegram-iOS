@@ -141,7 +141,15 @@ public class ModelsSearchController: ViewController {
         self.searchNode.onFiltersClearTapped = { [weak self] in
             self?.handleFiltersClear()
         }
-        
+
+        self.searchNode.onFaceSearchHistorySeeAll = { [weak self] in
+            self?.handleFaceSearchHistorySeeAll()
+        }
+
+        self.searchNode.onFaceSearchHistoryItemTapped = { [weak self] item in
+            self?.handleFaceSearchHistoryItemTapped(item)
+        }
+
         self.displayNodeDidLoad()
 
         DispatchQueue.main.async { [weak self] in
@@ -152,6 +160,7 @@ public class ModelsSearchController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
+        reloadFaceSearchHistory()
     }
 
     
@@ -517,6 +526,96 @@ public class ModelsSearchController: ViewController {
                 )
             }
         }
+    }
+
+    // MARK: - Face Search History
+
+    private func reloadFaceSearchHistory() {
+        let items = FaceSearchHistoryStorage.shared.loadRecent(3)
+        searchNode.updateFaceSearchHistory(items)
+    }
+
+    private func handleFaceSearchHistorySeeAll() {
+        let controller = FaceSearchHistoryController(context: self.context)
+        controller.onItemTapped = { [weak self] item in
+            self?.replayFaceSearch(item)
+        }
+        controller.onStartFaceSearch = { [weak self] in
+            self?.openFaceRecognition()
+        }
+        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+    }
+
+    private func handleFaceSearchHistoryItemTapped(_ item: FaceSearchHistoryItem) {
+        replayFaceSearch(item)
+    }
+
+    private func replayFaceSearch(_ item: FaceSearchHistoryItem) {
+        let imageData: Data
+        let sourceImage: UIImage?
+
+        if let srcData = FaceSearchHistoryStorage.shared.sourceImageData(for: item) {
+            imageData = srcData
+            sourceImage = UIImage(data: srcData)
+        } else if let faceImage = FaceSearchHistoryStorage.shared.faceImage(for: item),
+                  let faceData = faceImage.jpegData(compressionQuality: 0.85) {
+            imageData = faceData
+            sourceImage = faceImage
+        } else {
+            return
+        }
+
+        let filters = Self.reconstructFilters(from: item)
+
+        let controller = FaceSearchResultsController(
+            context: self.context,
+            imageData: imageData,
+            results: [],
+            sourceImage: sourceImage,
+            faceBBox: item.faceBBox,
+            faceIndex: item.faceIndex,
+            initialFilters: filters,
+            historyEntryId: item.id,
+            needsInitialLoad: true
+        )
+        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+    }
+
+    private static func reconstructFilters(from item: FaceSearchHistoryItem) -> FaceSearchFilterState {
+        var filters = FaceSearchFilterState()
+        filters.similarity = Double(item.similarityPercent) / 100.0
+
+        if let roleStr = item.searchFields["role"], !roleStr.isEmpty {
+            filters.roleIds = roleStr.components(separatedBy: ",")
+        }
+        if let countryStr = item.searchFields["country_ids"], !countryStr.isEmpty {
+            filters.countryIds = countryStr.components(separatedBy: ",")
+        }
+        if let ageFrom = item.searchFields["age_from"].flatMap(Int.init),
+           let ageTo = item.searchFields["age_to"].flatMap(Int.init) {
+            filters.ageRange = ageFrom...ageTo
+        }
+        if let hFrom = item.searchFields["height_from"].flatMap(Double.init),
+           let hTo = item.searchFields["height_to"].flatMap(Double.init) {
+            filters.heightRange = hFrom...hTo
+        }
+        if let wFrom = item.searchFields["waist_from"].flatMap(Double.init),
+           let wTo = item.searchFields["waist_to"].flatMap(Double.init) {
+            filters.waistRange = wFrom...wTo
+        }
+        if let hipFrom = item.searchFields["hips_from"].flatMap(Double.init),
+           let hipTo = item.searchFields["hips_to"].flatMap(Double.init) {
+            filters.hipsRange = hipFrom...hipTo
+        }
+        if let shFrom = item.searchFields["shoes_size_from"].flatMap(Double.init),
+           let shTo = item.searchFields["shoes_size_to"].flatMap(Double.init) {
+            filters.shoeSizeRange = shFrom...shTo
+        }
+        if let hairStr = item.searchFields["hair_length"], !hairStr.isEmpty {
+            filters.hairLength = hairStr.components(separatedBy: ",").compactMap(Int.init)
+        }
+
+        return filters
     }
 
     // MARK: - Network Requests

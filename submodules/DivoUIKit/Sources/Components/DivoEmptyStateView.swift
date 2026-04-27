@@ -12,6 +12,7 @@ public final class DivoEmptyStateView: UIView {
         public let secondaryCtaTitle: String?
         public let onSecondaryCTATapped: (() -> Void)?
         public let iconSize: CGFloat?
+        public let circleSize: CGFloat?
 
         public init(
             icon: UIImage,
@@ -21,7 +22,8 @@ public final class DivoEmptyStateView: UIView {
             onCTATapped: (() -> Void)? = nil,
             secondaryCtaTitle: String? = nil,
             onSecondaryCTATapped: (() -> Void)? = nil,
-            iconSize: CGFloat? = nil
+            iconSize: CGFloat? = nil,
+            circleSize: CGFloat? = nil
         ) {
             self.icon = icon
             self.title = title
@@ -31,6 +33,7 @@ public final class DivoEmptyStateView: UIView {
             self.secondaryCtaTitle = secondaryCtaTitle
             self.onSecondaryCTATapped = onSecondaryCTATapped
             self.iconSize = iconSize
+            self.circleSize = circleSize
         }
     }
 
@@ -91,6 +94,8 @@ public final class DivoEmptyStateView: UIView {
     private var secondaryCtaAction: (() -> Void)?
     private var iconWidthConstraint: NSLayoutConstraint?
     private var iconHeightConstraint: NSLayoutConstraint?
+    private var circleWidthConstraint: NSLayoutConstraint?
+    private var circleHeightConstraint: NSLayoutConstraint?
 
     public init() {
         super.init(frame: .zero)
@@ -105,7 +110,15 @@ public final class DivoEmptyStateView: UIView {
         titleLabel.text = config.title.uppercased()
         subtitleLabel.text = config.subtitle
 
-        if let size = config.iconSize {
+        if let circleSize = config.circleSize {
+            iconView.image = config.icon.withRenderingMode(.alwaysTemplate)
+            circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
+            circleWidthConstraint?.constant = circleSize
+            circleHeightConstraint?.constant = circleSize
+            circleView.layer.cornerRadius = circleSize / 2
+            iconWidthConstraint?.constant = config.iconSize ?? 32
+            iconHeightConstraint?.constant = config.iconSize ?? 32
+        } else if let size = config.iconSize {
             iconView.image = config.icon.withRenderingMode(.alwaysOriginal)
             circleView.backgroundColor = .clear
             iconWidthConstraint?.constant = size
@@ -155,9 +168,13 @@ public final class DivoEmptyStateView: UIView {
         iconWidthConstraint = wc
         iconHeightConstraint = hc
 
+        let cwc = circleView.widthAnchor.constraint(equalToConstant: circleSize)
+        let chc = circleView.heightAnchor.constraint(equalToConstant: circleSize)
+        circleWidthConstraint = cwc
+        circleHeightConstraint = chc
+
         NSLayoutConstraint.activate([
-            circleView.widthAnchor.constraint(equalToConstant: circleSize),
-            circleView.heightAnchor.constraint(equalToConstant: circleSize),
+            cwc, chc,
 
             iconView.centerXAnchor.constraint(equalTo: circleView.centerXAnchor),
             iconView.centerYAnchor.constraint(equalTo: circleView.centerYAnchor),

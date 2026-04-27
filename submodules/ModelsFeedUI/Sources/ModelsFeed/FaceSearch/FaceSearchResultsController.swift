@@ -8,6 +8,15 @@ import DivoCore
 import DivoUIKit
 import ProfileScreenUI
 
+enum FaceSearchResultsState {
+    case loading
+    case results(items: [FRSearchResult], threshold: Double)
+    case empty
+    case error(title: String, subtitle: String, retry: () -> Void)
+    case fallback(items: [FRSearchResult], originalPercent: Int, actualPercent: Int, similarity: Double, originalThreshold: Double)
+    case noResultsWithFilters
+}
+
 final class FaceSearchResultsController: ViewController {
     private let context: AccountContext
     private let imageData: Data
@@ -19,8 +28,9 @@ final class FaceSearchResultsController: ViewController {
     private let initialResults: [FRSearchResult]
     private let initialSimilarity: Double
     private var currentFilters: FaceSearchFilterState
-    private var isReloading = false
     private var currentTask: Task<Void, Never>?
+    private var historyEntryId: String?
+    private var state: FaceSearchResultsState
 
     init(
         context: AccountContext,
@@ -29,7 +39,9 @@ final class FaceSearchResultsController: ViewController {
         sourceImage: UIImage?,
         faceBBox: FRBoundingBox?,
         faceIndex: Int,
-        initialFilters: FaceSearchFilterState
+        initialFilters: FaceSearchFilterState,
+        historyEntryId: String? = nil,
+        needsInitialLoad: Bool = false
     ) {
         self.context = context
         self.imageData = imageData
@@ -40,6 +52,8 @@ final class FaceSearchResultsController: ViewController {
         self.faceBBox = faceBBox
         self.faceIndex = faceIndex
         self.currentFilters = initialFilters
+        self.historyEntryId = historyEntryId
+        self.state = needsInitialLoad ? .loading : .results(items: results, threshold: initialFilters.similarity)
         super.init(navigationBarPresentationData: nil)
     }
 
@@ -56,7 +70,8 @@ final class FaceSearchResultsController: ViewController {
             results: self.results,
             sourceImage: self.sourceImage,
             faceBBox: self.faceBBox,
-            threshold: self.currentFilters.similarity
+            threshold: self.currentFilters.similarity,
+            initialState: self.state
         )
         node.onBackPressed = { [weak self] in
             guard let self else { return }
@@ -101,8 +116,25 @@ final class FaceSearchResultsController: ViewController {
         self.navigationBar?.isHidden = true
     }
 
+    private var isFirstAppearance = true
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if isFirstAppearance {
+            isFirstAppearance = false
+            if case .loading = state {
+                reloadSearch()
+            }
+        }
+    }
+
     private var resultsNode: FaceSearchResultsNode? {
         self.displayNode as? FaceSearchResultsNode
+    }
+
+    private func transition(to newState: FaceSearchResultsState) {
+        self.state = newState
+        resultsNode?.applyState(newState)
     }
 
     private func openFilters() {
@@ -137,11 +169,14 @@ final class FaceSearchResultsController: ViewController {
     private func clearFilters() {
         currentTask?.cancel()
         currentFilters.reset()
-        self.results = initialResults
-        resultsNode?.hideFallbackBanner()
-        resultsNode?.hideReloadError()
         resultsNode?.updateFilterBadge(count: 0)
-        resultsNode?.updateResults(initialResults, threshold: initialSimilarity)
+
+        if initialResults.isEmpty {
+            reloadSearch()
+        } else {
+            self.results = initialResults
+            transition(to: .results(items: initialResults, threshold: initialSimilarity))
+        }
     }
 
     private static func isConnectionFailure(_ error: Error) -> Bool {
@@ -154,15 +189,12 @@ final class FaceSearchResultsController: ViewController {
     private func acceptFallback(similarity: Double) {
         currentFilters.similarity = similarity
         resultsNode?.updateFilterBadge(count: currentFilters.activeFilterCount)
+        transition(to: .results(items: results, threshold: similarity))
     }
 
     private func reloadSearch() {
         currentTask?.cancel()
-        isReloading = true
-
-        resultsNode?.setLoading(true)
-        resultsNode?.hideFallbackBanner()
-        resultsNode?.hideReloadError()
+        transition(to: .loading)
 
         let filters = self.currentFilters
         let faceIndex = self.faceIndex
@@ -189,23 +221,19 @@ final class FaceSearchResultsController: ViewController {
                             imageData: imageData
                         )
                     } else {
-                        self.isReloading = false
-                        self.resultsNode?.setLoading(false)
-                        self.resultsNode?.showFilterNoResults()
+                        self.transition(to: .noResultsWithFilters)
                     }
                     return
                 }
 
-                self.isReloading = false
                 self.results = response.results
-                self.resultsNode?.setLoading(false)
-                self.resultsNode?.updateResults(response.results, threshold: filters.similarity)
+                self.transition(to: .results(items: response.results, threshold: filters.similarity))
+                self.resultsNode?.updateFilterBadge(count: self.currentFilters.activeFilterCount)
+                self.saveFilteredHistoryEntry(results: response.results, filters: filters)
             } catch is CancellationError {
                 return
             } catch {
                 guard let self else { return }
-                self.isReloading = false
-                self.resultsNode?.setLoading(false)
 
                 let title: String
                 let subtitle: String
@@ -216,9 +244,9 @@ final class FaceSearchResultsController: ViewController {
                     title = DivoStrings.faceSearchServerErrorTitle
                     subtitle = DivoStrings.faceSearchServerErrorSubtitle
                 }
-                self.resultsNode?.showReloadError(title: title, subtitle: subtitle) { [weak self] in
+                self.transition(to: .error(title: title, subtitle: subtitle, retry: { [weak self] in
                     self?.reloadSearch()
-                }
+                }))
             }
         }
     }
@@ -247,21 +275,25 @@ final class FaceSearchResultsController: ViewController {
             try Task.checkCancellation()
 
             if !response.results.isEmpty {
-                self.isReloading = false
                 self.results = response.results
-                self.resultsNode?.setLoading(false)
-
                 let originalPercent = Int((filters.similarity * 100).rounded())
                 let actualPercent = Int((fallbackSimilarity * 100).rounded())
-                self.resultsNode?.updateResults(response.results, threshold: fallbackSimilarity)
-                self.resultsNode?.showFallbackBanner(originalPercent: originalPercent, actualPercent: actualPercent, similarity: fallbackSimilarity, originalThreshold: filters.similarity)
+                self.transition(to: .fallback(
+                    items: response.results,
+                    originalPercent: originalPercent,
+                    actualPercent: actualPercent,
+                    similarity: fallbackSimilarity,
+                    originalThreshold: filters.similarity
+                ))
+
+                var fallbackFiltersForHistory = filters
+                fallbackFiltersForHistory.similarity = fallbackSimilarity
+                self.saveFilteredHistoryEntry(results: response.results, filters: fallbackFiltersForHistory)
                 return
             }
         }
 
-        self.isReloading = false
-        self.resultsNode?.setLoading(false)
-        self.resultsNode?.showFilterNoResults()
+        self.transition(to: .noResultsWithFilters)
     }
 
     private static func buildFields(faceIndex: Int, filters: FaceSearchFilterState) -> [String: String] {
@@ -302,6 +334,25 @@ final class FaceSearchResultsController: ViewController {
         }
 
         return fields
+    }
+
+    private func saveFilteredHistoryEntry(results: [FRSearchResult], filters: FaceSearchFilterState) {
+        guard !results.isEmpty, let entryId = historyEntryId else { return }
+
+        let similarityPercent = Int((filters.similarity * 100).rounded())
+        var filterParts: [String] = []
+        filterParts.append(contentsOf: filters.roleTitles)
+        filterParts.append(contentsOf: filters.countryTitles)
+
+        let fields = Self.buildFields(faceIndex: faceIndex, filters: filters)
+
+        FaceSearchHistoryStorage.shared.update(
+            id: entryId,
+            resultsCount: results.count,
+            similarityPercent: similarityPercent,
+            filterParts: filterParts,
+            searchFields: fields
+        )
     }
 
     private func handleLike(feedId: Int, isLiked: Bool) {
@@ -397,6 +448,33 @@ enum FaceSearchResultsMapper {
         case "new_face": return DivoStrings.debugNewTalent
         case "agency_employee": return DivoStrings.debugAgency
         default: return role
+        }
+    }
+
+    static func cropFaceSquare(from image: UIImage, bbox: FRBoundingBox, padding: CGFloat) -> UIImage {
+        let imageSize = image.size
+        guard imageSize.width > 0, imageSize.height > 0 else { return image }
+
+        let faceWidth = CGFloat(bbox.x2 - bbox.x1)
+        let faceHeight = CGFloat(bbox.y2 - bbox.y1)
+        let side = max(faceWidth, faceHeight) + 2 * padding
+
+        let centerX = CGFloat(bbox.x1 + bbox.x2) / 2
+        let centerY = CGFloat(bbox.y1 + bbox.y2) / 2
+
+        var cropX = centerX - side / 2
+        var cropY = centerY - side / 2
+        var cropSide = side
+
+        cropX = max(0, cropX)
+        cropY = max(0, cropY)
+        cropSide = min(cropSide, imageSize.width - cropX)
+        cropSide = min(cropSide, imageSize.height - cropY)
+        guard cropSide > 0 else { return image }
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: cropSide, height: cropSide))
+        return renderer.image { _ in
+            image.draw(at: CGPoint(x: -cropX, y: -cropY))
         }
     }
 
@@ -523,6 +601,22 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         return label
     }()
 
+    private let sortedByLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.medium(12)
+        let sortedByAttr = NSMutableAttributedString(
+            string: DivoStrings.faceSearchSortedBy + " ",
+            attributes: [.foregroundColor: DivoColorPalette.systemLabelPlaceholder]
+        )
+        sortedByAttr.append(NSAttributedString(
+            string: DivoStrings.faceSearchSortMatch,
+            attributes: [.foregroundColor: DivoColorPalette.primaryText]
+        ))
+        label.attributedText = sortedByAttr
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
     private let headerShimmer: ShimmerView = {
         let view = ShimmerView()
         view.layer.cornerRadius = 8
@@ -601,11 +695,10 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         return button
     }()
 
-    private var fallbackSimilarity: Double?
-    private var originalSimilarity: Double?
-    private var isShowingSkeleton = false
+    private var currentState: FaceSearchResultsState
     private let skeletonCount = 6
     private var collectionTopToSubheader: NSLayoutConstraint?
+    private var collectionTopToShimmer: NSLayoutConstraint?
     private var collectionTopToFilters: NSLayoutConstraint?
     private var collectionTopToBanner: NSLayoutConstraint?
 
@@ -644,11 +737,12 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     }()
 
 
-    init(results: [FRSearchResult], sourceImage: UIImage?, faceBBox: FRBoundingBox?, threshold: Double) {
+    init(results: [FRSearchResult], sourceImage: UIImage?, faceBBox: FRBoundingBox?, threshold: Double, initialState: FaceSearchResultsState) {
         self.results = results
         self.sourceImage = sourceImage
         self.faceBBox = faceBBox
         self.threshold = threshold
+        self.currentState = initialState
         super.init()
         self.backgroundColor = DivoColorPalette.screenBackground
     }
@@ -656,7 +750,158 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     override func didLoad() {
         super.didLoad()
         setupUI()
-        applyContent()
+        applyAvatarImage()
+        UIView.performWithoutAnimation {
+            applyState(currentState)
+            view.layoutIfNeeded()
+        }
+    }
+
+    private func applyAvatarImage() {
+        if let sourceImage, let faceBBox {
+            avatarImageView.image = FaceSearchResultsMapper.cropFaceSquare(from: sourceImage, bbox: faceBBox, padding: 16)
+        } else {
+            avatarImageView.image = sourceImage
+        }
+    }
+
+    private var isShowingSkeleton: Bool {
+        if case .loading = currentState { return true }
+        return false
+    }
+
+    func applyState(_ state: FaceSearchResultsState) {
+        self.currentState = state
+        resetAllViews()
+
+        switch state {
+        case .loading:
+            headerLabel.alpha = 0
+            profilesFoundLabel.alpha = 0
+            sortedByLabel.isHidden = true
+            headerShimmer.isHidden = false
+            profilesFoundShimmer.isHidden = false
+            headerShimmer.startShimmer()
+            profilesFoundShimmer.startShimmer()
+            collectionTopToSubheader?.isActive = false
+            collectionTopToShimmer?.isActive = true
+            collectionView.reloadData()
+
+        case let .results(items, threshold):
+            self.results = items
+            self.threshold = threshold
+            updateHeaderTexts()
+            if items.isEmpty {
+                applyEmptyLayout()
+            } else {
+                collectionView.reloadData()
+                collectionView.setContentOffset(CGPoint(x: -collectionView.contentInset.left, y: -collectionView.contentInset.top), animated: false)
+            }
+
+        case .empty:
+            applyEmptyLayout()
+
+        case let .error(title, subtitle, retry):
+            collectionView.isHidden = true
+            profilesFoundLabel.isHidden = true
+            sortedByLabel.isHidden = true
+            reloadErrorView.isHidden = false
+            reloadErrorView.configure(DivoEmptyStateView.Configuration(
+                icon: DivoImage.faceSearchError,
+                title: title,
+                subtitle: subtitle,
+                ctaTitle: DivoStrings.faceSearchRetrySearch,
+                onCTATapped: retry,
+                iconSize: 68
+            ))
+            reloadErrorView.animateAppearance()
+
+        case let .fallback(items, originalPercent, actualPercent, _, originalThreshold):
+            self.results = items
+            self.threshold = originalThreshold
+            updateHeaderTexts()
+
+            collectionTopToSubheader?.isActive = false
+            collectionTopToFilters?.isActive = false
+            collectionTopToBanner?.isActive = true
+
+            fallbackLabel.text = DivoStrings.faceSearchFallbackMessage(original: originalPercent, actual: actualPercent)
+            fallbackBanner.alpha = 0
+            fallbackBanner.isHidden = false
+            UIView.animate(withDuration: 0.3) {
+                self.fallbackBanner.alpha = 1
+                self.view.layoutIfNeeded()
+            }
+
+            collectionView.reloadData()
+            collectionView.setContentOffset(CGPoint(x: -collectionView.contentInset.left, y: -collectionView.contentInset.top), animated: false)
+
+        case .noResultsWithFilters:
+            collectionView.isHidden = true
+            profilesFoundLabel.isHidden = true
+            sortedByLabel.isHidden = true
+
+            fallbackLabel.text = DivoStrings.faceSearchNoResultsWithFilters
+
+            collectionTopToSubheader?.isActive = false
+            collectionTopToFilters?.isActive = false
+            collectionTopToBanner?.isActive = true
+
+            fallbackBanner.alpha = 0
+            fallbackBanner.isHidden = false
+            UIView.animate(withDuration: 0.3) {
+                self.fallbackBanner.alpha = 1
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+
+    private func resetAllViews() {
+        headerLabel.alpha = 1
+        headerLabel.isHidden = false
+        profilesFoundLabel.alpha = 1
+        profilesFoundLabel.isHidden = false
+        sortedByLabel.isHidden = activeFiltersContainer.isHidden ? false : true
+        headerShimmer.isHidden = true
+        headerShimmer.stopShimmer()
+        profilesFoundShimmer.isHidden = true
+        profilesFoundShimmer.stopShimmer()
+        collectionView.isHidden = false
+        emptyStateView.isHidden = true
+        reloadErrorView.isHidden = true
+        fallbackBanner.isHidden = true
+        avatarImageView.isHidden = false
+
+        collectionTopToBanner?.isActive = false
+        collectionTopToFilters?.isActive = false
+        collectionTopToShimmer?.isActive = false
+        collectionTopToSubheader?.isActive = true
+        collectionTopToSubheader?.constant = DivoDesignTokens.Spacing.m
+    }
+
+    private func applyEmptyLayout() {
+        collectionView.isHidden = true
+        avatarImageView.isHidden = true
+        headerLabel.isHidden = true
+        profilesFoundLabel.isHidden = true
+        sortedByLabel.isHidden = true
+        activeFiltersContainer.isHidden = true
+        emptyStateView.isHidden = false
+
+        emptyStateView.configure(DivoEmptyStateView.Configuration(
+            icon: DivoImage.faceSearchEmpty,
+            title: DivoStrings.faceSearchNoResults,
+            subtitle: DivoStrings.faceSearchNoResultsSubtitle,
+            ctaTitle: DivoStrings.faceSearchTryDifferentPhoto,
+            onCTATapped: { [weak self] in
+                self?.onBackPressed?()
+            },
+            secondaryCtaTitle: DivoStrings.faceSearchBrowseAllProfiles,
+            onSecondaryCTATapped: { [weak self] in
+                self?.onBrowseAllProfiles?()
+            }
+        ))
+        emptyStateView.animateAppearance()
     }
 
     private func setupUI() {
@@ -669,6 +914,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         view.addSubview(headerLabel)
         view.addSubview(headerShimmer)
         view.addSubview(profilesFoundLabel)
+        view.addSubview(sortedByLabel)
         view.addSubview(profilesFoundShimmer)
         view.addSubview(activeFiltersContainer)
         activeFiltersContainer.addSubview(activeFiltersLabel)
@@ -712,6 +958,9 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
 
             profilesFoundLabel.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             profilesFoundLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+
+            sortedByLabel.centerYAnchor.constraint(equalTo: profilesFoundLabel.centerYAnchor),
+            sortedByLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             profilesFoundShimmer.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             profilesFoundShimmer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -760,6 +1009,10 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         topToSubheader.isActive = true
         self.collectionTopToSubheader = topToSubheader
 
+        let topToShimmer = collectionView.topAnchor.constraint(equalTo: profilesFoundShimmer.bottomAnchor, constant: DivoDesignTokens.Spacing.m)
+        topToShimmer.isActive = false
+        self.collectionTopToShimmer = topToShimmer
+
         let topToFilters = collectionView.topAnchor.constraint(equalTo: activeFiltersContainer.bottomAnchor, constant: 12)
         topToFilters.isActive = false
         self.collectionTopToFilters = topToFilters
@@ -779,20 +1032,6 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         filterButton.addTarget(self, action: #selector(filterTapped), for: .touchUpInside)
     }
 
-    private func applyContent() {
-        if let sourceImage, let faceBBox {
-            avatarImageView.image = Self.cropFaceSquare(from: sourceImage, bbox: faceBBox, padding: 16)
-        } else {
-            avatarImageView.image = sourceImage
-        }
-
-        updateHeaderTexts()
-
-        if results.isEmpty {
-            showEmptyState()
-        }
-    }
-
     private func updateHeaderTexts() {
         let percent = Int((threshold * 100).rounded())
         let resultsCountText = DivoStrings.faceSearchResultsCount(results.count)
@@ -802,23 +1041,10 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         profilesFoundLabel.text = DivoStrings.faceSearchProfilesFound(results.count)
     }
 
-    func updateResults(_ newResults: [FRSearchResult], threshold: Double) {
-        self.results = newResults
-        self.threshold = threshold
-
-        updateHeaderTexts()
-
-        if newResults.isEmpty {
-            showEmptyState()
-        } else {
-            hideEmptyState()
-            collectionView.reloadData()
-            collectionView.setContentOffset(CGPoint(x: -collectionView.contentInset.left, y: -collectionView.contentInset.top), animated: false)
-        }
-    }
-
     func updateFilterBadge(count: Int) {
         if count > 0 {
+            sortedByLabel.isHidden = true
+
             let baseString = DivoStrings.filterBy + " "
             let numberString = "\(count)"
             let attrString = NSMutableAttributedString(string: baseString + numberString)
@@ -849,6 +1075,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
                 }
             }
         } else {
+            sortedByLabel.isHidden = false
             activeFiltersContainer.isHidden = true
             collectionTopToFilters?.isActive = false
             if !fallbackBanner.isHidden {
@@ -862,144 +1089,11 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         }
     }
 
-    func setLoading(_ loading: Bool) {
-        isShowingSkeleton = loading
-        headerLabel.alpha = loading ? 0 : 1
-        profilesFoundLabel.alpha = loading ? 0 : 1
-        headerShimmer.isHidden = !loading
-        profilesFoundShimmer.isHidden = !loading
-        if loading {
-            headerShimmer.startShimmer()
-            profilesFoundShimmer.startShimmer()
-        } else {
-            headerShimmer.stopShimmer()
-            profilesFoundShimmer.stopShimmer()
-        }
-        collectionView.reloadData()
-    }
-
-    func showReloadError(title: String, subtitle: String, retry: @escaping () -> Void) {
-        collectionView.isHidden = true
-        profilesFoundLabel.isHidden = true
-        fallbackBanner.isHidden = true
-        reloadErrorView.isHidden = false
-
-        reloadErrorView.configure(DivoEmptyStateView.Configuration(
-            icon: DivoImage.faceSearchError,
-            title: title,
-            subtitle: subtitle,
-            ctaTitle: DivoStrings.faceSearchRetrySearch,
-            onCTATapped: retry,
-            iconSize: 68
-        ))
-        reloadErrorView.animateAppearance()
-    }
-
-    func hideReloadError() {
-        guard !reloadErrorView.isHidden else { return }
-        reloadErrorView.isHidden = true
-        collectionView.isHidden = false
-        profilesFoundLabel.isHidden = false
-    }
-
-    private func showEmptyState() {
-        collectionView.isHidden = true
-        avatarImageView.isHidden = true
-        headerLabel.isHidden = true
-        profilesFoundLabel.isHidden = true
-        activeFiltersContainer.isHidden = true
-        fallbackBanner.isHidden = true
-        emptyStateView.isHidden = false
-
-        emptyStateView.configure(DivoEmptyStateView.Configuration(
-            icon: DivoImage.faceSearchEmpty,
-            title: DivoStrings.faceSearchNoResults,
-            subtitle: DivoStrings.faceSearchNoResultsSubtitle,
-            ctaTitle: DivoStrings.faceSearchTryDifferentPhoto,
-            onCTATapped: { [weak self] in
-                self?.onBackPressed?()
-            },
-            secondaryCtaTitle: DivoStrings.faceSearchBrowseAllProfiles,
-            onSecondaryCTATapped: { [weak self] in
-                self?.onBrowseAllProfiles?()
-            }
-        ))
-        emptyStateView.animateAppearance()
-    }
-
-    private func hideEmptyState() {
-        collectionView.isHidden = false
-        avatarImageView.isHidden = false
-        headerLabel.isHidden = false
-        profilesFoundLabel.isHidden = false
-        emptyStateView.isHidden = true
-    }
-
-    func showFallbackBanner(originalPercent: Int, actualPercent: Int, similarity: Double, originalThreshold: Double) {
-        fallbackSimilarity = similarity
-        originalSimilarity = originalThreshold
-        fallbackLabel.text = DivoStrings.faceSearchFallbackMessage(original: originalPercent, actual: actualPercent)
-        self.threshold = originalThreshold
-        updateHeaderTexts()
-        profilesFoundLabel.text = DivoStrings.faceSearchProfilesFound(0)
-
-        collectionTopToSubheader?.isActive = false
-        collectionTopToFilters?.isActive = false
-        collectionTopToBanner?.isActive = true
-
-        fallbackBanner.alpha = 0
-        fallbackBanner.isHidden = false
-        UIView.animate(withDuration: 0.3) {
-            self.fallbackBanner.alpha = 1
-            self.view.layoutIfNeeded()
-        }
-    }
-
-    func showFilterNoResults() {
-        collectionView.isHidden = true
-        profilesFoundLabel.isHidden = true
-        fallbackSimilarity = nil
-
-        fallbackLabel.text = DivoStrings.faceSearchNoResultsWithFilters
-
-        collectionTopToSubheader?.isActive = false
-        collectionTopToFilters?.isActive = false
-        collectionTopToBanner?.isActive = true
-
-        fallbackBanner.alpha = 0
-        fallbackBanner.isHidden = false
-        UIView.animate(withDuration: 0.3) {
-            self.fallbackBanner.alpha = 1
-            self.view.layoutIfNeeded()
-        }
-    }
-
-    func hideFallbackBanner() {
-        guard !fallbackBanner.isHidden else { return }
-        fallbackBanner.isHidden = true
-        collectionView.isHidden = false
-        profilesFoundLabel.isHidden = false
-
-        collectionTopToBanner?.isActive = false
-        if activeFiltersContainer.isHidden {
-            collectionTopToFilters?.isActive = false
-            collectionTopToSubheader?.isActive = true
-            collectionTopToSubheader?.constant = DivoDesignTokens.Spacing.m
-        } else {
-            collectionTopToSubheader?.isActive = false
-            collectionTopToFilters?.isActive = true
-        }
-    }
-
     @objc private func backTapped() { onBackPressed?() }
     @objc private func filterTapped() { onFilterPressed?() }
     @objc private func filtersClearTapped() { onFiltersClear?() }
     @objc private func fallbackAcceptTapped() {
-        if let similarity = fallbackSimilarity {
-            hideFallbackBanner()
-            self.threshold = similarity
-            updateHeaderTexts()
-            view.layoutIfNeeded()
+        if case let .fallback(_, _, _, similarity, _) = currentState {
             onFallbackAccept?(similarity)
         } else {
             onFilterPressed?()
@@ -1046,32 +1140,4 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         onResultTapped?(results[indexPath.item])
     }
 
-    // MARK: - Helpers
-
-    private static func cropFaceSquare(from image: UIImage, bbox: FRBoundingBox, padding: CGFloat) -> UIImage {
-        let imageSize = image.size
-        guard imageSize.width > 0, imageSize.height > 0 else { return image }
-
-        let faceWidth = CGFloat(bbox.x2 - bbox.x1)
-        let faceHeight = CGFloat(bbox.y2 - bbox.y1)
-        let side = max(faceWidth, faceHeight) + 2 * padding
-
-        let centerX = CGFloat(bbox.x1 + bbox.x2) / 2
-        let centerY = CGFloat(bbox.y1 + bbox.y2) / 2
-
-        var cropX = centerX - side / 2
-        var cropY = centerY - side / 2
-        var cropSide = side
-
-        cropX = max(0, cropX)
-        cropY = max(0, cropY)
-        cropSide = min(cropSide, imageSize.width - cropX)
-        cropSide = min(cropSide, imageSize.height - cropY)
-        guard cropSide > 0 else { return image }
-
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: cropSide, height: cropSide))
-        return renderer.image { _ in
-            image.draw(at: CGPoint(x: -cropX, y: -cropY))
-        }
-    }
 }

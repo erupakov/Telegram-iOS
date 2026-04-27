@@ -228,6 +228,11 @@ public final class FaceSearchController: ViewController {
     }
 
     private func showResults(_ results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int) {
+        var historyEntryId: String?
+        if !results.isEmpty {
+            historyEntryId = saveFaceSearchHistory(results: results, bbox: bbox, imageData: imageData, faceIndex: faceIndex)
+        }
+
         var initialFilters = FaceSearchFilterState()
         initialFilters.similarity = Self.searchThreshold
         let controller = FaceSearchResultsController(
@@ -237,11 +242,35 @@ public final class FaceSearchController: ViewController {
             sourceImage: self.selectedImage,
             faceBBox: bbox,
             faceIndex: faceIndex,
-            initialFilters: initialFilters
+            initialFilters: initialFilters,
+            historyEntryId: historyEntryId
         )
         if let nav = self.navigationController as? NavigationController {
             nav.pushViewController(controller)
         }
+    }
+
+    @discardableResult
+    private func saveFaceSearchHistory(results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int) -> String {
+        let faceImage: UIImage
+        if let bbox {
+            faceImage = FaceSearchResultsMapper.cropFaceSquare(from: selectedImage, bbox: bbox, padding: 16)
+        } else {
+            faceImage = selectedImage
+        }
+        let fields: [String: String] = [
+            "face_index": "\(faceIndex)",
+            "top_k": "20",
+            "k_ratio": "\(Self.searchThreshold)"
+        ]
+        return FaceSearchHistoryStorage.shared.save(
+            faceImage: faceImage,
+            sourceImageData: imageData,
+            resultsCount: results.count,
+            faceIndex: faceIndex,
+            faceBBox: bbox,
+            searchFields: fields
+        )
     }
 }
 

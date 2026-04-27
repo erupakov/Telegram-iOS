@@ -12,7 +12,7 @@ public struct FRFace: Decodable {
     public let index: Int
 }
 
-public struct FRBoundingBox: Decodable {
+public struct FRBoundingBox: Codable, Equatable {
     public let x1: Double
     public let x2: Double
     public let y1: Double

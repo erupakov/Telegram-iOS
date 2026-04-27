@@ -311,15 +311,25 @@ final class ModelsSearchNode: ASDisplayNode {
 
     private let skeletonCount = 6
 
+    private let faceSearchHistoryView: FaceSearchHistoryView = {
+        let view = FaceSearchHistoryView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = DivoDesignTokens.Radius.card
+        view.layer.applyDivoShadow(radius: DivoDesignTokens.Shadow.radiusLarge)
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private var currentResults:[SearchUserItem] = []
-    
+
     private var resultsContainerHeightConstraint: NSLayoutConstraint?
     private var gridTopToFilterStackConstraint: NSLayoutConstraint?
     private var gridTopToSkeletonConstraint: NSLayoutConstraint?
-    
+
     private var currentAutocompleteResults: [SearchUserDTO] = []
     private var currentGridResults: [SearchUserDTO] = []
-    
+
     var onClosePressed: (() -> Void)?
     var onFilterPressed: (() -> Void)?
     var onFaceScanPressed: (() -> Void)?
@@ -333,6 +343,8 @@ final class ModelsSearchNode: ASDisplayNode {
     var onGridSaveTapped: ((Int, Bool) -> Void)?
     var onGridShareTapped: ((SearchUserDTO, UIImage?) -> Void)?
     var onFiltersClearTapped: (() -> Void)?
+    var onFaceSearchHistorySeeAll: (() -> Void)?
+    var onFaceSearchHistoryItemTapped: ((FaceSearchHistoryItem) -> Void)?
     
     private var searchTimer: Timer?
     private var currentKeyboardHeight: CGFloat = 0
@@ -403,6 +415,7 @@ final class ModelsSearchNode: ASDisplayNode {
         setupGridContainer()
         setupResultsContainer()
         setupEmptyStateContainer()
+        setupFaceSearchHistory()
     }
     
     private func setupTopContainer() {
@@ -647,7 +660,38 @@ final class ModelsSearchNode: ASDisplayNode {
     @objc private func emptyStateResetTapped() {
         onFiltersClearTapped?()
     }
-    
+
+    private func setupFaceSearchHistory() {
+        let sidePadding: CGFloat = 16.0
+
+        view.addSubview(faceSearchHistoryView)
+        NSLayoutConstraint.activate([
+            faceSearchHistoryView.topAnchor.constraint(equalTo: topBarContainer.bottomAnchor, constant: 16),
+            faceSearchHistoryView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
+            faceSearchHistoryView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
+        ])
+
+        faceSearchHistoryView.onSeeAllTapped = { [weak self] in
+            self?.onFaceSearchHistorySeeAll?()
+        }
+        faceSearchHistoryView.onItemTapped = { [weak self] item in
+            self?.onFaceSearchHistoryItemTapped?(item)
+        }
+    }
+
+    private var hasHistoryItems = false
+
+    func updateFaceSearchHistory(_ items: [FaceSearchHistoryItem]) {
+        hasHistoryItems = !items.isEmpty
+        if items.isEmpty {
+            faceSearchHistoryView.isHidden = true
+        } else {
+            faceSearchHistoryView.configure(with: items)
+            let text = searchTextField.text ?? ""
+            faceSearchHistoryView.isHidden = !text.isEmpty
+        }
+    }
+
     private func updateResultFilterStackVisibility() {
         let shouldHide = resultsCountLabel.isHidden && activeFiltersContainer.isHidden
         resultFilterStackView.isHidden = shouldHide
@@ -738,6 +782,7 @@ final class ModelsSearchNode: ASDisplayNode {
         self.loaderDelayTimer?.invalidate()
         self.currentTask?.cancel()
 
+        self.faceSearchHistoryView.isHidden = true
         self.currentAutocompleteResults = []
         self.resultsTableView.reloadData()
         self.resultsContainer.isHidden = true
@@ -920,12 +965,12 @@ final class ModelsSearchNode: ASDisplayNode {
     
     @objc private func searchTextChanged() {
         let text = searchTextField.text ?? ""
-        
+
         searchTimer?.invalidate()
         loaderDelayTimer?.invalidate()
         currentTask?.cancel()
         cancelAutocomplete?()
-        
+
         gridState = .idle
         paginationState = .idle
         hideSnackbar(animated: true)
@@ -933,6 +978,7 @@ final class ModelsSearchNode: ASDisplayNode {
         gridCollectionView.isHidden = true
         bottomBlurOverlay.isHidden = true
         emptyStateContainer.isHidden = true
+        faceSearchHistoryView.isHidden = true
         filterSkeletonLeft.removeShimmerOverlay()
         filterSkeletonRight.removeShimmerOverlay()
         filterSkeletonLeft.isHidden = true
@@ -940,9 +986,10 @@ final class ModelsSearchNode: ASDisplayNode {
         gridTopToSkeletonConstraint?.isActive = false
         gridTopToFilterStackConstraint?.isActive = true
         updateResultFilterStackVisibility()
-        
+
         if text.isEmpty {
             mode = .autocomplete
+            faceSearchHistoryView.isHidden = !hasHistoryItems
             updateAutocomplete(results: [])
             onSearchCleared?()
             return
