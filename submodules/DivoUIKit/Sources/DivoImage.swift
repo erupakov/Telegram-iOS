@@ -38,7 +38,6 @@ public enum DivoImage {
     public static var faceSearchEmpty: UIImage { load("DivoFaceSearchEmpty") }
     public static var faceSearchError: UIImage { load("DivoFaceSearchError") }
     public static var faceSearchInfo: UIImage { load("DivoFaceSearchInfo") }
-    public static var filmstripIcon: UIImage { load("DivoFilmstripIcon") }
     public static var genderIcon: UIImage { load("DivoGenderIcon") }
     public static var heartActionIcon: UIImage { load("DivoHeartActionIcon") }
     public static var heightIcon: UIImage { load("DivoHeightIcon") }
