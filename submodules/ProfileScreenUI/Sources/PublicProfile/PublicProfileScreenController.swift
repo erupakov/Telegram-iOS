@@ -90,6 +90,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
         currentGalleryPhotos = []
         currentGalleryVideos = []
     }
+
+    private var isUploadFromFAB: Bool = false
     
     public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
@@ -252,12 +254,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.navigateToEditSocialLinks()
         }
 
-        self.controllerNode.onAddVideoTapped = { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddVideo()
-            }
-        }
-
         self.controllerNode.onAddEventTapped = { [weak self] in
             self?.navigateToCreateEvent()
         }
@@ -330,15 +326,17 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.navigateToCreateEvent()
         }
 
-        self.controllerNode.onAddVideoTapped = { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddVideo()
-            }
-        }
-
-        self.controllerNode.onAddPhotoTapped = { [weak self] in
+        self.controllerNode.onAddPhotoTapped = { [weak self] fromFAB in
+            self?.isUploadFromFAB = fromFAB
             if #available(iOS 14, *) {
                 self?.navigateToAddPhoto()
+            }
+        }
+        
+        self.controllerNode.onAddVideoTapped = {[weak self] fromFAB in
+            self?.isUploadFromFAB = fromFAB
+            if #available(iOS 14, *) {
+                self?.navigateToAddVideo()
             }
         }
 
@@ -1033,6 +1031,11 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                 }
             }
         case .photo:
+            if self.isUploadFromFAB {
+                self.controllerNode.showUploadOverlay(isPhoto: true)
+            } else {
+                self.controllerNode.showUploadStatusView(isPhoto: true)
+            }
             if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
                 result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
                     guard let self = self, let uiImage = image as? UIImage else { return }
@@ -1040,6 +1043,11 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                 }
             }
         case .video:
+            if self.isUploadFromFAB {
+                self.controllerNode.showUploadOverlay(isPhoto: false)
+            } else {
+                self.controllerNode.showUploadStatusView(isPhoto: false)
+            }
             if result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
                 result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { [weak self] url, error in
                     guard let self = self, let url = url else { return }
@@ -1092,12 +1100,25 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                         self.galleryLoaded = false
                         self.getUserGalleryProfile()
                     }
+                    if self.isUploadFromFAB {
+                        self.controllerNode.hideUploadOverlay()
+                    } else {
+                        self.controllerNode.hideUploadStatusView(isPhoto: true)
+                    }
                 }
 
             } catch {
                 await MainActor.run {
                     self.controllerNode.cancelPhotoUpload()
-                    self.showErrorAlert(Self.userFacingMessage(from: error))
+                    if self.isUploadFromFAB {
+                        self.controllerNode.hideUploadOverlay()
+                    } else {
+                        self.controllerNode.hideUploadStatusView(isPhoto: true)
+                    }
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.errorUploadingPhotos,
+                        style: .error
+                    )
                 }
             }
         }
@@ -1183,13 +1204,26 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                         self.controllerNode.cancelVideoUpload()
                     }
                 }
+                if self.isUploadFromFAB {
+                    self.controllerNode.hideUploadOverlay()
+                } else {
+                    self.controllerNode.hideUploadStatusView(isPhoto: false)
+                }
 
                 try? FileManager.default.removeItem(at: videoURL)
 
             } catch {
                 await MainActor.run {
                     self.controllerNode.cancelVideoUpload()
-                    self.showErrorAlert(Self.userFacingMessage(from: error))
+                    if self.isUploadFromFAB {
+                        self.controllerNode.hideUploadOverlay()
+                    } else {
+                        self.controllerNode.hideUploadStatusView(isPhoto: false)
+                    }
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.errorUploadingVideos,
+                        style: .error
+                    )
                 }
                 try? FileManager.default.removeItem(at: videoURL)
             }
@@ -1257,10 +1291,10 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                 self.debugLog("[DivoAPI] Upload background error: \(error)")
                 await MainActor.run {
                     self.controllerNode.setBackgroundLoading(false)
-
-                    let alert = UIAlertController(title: "Error", message: "Failed to update background: \(error.localizedDescription)", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
-                    self.present(alert, animated: true)
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.errorUpdateBackground,
+                        style: .error
+                    )
                 }
             }
         }

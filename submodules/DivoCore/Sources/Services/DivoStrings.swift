@@ -223,6 +223,9 @@ public enum DivoStrings {
     public static var loadingModels: String { L(en: "Loading models...", ru: "Загрузка моделей...", es: "Cargando modelos...", pt: "Carregando modelos...", zh: "加载模特中...") }
     public static var loadingEvents: String { L(en: "Loading events...", ru: "Загрузка событий...", es: "Cargando eventos...", pt: "Carregando eventos...", zh: "加载活动中...") }
     public static var noName: String { L(en: "No name", ru: "Без имени", es: "Sin nombre", pt: "Sem nome", zh: "无名") }
+    public static var errorUploadingPhotos: String { L(en: "Couldn't add photo", ru: "Не удалось добавить фото", es: "No se pudo agregar la foto", pt: "Não foi possível adicionar a foto", zh: "无法添加照片") }
+    public static var errorUploadingVideos: String { L(en: "Couldn't add video", ru: "Не удалось добавить видео", es: "No se pudo agregar el video", pt: "Não foi possível adicionar o vídeo", zh: "无法添加视频") }
+    public static var errorUpdateBackground: String { L(en: "Couldn't update profile background", ru: "Не удалось обновить фон профиля", es: "No se pudo actualizar el fondo del perfil", pt: "Não foi possível atualizar o fundo do perfil", zh: "无法更新个人资料背景") }
 
     // MARK: - Units
 
@@ -364,7 +367,7 @@ public enum DivoStrings {
     public static var noProfileViewedYetMyProfile: String { L(en: "No profile views yet.", ru: "Пока нет просмотров профиля.", es: "Aún no hay visitas al perfil.", pt: "Ainda sem visualizações de perfil.", zh: "暂无资料浏览。") }
     public static var noProfileViewedSubtitleMyProfile: String { L(en: "No one’s viewed your profile yet.", ru: "Ваш профиль пока никто не просматривал.", es: "Nadie ha visto tu perfil aún.", pt: "Ninguém visualizou seu perfil ainda.", zh: "尚未有人浏览过你的资料。") }
     public static var noWorkExperienceYetProfile: String { L(en: "THERE ARE NO WORK EXPERIENCE YET.", ru: "ОПЫТ РАБОТЫ ПОКА ОТСУТСТВУЕТ.", es: "AÚN NO HAY EXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ EXPERIÊNCIA DE TRABALHO.", zh: "暂无工作经历。") }
-    public static var noBioYetProfile: String { L(en: "This model hasn't filled in their bio", ru: "Модель ещё не заполнила информацию о себе", es: "Esta modelo no ha completado su biografía", pt: "Esta modelo ainda não preencheu sua biografia", zh: "该模特尚未填写个人简介") }
+    public static var noBioYetProfile: String { L(en: "No bio yet.", ru: "Информация о себе пока не заполнена.", es: "Información personal aún no completada.", pt: "Informação pessoal ainda não preenchida.", zh: "尚未填写个人简介。") }
     public static var noAppearanceYetProfile: String { L(en: "Model parameters are not filled in", ru: "Параметры модели не заполнены", es: "Los parámetros de la modelo no están completados", pt: "Os parâmetros da modelo não foram preenchidos", zh: "模特参数未填写") }
     public static var addBioProfile: String { L(en: "Fill in bio", ru: "Заполнить информацию о себе", es: "Completar biografía", pt: "Preencher biografia", zh: "填写个人简介") }
     public static var addAppearanceProfile: String { L(en: "Add your parameters", ru: "Добавить параметры", es: "Añadir tus parámetros", pt: "Adicionar seus parâmetros", zh: "添加个人参数") }

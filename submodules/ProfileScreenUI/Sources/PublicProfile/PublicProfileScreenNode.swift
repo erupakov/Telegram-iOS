@@ -665,8 +665,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onManageWorkExperienceTapped: (() -> Void)?
     var onAddModelTapped: (() -> Void)?
     var onCreateEventTapped: (() -> Void)?
-    var onAddVideoTapped: (() -> Void)?
-    var onAddPhotoTapped: (() -> Void)?
+    var onAddVideoTapped: ((Bool) -> Void)?
+    var onAddPhotoTapped: ((Bool) -> Void)?
 
     var storiesButtonTapped: (() -> Void)?
 
@@ -812,9 +812,40 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let navBarWhiteGradientLayer = CAGradientLayer()
 
-    private var isNavBarBackgroundHidden: Bool = false  // true = прозрачный, false = цветной
-    private var isAnimatingNavBarBackground: Bool = false  // защита от множественных анимаций
-    private var currentBlurAlpha: CGFloat = 0.0
+    // Полноэкранный контейнер для перехвата нажатий
+    private let uploadOverlayContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        view.alpha = 0.0
+        return view
+    }()
+    
+    private let uploadOverlayView: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = 6
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let uploadOverlaySpinner: DivoSegmentedSpinner = {
+        let spinner = DivoSegmentedSpinner()
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        spinner.isUserInteractionEnabled = false
+        return spinner
+    }()
+    
+    private let uploadOverlayLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(10)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
 
     // MARK: - Init
     
@@ -1199,6 +1230,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupSegmentedBarPlaceholder()
         setupMovingBlur()
         setupFloatingButton()
+        setupUploadOverlay()
     }
 
     private func setupMovingBlur() {
@@ -1646,6 +1678,35 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         floatingAddButton.addTarget(self, action: #selector(floatingAddButtonTapped), for: .touchUpInside)
     }
+
+    private func setupUploadOverlay() {
+        self.view.addSubview(uploadOverlayContainer)
+        uploadOverlayContainer.addSubview(uploadOverlayView)
+        uploadOverlayView.addSubview(uploadOverlaySpinner)
+        uploadOverlayView.addSubview(uploadOverlayLabel)
+        
+        NSLayoutConstraint.activate([
+            uploadOverlayContainer.topAnchor.constraint(equalTo: self.view.topAnchor),
+            uploadOverlayContainer.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            uploadOverlayContainer.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            uploadOverlayContainer.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            
+            uploadOverlayView.centerXAnchor.constraint(equalTo: uploadOverlayContainer.centerXAnchor),
+            uploadOverlayView.centerYAnchor.constraint(equalTo: uploadOverlayContainer.centerYAnchor),
+            uploadOverlayView.widthAnchor.constraint(greaterThanOrEqualToConstant: 114),
+            uploadOverlayView.heightAnchor.constraint(equalToConstant: 74),
+            
+            uploadOverlaySpinner.centerXAnchor.constraint(equalTo: uploadOverlayView.centerXAnchor),
+            uploadOverlaySpinner.topAnchor.constraint(equalTo: uploadOverlayView.topAnchor, constant: 12),
+            uploadOverlaySpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            uploadOverlaySpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            
+            uploadOverlayLabel.topAnchor.constraint(equalTo: uploadOverlaySpinner.bottomAnchor, constant: 12),
+            uploadOverlayLabel.centerXAnchor.constraint(equalTo: uploadOverlayView.centerXAnchor),
+            uploadOverlayLabel.leadingAnchor.constraint(equalTo: uploadOverlayView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            uploadOverlayLabel.trailingAnchor.constraint(equalTo: uploadOverlayView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
+        ])
+    }
     
     // Настройка шиммеров
     private func configureNodes() {
@@ -2025,40 +2086,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         updateNavigationBarTitleVisibility()
     }
     
-    // Обновление титула NavigationBar
-    private func updateNavBarBackgroundWithAnimation(blurAlpha: CGFloat, titleAlpha: CGFloat) {
-        let hideThreshold: CGFloat = 0.8   // > 0.8 → скрываем фон
-        let showThreshold: CGFloat = 0.9   // < 0.9 → показываем фон (с гистерезисом)
-        
-        var shouldHideBackground: Bool? = nil
-        
-        if blurAlpha > hideThreshold && !isNavBarBackgroundHidden {
-            // Пора прятать фон
-            shouldHideBackground = true
-        } else if blurAlpha < showThreshold && isNavBarBackgroundHidden {
-            // Пора показывать фон
-            shouldHideBackground = false
-        }
-        
-        guard let shouldHide = shouldHideBackground, !isAnimatingNavBarBackground else { return }
-        
-        isAnimatingNavBarBackground = true
-        
-        let targetAlpha: CGFloat = shouldHide ? 0 : titleAlpha
-        let targetColor = DivoColorPalette.screenBackground.withAlphaComponent(targetAlpha)
-        
-        UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut]) {
-            self.customNavBar.backgroundColor = targetColor
-        } completion: { _ in
-            self.isNavBarBackgroundHidden = shouldHide
-            self.isAnimatingNavBarBackground = false
-        }
-    }
-    
     private func updateNavigationBarTitleVisibility() {
         guard let titleView = navigationBarTitleView,
-              let (_, navigationBarHeight) = self.containerLayout else { return }
-        
+            let (_, navigationBarHeight) = self.containerLayout else { return }
+
         guard titleVisibilityActivated else {
             if titleView.alpha != 0.0 { titleView.alpha = 0.0 }
             return
@@ -2089,44 +2120,48 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let segmentedY = segmentedBarPlaceholder.frame.minY > 0 ? segmentedBarPlaceholder.frame.minY : 600.0
         
         let blurStartOffset = segmentedY - navigationBarHeight
-        let blurFullyVisibleOffset = blurStartOffset + 30
+        let transitionDistance: CGFloat = 40.0 // Дистанция перехода
         
-        var blurAlpha: CGFloat = 0.0
-        if offsetY < blurStartOffset { blurAlpha = 0.0 }
-        else if offsetY >= blurFullyVisibleOffset { blurAlpha = 1.0 }
-        else { blurAlpha = (offsetY - blurStartOffset) / (blurFullyVisibleOffset - blurStartOffset) }
-        
-        currentBlurAlpha = blurAlpha
-        navBarBlurView.alpha = blurAlpha
-        
-        // =========================================================
-        // ФАЗА 3: Управление фоном навбара с анимацией
-        // =========================================================
-        updateNavBarBackgroundWithAnimation(blurAlpha: blurAlpha, titleAlpha: titleAlpha)
-        
-        // Если фон не скрыт и нет активной анимации — обновляем его в реальном времени
-        if !isNavBarBackgroundHidden && !isAnimatingNavBarBackground {
-            customNavBar.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(titleAlpha)
+        // 1. Считаем общий прогресс второй фазы (от 0.0 до 1.0)
+        var phase2Progress: CGFloat = 0.0
+        if offsetY >= blurStartOffset + transitionDistance {
+            phase2Progress = 1.0
+        } else if offsetY > blurStartOffset {
+            phase2Progress = (offsetY - blurStartOffset) / transitionDistance
         }
         
+        // 2. РАЗДЕЛЯЕМ ПРОГРЕСС НА ДВА ЭТАПА (Убиваем промигивание)
+        // На первой половине (0.0 -> 0.5) блюр заряжается до 100% под навбаром.
+        // На второй половине (0.5 -> 1.0) сплошной фон растворяется, открывая готовый блюр.
+        let blurAlpha = min(1.0, phase2Progress * 2.0)
+        let solidFadeOut = phase2Progress > 0.5 ? (1.0 - (phase2Progress - 0.5) * 2.0) : 1.0
+        
         // =========================================================
-        // ОСТАЛЬНЫЕ UI ЭЛЕМЕНТЫ
+        // ПРИМЕНЕНИЕ ДВУХ ФАЗ К UI
         // =========================================================
         
-        let maxProgress = max(titleAlpha, blurAlpha)
+        // 1. Фон НавБара и Блюр
+        let combinedBackgroundAlpha = titleAlpha * solidFadeOut
+        customNavBar.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(combinedBackgroundAlpha)
+        navBarBlurView.alpha = blurAlpha
+        
+        // 2. Иконки кнопок (должны быть темными и при сплошном фоне, и при блюре)
+        let maxProgress = max(titleAlpha, phase2Progress)
         let iconColor = UIColor.white.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
         closeButton.tintColor = iconColor
         storiesButton.tintColor = iconColor
         editButton.tintColor = iconColor
         moreButton.tintColor = iconColor
         
-        let bgStartColor = DivoColorPalette.statPillBackground
+        // 3. Фон кнопок
+        let bgStartColor = DivoColorPalette.statPillBackground 
         let bgEndColor = DivoColorPalette.cardBackground
         let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: maxProgress)
         
         closeButton.backgroundColor = currentBgColor
         rightButtonContainer.backgroundColor = currentBgColor
         
+        // 4. Границы прячем
         let borderStartColor = DivoColorPalette.statPillBorder.cgColor
         let borderEndColor = UIColor.clear.cgColor
         closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
@@ -2148,6 +2183,46 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     
     // MARK: - Internal
+
+    // Вызывается при старте загрузки
+    func showUploadOverlay(isPhoto: Bool) {
+        uploadOverlayLabel.text = isPhoto ? DivoStrings.uploadingPhotos : DivoStrings.uploadingVideos
+        uploadOverlayContainer.isHidden = false
+        uploadOverlaySpinner.startAnimating()
+        
+        UIView.animate(withDuration: 0.3) {
+            self.uploadOverlayContainer.alpha = 1.0
+            self.floatingAddButton.alpha = 0.0
+            self.floatingAddButton.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        }
+    }
+    
+    func hideUploadOverlay() {
+        UIView.animate(withDuration: 0.3, animations: {
+            self.uploadOverlayContainer.alpha = 0.0
+            self.floatingAddButton.alpha = 1.0
+            self.floatingAddButton.transform = .identity
+        }) { _ in
+            self.uploadOverlayContainer.isHidden = true
+            self.uploadOverlaySpinner.stopAnimating()
+        }
+    }
+    
+    func showUploadStatusView(isPhoto: Bool) {
+        if isPhoto {
+            galleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingPhotos, isMyProfile: false)
+        } else {
+            videoGalleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingVideos, isMyProfile: false)
+        }
+    }
+    
+    func hideUploadStatusView(isPhoto: Bool) {
+        if isPhoto {
+            galleryStatusView.configure(isLoading: false, text: DivoStrings.noPhotosYet, isMyProfile: true)
+        } else {
+            videoGalleryStatusView.configure(isLoading: false, text: DivoStrings.noVideosYet, isMyProfile: true)
+        }
+    }
 
     // Функция для извлечения имени пользователя или домена
     func extractHandle(from urlString: String) -> String {
@@ -3321,17 +3396,23 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     // Метод, который вызывает нужный Action в зависимости от открытого таба
     @objc private func floatingAddButtonTapped() {
-        switch currentTab {
-        case .photo:
-            onAddPhotoTapped?()
-        case .video:
-            onAddVideoTapped?()
-        case .models:
-            onAddModelTapped?()
-        case .events:
-            onAddEventTapped?()
-        case .channels:
-            break
+        let maxScrollY = max(0, scrollView.contentSize.height - scrollView.bounds.height)
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            self.scrollView.contentOffset = CGPoint(x: 0, y: maxScrollY)
+        }) { _ in
+            switch self.currentTab {
+            case .photo:
+                self.onAddPhotoTapped?(true)
+            case .video:
+                self.onAddVideoTapped?(true)
+            case .models:
+                self.onAddModelTapped?()
+            case .events:
+                self.onAddEventTapped?()
+            case .channels:
+                break
+            }
         }
     }
 
@@ -3380,11 +3461,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     @objc private func galleryStatusTapped() {
-        onAddPhotoTapped?()
+        onAddPhotoTapped?(false)
     }
 
     @objc private func videoGalleryStatusTapped() {
-        onAddVideoTapped?()
+        onAddVideoTapped?(false)
     }
 
     @objc private func eventGalleryStatusTapped() {
