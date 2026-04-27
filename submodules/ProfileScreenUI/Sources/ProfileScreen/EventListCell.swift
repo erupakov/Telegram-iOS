@@ -28,16 +28,15 @@ final class EventListCell: UICollectionViewCell {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 30
-        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
+        iv.layer.cornerRadius = 26
+        iv.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
         iv.translatesAutoresizingMaskIntoConstraints = false
-        iv.tintColor = .lightGray
         return iv
     }()
 
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(16)
+        label.font = Font.medium(16)
         label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -45,30 +44,22 @@ final class EventListCell: UICollectionViewCell {
 
     private let infoLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(14)
+        label.font = Font.regular(14)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
-    private var applyButton: UIButton = {
-        let button = UIButton()
-        button.setTitle(DivoStrings.apply, for: .normal)
-        button.titleLabel?.font = Font.helveticaNeue(14)
-        button.backgroundColor = DivoColorPalette.accentSecondary
-        button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 6
-        button.clipsToBounds = true
-        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
-        button.setContentCompressionResistancePriority(.required, for: .horizontal)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
+    private var applyButton = DivoButton()
     
     private var isMyProfile: Bool = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
+        
+        applyButton.makeDivoButton(title: DivoStrings.edit, buttonFont: Font.helveticaNeue(14), radius: 18)
+        applyButton.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
+        
         setupViews()
     }
 
@@ -77,7 +68,7 @@ final class EventListCell: UICollectionViewCell {
     }
 
     private func setupViews() {
-        contentView.backgroundColor = .white
+        contentView.backgroundColor = DivoColorPalette.cardBackground
 
         contentView.addSubview(avatarImageView)
         contentView.addSubview(nameLabel)
@@ -88,10 +79,10 @@ final class EventListCell: UICollectionViewCell {
         applyButton.addTarget(self, action: #selector(buttonTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
-            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 60),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 60),
+            avatarImageView.widthAnchor.constraint(equalToConstant: 52),
+            avatarImageView.heightAnchor.constraint(equalToConstant: 52),
 
             nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
             nameLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -101,10 +92,9 @@ final class EventListCell: UICollectionViewCell {
             infoLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
             infoLabel.trailingAnchor.constraint(lessThanOrEqualTo: applyButton.leadingAnchor, constant: -10),
 
-            applyButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            applyButton.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
-            applyButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
-            applyButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 68)
+            applyButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            applyButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            applyButton.heightAnchor.constraint(equalToConstant: 36)
         ])
     }
     
@@ -136,9 +126,8 @@ final class EventListCell: UICollectionViewCell {
             avatarImageView.loadImage(from: url)
         }
         
-        // Обновляем текст кнопки в зависимости от профиля
         let buttonTitle = isMyProfile ? DivoStrings.edit : DivoStrings.apply
-        applyButton.setTitle(buttonTitle, for: .normal)
+        applyButton.makeDivoButton(title: buttonTitle, buttonFont: Font.helveticaNeue(14), radius: 18)
     }
 }
 

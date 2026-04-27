@@ -39,6 +39,8 @@ final class ChannelListCell: UICollectionViewCell {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = 11
+        view.layer.borderWidth = 1
+        view.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.1).cgColor
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -81,7 +83,7 @@ final class ChannelListCell: UICollectionViewCell {
     }
 
     private func setupViews() {
-        contentView.backgroundColor = DivoColorPalette.screenBackground
+        contentView.backgroundColor = DivoColorPalette.cardBackground
 
         contentView.addSubview(avatarImageView)
         contentView.addSubview(titleLabel)
@@ -133,3 +135,4 @@ final class ChannelListCell: UICollectionViewCell {
         }
     }
 }
+

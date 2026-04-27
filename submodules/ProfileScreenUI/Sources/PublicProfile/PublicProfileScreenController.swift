@@ -291,7 +291,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
 
         // self.controllerNode.onFaceScanTapped = { [weak self] in
-
+  
         // }
 
         // self.controllerNode.onReportProfileTapped = { [weak self] in
@@ -348,6 +348,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.openSimilarModelScreen(for: user)
         }
 
+        self.controllerNode.onModelAgencyTapped = { [weak self] user in
+            self?.openModelAgencyScreen(for: user)
+        }
 
         self.displayNodeDidLoad()
     }
@@ -364,6 +367,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
         self.view.window?.rootViewController?.present(activityVC, animated: true)
     }
+
     
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
@@ -402,7 +406,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 }
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
-                if !isMyProfile {
+                if !isMyProfile && userRole != .agency {
                     self.loadSimilarProfiles(photoId: detail.avatar?.photoId)
                 }
             }
@@ -726,6 +730,7 @@ extension PublicProfileScreenController {
                 let items = response.data?.items ?? []
                 let models = items.map { item -> ModelItem in
                     return ModelItem(
+                        id: item.id,
                         name: item.name ?? "Unknown",
                         role: "Model",
                         isPremium: false,
@@ -848,12 +853,40 @@ extension PublicProfileScreenController {
             return (dateString, "")
         }
 
+        let languageCode = Locale.preferredLanguages.first?
+            .components(separatedBy: "-")
+            .first?
+            .lowercased() ?? "en"
+        let localeIdentifierByLanguage: [String: String] = [
+            "ru": "ru_RU",
+            "en": "en_US",
+            "pt": "pt_PT",
+            "es": "es_ES",
+            "zh": "zh_CN"
+        ]
+        let locale = Locale(identifier: localeIdentifierByLanguage[languageCode] ?? "en_US")
+
         let dateUIFormatter = DateFormatter()
-        dateUIFormatter.dateFormat = "d MMM"
-        let formattedDate = dateUIFormatter.string(from: date)
+        dateUIFormatter.locale = locale
+        dateUIFormatter.dateFormat = "LLLL d"
+        let rawFormattedDate = dateUIFormatter.string(from: date)
+        let formattedDate: String = {
+            guard let first = rawFormattedDate.first else { return rawFormattedDate }
+            return String(first).uppercased(with: locale) + rawFormattedDate.dropFirst()
+        }()
 
         let timeUIFormatter = DateFormatter()
-        timeUIFormatter.dateFormat = "HH:mm"
+        timeUIFormatter.locale = locale
+        switch languageCode {
+        case "en":
+            timeUIFormatter.dateFormat = "h:mm a"
+        case "zh":
+            timeUIFormatter.dateFormat = "a h:mm"
+        case "ru", "pt", "es":
+            timeUIFormatter.dateFormat = "HH:mm"
+        default:
+            timeUIFormatter.dateFormat = "HH:mm"
+        }
         let formattedTime = timeUIFormatter.string(from: date)
 
         return (formattedDate, formattedTime)
@@ -945,6 +978,29 @@ extension PublicProfileScreenController {
             role: "",
             mainImageURL: user.avatarURL,
             avatarImageURL: user.avatarURL
+        )
+        let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
+
+    private func openModelAgencyScreen(for user: ModelItem) {
+        let mainImageURL = user.customAvatarURL
+            .flatMap { CDNURLHelper.convertToCDNURL($0) }
+        
+        let profileModel = ProfileModel(
+            name: user.name,
+            age: 0,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: user.id,
+            role: user.role,
+            mainImageURL: mainImageURL,
+            avatarImageURL: mainImageURL
         )
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)

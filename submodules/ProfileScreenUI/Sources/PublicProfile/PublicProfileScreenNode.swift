@@ -661,10 +661,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onAddPhotoTapped: ((Bool) -> Void)?
 
     var storiesButtonTapped: (() -> Void)?
-
     var onAddWorkExperienceTapped: (() -> Void)?
-
     var onSimilarProfileTapped: ((SimilarProfileItem) -> Void)?
+    var onModelAgencyTapped: ((ModelItem) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -1079,9 +1078,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.onBlockTapped?()
             }
             
-            let menu = UIMenu(title: "", children: [faceScanAction, reportAction, blockAction])
+            if modelRole == .agency {
+                let menu = UIMenu(title: "", children: [reportAction, blockAction])
+                moreButton.menu = menu
+            } else {
+                let menu = UIMenu(title: "", children: [faceScanAction, reportAction, blockAction])
+                moreButton.menu = menu
+            }
             
-            moreButton.menu = menu
             moreButton.showsMenuAsPrimaryAction = true
         }
     }
@@ -1134,8 +1138,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
             }
 
             if isMyProfile {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
-                editButton.menu = menu
+                if modelRole == .agency {
+                    let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction])
+                    editButton.menu = menu
+                } else {
+                    let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
+                    editButton.menu = menu
+                }
             } else {
                 let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, addModelAction, createEventAction])
                 editButton.menu = menu
@@ -2303,6 +2312,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
             headerImageView.image = image
         }
     }
+
+    func faceSearchSeedImage() -> UIImage? {
+        return avatarImage ?? headerImageView.image
+    }
     
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
@@ -2398,7 +2411,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         populateSocialMedia(links: socialLinks)
 
         if !isMyProfile {
-            similarProfilesCollectionContainer.isHidden = false
+            similarProfilesCollectionContainer.isHidden = self.modelRole == .agency
             sendShareContainer.isHidden = false
             dmShareStack.isHidden = false
             dmShareShimmerStack.isHidden = true
@@ -3045,7 +3058,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Загрузка высоты галереи каналов
     private func updateChannelsCollectionViewHeight() {
-        let channelCellHeight: CGFloat = 76.0
+        let channelCellHeight: CGFloat = 66.0
         let channelsHeight = CGFloat(channelGalleryItems.count) * channelCellHeight
         
         channelGalleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
@@ -3105,7 +3118,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Загрузка высоты галереи моделей
     private func updateModelsCollectionViewHeight() {
-        let modelCellHeight: CGFloat = 76.0
+        let modelCellHeight: CGFloat = 66.0
         let modelsHeight = CGFloat(modelGalleryItems.count) * modelCellHeight
         
         modelGalleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
@@ -3146,7 +3159,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Загрузка высоты галереи событий
     private func updateEventsCollectionViewHeight() {
-        let eventCellHeight: CGFloat = 76.0
+        let eventCellHeight: CGFloat = 66.0
         let eventsHeight = CGFloat(modelGalleryItems.count) * eventCellHeight
         
         eventGalleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
@@ -3180,11 +3193,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
         channelHeightConstraint.constant = max(cHeight, 1.0)
         
         // Models
-        let mHeight = CGFloat(modelGalleryItems.count) * 76.0
+        let mHeight = CGFloat(modelGalleryItems.count) * 66.0
         modelHeightConstraint.constant = max(mHeight, 1.0)
         
         // Events
-        let eHeight = CGFloat(eventGalleryItems.count) * 76.0
+        let eHeight = CGFloat(eventGalleryItems.count) * 66.0
         eventHeightConstraint.constant = max(eHeight, 1.0)
     }
     
@@ -3603,6 +3616,10 @@ extension PublicProfileScreenNode: UICollectionViewDelegate {
         } else if collectionView == videoGalleryCollectionView {
             guard videoGalleryItems[indexPath.item].id != -1 else { return }
             onGalleryItemTapped?(.video, indexPath.item)
+        } else if collectionView == modelGalleryCollectionView {
+            guard !modelGalleryItems.isEmpty else { return }
+            let user = modelGalleryItems[indexPath.item]
+            onModelAgencyTapped?(user)
         }
     }
 
@@ -3659,12 +3676,12 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
         if collectionView == similarProfilesCollectionView {
             return 6
         } else if collectionView == galleryCollectionView
-                    || collectionView == videoGalleryCollectionView
-                    || collectionView == modelGalleryCollectionView
-                    || collectionView == eventGalleryCollectionView {
+                    || collectionView == videoGalleryCollectionView {
             return 1.0
-        } else if collectionView == channelGalleryCollectionView {
-            return 0
+        } else if collectionView == channelGalleryCollectionView
+                    || collectionView == eventGalleryCollectionView
+                    || collectionView == modelGalleryCollectionView {
+            return 0.0
         }
         return 0
     }
@@ -3673,12 +3690,12 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
         if collectionView == similarProfilesCollectionView {
             return 6
         } else if collectionView == galleryCollectionView
-                    || collectionView == videoGalleryCollectionView
-                    || collectionView == modelGalleryCollectionView
-                    || collectionView == eventGalleryCollectionView {
+                    || collectionView == videoGalleryCollectionView {
             return 1.0
-        } else if collectionView == channelGalleryCollectionView {
-            return 0
+        } else if collectionView == channelGalleryCollectionView
+                    || collectionView == eventGalleryCollectionView
+                    || collectionView == modelGalleryCollectionView {
+            return 0.0
         }
         return 0
     }
