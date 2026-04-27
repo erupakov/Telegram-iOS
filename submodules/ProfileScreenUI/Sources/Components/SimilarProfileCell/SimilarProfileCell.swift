@@ -84,10 +84,32 @@ final class SimilarProfileCell: UICollectionViewCell {
     }
 
     func configure(with item: SimilarProfileItem) {
-        nameLabel.text = item.name.uppercased()
-        infoLabel.text = item.info
+        nameLabel.text = item.name?.uppercased()
+        let age = item.age.flatMap { calculateAge(from: $0) } ?? 0
+        let flag = Self.flag(for: item.countryCode)
+        let city = item.countryName ?? ""
+        infoLabel.text = "\(DivoStrings.ageString(age)) • \(flag) \(city)"
         imageView.loadImage(from: item.avatarURL) { [weak self] image in
             self?.imageView.applyAvatarTopCropIfNeeded(image: image)
         }
+    }
+    
+    private static func flag(for countryCode: String?) -> String {
+        guard let code = countryCode, code.count == 2 else { return "" }
+        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
+            result + String(UnicodeScalar(127397 + scalar.value)!)
+        }
+    }
+    
+    private func calculateAge(from birthdayString: String) -> Int {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd.MM.yyyy"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        guard let birthday = formatter.date(from: birthdayString) else { return 0 }
+        
+        let now = Date()
+        let calendar = Calendar.current
+        let ageComponents = calendar.dateComponents([.year], from: birthday, to: now)
+        return ageComponents.year ?? 0
     }
 }

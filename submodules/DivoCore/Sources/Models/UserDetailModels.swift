@@ -51,18 +51,21 @@ public struct UserFile: Decodable {
     public let fullUrl: String?
     public let fileExtension: String?
     public let fileUuid: String?
+    public let photoId: Int?
 
     enum CodingKeys: String, CodingKey {
         case fileName, fullUrl
         case fileExtension = "extension"
         case fileUuid
+        case photoId = "photo_id"
     }
 
-    public init(fileName: String?, fullUrl: String?, fileExtension: String?, fileUuid: String?) {
+    public init(fileName: String?, fullUrl: String?, fileExtension: String?, fileUuid: String?, photoId: Int? = nil) {
         self.fileName = fileName
         self.fullUrl = fullUrl
         self.fileExtension = fileExtension
         self.fileUuid = fileUuid
+        self.photoId = photoId
     }
 }
 

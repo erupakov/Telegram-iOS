@@ -92,6 +92,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private var isUploadFromFAB: Bool = false
+
+    private var similarProfilesIsLoading: Bool = false
     
     public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
@@ -342,6 +344,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
             }
         }
 
+        self.controllerNode.onSimilarProfileTapped = { [weak self] user in
+            self?.openSimilarModelScreen(for: user)
+        }
+
+
         self.displayNodeDidLoad()
     }
 
@@ -395,6 +402,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 }
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
+                self.loadSimilarProfiles(photoId: detail.avatar?.photoId)
             }
         }
     }
@@ -919,6 +927,26 @@ extension PublicProfileScreenController {
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
+
+    private func openSimilarModelScreen(for user: SimilarProfileItem) {
+        let profileModel = ProfileModel(
+            name: user.name ?? "",
+            age: 0,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: user.id,
+            role: "",
+            mainImageURL: user.avatarURL,
+            avatarImageURL: user.avatarURL
+        )
+        let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
     
     private func loadInteractionData(type: InteractionListType, offset: Int, completion: @escaping (Result<InteractionPage, Error>) -> Void) {
         guard self.userID != -1 else { return }
@@ -1295,6 +1323,64 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                     self.controllerNode.setBackgroundLoading(false)
                     self.controllerNode.showSnackbar(
                         message: DivoStrings.errorUpdateBackground,
+                        style: .error
+                    )
+                }
+            }
+        }
+    }
+}
+
+extension PublicProfileScreenController {
+    // Загрузка похожих профилей
+    func loadSimilarProfiles(photoId: Int?) {
+        guard !similarProfilesIsLoading else { return }
+        
+        similarProfilesIsLoading = true
+        
+        Task { @MainActor in
+            self.controllerNode.setSimilarProfilesLoading(true)
+        }
+        
+        let topK = 6
+        let requestBody = SearchSimilarRequest(photoId: photoId, topK: topK)
+        
+        Task {
+            do {
+                let response: SearchSimilarResponse = try await DivoAPIClient.shared.request(
+                    path: "/fr/searchSimilar",
+                    method: "POST",
+                    body: requestBody
+                )
+                
+                await MainActor.run {
+                    let items = response.results
+                    let profiles = items.compactMap { item -> SimilarProfileItem? in
+                        guard let userId = item?.userId else { return nil }
+                        
+                        let imageURL = CDNURLHelper.convertToCDNURL(item?.image)
+                                                
+                        return SimilarProfileItem(
+                            id: userId,
+                            name: item?.fullName ?? "Unknown",
+                            age: item?.birthday,
+                            countryCode: item?.countryCode,
+                            countryName: item?.countryName,
+                            avatarURL: imageURL
+                        )
+                    }
+                    
+                    self.similarProfilesIsLoading = false
+                    
+                    self.controllerNode.appendSimilarProfiles(profiles)
+                }
+            } catch {
+                print("❌[SIMILAR] Error loading similar profiles: \(error)")
+                await MainActor.run {
+                    self.similarProfilesIsLoading = false
+                    self.controllerNode.setSimilarProfilesLoading(false)
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.errorLoadingSimilarProfiles,
                         style: .error
                     )
                 }

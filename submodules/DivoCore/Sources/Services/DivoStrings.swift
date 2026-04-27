@@ -226,6 +226,7 @@ public enum DivoStrings {
     public static var errorUploadingPhotos: String { L(en: "Couldn't add photo", ru: "Не удалось добавить фото", es: "No se pudo agregar la foto", pt: "Não foi possível adicionar a foto", zh: "无法添加照片") }
     public static var errorUploadingVideos: String { L(en: "Couldn't add video", ru: "Не удалось добавить видео", es: "No se pudo agregar el video", pt: "Não foi possível adicionar o vídeo", zh: "无法添加视频") }
     public static var errorUpdateBackground: String { L(en: "Couldn't update profile background", ru: "Не удалось обновить фон профиля", es: "No se pudo actualizar el fondo del perfil", pt: "Não foi possível atualizar o fundo do perfil", zh: "无法更新个人资料背景") }
+    public static var errorLoadingSimilarProfiles: String { L(en: "Couldn't find similar profiles", ru: "Не удалось найти похожие профили", es: "No se pudieron encontrar perfiles similares", pt: "Não foi possível encontrar perfis semelhantes", zh: "无法找到相似的个人资料") }
 
     // MARK: - Units
 

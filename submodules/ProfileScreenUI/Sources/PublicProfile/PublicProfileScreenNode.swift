@@ -596,9 +596,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // MARK: - Similar Profiles Section
     
     private var similarProfiles: [SimilarProfileItem] = []
-    private var similarProfilesTotalCount: Int = 0
-    private var similarProfilesOffset: Int = 0
-    private var similarProfilesHasMore: Bool = true
     private var similarProfilesIsLoading: Bool = false
     
     private let similarProfilesCollectionContainer: UIView = {
@@ -629,6 +626,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         cv.backgroundColor = .clear
         cv.showsHorizontalScrollIndicator = false
         cv.register(SimilarProfileCell.self, forCellWithReuseIdentifier: SimilarProfileCell.reuseIdentifier)
+        cv.register(SimilarProfileShimmerCell.self, forCellWithReuseIdentifier: SimilarProfileShimmerCell.reuseIdentifier)
         cv.dataSource = self
         cv.delegate = self
         cv.translatesAutoresizingMaskIntoConstraints = false
@@ -665,6 +663,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var storiesButtonTapped: (() -> Void)?
 
     var onAddWorkExperienceTapped: (() -> Void)?
+
+    var onSimilarProfileTapped: ((SimilarProfileItem) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -857,7 +857,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupContent()
         configureNodes()
         segmentedBar.configure(isAgency: model.role == "agency_employee", isMyProfile: model.isMyProfile, animated: false)
-        loadSimilarProfiles()
     }
     
     required init?(coder: NSCoder) {
@@ -1651,7 +1650,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             similarProfilesCollectionView.leadingAnchor.constraint(equalTo: similarProfilesCollectionContainer.leadingAnchor),
             similarProfilesCollectionView.trailingAnchor.constraint(equalTo: similarProfilesCollectionContainer.trailingAnchor),
             similarProfilesCollectionView.bottomAnchor.constraint(equalTo: similarProfilesCollectionContainer.bottomAnchor, constant: -30),
-            similarProfilesCollectionView.heightAnchor.constraint(equalToConstant: 232)
+            similarProfilesCollectionView.heightAnchor.constraint(equalToConstant: 180)
         ])
         
         contentViewStack.setCustomSpacing(0, after: collectionsContainer)
@@ -1943,20 +1942,36 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Добавление коллекции похожих профилей
-    private func appendSimilarProfiles(_ profiles: [SimilarProfileItem], totalCount: Int) {
+    func setSimilarProfilesLoading(_ loading: Bool) {
+        similarProfilesIsLoading = loading
+        if loading && similarProfiles.isEmpty {
+            similarProfilesCollectionContainer.isHidden = false
+            similarProfilesCollectionView.reloadData()
+        } else if !loading && similarProfiles.isEmpty {
+            similarProfilesCollectionContainer.isHidden = true
+            similarProfilesCollectionView.reloadData()
+        }
+    }
+    
+    // Заполняет коллекцию реальными данными
+    func appendSimilarProfiles(_ profiles: [SimilarProfileItem]) {
         let previousCount = self.similarProfiles.count
         self.similarProfiles.append(contentsOf: profiles)
-        self.similarProfilesTotalCount = totalCount
-        self.similarProfilesOffset = self.similarProfiles.count
-        self.similarProfilesHasMore = self.similarProfiles.count < totalCount
-        
-        // debug: removed
+        self.similarProfilesIsLoading = false
         
         if previousCount == 0 {
             similarProfilesCollectionView.reloadData()
-        } else {
+        } else if !profiles.isEmpty {
             let newIndices = (previousCount..<(previousCount + profiles.count)).map { IndexPath(item: $0, section: 0) }
-            similarProfilesCollectionView.insertItems(at: newIndices)
+            similarProfilesCollectionView.performBatchUpdates({
+                self.similarProfilesCollectionView.insertItems(at: newIndices)
+            }, completion: nil)
+        }
+        
+        if self.similarProfiles.isEmpty {
+            self.similarProfilesCollectionContainer.isHidden = true
+        } else {
+            self.similarProfilesCollectionContainer.isHidden = false
         }
     }
     
@@ -2244,49 +2259,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
         
         return String(components.first ?? "")
-    }
-    
-    func loadSimilarProfiles() {
-        guard !similarProfilesIsLoading else { return }
-        similarProfilesIsLoading = true
-
-        let currentUserId = model.userId
-        let limit = 10
-
-        let requestBody = FeedlineListRequest(
-            offset: similarProfilesOffset,
-            limit: limit,
-            modelsOnly: true
-        )
-
-        Task { @MainActor in
-            do {
-                let response: FeedlineResponse = try await DivoAPIClient.shared.request(
-                    path: "/feedline/list",
-                    method: "POST",
-                    body: requestBody
-                )
-                let items = response.data.items
-                let profiles = items.compactMap { item -> SimilarProfileItem? in
-                    guard item.user.id != currentUserId else { return nil }
-                    let imageURL = CDNURLHelper.convertToCDNURL(
-                        item.searchImage?.fullUrl ?? item.files.first?.fullUrl
-                    )
-                    return SimilarProfileItem(
-                        id: item.user.id,
-                        name: item.user.fullName,
-                        info: item.user.roleLabel,
-                        avatarURL: imageURL
-                    )
-                }
-                self.similarProfilesIsLoading = false
-                self.similarProfilesHasMore = items.count >= limit
-                appendSimilarProfiles(profiles, totalCount: similarProfilesOffset + profiles.count + (similarProfilesHasMore ? 1 : 0))
-            } catch {
-                print("❌ [SIMILAR] Error loading similar profiles: \(error)")
-                self.similarProfilesIsLoading = false
-            }
-        }
     }
     
     // Обновляем Layout после загрузки контроллера
@@ -3523,6 +3495,9 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
         } else if collectionView == videoGalleryCollectionView {
             return videoGalleryItems.count
         } else if collectionView == similarProfilesCollectionView {
+            if similarProfilesIsLoading && similarProfiles.isEmpty {
+                return 6
+            }
             return similarProfiles.count
         } else if collectionView == channelGalleryCollectionView {
             return channelGalleryItems.count
@@ -3536,6 +3511,14 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if collectionView == similarProfilesCollectionView {
+            if similarProfilesIsLoading && similarProfiles.isEmpty {
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SimilarProfileShimmerCell.reuseIdentifier, for: indexPath) as? SimilarProfileShimmerCell else {
+                    return UICollectionViewCell()
+                }
+                cell.startAnimation()
+                return cell
+            }
+            
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SimilarProfileCell.reuseIdentifier, for: indexPath) as? SimilarProfileCell else {
                 return UICollectionViewCell()
             }
@@ -3611,10 +3594,9 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
 extension PublicProfileScreenNode: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == similarProfilesCollectionView {
-            _ = similarProfiles[indexPath.item]
-            // debug: removed
-            // TODO: Открыть профиль выбранного пользователя
-            // handleSimilarProfileTap(profile)
+            guard !similarProfilesIsLoading || !similarProfiles.isEmpty else { return }
+            let user = similarProfiles[indexPath.item]
+            onSimilarProfileTapped?(user)
         } else if collectionView == galleryCollectionView {
             guard galleryPhotos[indexPath.item].id != -1 else { return }
             onGalleryItemTapped?(.photo, indexPath.item)
@@ -3658,7 +3640,7 @@ extension PublicProfileScreenNode {
 extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         if collectionView == similarProfilesCollectionView {
-            return CGSize(width: 166, height: 200)
+            return CGSize(width: 133, height: 145)
         } else if collectionView == galleryCollectionView || collectionView == videoGalleryCollectionView {
             guard let (layout, _) = self.containerLayout else { return .zero }
             let totalSpacing: CGFloat = 2
