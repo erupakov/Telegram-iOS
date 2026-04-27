@@ -9,11 +9,6 @@ import Foundation
 import DivoCore
 import DivoUIKit
 
-struct FilterOptionAppearanceItem {
-    let id: Int
-    let title: String
-}
-
 struct SearchFilterState: Equatable {
     var roleIds: [String] = []
     var roleTitles: [String] = []

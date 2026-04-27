@@ -67,6 +67,8 @@ public enum DivoDesignTokens {
         public static let alphaOnClear: CGFloat = 0.4
         /// 0.95 — единый scale-коэффициент при нажатии для всех кнопок.
         public static let scale: CGFloat = 0.95
+        /// 0.98 — scale при нажатии для ячеек списков (сабтильнее, чем у кнопок, — рядом стоящие строки не прыгают).
+        public static let scaleListRow: CGFloat = 0.98
         /// 0.1s — длительность анимации нажатия.
         public static let pressDuration: TimeInterval = 0.1
         /// 0.2s — длительность анимации отпускания.

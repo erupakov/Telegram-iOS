@@ -1,31 +1,11 @@
-//
-//  SearchResultGridCell.swift
-//  divo-ios
-//
-//  Created by Michail Shagovitov on 06.04.2026.
-//
-
 import UIKit
 import Display
 import DivoCore
-import DivoUIKit
 
-struct FullSearchItem {
-    let id = UUID()
-    let name: String
-    let age: Int
-    let countryFlag: String
-    let countryCode: String
-    let role: String
-    let likesCount: String
-    let imageName: String
-}
-
-/// View model универсальной карточки результата (search + face search).
 public struct SearchCardViewModel {
     public enum Variant {
         case search
-        case faceMatch(percent: Double) // 0...1
+        case faceMatch(percent: Double)
     }
 
     public let variant: Variant
@@ -64,15 +44,16 @@ public struct SearchCardViewModel {
     }
 }
 
-final class SearchResultGridCell: UICollectionViewCell {
-    
+public final class SearchResultGridCell: UICollectionViewCell {
+
     private let backgroundImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
-    
+
     private let progressiveBlurView: UIVisualEffectView = {
         let blurEffect = UIBlurEffect(style: .light)
         let blurView = UIVisualEffectView(effect: blurEffect)
@@ -80,11 +61,11 @@ final class SearchResultGridCell: UICollectionViewCell {
         blurView.translatesAutoresizingMaskIntoConstraints = false
         return blurView
     }()
-    
+
     private var progressiveBlurTopConstraint: NSLayoutConstraint?
     private var gradientLayer: CAGradientLayer?
     private var isBlurConfigured = false
-    
+
     private let roleContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.roleBadgeBlue
@@ -134,7 +115,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
+
     private let actionsContainer: UIVisualEffectView = {
         let ve = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
         ve.layer.cornerRadius = DivoDesignTokens.Radius.m
@@ -142,7 +123,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         ve.translatesAutoresizingMaskIntoConstraints = false
         return ve
     }()
-    
+
     private let shareIcon: UIImageView = {
         let iv = UIImageView()
         iv.image = UIImage(systemName: "square.and.arrow.up")
@@ -159,7 +140,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
-    
+
     private let likesContainer: UIVisualEffectView = {
         let ve = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
         ve.layer.cornerRadius = DivoDesignTokens.Radius.m
@@ -167,13 +148,13 @@ final class SearchResultGridCell: UICollectionViewCell {
         ve.translatesAutoresizingMaskIntoConstraints = false
         return ve
     }()
-    
+
     private let heartIcon: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFit
         return iv
     }()
-    
+
     private let likesLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(10)
@@ -206,24 +187,24 @@ final class SearchResultGridCell: UICollectionViewCell {
     private var currentIsSaved: Bool = false
     private var currentLikesCount: Int = 0
 
-    var onLikeTapped: ((Int, Bool) -> Void)?
-    var onSaveTapped: ((Int, Bool) -> Void)?
-    var onShareTapped: (() -> Void)?
+    public var onLikeTapped: ((Int, Bool) -> Void)?
+    public var onSaveTapped: ((Int, Bool) -> Void)?
+    public var onShareTapped: (() -> Void)?
 
-    var coverImage: UIImage? {
+    public var coverImage: UIImage? {
         backgroundImageView.image
     }
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         setupUI()
     }
-    
-    required init?(coder: NSCoder) {
+
+    required public init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    override var isHighlighted: Bool {
+
+    override public var isHighlighted: Bool {
         didSet {
             UIView.animate(withDuration: isHighlighted ? 0.25 : 0.4, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
                 self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.96, y: 0.96) : .identity
@@ -231,19 +212,19 @@ final class SearchResultGridCell: UICollectionViewCell {
         }
     }
 
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
-        
+
         let blurStartPosition = bounds.height * 0.65
         progressiveBlurTopConstraint?.constant = blurStartPosition
-        
+
         if let gradientLayer = gradientLayer {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             gradientLayer.frame = progressiveBlurView.bounds
             CATransaction.commit()
         }
-        
+
         let buttonSize = actionsContainer.bounds.height
         if buttonSize > 0 {
             actionsContainer.layer.cornerRadius = buttonSize / 2
@@ -253,34 +234,34 @@ final class SearchResultGridCell: UICollectionViewCell {
 
     private func animateBlurAppearance() {
         layoutIfNeeded()
-        
+
         guard progressiveBlurView.alpha < 0.1 else { return }
-        
+
         if let gradient = gradientLayer {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             gradient.frame = progressiveBlurView.bounds
             CATransaction.commit()
         }
-        
+
         UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseOut]) {
             self.progressiveBlurView.alpha = 1.0
         }
     }
-    
+
     private func setupUI() {
         contentView.layer.cornerRadius = DivoDesignTokens.Radius.l
         contentView.clipsToBounds = true
-        
+
         contentView.addSubview(backgroundImageView)
-        
+
         progressiveBlurView.alpha = 0.8
         progressiveBlurView.translatesAutoresizingMaskIntoConstraints = false
-        
+
         contentView.addSubview(progressiveBlurView)
-        
+
         setupProgressiveBlurWithGradient()
-        
+
         contentView.addSubview(roleContainer)
         roleContainer.addSubview(roleLabel)
 
@@ -291,21 +272,21 @@ final class SearchResultGridCell: UICollectionViewCell {
         bottomRoleContainer.addSubview(bottomRoleLabel)
 
         contentView.addSubview(actionsContainer)
-        
+
         actionsContainer.contentView.addSubview(shareIcon)
         actionsContainer.contentView.addSubview(bookmarkIcon)
-        
+
         contentView.addSubview(likesContainer)
-        
+
         heartIcon.image = DivoImage.statLike.withRenderingMode(.alwaysTemplate)
         heartIcon.tintColor = DivoColorPalette.primaryTextOnDark
         heartIcon.translatesAutoresizingMaskIntoConstraints = false
         likesContainer.contentView.addSubview(heartIcon)
         likesContainer.contentView.addSubview(likesLabel)
-        
+
         contentView.addSubview(nameLabel)
         contentView.addSubview(infoLabel)
-        
+
         setupConstraints()
 
         let likeTap = UITapGestureRecognizer(target: self, action: #selector(likeTapped))
@@ -319,22 +300,22 @@ final class SearchResultGridCell: UICollectionViewCell {
         let shareTap = UITapGestureRecognizer(target: self, action: #selector(shareTapped))
         shareIcon.addGestureRecognizer(shareTap)
     }
-    
+
     private func setupConstraints() {
-        
+
         progressiveBlurTopConstraint = progressiveBlurView.topAnchor.constraint(equalTo: contentView.topAnchor)
         progressiveBlurTopConstraint?.isActive = true
-        
+
         NSLayoutConstraint.activate([
             backgroundImageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             backgroundImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             backgroundImageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
             backgroundImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
-            
+
             progressiveBlurView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             progressiveBlurView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
             progressiveBlurView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            
+
             roleContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             roleContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 9),
             roleContainer.heightAnchor.constraint(equalToConstant: 24),
@@ -350,12 +331,12 @@ final class SearchResultGridCell: UICollectionViewCell {
             matchPercentLabel.leadingAnchor.constraint(equalTo: matchPercentContainer.leadingAnchor, constant: 8),
             matchPercentLabel.trailingAnchor.constraint(equalTo: matchPercentContainer.trailingAnchor, constant: -8),
             matchPercentLabel.centerYAnchor.constraint(equalTo: matchPercentContainer.centerYAnchor),
-            
+
             actionsContainer.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             actionsContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -9),
             actionsContainer.heightAnchor.constraint(equalToConstant: 24),
             actionsContainer.widthAnchor.constraint(equalToConstant: 54),
-            
+
             shareIcon.leadingAnchor.constraint(equalTo: actionsContainer.contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
             shareIcon.centerYAnchor.constraint(equalTo: actionsContainer.centerYAnchor),
             shareIcon.widthAnchor.constraint(equalToConstant: 16),
@@ -365,24 +346,24 @@ final class SearchResultGridCell: UICollectionViewCell {
             bookmarkIcon.centerYAnchor.constraint(equalTo: actionsContainer.centerYAnchor),
             bookmarkIcon.widthAnchor.constraint(equalToConstant: 16),
             bookmarkIcon.heightAnchor.constraint(equalToConstant: 16),
-            
+
             likesContainer.topAnchor.constraint(equalTo: actionsContainer.bottomAnchor, constant: 12),
             likesContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -9),
             likesContainer.heightAnchor.constraint(equalToConstant: 24),
-            
+
             heartIcon.leadingAnchor.constraint(equalTo: likesContainer.contentView.leadingAnchor, constant: 6),
             heartIcon.centerYAnchor.constraint(equalTo: likesContainer.centerYAnchor),
             heartIcon.widthAnchor.constraint(equalToConstant: 16),
             heartIcon.heightAnchor.constraint(equalToConstant: 16),
-            
+
             likesLabel.leadingAnchor.constraint(equalTo: heartIcon.trailingAnchor, constant: 4),
             likesLabel.trailingAnchor.constraint(equalTo: likesContainer.contentView.trailingAnchor, constant: -6),
             likesLabel.centerYAnchor.constraint(equalTo: likesContainer.centerYAnchor),
-            
+
             infoLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
             infoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             infoLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
-            
+
             nameLabel.bottomAnchor.constraint(equalTo: infoLabel.topAnchor, constant: -4),
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
@@ -396,8 +377,8 @@ final class SearchResultGridCell: UICollectionViewCell {
             bottomRoleLabel.centerYAnchor.constraint(equalTo: bottomRoleContainer.centerYAnchor)
         ])
     }
-    
-    func configure(with item: SearchUserDTO, county: String?) {
+
+    public func configure(with item: SearchUserDTO, county: String?) {
         let infoText: String?
         if let age = item.user?.age, let county = county {
             infoText = DivoStrings.ageString(age) + " • " + county
@@ -424,7 +405,7 @@ final class SearchResultGridCell: UICollectionViewCell {
         configure(with: viewModel)
     }
 
-    func configure(with viewModel: SearchCardViewModel) {
+    public func configure(with viewModel: SearchCardViewModel) {
         resetBlurState()
 
         setNeedsLayout()
@@ -467,8 +448,8 @@ final class SearchResultGridCell: UICollectionViewCell {
 
         case .faceMatch(let percent):
             roleContainer.isHidden = true
-            actionsContainer.isHidden = true
-            likesContainer.isHidden = true
+            actionsContainer.isHidden = false
+            likesContainer.isHidden = false
 
             let percentInt = Int((percent * 100).rounded())
             let isHighMatch = percentInt >= 90
@@ -487,22 +468,22 @@ final class SearchResultGridCell: UICollectionViewCell {
             bottomRoleContainer.isHidden = (role == nil)
         }
     }
-    
+
     private func resetBlurState() {
         progressiveBlurView.alpha = 0.0
-        
+
         progressiveBlurTopConstraint?.constant = 0
-        
+
         if let gradient = gradientLayer {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             gradient.frame = .zero
             CATransaction.commit()
         }
-        
+
         layoutIfNeeded()
     }
-    
+
     private func formatLikes(_ count: Int) -> String {
         if count >= 1000 {
             return String(format: "%.1fK", Double(count) / 1000.0)
@@ -546,7 +527,7 @@ final class SearchResultGridCell: UICollectionViewCell {
 
     // MARK: - Rollback
 
-    func rollbackLike(isLiked: Bool, likesCount: Int) {
+    public func rollbackLike(isLiked: Bool, likesCount: Int) {
         currentIsLiked = isLiked
         currentLikesCount = likesCount
         updateLikeVisual()
@@ -554,13 +535,13 @@ final class SearchResultGridCell: UICollectionViewCell {
         heartIcon.divoPopAnimate()
     }
 
-    func rollbackSave(isSaved: Bool) {
+    public func rollbackSave(isSaved: Bool) {
         currentIsSaved = isSaved
         updateSaveVisual()
         bookmarkIcon.divoPopAnimate()
     }
 
-    override func prepareForReuse() {
+    override public func prepareForReuse() {
         super.prepareForReuse()
 
         backgroundImageView.cancelImageLoad()
@@ -574,7 +555,7 @@ final class SearchResultGridCell: UICollectionViewCell {
 
         resetBlurState()
     }
-    
+
     private func setupProgressiveBlurWithGradient() {
         // Градиент используется как alpha-маска progressiveBlurView (.clear → opaque),
         // цвет не виден на UI, поэтому DivoColorPalette здесь неприменим.
@@ -585,13 +566,13 @@ final class SearchResultGridCell: UICollectionViewCell {
             UIColor.white.cgColor
         ]
         gradient.locations = [0.0, 0.3, 1.0]
-        
+
         gradient.actions = [
             "bounds": NSNull(),
             "position": NSNull(),
             "frame": NSNull()
         ]
-        
+
         progressiveBlurView.layer.mask = gradient
         gradientLayer = gradient
     }

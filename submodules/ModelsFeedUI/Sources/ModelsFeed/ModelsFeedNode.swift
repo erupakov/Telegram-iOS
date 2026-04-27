@@ -13,48 +13,18 @@ import AccountContext
 import AppBundle
 
 final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, CardCellDelegate {
-    private final class PaginationShimmerCell: UICollectionViewCell {
-        private let cardShimmer = ShimmerView()
-        private let nameLine = ShimmerView()
-        private let badgeLine = ShimmerView()
-        private let stat1 = ShimmerView()
-        private let stat2 = ShimmerView()
-        private let stat3 = ShimmerView()
-        private let preview1 = ShimmerView()
-        private let preview2 = ShimmerView()
-        private let preview3 = ShimmerView()
-        private let preview4 = ShimmerView()
-
-        private var allShimmers: [ShimmerView] {
-            [cardShimmer, nameLine, badgeLine, stat1, stat2, stat3, preview1, preview2, preview3, preview4]
-        }
+    private final class PaginationSpinnerCell: UICollectionViewCell {
+        private let spinner: UIActivityIndicatorView = {
+            let s = UIActivityIndicatorView(style: .medium)
+            s.color = .black
+            s.hidesWhenStopped = true
+            return s
+        }()
 
         override init(frame: CGRect) {
             super.init(frame: frame)
-            backgroundColor = .white
-            layer.cornerRadius = 32 // TODO: DS alignment — не в шкале Radius
-            layer.masksToBounds = true
-
-            cardShimmer.layer.cornerRadius = 0
-            addSubview(cardShimmer)
-
-            for line in [nameLine, badgeLine] {
-                line.layer.cornerRadius = 6 // TODO: DS alignment — не в шкале Radius
-                line.layer.masksToBounds = true
-                addSubview(line)
-            }
-
-            for stat in [stat1, stat2, stat3] {
-                stat.layer.cornerRadius = 14 // TODO: DS alignment — не в шкале Radius
-                stat.layer.masksToBounds = true
-                addSubview(stat)
-            }
-
-            for pv in [preview1, preview2, preview3, preview4] {
-                pv.layer.cornerRadius = DivoDesignTokens.Radius.s
-                pv.layer.masksToBounds = true
-                addSubview(pv)
-            }
+            backgroundColor = .clear
+            addSubview(spinner)
         }
 
         required init?(coder: NSCoder) {
@@ -63,69 +33,16 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         override func layoutSubviews() {
             super.layoutSubviews()
-            let w = bounds.width
-            let h = bounds.height
-            cardShimmer.frame = bounds
+            spinner.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        }
 
-            // Name + badge (top-left)
-            nameLine.frame = CGRect(x: 15, y: 15, width: w * 0.5, height: 22)
-            badgeLine.frame = CGRect(x: 15, y: 45, width: w * 0.35, height: 18)
-
-            // Stats (top-right)
-            let statX = w - 15 - 70
-            stat1.frame = CGRect(x: statX, y: 15, width: 70, height: 28)
-            stat2.frame = CGRect(x: statX, y: 51, width: 70, height: 28)
-            stat3.frame = CGRect(x: statX, y: 87, width: 70, height: 28)
-
-            // Previews (bottom)
-            let pvY = h - 15 - 100
-            let pvSize: CGFloat = 100
-            let pvSpacing: CGFloat = 5
-            preview1.frame = CGRect(x: 15, y: pvY, width: pvSize, height: pvSize)
-            preview2.frame = CGRect(x: 15 + pvSize + pvSpacing, y: pvY, width: pvSize, height: pvSize)
-            preview3.frame = CGRect(x: 15 + (pvSize + pvSpacing) * 2, y: pvY, width: pvSize, height: pvSize)
-            preview4.frame = CGRect(x: 15 + (pvSize + pvSpacing) * 3, y: pvY, width: pvSize, height: pvSize)
+        func startAnimating() {
+            spinner.startAnimating()
         }
 
         override func prepareForReuse() {
             super.prepareForReuse()
-            allShimmers.forEach { $0.stopShimmer() }
-        }
-
-        func setLoading(_ isLoading: Bool) {
-            allShimmers.forEach { isLoading ? $0.startShimmer() : $0.stopShimmer() }
-        }
-    }
-
-    private final class PaginationRetryCell: UICollectionViewCell {
-        private let retryButton: UIButton = {
-            let button = UIButton(type: .system)
-            let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
-            button.setImage(UIImage(systemName: "arrow.clockwise", withConfiguration: config), for: .normal)
-            button.tintColor = DivoColorPalette.feedNavIcon
-            return button
-        }()
-
-        var onRetry: (() -> Void)?
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            backgroundColor = .white
-            addSubview(retryButton)
-            retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
-        }
-
-        required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
-
-        @objc private func retryTapped() {
-            onRetry?()
-        }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            retryButton.frame = CGRect(x: (bounds.width - 50) / 2, y: (bounds.height - 50) / 2, width: 50, height: 50)
+            spinner.stopAnimating()
         }
     }
 
@@ -185,33 +102,19 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private lazy var segmentedControl = DivoSegmentedControl(titles: tabTitles)
 
     private var loadingPlaceholderView: UIView?
-    private var spinnerLoadingView: UIView?
     private var errorView: UIView?
+    private var errorIconCenterYConstraint: NSLayoutConstraint?
+    private var errorRetryBottomConstraint: NSLayoutConstraint?
     private var emptyStateView: UIView?
 
     var showNetworkError: Bool = false {
         didSet {
             if showNetworkError && cards.isEmpty {
-                showLoadingPlaceholder()
-                showSnackbar(
-                    message: DivoStrings.serverUnavailable,
-                    style: .error,
-                    retryAction: { [weak self] in
-                        self?.onRetry?()
-                    },
-                    persistent: true
-                )
-            } else {
                 hideLoadingPlaceholder()
-                hideSnackbar(animated: true)
+                showErrorState()
+            } else {
+                hideErrorState()
             }
-        }
-    }
-
-    var hasPaginationError: Bool = false {
-        didSet {
-            guard oldValue != hasPaginationError else { return }
-            mainCollectionView.reloadData()
         }
     }
 
@@ -225,20 +128,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     var isLoading: Bool = false {
         didSet {
             if isLoading && cards.isEmpty {
-                showSpinnerLoading()
+                showLoadingPlaceholder()
                 hideEmptyState()
+                hideErrorState()
             } else {
-                hideSpinnerLoading()
-            }
-        }
-    }
-
-    var isSpinnerLoading: Bool = false {
-        didSet {
-            if isSpinnerLoading {
-                showSpinnerLoading()
-            } else {
-                hideSpinnerLoading()
+                hideLoadingPlaceholder()
             }
         }
     }
@@ -323,8 +217,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.mainCollectionView.showsVerticalScrollIndicator = false
 
         self.mainCollectionView.register(CardCollectionViewCell.self, forCellWithReuseIdentifier: "CardCell")
-        self.mainCollectionView.register(PaginationShimmerCell.self, forCellWithReuseIdentifier: "PaginationShimmerCell")
-        self.mainCollectionView.register(PaginationRetryCell.self, forCellWithReuseIdentifier: "PaginationRetryCell")
+        self.mainCollectionView.register(PaginationSpinnerCell.self, forCellWithReuseIdentifier: "PaginationSpinnerCell")
 
         self.titleLabel.text = DivoStrings.navModels
 
@@ -371,9 +264,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         segmentedControl.onTabSelected = { [weak self] index in
             guard let self = self else { return }
             self.selectedTabIndex = index
-            if let label = self.spinnerLoadingView?.viewWithTag(201) as? UILabel {
-                label.text = self.loadingTextForCurrentTab()
-            }
             self.hideEmptyState()
             self.onTabSelected?(index)
         }
@@ -447,7 +337,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         updateHeaderLayout()
         layoutLoadingPlaceholder()
-        layoutSpinnerLoading()
+        layoutErrorState()
         snackbar.updateBottomInset(layout.intrinsicInsets.bottom + 16)
     }
 
@@ -588,7 +478,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         if collectionView === storiesCollectionView {
             return stories.count
         } else if collectionView === mainCollectionView {
-            let extra = isPaginating || hasPaginationError ? 1 : 0
+            let extra = isPaginating ? 1 : 0
             return cards.count + extra
         }
         return 0
@@ -605,21 +495,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         } else if collectionView === mainCollectionView {
             if indexPath.item == cards.count {
-                if hasPaginationError {
-                    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationRetryCell", for: indexPath) as? PaginationRetryCell else {
-                        fatalError("Unable to dequeue PaginationRetryCell")
-                    }
-                    cell.onRetry = { [weak self] in
-                        self?.loadMore?()
-                    }
-                    return cell
-                } else {
-                    guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationShimmerCell", for: indexPath) as? PaginationShimmerCell else {
-                        fatalError("Unable to dequeue PaginationShimmerCell")
-                    }
-                    cell.setLoading(true)
-                    return cell
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationSpinnerCell", for: indexPath) as? PaginationSpinnerCell else {
+                    fatalError("Unable to dequeue PaginationSpinnerCell")
                 }
+                cell.startAnimating()
+                return cell
             }
 
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CardCell", for: indexPath) as? CardCollectionViewCell else {
@@ -641,6 +521,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             return CGSize(width: 70, height: 90)
 
         } else if collectionView === mainCollectionView {
+            if isPaginating && indexPath.item == cards.count {
+                if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
+                    return CGSize(width: flowLayout.itemSize.width, height: 60)
+                }
+            }
             if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
                 return flowLayout.itemSize
             }
@@ -848,68 +733,119 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         loadingPlaceholderView = nil
     }
 
-    // MARK: - Spinner Loading
+    // MARK: - Error State
 
-    private func loadingTextForCurrentTab() -> String {
-        switch selectedTabIndex {
-        case 1: return DivoStrings.loadingTalentsList
-        case 2: return DivoStrings.loadingAgenciesList
-        default: return DivoStrings.loadingModelsList
-        }
-    }
-
-    private func showSpinnerLoading() {
-        guard spinnerLoadingView == nil else { return }
+    private func showErrorState() {
+        guard errorView == nil else { return }
 
         let container = UIView()
         container.backgroundColor = DivoColorPalette.screenBackground
 
-        let spinnerView = DivoSegmentedSpinner(frame: CGRect(x: 0, y: 0, width: 32, height: 32))
-        spinnerView.tag = 200
-        container.addSubview(spinnerView)
+        let iconView = UIImageView(image: DivoImage.faceSearchError)
+        iconView.contentMode = .scaleAspectFit
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(iconView)
 
-        let label = UILabel()
-        label.text = loadingTextForCurrentTab()
-        label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 13) ?? UIFont.systemFont(ofSize: 13, weight: .bold)
-        label.textColor = DivoColorPalette.feedTitleText
-        label.textAlignment = .center
-        label.tag = 201
-        container.addSubview(label)
+        let titleLabel = UILabel()
+        titleLabel.text = DivoStrings.feedLoadErrorTitle.uppercased()
+        titleLabel.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? Font.bold(20)
+        titleLabel.textColor = DivoColorPalette.primaryText
+        titleLabel.textAlignment = .center
+        titleLabel.numberOfLines = 0
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = DivoStrings.feedLoadErrorSubtitle
+        subtitleLabel.font = Font.regular(14)
+        subtitleLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        subtitleLabel.textAlignment = .center
+        subtitleLabel.numberOfLines = 0
+        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(subtitleLabel)
+
+        let retryButton = UIButton(type: .custom)
+        retryButton.setTitle(DivoStrings.retry, for: .normal)
+        retryButton.setTitleColor(.white, for: .normal)
+        retryButton.titleLabel?.font = Font.helveticaNeue(20)
+        retryButton.backgroundColor = DivoColorPalette.accent
+        retryButton.layer.cornerRadius = 28
+        retryButton.addDivoPressState(.primary)
+        retryButton.addTarget(self, action: #selector(errorRetryTapped), for: .touchUpInside)
+        retryButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(retryButton)
+
+        let iconCenterY = iconView.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -60)
+        let retryBottom = retryButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
+
+        NSLayoutConstraint.activate([
+            iconView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            iconCenterY,
+
+            titleLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 16),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
+
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
+            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
+            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
+
+            retryButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
+            retryButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
+            retryButton.heightAnchor.constraint(equalToConstant: 56),
+            retryBottom
+        ])
+
+        errorIconCenterYConstraint = iconCenterY
+        errorRetryBottomConstraint = retryBottom
 
         self.view.addSubview(container)
-        spinnerLoadingView = container
+        errorView = container
 
-        layoutSpinnerLoading()
+        layoutErrorState()
 
-        spinnerView.startAnimating()
+        container.alpha = 0
+        UIView.animate(withDuration: 0.3) { container.alpha = 1 }
     }
 
-    private func hideSpinnerLoading() {
-        guard let spinner = spinnerLoadingView else { return }
-        UIView.animate(withDuration: 0.25, animations: {
-            spinner.alpha = 0
+    private func hideErrorState() {
+        guard let error = errorView else { return }
+        errorView = nil
+        errorIconCenterYConstraint = nil
+        errorRetryBottomConstraint = nil
+        UIView.animate(withDuration: 0.2, animations: {
+            error.alpha = 0
         }, completion: { _ in
-            (spinner.viewWithTag(200) as? DivoSegmentedSpinner)?.stopAnimating()
-            spinner.removeFromSuperview()
+            error.removeFromSuperview()
         })
-        spinnerLoadingView = nil
     }
 
-    private func layoutSpinnerLoading() {
-        guard let spinner = spinnerLoadingView,
+    private func layoutErrorState() {
+        guard let error = errorView,
               let (layout, navigationBarHeight) = containerLayout else { return }
         let topOffset = navigationBarHeight + storiesHeight + tabsHeight
-        spinner.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
         let bottomInset = layout.intrinsicInsets.bottom
-        let visibleCenterY = (spinner.bounds.height - bottomInset) / 2.0
-        if let icon = spinner.viewWithTag(200) {
-            icon.bounds = CGRect(x: 0, y: 0, width: 32, height: 32)
-            icon.center = CGPoint(x: spinner.bounds.midX, y: visibleCenterY - 12)
-        }
-        if let label = spinner.viewWithTag(201) as? UILabel {
-            label.sizeToFit()
-            label.frame = CGRect(x: 0, y: visibleCenterY + 24, width: spinner.bounds.width, height: 20)
-        }
+        error.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+
+        errorIconCenterYConstraint?.constant = -(bottomInset / 2) - 60
+        errorRetryBottomConstraint?.constant = -bottomInset - 24
+    }
+
+    @objc private func errorRetryTapped() {
+        onRetry?()
+    }
+
+    func showPaginationError() {
+        isPaginating = false
+        showSnackbar(
+            message: DivoStrings.feedPaginationError,
+            style: .error,
+            retryAction: { [weak self] in
+                self?.hideSnackbar(animated: true)
+                self?.loadMore?()
+            },
+            persistent: true
+        )
     }
 
 

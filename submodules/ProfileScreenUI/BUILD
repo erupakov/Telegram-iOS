@@ -37,6 +37,7 @@ swift_library(
         "//submodules/TelegramUI/Components/CameraScreen",
         "//submodules/Camera:Camera",
         "//submodules/EventsUI:EventsUI",
+        "//submodules/FaceSearchUI:FaceSearchUI",
         "//submodules/DivoCore:DivoCore",
         "//submodules/DivoUIKit:DivoUIKit",
     ],
