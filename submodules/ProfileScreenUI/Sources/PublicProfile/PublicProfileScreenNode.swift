@@ -644,6 +644,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onGalleryItemTapped: ((ProfileTab, Int) -> Void)?
     var onSocialLinkTapped: ((String) -> Void)?
     var onEventButtonTapped: ((Int) -> Void)?
+    var onEventDeleteButtonTapped: ((Int) -> Void)?
     var onBackTapped: (() -> Void)?
     var onGridShareTapped: ((UserDetail?, UIImage?) -> Void)?
     
@@ -691,7 +692,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
 
-    private let emptyModelsPlaceholderNode: EmptyModelsPlaceholderNode
+    private let emptyModelsPlaceholderView = EmptyEntityPlaceholderView(title: DivoStrings.emptyTitleAddModel, subtitle: DivoStrings.emptySubTitleAddModel, buttonTitle: DivoStrings.addModel)
+    private let emptyEventsPlaceholderView = EmptyEntityPlaceholderView(title: DivoStrings.emptyTitleAddEvent, subtitle: DivoStrings.emptySubTitleAddEvent, buttonTitle: DivoStrings.addEvent)
 
     // MARK: - NavigationBar
     
@@ -847,7 +849,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.context = context
         self.presentationData = presentationData
         self.model = model
-        self.emptyModelsPlaceholderNode = EmptyModelsPlaceholderNode(theme: presentationData.theme)
 
         super.init()
         
@@ -1597,8 +1598,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         modelTabContainer.addSubview(modelGalleryStatusView)
         modelTabContainer.addSubview(modelGalleryCollectionView)
 
-        emptyModelsPlaceholderNode.view.translatesAutoresizingMaskIntoConstraints = false
-        modelTabContainer.addSubview(emptyModelsPlaceholderNode.view)
+        emptyModelsPlaceholderView.translatesAutoresizingMaskIntoConstraints = false
+        modelTabContainer.addSubview(emptyModelsPlaceholderView)
 
         NSLayoutConstraint.activate([
             modelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
@@ -1610,17 +1611,19 @@ final class PublicProfileScreenNode: ASDisplayNode {
             modelGalleryCollectionView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
             modelGalleryCollectionView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
 
-            emptyModelsPlaceholderNode.view.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
-            emptyModelsPlaceholderNode.view.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
-            emptyModelsPlaceholderNode.view.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
-            emptyModelsPlaceholderNode.view.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
+            emptyModelsPlaceholderView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
+            emptyModelsPlaceholderView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
+            emptyModelsPlaceholderView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
+            emptyModelsPlaceholderView.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
         ])
         modelGalleryCollectionView.isHidden = true
-        emptyModelsPlaceholderNode.isHidden = true
+        emptyModelsPlaceholderView.isHidden = true
         modelGalleryStatusView.isHidden = false
         modelGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingModels, isMyProfile: false)
         
-        emptyModelsPlaceholderNode.addButton.addTarget(self, action: #selector(addModelBtnTapped), forControlEvents: .touchUpInside)
+        emptyModelsPlaceholderView.openAddEntity = { [weak self] in
+            self?.onAddModelTapped?()
+        }
 
         // --- EVENTS ---
         // ЗАМЕНА: Сохраняем констрейнт высоты
@@ -1629,6 +1632,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         eventTabContainer.addSubview(eventGalleryStatusView)
         eventTabContainer.addSubview(eventGalleryCollectionView)
+        
+        emptyEventsPlaceholderView.translatesAutoresizingMaskIntoConstraints = false
+        eventTabContainer.addSubview(emptyEventsPlaceholderView)
+        
         NSLayoutConstraint.activate([
             eventGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             eventGalleryStatusView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
@@ -1637,12 +1644,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             eventGalleryCollectionView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
             eventGalleryCollectionView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
-            eventGalleryCollectionView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor)
+            eventGalleryCollectionView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
+            
+            emptyEventsPlaceholderView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
+            emptyEventsPlaceholderView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
+            emptyEventsPlaceholderView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
+            emptyEventsPlaceholderView.bottomAnchor.constraint(equalTo: eventTabContainer.bottomAnchor),
         ])
         eventGalleryCollectionView.isHidden = true
+        emptyEventsPlaceholderView.isHidden = true
         eventGalleryStatusView.isHidden = false
         eventGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingEvents, isMyProfile: false)
-        eventGalleryStatusView.addTarget(self, action: #selector(eventGalleryStatusTapped), for: .touchUpInside)
+        
+        emptyEventsPlaceholderView.openAddEntity = { [weak self] in
+            self?.onAddEventTapped?()
+        }
     }
     
     private func setupSimilarProfiles() {
@@ -3081,7 +3097,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Обновление галереи моделей
-    func updateModelsList(_ items:[ModelItem]) {
+    func updateModelsList(_ items: [ModelItem]) {
         self.modelGalleryItems = items
         let hasItems = !items.isEmpty
         
@@ -3089,12 +3105,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if !hasItems && model.isMyProfile && modelRole == .agency {
             self.modelGalleryStatusView.isHidden = true
-            self.emptyModelsPlaceholderNode.isHidden = false
+            self.emptyModelsPlaceholderView.isHidden = false
         } else {
-            self.emptyModelsPlaceholderNode.isHidden = true
+            self.emptyModelsPlaceholderView.isHidden = true
             self.modelGalleryStatusView.isHidden = hasItems
             if !hasItems {
-                self.modelGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? "Add model" : "No models yet", isMyProfile: model.isMyProfile)
+                self.modelGalleryStatusView.configure(isLoading: false, text: DivoStrings.noModelsYet, isMyProfile: model.isMyProfile)
             }
         }
         
@@ -3146,14 +3162,32 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let hasItems = !items.isEmpty
         self.eventGalleryStatusView.isHidden = hasItems
         self.eventGalleryCollectionView.isHidden = !hasItems
-        if !hasItems {
-            self.eventGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? DivoStrings.addEvent : DivoStrings.noEventsYet, isMyProfile: model.isMyProfile)
+        if !hasItems && model.isMyProfile && modelRole == .agency {
+            self.eventGalleryStatusView.isHidden = true
+            self.emptyEventsPlaceholderView.isHidden = false
+        } else {
+            self.emptyEventsPlaceholderView.isHidden = true
+            self.eventGalleryStatusView.isHidden = hasItems
+            if !hasItems {
+                self.eventGalleryStatusView.configure(isLoading: false, text: DivoStrings.noEventsYet, isMyProfile: model.isMyProfile)
+            }
         }
+
         self.eventGalleryCollectionView.reloadData()
         
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            if self.currentTab == .events { self.updateCollectionsContainerHeight(animated: true) }
+            if self.currentTab == .events {
+                self.updateCollectionsContainerHeight(animated: true)
+
+                if !hasItems && model.isMyProfile && modelRole == .agency {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                        guard let self = self else { return }
+                        let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
+                        self.scrollView.setContentOffset(bottomOffset, animated: true)
+                    }
+                }
+            }
         }
     }
     
@@ -3590,9 +3624,15 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
             }
             let item = eventGalleryItems[indexPath.item]
             cell.configure(with: item, context: self.context, isMyProfile: self.model.isMyProfile)
-            cell.onButtonTap = { [weak self] eventId in
+            cell.onEditTapped = { [weak self] eventId in
                 if let eventId = eventId {
                     self?.onEventButtonTapped?(eventId)
+                }
+            }
+
+            cell.onDeleteTapped = { [weak self] eventId in
+                if let eventId = eventId {
+                    self?.onEventDeleteButtonTapped?(eventId)
                 }
             }
             return cell

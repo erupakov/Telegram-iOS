@@ -94,6 +94,12 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private var isUploadFromFAB: Bool = false
 
     private var similarProfilesIsLoading: Bool = false
+
+    private struct EngagementTotals {
+        let likes: Int
+        let views: Int
+        let saves: Int
+    }
     
     public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
@@ -270,6 +276,12 @@ public final class PublicProfileScreenController: TelegramBaseController {
             }
         }
 
+        self.controllerNode.onEventDeleteButtonTapped = { [weak self] eventId in
+            if self?.isMyProfile == true {
+                self?.deleteEvent(eventId: eventId)
+            }
+        }
+
         self.controllerNode.onSocialLinkTapped = { [weak self] url in
             self?.openSocialLink(url)
         }
@@ -394,7 +406,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
             await MainActor.run {
                 guard let detail = profile else {
                     self.profileLoaded = false
-                    self.showErrorAlert("Failed to load profile. Please try again.")
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.serverUnavailable,
+                        style: .error
+                    )
                     return
                 }
                 self.userDetailModel = detail
@@ -411,12 +426,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 }
             }
         }
-    }
-
-    private struct EngagementTotals {
-        let likes: Int
-        let views: Int
-        let saves: Int
     }
 
     private func fetchUserProfile() async -> UserDetail? {
@@ -472,16 +481,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         guard !galleryLoaded else { return }
         galleryLoaded = true
         controllerNode.resetGalleryPagination()
-    }
-    
-    @objc func moreMenu() {
-
-    }
-
-    func showErrorAlert(_ message: String) {
-        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        self.present(alert, animated: true)
     }
 
     private static func userFacingMessage(from error: Error) -> String {
@@ -837,6 +836,27 @@ extension PublicProfileScreenController {
                 }
             }
             return results
+        }
+    }
+
+    private func deleteEvent(eventId: Int) {
+        Task {
+            do {
+                let _: DeleteEventResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)",
+                    method: "DELETE"
+                )
+            } catch {
+                await MainActor.run {
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.failedToDelete,
+                        style: .error
+                    )
+                }
+                return
+            }
+            
+            loadEvents()
         }
     }
     

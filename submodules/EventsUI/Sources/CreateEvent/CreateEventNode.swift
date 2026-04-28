@@ -1244,6 +1244,7 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
             paymentType: 1,
             paymentFrequency: 1,
             cost: "0",
+            measuringSystem: "metric",
             role: ["model"],
             gender: genders,
             age: ageRange,

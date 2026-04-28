@@ -31,6 +31,7 @@ public enum DivoImage {
     public static var emptyAppearanceProfile: UIImage { load("DivoEmptyAppearanceProfile") }
     public static var emptyBioProfile: UIImage { load("DivoEmptyBioProfile") }
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
+    public static var emptyModelsAgency: UIImage { load("DivoEmptyModelsAgency") }
     public static var emptyWorkProfile: UIImage { load("DivoEmptyWorkProfile") }
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
