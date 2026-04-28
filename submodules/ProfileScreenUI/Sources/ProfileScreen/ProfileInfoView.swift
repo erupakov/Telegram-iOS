@@ -306,7 +306,6 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         addExperienceButton.tintColor = DivoColorPalette.primaryTextOnDark
         addExperienceButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
         
-        
         addExperienceButton.addTarget(self, action: #selector(addPressed), for: .touchUpInside)
         
         addBioButton.makeDivoButton(title: DivoStrings.addBioProfile, buttonFont: Font.helveticaNeue(14), radius: 18)
@@ -318,12 +317,10 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         addBioButton.addTarget(self, action: #selector(addBioPressed), for: .touchUpInside)
         
         addAppearanceButton.makeDivoButton(title: DivoStrings.addAppearanceProfile, buttonFont: Font.helveticaNeue(14), radius: 18)
-        if let image = UIImage(bundleImageName: "Components/whitePlus")?.withRenderingMode(.alwaysTemplate) {
-            addAppearanceButton.setImage(image, for: .normal)
-            addAppearanceButton.setImage(image, for: .highlighted)
-            addAppearanceButton.tintColor = DivoColorPalette.primaryTextOnDark
-            addAppearanceButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
-        }
+        addAppearanceButton.setImage(DivoImage.whitePlus.withRenderingMode(.alwaysTemplate), for: .normal)
+        addAppearanceButton.setImage(DivoImage.whitePlus.withRenderingMode(.alwaysTemplate), for: .highlighted)
+        addAppearanceButton.tintColor = DivoColorPalette.primaryTextOnDark
+        addAppearanceButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)   
         
         addAppearanceButton.addTarget(self, action: #selector(addAppearancePressed), for: .touchUpInside)
         
