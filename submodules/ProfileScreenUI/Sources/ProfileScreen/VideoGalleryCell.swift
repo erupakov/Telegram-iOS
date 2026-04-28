@@ -91,7 +91,7 @@ final class VideoGalleryCell: UICollectionViewCell {
 
     private let shimmerContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        view.backgroundColor = DivoColorPalette.imagePlaceholderDark
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()

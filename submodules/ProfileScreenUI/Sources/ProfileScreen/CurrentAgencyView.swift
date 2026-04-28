@@ -17,6 +17,8 @@ protocol CurrentAgencyViewDelegate: AnyObject {
 }
 
 final class CurrentAgencyView: UIView {
+
+    private static let logoSize: CGFloat = 60
     
     weak var delegate: CurrentAgencyViewDelegate?
     
@@ -41,7 +43,7 @@ final class CurrentAgencyView: UIView {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 30
+        iv.layer.cornerRadius = logoSize / 2
         iv.backgroundColor = DivoColorPalette.cardBackground
         iv.layer.borderWidth = 1
         iv.layer.borderColor = DivoColorPalette.borderWorkHistoryImage.cgColor
@@ -118,8 +120,8 @@ final class CurrentAgencyView: UIView {
             
             logoImageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             logoImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            logoImageView.widthAnchor.constraint(equalToConstant: 60),
-            logoImageView.heightAnchor.constraint(equalToConstant: 60),
+            logoImageView.widthAnchor.constraint(equalToConstant: Self.logoSize),
+            logoImageView.heightAnchor.constraint(equalToConstant: Self.logoSize),
             logoImageView.bottomAnchor.constraint(equalTo: seeHistoryButton.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
             
             textStack.leadingAnchor.constraint(equalTo: logoImageView.trailingAnchor, constant: 10),

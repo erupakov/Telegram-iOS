@@ -21,7 +21,9 @@ private struct AppearanceEditItem {
 }
 
 final class EditProfileNode: ASDisplayNode {
-    
+
+    private static let avatarSize: CGFloat = 100
+
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
     private let model: UserDetail?
@@ -202,7 +204,7 @@ final class EditProfileNode: ASDisplayNode {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 50
+        iv.layer.cornerRadius = avatarSize / 2
         iv.layer.borderColor = DivoColorPalette.cardBackground.cgColor
         iv.layer.borderWidth = 1.0
         iv.backgroundColor = DivoColorPalette.cardBackground
@@ -214,7 +216,7 @@ final class EditProfileNode: ASDisplayNode {
     private let avatarImageSpinnerView: UIView = {
         let iv = UIView()
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 50
+        iv.layer.cornerRadius = avatarSize / 2
         iv.backgroundColor = DivoColorPalette.cardBackground
         iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
@@ -642,13 +644,13 @@ final class EditProfileNode: ASDisplayNode {
             
             avatarImageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
             avatarImageView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 100),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 100),
+            avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
 
             avatarImageSpinnerView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
             avatarImageSpinnerView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
-            avatarImageSpinnerView.widthAnchor.constraint(equalToConstant: 100),
-            avatarImageSpinnerView.heightAnchor.constraint(equalToConstant: 100),
+            avatarImageSpinnerView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageSpinnerView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
 
             chancePhotoView.trailingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DivoDesignTokens.Spacing.xs),
             chancePhotoView.bottomAnchor.constraint(equalTo: avatarImageView.bottomAnchor),
@@ -1195,13 +1197,13 @@ final class EditProfileNode: ASDisplayNode {
     }
 
     @objc private func avatarTapped() {
-        print("Change photo")
+        divoLog("[EDIT PROFILE] Change photo tapped")
         self.view.endEditing(true)
         onAvatarTap?()
     }
     
     @objc private func updateAccountPeerName() {
-        print("Save button tapped")
+        divoLog("[EDIT PROFILE] Save button tapped")
     }
     
     @objc private func saveButtonPressed() {

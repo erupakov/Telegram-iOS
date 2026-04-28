@@ -19,6 +19,8 @@ struct EventItem {
 
 final class EventListCell: UICollectionViewCell {
     static let reuseIdentifier = "EventListCell"
+
+    private static let avatarSize: CGFloat = 52
     
     var onEditTapped: ((Int?) -> Void)?
     var onDeleteTapped: ((Int?) -> Void)?
@@ -29,8 +31,8 @@ final class EventListCell: UICollectionViewCell {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 26
-        iv.backgroundColor = UIColor(white: 0.9, alpha: 1.0)
+        iv.layer.cornerRadius = avatarSize / 2
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderLight
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -86,8 +88,8 @@ final class EventListCell: UICollectionViewCell {
         NSLayoutConstraint.activate([
             avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 52),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 52),
+            avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
             
             nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
             nameLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),

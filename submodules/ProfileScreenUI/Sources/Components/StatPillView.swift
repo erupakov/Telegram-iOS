@@ -1,9 +1,12 @@
 import UIKit
+import Display
 import DivoCore
 import DivoUIKit
 
 final class StatPillView: UIControl {
-    
+
+    private static let pillHeight: CGFloat = 30
+
     // MARK: - Actions
     
     var onIconTap: (() -> Void)?
@@ -15,14 +18,14 @@ final class StatPillView: UIControl {
     private let iconView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .center
-        iv.tintColor = .white
+        iv.tintColor = DivoColorPalette.statPillForeground
         return iv
     }()
 
     private let countLabel: UILabel = {
         let label = UILabel()
-        label.textColor = .white
-        label.font = UIFont(name: "HelveticaNeue", size: 12) ?? UIFont.systemFont(ofSize: 12, weight: .regular)
+        label.textColor = DivoColorPalette.statPillForeground
+        label.font = Font.helveticaNeue(12)
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.7
         return label
@@ -39,7 +42,7 @@ final class StatPillView: UIControl {
         super.init(frame: .zero)
         
         backgroundColor = DivoColorPalette.statPillBackground
-        layer.cornerRadius = 15
+        layer.cornerRadius = Self.pillHeight / 2
         layer.masksToBounds = true
         layer.borderWidth = 0.5
         layer.borderColor = DivoColorPalette.statPillBorder.cgColor
@@ -50,7 +53,7 @@ final class StatPillView: UIControl {
         addSubview(countLabel)
 
         translatesAutoresizingMaskIntoConstraints = false
-        heightAnchor.constraint(equalToConstant: 30).isActive = true
+        heightAnchor.constraint(equalToConstant: Self.pillHeight).isActive = true
     }
 
     required init?(coder: NSCoder) {
@@ -67,18 +70,18 @@ final class StatPillView: UIControl {
     func setActive(_ active: Bool, animated: Bool = false) {
         let change = {
             if active {
-                self.backgroundColor = .white
-                self.layer.borderColor = UIColor.white.cgColor
-                self.iconView.tintColor = .black
-                self.countLabel.textColor = .black
+                self.backgroundColor = DivoColorPalette.statPillActiveBackground
+                self.layer.borderColor = DivoColorPalette.statPillActiveBackground.cgColor
+                self.iconView.tintColor = DivoColorPalette.statPillActiveForeground
+                self.countLabel.textColor = DivoColorPalette.statPillActiveForeground
                 if let filled = self.filledIcon {
                     self.iconView.image = filled
                 }
             } else {
                 self.backgroundColor = DivoColorPalette.statPillBackground
                 self.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
-                self.iconView.tintColor = .white
-                self.countLabel.textColor = .white
+                self.iconView.tintColor = DivoColorPalette.statPillForeground
+                self.countLabel.textColor = DivoColorPalette.statPillForeground
                 self.iconView.image = self.normalIcon
             }
         }

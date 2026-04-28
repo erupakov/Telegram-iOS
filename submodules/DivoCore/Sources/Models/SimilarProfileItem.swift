@@ -8,14 +8,14 @@
 import Foundation
 
 public struct SimilarProfileItem {
-    public let id: Int?
+    public let id: Int
     public let name: String?
     public let age: String?
     public let countryCode: String?
     public let countryName: String?
     public let avatarURL: URL?
 
-    public init(id: Int?, name: String?, age: String?, countryCode: String?, countryName: String?, avatarURL: URL?) {
+    public init(id: Int, name: String?, age: String?, countryCode: String?, countryName: String?, avatarURL: URL?) {
         self.id = id
         self.name = name
         self.age = age

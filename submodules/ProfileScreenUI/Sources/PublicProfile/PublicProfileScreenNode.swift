@@ -204,7 +204,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let shareShimmerButton: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.statPillForeground.withAlphaComponent(0.1)
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -223,7 +223,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let dmShimmerButton: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.statPillForeground.withAlphaComponent(0.1)
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -523,7 +523,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         layout.minimumInteritemSpacing = 0
         layout.minimumLineSpacing = 0
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .white
+        collectionView.backgroundColor = DivoColorPalette.cardBackground
         collectionView.register(ChannelListCell.self, forCellWithReuseIdentifier: ChannelListCell.reuseIdentifier)
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -550,7 +550,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         layout.minimumInteritemSpacing = 0
         layout.minimumLineSpacing = 0
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .white
+        collectionView.backgroundColor = DivoColorPalette.cardBackground
         collectionView.register(ModelListCell.self, forCellWithReuseIdentifier: ModelListCell.reuseIdentifier)
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -577,7 +577,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         layout.minimumInteritemSpacing = 0
         layout.minimumLineSpacing = 0
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .white
+        collectionView.backgroundColor = DivoColorPalette.cardBackground
         collectionView.register(EventListCell.self, forCellWithReuseIdentifier: EventListCell.reuseIdentifier)
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -653,7 +653,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onBlockTapped: (() -> Void)?
 
     var onEditProfileTapped: ((Int) -> Void)?
-    var onChangeBackgrounTapped: (() -> Void)?
+    var onChangeBackgroundTapped: (() -> Void)?
     var onEditSocialLinksTapped: (() -> Void)?
     var onManageWorkExperienceTapped: (() -> Void)?
     var onAddModelTapped: (() -> Void)?
@@ -780,10 +780,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private let floatingAddButton: DivoButton = {
         let button = DivoButton()
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOpacity = 0.3
-        button.layer.shadowOffset = CGSize(width: 0, height: 4)
-        button.layer.shadowRadius = DivoDesignTokens.Radius.s
+        button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
         button.isHidden = true
         return button
     }()
@@ -852,7 +849,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         super.init()
         
-        self.view.backgroundColor = .black
+        self.view.backgroundColor = DivoColorPalette.darkBackground
 
         setupContent()
         configureNodes()
@@ -920,7 +917,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     override func didLoad() {
         super.didLoad()
         
-        if model.isMyProfile {
+        if !model.isMyProfile {
             dmButton.addTarget(self, action: #selector(dmButtonTapped), for: .touchUpInside)
         }
     }
@@ -1107,7 +1104,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 title: DivoStrings.changeBackground,
                 image: nil,
             ) { [weak self] _ in
-                self?.onChangeBackgrounTapped?()
+                self?.onChangeBackgroundTapped?()
             }
 
             let editSocialLinksAction = UIAction(
@@ -1124,34 +1121,16 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.onManageWorkExperienceTapped?()
             }
 
-            let addModelAction = UIAction(
-                title: DivoStrings.addModel,
-                image: nil,
-            ) { [weak self] _ in
-                self?.onAddModelTapped?()
-            }
+            guard isMyProfile else { return }
 
-            let createEventAction = UIAction(
-                title: DivoStrings.createEvent,
-                image: nil,
-            ) { [weak self] _ in
-                self?.onCreateEventTapped?()
-            }
-
-            if isMyProfile {
-                if modelRole == .agency {
-                    let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction])
-                    editButton.menu = menu
-                } else {
-                    let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
-                    editButton.menu = menu
-                }
+            if modelRole == .agency {
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction])
+                editButton.menu = menu
             } else {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, addModelAction, createEventAction])
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
                 editButton.menu = menu
             }
-            
-            // editButton.menu = menu
+
             editButton.showsMenuAsPrimaryAction = true
         }
     }
@@ -1841,7 +1820,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let iconImageView: UIImageView = {
             let imageView = UIImageView()
             imageView.image = DivoImage.sendDM
-            imageView.tintColor = .white
+            imageView.tintColor = DivoColorPalette.primaryTextOnDark
             imageView.contentMode = .scaleAspectFit
             imageView.translatesAutoresizingMaskIntoConstraints = false
             imageView.tag = ActionViewTags.dmIcon
@@ -2189,7 +2168,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         // 2. Иконки кнопок (должны быть темными и при сплошном фоне, и при блюре)
         let maxProgress = max(titleAlpha, phase2Progress)
-        let iconColor = UIColor.white.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
+        let iconColor = DivoColorPalette.primaryTextOnDark.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
         closeButton.tintColor = iconColor
         storiesButton.tintColor = iconColor
         editButton.tintColor = iconColor
@@ -2395,7 +2374,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 profileInfoView.openEditBio = { [weak self] in
                     self?.onEditProfileTapped?(0)
                 }
-                profileInfoView.openEditApperance = { [weak self] in
+                profileInfoView.openEditAppearance = { [weak self] in
                     self?.onEditProfileTapped?(1)
                 }
                 profileInfoView.layoutIfNeeded()
@@ -2439,6 +2418,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             contentViewStack.setCustomSpacing(44, after: profileHeaderWrapper)
         }
         
+        // FIXME DIVO: isPremium и isOnline захардкожены — API пока не возвращает эти поля
         UIView.performWithoutAnimation {
             if self.modelRole == .agency {
                 let viewModel = UserProfileViewModel(
@@ -2727,7 +2707,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let controller = self.controller as? PublicProfileScreenController {
             controller.clearGalleryData()
         }
-        print("🔄 [PAGINATION] Reset gallery pagination state")
+        divoLog("[PAGINATION] Reset gallery pagination state")
     }
     
     // Флаг загрузки галереи
@@ -3030,7 +3010,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let controller = self.controller as? PublicProfileScreenController {
             controller.clearGalleryData()
         }
-        print("🔄 [VIDEO] Reset video gallery pagination state")
+        divoLog("[VIDEO] Reset video gallery pagination state")
     }
     
     // Флаг загрузки галереи видео
@@ -3194,7 +3174,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Загрузка высоты галереи событий
     private func updateEventsCollectionViewHeight() {
         let eventCellHeight: CGFloat = 66.0
-        let eventsHeight = CGFloat(modelGalleryItems.count) * eventCellHeight
+        let eventsHeight = CGFloat(eventGalleryItems.count) * eventCellHeight
         
         eventGalleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
         eventGalleryCollectionView.heightAnchor.constraint(equalToConstant: max(eventsHeight, 1.0)).isActive = true
@@ -3444,7 +3424,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     @objc private func dmButtonTapped() {
-        
+        // FIXME DIVO: implement send DM action (open chat with user)
     }
     
     @objc private func handleTouchDown(_ sender: UIControl) {

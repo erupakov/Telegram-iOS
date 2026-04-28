@@ -10,7 +10,9 @@ import DivoCore
 import DivoUIKit
 
 class ProfileHeaderShimmerView: UIView {
-    
+
+    private static let badgeHeight: CGFloat = 22
+
     // MARK: - UI Elements (Placeholders)
     
     private let namePlaceholder: UIView = {
@@ -24,7 +26,7 @@ class ProfileHeaderShimmerView: UIView {
     private let premiumBadgePlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 11
+        view.layer.cornerRadius = badgeHeight / 2
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -32,7 +34,7 @@ class ProfileHeaderShimmerView: UIView {
     private let rolePlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 11
+        view.layer.cornerRadius = badgeHeight / 2
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -40,7 +42,7 @@ class ProfileHeaderShimmerView: UIView {
     private let infoPlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 11
+        view.layer.cornerRadius = badgeHeight / 2
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -80,19 +82,19 @@ class ProfileHeaderShimmerView: UIView {
             premiumBadgePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
             premiumBadgePlaceholder.bottomAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
             premiumBadgePlaceholder.widthAnchor.constraint(equalToConstant: 80),
-            premiumBadgePlaceholder.heightAnchor.constraint(equalToConstant: 22),
+            premiumBadgePlaceholder.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
             premiumBadgePlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             
             rolePlaceholder.topAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: 6),
             rolePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.leadingAnchor),
             rolePlaceholder.widthAnchor.constraint(equalToConstant: 100),
-            rolePlaceholder.heightAnchor.constraint(equalToConstant: 22),
+            rolePlaceholder.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
             rolePlaceholder.bottomAnchor.constraint(equalTo: bottomAnchor),
             
             infoPlaceholder.leadingAnchor.constraint(equalTo: rolePlaceholder.trailingAnchor, constant: 10),
             infoPlaceholder.centerYAnchor.constraint(equalTo: rolePlaceholder.centerYAnchor),
             infoPlaceholder.widthAnchor.constraint(equalToConstant: 140),
-            infoPlaceholder.heightAnchor.constraint(equalToConstant: 22),
+            infoPlaceholder.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
             infoPlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
         ])
     }

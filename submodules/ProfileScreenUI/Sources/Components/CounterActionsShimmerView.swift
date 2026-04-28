@@ -7,6 +7,7 @@
 
 import UIKit
 import DivoCore
+import DivoUIKit
 
 class CounterActionsShimmerView: UIView {
     
@@ -66,7 +67,7 @@ class CounterActionsShimmerView: UIView {
     // Фабричный метод для создания одинаковых серых блоков
     private func createPlaceholder() -> UIView {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.statPillForeground.withAlphaComponent(0.1)
         view.layer.cornerRadius = 15
         view.translatesAutoresizingMaskIntoConstraints = false
         return view

@@ -143,7 +143,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
     
     private func onEventApplyTapped(eventId: Int) {
-        print("Apply to event with id: \(eventId)")
+        // FIXME DIVO: implement event apply action
+        divoLog("[EVENT] Apply to event \(eventId) — not implemented yet")
     }
 
     @available(iOS 14, *)
@@ -286,10 +287,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.openSocialLink(url)
         }
 
-        self.controllerNode.onAddModelTapped = { [weak self] in
-            self?.navigateToAddModel()
-        }
-
         self.controllerNode.onBackTapped = { [weak self] in
             self?.navigationController?.popViewController(animated: true)
         }
@@ -302,27 +299,16 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.handleGridShare(item: item, image: image)
         }
 
-        // self.controllerNode.onFaceScanTapped = { [weak self] in
-  
-        // }
-
-        // self.controllerNode.onReportProfileTapped = { [weak self] in
-
-        // }
-
-        // self.controllerNode.onBlockTapped = { [weak self] in
-
-        // }
-
-        // self.controllerNode.storiesButtonTapped = { [weak self] in
-
-        // }
+        // FIXME DIVO: implement face scan action
+        // FIXME DIVO: implement report profile action
+        // FIXME DIVO: implement block user action
+        // FIXME DIVO: implement stories button action
 
         self.controllerNode.onEditProfileTapped = { [weak self] index in
             self?.navigateToEditProfile(selectedIndex: index)
         }
 
-        self.controllerNode.onChangeBackgrounTapped = { [weak self] in
+        self.controllerNode.onChangeBackgroundTapped = { [weak self] in
             self?.navigateToChangeBackground()
         }
 
@@ -460,7 +446,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
             let saves = response.data?.followed?.pagination?.meta?.totalCount ?? response.data?.followed?.pagination?.total ?? 0
             return EngagementTotals(likes: likes, views: views, saves: saves)
         } catch {
-            print("❌ [ENGAGEMENT TOTALS] Error: \(error)")
+            divoLog("[ENGAGEMENT TOTALS] Error: \(error)", level: .error)
             return nil
         }
     }
@@ -493,9 +479,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
             return body
         }
         if (error as NSError).domain == NSURLErrorDomain {
-            return "No internet connection. Please try again."
+            return DivoStrings.noInternetConnection
         }
-        return "Something went wrong. Please try again."
+        return DivoStrings.genericError
     }
 
     // Метод для лайка профиля
@@ -512,7 +498,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 )
                 completion(true)
             } catch {
-                print("❌ [LIKE] Error toggling like for user \(userId): \(error)")
+                divoLog("[LIKE] Error toggling like for user \(userId): \(error)", level: .error)
                 completion(false)
             }
         }
@@ -532,7 +518,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 )
                 completion(true)
             } catch {
-                print("❌ [SAVE/FOLLOW] Error toggling save for user \(userId): \(error)")
+                divoLog("[SAVE/FOLLOW] Error toggling save for user \(userId): \(error)", level: .error)
                 completion(false)
             }
         }
@@ -579,7 +565,7 @@ extension PublicProfileScreenController {
     
     // Открытие галереи на полный экран
     private func openFullScreenGallery(tab: ProfileTab, itemIndex: Int) {
-        print("🖼️ [GALLERY] Opening full-screen gallery, tab=\(tab), itemIndex=\(itemIndex)")
+        divoLog("[GALLERY] Opening full-screen gallery, tab=\(tab), itemIndex=\(itemIndex)")
 
         guard itemIndex >= 0 else { return }
         let galleryController: ProfileGalleryController
@@ -727,18 +713,19 @@ extension PublicProfileScreenController {
                     body: body
                 )
                 let items = response.data?.items ?? []
-                let models = items.map { item -> ModelItem in
+                let models = items.compactMap { item -> ModelItem? in
+                    guard let userId = item.userId else { return nil }
                     return ModelItem(
-                        id: item.id,
-                        name: item.name ?? "Unknown",
-                        role: "Model",
+                        id: userId,
+                        name: item.name ?? DivoStrings.noName,
+                        role: DivoStrings.roleModel,
                         isPremium: false,
                         customAvatarURL: item.photo?.fullUrl
                     )
                 }
                 self.controllerNode.updateModelsList(models)
             } catch {
-                print("❌ [MODELS] Error: \(error)")
+                divoLog("[MODELS] Error: \(error)", level: .error)
                 self.controllerNode.updateModelsList([])
             }
         }
@@ -748,6 +735,7 @@ extension PublicProfileScreenController {
 // Загрузка событий через feedline/search (event/list недоступен для всех ролей)
 extension PublicProfileScreenController {
     func loadEvents() {
+        guard userID != -1 else { return }
         let body = EventListRequest(offset: 0, limit: 30)
         Task {
             do {
@@ -772,14 +760,14 @@ extension PublicProfileScreenController {
 
                     let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: detail.date)
 
-                    let city = detail.address?.city?.name ?? "Unknown city"
+                    let city = detail.address?.city?.name ?? DivoStrings.unknownCity
                     let flag = self.emojiFlag(from: detail.address?.city?.countryCode)
 
                     let avatarUrl = detail.files?.first?.fullUrl
                     let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
 
                     return EventItem(
-                        name: detail.title ?? "Event",
+                        name: detail.title ?? DivoStrings.eventFallbackName,
                         data: formattedDate,
                         time: formattedTime,
                         countryFlag: flag,
@@ -803,7 +791,7 @@ extension PublicProfileScreenController {
                 }
                 
             } catch {
-                print("❌ [EVENTS] Error: \(error)")
+                divoLog("[EVENTS] Error: \(error)", level: .error)
                 await MainActor.run {
                     self.controllerNode.updateEventsList([])
                 }
@@ -823,7 +811,7 @@ extension PublicProfileScreenController {
                         )
                         return response.data
                     } catch {
-                        print("❌ [EVENT DETAIL] Error loading event \(id): \(error)")
+                        divoLog("[EVENT DETAIL] Error loading event \(id): \(error)", level: .error)
                         return nil
                     }
                 }
@@ -856,13 +844,15 @@ extension PublicProfileScreenController {
                 return
             }
             
-            loadEvents()
+            await MainActor.run {
+                self.loadEvents()
+            }
         }
     }
     
     private func formatEventDateAndTime(dateString: String?) -> (date: String, time: String) {
         guard let dateString = dateString else {
-            return ("TBD", "TBD")
+            return (DivoStrings.tbd, DivoStrings.tbd)
         }
 
         let serverFormatter = DateFormatter()
@@ -1059,8 +1049,8 @@ extension PublicProfileScreenController {
                     }
                     return InteractionUser(
                         id: id,
-                        name: item.fullName ?? "Unknown",
-                        role: item.roleLabel ?? item.role ?? "User",
+                        name: item.fullName ?? DivoStrings.noName,
+                        role: item.roleLabel ?? item.role ?? DivoStrings.roleFallbackUser,
                         avatarUrl: finalAvatarUrl,
                         isPremium: false
                     )
@@ -1234,7 +1224,7 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
 
     private func uploadAndAddVideo(_ videoURL: URL) {
         guard let videoData = try? Data(contentsOf: videoURL) else {
-            print("❌ [UPLOAD VIDEO] Failed to read video data")
+            divoLog("[UPLOAD VIDEO] Failed to read video data", level: .error)
             return
         }
 
@@ -1257,8 +1247,9 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                     throw DivoAPIError.unknown
                 }
                 
-                print("🎬 [UPLOAD VIDEO] File uploaded successfully, uuid: \(fileUuid)")
+                divoLog("[UPLOAD VIDEO] File uploaded successfully, uuid: \(fileUuid)")
                 
+                // FIXME DIVO: заменить хардкод-метаданные на пользовательский ввод (title, description, type)
                 let body = AddPublicationRequest(
                     title: "My Video",
                     description: "Video description",
@@ -1440,7 +1431,7 @@ extension PublicProfileScreenController {
                                                 
                         return SimilarProfileItem(
                             id: userId,
-                            name: item?.fullName ?? "Unknown",
+                            name: item?.fullName ?? DivoStrings.noName,
                             age: item?.birthday,
                             countryCode: item?.countryCode,
                             countryName: item?.countryName,
@@ -1453,7 +1444,7 @@ extension PublicProfileScreenController {
                     self.controllerNode.appendSimilarProfiles(profiles)
                 }
             } catch {
-                print("❌[SIMILAR] Error loading similar profiles: \(error)")
+                divoLog("[SIMILAR] Error loading similar profiles: \(error)", level: .error)
                 await MainActor.run {
                     self.similarProfilesIsLoading = false
                     self.controllerNode.setSimilarProfilesLoading(false)

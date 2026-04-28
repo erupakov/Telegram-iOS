@@ -7,7 +7,7 @@
 
 import UIKit
 import Display
-import DivoCore
+import DivoUIKit
 import DivoUIKit
 
 final class ProfileNavigationBarTitleView: UIView {

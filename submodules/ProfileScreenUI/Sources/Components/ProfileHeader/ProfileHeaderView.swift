@@ -59,12 +59,14 @@ class ProfileHeaderView: UIView {
         return label
     }()
     
+    private static let badgeHeight: CGFloat = 22
+
     private var nameLabelHeightConstraint: NSLayoutConstraint!
 
     private let premiumBadgeContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
-        view.layer.cornerRadius = 11
+        view.layer.cornerRadius = badgeHeight / 2
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -91,7 +93,7 @@ class ProfileHeaderView: UIView {
     private let roleContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.roleBadgeBlue
-        view.layer.cornerRadius = 11
+        view.layer.cornerRadius = badgeHeight / 2
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -150,7 +152,7 @@ class ProfileHeaderView: UIView {
             premiumBadgeContainer.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
             premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             premiumBadgeContainer.bottomAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
-            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: 22),
+            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
 
             premiumBadgeIcon.centerYAnchor.constraint(equalTo: premiumBadgeContainer.centerYAnchor),
             premiumBadgeIcon.leadingAnchor.constraint(equalTo: premiumBadgeContainer.leadingAnchor, constant: 6),
@@ -161,7 +163,7 @@ class ProfileHeaderView: UIView {
             
             roleContainer.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 5),
             roleContainer.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
-            roleContainer.heightAnchor.constraint(equalToConstant: 22),
+            roleContainer.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
             roleContainer.bottomAnchor.constraint(equalTo: bottomAnchor),
             
             roleLabel.leadingAnchor.constraint(equalTo: roleContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.s),

@@ -6,9 +6,6 @@
 //
 
 import UIKit
-import Display
-import TelegramCore
-import DivoCore
 import DivoUIKit
 
 final class SimilarProfileShimmerCell: UICollectionViewCell {

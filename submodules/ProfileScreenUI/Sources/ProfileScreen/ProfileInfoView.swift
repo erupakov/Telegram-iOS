@@ -133,7 +133,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         return view
     }()
     
-    private let empryWorkIcon: UIImageView = {
+    private let emptyWorkIcon: UIImageView = {
         let iv = UIImageView()
         iv.image = DivoImage.emptyWorkProfile
         iv.contentMode = .scaleAspectFit
@@ -168,7 +168,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         return view
     }()
     
-    private let empryBioIcon: UIImageView = {
+    private let emptyBioIcon: UIImageView = {
         let iv = UIImageView()
         iv.image = DivoImage.emptyBioProfile
         iv.contentMode = .scaleAspectFit
@@ -203,7 +203,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         return view
     }()
     
-    private let empryAppearanceIcon: UIImageView = {
+    private let emptyAppearanceIcon: UIImageView = {
         let iv = UIImageView()
         iv.image = DivoImage.emptyAppearanceProfile
         iv.contentMode = .scaleAspectFit
@@ -293,7 +293,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     
     var openAddWorkExperience: (() -> Void)?
     var openEditBio: (() -> Void)?
-    var openEditApperance: (() -> Void)?
+    var openEditAppearance: (() -> Void)?
     
     // MARK: - Init
     
@@ -350,7 +350,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         } else {
             newActiveContainers.append(emptyBioView)
             addBioButton.isHidden = !isMyProfile
-            empryBioIcon.isHidden = isMyProfile
+            emptyBioIcon.isHidden = isMyProfile
         }
         
         if !appearance.isEmpty {
@@ -359,7 +359,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         } else {
             newActiveContainers.append(emptyAppearanceView)
             addAppearanceButton.isHidden = !isMyProfile
-            empryAppearanceIcon.isHidden = isMyProfile
+            emptyAppearanceIcon.isHidden = isMyProfile
         }
         
         if !isAgency {
@@ -371,7 +371,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
             } else {
                 newActiveContainers.append(emptyCurrentAgencyView)
                 addExperienceButton.isHidden = !isMyProfile
-                empryWorkIcon.isHidden = isMyProfile
+                emptyWorkIcon.isHidden = isMyProfile
             }
         }
         
@@ -449,7 +449,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         
         experienceInternalContainer.addSubview(currentAgencyView)
                 
-        let emptyWorkStack = UIStackView(arrangedSubviews: [empryWorkIcon, emptyWorkTitleLabel, addExperienceButton])
+        let emptyWorkStack = UIStackView(arrangedSubviews: [emptyWorkIcon, emptyWorkTitleLabel, addExperienceButton])
         emptyWorkStack.distribution = .fill
         emptyWorkStack.spacing = DivoDesignTokens.Spacing.s
         emptyWorkStack.alignment = .center
@@ -464,7 +464,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         
         emptyBioView.addSubview(emptyInternalBioView)
         
-        let emptyBioStack = UIStackView(arrangedSubviews: [empryBioIcon, emptyBioTitleLabel, addBioButton])
+        let emptyBioStack = UIStackView(arrangedSubviews: [emptyBioIcon, emptyBioTitleLabel, addBioButton])
         emptyBioStack.distribution = .fill
         emptyBioStack.spacing = DivoDesignTokens.Spacing.s
         emptyBioStack.alignment = .center
@@ -479,7 +479,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         
         emptyAppearanceView.addSubview(emptyInternalAppearanceView)
         
-        let emptyAppearanceStack = UIStackView(arrangedSubviews: [empryAppearanceIcon, emptyAppearanceTitleLabel, addAppearanceButton])
+        let emptyAppearanceStack = UIStackView(arrangedSubviews: [emptyAppearanceIcon, emptyAppearanceTitleLabel, addAppearanceButton])
         emptyAppearanceStack.distribution = .fill
         emptyAppearanceStack.spacing = DivoDesignTokens.Spacing.s
         emptyAppearanceStack.alignment = .center
@@ -783,7 +783,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     
     @objc private func addPressed() { openAddWorkExperience?() }
     @objc private func addBioPressed() { openEditBio?() }
-    @objc private func addAppearancePressed() { openEditApperance?() }
+    @objc private func addAppearancePressed() { openEditAppearance?() }
     
     // MARK: - UIScrollViewDelegate (Синхронизация свайпа)
     
@@ -837,8 +837,8 @@ extension UIView {
         gradient.startPoint = CGPoint(x: 0, y: 0.5)
         gradient.endPoint = CGPoint(x: 1, y: 0.5)
         
-        let baseColor = UIColor(white: 0.85, alpha: 1.0).cgColor
-        let highlightColor = UIColor(white: 0.95, alpha: 1.0).cgColor
+        let baseColor = DivoColorPalette.shimmerBase.cgColor
+        let highlightColor = DivoColorPalette.shimmerHighlight.cgColor
         
         gradient.colors = [baseColor, highlightColor, baseColor]
         gradient.locations = [0.0, 0.5, 1.0]

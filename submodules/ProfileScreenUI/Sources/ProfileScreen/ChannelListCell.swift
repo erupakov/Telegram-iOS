@@ -16,12 +16,15 @@ struct ProfileChannelItem {
 final class ChannelListCell: UICollectionViewCell {
     static let reuseIdentifier = "ChannelListCell"
 
+    private static let avatarSize: CGFloat = 52
+    private static let badgeHeight: CGFloat = 22
+
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 26
-        iv.backgroundColor = UIColor(white: 0.2, alpha: 1.0)
+        iv.layer.cornerRadius = avatarSize / 2
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -38,7 +41,7 @@ final class ChannelListCell: UICollectionViewCell {
     private let premiumBadgeContainer: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
-        view.layer.cornerRadius = 11
+        view.layer.cornerRadius = badgeHeight / 2
         view.layer.borderWidth = 1
         view.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.1).cgColor
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -95,8 +98,8 @@ final class ChannelListCell: UICollectionViewCell {
         NSLayoutConstraint.activate([
             avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 52),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 52),
+            avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
 
             titleLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
             titleLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -104,7 +107,7 @@ final class ChannelListCell: UICollectionViewCell {
             premiumBadgeContainer.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
             premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             premiumBadgeContainer.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: 22),
+            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
 
             premiumBadgeIcon.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
             premiumBadgeIcon.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),

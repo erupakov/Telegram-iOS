@@ -392,7 +392,7 @@ public enum DivoStrings {
     public static var nothingSavedSubtitleMyProfile: String { L(en: "No one's saved your profile yet.", ru: "Ваш профиль пока никто не сохранил.", es: "Nadie ha guardado tu perfil aún.", pt: "Ninguém salvou seu perfil ainda.", zh: "尚未有人保存你的资料。") }
     public static var noProfileViewedYetMyProfile: String { L(en: "No profile views yet.", ru: "Пока нет просмотров профиля.", es: "Aún no hay visitas al perfil.", pt: "Ainda sem visualizações de perfil.", zh: "暂无资料浏览。") }
     public static var noProfileViewedSubtitleMyProfile: String { L(en: "No one’s viewed your profile yet.", ru: "Ваш профиль пока никто не просматривал.", es: "Nadie ha visto tu perfil aún.", pt: "Ninguém visualizou seu perfil ainda.", zh: "尚未有人浏览过你的资料。") }
-    public static var noWorkExperienceYetProfile: String { L(en: "THERE ARE NO WORK EXPERIENCE YET.", ru: "ОПЫТ РАБОТЫ ПОКА ОТСУТСТВУЕТ.", es: "AÚN NO HAY EXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ EXPERIÊNCIA DE TRABALHO.", zh: "暂无工作经历。") }
+    public static var noWorkExperienceYetProfile: String { L(en: "There is no work experience yet.", ru: "Опыт работы пока отсутствует.", es: "Aún no hay experiencia laboral.", pt: "Ainda não há experiência de trabalho.", zh: "暂无工作经历。") }
     public static var noBioYetProfile: String { L(en: "No bio yet.", ru: "Информация о себе пока не заполнена.", es: "Información personal aún no completada.", pt: "Informação pessoal ainda não preenchida.", zh: "尚未填写个人简介。") }
     public static var noAppearanceYetProfile: String { L(en: "Model parameters are not filled in", ru: "Параметры модели не заполнены", es: "Los parámetros de la modelo no están completados", pt: "Os parâmetros da modelo não foram preenchidos", zh: "模特参数未填写") }
     public static var addBioProfile: String { L(en: "Fill in bio", ru: "Заполнить информацию о себе", es: "Completar biografía", pt: "Preencher biografia", zh: "填写个人简介") }
@@ -401,7 +401,7 @@ public enum DivoStrings {
     // MARK: - Work Experience
 
     public static var workExperience: String { L(en: "Work experience", ru: "Опыт работы", es: "Experiencia laboral", pt: "Experiência profissional", zh: "工作经历") }
-    public static var noWorkExperienceYet: String { L(en: "THERE ARE NO WORK\nEXPERIENCE YET.", ru: "ОПЫТА РАБОТЫ\nПОКА НЕТ.", es: "AÚN NO HAY\nEXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ\nEXPERIÊNCIA.", zh: "暂无\n工作经历。") }
+    public static var noWorkExperienceYet: String { L(en: "There is no work\nexperience yet.", ru: "Опыта работы\nпока нет.", es: "Aún no hay\nexperiencia laboral.", pt: "Ainda não há\nexperiência.", zh: "暂无\n工作经历。") }
     public static var noWorkExperienceSubtitle: String { L(en: "Click the button below\nto add your work\nexperience", ru: "Нажмите кнопку ниже,\nчтобы добавить\nопыт работы", es: "Haga clic en el botón\npara agregar su\nexperiencia", pt: "Clique no botão abaixo\npara adicionar sua\nexperiência", zh: "点击下方按钮\n添加您的\n工作经历") }
     public static var addWorkExperience: String { L(en: "Add work history", ru: "Добавить опыт работы", es: "Agregar experiencia laboral", pt: "Adicionar experiência de trabalho", zh: "添加工作经历") }
     public static var workExperienceInfo: String { L(en: "Work experience info", ru: "Информация об опыте работы", es: "Información de experiencia", pt: "Informações da experiência", zh: "工作经历信息") }
@@ -485,6 +485,8 @@ public enum DivoStrings {
     public static var unliked: String { L(en: "Like removed", ru: "Лайк убран", es: "Me gusta eliminado", pt: "Curtida removida", zh: "已取消点赞") }
     public static var likeFailed: String { L(en: "Failed to like", ru: "Не удалось поставить лайк", es: "Error al dar me gusta", pt: "Falha ao curtir", zh: "点赞失败") }
     public static var unlikeFailed: String { L(en: "Failed to unlike", ru: "Не удалось убрать лайк", es: "Error al quitar me gusta", pt: "Falha ao descurtir", zh: "取消点赞失败") }
+    public static var genericError: String { L(en: "Something went wrong. Please try again.", ru: "Что-то пошло не так. Попробуйте ещё раз.", es: "Algo salió mal. Inténtalo de nuevo.", pt: "Algo deu errado. Tente novamente.", zh: "出了点问题，请重试。") }
+    public static var noInternetConnection: String { L(en: "No internet connection. Please try again.", ru: "Нет подключения к интернету. Попробуйте ещё раз.", es: "Sin conexión a internet. Inténtalo de nuevo.", pt: "Sem conexão com a internet. Tente novamente.", zh: "无网络连接，请重试。") }
     public static var serverUnavailable: String { L(en: "Server Unavailable", ru: "Сервер недоступен", es: "Servidor no disponible", pt: "Servidor indisponível", zh: "服务器不可用") }
     public static var serverUnavailableSubtitle: String { L(en: "Unable to connect to the server.\nTry toggling your VPN on or off.", ru: "Не удалось подключиться к серверу.\nПопробуйте включить или выключить VPN.", es: "No se pudo conectar al servidor.\nIntente activar o desactivar su VPN.", pt: "Não foi possível conectar ao servidor.\nTente ativar ou desativar a VPN.", zh: "无法连接到服务器。\n请尝试开启或关闭VPN。") }
     public static var noSubscriptionsYet: String { L(en: "No Subscriptions Yet", ru: "Пока нет подписок", es: "Sin suscripciones aún", pt: "Sem inscrições ainda", zh: "暂无订阅") }
@@ -521,8 +523,8 @@ public enum DivoStrings {
     public static var titleAddModel: String { L(en: "ADD A NEW MODEL", ru: "ДОБАВЬТЕ НОВУЮ МОДЕЛЬ", es: "AGREGAR UN NUEVO MODELO", pt: "ADICIONAR UM NOVO MODELO", zh: "添加新模型") }
     public static var subTitleAddModel: String { L(en: "Fill out the model's details to add\nthem to your agency. You can\nupdate this information anytime.", ru: "Заполните данные модели, чтобы добавить\nих в свое агентство. Вы можете\nобновить эту информацию в любое время.", es: "Complete los detalles del modelo para agregarlos\na su agencia. Puede\nactualizar esta información en cualquier momento.", pt: "Preencha os detalhes do modelo para adicionar\nà sua agência. Você pode\natualizar essas informações a qualquer momento.", zh: "填写模型的详细信息以将\n添加到您的代理机构。您可以随时\n更新此信息。") }
     public static var parametersAddModel: String { L(en: "Your parameters", ru: "Ваши параметры", es: "Sus parámetros", pt: "Os seus parâmetros", zh: "您的参数") }
-    public static var emptyTitleAddModel: String { L(en: "THERE ARE NO MODELS\nFROM YOUR AGENCY YET.", ru: "ТЕКУЩИХ МОДЕЛЕЙ\nОТ ВАШЕГО АГЕНТСТВА ПОКА НЕТ.", es: "NO HAY MODELOS\nDE SU AGENCIA TODAVÍA.", pt: "AINDA NÃO HÁ MODELOS\nDA SUA AGÊNCIA.", zh: "目前还没有\n贵机构的模特。") }
-    public static var emptySubTitleAddModel: String { L(en: "Click the button below\nto add your model", ru: "НАЖМИТЕ КНОПКУ НИЖЕ,\nЧТОБЫ ДОБАВИТЬ МОДЕЛЬ", es: "Haz clic en el botón de abajo\npara añadir tu modelo", pt: "Clique no botão abaixo\npara adicionar seu modelo", zh: "点击下方按钮\n添加您的模特") }
+    public static var emptyTitleAddModel: String { L(en: "There are no models\nfrom your agency yet.", ru: "Текущих моделей\nот вашего агентства пока нет.", es: "No hay modelos\nde su agencia todavía.", pt: "Ainda não há modelos\nda sua agência.", zh: "目前还没有\n贵机构的模特。") }
+    public static var emptySubTitleAddModel: String { L(en: "Click the button below\nto add your model", ru: "Нажмите кнопку ниже,\nчтобы добавить модель", es: "Haz clic en el botón de abajo\npara añadir tu modelo", pt: "Clique no botão abaixo\npara adicionar seu modelo", zh: "点击下方按钮\n添加您的模特") }
 
     // MARK: - Debug Screen
 
@@ -605,7 +607,9 @@ public enum DivoStrings {
     public static var failedToLoadEventData: String { L(en: "Failed to load event data", ru: "Не удалось загрузить данные события", es: "Error al cargar datos del evento", pt: "Falha ao carregar dados do evento", zh: "无法加载活动数据") }
     public static var failedToUploadCover: String { L(en: "Failed to upload cover photo", ru: "Не удалось загрузить обложку", es: "Error al subir la foto de portada", pt: "Falha ao enviar a foto de capa", zh: "上传封面照片失败") }
     public static var unknownCity: String { L(en: "Unknown city", ru: "Неизвестный город", es: "Ciudad desconocida", pt: "Cidade desconhecida", zh: "未知城市") }
-    public static var tbd: String { "TBD" }
+    public static var tbd: String { L(en: "TBD", ru: "Уточняется", es: "Por definir", pt: "A definir", zh: "待定") }
+    public static var eventFallbackName: String { L(en: "Event", ru: "Событие", es: "Evento", pt: "Evento", zh: "活动") }
+    public static var roleFallbackUser: String { L(en: "User", ru: "Пользователь", es: "Usuario", pt: "Usuário", zh: "用户") }
     public static var failedToUpdateEvent: String { L(en: "Failed to update event", ru: "Не удалось обновить событие", es: "Error al actualizar el evento", pt: "Falha ao atualizar o evento", zh: "更新活动失败") }
     public static var failedToCreateEvent: String { L(en: "Failed to create event", ru: "Не удалось создать событие", es: "Error al crear el evento", pt: "Falha ao criar o evento", zh: "创建活动失败") }
 

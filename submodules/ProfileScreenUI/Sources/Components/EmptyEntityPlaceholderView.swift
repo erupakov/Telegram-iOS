@@ -1,22 +1,6 @@
 import UIKit
-import PhotosUI
-import UniformTypeIdentifiers
-import AsyncDisplayKit
 import Display
-import TelegramCore
 import DivoCore
-import SwiftSignalKit
-import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
-import AccountContext
-import AppBundle
-import TelegramBaseController
-import LegacyMediaPickerUI
-import Postbox
-import MapResourceToAvatarSizes
-import ContextUI
-import GalleryUI
 import DivoUIKit
 
 final class EmptyEntityPlaceholderView: UIView {
@@ -53,7 +37,7 @@ final class EmptyEntityPlaceholderView: UIView {
         return label
     }()
     
-    let addButton = DivoButton()
+    private let addButton = DivoButton()
     
     private let contentStack: UIStackView = {
         let stack = UIStackView()
@@ -86,7 +70,7 @@ final class EmptyEntityPlaceholderView: UIView {
     // MARK: - Setup
     
     private func setupViews() {
-        self.backgroundColor = .white
+        self.backgroundColor = DivoColorPalette.screenBackground
         
         addSubview(contentStack)
         addSubview(addButton)
