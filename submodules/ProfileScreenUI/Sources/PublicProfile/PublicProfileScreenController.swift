@@ -1448,10 +1448,6 @@ extension PublicProfileScreenController {
                 await MainActor.run {
                     self.similarProfilesIsLoading = false
                     self.controllerNode.setSimilarProfilesLoading(false)
-                    self.controllerNode.showSnackbar(
-                        message: DivoStrings.errorLoadingSimilarProfiles,
-                        style: .error
-                    )
                 }
             }
         }

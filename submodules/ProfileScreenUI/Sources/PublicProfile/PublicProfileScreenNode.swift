@@ -1980,16 +1980,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Вычисляем возраст от года рождения
-    private func calculateAge(from birthdayString: String) -> Int {
+    private func calculateAge(from birthdayString: String) -> Int? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        guard let birthday = formatter.date(from: birthdayString) else { return 0 }
-        
+        guard let birthday = formatter.date(from: birthdayString) else { return nil }
+
         let now = Date()
         let calendar = Calendar.current
-        let ageComponents = calendar.dateComponents([.year], from: birthday, to: now)
-        return ageComponents.year ?? 0
+        return calendar.dateComponents([.year], from: birthday, to: now).year
     }
     
     // Создаем список критериев внешнего вида модели
@@ -2347,8 +2346,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 }
             }
         } else {
-            let age = detail.birthday.flatMap { calculateAge(from: $0) } ?? 0
-            setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(DivoStrings.ageString(age)) • \(detail.city?.name ?? "")")
+            let age = detail.birthday.flatMap { calculateAge(from: $0) }
+            let agePrefix = age.map { DivoStrings.ageString($0) + " • " } ?? ""
+            setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(agePrefix)\(detail.city?.name ?? "")")
             
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL)
@@ -2418,7 +2418,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             contentViewStack.setCustomSpacing(44, after: profileHeaderWrapper)
         }
         
-        // FIXME DIVO: isPremium и isOnline захардкожены — API пока не возвращает эти поля
+        // FIXME DIVO: isOnline захардкожен — API пока не возвращает это поле
         UIView.performWithoutAnimation {
             if self.modelRole == .agency {
                 let viewModel = UserProfileViewModel(
@@ -2428,12 +2428,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     countryFlag: Self.flag(for: detail.agency?.address?.city?.countryCode),
                     role: self.modelRole,
                     avatarImage: nil,
-                    isPremium: true,
+                    isPremium: detail.isPremium ?? false,
                     isOnline: true
                 )
                 profileHeaderView.configure(with: viewModel)
             } else {
-                let age = detail.birthday.flatMap { calculateAge(from: $0) } ?? 0
+                let age = detail.birthday.flatMap { calculateAge(from: $0) }
                 let viewModel = UserProfileViewModel(
                     name: detail.fullName ?? DivoStrings.noName,
                     age: age,
@@ -2441,7 +2441,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     countryFlag: Self.flag(for: detail.city?.countryCode),
                     role: self.modelRole,
                     avatarImage: nil,
-                    isPremium: true,
+                    isPremium: detail.isPremium ?? false,
                     isOnline: true
                 )
                 profileHeaderView.configure(with: viewModel)

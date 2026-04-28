@@ -22,6 +22,7 @@ public struct UserDetail: Decodable {
     public let measuringSystem: String?
     public let pushNotifications: Bool?
     public let isRegistrationFinished: Bool?
+    public let isPremium: Bool?
     public let model: UserModelInfo?
     public let customer: UserCustomerInfo?
     public let agency: UserAgencyInfo?
@@ -31,6 +32,16 @@ public struct UserDetail: Decodable {
     public let isFollowed: Bool?
     public let userRatingStatus: String?
     public let userSocialNetworks: [UserSocialNetwork]?
+
+    enum CodingKeys: String, CodingKey {
+        case id, fullName, gender, birthday, city, email, phone
+        case photo, avatar, role, subrole, roleLabel
+        case measuringSystem, pushNotifications, isRegistrationFinished
+        case isPremium = "is_premium"
+        case model, customer, agency, agencyEmployee
+        case statistic, isFavorite, isFollowed
+        case userRatingStatus, userSocialNetworks
+    }
 }
 
 public struct UserGender: Decodable {
