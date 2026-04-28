@@ -320,6 +320,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 
 
                 self.delegate?.didUpdateProfileData()
+                NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
                 self.navigationController?.popViewController(animated: true)
 
             } catch {
@@ -350,9 +351,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "POST",
                     body: request
                 )
-                
 
                 self.delegate?.didUpdateProfileData()
+                NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
                 self.navigationController?.popViewController(animated: true)
 
             } catch {

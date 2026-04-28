@@ -264,9 +264,18 @@ public class ModelsSearchController: ViewController {
                     }
                 }
             case .denied, .restricted:
-                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(settingsURL)
-                }
+                let alert = UIAlertController(
+                    title: DivoStrings.cameraAccessDeniedTitle,
+                    message: DivoStrings.cameraAccessDeniedMessage,
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: DivoStrings.openSettings, style: .default) { _ in
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                })
+                alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+                rootVC.present(alert, animated: true)
             @unknown default:
                 break
             }

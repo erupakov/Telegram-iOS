@@ -290,6 +290,9 @@ public enum DivoStrings {
 
     public static var ok: String { L(en: "OK", ru: "OK", es: "OK", pt: "OK", zh: "好的") }
     public static var cancel: String { L(en: "Cancel", ru: "Отмена", es: "Cancelar", pt: "Cancelar", zh: "取消") }
+    public static var cameraAccessDeniedTitle: String { L(en: "No Camera Access", ru: "Нет доступа к камере", es: "Sin acceso a la cámara", pt: "Sem acesso à câmera", zh: "无法访问相机") }
+    public static var cameraAccessDeniedMessage: String { L(en: "Allow camera access in Settings to use this feature", ru: "Разрешите доступ к камере в Настройках, чтобы использовать эту функцию", es: "Permite el acceso a la cámara en Ajustes para usar esta función", pt: "Permita o acesso à câmera em Configurações para usar este recurso", zh: "请在设置中允许访问相机以使用此功能") }
+    public static var openSettings: String { L(en: "Settings", ru: "Настройки", es: "Ajustes", pt: "Configurações", zh: "设置") }
     public static var save: String { L(en: "Save", ru: "Сохранить", es: "Guardar", pt: "Salvar", zh: "保存") }
     public static var saving: String { L(en: "Saving...", ru: "Сохранение...", es: "Guardando...", pt: "Salvando...", zh: "保存中...") }
     public static var nextStep: String { L(en: "Next Step", ru: "Следующий шаг", es: "Siguiente Paso", pt: "Próximo Passo", zh: "下一步") }

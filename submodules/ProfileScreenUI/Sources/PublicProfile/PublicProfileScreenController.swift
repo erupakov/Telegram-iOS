@@ -186,19 +186,14 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.pickerPurpose = .background
 
         if #available(iOS 14, *) {
-            PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
-                guard status == .authorized || status == .limited else { return }
-                DispatchQueue.main.async {
-                    var configuration = PHPickerConfiguration()
-                    configuration.filter = .images
-                    configuration.selectionLimit = 1
-                    
-                    let picker = PHPickerViewController(configuration: configuration)
-                    picker.delegate = self
-                    picker.view.tintColor = DivoColorPalette.accent
-                    self?.present(picker, animated: true)
-                }
-            }
+            var configuration = PHPickerConfiguration()
+            configuration.filter = .images
+            configuration.selectionLimit = 1
+
+            let picker = PHPickerViewController(configuration: configuration)
+            picker.delegate = self
+            picker.view.tintColor = DivoColorPalette.accent
+            self.present(picker, animated: true)
         }
     }
     
