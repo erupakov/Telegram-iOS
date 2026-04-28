@@ -278,7 +278,9 @@ final class CreateEventNode: ASDisplayNode, UITextFieldDelegate {
         self.eventGalleryLabel.attributedText = NSAttributedString(string: DivoStrings.eventGallery, font: semiboldFont, textColor: headerColor)
 
         super.init()
+        self.nameEventTextField.textField.autocapitalizationType = .words
         self.nameEventTextField.textField.delegate = self
+        self.venueEventTextField.textField.autocapitalizationType = .words
         self.venueEventTextField.textField.delegate = self
         self.eventDateTextField.textField.delegate = self
         self.eventTimeTextField.textField.delegate = self

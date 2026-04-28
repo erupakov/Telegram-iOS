@@ -537,6 +537,8 @@ public enum DivoStrings {
     public static var debugNetworkOverlay: String { L(en: "Network overlay", ru: "Сетевой оверлей", es: "Superposición de red", pt: "Sobreposição de rede", zh: "网络覆盖层") }
     public static var debugNetworkDelay: String { L(en: "Network delay", ru: "Замедление сети", es: "Retraso de red", pt: "Atraso de rede", zh: "网络延迟") }
     public static var debugCache: String { L(en: "CACHE", ru: "КЕШ", es: "CACHÉ", pt: "CACHE", zh: "缓存") }
+    public static var debugUISection: String { "UI" }
+    public static var debugShowTouches: String { L(en: "Show touches on screen", ru: "Показывать жесты на экране", es: "Mostrar toques en pantalla", pt: "Mostrar toques na tela", zh: "在屏幕上显示触摸") }
     public static var debugImageCache: String { L(en: "Image cache", ru: "Кеш изображений", es: "Caché de imágenes", pt: "Cache de imagens", zh: "图片缓存") }
     public static var debugInfo: String { L(en: "INFO", ru: "ИНФОРМАЦИЯ", es: "INFORMACIÓN", pt: "INFORMAÇÃO", zh: "信息") }
     public static var debugAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司") }

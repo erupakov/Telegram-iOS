@@ -433,6 +433,7 @@ final class EditProfileNode: ASDisplayNode {
         scrollView.keyboardDismissMode = .interactive
 
         self.nameTextField.textField.returnKeyType = .next
+        self.nameTextField.textField.autocapitalizationType = .words
         self.nameTextField.textField.delegate = self
 
         keyboardHandler = DivoKeyboardHandler(
