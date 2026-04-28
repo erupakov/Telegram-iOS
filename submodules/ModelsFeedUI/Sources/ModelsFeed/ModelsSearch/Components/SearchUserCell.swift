@@ -119,11 +119,14 @@ final class SearchUserCell: UITableViewCell {
     
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        let duration = highlighted ? 0.1 : 0.2
+        let duration = highlighted
+            ? DivoDesignTokens.PressState.pressDuration
+            : DivoDesignTokens.PressState.releaseDuration
         UIView.animate(withDuration: duration) {
-            self.contentView.alpha = highlighted ? 0.6 : 1.0
+            self.contentView.alpha = highlighted ? DivoDesignTokens.PressState.alpha : 1.0
+            let scale = DivoDesignTokens.PressState.scaleListRow
             self.contentView.transform = highlighted
-                ? CGAffineTransform(scaleX: 0.98, y: 0.98)
+                ? CGAffineTransform(scaleX: scale, y: scale)
                 : .identity
         }
     }

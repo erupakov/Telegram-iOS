@@ -339,6 +339,8 @@ public final class ModelsFeedController: TelegramBaseController {
                         self.controllerNode.isPaginating = false
                         if reset {
                             self.controllerNode.showNetworkError = true
+                        } else {
+                            self.controllerNode.showPaginationError()
                         }
                     }
                 }

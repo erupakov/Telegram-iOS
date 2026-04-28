@@ -16,7 +16,9 @@ import TelegramPresentationData
 import AccountContext
 import CountrySelectionUI
 import ProfileScreenUI
+import FaceSearchUI
 import PhotosUI
+import AVFoundation
 
 public class ModelsSearchController: ViewController {
     private let context: AccountContext
@@ -140,7 +142,15 @@ public class ModelsSearchController: ViewController {
         self.searchNode.onFiltersClearTapped = { [weak self] in
             self?.handleFiltersClear()
         }
-        
+
+        self.searchNode.onFaceSearchHistorySeeAll = { [weak self] in
+            self?.handleFaceSearchHistorySeeAll()
+        }
+
+        self.searchNode.onFaceSearchHistoryItemTapped = { [weak self] item in
+            self?.handleFaceSearchHistoryItemTapped(item)
+        }
+
         self.displayNodeDidLoad()
 
         DispatchQueue.main.async { [weak self] in
@@ -151,6 +161,7 @@ public class ModelsSearchController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
+        reloadFaceSearchHistory()
     }
 
     
@@ -185,9 +196,11 @@ public class ModelsSearchController: ViewController {
                     actionSheet?.dismissAnimated()
                     self?.handleFaceSearchSource(.gallery)
                 },
-                ActionSheetButtonItem(title: DivoStrings.faceRecognitionUseDivoPhoto, color: .accent) { [weak actionSheet] in
+                ActionSheetButtonItem(title: DivoStrings.faceRecognitionUseDivoPhoto, color: .accent) { [weak self, weak actionSheet] in
                     actionSheet?.dismissAnimated()
-                    // TODO: pick DIVO profile photo for face recognition
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        self?.openProfileSearchSheet()
+                    }
                 }
             ]),
             ActionSheetItemGroup(items: [
@@ -197,7 +210,8 @@ public class ModelsSearchController: ViewController {
             ])
         ])
 
-        self.present(actionSheet, in: .window(.root))
+        let presenter = self.activeFaceSearchController ?? self
+        presenter.present(actionSheet, in: .window(.root))
     }
 
     private enum FaceSearchSource {
@@ -234,10 +248,28 @@ public class ModelsSearchController: ViewController {
         switch source {
         case .camera:
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
-            let picker = UIImagePickerController()
-            picker.sourceType = .camera
-            picker.delegate = self
-            rootVC.present(picker, animated: true)
+            let status = AVCaptureDevice.authorizationStatus(for: .video)
+            switch status {
+            case .authorized:
+                let picker = UIImagePickerController()
+                picker.sourceType = .camera
+                picker.delegate = self
+                rootVC.present(picker, animated: true)
+            case .notDetermined:
+                AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self?.openPhotoPicker(.camera)
+                        }
+                    }
+                }
+            case .denied, .restricted:
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            @unknown default:
+                break
+            }
         case .gallery:
             if #available(iOS 14, *) {
                 var config = PHPickerConfiguration()
@@ -256,6 +288,45 @@ public class ModelsSearchController: ViewController {
         }
     }
 
+    private func openProfileSearchSheet() {
+        let sheet = DivoProfileSearchSheetController()
+        sheet.onProfileSelected = { [weak self] user in
+            self?.loadProfilePhotoAndOpenFaceSearch(for: user)
+        }
+        presentingWindow?.rootViewController?.present(sheet, animated: true)
+    }
+
+    private func loadProfilePhotoAndOpenFaceSearch(for user: SearchUserDTO) {
+        guard let urlString = user.searchImage?.fullUrl,
+              let url = CDNURLHelper.convertToCDNURL(urlString) else {
+            self.searchNode.showSnackbar(
+                message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                style: .error
+            )
+            return
+        }
+
+        let overlay = DivoLoadingOverlay()
+        if let host = self.view.window?.rootViewController?.view {
+            overlay.show(in: host, message: "")
+        }
+
+        ImageLoader.shared.load(url: url) { [weak self] image in
+            overlay.hide()
+            guard let self else { return }
+            guard let image else {
+                self.searchNode.showSnackbar(
+                    message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                    style: .error,
+                    retryAction: { [weak self] in self?.loadProfilePhotoAndOpenFaceSearch(for: user) },
+                    persistent: true
+                )
+                return
+            }
+            self.openFaceSearchScreen(with: image)
+        }
+    }
+
     private func openFaceSearchScreen(with image: UIImage) {
         if let existing = activeFaceSearchController, existing.navigationController != nil {
             existing.updateImage(image)
@@ -263,53 +334,14 @@ public class ModelsSearchController: ViewController {
             activeFaceSearchController = nil
             let controller = FaceSearchController(context: self.context, image: image)
             controller.onChangePhoto = { [weak self] in
-                self?.openChangePhotoSheet()
+                self?.openFaceRecognition()
+            }
+            controller.onOpenProfile = { [weak self] result in
+                self?.openFaceSearchProfile(for: result)
             }
             activeFaceSearchController = controller
             (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
         }
-    }
-
-    private func openChangePhotoSheet() {
-        let theme = ActionSheetControllerTheme(
-            dimColor: UIColor(white: 0, alpha: 0.5),
-            backgroundType: .light,
-            itemBackgroundColor: DivoColorPalette.cardBackground,
-            itemHighlightedBackgroundColor: DivoColorPalette.screenBackground,
-            standardActionTextColor: DivoColorPalette.primaryText,
-            destructiveActionTextColor: DivoColorPalette.accent,
-            disabledActionTextColor: DivoColorPalette.disabledText,
-            primaryTextColor: DivoColorPalette.primaryText,
-            secondaryTextColor: DivoColorPalette.secondaryText,
-            controlAccentColor: DivoColorPalette.accent,
-            controlColor: DivoColorPalette.secondaryText,
-            switchFrameColor: DivoColorPalette.separatorSystem,
-            switchContentColor: DivoColorPalette.accent,
-            switchHandleColor: DivoColorPalette.cardBackground,
-            baseFontSize: 17.0
-        )
-        let actionSheet = ActionSheetController(theme: theme)
-
-        actionSheet.setItemGroups([
-            ActionSheetItemGroup(items: [
-                ActionSheetButtonItem(title: DivoStrings.faceRecognitionTakePhoto, color: .accent) { [weak self, weak actionSheet] in
-                    actionSheet?.dismissAnimated()
-                    self?.openPhotoPicker(.camera)
-                },
-                ActionSheetButtonItem(title: DivoStrings.faceRecognitionChooseFromLibrary, color: .accent) { [weak self, weak actionSheet] in
-                    actionSheet?.dismissAnimated()
-                    self?.openPhotoPicker(.gallery)
-                }
-            ]),
-            ActionSheetItemGroup(items: [
-                ActionSheetButtonItem(title: DivoStrings.cancel, color: .destructive, font: .bold) { [weak actionSheet] in
-                    actionSheet?.dismissAnimated()
-                }
-            ])
-        ])
-
-        let presenter = self.activeFaceSearchController ?? self
-        presenter.present(actionSheet, in: .window(.root))
     }
 
     private func openModelScreen(for user: SearchUserDTO) {
@@ -333,6 +365,28 @@ public class ModelsSearchController: ViewController {
         )
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
+
+    private func openFaceSearchProfile(for result: FRSearchResult) {
+        let mainImageURL = result.image.flatMap(URL.init(string:))
+        let location = FaceSearchResultsMapper.countryText(code: result.countryCode, name: result.countryName) ?? ""
+        let model = ProfileModel(
+            name: result.fullName ?? "",
+            age: FaceSearchResultsMapper.computeAge(from: result.birthday),
+            location: location,
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: result.userId,
+            role: result.role,
+            mainImageURL: mainImageURL,
+            avatarImageURL: mainImageURL
+        )
+        let controller = PublicProfileScreenController(context: self.context, model: model)
+        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
     }
 
     private func openFilters() {
@@ -500,6 +554,99 @@ public class ModelsSearchController: ViewController {
         }
     }
 
+    // MARK: - Face Search History
+
+    private func reloadFaceSearchHistory() {
+        let items = FaceSearchHistoryStorage.shared.loadRecent(3)
+        searchNode.updateFaceSearchHistory(items)
+    }
+
+    private func handleFaceSearchHistorySeeAll() {
+        let controller = FaceSearchHistoryController(context: self.context)
+        controller.onItemTapped = { [weak self] item in
+            self?.replayFaceSearch(item)
+        }
+        controller.onStartFaceSearch = { [weak self] in
+            self?.openFaceRecognition()
+        }
+        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+    }
+
+    private func handleFaceSearchHistoryItemTapped(_ item: FaceSearchHistoryItem) {
+        replayFaceSearch(item)
+    }
+
+    private func replayFaceSearch(_ item: FaceSearchHistoryItem) {
+        let imageData: Data
+        let sourceImage: UIImage?
+
+        if let srcData = FaceSearchHistoryStorage.shared.sourceImageData(for: item) {
+            imageData = srcData
+            sourceImage = UIImage(data: srcData)
+        } else if let faceImage = FaceSearchHistoryStorage.shared.faceImage(for: item),
+                  let faceData = faceImage.jpegData(compressionQuality: 0.85) {
+            imageData = faceData
+            sourceImage = faceImage
+        } else {
+            return
+        }
+
+        let filters = Self.reconstructFilters(from: item)
+
+        let controller = FaceSearchResultsController(
+            context: self.context,
+            imageData: imageData,
+            results: [],
+            sourceImage: sourceImage,
+            faceBBox: item.faceBBox,
+            faceIndex: item.faceIndex,
+            initialFilters: filters,
+            historyEntryId: item.id,
+            needsInitialLoad: true
+        )
+        controller.onOpenProfile = { [weak self] result in
+            self?.openFaceSearchProfile(for: result)
+        }
+        (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+    }
+
+    private static func reconstructFilters(from item: FaceSearchHistoryItem) -> FaceSearchFilterState {
+        var filters = FaceSearchFilterState()
+        filters.similarity = Double(item.similarityPercent) / 100.0
+
+        if let roleStr = item.searchFields["role"], !roleStr.isEmpty {
+            filters.roleIds = roleStr.components(separatedBy: ",")
+        }
+        if let countryStr = item.searchFields["country_ids"], !countryStr.isEmpty {
+            filters.countryIds = countryStr.components(separatedBy: ",")
+        }
+        if let ageFrom = item.searchFields["age_from"].flatMap(Int.init),
+           let ageTo = item.searchFields["age_to"].flatMap(Int.init) {
+            filters.ageRange = ageFrom...ageTo
+        }
+        if let hFrom = item.searchFields["height_from"].flatMap(Double.init),
+           let hTo = item.searchFields["height_to"].flatMap(Double.init) {
+            filters.heightRange = hFrom...hTo
+        }
+        if let wFrom = item.searchFields["waist_from"].flatMap(Double.init),
+           let wTo = item.searchFields["waist_to"].flatMap(Double.init) {
+            filters.waistRange = wFrom...wTo
+        }
+        if let hipFrom = item.searchFields["hips_from"].flatMap(Double.init),
+           let hipTo = item.searchFields["hips_to"].flatMap(Double.init) {
+            filters.hipsRange = hipFrom...hipTo
+        }
+        if let shFrom = item.searchFields["shoes_size_from"].flatMap(Double.init),
+           let shTo = item.searchFields["shoes_size_to"].flatMap(Double.init) {
+            filters.shoeSizeRange = shFrom...shTo
+        }
+        if let hairStr = item.searchFields["hair_length"], !hairStr.isEmpty {
+            filters.hairLength = hairStr.components(separatedBy: ",").compactMap(Int.init)
+        }
+
+        return filters
+    }
+
     // MARK: - Network Requests
 
     private func loadDictionaries() {
@@ -607,12 +754,14 @@ public class ModelsSearchController: ViewController {
         let hairColor = self.currentFilters.hairColor?.isEmpty == true ? nil : self.currentFilters.hairColor
         let hairLength = self.currentFilters.hairLength?.isEmpty == true ? nil : self.currentFilters.hairLength
 
+        let hasModelParams = gender != nil || age != nil || weight != nil || height != nil || waist != nil || shoesSize != nil || hips != nil || eyeColor != nil || skinColor != nil || hairColor != nil || hairLength != nil
+
         return ModelsSearchRequest(
             offset: offset,
             limit: limit,
             query: query,
             role: role,
-            modelParameters: ModelSearchParameters(
+            modelParameters: hasModelParams ? ModelSearchParameters(
                 gender: gender,
                 age: age,
                 weight: weight,
@@ -624,7 +773,7 @@ public class ModelsSearchController: ViewController {
                 skinColor: skinColor,
                 hairColor: hairColor,
                 hairLength: hairLength
-            )
+            ) : nil
         )
     }
     

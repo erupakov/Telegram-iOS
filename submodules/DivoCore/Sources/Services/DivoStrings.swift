@@ -131,8 +131,9 @@ public enum DivoStrings {
     public static var feedSearchCountry: String { L(en: "Search by country", ru: "Поиск по стране", es: "Buscar por país", pt: "Pesquisar por país", zh: "按国家搜索") }
     public static var feedSearchAllCountries: String { L(en: "All countries", ru: "Все страны", es: "Todos los países", pt: "Todos os países", zh: "所有国家") }
     public static var feedSearchResetParameter: String { L(en: "Reset parameter", ru: "Сбросить параметр", es: "Restablecer parámetro", pt: "Redefinir parâmetro", zh: "重置参数") }
-    public static var feedSearchMoreFilters: String { L(en: "More filters", ru: "Больше фильтров", es: "Más filtros", pt: "Mais filtros", zh: "更多筛选") }
-    public static var feedSearchLessFilters: String { L(en: "Less filters", ru: "Меньше фильтров", es: "Menos filtros", pt: "Menos filtros", zh: "更少筛选") }
+    public static var feedSearchResetFilters: String { L(en: "Reset filters", ru: "Сбросить фильтры", es: "Restablecer filtros", pt: "Redefinir filtros", zh: "重置筛选") }
+    public static var feedSearchMoreFilters: String { L(en: "More parameters", ru: "Больше параметров", es: "Más parámetros", pt: "Mais parâmetros", zh: "更多参数") }
+    public static var feedSearchLessFilters: String { L(en: "Less parameters", ru: "Меньше параметров", es: "Menos parámetros", pt: "Menos parâmetros", zh: "更少参数") }
     public static var feedSearchFiltersLoadFailed: String { L(en: "Failed to load filters", ru: "Не удалось загрузить фильтры", es: "Error al cargar filtros", pt: "Falha ao carregar filtros", zh: "加载筛选器失败") }
     public static var feedSearchResultsLoadFailed: String { L(en: "Failed to load search results", ru: "Не удалось загрузить результаты поиска", es: "Error al cargar resultados", pt: "Falha ao carregar resultados", zh: "加载搜索结果失败") }
 
@@ -143,12 +144,15 @@ public enum DivoStrings {
     public static var faceRecognitionTakePhoto: String { L(en: "Take a photo", ru: "Сделать фото", es: "Tomar una foto", pt: "Tirar uma foto", zh: "拍照") }
     public static var faceRecognitionChooseFromLibrary: String { L(en: "Choose from library", ru: "Выбрать из галереи", es: "Elegir de la galería", pt: "Escolher da galeria", zh: "从相册选择") }
     public static var faceRecognitionUseDivoPhoto: String { L(en: "Use a DIVO profile photo", ru: "Использовать фото профиля DIVO", es: "Usar foto de perfil DIVO", pt: "Usar foto do perfil DIVO", zh: "使用DIVO头像") }
+    public static var faceRecognitionProfileSearchPlaceholder: String { L(en: "Search by name or @handle", ru: "Поиск по имени или @handle", es: "Buscar por nombre o @handle", pt: "Buscar por nome ou @handle", zh: "按姓名或@handle 搜索") }
+    public static var faceRecognitionProfilePhotoLoadFailed: String { L(en: "Couldn't load profile photo", ru: "Не удалось загрузить фото профиля", es: "No se pudo cargar la foto del perfil", pt: "Não foi possível carregar a foto do perfil", zh: "无法加载个人资料照片") }
     public static var faceSearchInfoTitle: String { L(en: "How face search works", ru: "Как работает поиск по фото", es: "Cómo funciona la búsqueda facial", pt: "Como funciona a busca facial", zh: "人脸搜索的工作原理") }
     public static var faceSearchInfoMessage: String { L(en: "We analyse your photo to find DIVO profiles with a similar appearance. Your photo is used for this search only and is not stored or shared.\n\nResults are ranked by visual similarity. Use the filters to narrow down by location, role, and other criteria.", ru: "Мы анализируем ваше фото, чтобы найти профили DIVO с похожей внешностью. Фото используется только для этого поиска и не сохраняется.\n\nРезультаты ранжируются по визуальному сходству. Используйте фильтры, чтобы уточнить по локации, роли и другим критериям.", es: "Analizamos tu foto para encontrar perfiles DIVO con apariencia similar. Tu foto se usa solo para esta búsqueda y no se almacena ni comparte.\n\nLos resultados se clasifican por similitud visual. Usa los filtros para refinar por ubicación, rol y otros criterios.", pt: "Analisamos sua foto para encontrar perfis DIVO com aparência semelhante. Sua foto é usada apenas para esta busca e não é armazenada ou compartilhada.\n\nOs resultados são classificados por similaridade visual. Use os filtros para refinar por localização, função e outros critérios.", zh: "我们分析您的照片以查找外貌相似的DIVO档案。您的照片仅用于此次搜索，不会被存储或分享。\n\n结果按视觉相似度排列。使用筛选器按位置、角色和其他条件缩小范围。") }
     public static var faceSearchInfoButton: String { L(en: "Got it, let's search", ru: "Понятно, начать поиск", es: "Entendido, buscar", pt: "Entendi, vamos buscar", zh: "明白了，开始搜索") }
     public static var faceSearchScreenTitle: String { L(en: "FACE SEARCH", ru: "ПОИСК ПО ФОТО", es: "BÚSQUEDA FACIAL", pt: "BUSCA FACIAL", zh: "人脸搜索") }
     public static var faceSearchChangePhoto: String { L(en: "Change photo", ru: "Изменить фото", es: "Cambiar foto", pt: "Alterar foto", zh: "更换照片") }
     public static var faceSearchTryDifferentPhoto: String { L(en: "Try a different photo", ru: "Попробовать другое фото", es: "Probar con otra foto", pt: "Tentar outra foto", zh: "尝试其他照片") }
+    public static var faceSearchBrowseAllProfiles: String { L(en: "Browse all profiles", ru: "Смотреть все профили", es: "Ver todos los perfiles", pt: "Ver todos os perfis", zh: "浏览所有档案") }
     public static var faceSearchFindProfiles: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Buscar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似档案") }
     public static var faceSearchSortedByScore: String { L(en: "Results are sorted by visual similarity score", ru: "Результаты отсортированы по степени сходства", es: "Resultados ordenados por similitud visual", pt: "Resultados ordenados por pontuação de similaridade", zh: "结果按视觉相似度排序") }
     public static var faceSearchNoFacesTitle: String { L(en: "No faces found", ru: "Лица не найдены", es: "No se encontraron rostros", pt: "Nenhum rosto encontrado", zh: "未找到人脸") }
@@ -157,7 +161,7 @@ public enum DivoStrings {
     public static var faceSearchResultsTitle: String { L(en: "Results", ru: "Результаты", es: "Resultados", pt: "Resultados", zh: "结果") }
     public static var faceSearchNoResults: String { L(en: "No matching profiles found", ru: "Подходящие профили не найдены", es: "No se encontraron perfiles coincidentes", pt: "Nenhum perfil correspondente encontrado", zh: "未找到匹配的档案") }
     public static var faceSearchMatchPercent: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配") }
-    public static func faceSearchMatchPercentBadge(_ percent: Int) -> String { L(en: "\(percent)% match", ru: "\(percent)% сходство", es: "\(percent)% coincidencia", pt: "\(percent)% similaridade", zh: "\(percent)% 匹配") }
+    public static func faceSearchMatchPercentBadge(_ percent: Int) -> String { "\(percent)%" }
     public static var faceSearchScanning: String { L(en: "Analysing facial features...", ru: "Анализируем черты лица...", es: "Analizando rasgos faciales...", pt: "Analisando características faciais...", zh: "正在分析面部特征...") }
     public static var faceSearchNoFaceDetected: String { L(en: "No face detected", ru: "Лицо не обнаружено", es: "No se detectó rostro", pt: "Nenhum rosto detectado", zh: "未检测到人脸") }
     public static var faceSearchNoFaceTip: String { L(en: "Try a photo with a clearly visible face", ru: "Попробуйте фото с чётко видимым лицом", es: "Prueba con una foto donde el rostro sea visible", pt: "Tente uma foto com o rosto claramente visível", zh: "请尝试使用面部清晰可见的照片") }
@@ -173,6 +177,8 @@ public enum DivoStrings {
     public static var faceSearchErrorTip: String { L(en: "Check your connection and try again", ru: "Проверьте соединение и попробуйте снова", es: "Verifica tu conexión e intenta de nuevo", pt: "Verifique sua conexão e tente novamente", zh: "请检查网络连接并重试") }
     public static var faceSearchInterruptedTitle: String { L(en: "Search interrupted", ru: "Поиск прерван", es: "Búsqueda interrumpida", pt: "Busca interrompida", zh: "搜索已中断") }
     public static var faceSearchInterruptedSubtitle: String { L(en: "Connection lost during analysis. Photo is ready — just retry", ru: "Соединение потеряно при анализе. Фото готово — просто повторите", es: "Se perdió la conexión durante el análisis. La foto está lista — solo reinténtalo", pt: "Conexão perdida durante a análise. A foto está pronta — é só tentar novamente", zh: "分析过程中连接中断。照片已就绪 — 请重试") }
+    public static var faceSearchServerErrorTitle: String { L(en: "Server error", ru: "Ошибка сервера", es: "Error del servidor", pt: "Erro do servidor", zh: "服务器错误") }
+    public static var faceSearchServerErrorSubtitle: String { L(en: "Something went wrong. Photo is ready — just retry", ru: "Что-то пошло не так. Фото готово — просто повторите", es: "Algo salió mal. La foto está lista — solo reinténtalo", pt: "Algo deu errado. A foto está pronta — é só tentar novamente", zh: "出了点问题。照片已就绪 — 请重试") }
     public static var faceSearchSimilarProfilesTitle: String { L(en: "Similar profiles", ru: "Похожие профили", es: "Perfiles similares", pt: "Perfis semelhantes", zh: "相似档案") }
     public static func faceSearchResultsCount(_ count: Int) -> String { L(en: "\(count) results", ru: "Результатов: \(count)", es: "\(count) resultados", pt: "\(count) resultados", zh: "\(count) 个结果") }
     public static func faceSearchSimilarityThreshold(_ percent: Int) -> String { L(en: "Similarity \(percent)%+", ru: "Сходство от \(percent)%", es: "Similitud \(percent)%+", pt: "Similaridade \(percent)%+", zh: "相似度 \(percent)%+") }
@@ -180,6 +186,25 @@ public enum DivoStrings {
     public static var faceSearchSortedBy: String { L(en: "Sorted by:", ru: "Сортировка:", es: "Ordenado por:", pt: "Ordenado por:", zh: "排序依据：") }
     public static var faceSearchSortMatch: String { L(en: "match", ru: "сходство", es: "coincidencia", pt: "similaridade", zh: "匹配度") }
     public static var faceSearchNoResultsSubtitle: String { L(en: "We couldn't find profiles visually similar to this photo. Try a different photo with a clearer, front-facing face.", ru: "Мы не нашли профили, визуально похожие на это фото. Попробуйте другое фото — с чётко видимым лицом, смотрящим в камеру.", es: "No encontramos perfiles visualmente similares a esta foto. Prueba con otra foto que muestre un rostro más claro, mirando de frente.", pt: "Não encontramos perfis visualmente semelhantes a esta foto. Tente outra foto com o rosto mais nítido e voltado para a câmera.", zh: "未找到与此照片视觉上相似的档案。请尝试使用面部更清晰、正面朝向的其他照片。") }
+    public static var faceSearchFilterTitle: String { L(en: "Filter results", ru: "Фильтр результатов", es: "Filtrar resultados", pt: "Filtrar resultados", zh: "筛选结果") }
+    public static var faceSearchFilterSimilarity: String { L(en: "Minimum similarity", ru: "Минимальное сходство", es: "Similitud mínima", pt: "Similaridade mínima", zh: "最低相似度") }
+    public static var faceSearchFilterSimilarityHint: String { L(en: "Higher values show fewer but closer matches", ru: "Чем выше значение, тем меньше, но ближе совпадений", es: "Valores más altos muestran menos coincidencias, pero más cercanas", pt: "Valores mais altos mostram menos correspondências, porém mais próximas", zh: "数值越高，匹配结果越少但越精准") }
+    public static func faceSearchFallbackMessage(original: Int, actual: Int) -> String { L(en: "No results at \(original)% similarity — showing results at \(actual)% instead.", ru: "Нет результатов при \(original)% сходства — показываем результаты при \(actual)%.", es: "Sin resultados al \(original)% de similitud — mostrando resultados al \(actual)%.", pt: "Sem resultados com \(original)% de similaridade — mostrando resultados com \(actual)%.", zh: "在 \(original)% 相似度下无结果 — 改为显示 \(actual)% 的结果。") }
+    public static var faceSearchAdjustFilters: String { L(en: "Adjust filters", ru: "Настроить", es: "Ajustar filtros", pt: "Ajustar filtros", zh: "调整筛选") }
+    public static var faceSearchNoResultsWithFilters: String { L(en: "No results found — try adjusting your filters", ru: "Ничего не найдено — попробуйте изменить фильтры", es: "Sin resultados — intenta ajustar los filtros", pt: "Sem resultados — tente ajustar os filtros", zh: "未找到结果 — 请尝试调整筛选条件") }
+
+    // MARK: - Face Search History
+
+    public static var faceSearchHistoryTitle: String { L(en: "Recent face searches", ru: "Недавние поиски по фото", es: "Búsquedas faciales recientes", pt: "Buscas faciais recentes", zh: "最近的人脸搜索") }
+    public static var faceSearchHistorySeeAll: String { L(en: "See all", ru: "Все", es: "Ver todo", pt: "Ver tudo", zh: "查看全部") }
+    public static func faceSearchHistoryResultsFound(_ count: Int) -> String { L(en: "\(count) results found", ru: "Найдено результатов: \(count)", es: "\(count) resultados encontrados", pt: "\(count) resultados encontrados", zh: "找到 \(count) 个结果") }
+    public static var faceSearchHistoryScreenTitle: String { L(en: "Face search history", ru: "История поиска по фото", es: "Historial de búsqueda facial", pt: "Histórico de busca facial", zh: "人脸搜索历史") }
+    public static var faceSearchHistoryClearAll: String { L(en: "Clear All", ru: "Очистить", es: "Borrar todo", pt: "Limpar tudo", zh: "清除全部") }
+    public static var faceSearchHistoryNoFilters: String { L(en: "No filters", ru: "Без фильтров", es: "Sin filtros", pt: "Sem filtros", zh: "无筛选") }
+    public static func faceSearchHistorySimilarity(_ percent: Int) -> String { L(en: "Similarity \(percent)%", ru: "Сходство \(percent)%", es: "Similitud \(percent)%", pt: "Similaridade \(percent)%", zh: "相似度 \(percent)%") }
+    public static var faceSearchHistoryNoSearchesTitle: String { L(en: "No searches yet", ru: "Поисков пока нет", es: "Sin búsquedas aún", pt: "Nenhuma busca ainda", zh: "暂无搜索") }
+    public static var faceSearchHistoryNoSearchesSubtitle: String { L(en: "Your face match searches will appear here automatically.", ru: "Ваши поиски по фото появятся здесь автоматически.", es: "Tus búsquedas faciales aparecerán aquí automáticamente.", pt: "Suas buscas faciais aparecerão aqui automaticamente.", zh: "您的人脸搜索将自动显示在此处。") }
+    public static var faceSearchHistoryStartSearch: String { L(en: "Start a face search", ru: "Начать поиск по фото", es: "Iniciar búsqueda facial", pt: "Iniciar busca facial", zh: "开始人脸搜索") }
 
     // MARK: - Roles
 
@@ -473,6 +498,9 @@ public enum DivoStrings {
     public static var loadingTalentsList: String { L(en: "LOADING TALENTS...", ru: "ЗАГРУЗКА ТАЛАНТОВ...", es: "CARGANDO TALENTOS...", pt: "CARREGANDO TALENTOS...", zh: "加载新人才...") }
     public static var loadingAgenciesList: String { L(en: "LOADING AGENCIES...", ru: "ЗАГРУЗКА АГЕНТСТВ...", es: "CARGANDO AGENCIAS...", pt: "CARREGANDO AGÊNCIAS...", zh: "加载经纪公司...") }
     public static var retry: String { L(en: "Retry", ru: "Повторить", es: "Reintentar", pt: "Tentar novamente", zh: "重试") }
+    public static var feedLoadErrorTitle: String { L(en: "Couldn't load models", ru: "Не удалось загрузить модели", es: "No se pudieron cargar modelos", pt: "Não foi possível carregar modelos", zh: "无法加载模特") }
+    public static var feedLoadErrorSubtitle: String { L(en: "Something went wrong on our end.\nCheck your connection and try again.", ru: "Что-то пошло не так.\nПроверьте подключение и попробуйте снова.", es: "Algo salió mal de nuestro lado.\nVerifique su conexión e inténtelo de nuevo.", pt: "Algo deu errado do nosso lado.\nVerifique sua conexão e tente novamente.", zh: "我们这边出了点问题。\n请检查连接并重试。") }
+    public static var feedPaginationError: String { L(en: "Failed to load more", ru: "Не удалось загрузить ещё", es: "Error al cargar más", pt: "Falha ao carregar mais", zh: "加载更多失败") }
     public static var profileSaved: String { L(en: "Saved", ru: "Сохранено", es: "Guardado", pt: "Salvo", zh: "已保存") }
     public static var viewAction: String { L(en: "View", ru: "Смотреть", es: "Ver", pt: "Ver", zh: "查看") }
     public static var yearsOld: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }

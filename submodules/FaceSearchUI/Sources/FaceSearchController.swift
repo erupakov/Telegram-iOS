@@ -44,7 +44,8 @@ public final class FaceSearchController: ViewController {
     private var detectState: FaceDetectState = .idle
     private var isSearching = false
 
-    var onChangePhoto: (() -> Void)?
+    public var onChangePhoto: (() -> Void)?
+    public var onOpenProfile: ((FRSearchResult) -> Void)?
 
     public init(context: AccountContext, image: UIImage) {
         self.context = context
@@ -119,29 +120,33 @@ public final class FaceSearchController: ViewController {
 
         Task { @MainActor [weak self] in
             do {
-                let response: FRDetectResponse = try await DivoAPIClient.shared.upload(
+                async let response: FRDetectResponse = DivoAPIClient.shared.upload(
                     path: "/fr/detect",
                     fileData: imageData
                 )
+                async let minimumDelay: Void = Task.sleep(nanoseconds: 1_300_000_000)
+
+                let detectResult = try await response
+                _ = try? await minimumDelay
                 guard let self else { return }
 
-                switch response.faces.count {
+                switch detectResult.faces.count {
                 case 0:
                     self.transition(to: .noFaces)
                 case 1:
-                    self.transition(to: .singleFace(response.faces[0]))
+                    self.transition(to: .singleFace(detectResult.faces[0]))
                 default:
-                    self.transition(to: .multipleFaces(response.faces, selected: nil))
+                    self.transition(to: .multipleFaces(detectResult.faces, selected: nil))
                 }
             } catch {
                 guard let self else { return }
-                if Self.isConnectionFailure(error) {
+                if let apiError = error as? DivoAPIError, case .httpError(let code, _) = apiError, code == 400 {
+                    self.transition(to: .noFaces)
+                } else {
                     self.transition(to: .idle)
-                    self.presentError { [weak self] in
+                    self.presentError(for: error) { [weak self] in
                         self?.runDetect()
                     }
-                } else {
-                    self.transition(to: .noFaces)
                 }
             }
         }
@@ -167,7 +172,7 @@ public final class FaceSearchController: ViewController {
 
         Task { @MainActor [weak self] in
             do {
-                let searchResponse: FRSearchResponse = try await DivoAPIClient.shared.upload(
+                async let searchResponse: FRSearchResponse = DivoAPIClient.shared.upload(
                     path: "/fr/search",
                     fileData: imageData,
                     fields: [
@@ -176,15 +181,19 @@ public final class FaceSearchController: ViewController {
                         "k_ratio": "\(Self.searchThreshold)"
                     ]
                 )
+                async let minimumDelay: Void = Task.sleep(nanoseconds: 1_300_000_000)
+
+                let result = try await searchResponse
+                _ = try? await minimumDelay
                 guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
-                self.showResults(searchResponse.results, bbox: searchResponse.bbox)
+                self.showResults(result.results, bbox: result.bbox, imageData: imageData, faceIndex: faceIndex)
             } catch {
                 guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
-                self.presentError { [weak self] in
+                self.presentError(for: error) { [weak self] in
                     self?.handleFindPressed()
                 }
             }
@@ -201,26 +210,71 @@ public final class FaceSearchController: ViewController {
         return false
     }
 
-    private func presentError(retryAction: @escaping () -> Void) {
+    private func presentError(for error: Error, retryAction: @escaping () -> Void) {
+        let title: String
+        let subtitle: String
+        if Self.isConnectionFailure(error) {
+            title = DivoStrings.faceSearchInterruptedTitle
+            subtitle = DivoStrings.faceSearchInterruptedSubtitle
+        } else {
+            title = DivoStrings.faceSearchServerErrorTitle
+            subtitle = DivoStrings.faceSearchServerErrorSubtitle
+        }
         faceSearchNode?.applyError(
-            title: DivoStrings.faceSearchInterruptedTitle,
-            subtitle: DivoStrings.faceSearchInterruptedSubtitle,
+            title: title,
+            subtitle: subtitle,
             retryTitle: DivoStrings.faceSearchRetrySearch,
             onRetry: retryAction
         )
     }
 
-    private func showResults(_ results: [FRSearchResult], bbox: FRBoundingBox?) {
+    private func showResults(_ results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int) {
+        var historyEntryId: String?
+        if !results.isEmpty {
+            historyEntryId = saveFaceSearchHistory(results: results, bbox: bbox, imageData: imageData, faceIndex: faceIndex)
+        }
+
+        var initialFilters = FaceSearchFilterState()
+        initialFilters.similarity = Self.searchThreshold
         let controller = FaceSearchResultsController(
             context: self.context,
+            imageData: imageData,
             results: results,
             sourceImage: self.selectedImage,
             faceBBox: bbox,
-            threshold: Self.searchThreshold
+            faceIndex: faceIndex,
+            initialFilters: initialFilters,
+            historyEntryId: historyEntryId
         )
+        controller.onOpenProfile = { [weak self] result in
+            self?.onOpenProfile?(result)
+        }
         if let nav = self.navigationController as? NavigationController {
             nav.pushViewController(controller)
         }
+    }
+
+    @discardableResult
+    private func saveFaceSearchHistory(results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int) -> String {
+        let faceImage: UIImage
+        if let bbox {
+            faceImage = FaceSearchResultsMapper.cropFaceSquare(from: selectedImage, bbox: bbox, padding: 16)
+        } else {
+            faceImage = selectedImage
+        }
+        let fields: [String: String] = [
+            "face_index": "\(faceIndex)",
+            "top_k": "20",
+            "k_ratio": "\(Self.searchThreshold)"
+        ]
+        return FaceSearchHistoryStorage.shared.save(
+            faceImage: faceImage,
+            sourceImageData: imageData,
+            resultsCount: results.count,
+            faceIndex: faceIndex,
+            faceBBox: bbox,
+            searchFields: fields
+        )
     }
 }
 

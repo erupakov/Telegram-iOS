@@ -31,6 +31,7 @@ swift_library(
         "//submodules/AnimatedStickerNode:AnimatedStickerNode",
         "//submodules/TelegramAnimatedStickerNode:TelegramAnimatedStickerNode",
         "//submodules/ProfileScreenUI:ProfileScreenUI",
+        "//submodules/FaceSearchUI:FaceSearchUI",
         "//submodules/DivoCore:DivoCore",
         "//submodules/DivoUIKit:DivoUIKit",
     ],

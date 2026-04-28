@@ -167,13 +167,7 @@ final class InteractionUserCell: UITableViewCell {
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {
         super.setHighlighted(highlighted, animated: animated)
-        let duration = highlighted ? DivoDesignTokens.PressState.pressDuration : DivoDesignTokens.PressState.releaseDuration
-        UIView.animate(withDuration: duration) {
-            self.contentView.alpha = highlighted ? DivoDesignTokens.PressState.alpha : 1.0
-            self.contentView.transform = highlighted
-                ? CGAffineTransform(scaleX: DivoDesignTokens.PressState.scale, y: DivoDesignTokens.PressState.scale)
-                : .identity
-        }
+        applyDivoListHighlight(highlighted)
     }
 }
 

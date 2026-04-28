@@ -9,19 +9,31 @@ public final class DivoEmptyStateView: UIView {
         public let subtitle: String
         public let ctaTitle: String?
         public let onCTATapped: (() -> Void)?
+        public let secondaryCtaTitle: String?
+        public let onSecondaryCTATapped: (() -> Void)?
+        public let iconSize: CGFloat?
+        public let circleSize: CGFloat?
 
         public init(
             icon: UIImage,
             title: String,
             subtitle: String,
             ctaTitle: String? = nil,
-            onCTATapped: (() -> Void)? = nil
+            onCTATapped: (() -> Void)? = nil,
+            secondaryCtaTitle: String? = nil,
+            onSecondaryCTATapped: (() -> Void)? = nil,
+            iconSize: CGFloat? = nil,
+            circleSize: CGFloat? = nil
         ) {
             self.icon = icon
             self.title = title
             self.subtitle = subtitle
             self.ctaTitle = ctaTitle
             self.onCTATapped = onCTATapped
+            self.secondaryCtaTitle = secondaryCtaTitle
+            self.onSecondaryCTATapped = onSecondaryCTATapped
+            self.iconSize = iconSize
+            self.circleSize = circleSize
         }
     }
 
@@ -68,8 +80,22 @@ public final class DivoEmptyStateView: UIView {
         return s
     }()
 
+    private let buttonsStack: UIStackView = {
+        let s = UIStackView()
+        s.axis = .vertical
+        s.spacing = DivoDesignTokens.Spacing.s
+        s.translatesAutoresizingMaskIntoConstraints = false
+        return s
+    }()
+
     private var ctaButton: DivoButton?
     private var ctaAction: (() -> Void)?
+    private var secondaryCtaButton: UIButton?
+    private var secondaryCtaAction: (() -> Void)?
+    private var iconWidthConstraint: NSLayoutConstraint?
+    private var iconHeightConstraint: NSLayoutConstraint?
+    private var circleWidthConstraint: NSLayoutConstraint?
+    private var circleHeightConstraint: NSLayoutConstraint?
 
     public init() {
         super.init(frame: .zero)
@@ -81,9 +107,28 @@ public final class DivoEmptyStateView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     public func configure(_ config: Configuration) {
-        iconView.image = config.icon.withRenderingMode(.alwaysTemplate)
         titleLabel.text = config.title.uppercased()
         subtitleLabel.text = config.subtitle
+
+        if let circleSize = config.circleSize {
+            iconView.image = config.icon.withRenderingMode(.alwaysTemplate)
+            circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
+            circleWidthConstraint?.constant = circleSize
+            circleHeightConstraint?.constant = circleSize
+            circleView.layer.cornerRadius = circleSize / 2
+            iconWidthConstraint?.constant = config.iconSize ?? 32
+            iconHeightConstraint?.constant = config.iconSize ?? 32
+        } else if let size = config.iconSize {
+            iconView.image = config.icon.withRenderingMode(.alwaysOriginal)
+            circleView.backgroundColor = .clear
+            iconWidthConstraint?.constant = size
+            iconHeightConstraint?.constant = size
+        } else {
+            iconView.image = config.icon.withRenderingMode(.alwaysTemplate)
+            circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
+            iconWidthConstraint?.constant = 32
+            iconHeightConstraint?.constant = 32
+        }
 
         if let ctaTitle = config.ctaTitle {
             installCTAIfNeeded()
@@ -93,6 +138,16 @@ public final class DivoEmptyStateView: UIView {
             ctaButton?.removeFromSuperview()
             ctaButton = nil
             ctaAction = nil
+        }
+
+        if let secondaryTitle = config.secondaryCtaTitle {
+            installSecondaryCTAIfNeeded()
+            secondaryCtaButton?.setTitle(secondaryTitle, for: .normal)
+            secondaryCtaAction = config.onSecondaryCTATapped
+        } else {
+            secondaryCtaButton?.removeFromSuperview()
+            secondaryCtaButton = nil
+            secondaryCtaAction = nil
         }
     }
 
@@ -108,14 +163,22 @@ public final class DivoEmptyStateView: UIView {
 
         circleView.addSubview(iconView)
 
+        let wc = iconView.widthAnchor.constraint(equalToConstant: 32)
+        let hc = iconView.heightAnchor.constraint(equalToConstant: 32)
+        iconWidthConstraint = wc
+        iconHeightConstraint = hc
+
+        let cwc = circleView.widthAnchor.constraint(equalToConstant: circleSize)
+        let chc = circleView.heightAnchor.constraint(equalToConstant: circleSize)
+        circleWidthConstraint = cwc
+        circleHeightConstraint = chc
+
         NSLayoutConstraint.activate([
-            circleView.widthAnchor.constraint(equalToConstant: circleSize),
-            circleView.heightAnchor.constraint(equalToConstant: circleSize),
+            cwc, chc,
 
             iconView.centerXAnchor.constraint(equalTo: circleView.centerXAnchor),
             iconView.centerYAnchor.constraint(equalTo: circleView.centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: 32),
-            iconView.heightAnchor.constraint(equalToConstant: 32),
+            wc, hc,
 
             contentStack.centerXAnchor.constraint(equalTo: centerXAnchor),
             contentStack.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -50),
@@ -126,24 +189,51 @@ public final class DivoEmptyStateView: UIView {
         circleView.layer.cornerRadius = circleSize / 2
     }
 
+    private func installButtonsStackIfNeeded() {
+        guard buttonsStack.superview == nil else { return }
+        addSubview(buttonsStack)
+        NSLayoutConstraint.activate([
+            buttonsStack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            buttonsStack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            buttonsStack.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+        ])
+    }
+
     private func installCTAIfNeeded() {
+        installButtonsStackIfNeeded()
         guard ctaButton == nil else { return }
 
         let button = DivoButton()
         button.addTarget(self, action: #selector(ctaTapped), for: .touchUpInside)
-        addSubview(button)
-
-        NSLayoutConstraint.activate([
-            button.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            button.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            button.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
-        ])
+        buttonsStack.insertArrangedSubview(button, at: 0)
 
         ctaButton = button
     }
 
+    private func installSecondaryCTAIfNeeded() {
+        installButtonsStackIfNeeded()
+        guard secondaryCtaButton == nil else { return }
+
+        let button = UIButton(type: .custom)
+        button.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
+        button.titleLabel?.font = Font.helveticaNeue(20)
+        button.backgroundColor = DivoColorPalette.secondaryButtonBackground
+        button.layer.cornerRadius = 28 // соответствует DivoButton
+        button.addDivoPressState(.secondary)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.heightAnchor.constraint(equalToConstant: 56).isActive = true
+        button.addTarget(self, action: #selector(secondaryCtaTapped), for: .touchUpInside)
+        buttonsStack.addArrangedSubview(button)
+
+        secondaryCtaButton = button
+    }
+
     @objc private func ctaTapped() {
         ctaAction?()
+    }
+
+    @objc private func secondaryCtaTapped() {
+        secondaryCtaAction?()
     }
 
     /// Проигрывает spring-анимацию появления: круг масштабируется 0.6→1, текст выезжает снизу.
