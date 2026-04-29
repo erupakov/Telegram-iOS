@@ -593,8 +593,19 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }()
     
     
+    // MARK: - Bottom Spacer
+
+    private let bottomSpacer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.screenBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    private lazy var bottomSpacerHeightConstraint: NSLayoutConstraint = bottomSpacer.heightAnchor.constraint(equalToConstant: 46)
+
+
     // MARK: - Similar Profiles Section
-    
+
     private var similarProfiles: [SimilarProfileItem] = []
     private var similarProfilesIsLoading: Bool = false
     
@@ -1644,19 +1655,23 @@ final class PublicProfileScreenNode: ASDisplayNode {
         contentViewStack.addArrangedSubview(similarProfilesCollectionContainer)
         similarProfilesCollectionContainer.addSubview(similarProfilesTitleLabel)
         similarProfilesCollectionContainer.addSubview(similarProfilesCollectionView)
-        
+
         NSLayoutConstraint.activate([
             similarProfilesTitleLabel.topAnchor.constraint(equalTo: similarProfilesCollectionContainer.topAnchor, constant: DivoDesignTokens.Spacing.m),
             similarProfilesTitleLabel.leadingAnchor.constraint(equalTo: similarProfilesCollectionContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             similarProfilesTitleLabel.trailingAnchor.constraint(equalTo: similarProfilesCollectionContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            
+
             similarProfilesCollectionView.topAnchor.constraint(equalTo: similarProfilesTitleLabel.topAnchor, constant: DivoDesignTokens.Spacing.m),
             similarProfilesCollectionView.leadingAnchor.constraint(equalTo: similarProfilesCollectionContainer.leadingAnchor),
             similarProfilesCollectionView.trailingAnchor.constraint(equalTo: similarProfilesCollectionContainer.trailingAnchor),
-            similarProfilesCollectionView.bottomAnchor.constraint(equalTo: similarProfilesCollectionContainer.bottomAnchor, constant: -30),
+            similarProfilesCollectionView.bottomAnchor.constraint(equalTo: similarProfilesCollectionContainer.bottomAnchor, constant: -12),
             similarProfilesCollectionView.heightAnchor.constraint(equalToConstant: 180)
         ])
-        
+
+        contentViewStack.addArrangedSubview(bottomSpacer)
+        bottomSpacerHeightConstraint.isActive = true
+        contentViewStack.setCustomSpacing(0, after: similarProfilesCollectionContainer)
+
         contentViewStack.setCustomSpacing(0, after: collectionsContainer)
         
         contentViewStack.setCustomSpacing(0, after: videoGalleryCollectionView)
@@ -1670,6 +1685,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         contentViewStack.setCustomSpacing(0, after: eventGalleryCollectionView)
         contentViewStack.setCustomSpacing(0, after: eventGalleryStatusView)
+    }
+
+    private func updateBottomSpacerVisibility() {
+        bottomSpacer.isHidden = !similarProfilesCollectionContainer.isHidden
     }
 
     private func setupFloatingButton() {
@@ -1955,6 +1974,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             similarProfilesCollectionContainer.isHidden = true
             similarProfilesCollectionView.reloadData()
         }
+        updateBottomSpacerVisibility()
     }
     
     // Заполняет коллекцию реальными данными
@@ -1977,6 +1997,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         } else {
             self.similarProfilesCollectionContainer.isHidden = false
         }
+        updateBottomSpacerVisibility()
     }
     
     // Вычисляем возраст от года рождения
@@ -2267,25 +2288,28 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновляем Layout после загрузки контроллера
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
-        
+
         navigationBarTitleHeightConstraint.isActive = false
         navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight)
         navigationBarTitleHeightConstraint.isActive = true
-        
+
+        let bottomSafeInset = layout.intrinsicInsets.bottom
+        bottomSpacerHeightConstraint.constant = bottomSafeInset + 12
+
         applyGradientBlurMask()
         updateNavBarBlurMask()
-        
+
         updateAllCollectionViewHeights(layout: layout)
         updateCollectionsContainerHeight(animated: false)
-        
+
         galleryCollectionView.collectionViewLayout.invalidateLayout()
         videoGalleryCollectionView.collectionViewLayout.invalidateLayout()
         channelGalleryCollectionView.collectionViewLayout.invalidateLayout()
         modelGalleryCollectionView.collectionViewLayout.invalidateLayout()
         eventGalleryCollectionView.collectionViewLayout.invalidateLayout()
-        
+
         updateNavigationBarTitleVisibility()
-        
+
         self.layoutIfNeeded()
     }
 
@@ -2407,6 +2431,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if !isMyProfile {
             similarProfilesCollectionContainer.isHidden = self.modelRole == .agency
+            updateBottomSpacerVisibility()
             sendShareContainer.isHidden = false
             dmShareStack.isHidden = false
             dmShareShimmerStack.isHidden = true
@@ -3756,10 +3781,9 @@ extension PublicProfileScreenNode: UIScrollViewDelegate {
         updateSegmentedBarPosition()
         updateNavigationBarTitleVisibility()
         
-        // Защита от скролла ниже контента
         let maxScrollY = scrollView.contentSize.height - scrollView.bounds.height
         let bottomLimit = max(0, maxScrollY)
-        
+
         if scrollView.contentOffset.y > bottomLimit {
             scrollView.contentOffset.y = bottomLimit
         }
