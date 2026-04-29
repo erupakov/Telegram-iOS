@@ -70,6 +70,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         scrollView.backgroundColor = .clear
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.showsVerticalScrollIndicator = false
+        scrollView.clipsToBounds = false
         return scrollView
     }()
     
@@ -104,6 +105,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         iv.backgroundColor = .gray
         return iv
     }()
+
 
     private let headerSpinner: DivoSegmentedSpinner = {
         let spinner = DivoSegmentedSpinner(color: DivoColorPalette.cardBackground)
@@ -722,7 +724,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         button.setImage(image, for: .highlighted)
         button.tintColor = DivoColorPalette.cardBackground
 
-        button.backgroundColor = DivoColorPalette.statPillBackground
+        button.backgroundColor = .clear
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         button.layer.masksToBounds = true
         button.layer.borderWidth = 0.5
@@ -734,7 +736,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let rightButtonContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.statPillBackground
+        view.backgroundColor = .clear
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.layer.masksToBounds = true
         view.layer.borderWidth = 0.5
@@ -877,18 +879,32 @@ final class PublicProfileScreenNode: ASDisplayNode {
     override func layout() {
         super.layout()
         
-        guard let (layout, _) = self.containerLayout else { return }
-        
+        guard let (layout, navigationBarHeight) = self.containerLayout else { return }
+
         let stackWidth = layout.size.width
-        
+
         contentViewStack.layoutIfNeeded()
-        
-        let contentHeight = contentViewStack.systemLayoutSizeFitting(
+
+        var contentHeight = contentViewStack.systemLayoutSizeFitting(
             CGSize(width: stackWidth, height: UIView.layoutFittingCompressedSize.height),
             withHorizontalFittingPriority: .required,
             verticalFittingPriority: .fittingSizeLevel
         ).height
-        
+
+        let scrollViewHeight = layout.size.height - navigationBarHeight
+        let collapseOffset = segmentedBarContainer.frame.minY
+        if collapseOffset > 0, scrollViewHeight > 0 {
+            let minContentHeight = collapseOffset + scrollViewHeight
+            let currentSpacerHeight = bottomSpacer.isHidden ? 0 : bottomSpacerHeightConstraint.constant
+            let contentWithoutSpacer = contentHeight - currentSpacerHeight
+            let bottomSafeInset = layout.intrinsicInsets.bottom
+            let neededSpacerHeight = max(bottomSafeInset + 12, minContentHeight - contentWithoutSpacer)
+            if !bottomSpacer.isHidden, neededSpacerHeight != currentSpacerHeight {
+                bottomSpacerHeightConstraint.constant = neededSpacerHeight
+                contentHeight = contentWithoutSpacer + neededSpacerHeight
+            }
+        }
+
         contentViewStack.frame = CGRect(x: 0, y: 0, width: stackWidth, height: contentHeight)
         scrollView.contentSize = CGSize(width: stackWidth, height: contentHeight)
         
@@ -969,48 +985,65 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
         navBarWhiteGradientLayer.frame = bounds
         navBarWhiteGradientLayer.colors = [
-            UIColor.white.withAlphaComponent(0.7412).cgColor, 
-            UIColor.white.withAlphaComponent(0.70).cgColor,  
-            UIColor.white.withAlphaComponent(0.10).cgColor, 
-            UIColor.white.withAlphaComponent(0.0).cgColor, 
-            UIColor.clear.cgColor                          
+            UIColor.white.withAlphaComponent(0.74).cgColor,
+            UIColor.white.withAlphaComponent(0.70).cgColor,
+            UIColor.white.withAlphaComponent(0.20).cgColor,
+            UIColor.clear.cgColor
         ]
-        
+
         navBarWhiteGradientLayer.locations = [
             0.0,
-            0.18,
-            0.35,
-            0.4000,
-            1.0000
+            0.15,
+            0.45,
+            0.70
         ]
-        
+
         let maskLayer = CAGradientLayer()
         maskLayer.frame = bounds
-        
+
         maskLayer.colors = [
-            UIColor.black.cgColor, 
-            UIColor.black.cgColor, 
-            UIColor.black.withAlphaComponent(0.4).cgColor, 
-            UIColor.clear.cgColor  
+            UIColor.black.cgColor,
+            UIColor.black.cgColor,
+            UIColor.black.withAlphaComponent(0.4).cgColor,
+            UIColor.clear.cgColor
         ]
-        
+
         maskLayer.locations = [
             0.0,
-            0.4,
+            0.22,
             0.50,
-            1.0
+            0.75
         ]
         
         navBarBlurView.layer.mask = maskLayer
     }
 
 
+    private func addPillBlur(to view: UIView) {
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        blur.isUserInteractionEnabled = false
+        view.insertSubview(blur, at: 0)
+        NSLayoutConstraint.activate([
+            blur.topAnchor.constraint(equalTo: view.topAnchor),
+            blur.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        if let button = view as? UIButton, let imageView = button.imageView {
+            button.bringSubviewToFront(imageView)
+        }
+    }
+
     private func setupCustomNavBar() {
         view.addSubview(customNavBar)
-        
+
         customNavBar.addSubview(closeButton)
         customNavBar.addSubview(rightButtonContainer)
-        
+
+        addPillBlur(to: closeButton)
+        addPillBlur(to: rightButtonContainer)
+
         rightButtonContainer.addSubview(rightButtonsStack)
         rightButtonsStack.addArrangedSubview(storiesButton)
         rightButtonsStack.addArrangedSubview(editButton)
@@ -1161,7 +1194,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupHeaderImageView() {
         self.view.addSubview(headerImageView)
         self.view.addSubview(headerSpinner)
-        
+
         NSLayoutConstraint.activate([
             headerImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
             headerImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
@@ -1248,6 +1281,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
         counterActionsStack.addArrangedSubview(likesView)
         counterActionsStack.addArrangedSubview(viewsView)
         counterActionsStack.addArrangedSubview(savesView)
+
+        for pill in [likesView, viewsView, savesView] {
+            pill.backgroundColor = .clear
+            addPillBlur(to: pill)
+        }
 
         likesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
         viewsView.widthAnchor.constraint(equalToConstant: 70).isActive = true
@@ -2133,6 +2171,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         guard titleVisibilityActivated else {
             if titleView.alpha != 0.0 { titleView.alpha = 0.0 }
+            navBarBlurView.alpha = 0
+            customNavBar.backgroundColor = .clear
             return
         }
         
@@ -2156,38 +2196,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
         
         // =========================================================
-        // ФАЗА 2: Закрепление SegmentedBar -> Появление Блюра
+        // ПРИМЕНЕНИЕ ФАЗ К UI
         // =========================================================
-        let segmentedY = segmentedBarPlaceholder.frame.minY > 0 ? segmentedBarPlaceholder.frame.minY : 600.0
-        
-        let blurStartOffset = segmentedY - navigationBarHeight
-        let transitionDistance: CGFloat = 40.0 // Дистанция перехода
-        
-        // 1. Считаем общий прогресс второй фазы (от 0.0 до 1.0)
-        var phase2Progress: CGFloat = 0.0
-        if offsetY >= blurStartOffset + transitionDistance {
-            phase2Progress = 1.0
-        } else if offsetY > blurStartOffset {
-            phase2Progress = (offsetY - blurStartOffset) / transitionDistance
-        }
-        
-        // 2. РАЗДЕЛЯЕМ ПРОГРЕСС НА ДВА ЭТАПА (Убиваем промигивание)
-        // На первой половине (0.0 -> 0.5) блюр заряжается до 100% под навбаром.
-        // На второй половине (0.5 -> 1.0) сплошной фон растворяется, открывая готовый блюр.
-        let blurAlpha = min(1.0, phase2Progress * 2.0)
-        let solidFadeOut = phase2Progress > 0.5 ? (1.0 - (phase2Progress - 0.5) * 2.0) : 1.0
-        
-        // =========================================================
-        // ПРИМЕНЕНИЕ ДВУХ ФАЗ К UI
-        // =========================================================
-        
-        // 1. Фон НавБара и Блюр
-        let combinedBackgroundAlpha = titleAlpha * solidFadeOut
-        customNavBar.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(combinedBackgroundAlpha)
-        navBarBlurView.alpha = blurAlpha
-        
-        // 2. Иконки кнопок (должны быть темными и при сплошном фоне, и при блюре)
-        let maxProgress = max(titleAlpha, phase2Progress)
+
+        // 1. Блюр стартует вместе с title (нарастает быстрее), навбар всегда прозрачный — фон даёт только блюр
+        navBarBlurView.alpha = min(1.0, titleAlpha * 2.0)
+
+        // 2. Иконки кнопок
+        let maxProgress = titleAlpha
         let iconColor = DivoColorPalette.primaryTextOnDark.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
         closeButton.tintColor = iconColor
         storiesButton.tintColor = iconColor
@@ -2207,6 +2223,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let borderEndColor = UIColor.clear.cgColor
         closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
         rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
+
+        // 5. Fade-out stat pills — только при реальном скролле вверх, не при bounce
+        if offsetY > 0 {
+            let pillAlpha = max(0, 1.0 - offsetY / 60.0)
+            counterActionsStack.alpha = pillAlpha
+            actionsShimmerView.alpha = pillAlpha
+        } else {
+            counterActionsStack.alpha = 1.0
+            actionsShimmerView.alpha = 1.0
+        }
+
     }
     
     // Активация анимации заголовка навбара
