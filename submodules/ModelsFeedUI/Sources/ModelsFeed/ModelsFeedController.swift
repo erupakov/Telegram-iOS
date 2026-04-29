@@ -267,12 +267,14 @@ public final class ModelsFeedController: TelegramBaseController {
     }
 
     private func requestBody(tabIndex: Int, offset: Int, limit: Int) -> FeedlineListRequest {
+        let role: String
         switch tabIndex {
-        case 2:
-            return FeedlineListRequest(offset: offset, limit: limit, modelsOnly: true)
-        default:
-            return FeedlineListRequest(offset: offset, limit: limit)
+        case 0: role = DivoConfig.UserRole.model.rawValue
+        case 1: role = DivoConfig.UserRole.newFace.rawValue
+        case 2: role = DivoConfig.UserRole.agency.rawValue
+        default: role = DivoConfig.UserRole.model.rawValue
         }
+        return FeedlineListRequest(offset: offset, limit: limit, role: role)
     }
 
     private func loadFeedline(tabIndex: Int, reset: Bool) {
@@ -353,7 +355,7 @@ public final class ModelsFeedController: TelegramBaseController {
         let avatarURL = item.searchImage.flatMap { URL(string: $0.fullUrl) }
         let previewURLs = item.files.dropFirst().compactMap { URL(string: $0.fullUrl) }
         return CardModel(
-            name: item.title,
+            name: item.title ?? item.user.fullName ?? "",
             userId: item.user.id,
             role: item.user.role,
             roleLabel: item.user.roleLabel,

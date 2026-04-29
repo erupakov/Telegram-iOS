@@ -36,8 +36,16 @@ final class CardCollectionViewCell: UICollectionViewCell {
 
     // MARK: - Glass Blur Overlays
 
-    private let topGlassView = DivoGlassBlurView(direction: .top)
-    private let bottomGlassView = DivoGlassBlurView(direction: .bottom)
+    private let topGlassView: DivoGlassBlurView = {
+        let v = DivoGlassBlurView(direction: .top)
+        v.alpha = 0
+        return v
+    }()
+    private let bottomGlassView: DivoGlassBlurView = {
+        let v = DivoGlassBlurView(direction: .bottom)
+        v.alpha = 0
+        return v
+    }()
 
     // MARK: - Name
 
@@ -278,9 +286,17 @@ final class CardCollectionViewCell: UICollectionViewCell {
         let placeholderColor = DivoColorPalette.imagePlaceholderLight
 
         // Main image
+        topGlassView.alpha = 0
+        bottomGlassView.alpha = 0
         if let url = model.mainImageURL {
             mainImageView.backgroundColor = placeholderColor
-            mainImageView.loadImage(from: url)
+            mainImageView.loadImage(from: url) { [weak self] image in
+                guard let self, image != nil else { return }
+                UIView.animate(withDuration: 0.3) {
+                    self.topGlassView.alpha = 1
+                    self.bottomGlassView.alpha = 1
+                }
+            }
         } else {
             mainImageView.backgroundColor = placeholderColor
         }
@@ -386,6 +402,8 @@ final class CardCollectionViewCell: UICollectionViewCell {
         super.prepareForReuse()
         mainImageView.cancelImageLoad()
         mainImageView.image = nil
+        topGlassView.alpha = 0
+        bottomGlassView.alpha = 0
         previewStackView.arrangedSubviews.forEach {
             ($0 as? UIImageView)?.cancelImageLoad()
             $0.removeFromSuperview()
@@ -396,6 +414,12 @@ final class CardCollectionViewCell: UICollectionViewCell {
 // MARK: - StatPillView
 
 final class StatPillView: UIView {
+    private let blurView: UIVisualEffectView = {
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
+        blur.isUserInteractionEnabled = false
+        return blur
+    }()
+
     private let iconView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .center
@@ -419,7 +443,7 @@ final class StatPillView: UIView {
         self.normalIcon = icon.withRenderingMode(.alwaysTemplate)
         self.filledIcon = filledIcon?.withRenderingMode(.alwaysTemplate)
         super.init(frame: .zero)
-        backgroundColor = DivoColorPalette.statPillBackground
+        backgroundColor = .clear
         layer.cornerRadius = 15 // TODO: DS alignment — не в шкале Radius
         layer.masksToBounds = true
         layer.borderWidth = 0.5
@@ -427,6 +451,7 @@ final class StatPillView: UIView {
 
         iconView.image = normalIcon
 
+        addSubview(blurView)
         addSubview(iconView)
         addSubview(countLabel)
 
@@ -446,18 +471,20 @@ final class StatPillView: UIView {
     func setActive(_ active: Bool, animated: Bool = false) {
         let change = {
             if active {
-                self.backgroundColor = .white
-                self.layer.borderColor = UIColor.white.cgColor
-                self.iconView.tintColor = .black
-                self.countLabel.textColor = .black
+                self.blurView.isHidden = true
+                self.backgroundColor = DivoColorPalette.statPillActiveBackground
+                self.layer.borderColor = DivoColorPalette.statPillActiveBackground.cgColor
+                self.iconView.tintColor = DivoColorPalette.statPillActiveForeground
+                self.countLabel.textColor = DivoColorPalette.statPillActiveForeground
                 if let filled = self.filledIcon {
                     self.iconView.image = filled
                 }
             } else {
-                self.backgroundColor = DivoColorPalette.statPillBackground
+                self.blurView.isHidden = false
+                self.backgroundColor = .clear
                 self.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
-                self.iconView.tintColor = .white
-                self.countLabel.textColor = .white
+                self.iconView.tintColor = DivoColorPalette.statPillForeground
+                self.countLabel.textColor = DivoColorPalette.statPillForeground
                 self.iconView.image = self.normalIcon
             }
         }
@@ -470,6 +497,7 @@ final class StatPillView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        blurView.frame = bounds
         let iconSize: CGFloat = 16
         let iconX: CGFloat = 8
         let iconY: CGFloat = (bounds.height - iconSize) / 2

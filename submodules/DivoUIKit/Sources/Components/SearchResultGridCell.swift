@@ -255,7 +255,7 @@ public final class SearchResultGridCell: UICollectionViewCell {
 
         contentView.addSubview(backgroundImageView)
 
-        progressiveBlurView.alpha = 0.8
+        progressiveBlurView.alpha = 0.0
         progressiveBlurView.translatesAutoresizingMaskIntoConstraints = false
 
         contentView.addSubview(progressiveBlurView)
@@ -427,12 +427,11 @@ public final class SearchResultGridCell: UICollectionViewCell {
         applyVariant(viewModel.variant, role: viewModel.roleLabel)
 
         if let url = viewModel.imageURL {
-            backgroundImageView.loadImage(from: url)
-        }
-
-        DispatchQueue.main.async { [weak self] in
-            self?.layoutIfNeeded()
-            self?.animateBlurAppearance()
+            backgroundImageView.loadImage(from: url) { [weak self] image in
+                guard let self, image != nil else { return }
+                self.layoutIfNeeded()
+                self.animateBlurAppearance()
+            }
         }
     }
 

@@ -358,7 +358,7 @@ public class ModelsSearchController: ViewController {
             .flatMap { CDNURLHelper.convertToCDNURL($0) }
 
         let profileModel = ProfileModel(
-            name: user.title,
+            name: user.title ?? user.user?.fullName ?? "",
             age: user.user?.age,
             location: user.user?.city?.name ?? "",
             isVerified: false,
@@ -501,7 +501,7 @@ public class ModelsSearchController: ViewController {
         let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(userId)")!
         let shareItem = DivoShareItemSource(
             url: shareURL,
-            title: item.title,
+            title: item.title ?? item.user?.fullName ?? "",
             subtitle: item.user?.roleLabel ?? "",
             image: image
         )
