@@ -57,6 +57,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Управление моментом, когда начинаем анимировать title в навбаре
     private var titleVisibilityActivated = false
+    private var isPerformingLayout = false
     
     private var headerHeightConstraint: NSLayoutConstraint!
     private var socialHeightConstraint: NSLayoutConstraint!
@@ -878,7 +879,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     override func layout() {
         super.layout()
-        
+
+        guard !isPerformingLayout else { return }
+        isPerformingLayout = true
+        defer { isPerformingLayout = false }
+
         guard let (layout, navigationBarHeight) = self.containerLayout else { return }
 
         let stackWidth = layout.size.width
@@ -899,7 +904,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             let contentWithoutSpacer = contentHeight - currentSpacerHeight
             let bottomSafeInset = layout.intrinsicInsets.bottom
             let neededSpacerHeight = max(bottomSafeInset + 12, minContentHeight - contentWithoutSpacer)
-            if !bottomSpacer.isHidden, neededSpacerHeight != currentSpacerHeight {
+            if !bottomSpacer.isHidden, abs(neededSpacerHeight - currentSpacerHeight) > 1.0 {
                 bottomSpacerHeightConstraint.constant = neededSpacerHeight
                 contentHeight = contentWithoutSpacer + neededSpacerHeight
             }
