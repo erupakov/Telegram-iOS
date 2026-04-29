@@ -460,6 +460,19 @@ public enum DivoStrings {
     public static var from: String { L(en: "From", ru: "От", es: "Desde", pt: "De", zh: "从") }
     public static var to: String { L(en: "To", ru: "До", es: "Hasta", pt: "Até", zh: "到") }
     public static var applyFilter: String { L(en: "Apply filter", ru: "Применить фильтр", es: "Aplicar filtro", pt: "Aplicar filtro", zh: "应用筛选") }
+    public static var whoCanApply: String { L(en: "Who can apply", ru: "Кто может подать заявку", es: "Quién puede aplicar", pt: "Quem pode se inscrever", zh: "谁可以申请") }
+    public static var maxParticipants: String { L(en: "Max participants", ru: "Макс. участников", es: "Máx. participantes", pt: "Máx. participantes", zh: "最大参与人数") }
+    public static var descriptionCreateEvent: String { L(en: "Description ", ru: "Описание ", es: "Descripción ", pt: "Descrição ", zh: "描述 ") }
+    public static var placeholderDescriptionCreateEvent: String { L(en: "Description about event", ru: "Описание события", es: "Descripción del evento", pt: "Descrição do evento", zh: "活动描述") }
+    public static var requirementsCreateEvent: String { L(en: "Requirements", ru: "Требования", es: "Requisitos", pt: "Requisitos", zh: "要求") }
+    public static var placeholderRequirementsCreateEvent: String { L(en: "Description about requirements", ru: "Описание требований", es: "Descripción de requisitos", pt: "Descrição dos requisitos", zh: "要求描述") }
+    public static var ndaRequiredCreateEvent: String { L(en: "NDA required", ru: "Требуется NDA", es: "NDA requerido", pt: "NDA obrigatório", zh: "需要保密协议") }
+    public static var deadlineDate: String { L(en: "Application deadline date", ru: "Дедлайн подачи заявок", es: "Fecha límite de solicitud", pt: "Data limite para inscrições", zh: "申请截止日期") }
+    public static var deadlineTime: String { L(en: "Application deadline time", ru: "Время дедлайна", es: "Hora límite de solicitud", pt: "Horário limite para inscrições", zh: "申请截止时间*") }
+    public static var rate: String { L(en: "Rate", ru: "Ставка", es: "Tarifa", pt: "Taxa", zh: "费率") }
+    public static var publicEvent: String { L(en: "Public event", ru: "Публичное мероприятие", es: "Evento público", pt: "Evento público", zh: "公开活动") }
+    public static var visibleAllUsers: String { L(en: "Visible to all users", ru: "Видно всем пользователям", es: "Visible para todos los usuarios", pt: "Visível para todos os usuários", zh: "对所有用户可见") }
+    public static var galleryCreateEvent: String { L(en: "Event gallery", ru: "Галерея мероприятия", es: "Galería del evento", pt: "Galeria do evento", zh: "活动图库") }
 
     // MARK: - Models Feed
 

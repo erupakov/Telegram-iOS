@@ -33,10 +33,12 @@ final class EventGalleryCell: UICollectionViewCell {
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
 
-        let basketButtonImg = generateTintedImage(image: DivoImage.basket, color: DivoColorPalette.accentSecondary)
+        let basketButtonImg = generateTintedImage(image: DivoImage.basketWork, color: DivoColorPalette.accent)
         deleteButton.setImage(basketButtonImg, for: .normal)
-        deleteButton.backgroundColor = .white
+        deleteButton.backgroundColor = DivoColorPalette.cardBackground
         deleteButton.layer.cornerRadius = 14
+        deleteButton.layer.borderColor = DivoColorPalette.accent.cgColor
+        deleteButton.layer.borderWidth = 1
         deleteButton.clipsToBounds = true
         deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
         

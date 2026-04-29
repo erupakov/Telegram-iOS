@@ -260,11 +260,11 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
         super.init()
         
-        startDateView.datePicker.maximumDate = today
-        startDateView.datePicker.date = oneMonthAgo
-        endTimeView.datePicker.maximumDate = today
-        endTimeView.datePicker.minimumDate = oneMonthAgo
-        endTimeView.datePicker.date = Date()
+        // startDateView.datePicker.maximumDate = today
+        // startDateView.datePicker.date = oneMonthAgo
+        // endTimeView.datePicker.maximumDate = today
+        // endTimeView.datePicker.minimumDate = oneMonthAgo
+        // endTimeView.datePicker.date = Date()
 
         self.backgroundColor = DivoColorPalette.screenBackground
         
@@ -479,32 +479,32 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private func setupInteractions() {
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
         
-        startDateView.onDateSelected = { [weak self] timestamp in
-            if let currentEndTime = self?.endTime {
-                if timestamp > currentEndTime {
-                    self?.endTime = timestamp
-                    self?.endTimeView.setDate(timestamp: timestamp)
-                }
-            }
-            self?.endTimeView.datePicker.minimumDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
-            self?.updateTime(timestamp, type: .start)
-            self?.updateApplyButtonState()
-        }
+        // startDateView.onDateSelected = { [weak self] timestamp in
+        //     if let currentEndTime = self?.endTime {
+        //         if timestamp > currentEndTime {
+        //             self?.endTime = timestamp
+        //             self?.endTimeView.setDate(timestamp: timestamp)
+        //         }
+        //     }
+        //     self?.endTimeView.datePicker.minimumDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+        //     self?.updateTime(timestamp, type: .start)
+        //     self?.updateApplyButtonState()
+        // }
         
-        endTimeView.onDateSelected = { [weak self] timestamp in
-            self?.updateTime(timestamp, type: .end)
-            self?.updateApplyButtonState()
-        }
+        // endTimeView.onDateSelected = { [weak self] timestamp in
+        //     self?.updateTime(timestamp, type: .end)
+        //     self?.updateApplyButtonState()
+        // }
         
-        startDateView.onBeginEditing = { [weak self] in
-            guard let self else { return }
-            self.scrollToView(self.startDateView)
-        }
+        // startDateView.onBeginEditing = { [weak self] in
+        //     guard let self else { return }
+        //     self.scrollToView(self.startDateView)
+        // }
 
-        endTimeView.onBeginEditing = { [weak self] in
-            guard let self else { return }
-            self.scrollToView(self.endTimeView)
-        }
+        // endTimeView.onBeginEditing = { [weak self] in
+        //     guard let self else { return }
+        //     self.scrollToView(self.endTimeView)
+        // }
         
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         dismissTap.cancelsTouchesInView = false
@@ -528,12 +528,12 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
                 if self.agencyNameTextField.textField.isFirstResponder {
                     self.scrollToView(self.agencyNameTextField.view)
                 }
-                else if self.startDateView.isActive {
-                    self.scrollToView(self.startDateView)
-                }
-                else if self.endTimeView.isActive {
-                    self.scrollToView(self.endTimeView)
-                }
+                // else if self.startDateView.isActive {
+                //     self.scrollToView(self.startDateView)
+                // }
+                // else if self.endTimeView.isActive {
+                //     self.scrollToView(self.endTimeView)
+                // }
             }
         )
         keyboardHandler?.subscribe()

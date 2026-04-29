@@ -48,12 +48,15 @@ public final class DivoButton: UIButton {
 
     // MARK: - Configuration
     
-    public func makeDivoButton(title: String, loading: String? = nil) {
+    public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil) {
         normalTitle = title
         loadingTitle = loading
         
-        applyNormalTitle()
-        applyDisabledTitle()
+        applyNormalTitle(buttonFont: buttonFont)
+        applyDisabledTitle(buttonFont: buttonFont)
+        
+        guard let radius = radius else { return }
+        layer.cornerRadius = radius
     }
     
     // MARK: - Setup
@@ -63,6 +66,8 @@ public final class DivoButton: UIButton {
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = Self.cornerRadius
 
+        contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right:  DivoDesignTokens.Spacing.m)
+        
         heightAnchor.constraint(equalToConstant: Self.buttonHeight).isActive = true
 
         addSubview(spinner)
@@ -80,20 +85,20 @@ public final class DivoButton: UIButton {
 
     // MARK: - Attributed titles
 
-    private func applyNormalTitle() {
+    private func applyNormalTitle(buttonFont: UIFont) {
         guard let normalTitle = normalTitle else { return }
         let attr: [NSAttributedString.Key: Any] = [
-            .font: Self.buttonFont,
+            .font: buttonFont,
             .kern: Self.kern,
             .foregroundColor: DivoColorPalette.primaryTextOnDark,
         ]
         setAttributedTitle(NSAttributedString(string: normalTitle, attributes: attr), for: .normal)
     }
 
-    private func applyDisabledTitle() {
+    private func applyDisabledTitle(buttonFont: UIFont) {
         guard let normalTitle = normalTitle else { return }
         let attr: [NSAttributedString.Key: Any] = [
-            .font: Self.buttonFont,
+            .font: buttonFont,
             .kern: Self.kern,
             .foregroundColor: DivoColorPalette.disabledText,
         ]
@@ -114,6 +119,15 @@ public final class DivoButton: UIButton {
 
     override public var isHighlighted: Bool {
         didSet {}
+    }
+
+    // MARK: - Enabled / disabled
+
+    override public var isEnabled: Bool {
+        didSet {
+            guard !isSaving else { return }
+            backgroundColor = isEnabled ? DivoColorPalette.accent : DivoColorPalette.buttonDisabledBackground
+        }
     }
 
     // MARK: - Saving state

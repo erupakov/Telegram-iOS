@@ -29,9 +29,17 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     }
 
     private var presentationData: PresentationData
-    private var presentationDataDisposable: Disposable?
-
+    
     public var onEventCreated: (() -> Void)?
+    
+    private var selectedAvatarImage: UIImage?
+    private var selectedAvatarUUID: String?
+    
+    private enum PhotoPickerTarget {
+        case avatar
+        case gallery
+    }
+    private var currentPickerTarget: PhotoPickerTarget = .avatar
 
     public init(context: AccountContext, eventId: Int? = nil) {
         self.context = context
@@ -40,70 +48,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
-        let copperColor = DivoColorPalette.accentSecondary
-
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: copperColor,
-            disabledButtonColor: copperColor.withAlphaComponent(0.4),
-            primaryTextColor: .black,
-            backgroundColor: .white,
-            opaqueBackgroundColor: .white,
-            enableBackgroundBlur: false,
-            separatorColor: DivoColorPalette.separatorSystem,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
-
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
-
-        super.init(navigationBarPresentationData: navigationBarData)
-
-        self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-
-        NotificationCenter.default.addObserver(self, selector: #selector(handleWillEnterForeground), name: UIApplication.willEnterForegroundNotification, object: nil)
-
-        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
-
-        let titleLabel = UILabel()
-        titleLabel.attributedText = Font.helveticaNeue(
-            isEditMode ? DivoStrings.navEditEvent : DivoStrings.navCreateEvent,
-            20,
-            .black
-        )
-        titleLabel.sizeToFit()
-        self.navigationItem.titleView = titleLabel
-
-        let navFont = UIFont.systemFont(ofSize: 17, weight: .regular)
-        let navFontAttributes: [NSAttributedString.Key: Any] = [.font: navFont, .kern: -0.4]
-
-        let createItem = UIBarButtonItem(
-            title: isEditMode ? DivoStrings.save : DivoStrings.create,
-            style: .plain,
-            target: self,
-            action: #selector(createPressed)
-        )
-        createItem.tintColor = copperColor
-        createItem.setTitleTextAttributes(navFontAttributes, for: .normal)
-        createItem.setTitleTextAttributes(navFontAttributes, for: .highlighted)
-        self.navigationItem.rightBarButtonItem = createItem
-
-        self.navigationItem.backBarButtonItem?.setTitleTextAttributes(navFontAttributes, for: .normal)
-        self.navigationItem.backBarButtonItem?.setTitleTextAttributes(navFontAttributes, for: .highlighted)
-
-        self.presentationDataDisposable = (context.sharedContext.presentationData
-                                           |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            if let strongSelf = self {
-                let previousTheme = strongSelf.presentationData.theme
-                let previousStrings = strongSelf.presentationData.strings
-
-                strongSelf.presentationData = presentationData
-
-                if previousTheme !== presentationData.theme || previousStrings !== presentationData.strings {
-                    strongSelf.updateThemeAndStrings()
-                }
-            }
-        }).strict()
+        super.init(navigationBarPresentationData: nil)
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -112,42 +57,13 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
     deinit {
         NotificationCenter.default.removeObserver(self)
-        self.presentationDataDisposable?.dispose()
-    }
-
-    private func makeNavigationBarPresentationData() -> NavigationBarPresentationData {
-        let copperColor = DivoColorPalette.accentSecondary
-        let theme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: copperColor,
-            disabledButtonColor: copperColor.withAlphaComponent(0.4),
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .black,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear)
-        return NavigationBarPresentationData(theme: theme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
-    }
-
-    @objc private func handleWillEnterForeground() {
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-    }
-
-    private func updateThemeAndStrings() {
-        self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
-
-        self.navigationItem.backBarButtonItem = UIBarButtonItem(title: self.presentationData.strings.Common_Back, style: .plain, target: nil, action: nil)
     }
 
     override public func loadDisplayNode() {
         let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         let theme = self.presentationData.theme
 
-        self.displayNode = CreateEventNode(context: self.context, addPhoto: { [weak self] in
+        self.displayNode = CreateEventNode(addPhoto: { [weak self] in
             presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
                 self?.view.endEditing(true)
                 self?.present(c, in: .window(.root), with: a)
@@ -179,22 +95,37 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.createEventNode.scheduleTimeController = { [weak self] mode in
             self?.scheduleTimeController(mode: mode)
         }
+        self.createEventNode.scheduleDeadlineTimeController = { [weak self] mode in
+            self?.scheduleDeadlineTimeController(mode: mode)
+        }
         self.createEventNode.showAlert = { [weak self] text in
             self?.showAlert(text: text)
-        }
-        self.createEventNode.onAddParametersTapped = { [weak self] selectedParams in
-            self?.showParametersSheet(currentSelection: selectedParams)
         }
         self.createEventNode.onCreateEventTapped = { [weak self] in
             self?.createPressed()
         }
         self.createEventNode.onAddGalleryPhotoTapped = { [weak self] in
-            if #available(iOS 14.0, *) {
+            if #available(iOS 14, *) {
                 self?.openMultiPhotoPicker()
             }
         }
+        
+        self.createEventNode.onAvatarTap = { [weak self] in
+            if #available(iOS 14, *) {
+                self?.openPhotoGallery()
+            }
+        }
+        
         self.createEventNode.loadEventTypesList = { [weak self] offset, limit in
             self?.loadEventTypesList(offset: offset, limit: limit)
+        }
+        
+        self.createEventNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
+        
+        self.createEventNode.presentController = { [weak self] vc in
+            self?.view.window?.rootViewController?.present(vc, animated: true)
         }
 
         self.loadAppearanceDictionary()
@@ -205,7 +136,6 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.navigationBar?.updatePresentationData(makeNavigationBarPresentationData(), transition: .immediate)
         if isEditMode, let eventId = self.eventId {
             self.loadEventData(eventId: eventId)
         }
@@ -284,17 +214,17 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     private func loadEventData(eventId: Int) {
         Task { @MainActor in
             do {
-                let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
-                    path: "/event/\(eventId)",
-                    method: "GET"
-                )
+                // let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                //     path: "/event/\(eventId)",
+                //     method: "GET"
+                // )
                 
-                if let detail = response.data {
-                    self.createEventNode.populate(with: detail)
-                }
-            } catch {
-                print("❌ Error loading event data: \(error)")
-                self.showAlert(text: DivoStrings.failedToLoadEventData + ": \(error.localizedDescription)")
+//                if let detail = response.data {
+//                    self.createEventNode.populate(with: detail)
+//                }
+            // } catch {
+            //     print("❌ Error loading event data: \(error)")
+            //     self.showAlert(text: DivoStrings.failedToLoadEventData + ": \(error.localizedDescription)")
             }
         }
     }
@@ -348,130 +278,205 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.view.endEditing(true)
 
         do {
-            let requestPayload = try self.createEventNode.collectEventData()
+//            let requestPayload = try self.createEventNode.collectEventData()
+//
+//            self.navigationItem.rightBarButtonItem?.isEnabled = false
+//
+//            Task { @MainActor in
+//                do {     
+//                    var path = ""
+//                    if isEditMode, let eventId = self.eventId {
+//                        path = "/event/update/\(eventId)"
+//                    } else {
+//                        path = "/event/create"
+//                    }
+//                                   
+//                    let response: CreateEventResponse = try await DivoAPIClient.shared.request(
+//                        path: path,
+//                        method: "POST",
+//                        body: requestPayload
+//                    )
+//
+//                    self.navigationItem.rightBarButtonItem?.isEnabled = true
+//
+//                    if response.errors == nil || response.errors?.isEmpty == true {
+//                        self.onEventCreated?()
+//
+//                        let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
+//                        self.showAlert(text: successMessage) { [weak self] in
+//                            guard let self = self else { return }
+//                            if let nav = self.navigationController as? NavigationController {
+//                                _ = nav.popViewController(animated: true)
+//                            } else {
+//                                self.dismiss()
+//                            }
+//                        }
+//                    } else {
+//                        let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
+//                        self.showAlert(text: errorMsg)
+//                    }
+//
+//                } catch {
+//                    self.navigationItem.rightBarButtonItem?.isEnabled = true
+//                    print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
+//                    let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
+//                    var detail = error.localizedDescription
+//                    if case let DivoAPIError.httpError(_, body) = error,
+//                       let data = body.data(using: .utf8),
+//                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+//                       let message = json["message"] as? String, !message.isEmpty {
+//                        detail = message
+//                    }
+//                    self.showAlert(text: failMsg + ": \(detail)")
+//                }
+//            }
 
-            self.navigationItem.rightBarButtonItem?.isEnabled = false
-
-            Task { @MainActor in
-                do {     
-                    var path = ""
-                    if isEditMode, let eventId = self.eventId {
-                        path = "/event/update/\(eventId)"
-                    } else {
-                        path = "/event/create"
-                    }
-                                   
-                    let response: CreateEventResponse = try await DivoAPIClient.shared.request(
-                        path: path,
-                        method: "POST",
-                        body: requestPayload
-                    )
-
-                    self.navigationItem.rightBarButtonItem?.isEnabled = true
-
-                    if response.errors == nil || response.errors?.isEmpty == true {
-                        self.onEventCreated?()
-
-                        let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
-                        self.showAlert(text: successMessage) { [weak self] in
-                            guard let self = self else { return }
-                            if let nav = self.navigationController as? NavigationController {
-                                _ = nav.popViewController(animated: true)
-                            } else {
-                                self.dismiss()
-                            }
-                        }
-                    } else {
-                        let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
-                        self.showAlert(text: errorMsg)
-                    }
-
-                } catch {
-                    self.navigationItem.rightBarButtonItem?.isEnabled = true
-                    print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
-                    let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
-                    var detail = error.localizedDescription
-                    if case let DivoAPIError.httpError(_, body) = error,
-                       let data = body.data(using: .utf8),
-                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let message = json["message"] as? String, !message.isEmpty {
-                        detail = message
-                    }
-                    self.showAlert(text: failMsg + ": \(detail)")
-                }
-            }
-
-        } catch {
-            self.showAlert(text: error.localizedDescription)
+//        } catch {
+//            self.showAlert(text: error.localizedDescription)
         }
     }
     
     private func scheduleTimeController(mode: TimeControllerMode) {
-        let peerId = PeerId(0)
-        let minimalTime: Int32?
+        
+        // Определяем режим нашего нового контроллера
+        let pickerMode: DivoDatePickerController.Mode
+        let currentTime: Int32
+        
         switch mode {
         case .date:
-            minimalTime = Int32(Date().timeIntervalSince1970)
+            pickerMode = .date
+            currentTime = self.createEventNode.eventDateInt
         case .time:
-            if Calendar.current.isDateInToday(Date(timeIntervalSince1970: TimeInterval(self.createEventNode.eventDate))) {
-                minimalTime = Int32(Date().addingTimeInterval(3600).timeIntervalSince1970)
-            } else {
-                minimalTime = nil
+            pickerMode = .time
+            currentTime = self.createEventNode.eventTimeInt
+
+        }
+        
+        // Передаем текущее время (если уже выбрано), либо текущее время системы
+        let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
+        
+        let controller = DivoDatePickerController(mode: pickerMode, initialTimestamp: initialTime, title: mode == .date ? DivoStrings.eventDate : DivoStrings.eventTime)
+        
+        // Когда пользователь нажимает галочку, обновляем UI
+        controller.onSave = { [weak self] selectedTimestamp in
+            self?.createEventNode.updateTime(selectedTimestamp, mode)
+        }
+        
+        let nav = UINavigationController(rootViewController: controller)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
             }
         }
-        let controller = TimeController(
-            context: context,
-            updatedPresentationData: nil,
-            peerId: peerId,
-            mode: mode,
-            style: .media,
-            currentTime: nil,
-            minimalTime: minimalTime,
-            completion: { [weak self] time in
-                self?.createEventNode.updateTime(time, mode)
-            })
-        present(controller, in: .window(.root))
+        
+        self.present(nav, animated: true)
     }
     
-    private func showParametersSheet(currentSelection: Set<EventParameter>) {
-        let sheet = EventParametersSheetController(selectedParameters: currentSelection) { [weak self] newSelection in
-            self?.createEventNode.updateSelectedParameters(newSelection)
-        }
-        self.present(sheet, animated: true)
-    }
-}
+    private func scheduleDeadlineTimeController(mode: TimeControllerMode) {
+        
+        // Определяем режим нашего нового контроллера
+        let pickerMode: DivoDatePickerController.Mode
+        let currentTime: Int32
+        
+        switch mode {
+        case .date:
+            pickerMode = .date
+            currentTime = self.createEventNode.deadlineDateInt
+        case .time:
+            pickerMode = .time
+            currentTime = self.createEventNode.deadlineTimeInt
 
-@available(iOS 14.0, *)
-extension CreateEventController: PHPickerViewControllerDelegate {
+        }
+        
+        // Передаем текущее время (если уже выбрано), либо текущее время системы
+        let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
+        
+        let controller = DivoDatePickerController(mode: pickerMode, initialTimestamp: initialTime, title: mode == .date ? DivoStrings.deadlineDate : DivoStrings.deadlineTime)
+        
+        // Когда пользователь нажимает галочку, обновляем UI
+        controller.onSave = { [weak self] selectedTimestamp in
+            self?.createEventNode.updateDeadlineTime(selectedTimestamp, mode)
+        }
+        
+        let nav = UINavigationController(rootViewController: controller)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        
+        self.present(nav, animated: true)
+    }
+        
+    private func uploadAvatar(image: UIImage) {
+        self.selectedAvatarImage = image
+        self.selectedAvatarUUID = nil
+
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            self.createEventNode.setAvatarLoading(false)
+            return
+        }
+
+        Task { @MainActor in
+            do {
+                let response: FileUploadResponse = try await DivoAPIClient.shared.upload(
+                    path: "/file/upload-file",
+                    fileData: imageData
+                )
+                self.selectedAvatarUUID = response.data?.uuid
+                self.createEventNode.currentPhoto = selectedAvatarImage
+                self.createEventNode.setAvatarLoading(false)
+            } catch {
+                self.createEventNode.setAvatarLoading(false)
+                self.createEventNode.showSnackbar(
+                    message: DivoStrings.failedToUploadPhoto,
+                    style: .error
+                )
+            }
+        }
+    }
+    
+    private func openPhotoGallery() {
+        self.currentPickerTarget = .avatar // Указываем цель: Аватар
+        
+        if #available(iOS 14, *) {
+            var configuration = PHPickerConfiguration()
+            configuration.filter = .images
+            configuration.selectionLimit = 1
+            
+            let picker = PHPickerViewController(configuration: configuration)
+            picker.delegate = self
+            self.present(picker, animated: true)
+        } else {
+            let picker = UIImagePickerController()
+            picker.sourceType = .photoLibrary
+            picker.delegate = self as UIImagePickerControllerDelegate & UINavigationControllerDelegate
+            self.present(picker, animated: true)
+        }
+    }
     
     private func openMultiPhotoPicker() {
-        var config = PHPickerConfiguration()
-        config.selectionLimit = 10
-        config.filter = .images
+        self.currentPickerTarget = .gallery
         
-        let picker = PHPickerViewController(configuration: config)
-        picker.delegate = self
-        picker.view.tintColor = DivoColorPalette.accent
-        self.present(picker, animated: true)
-    }
-    
-    public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        picker.dismiss(animated: true)
-        
-        for result in results {
-            if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
-                result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
-                    guard let self = self, let uiImage = object as? UIImage else { return }
-                    
-                    let normalized = uiImage.fixedOrientation()
-                    
-                    DispatchQueue.main.async {
-                        let item = self.createEventNode.startPhotoUpload(image: normalized)
-                        
-                        self.uploadEventPhoto(image: normalized, item: item)
-                    }
-                }
-            }
+        if #available(iOS 14, *) {
+            var configuration = PHPickerConfiguration()
+            configuration.filter = .images
+            configuration.selectionLimit = 10
+            
+            let picker = PHPickerViewController(configuration: configuration)
+            picker.delegate = self
+            self.present(picker, animated: true)
+        } else {
+            let picker = UIImagePickerController()
+            picker.sourceType = .photoLibrary
+            picker.delegate = self as UIImagePickerControllerDelegate & UINavigationControllerDelegate
+            self.present(picker, animated: true)
         }
     }
 
@@ -504,6 +509,77 @@ extension CreateEventController: PHPickerViewControllerDelegate {
                     self.showAlert(text: DivoStrings.failedToUploadPhoto + ": \(error.localizedDescription)")
                 }
             }
+        }
+    }
+    
+}
+
+@available(iOS 14.0, *)
+extension CreateEventController: PHPickerViewControllerDelegate {
+    
+    public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        
+        if results.isEmpty { return }
+        
+        switch currentPickerTarget {
+        case .avatar:
+            guard let result = results.first else { return }
+            
+            result.itemProvider.loadObject(ofClass: UIImage.self) {[weak self] image, _ in
+                guard let self = self, let uiImage = image as? UIImage else { return }
+                let normalized = uiImage.fixedOrientation()
+                
+                DispatchQueue.main.async {
+                    self.createEventNode.setAvatarLoading(true)
+                }
+                self.uploadAvatar(image: normalized)
+            }
+            
+        case .gallery:
+            for result in results {
+                result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
+                    guard let self = self, let uiImage = image as? UIImage else { return }
+                    let normalized = uiImage.fixedOrientation()
+                    
+                    DispatchQueue.main.async {
+                        let galleryItem = self.createEventNode.startPhotoUpload(image: normalized)
+                        
+                        self.uploadEventPhoto(image: normalized, item: galleryItem)
+                    }
+                }
+            }
+        }
+    }
+}
+
+extension CreateEventController: UIImagePickerControllerDelegate {
+    public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        picker.dismiss(animated: true)
+        
+        if let editedImage = info[.editedImage] as? UIImage {
+            handleSelectedImage(editedImage)
+        } else if let originalImage = info[.originalImage] as? UIImage {
+            handleSelectedImage(originalImage)
+        }
+    }
+    
+    public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+    }
+    
+    private func handleSelectedImage(_ image: UIImage) {
+        let normalized = image.fixedOrientation()
+        
+        switch currentPickerTarget {
+        case .avatar:
+            self.createEventNode.setAvatarLoading(true)
+            self.createEventNode.currentPhoto = normalized
+            self.uploadAvatar(image: normalized)
+            
+        case .gallery:
+            let galleryItem = self.createEventNode.startPhotoUpload(image: normalized)
+            self.uploadEventPhoto(image: normalized, item: galleryItem)
         }
     }
 }

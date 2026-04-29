@@ -7,10 +7,10 @@ public final class DivoTextView: UIView, UITextViewDelegate {
     private let activeBorderColor = DivoColorPalette.accent.cgColor
     
     // MARK: - UI Elements
-    
+    private let placeholder: String
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+        label.font = Font.regular(14)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -28,7 +28,7 @@ public final class DivoTextView: UIView, UITextViewDelegate {
     
     public let textView: UITextView = {
         let tv = UITextView()
-        tv.font = UIFont.systemFont(ofSize: 16, weight: .regular)
+        tv.font = Font.regular(16)
         tv.textColor = DivoColorPalette.primaryText
         tv.backgroundColor = .clear
         tv.isScrollEnabled = true
@@ -53,7 +53,8 @@ public final class DivoTextView: UIView, UITextViewDelegate {
 
     // MARK: - Init
     
-    public init(title: String, initialText: String = "") {
+    public init(title: String, initialText: String = "", placeholder: String = "") {
+        self.placeholder = placeholder
         super.init(frame: .zero)
         self.translatesAutoresizingMaskIntoConstraints = false
         
@@ -108,11 +109,19 @@ public final class DivoTextView: UIView, UITextViewDelegate {
     // MARK: - UITextViewDelegate
     
     public func textViewDidBeginEditing(_ textView: UITextView) {
+        if textView.textColor == DivoColorPalette.primaryText.withAlphaComponent(0.4) {
+            textView.text = nil
+            textView.textColor = DivoColorPalette.primaryText
+        }
         animateBorderColor(to: activeBorderColor)
         onBeginEditing?()
     }
     
     public func textViewDidEndEditing(_ textView: UITextView) {
+        if textView.text.isEmpty {
+            textView.text = placeholder
+            textView.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
+        }
         animateBorderColor(to: inactiveBorderColor)
         onEndEditing?()
     }
