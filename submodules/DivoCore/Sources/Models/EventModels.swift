@@ -5,12 +5,15 @@ import Foundation
 public struct EventListRequest: Encodable {
     public let offset: Int
     public let limit: Int
+    public let creatorId: Int?
 
-    public init(offset: Int, limit: Int) {
+    public init(offset: Int, limit: Int, creatorId: Int?) {
         self.offset = offset
         self.limit = limit
+        self.creatorId = creatorId
     }
 }
+
 
 public struct EventListResponse: Decodable {
     public let message: String?
@@ -24,65 +27,40 @@ public struct EventListData: Decodable {
 }
 
 public struct EventPagination: Decodable {
-    public let offset: Int?
-    public let limit: Int?
-    public let total: Int?
-    public let currentOffset: Int?
-    public let totalCount: Int?
+    public let meta: Meta?
 }
 
 public struct EventListItem: Decodable {
     public let id: Int
-    public let title: String
+    public let title: String?
     public let description: String?
+    public let type: EventFullIdTitle?
+    public let isApplied: Bool?
+    public let appliesCount: Int?
+    public let viewsCount: Int?
+    public let userReachCount: Int?
     public let date: String?
     public let dateTo: String?
-    public let type: EventTypeItem?
-    public let address: EventAddress?
-    /// Legacy field name (older API versions)
-    public let user: EventUser?
-    /// Current API field name
-    public let creator: EventUser?
-    public let files: [EventFile]?
-    public let likesCount: Int?
-    public let isLikedByUser: Bool?
-    public let appliesCount: Int?
-    public let paymentType: Int?
+    public let place: String?
+    public let paymentType: EventFullIdTitle?
+    public let paymentFrequency: EventFullIdTitle?
     public let cost: String?
+    public let address: EventFullAddress?
+    public let files: [EventFile]?
+    public let modelAttributes: EventFullModelAttributes?
+    public let creator: EventFullCreator?
+    public let previsiousEventsFromSameOrigin: [EventSmallItem]?
+}
 
-    /// Returns `creator` if present, falls back to `user`
-    public var eventCreator: EventUser? { creator ?? user }
-
-    enum CodingKeys: String, CodingKey {
-        case id, title, description, date, dateTo, address, user, creator
-        case files, likesCount, isLikedByUser, appliesCount, paymentType, cost, type
-    }
-
-    public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(Int.self, forKey: .id)
-        title = try c.decode(String.self, forKey: .title)
-        description = try c.decodeIfPresent(String.self, forKey: .description)
-        date = try c.decodeIfPresent(String.self, forKey: .date)
-        dateTo = try c.decodeIfPresent(String.self, forKey: .dateTo)
-        address = try c.decodeIfPresent(EventAddress.self, forKey: .address)
-        user = try c.decodeIfPresent(EventUser.self, forKey: .user)
-        creator = try c.decodeIfPresent(EventUser.self, forKey: .creator)
-        files = try c.decodeIfPresent([EventFile].self, forKey: .files)
-        likesCount = try c.decodeIfPresent(Int.self, forKey: .likesCount)
-        isLikedByUser = try c.decodeIfPresent(Bool.self, forKey: .isLikedByUser)
-        appliesCount = try c.decodeIfPresent(Int.self, forKey: .appliesCount)
-        paymentType = try c.decodeIfPresent(Int.self, forKey: .paymentType)
-        cost = try c.decodeIfPresent(String.self, forKey: .cost)
-        // API может вернуть type как объект {"id":1,"title":"..."} или просто строку "Casting"
-        if let typeObject = try? c.decodeIfPresent(EventTypeItem.self, forKey: .type) {
-            type = typeObject
-        } else if let typeString = try? c.decodeIfPresent(String.self, forKey: .type) {
-            type = EventTypeItem(id: nil, title: typeString)
-        } else {
-            type = nil
-        }
-    }
+public struct EventSmallItem: Decodable {
+    public let id: Int
+    public let title: String?
+    public let date: String?
+    public let dateTo: String?
+    public let place: String?
+    public let photo: EventFile?
+    public let type: EventFullIdTitle?
+    public let address: EventAddress?
 }
 
 public struct EventTypeItem: Decodable {
@@ -97,7 +75,7 @@ public struct EventAddress: Decodable {
     public let formatted: String?
     public let latitude: Double?
     public let longitude: Double?
-    public let city: EventCity?
+    public let city: EventFullDetailCity?
 }
 
 public struct EventCity: Decodable {
@@ -145,6 +123,7 @@ public struct EventFullDetailData: Decodable {
     public let userReachCount: Int?
     public let date: String?
     public let dateTo: String?
+    public let place: String?
     public let paymentType: EventFullIdTitle?
     public let paymentFrequency: EventFullIdTitle?
     public let cost: String?
@@ -152,6 +131,7 @@ public struct EventFullDetailData: Decodable {
     public let files: [EventFile]?
     public let modelAttributes: EventFullModelAttributes?
     public let creator: EventFullCreator?
+    public let previsiousEventsFromSameOrigin: [EventSmallItem]?
 }
 
 // MARK: - Address & City (Full Detail)
@@ -270,6 +250,8 @@ public struct CreateEventRequest: Codable {
     public let hairLength: [Int]?
     public let eyeColor: [Int]?
     public let skinColor: [Int]?
+    
+    public let measuringSystem: String?
 
     public init(
         title: String,
@@ -294,7 +276,8 @@ public struct CreateEventRequest: Codable {
         hairColor: [Int]?,
         hairLength: [Int]?,
         eyeColor: [Int]?,
-        skinColor: [Int]?
+        skinColor: [Int]?,
+        measuringSystem: String?
     ) {
         self.title = title
         self.description = description
@@ -319,6 +302,7 @@ public struct CreateEventRequest: Codable {
         self.hairLength = hairLength
         self.eyeColor = eyeColor
         self.skinColor = skinColor
+        self.measuringSystem = measuringSystem
     }
 }
 

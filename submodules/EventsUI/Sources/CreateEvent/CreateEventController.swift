@@ -128,26 +128,49 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             self?.view.window?.rootViewController?.present(vc, animated: true)
         }
 
-        self.loadAppearanceDictionary()
-        self.loadGenderDictionary()
-
         self.displayNodeDidLoad()
+
+        self.loadInitialData()
     }
 
-    override public func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if isEditMode, let eventId = self.eventId {
-            self.loadEventData(eventId: eventId)
+    private func loadInitialData() {
+        self.createEventNode.showScreenLoading()
+        
+        Task { @MainActor in
+            do {
+                async let appearanceTask = DivoAPIClient.shared.request(path: "/dictionary/appearances", method: "GET") as AppearanceDictionaryResponse
+                async let genderTask = DivoAPIClient.shared.request(path: "/dictionary/gender", method: "GET") as GenderResponse
+                
+                let typesRequest = AgencyListRequest(offset: 0, limit: 20, title: nil)
+                async let eventTypesTask = DivoAPIClient.shared.request(path: "/event/types", method: "POST", body: typesRequest) as AgencyListResponse
+                
+                let eventDetail: EventFullDetailData? = try await {
+                    if self.isEditMode, let eventId = self.eventId {
+                        let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(path: "/event/\(eventId)", method: "GET")
+                        return response.data
+                    }
+                    return nil
+                }()
+                
+                let (appearance, gender, eventTypes) = try await (appearanceTask, genderTask, eventTypesTask)
+                
+                self.createEventNode.configureAppearanceDictionaries(appearance.data)
+                self.createEventNode.configureGenderDictionaries(gender)
+                self.createEventNode.loadEventTypesComplete(eventTypes.data.items, totalCount: eventTypes.data.pagination.meta.totalCount, offset: 0)
+                
+                if let detail = eventDetail {
+                    self.createEventNode.populate(with: detail)
+                }
+                
+                self.createEventNode.hideScreenLoading()
+                
+            } catch {
+                self.createEventNode.hideScreenLoading()
+                self.showAlert(text: "Failed to load data: \(error.localizedDescription)") { [weak self] in
+                    self?.navigationController?.popViewController(animated: true)
+                }
+            }
         }
-    }
-
-    override public func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        self.loadEventTypesList(offset: 0, limit: 20)
-    }
-
-    override public func viewDidDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
     }
 
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
@@ -175,56 +198,6 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             } catch {
                 print("❌ Error loading event types list: \(error)")
                 self.createEventNode.loadEventTypesComplete([], totalCount: 0, offset: offset)
-            }
-        }
-    }
-
-    private func loadAppearanceDictionary() {
-        Task { @MainActor in
-            do {
-                let response: AppearanceDictionaryResponse = try await DivoAPIClient.shared.request(
-                    path: "/dictionary/appearances",
-                    method: "GET"
-                )
-                
-                self.createEventNode.configureAppearanceDictionaries(response.data)
-            } catch {
-                print("❌ Error loading appearance dictionary: \(error)")
-                self.showAlert(text: DivoStrings.failedToLoadAppearance)
-            }
-        }
-    }
-    
-    private func loadGenderDictionary() {
-        Task { @MainActor in
-            do {
-                let response: GenderResponse = try await DivoAPIClient.shared.request(
-                    path: "/dictionary/gender",
-                    method: "GET"
-                )
-                
-                self.createEventNode.configureGenderDictionaries(response)
-            } catch {
-                print("❌ Error loading appearance dictionary: \(error)")
-                self.showAlert(text: DivoStrings.failedToLoadAppearance)
-            }
-        }
-    }
-    
-    private func loadEventData(eventId: Int) {
-        Task { @MainActor in
-            do {
-                // let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
-                //     path: "/event/\(eventId)",
-                //     method: "GET"
-                // )
-                
-//                if let detail = response.data {
-//                    self.createEventNode.populate(with: detail)
-//                }
-            // } catch {
-            //     print("❌ Error loading event data: \(error)")
-            //     self.showAlert(text: DivoStrings.failedToLoadEventData + ": \(error.localizedDescription)")
             }
         }
     }
@@ -274,71 +247,61 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         }
     }
     
-    @objc private func createPressed() {
-        self.view.endEditing(true)
-
+    private func createPressed() {
         do {
-//            let requestPayload = try self.createEventNode.collectEventData()
-//
-//            self.navigationItem.rightBarButtonItem?.isEnabled = false
-//
-//            Task { @MainActor in
-//                do {     
-//                    var path = ""
-//                    if isEditMode, let eventId = self.eventId {
-//                        path = "/event/update/\(eventId)"
-//                    } else {
-//                        path = "/event/create"
-//                    }
-//                                   
-//                    let response: CreateEventResponse = try await DivoAPIClient.shared.request(
-//                        path: path,
-//                        method: "POST",
-//                        body: requestPayload
-//                    )
-//
-//                    self.navigationItem.rightBarButtonItem?.isEnabled = true
-//
-//                    if response.errors == nil || response.errors?.isEmpty == true {
-//                        self.onEventCreated?()
-//
-//                        let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
-//                        self.showAlert(text: successMessage) { [weak self] in
-//                            guard let self = self else { return }
-//                            if let nav = self.navigationController as? NavigationController {
-//                                _ = nav.popViewController(animated: true)
-//                            } else {
-//                                self.dismiss()
-//                            }
-//                        }
-//                    } else {
-//                        let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
-//                        self.showAlert(text: errorMsg)
-//                    }
-//
-//                } catch {
-//                    self.navigationItem.rightBarButtonItem?.isEnabled = true
-//                    print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
-//                    let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
-//                    var detail = error.localizedDescription
-//                    if case let DivoAPIError.httpError(_, body) = error,
-//                       let data = body.data(using: .utf8),
-//                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-//                       let message = json["message"] as? String, !message.isEmpty {
-//                        detail = message
-//                    }
-//                    self.showAlert(text: failMsg + ": \(detail)")
-//                }
-//            }
+            let requestPayload = try self.createEventNode.collectEventData()
 
-//        } catch {
-//            self.showAlert(text: error.localizedDescription)
+            Task { @MainActor in
+                do {
+                    var path = ""
+                    if isEditMode, let eventId = self.eventId {
+                        path = "/event/update/\(eventId)"
+                    } else {
+                        path = "/event/create"
+                    }
+                    
+                    let response: CreateEventResponse = try await DivoAPIClient.shared.request(
+                        path: path,
+                        method: "POST",
+                        body: requestPayload
+                    )
+                    
+                    if response.errors == nil || response.errors?.isEmpty == true {
+                        self.onEventCreated?()
+                        
+                        let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
+                        self.showAlert(text: successMessage) { [weak self] in
+                            guard let self = self else { return }
+                            if let nav = self.navigationController as? NavigationController {
+                                _ = nav.popViewController(animated: true)
+                            } else {
+                                self.dismiss()
+                            }
+                        }
+                    } else {
+                        let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
+                        self.showAlert(text: errorMsg)
+                    }
+                    
+                } catch {
+                    print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
+                    let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
+                    var detail = error.localizedDescription
+                    if case let DivoAPIError.httpError(_, body) = error,
+                       let data = body.data(using: .utf8),
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let message = json["message"] as? String, !message.isEmpty {
+                        detail = message
+                    }
+                    self.showAlert(text: failMsg + ": \(detail)")
+                }
+            }
+        } catch {
+            self.showAlert(text: error.localizedDescription)
         }
     }
     
     private func scheduleTimeController(mode: TimeControllerMode) {
-        
-        // Определяем режим нашего нового контроллера
         let pickerMode: DivoDatePickerController.Mode
         let currentTime: Int32
         
@@ -346,20 +309,36 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         case .date:
             pickerMode = .date
             currentTime = self.createEventNode.eventDateInt
+            
         case .time:
             pickerMode = .time
             currentTime = self.createEventNode.eventTimeInt
-
         }
         
-        // Передаем текущее время (если уже выбрано), либо текущее время системы
         let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
         
         let controller = DivoDatePickerController(mode: pickerMode, initialTimestamp: initialTime, title: mode == .date ? DivoStrings.eventDate : DivoStrings.eventTime)
         
-        // Когда пользователь нажимает галочку, обновляем UI
-        controller.onSave = { [weak self] selectedTimestamp in
-            self?.createEventNode.updateTime(selectedTimestamp, mode)
+        controller.onSave = {[weak self] selectedTimestamp in
+            guard let self = self else { return }
+            
+            self.createEventNode.updateTime(selectedTimestamp, mode)
+            
+            if mode == .date {
+                let currentDeadlineInt = self.createEventNode.deadlineDateInt
+                
+                if currentDeadlineInt > 0 {
+                    let newEventStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(selectedTimestamp)))
+                    let currentDeadlineStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(currentDeadlineInt)))
+                    
+                    if currentDeadlineStart >= newEventStart {
+                        if let newDeadlineDate = Calendar.current.date(byAdding: .day, value: -1, to: newEventStart) {
+                            let newDeadlineTimestamp = Int32(newDeadlineDate.timeIntervalSince1970)
+                            self.createEventNode.updateDeadlineTime(newDeadlineTimestamp, .date)
+                        }
+                    }
+                }
+            }
         }
         
         let nav = UINavigationController(rootViewController: controller)
@@ -376,27 +355,33 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     }
     
     private func scheduleDeadlineTimeController(mode: TimeControllerMode) {
-        
-        // Определяем режим нашего нового контроллера
         let pickerMode: DivoDatePickerController.Mode
         let currentTime: Int32
+        
+        var maximumTimestamp: Int32? = nil
         
         switch mode {
         case .date:
             pickerMode = .date
             currentTime = self.createEventNode.deadlineDateInt
+            
+            let eventDateInt = self.createEventNode.eventDateInt
+            if eventDateInt > 0 {
+                let eventStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(eventDateInt)))
+                if let maxDate = Calendar.current.date(byAdding: .day, value: -1, to: eventStart) {
+                    maximumTimestamp = Int32(maxDate.timeIntervalSince1970)
+                }
+            }
+            
         case .time:
             pickerMode = .time
             currentTime = self.createEventNode.deadlineTimeInt
-
         }
         
-        // Передаем текущее время (если уже выбрано), либо текущее время системы
         let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
         
-        let controller = DivoDatePickerController(mode: pickerMode, initialTimestamp: initialTime, title: mode == .date ? DivoStrings.deadlineDate : DivoStrings.deadlineTime)
+        let controller = DivoDatePickerController(mode: pickerMode, initialTimestamp: initialTime, title: mode == .date ? DivoStrings.deadlineDate : DivoStrings.deadlineTime, maximumTimestamp: maximumTimestamp)
         
-        // Когда пользователь нажимает галочку, обновляем UI
         controller.onSave = { [weak self] selectedTimestamp in
             self?.createEventNode.updateDeadlineTime(selectedTimestamp, mode)
         }
@@ -430,6 +415,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     fileData: imageData
                 )
                 self.selectedAvatarUUID = response.data?.uuid
+                self.createEventNode.avatarFileUuid = response.data?.uuid
                 self.createEventNode.currentPhoto = selectedAvatarImage
                 self.createEventNode.setAvatarLoading(false)
             } catch {

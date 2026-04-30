@@ -10,6 +10,8 @@ public final class DivoDatePickerController: UIViewController {
     
     private let mode: Mode
     private let initialTimestamp: Int32?
+    private let minimumTimestamp: Int32?
+    private let maximumTimestamp: Int32?
     public var onSave: ((Int32) -> Void)?
     
     private let datePickerContainer: UIView = {
@@ -23,16 +25,18 @@ public final class DivoDatePickerController: UIViewController {
     private let datePicker = UIDatePicker()
     private let navigationBar = DivoNavigationBar()
     
-    public init(mode: Mode, initialTimestamp: Int32, title: String) {
+    public init(mode: Mode, initialTimestamp: Int32, title: String, minimumTimestamp: Int32? = nil, maximumTimestamp: Int32? = nil) {
         self.mode = mode
         self.initialTimestamp = initialTimestamp
+        self.minimumTimestamp = minimumTimestamp
+        self.maximumTimestamp = maximumTimestamp
         super.init(nibName: nil, bundle: nil)
         
         navigationBar.makeNavigationBar(
             title: title,
             font: Font.medium(16),
-            backButtonConfiguration: .circle(DivoImage.searchCloseIcon),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteCheckmark, .primary),
+            backButtonConfiguration: .circle(UIImage(bundleImageName: "Components/SearchCloseIcon")!),
+            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, UIImage(bundleImageName: "Components/whiteCheckmark")!, .primary),
             onBackTapped: { [weak self] in
                 self?.navigationController?.dismiss(animated: true)
             },
@@ -88,6 +92,14 @@ public final class DivoDatePickerController: UIViewController {
             }
         }
         
+        if let minTs = minimumTimestamp, minTs > 0 {
+            datePicker.minimumDate = Date(timeIntervalSince1970: TimeInterval(minTs))
+        }
+        
+        if let maxTs = maximumTimestamp, maxTs > 0 {
+            datePicker.maximumDate = Date(timeIntervalSince1970: TimeInterval(maxTs))
+        }
+        
         if let ts = initialTimestamp, ts > 0 {
             datePicker.date = Date(timeIntervalSince1970: TimeInterval(ts))
         }
@@ -96,7 +108,6 @@ public final class DivoDatePickerController: UIViewController {
         datePickerContainer.addSubview(datePicker)
         
         NSLayoutConstraint.activate([
-            
             datePickerContainer.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 20),
             datePickerContainer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             datePickerContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),

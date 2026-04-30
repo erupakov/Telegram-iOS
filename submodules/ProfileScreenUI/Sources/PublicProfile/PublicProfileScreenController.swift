@@ -716,7 +716,7 @@ extension PublicProfileScreenController {
 // Загрузка событий через feedline/search (event/list недоступен для всех ролей)
 extension PublicProfileScreenController {
     func loadEvents() {
-        let body = EventListRequest(offset: 0, limit: 30)
+        let body = EventListRequest(offset: 0, limit: 30, creatorId: userID)
         Task {
             do {
                 let response: EventListResponse = try await DivoAPIClient.shared.request(
@@ -725,7 +725,7 @@ extension PublicProfileScreenController {
                     body: body
                 )
 
-                let items = response.data.items.filter({ ($0.creator?.id ?? $0.user?.id) == self.userID })
+                let items = response.data.items
                 
                 if items.isEmpty {
                     await MainActor.run {
