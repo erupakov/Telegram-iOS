@@ -7,6 +7,8 @@
 
 import UIKit
 import Display
+import DivoUIKit
+import DivoUIKit
 
 final class ProfileNavigationBarTitleView: UIView {
     
@@ -14,15 +16,15 @@ final class ProfileNavigationBarTitleView: UIView {
         let infoStack = UIStackView()
         infoStack.axis = .vertical
         infoStack.alignment = .center
-        infoStack.spacing = 4
+        infoStack.spacing = 2
         infoStack.translatesAutoresizingMaskIntoConstraints = false
         return infoStack
     }()
 
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(12)
-        label.textColor = .white
+        label.font = Font.helveticaNeue(16)
+        label.textColor = DivoColorPalette.primaryText
         label.numberOfLines = 1
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.7
@@ -32,13 +34,12 @@ final class ProfileNavigationBarTitleView: UIView {
 
     private let infoLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(10)
-        label.textColor = .white
+        label.font = Font.regular(12)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         label.numberOfLines = 1
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.7
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 20).isActive = true
         return label
     }()
     
@@ -55,6 +56,8 @@ final class ProfileNavigationBarTitleView: UIView {
         NSLayoutConstraint.activate([
             containerStack.centerYAnchor.constraint(equalTo: centerYAnchor),
             containerStack.centerXAnchor.constraint(equalTo: centerXAnchor),
+            containerStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            containerStack.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
         
     }
@@ -62,7 +65,7 @@ final class ProfileNavigationBarTitleView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     
     func configure(name: String, info: String? = nil) {
-        nameLabel.text = name.uppercased()
+        nameLabel.text = name
         if let info = info {
             infoLabel.text = info
         } else {

@@ -68,10 +68,11 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         tf.leftViewMode = .always
         tf.rightView = paddingView
         tf.rightViewMode = .always
+        tf.autocapitalizationType = .words
         tf.translatesAutoresizingMaskIntoConstraints = false
         return tf
     }()
-        
+
     private let moreFiltersButton: UIButton = {
         let btn = UIButton(type: .custom)
         btn.setTitle(DivoStrings.feedSearchMoreFilters, for: .normal)

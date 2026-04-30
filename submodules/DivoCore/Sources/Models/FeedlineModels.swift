@@ -5,12 +5,14 @@ public struct FeedlineListRequest: Encodable {
     public let limit: Int
     public let subscribedOnly: Bool?
     public let modelsOnly: Bool?
+    public let role: String?
 
-    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil) {
+    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil) {
         self.offset = offset
         self.limit = limit
         self.subscribedOnly = subscribedOnly
         self.modelsOnly = modelsOnly
+        self.role = role
     }
 }
 
@@ -26,7 +28,7 @@ public struct FeedlineData: Decodable {
 public struct FeedlineItem: Decodable {
     public let id: Int
     public let feedId: Int
-    public let title: String
+    public let title: String?
     public let description: String?
     public let entity: String
     public let type: String
@@ -48,7 +50,7 @@ public struct FeedlineItem: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         feedId = try container.decode(Int.self, forKey: .feedId)
-        title = try container.decode(String.self, forKey: .title)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         entity = try container.decode(String.self, forKey: .entity)
         type = try container.decode(String.self, forKey: .type)
@@ -82,7 +84,7 @@ public struct FeedlineItem: Decodable {
 
 public struct FeedlineUser: Codable {
     public let id: Int
-    public let fullName: String
+    public let fullName: String?
     public let role: String
     public let subrole: String?
     public let roleLabel: String

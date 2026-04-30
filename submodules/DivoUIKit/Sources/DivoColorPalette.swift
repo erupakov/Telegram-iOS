@@ -130,6 +130,9 @@ public enum DivoColorPalette {
     // MARK: - Stat pills (на карточках моделей)
     public static let statPillBackground = UIColor.white.withAlphaComponent(0.2)
     public static let statPillBorder = UIColor.white.withAlphaComponent(0.4)
+    public static let statPillForeground = UIColor.white
+    public static let statPillActiveBackground = UIColor.white
+    public static let statPillActiveForeground = UIColor.black
 
     // MARK: - Placeholders / avatars
     /// 0.92 — светлый placeholder фото.

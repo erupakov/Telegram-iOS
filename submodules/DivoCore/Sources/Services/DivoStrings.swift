@@ -208,9 +208,9 @@ public enum DivoStrings {
 
     // MARK: - Roles
 
-    public static var roleModel: String { L(en: "model", ru: "модель", es: "modelo", pt: "modelo", zh: "模特") }
-    public static var roleNewFace: String { L(en: "new face", ru: "новое лицо", es: "cara nueva", pt: "rosto novo", zh: "新面孔") }
-    public static var roleAgency: String { L(en: "agency", ru: "агентство", es: "agencia", pt: "agência", zh: "经纪公司") }
+    public static var roleModel: String { L(en: "Model", ru: "Модель", es: "Modelo", pt: "Modelo", zh: "模特") }
+    public static var roleNewFace: String { L(en: "New face", ru: "Новое лицо", es: "Cara nueva", pt: "Rosto novo", zh: "新面孔") }
+    public static var roleAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司") }
     public static var statusModel: String { L(en: "♦️ model", ru: "♦️ модель", es: "♦️ modelo", pt: "♦️ modelo", zh: "♦️ 模特") }
 
     // MARK: - Profile Edit Menu
@@ -219,8 +219,12 @@ public enum DivoStrings {
     public static var changeBackground: String { L(en: "Change Profile Background", ru: "Сменить фон профиля", es: "Cambiar fondo de perfil", pt: "Alterar fundo do perfil", zh: "更换资料背景") }
     public static var editSocialLinksMenu: String { L(en: "Edit Social Links", ru: "Редактировать ссылки", es: "Editar redes sociales", pt: "Editar redes sociais", zh: "编辑社交链接") }
     public static var manageWorkExperience: String { L(en: "Manage Work Experience", ru: "Управление опытом работы", es: "Gestionar experiencia", pt: "Gerenciar experiência", zh: "管理工作经历") }
-    public static var addPhoto: String { L(en: "Add Photo", ru: "Добавить фото", es: "Agregar foto", pt: "Adicionar foto", zh: "添加照片") }
-    public static var addVideo: String { L(en: "Add Video", ru: "Добавить видео", es: "Agregar video", pt: "Adicionar vídeo", zh: "添加视频") }
+    public static var addPhoto: String { L(en: "Add new photo", ru: "Добавить новое фото", es: "Agregar nueva foto", pt: "Adicionar nova foto", zh: "添加新照片") }
+    public static var addVideo: String { L(en: "Add new video", ru: "Добавить новое видео", es: "Agregar nuevo vídeo", pt: "Adicionar novo vídeo", zh: "添加新视频") }
+
+    public static var findSimilar: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Encontrar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似资料") }
+    public static var reportProfile: String { L(en: "Report this profile", ru: "Пожаловаться на профиль", es: "Reportar este perfil", pt: "Denunciar este perfil", zh: "举报此资料") }
+    public static var blockUser: String { L(en: "Block user", ru: "Заблокировать пользователя", es: "Bloquear usuario", pt: "Bloquear usuário", zh: "屏蔽用户") }
 
     // MARK: - Profile Counters & Actions
 
@@ -228,6 +232,7 @@ public enum DivoStrings {
     public static var counterViewed: String { L(en: "Viewed", ru: "Просмотры", es: "Visto", pt: "Visto", zh: "已查看") }
     public static var counterSave: String { L(en: "Save", ru: "Сохранить", es: "Guardar", pt: "Salvar", zh: "收藏") }
     public static var uploadYourPhotos: String { L(en: "Upload your photos", ru: "Загрузите фото", es: "Sube tus fotos", pt: "Envie suas fotos", zh: "上传您的照片") }
+    public static var noPhotosYet: String { L(en: "No photos yet", ru: "Фото пока нет", es: "Aún no hay fotos", pt: "Ainda sem fotos", zh: "暂无照片") }
     public static var uploadYourVideos: String { L(en: "Upload your videos", ru: "Загрузите видео", es: "Sube tus videos", pt: "Envie seus vídeos", zh: "上传您的视频") }
     public static var noVideosYet: String { L(en: "No videos yet", ru: "Видео пока нет", es: "Sin videos aún", pt: "Sem vídeos ainda", zh: "暂无视频") }
     public static var noChannelsYet: String { L(en: "No channels yet", ru: "Каналов пока нет", es: "Sin canales aún", pt: "Sem canais ainda", zh: "暂无频道") }
@@ -243,6 +248,10 @@ public enum DivoStrings {
     public static var loadingModels: String { L(en: "Loading models...", ru: "Загрузка моделей...", es: "Cargando modelos...", pt: "Carregando modelos...", zh: "加载模特中...") }
     public static var loadingEvents: String { L(en: "Loading events...", ru: "Загрузка событий...", es: "Cargando eventos...", pt: "Carregando eventos...", zh: "加载活动中...") }
     public static var noName: String { L(en: "No name", ru: "Без имени", es: "Sin nombre", pt: "Sem nome", zh: "无名") }
+    public static var errorUploadingPhotos: String { L(en: "Couldn't add photo", ru: "Не удалось добавить фото", es: "No se pudo agregar la foto", pt: "Não foi possível adicionar a foto", zh: "无法添加照片") }
+    public static var errorUploadingVideos: String { L(en: "Couldn't add video", ru: "Не удалось добавить видео", es: "No se pudo agregar el video", pt: "Não foi possível adicionar o vídeo", zh: "无法添加视频") }
+    public static var errorUpdateBackground: String { L(en: "Couldn't update profile background", ru: "Не удалось обновить фон профиля", es: "No se pudo actualizar el fondo del perfil", pt: "Não foi possível atualizar o fundo do perfil", zh: "无法更新个人资料背景") }
+    public static var errorLoadingSimilarProfiles: String { L(en: "Couldn't find similar profiles", ru: "Не удалось найти похожие профили", es: "No se pudieron encontrar perfiles similares", pt: "Não foi possível encontrar perfis semelhantes", zh: "无法找到相似的个人资料") }
 
     // MARK: - Units
 
@@ -281,6 +290,9 @@ public enum DivoStrings {
 
     public static var ok: String { L(en: "OK", ru: "OK", es: "OK", pt: "OK", zh: "好的") }
     public static var cancel: String { L(en: "Cancel", ru: "Отмена", es: "Cancelar", pt: "Cancelar", zh: "取消") }
+    public static var cameraAccessDeniedTitle: String { L(en: "No Camera Access", ru: "Нет доступа к камере", es: "Sin acceso a la cámara", pt: "Sem acesso à câmera", zh: "无法访问相机") }
+    public static var cameraAccessDeniedMessage: String { L(en: "Allow camera access in Settings to use this feature", ru: "Разрешите доступ к камере в Настройках, чтобы использовать эту функцию", es: "Permite el acceso a la cámara en Ajustes para usar esta función", pt: "Permita o acesso à câmera em Configurações para usar este recurso", zh: "请在设置中允许访问相机以使用此功能") }
+    public static var openSettings: String { L(en: "Settings", ru: "Настройки", es: "Ajustes", pt: "Configurações", zh: "设置") }
     public static var save: String { L(en: "Save", ru: "Сохранить", es: "Guardar", pt: "Salvar", zh: "保存") }
     public static var saving: String { L(en: "Saving...", ru: "Сохранение...", es: "Guardando...", pt: "Salvando...", zh: "保存中...") }
     public static var nextStep: String { L(en: "Next Step", ru: "Следующий шаг", es: "Siguiente Paso", pt: "Próximo Passo", zh: "下一步") }
@@ -383,13 +395,18 @@ public enum DivoStrings {
     public static var nothingSavedSubtitleMyProfile: String { L(en: "No one's saved your profile yet.", ru: "Ваш профиль пока никто не сохранил.", es: "Nadie ha guardado tu perfil aún.", pt: "Ninguém salvou seu perfil ainda.", zh: "尚未有人保存你的资料。") }
     public static var noProfileViewedYetMyProfile: String { L(en: "No profile views yet.", ru: "Пока нет просмотров профиля.", es: "Aún no hay visitas al perfil.", pt: "Ainda sem visualizações de perfil.", zh: "暂无资料浏览。") }
     public static var noProfileViewedSubtitleMyProfile: String { L(en: "No one’s viewed your profile yet.", ru: "Ваш профиль пока никто не просматривал.", es: "Nadie ha visto tu perfil aún.", pt: "Ninguém visualizou seu perfil ainda.", zh: "尚未有人浏览过你的资料。") }
+    public static var noWorkExperienceYetProfile: String { L(en: "There is no work experience yet.", ru: "Опыт работы пока отсутствует.", es: "Aún no hay experiencia laboral.", pt: "Ainda não há experiência de trabalho.", zh: "暂无工作经历。") }
+    public static var noBioYetProfile: String { L(en: "No bio yet.", ru: "Информация о себе пока не заполнена.", es: "Información personal aún no completada.", pt: "Informação pessoal ainda não preenchida.", zh: "尚未填写个人简介。") }
+    public static var noAppearanceYetProfile: String { L(en: "Model parameters are not filled in", ru: "Параметры модели не заполнены", es: "Los parámetros de la modelo no están completados", pt: "Os parâmetros da modelo não foram preenchidos", zh: "模特参数未填写") }
+    public static var addBioProfile: String { L(en: "Fill in bio", ru: "Заполнить информацию о себе", es: "Completar biografía", pt: "Preencher biografia", zh: "填写个人简介") }
+    public static var addAppearanceProfile: String { L(en: "Add your parameters", ru: "Добавить параметры", es: "Añadir tus parámetros", pt: "Adicionar seus parâmetros", zh: "添加个人参数") }
     
     // MARK: - Work Experience
 
     public static var workExperience: String { L(en: "Work experience", ru: "Опыт работы", es: "Experiencia laboral", pt: "Experiência profissional", zh: "工作经历") }
-    public static var noWorkExperienceYet: String { L(en: "THERE ARE NO WORK\nEXPERIENCE YET.", ru: "ОПЫТА РАБОТЫ\nПОКА НЕТ.", es: "AÚN NO HAY\nEXPERIENCIA LABORAL.", pt: "AINDA NÃO HÁ\nEXPERIÊNCIA.", zh: "暂无\n工作经历。") }
+    public static var noWorkExperienceYet: String { L(en: "There is no work\nexperience yet.", ru: "Опыта работы\nпока нет.", es: "Aún no hay\nexperiencia laboral.", pt: "Ainda não há\nexperiência.", zh: "暂无\n工作经历。") }
     public static var noWorkExperienceSubtitle: String { L(en: "Click the button below\nto add your work\nexperience", ru: "Нажмите кнопку ниже,\nчтобы добавить\nопыт работы", es: "Haga clic en el botón\npara agregar su\nexperiencia", pt: "Clique no botão abaixo\npara adicionar sua\nexperiência", zh: "点击下方按钮\n添加您的\n工作经历") }
-    public static var addWorkExperience: String { L(en: "Add work experience", ru: "Добавить опыт работы", es: "Agregar experiencia laboral", pt: "Adicionar experiência profissional", zh: "添加工作经验") }
+    public static var addWorkExperience: String { L(en: "Add work history", ru: "Добавить опыт работы", es: "Agregar experiencia laboral", pt: "Adicionar experiência de trabalho", zh: "添加工作经历") }
     public static var workExperienceInfo: String { L(en: "Work experience info", ru: "Информация об опыте работы", es: "Información de experiencia", pt: "Informações da experiência", zh: "工作经历信息") }
     public static var enterAgencyName: String { L(en: "Enter agency name", ru: "Введите название агентства", es: "Ingrese el nombre de la agencia", pt: "Insira o nome da agência", zh: "输入经纪公司名称") }
     public static var startDate: String { L(en: "Start date", ru: "Дата начала", es: "Fecha de inicio", pt: "Data de início", zh: "开始日期") }
@@ -471,6 +488,8 @@ public enum DivoStrings {
     public static var unliked: String { L(en: "Like removed", ru: "Лайк убран", es: "Me gusta eliminado", pt: "Curtida removida", zh: "已取消点赞") }
     public static var likeFailed: String { L(en: "Failed to like", ru: "Не удалось поставить лайк", es: "Error al dar me gusta", pt: "Falha ao curtir", zh: "点赞失败") }
     public static var unlikeFailed: String { L(en: "Failed to unlike", ru: "Не удалось убрать лайк", es: "Error al quitar me gusta", pt: "Falha ao descurtir", zh: "取消点赞失败") }
+    public static var genericError: String { L(en: "Something went wrong. Please try again.", ru: "Что-то пошло не так. Попробуйте ещё раз.", es: "Algo salió mal. Inténtalo de nuevo.", pt: "Algo deu errado. Tente novamente.", zh: "出了点问题，请重试。") }
+    public static var noInternetConnection: String { L(en: "No internet connection. Please try again.", ru: "Нет подключения к интернету. Попробуйте ещё раз.", es: "Sin conexión a internet. Inténtalo de nuevo.", pt: "Sem conexão com a internet. Tente novamente.", zh: "无网络连接，请重试。") }
     public static var serverUnavailable: String { L(en: "Server Unavailable", ru: "Сервер недоступен", es: "Servidor no disponible", pt: "Servidor indisponível", zh: "服务器不可用") }
     public static var serverUnavailableSubtitle: String { L(en: "Unable to connect to the server.\nTry toggling your VPN on or off.", ru: "Не удалось подключиться к серверу.\nПопробуйте включить или выключить VPN.", es: "No se pudo conectar al servidor.\nIntente activar o desactivar su VPN.", pt: "Não foi possível conectar ao servidor.\nTente ativar ou desativar a VPN.", zh: "无法连接到服务器。\n请尝试开启或关闭VPN。") }
     public static var noSubscriptionsYet: String { L(en: "No Subscriptions Yet", ru: "Пока нет подписок", es: "Sin suscripciones aún", pt: "Sem inscrições ainda", zh: "暂无订阅") }
@@ -507,8 +526,8 @@ public enum DivoStrings {
     public static var titleAddModel: String { L(en: "ADD A NEW MODEL", ru: "ДОБАВЬТЕ НОВУЮ МОДЕЛЬ", es: "AGREGAR UN NUEVO MODELO", pt: "ADICIONAR UM NOVO MODELO", zh: "添加新模型") }
     public static var subTitleAddModel: String { L(en: "Fill out the model's details to add\nthem to your agency. You can\nupdate this information anytime.", ru: "Заполните данные модели, чтобы добавить\nих в свое агентство. Вы можете\nобновить эту информацию в любое время.", es: "Complete los detalles del modelo para agregarlos\na su agencia. Puede\nactualizar esta información en cualquier momento.", pt: "Preencha os detalhes do modelo para adicionar\nà sua agência. Você pode\natualizar essas informações a qualquer momento.", zh: "填写模型的详细信息以将\n添加到您的代理机构。您可以随时\n更新此信息。") }
     public static var parametersAddModel: String { L(en: "Your parameters", ru: "Ваши параметры", es: "Sus parámetros", pt: "Os seus parâmetros", zh: "您的参数") }
-    public static var emptyTitleAddModel: String { L(en: "THERE ARE NO MODELS\nFROM YOUR AGENCY YET.", ru: "ТЕКУЩИХ МОДЕЛЕЙ\nОТ ВАШЕГО АГЕНТСТВА ПОКА НЕТ.", es: "NO HAY MODELOS\nDE SU AGENCIA TODAVÍA.", pt: "AINDA NÃO HÁ MODELOS\nDA SUA AGÊNCIA.", zh: "目前还没有\n贵机构的模特。") }
-    public static var emptySubTitleAddModel: String { L(en: "Click the button below\nto add your model", ru: "НАЖМИТЕ КНОПКУ НИЖЕ,\nЧТОБЫ ДОБАВИТЬ МОДЕЛЬ", es: "Haz clic en el botón de abajo\npara añadir tu modelo", pt: "Clique no botão abaixo\npara adicionar seu modelo", zh: "点击下方按钮\n添加您的模特") }
+    public static var emptyTitleAddModel: String { L(en: "There are no models\nfrom your agency yet.", ru: "Текущих моделей\nот вашего агентства пока нет.", es: "No hay modelos\nde su agencia todavía.", pt: "Ainda não há modelos\nda sua agência.", zh: "目前还没有\n贵机构的模特。") }
+    public static var emptySubTitleAddModel: String { L(en: "Click the button below\nto add your model", ru: "Нажмите кнопку ниже,\nчтобы добавить модель", es: "Haz clic en el botón de abajo\npara añadir tu modelo", pt: "Clique no botão abaixo\npara adicionar seu modelo", zh: "点击下方按钮\n添加您的模特") }
 
     // MARK: - Debug Screen
 
@@ -521,6 +540,8 @@ public enum DivoStrings {
     public static var debugNetworkOverlay: String { L(en: "Network overlay", ru: "Сетевой оверлей", es: "Superposición de red", pt: "Sobreposição de rede", zh: "网络覆盖层") }
     public static var debugNetworkDelay: String { L(en: "Network delay", ru: "Замедление сети", es: "Retraso de red", pt: "Atraso de rede", zh: "网络延迟") }
     public static var debugCache: String { L(en: "CACHE", ru: "КЕШ", es: "CACHÉ", pt: "CACHE", zh: "缓存") }
+    public static var debugUISection: String { "UI" }
+    public static var debugShowTouches: String { L(en: "Show touches on screen", ru: "Показывать жесты на экране", es: "Mostrar toques en pantalla", pt: "Mostrar toques na tela", zh: "在屏幕上显示触摸") }
     public static var debugImageCache: String { L(en: "Image cache", ru: "Кеш изображений", es: "Caché de imágenes", pt: "Cache de imagens", zh: "图片缓存") }
     public static var debugInfo: String { L(en: "INFO", ru: "ИНФОРМАЦИЯ", es: "INFORMACIÓN", pt: "INFORMAÇÃO", zh: "信息") }
     public static var debugAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司") }
@@ -591,7 +612,9 @@ public enum DivoStrings {
     public static var failedToLoadEventData: String { L(en: "Failed to load event data", ru: "Не удалось загрузить данные события", es: "Error al cargar datos del evento", pt: "Falha ao carregar dados do evento", zh: "无法加载活动数据") }
     public static var failedToUploadCover: String { L(en: "Failed to upload cover photo", ru: "Не удалось загрузить обложку", es: "Error al subir la foto de portada", pt: "Falha ao enviar a foto de capa", zh: "上传封面照片失败") }
     public static var unknownCity: String { L(en: "Unknown city", ru: "Неизвестный город", es: "Ciudad desconocida", pt: "Cidade desconhecida", zh: "未知城市") }
-    public static var tbd: String { "TBD" }
+    public static var tbd: String { L(en: "TBD", ru: "Уточняется", es: "Por definir", pt: "A definir", zh: "待定") }
+    public static var eventFallbackName: String { L(en: "Event", ru: "Событие", es: "Evento", pt: "Evento", zh: "活动") }
+    public static var roleFallbackUser: String { L(en: "User", ru: "Пользователь", es: "Usuario", pt: "Usuário", zh: "用户") }
     public static var failedToUpdateEvent: String { L(en: "Failed to update event", ru: "Не удалось обновить событие", es: "Error al actualizar el evento", pt: "Falha ao atualizar o evento", zh: "更新活动失败") }
     public static var failedToCreateEvent: String { L(en: "Failed to create event", ru: "Не удалось создать событие", es: "Error al crear el evento", pt: "Falha ao criar o evento", zh: "创建活动失败") }
 
@@ -601,6 +624,9 @@ public enum DivoStrings {
     public static func nSelected(_ n: Int) -> String {
         L(en: "\(n) selected", ru: "\(n) выбрано", es: "\(n) seleccionados", pt: "\(n) selecionados", zh: "已选\(n)项")
     }
+
+    public static var emptyTitleAddEvent: String { L(en: "There are no upcoming\nevents at the moment.", ru: "Пока нет предстоящих\nсобытий", es: "No hay eventos\npróximos en este momento", pt: "Não há eventos\nfuturos no momento", zh: "目前暂无即将举行的活动") }
+    public static var emptySubTitleAddEvent: String { L(en: "Check back later or create\na new one", ru: "Загляните позже или\nсоздайте новое", es: "Vuelve más tarde o\ncrea uno nuevo", pt: "Volte mais tarde ou\ncrie um novo", zh: "稍后再试或创建新活动") }
 
     // MARK: - Event Parameter Titles
 

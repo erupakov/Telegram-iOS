@@ -346,7 +346,7 @@ private final class DivoProfileSearchCell: UITableViewCell {
     }
 
     func configure(with item: SearchUserDTO, query: String, isSelected: Bool) {
-        nameLabel.attributedText = Self.highlightedName(item.title, query: query)
+        nameLabel.attributedText = Self.highlightedName(item.title ?? item.user?.fullName ?? "", query: query)
         checkmarkView.isHidden = !isSelected
 
         if let urlString = item.searchImage?.fullUrl,

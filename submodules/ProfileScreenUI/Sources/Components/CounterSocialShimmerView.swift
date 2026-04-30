@@ -7,6 +7,7 @@
 
 import UIKit
 import DivoCore
+import DivoUIKit
 
 class CounterSocialShimmerView: UIView {
     
@@ -16,12 +17,11 @@ class CounterSocialShimmerView: UIView {
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.distribution = .fillEqually
-        stack.spacing = 8
+        stack.spacing = DivoDesignTokens.Spacing.s
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()
     
-    // Создаем 4 заглушки. Используем lazy var или функцию-фабрику, чтобы не дублировать код
     private lazy var placeholder1 = createPlaceholder()
     private lazy var placeholder2 = createPlaceholder()
     private lazy var placeholder3 = createPlaceholder()
@@ -41,7 +41,6 @@ class CounterSocialShimmerView: UIView {
     
     override func layoutSubviews() {
         super.layoutSubviews()
-        // Запускаем анимацию тут, чтобы градиент знал правильные размеры frame
         startAnimation()
     }
     
@@ -65,11 +64,10 @@ class CounterSocialShimmerView: UIView {
         ])
     }
     
-    // Фабричный метод для создания одинаковых серых блоков
     private func createPlaceholder() -> UIView {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 6
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }
@@ -77,9 +75,8 @@ class CounterSocialShimmerView: UIView {
     // MARK: - Animation Logic
     
     func startAnimation() {
-        // Запускаем шиммер на каждом из 4 элементов
         [placeholder1, placeholder2, placeholder3, placeholder4].forEach {
-            $0.stopShimmering() // на всякий случай сбрасываем старую
+            $0.stopShimmering()
             $0.startShimmering()
         }
     }

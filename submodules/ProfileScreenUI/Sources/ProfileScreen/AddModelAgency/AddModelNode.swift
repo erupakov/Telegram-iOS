@@ -286,6 +286,7 @@ final class AddModelNode: ASDisplayNode {
         scrollView.keyboardDismissMode = .interactive
 
         self.fullNameModelTextField.textField.returnKeyType = .next
+        self.fullNameModelTextField.textField.autocapitalizationType = .words
         self.fullNameModelTextField.textField.delegate = self
         
         self.linkModelTextField.textField.returnKeyType = .next

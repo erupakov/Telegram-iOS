@@ -246,6 +246,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         self.editItem = editItem
         
         self.agencyNameTextField = DivoTextField(title: "", prefix: "")
+        self.agencyNameTextField.textField.autocapitalizationType = .words
         self.agencyNameTextField.textField.attributedPlaceholder = NSAttributedString(
             string: DivoStrings.enterAgencyName,
             font: Font.regular(16),

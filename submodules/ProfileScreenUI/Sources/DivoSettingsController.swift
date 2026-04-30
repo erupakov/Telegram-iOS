@@ -75,6 +75,10 @@ public final class DivoSettingsController: TelegramBaseController {
             guard let self = self else { return }
             (self.displayNode as? DivoSettingsNode)?.reloadProfile()
         }
+        NotificationCenter.default.addObserver(forName: DivoConfig.profileDidUpdateNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self = self else { return }
+            (self.displayNode as? DivoSettingsNode)?.reloadProfile()
+        }
 
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
