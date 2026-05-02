@@ -6,13 +6,15 @@ public struct FeedlineListRequest: Encodable {
     public let subscribedOnly: Bool?
     public let modelsOnly: Bool?
     public let role: String?
+    public let withoutNfts: Bool?
 
-    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil) {
+    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil, withoutNfts: Bool? = nil) {
         self.offset = offset
         self.limit = limit
         self.subscribedOnly = subscribedOnly
         self.modelsOnly = modelsOnly
         self.role = role
+        self.withoutNfts = withoutNfts
     }
 }
 
@@ -88,6 +90,34 @@ public struct FeedlineUser: Codable {
     public let role: String
     public let subrole: String?
     public let roleLabel: String
+    public let city: UserCity?
+    public let birthday: String?
+    public let countryCode: String?
+    public let countryName: String?
+    public let age: Int?
+    public let height: Double?
+    public let weight: Double?
+    public let likesCount: Int?
+    public let viewsCount: Int?
+    public let followersCount: Int?
+    public let emojiCounts: FeedlineEmojiCounts?
+    public let totalEmojisCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id, fullName, role, subrole, roleLabel
+        case city, birthday, age, height, weight
+        case countryCode = "country_code"
+        case countryName = "country_name"
+        case likesCount, viewsCount, followersCount
+        case emojiCounts, totalEmojisCount
+    }
+}
+
+public struct FeedlineEmojiCounts: Codable {
+    public let thumbsUp: Int
+    public let thumbsDown: Int
+    public let heart: Int
+    public let fire: Int
 }
 
 public struct FeedlineFile: Codable {

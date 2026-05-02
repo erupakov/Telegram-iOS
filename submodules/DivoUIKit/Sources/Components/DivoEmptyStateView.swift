@@ -13,6 +13,7 @@ public final class DivoEmptyStateView: UIView {
         public let onSecondaryCTATapped: (() -> Void)?
         public let iconSize: CGFloat?
         public let circleSize: CGFloat?
+        public let useOriginalRendering: Bool
 
         public init(
             icon: UIImage,
@@ -23,7 +24,8 @@ public final class DivoEmptyStateView: UIView {
             secondaryCtaTitle: String? = nil,
             onSecondaryCTATapped: (() -> Void)? = nil,
             iconSize: CGFloat? = nil,
-            circleSize: CGFloat? = nil
+            circleSize: CGFloat? = nil,
+            useOriginalRendering: Bool = false
         ) {
             self.icon = icon
             self.title = title
@@ -34,6 +36,7 @@ public final class DivoEmptyStateView: UIView {
             self.onSecondaryCTATapped = onSecondaryCTATapped
             self.iconSize = iconSize
             self.circleSize = circleSize
+            self.useOriginalRendering = useOriginalRendering
         }
     }
 
@@ -111,7 +114,8 @@ public final class DivoEmptyStateView: UIView {
         subtitleLabel.text = config.subtitle
 
         if let circleSize = config.circleSize {
-            iconView.image = config.icon.withRenderingMode(.alwaysTemplate)
+            let renderingMode: UIImage.RenderingMode = config.useOriginalRendering ? .alwaysOriginal : .alwaysTemplate
+            iconView.image = config.icon.withRenderingMode(renderingMode)
             circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
             circleWidthConstraint?.constant = circleSize
             circleHeightConstraint?.constant = circleSize

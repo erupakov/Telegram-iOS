@@ -29,7 +29,7 @@ final class EventsControllerNode: ASDisplayNode {
     private var events: [EventData] = []
     private var isLoading = true
     private var shimmerViews: [ShimmerView] = []
-    private var emptyStateView: UIView?
+    private var emptyStateView: DivoEmptyStateView?
 
     private let navBackgroundView: UIView = {
         let v = UIView()
@@ -172,89 +172,22 @@ final class EventsControllerNode: ASDisplayNode {
     private func showEmptyState() {
         guard emptyStateView == nil else { return }
 
-        let theme = self.presentationData.theme
+        let emptyView = DivoEmptyStateView()
+        emptyView.backgroundColor = DivoColorPalette.screenBackground
+        emptyView.configure(.init(
+            icon: DivoImage.iconEvents,
+            title: DivoStrings.noEventsYet,
+            subtitle: DivoStrings.noUpcomingEventsSubtitle
+        ))
 
-        let container = UIView()
-        container.backgroundColor = theme.list.plainBackgroundColor
-        container.alpha = 0
-
-        let circleView = UIView()
-        circleView.backgroundColor = theme.list.itemBlocksSeparatorColor.withAlphaComponent(0.3)
-        circleView.layer.cornerRadius = 40
-        circleView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(circleView)
-
-        let iconImageView = UIImageView()
-        iconImageView.image = DivoImage.iconEvents.withRenderingMode(.alwaysTemplate)
-        iconImageView.tintColor = theme.list.itemSecondaryTextColor
-        iconImageView.contentMode = .scaleAspectFit
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        circleView.addSubview(iconImageView)
-
-        let titleLabel = UILabel()
-        titleLabel.text = DivoStrings.noEventsYet
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textColor = theme.list.itemPrimaryTextColor
-        titleLabel.textAlignment = .center
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
-
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = DivoStrings.noUpcomingEventsSubtitle
-        subtitleLabel.font = .systemFont(ofSize: 14)
-        subtitleLabel.textColor = theme.list.itemSecondaryTextColor
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(subtitleLabel)
-
-        NSLayoutConstraint.activate([
-            circleView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            circleView.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -50),
-            circleView.widthAnchor.constraint(equalToConstant: 80),
-            circleView.heightAnchor.constraint(equalToConstant: 80),
-
-            iconImageView.centerXAnchor.constraint(equalTo: circleView.centerXAnchor),
-            iconImageView.centerYAnchor.constraint(equalTo: circleView.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 32),
-            iconImageView.heightAnchor.constraint(equalToConstant: 32),
-
-            titleLabel.topAnchor.constraint(equalTo: circleView.bottomAnchor, constant: 20),
-            titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
-            subtitleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
-            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
-        ])
-
-        self.view.addSubview(container)
-        emptyStateView = container
+        self.view.addSubview(emptyView)
+        emptyStateView = emptyView
 
         if let (layout, navigationBarHeight) = containerLayout {
-            container.frame = CGRect(x: 0, y: navigationBarHeight, width: layout.size.width, height: layout.size.height - navigationBarHeight)
+            emptyView.frame = CGRect(x: 0, y: navigationBarHeight, width: layout.size.width, height: layout.size.height - navigationBarHeight)
         }
 
-        circleView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
-        titleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        subtitleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        titleLabel.alpha = 0
-        subtitleLabel.alpha = 0
-
-        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: []) {
-            container.alpha = 1
-            circleView.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.1, options: [.curveEaseOut]) {
-            titleLabel.alpha = 1
-            titleLabel.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.15, options: [.curveEaseOut]) {
-            subtitleLabel.alpha = 1
-            subtitleLabel.transform = .identity
-        }
+        emptyView.animateAppearance()
     }
 
     private func hideEmptyState() {

@@ -211,7 +211,7 @@ public final class EventsController: TelegramBaseController {
             }
             let coverURL = item.files?.first?.fullUrl
             let avatarURL = item.eventCreator?.avatar?.fullUrl
-            let cityName = item.address?.city?.title ?? ""
+            let cityName = item.address?.city?.name ?? ""
             return EventData(
                 id: item.id,
                 title: item.title,

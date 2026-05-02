@@ -155,7 +155,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
 
                 self.editProfileNode.reloadWorkHistory(items: response.data.items)
-                self.fetchAgencyLogos(for: response.data.items)
             } catch {
                 if let userDetail = self.userDetailData {
                     self.editProfileNode.reloadLegacyWorkHistory(model: userDetail)
@@ -237,7 +236,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                         style: .success
                     )
                 }
-                self.fetchAgencyLogos(for: items)
             } catch {
                 await MainActor.run {
                     var currentItems = self.editProfileNode.workRawItems

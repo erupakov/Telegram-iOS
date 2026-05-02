@@ -15,15 +15,17 @@ public struct WorkHistoryItem: Decodable {
     public let agencyId: Int?
     public let agencyName: String?
     public let agencyDisplayName: String?
+    public let agencyAvatarLink: String?
     public let startDate: String?
     public let endDate: String?
     public let isCurrent: Bool?
-    
+
     public init(
         id: Int,
         agencyId: Int?,
         agencyName: String?,
         agencyDisplayName: String?,
+        agencyAvatarLink: String? = nil,
         startDate: String?,
         endDate: String?,
         isCurrent: Bool?
@@ -32,6 +34,7 @@ public struct WorkHistoryItem: Decodable {
         self.agencyId = agencyId
         self.agencyName = agencyName
         self.agencyDisplayName = agencyDisplayName
+        self.agencyAvatarLink = agencyAvatarLink
         self.startDate = startDate
         self.endDate = endDate
         self.isCurrent = isCurrent

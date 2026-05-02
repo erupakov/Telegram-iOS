@@ -49,7 +49,7 @@ public struct UserGender: Decodable {
     public let title: String
 }
 
-public struct UserCity: Decodable {
+public struct UserCity: Codable {
     public let id: Int
     public let countryCode: String?
     public let countryName: String?
@@ -304,8 +304,8 @@ public struct AgencyListData: Decodable {
 public struct AgencyItem: Decodable {
     public let id: Int
     public let title: String
-    public let username: String?
-    public let photo: UserFile?
+    public let nickname: String?
+    public let agencyAvatarLink: String?
 }
 
 public struct AppearanceDictionaryResponse: Codable {

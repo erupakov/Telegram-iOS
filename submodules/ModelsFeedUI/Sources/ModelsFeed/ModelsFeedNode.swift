@@ -105,7 +105,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private var errorView: UIView?
     private var errorIconCenterYConstraint: NSLayoutConstraint?
     private var errorRetryBottomConstraint: NSLayoutConstraint?
-    private var emptyStateView: UIView?
+    private var emptyStateView: DivoEmptyStateView?
 
     var showNetworkError: Bool = false {
         didSet {
@@ -920,98 +920,30 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private func showEmptyState() {
         guard emptyStateView == nil else { return }
 
-        let container = UIView()
-        container.backgroundColor = .white
-        container.alpha = 0
-
-        let circleSize: CGFloat = 80
-        let circleView = UIView()
-        circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
-        circleView.layer.cornerRadius = circleSize / 2
-        circleView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(circleView)
-
-        let iconLabel = UILabel()
-        iconLabel.text = selectedTabIndex == 0 ? "♡" : "☰"
-        iconLabel.font = .systemFont(ofSize: 32)
-        iconLabel.textColor = DivoColorPalette.emptyIconTint
-        iconLabel.textAlignment = .center
-        iconLabel.translatesAutoresizingMaskIntoConstraints = false
-        circleView.addSubview(iconLabel)
-
-        let titleLabel = UILabel()
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textColor = DivoColorPalette.emptyPrimaryDark
-        titleLabel.textAlignment = .center
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
-
-        let subtitleLabel = UILabel()
-        subtitleLabel.font = .systemFont(ofSize: 14)
-        subtitleLabel.textColor = DivoColorPalette.emptySubtitleLight
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(subtitleLabel)
+        let config: DivoEmptyStateView.Configuration
 
         switch selectedTabIndex {
         case 0:
-            titleLabel.text = DivoStrings.noSubscriptionsYet
-            subtitleLabel.text = DivoStrings.noSubscriptionsSubtitle
+            config = .init(icon: DivoImage.heartActionIcon, title: DivoStrings.noSubscriptionsYet, subtitle: DivoStrings.noSubscriptionsSubtitle)
         case 2:
-            titleLabel.text = DivoStrings.noResults
-            subtitleLabel.text = DivoStrings.noResultsSubtitle
+            config = .init(icon: DivoImage.emptyModelsAgency, title: DivoStrings.noResults, subtitle: DivoStrings.noResultsSubtitle, iconSize: 68)
         default:
-            titleLabel.text = DivoStrings.noUsersFound
-            subtitleLabel.text = DivoStrings.noUsersFoundSubtitle
+            config = .init(icon: DivoImage.iconModels, title: DivoStrings.noUsersFound, subtitle: DivoStrings.noUsersFoundSubtitle)
         }
 
-        NSLayoutConstraint.activate([
-            circleView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            circleView.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -50),
-            circleView.widthAnchor.constraint(equalToConstant: circleSize),
-            circleView.heightAnchor.constraint(equalToConstant: circleSize),
+        let emptyView = DivoEmptyStateView()
+        emptyView.backgroundColor = DivoColorPalette.screenBackground
+        emptyView.configure(config)
 
-            iconLabel.centerXAnchor.constraint(equalTo: circleView.centerXAnchor),
-            iconLabel.centerYAnchor.constraint(equalTo: circleView.centerYAnchor),
-
-            titleLabel.topAnchor.constraint(equalTo: circleView.bottomAnchor, constant: 20),
-            titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
-            subtitleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
-            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
-        ])
-
-        self.view.addSubview(container)
-        emptyStateView = container
+        self.view.addSubview(emptyView)
+        emptyStateView = emptyView
 
         if let (layout, navigationBarHeight) = containerLayout {
             let topOffset = navigationBarHeight + storiesHeight + tabsHeight
-            container.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+            emptyView.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
         }
 
-        circleView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
-        titleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        subtitleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        titleLabel.alpha = 0
-        subtitleLabel.alpha = 0
-
-        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: []) {
-            container.alpha = 1
-            circleView.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.1, options: [.curveEaseOut]) {
-            titleLabel.alpha = 1
-            titleLabel.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.15, options: [.curveEaseOut]) {
-            subtitleLabel.alpha = 1
-            subtitleLabel.transform = .identity
-        }
+        emptyView.animateAppearance()
     }
 
     private func hideEmptyState() {

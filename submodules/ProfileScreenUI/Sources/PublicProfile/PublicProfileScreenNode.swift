@@ -2881,6 +2881,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.updateAllCollectionViewHeights(layout: layout)
                 if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
             }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.checkAndLoadMoreVideoGallery()
+            }
         } else if !uniquePhotoItems.isEmpty {
             let newIndices = (previousCount..<(previousCount + uniquePhotoItems.count)).map { IndexPath(item: $0, section: 0) }
             self.videoGalleryCollectionView.performBatchUpdates({
@@ -2889,11 +2892,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     self.updateAllCollectionViewHeights(layout: layout)
                     if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
                 }
-            }, completion: nil)
+            }, completion: { [weak self] _ in
+                self?.checkAndLoadMoreVideoGallery()
+            })
         }
         updateFloatingButton(for: currentTab)
     }
     
+    func checkAndLoadMoreVideoGallery() {
+        guard videoGalleryHasMore && !videoGalleryIsLoading else { return }
+
+        videoGalleryCollectionView.layoutIfNeeded()
+
+        let contentHeight = videoGalleryCollectionView.contentSize.height
+        let frameHeight = videoGalleryCollectionView.frame.size.height
+
+        if contentHeight <= frameHeight {
+            loadNextVideoGalleryPage()
+        }
+    }
+
     // Обновление высоты видео галереи
     func updateVideoGalleryCollectionViewHeight() {
         guard let (layout, _) = self.containerLayout else { return }

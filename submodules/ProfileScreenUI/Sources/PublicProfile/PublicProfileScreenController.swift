@@ -623,8 +623,7 @@ extension PublicProfileScreenController {
     func loadVideoGalleryPage(userId: Int, offset: Int) {
         controllerNode.setVideoGalleryLoading(true)
 
-        var body: GalleryListRequest
-        body = GalleryListRequest(offset: offset, limit: 6, userId: userId)
+        let body = GalleryListRequest(offset: offset, limit: 6, userId: userId, type: "video")
         
         Task {
             do {
@@ -635,10 +634,8 @@ extension PublicProfileScreenController {
                 )
                 
                 await MainActor.run {
-                    let videoItems:[UserVideoItem] = response.data.items.filter { item in
-                        item.files.contains { MediaFormatValidator.isVideo($0.fileExtension) }
-                    }
-                    
+                    let videoItems = response.data.items
+
                     let existingIds = Set(self.currentGalleryVideos.map { $0.id })
                     let newVideos = videoItems.filter { !existingIds.contains($0.id) }
                     
@@ -741,38 +738,28 @@ extension PublicProfileScreenController {
                 )
 
                 let items = response.data.items.filter({ ($0.creator?.id ?? $0.user?.id) == self.userID })
-                
-                if items.isEmpty {
-                    await MainActor.run {
-                        self.controllerNode.updateEventsList([])
-                    }
-                    return
-                }
-                
-                let detailedEvents = await fetchEventDetails(for: items.compactMap { $0.id })
 
-                let eventDataArray: [EventItem] = detailedEvents.map { detail in
+                let eventDataArray: [EventItem] = items.map { item in
+                    let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: item.date)
 
-                    let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: detail.date)
+                    let city = item.address?.city?.name ?? DivoStrings.unknownCity
+                    let flag = self.emojiFlag(from: item.address?.city?.countryCode)
 
-                    let city = detail.address?.city?.name ?? DivoStrings.unknownCity
-                    let flag = self.emojiFlag(from: detail.address?.city?.countryCode)
-
-                    let avatarUrl = detail.files?.first?.fullUrl
+                    let avatarUrl = item.files?.first?.fullUrl
                     let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
 
                     return EventItem(
-                        name: detail.title ?? DivoStrings.eventFallbackName,
+                        name: item.title,
                         data: formattedDate,
                         time: formattedTime,
                         countryFlag: flag,
                         city: city,
                         customAvatarURL: finalAvatarUrl,
-                        originalDate: detail.date,
-                        eventId: detail.id
+                        originalDate: item.date,
+                        eventId: item.id
                     )
                 }
-                
+
                 let sortedEvents = eventDataArray.sorted { event1, event2 in
                     guard let date1 = self.parseEventDate(event1.originalDate),
                           let date2 = self.parseEventDate(event2.originalDate) else {
@@ -784,41 +771,13 @@ extension PublicProfileScreenController {
                 await MainActor.run {
                     self.controllerNode.updateEventsList(sortedEvents)
                 }
-                
+
             } catch {
                 divoLog("[EVENTS] Error: \(error)", level: .error)
                 await MainActor.run {
                     self.controllerNode.updateEventsList([])
                 }
             }
-        }
-    }
-    
-    /// Асинхронно скачивает детали по списку ID
-    private func fetchEventDetails(for ids: [Int]) async -> [EventFullDetailData] {
-        return await withTaskGroup(of: EventFullDetailData?.self) { group in
-            for id in ids {
-                group.addTask {
-                    do {
-                        let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
-                            path: "/event/\(id)",
-                            method: "GET"
-                        )
-                        return response.data
-                    } catch {
-                        divoLog("[EVENT DETAIL] Error loading event \(id): \(error)", level: .error)
-                        return nil
-                    }
-                }
-            }
-
-            var results: [EventFullDetailData] = []
-            for await detail in group {
-                if let validDetail = detail {
-                    results.append(validDetail)
-                }
-            }
-            return results
         }
     }
 
@@ -928,8 +887,8 @@ extension PublicProfileScreenController {
             }
         }
         
-        sheetVC.requestData = { [weak self] offset, completion in
-            self?.loadInteractionData(type: type, offset: offset, completion: completion)
+        sheetVC.requestData = { [weak self] offset, search, completion in
+            self?.loadInteractionData(type: type, offset: offset, search: search, completion: completion)
         }
         
         if #available(iOS 15.0, *) {
@@ -1011,13 +970,16 @@ extension PublicProfileScreenController {
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
     
-    private func loadInteractionData(type: InteractionListType, offset: Int, completion: @escaping (Result<InteractionPage, Error>) -> Void) {
+    private func loadInteractionData(type: InteractionListType, offset: Int, search: String? = nil, completion: @escaping (Result<InteractionPage, Error>) -> Void) {
         guard self.userID != -1 else { return }
 
         let limit = 20
         Task {
             do {
-                let path = isMyProfile ? "/user/engagement?offset=\(offset)&limit=\(limit)" : "/user/engagement?offset=\(offset)&limit=\(limit)&userId=\(self.userID)"
+                var path = isMyProfile ? "/user/engagement?offset=\(offset)&limit=\(limit)" : "/user/engagement?offset=\(offset)&limit=\(limit)&userId=\(self.userID)"
+                if let search, !search.isEmpty, let encoded = search.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                    path += "&search=\(encoded)"
+                }
                 let response: UserEngagementResponse = try await DivoAPIClient.shared.request(path: path, method: "GET")
 
                 var apiItems: [EngagementItem] = []

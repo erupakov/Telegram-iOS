@@ -46,7 +46,7 @@ public final class ModelsFeedController: TelegramBaseController {
 
     private var tabStates: [TabState] = [TabState(), TabState(), TabState()]
     private var selectedTabIndex: Int = 0
-    private let feedlinePageSize = 10
+    private let feedlinePageSize = 16
     private var tokenChangeObserver: NSObjectProtocol?
 
     private let createActionDisposable = MetaDisposable()
@@ -274,10 +274,12 @@ public final class ModelsFeedController: TelegramBaseController {
         case 2: role = DivoConfig.UserRole.agency.rawValue
         default: role = DivoConfig.UserRole.model.rawValue
         }
-        return FeedlineListRequest(offset: offset, limit: limit, role: role)
+        return FeedlineListRequest(offset: offset, limit: limit, role: role, withoutNfts: true)
     }
 
-    private func loadFeedline(tabIndex: Int, reset: Bool) {
+    private let maxAutoFetches = 3
+
+    private func loadFeedline(tabIndex: Int, reset: Bool, autoFetchCount: Int = 0) {
         guard !tabStates[tabIndex].isLoading else { return }
         tabStates[tabIndex].isLoading = true
 
@@ -286,7 +288,7 @@ public final class ModelsFeedController: TelegramBaseController {
             if reset {
                 controllerNode.isLoading = true
                 controllerNode.isPaginating = false
-            } else {
+            } else if !tabStates[tabIndex].cards.isEmpty {
                 controllerNode.isPaginating = true
             }
         }
@@ -308,17 +310,21 @@ public final class ModelsFeedController: TelegramBaseController {
                     body: body
                 )
                 let isSubscribedTab = tabIndex == 0
-                let cards = response.data.items.map { Self.mapCard($0, isFollowed: isSubscribedTab) }
+                let profileItems = response.data.items.filter { $0.entity == "users" }
+                let cards = profileItems.map { Self.mapCard($0, isFollowed: isSubscribedTab) }
                 await MainActor.run {
                     if reset {
                         self.tabStates[tabIndex].cards = cards
                     } else {
                         self.tabStates[tabIndex].cards.append(contentsOf: cards)
                     }
-                    self.tabStates[tabIndex].offset = offset + cards.count
-                    self.tabStates[tabIndex].hasMore = cards.count >= limit
+                    let totalReceived = response.data.items.count
+                    self.tabStates[tabIndex].offset = offset + totalReceived
+                    self.tabStates[tabIndex].hasMore = totalReceived >= limit
                     self.tabStates[tabIndex].isLoading = false
                     self.tabStates[tabIndex].isLoaded = true
+
+                    let willAutoFetch = cards.count < limit && self.tabStates[tabIndex].hasMore && autoFetchCount < self.maxAutoFetches
 
                     if tabIndex == self.selectedTabIndex {
                         if reset {
@@ -326,9 +332,20 @@ public final class ModelsFeedController: TelegramBaseController {
                         } else {
                             self.controllerNode.appendCards(cards)
                         }
-                        self.controllerNode.isLoading = false
+                        if !willAutoFetch || !self.tabStates[tabIndex].cards.isEmpty {
+                            self.controllerNode.isLoading = false
+                        }
                         self.controllerNode.isPaginating = false
                         self.controllerNode.showNetworkError = false
+                    }
+
+                    if willAutoFetch {
+                        self.loadFeedline(tabIndex: tabIndex, reset: false, autoFetchCount: autoFetchCount + 1)
+                        return
+                    }
+
+                    if tabIndex == self.selectedTabIndex {
+                        self.controllerNode.isLoading = false
                         self.controllerNode.showEmptyStateIfNeeded()
                     }
                 }
@@ -354,6 +371,7 @@ public final class ModelsFeedController: TelegramBaseController {
         let mainURL = item.files.first.flatMap { URL(string: $0.fullUrl) }
         let avatarURL = item.searchImage.flatMap { URL(string: $0.fullUrl) }
         let previewURLs = item.files.dropFirst().compactMap { URL(string: $0.fullUrl) }
+        let flag = CountryHelper.emojiFlag(for: item.user.countryCode ?? item.user.city?.countryCode)
         return CardModel(
             name: item.title ?? item.user.fullName ?? "",
             userId: item.user.id,
@@ -367,9 +385,9 @@ public final class ModelsFeedController: TelegramBaseController {
             isFollowed: isFollowed,
             feedId: item.feedId,
             isLiked: item.isLikedByUser,
-            age: 24,
-            country: "Moscow",
-            countryFlag: "🇷🇺"
+            age: item.user.age,
+            country: item.user.countryName ?? item.user.city?.countryName,
+            countryFlag: flag.isEmpty ? nil : flag
         )
     }
 
