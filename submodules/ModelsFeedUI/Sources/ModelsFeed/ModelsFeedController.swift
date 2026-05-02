@@ -46,7 +46,7 @@ public final class ModelsFeedController: TelegramBaseController {
 
     private var tabStates: [TabState] = [TabState(), TabState(), TabState()]
     private var selectedTabIndex: Int = 0
-    private let feedlinePageSize = 10
+    private let feedlinePageSize = 16
     private var tokenChangeObserver: NSObjectProtocol?
 
     private let createActionDisposable = MetaDisposable()
@@ -277,7 +277,9 @@ public final class ModelsFeedController: TelegramBaseController {
         return FeedlineListRequest(offset: offset, limit: limit, role: role, withoutNfts: true)
     }
 
-    private func loadFeedline(tabIndex: Int, reset: Bool) {
+    private let maxAutoFetches = 3
+
+    private func loadFeedline(tabIndex: Int, reset: Bool, autoFetchCount: Int = 0) {
         guard !tabStates[tabIndex].isLoading else { return }
         tabStates[tabIndex].isLoading = true
 
@@ -286,7 +288,7 @@ public final class ModelsFeedController: TelegramBaseController {
             if reset {
                 controllerNode.isLoading = true
                 controllerNode.isPaginating = false
-            } else {
+            } else if !tabStates[tabIndex].cards.isEmpty {
                 controllerNode.isPaginating = true
             }
         }
@@ -322,15 +324,28 @@ public final class ModelsFeedController: TelegramBaseController {
                     self.tabStates[tabIndex].isLoading = false
                     self.tabStates[tabIndex].isLoaded = true
 
+                    let willAutoFetch = cards.count < limit && self.tabStates[tabIndex].hasMore && autoFetchCount < self.maxAutoFetches
+
                     if tabIndex == self.selectedTabIndex {
                         if reset {
                             self.controllerNode.updateCards(self.tabStates[tabIndex].cards, animated: true)
                         } else {
                             self.controllerNode.appendCards(cards)
                         }
-                        self.controllerNode.isLoading = false
+                        if !willAutoFetch || !self.tabStates[tabIndex].cards.isEmpty {
+                            self.controllerNode.isLoading = false
+                        }
                         self.controllerNode.isPaginating = false
                         self.controllerNode.showNetworkError = false
+                    }
+
+                    if willAutoFetch {
+                        self.loadFeedline(tabIndex: tabIndex, reset: false, autoFetchCount: autoFetchCount + 1)
+                        return
+                    }
+
+                    if tabIndex == self.selectedTabIndex {
+                        self.controllerNode.isLoading = false
                         self.controllerNode.showEmptyStateIfNeeded()
                     }
                 }

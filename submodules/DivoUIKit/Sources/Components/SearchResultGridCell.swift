@@ -49,7 +49,7 @@ public final class SearchResultGridCell: UICollectionViewCell {
     private let backgroundImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
-        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderLight
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
@@ -427,12 +427,22 @@ public final class SearchResultGridCell: UICollectionViewCell {
         applyVariant(viewModel.variant, role: viewModel.roleLabel)
 
         if let url = viewModel.imageURL {
+            applyDarkTextStyle(false)
             backgroundImageView.loadImage(from: url) { [weak self] image in
                 guard let self, image != nil else { return }
                 self.layoutIfNeeded()
                 self.animateBlurAppearance()
             }
+        } else {
+            applyDarkTextStyle(true)
         }
+    }
+
+    private func applyDarkTextStyle(_ isDark: Bool) {
+        let textColor = isDark ? DivoColorPalette.primaryText : DivoColorPalette.primaryTextOnDark
+        nameLabel.textColor = textColor
+        infoLabel.textColor = textColor
+        progressiveBlurView.isHidden = isDark
     }
 
     private func applyVariant(_ variant: SearchCardViewModel.Variant, role: String?) {
@@ -546,12 +556,13 @@ public final class SearchResultGridCell: UICollectionViewCell {
         backgroundImageView.cancelImageLoad()
         backgroundImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         backgroundImageView.image = nil
-        backgroundImageView.backgroundColor = DivoColorPalette.imagePlaceholderDark
+        backgroundImageView.backgroundColor = DivoColorPalette.imagePlaceholderLight
 
         onLikeTapped = nil
         onSaveTapped = nil
         onShareTapped = nil
 
+        progressiveBlurView.isHidden = false
         resetBlurState()
     }
 

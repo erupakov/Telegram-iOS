@@ -524,7 +524,6 @@ public class ModelsSearchController: ViewController {
 
         currentSearchTask?.cancel()
         currentSearchTask = Task { @MainActor in
-            defer { isFetchingGrid = false }
             isFetchingGrid = true
 
             do {
@@ -535,18 +534,25 @@ public class ModelsSearchController: ViewController {
                     body: request
                 )
 
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled else { isFetchingGrid = false; return }
 
+                let profileItems = response.data.items.filter { $0.entity == "users" }
                 let totalCount = response.data.pagination.meta.totalCount
                 self.searchNode.updateGrid(
-                    results: response.data.items,
+                    results: profileItems,
                     totalCount: totalCount,
                     isFirstPage: true,
                     query: self.currentQuery
                 )
                 self.gridOffset = response.data.items.count
                 self.hasMoreGridResults = self.gridOffset < totalCount
+                self.isFetchingGrid = false
+
+                if profileItems.count < self.gridLimit && self.hasMoreGridResults {
+                    self.fetchGridResults(isFirstPage: false)
+                }
             } catch {
+                self.isFetchingGrid = false
                 guard !Task.isCancelled else { return }
                 self.currentFilters = oldFilters
                 self.searchNode.updateActiveFiltersCount(oldCount)
@@ -804,7 +810,8 @@ public class ModelsSearchController: ViewController {
                 
                 guard !Task.isCancelled else { return }
                 
-                self.searchNode.updateAutocomplete(results: response.data.items)
+                let profileItems = response.data.items.filter { $0.entity == "users" }
+                self.searchNode.updateAutocomplete(results: profileItems)
             } catch {
                 if !Task.isCancelled {
                     self.searchNode.hideAutocompleteLoading()
@@ -824,11 +831,11 @@ public class ModelsSearchController: ViewController {
     
     private func fetchGridResults(isFirstPage: Bool) {
         guard !isFetchingGrid && hasMoreGridResults else { return }
-        
+
         currentSearchTask?.cancel()
-        
+
         isFetchingGrid = true
-        
+
         if isFirstPage {
             gridOffset = 0
             hasMoreGridResults = true
@@ -838,57 +845,71 @@ public class ModelsSearchController: ViewController {
             self.searchNode.showPaginationLoading()
         }
 
+        var isFirst = isFirstPage
+        let maxAutoFetches = 3
+
         currentSearchTask = Task { @MainActor in
             defer { isFetchingGrid = false }
 
-            do {
-                let request = buildRequest(limit: gridLimit, offset: gridOffset, query: self.currentQuery.isEmpty ? nil : self.currentQuery)
+            var fetchCount = 0
+            while self.hasMoreGridResults && fetchCount < maxAutoFetches {
+                fetchCount += 1
+                do {
+                    let request = buildRequest(limit: gridLimit, offset: gridOffset, query: self.currentQuery.isEmpty ? nil : self.currentQuery)
 
-                let response: ModelsSearchResponse = try await DivoAPIClient.shared.request(
-                    path: "/feedline/search",
-                    method: "POST",
-                    body: request
-                )
+                    let response: ModelsSearchResponse = try await DivoAPIClient.shared.request(
+                        path: "/feedline/search",
+                        method: "POST",
+                        body: request
+                    )
 
-                guard !Task.isCancelled else { return }
+                    guard !Task.isCancelled else { return }
 
-                let totalCount = response.data.pagination.meta.totalCount
+                    let profileItems = response.data.items.filter { $0.entity == "users" }
+                    let totalCount = response.data.pagination.meta.totalCount
 
-                self.searchNode.updateGrid(
-                    results: response.data.items,
-                    totalCount: totalCount,
-                    isFirstPage: isFirstPage,
-                    query: self.currentQuery
-                )
+                    self.searchNode.updateGrid(
+                        results: profileItems,
+                        totalCount: totalCount,
+                        isFirstPage: isFirst,
+                        query: self.currentQuery
+                    )
 
-                self.gridOffset += response.data.items.count
-                self.hasMoreGridResults = self.gridOffset < totalCount
+                    self.gridOffset += response.data.items.count
+                    self.hasMoreGridResults = self.gridOffset < totalCount
+                    isFirst = false
 
-            } catch {
-                if !Task.isCancelled {
-                    if isFirstPage {
-                        self.searchNode.showGridError()
-                        self.searchNode.showSnackbar(
-                            message: DivoStrings.feedSearchResultsLoadFailed,
-                            style: .error,
-                            retryAction: { [weak self] in
-                                guard let self else { return }
-                                self.fetchGridResults(isFirstPage: true)
-                            },
-                            persistent: true
-                        )
-                    } else {
-                        self.searchNode.showPaginationError()
-                        self.searchNode.showSnackbar(
-                            message: DivoStrings.feedSearchResultsLoadFailed,
-                            style: .error,
-                            retryAction: { [weak self] in
-                                guard let self else { return }
-                                self.fetchGridResults(isFirstPage: false)
-                            },
-                            persistent: true
-                        )
+                    if profileItems.count >= self.gridLimit || !self.hasMoreGridResults {
+                        break
                     }
+
+                } catch {
+                    if !Task.isCancelled {
+                        if isFirst {
+                            self.searchNode.showGridError()
+                            self.searchNode.showSnackbar(
+                                message: DivoStrings.feedSearchResultsLoadFailed,
+                                style: .error,
+                                retryAction: { [weak self] in
+                                    guard let self else { return }
+                                    self.fetchGridResults(isFirstPage: true)
+                                },
+                                persistent: true
+                            )
+                        } else {
+                            self.searchNode.showPaginationError()
+                            self.searchNode.showSnackbar(
+                                message: DivoStrings.feedSearchResultsLoadFailed,
+                                style: .error,
+                                retryAction: { [weak self] in
+                                    guard let self else { return }
+                                    self.fetchGridResults(isFirstPage: false)
+                                },
+                                persistent: true
+                            )
+                        }
+                    }
+                    break
                 }
             }
         }
