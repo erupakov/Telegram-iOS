@@ -43,30 +43,62 @@ final class InteractionListViewController: UIViewController {
     private var hasMorePages: Bool = true
     private var isMyProfile: Bool
     private var searchDebounceTimer: Timer?
+    private var activeSearchQuery: String?
+    private var searchOffset: Int = 0
+    private var searchHasMore: Bool = false
 
     var onUserTapped: ((InteractionUser) -> Void)?
 
     private let errorContainer: UIView = {
         let view = UIView()
+        view.backgroundColor = DivoColorPalette.screenBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         return view
     }()
-    
+
+    private let errorIconView: UIImageView = {
+        let iv = UIImageView(image: DivoImage.faceSearchError)
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
     private let errorTitleLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.regular(16)
-        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
+        label.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? Font.bold(20)
+        label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
+        label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 38).isActive = true
-        label.numberOfLines = 2
         return label
+    }()
+
+    private let errorSubtitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let errorRetryButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.setTitle(DivoStrings.retry, for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = Font.helveticaNeue(20)
+        button.backgroundColor = DivoColorPalette.accent
+        button.layer.cornerRadius = 28
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
     
     private let emptyContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
         return view
     }()
     
@@ -201,9 +233,6 @@ final class InteractionListViewController: UIViewController {
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
 
-        view.addSubview(errorContainer)
-        errorContainer.addSubview(errorTitleLabel)
-
         view.addSubview(emptyContainer)
         emptyContainer.addSubview(emptyTitleLabel)
         emptyContainer.addSubview(emptySubTitleLabel)
@@ -217,6 +246,14 @@ final class InteractionListViewController: UIViewController {
         loadingSpinner.translatesAutoresizingMaskIntoConstraints = false
         loadingSpinner.isHidden = true
         view.addSubview(searchFadeOverlay)
+
+        view.addSubview(errorContainer)
+        errorContainer.addSubview(errorIconView)
+        errorContainer.addSubview(errorTitleLabel)
+        errorContainer.addSubview(errorSubtitleLabel)
+        errorContainer.addSubview(errorRetryButton)
+        errorRetryButton.addTarget(self, action: #selector(errorRetryTapped), for: .touchUpInside)
+        errorRetryButton.addDivoPressState(.primary)
 
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
@@ -278,22 +315,33 @@ final class InteractionListViewController: UIViewController {
             errorContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             errorContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             errorContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            
-            errorTitleLabel.centerXAnchor.constraint(equalTo: errorContainer.centerXAnchor),
-            errorTitleLabel.centerYAnchor.constraint(equalTo: errorContainer.centerYAnchor),
-            errorTitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            errorTitleLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            errorIconView.centerXAnchor.constraint(equalTo: errorContainer.centerXAnchor),
+            errorIconView.centerYAnchor.constraint(equalTo: errorContainer.centerYAnchor, constant: -60),
+
+            errorTitleLabel.topAnchor.constraint(equalTo: errorIconView.bottomAnchor, constant: 16),
+            errorTitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor, constant: 32),
+            errorTitleLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor, constant: -32),
+
+            errorSubtitleLabel.topAnchor.constraint(equalTo: errorTitleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
+            errorSubtitleLabel.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor, constant: 32),
+            errorSubtitleLabel.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor, constant: -32),
+
+            errorRetryButton.leadingAnchor.constraint(equalTo: errorContainer.leadingAnchor, constant: 32),
+            errorRetryButton.trailingAnchor.constraint(equalTo: errorContainer.trailingAnchor, constant: -32),
+            errorRetryButton.heightAnchor.constraint(equalToConstant: 56),
+            errorRetryButton.bottomAnchor.constraint(equalTo: errorContainer.safeAreaLayoutGuide.bottomAnchor, constant: -24),
         ])
     }
 
-    private func configure(with isEmptyTable: Bool, emptyTitle: String? = nil, emptySubTitle: String? = nil) {
+    private func configure(with isEmptyTable: Bool, isSearchEmpty: Bool = false, emptyTitle: String? = nil, emptySubTitle: String? = nil) {
         if isEmptyTable {
             emptyContainer.isHidden = false
-            searchFieldContainer.isHidden = true
-            searchFadeOverlay.isHidden = true
             tableView.isHidden = true
             errorContainer.isHidden = true
-            
+            searchFadeOverlay.isHidden = true
+            searchFieldContainer.isHidden = !isSearchEmpty
+
             emptyTitleLabel.text = emptyTitle?.uppercased()
             emptySubTitleLabel.text = emptySubTitle
         } else {
@@ -301,7 +349,7 @@ final class InteractionListViewController: UIViewController {
             searchFieldContainer.isHidden = false
             searchFadeOverlay.isHidden = false
             tableView.isHidden = false
-
+            errorContainer.isHidden = true
         }
     }
     
@@ -312,6 +360,9 @@ final class InteractionListViewController: UIViewController {
         hideSnackbar(animated: false)
         currentOffset = 0
         isLoadingMore = true
+        activeSearchQuery = nil
+        searchOffset = 0
+        searchHasMore = false
 
         requestData?(0, nil) { [weak self] result in
             guard let self = self else { return }
@@ -322,18 +373,14 @@ final class InteractionListViewController: UIViewController {
                 self.loadingSpinner.isHidden = true
 
                 switch result {
-                case .failure(let error):
-                    let message = self.errorMessage(for: error)
-                    self.errorTitleLabel.text = message
+                case .failure:
+                    self.errorTitleLabel.text = DivoStrings.failedLoadInteractionList.uppercased()
+                    self.errorSubtitleLabel.text = DivoStrings.feedLoadErrorSubtitle
                     self.errorContainer.isHidden = false
-                    self.showSnackbar(
-                        message: message,
-                        style: .error,
-                        retryAction: { [weak self] in
-                            self?.loadInitialData()
-                        },
-                        persistent: true
-                    )
+                    self.errorContainer.alpha = 0
+                    UIView.animate(withDuration: 0.3) {
+                        self.errorContainer.alpha = 1
+                    }
 
                 case .success(let page):
                     self.errorContainer.isHidden = true
@@ -349,15 +396,24 @@ final class InteractionListViewController: UIViewController {
     }
     
     private func loadNextPage() {
-        guard !isLoadingMore, hasMorePages, searchTextField.text?.isEmpty ?? true else { return }
+        guard !isLoadingMore else { return }
+
+        let isSearchActive = activeSearchQuery != nil
+        if isSearchActive {
+            guard searchHasMore else { return }
+        } else {
+            guard hasMorePages else { return }
+        }
 
         isLoadingMore = true
         footerSpinner.startAnimating()
         footerSpinner.isHidden = false
 
+        let offset = isSearchActive ? searchOffset : currentOffset
+        let query = activeSearchQuery
         let startIndex = self.filteredUsers.count
 
-        requestData?(currentOffset, nil) { [weak self] result in
+        requestData?(offset, query) { [weak self] result in
             guard let self = self else { return }
             self.isLoadingMore = false
 
@@ -376,33 +432,35 @@ final class InteractionListViewController: UIViewController {
                     )
 
                 case .success(let page):
-                    self.currentOffset += self.limit
-                    self.hasMorePages = page.hasMore
-                    self.users.append(contentsOf: page.users)
+                    guard self.activeSearchQuery == query else { return }
 
-                    let searchText = self.searchTextField.text ?? ""
+                    if page.users.isEmpty {
+                        if isSearchActive { self.searchHasMore = false }
+                        else { self.hasMorePages = false }
+                        return
+                    }
 
-                    if !searchText.isEmpty {
-                        self.filteredUsers = self.users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
-                        self.tableView.reloadData()
+                    if isSearchActive {
+                        self.searchOffset += self.limit
+                        self.searchHasMore = page.hasMore
+                        self.filteredUsers.append(contentsOf: page.users)
                     } else {
+                        self.currentOffset += self.limit
+                        self.hasMorePages = page.hasMore
+                        self.users.append(contentsOf: page.users)
                         self.filteredUsers = self.users
+                    }
 
-                        if !page.users.isEmpty {
-                            let currentRowCount = self.tableView.numberOfRows(inSection: 0)
-                            if currentRowCount == startIndex {
-                                let indexPaths = (0..<page.users.count).map {
-                                    IndexPath(row: startIndex + $0, section: 0)
-                                }
-                                self.tableView.performBatchUpdates({
-                                    self.tableView.insertRows(at: indexPaths, with: .fade)
-                                }, completion: nil)
-                            } else {
-                                self.tableView.reloadData()
-                            }
-                        } else {
-                            self.hasMorePages = false
+                    let currentRowCount = self.tableView.numberOfRows(inSection: 0)
+                    if currentRowCount == startIndex {
+                        let indexPaths = (0..<page.users.count).map {
+                            IndexPath(row: startIndex + $0, section: 0)
                         }
+                        self.tableView.performBatchUpdates({
+                            self.tableView.insertRows(at: indexPaths, with: .fade)
+                        }, completion: nil)
+                    } else {
+                        self.tableView.reloadData()
                     }
                 }
             }
@@ -410,23 +468,40 @@ final class InteractionListViewController: UIViewController {
     }
 
     private func updateEmptyState() {
-        if filteredUsers.isEmpty {
-            if self.listType == .likes {
-                isMyProfile ? 
-                configure(with: true, emptyTitle: DivoStrings.noLikesYetMyProfile, emptySubTitle: DivoStrings.noLikesSubtitleMyProfile) :
-                configure(with: true, emptyTitle: DivoStrings.noLikesYet, emptySubTitle: DivoStrings.noLikesSubtitle)
-            } else if self.listType == .saves {
-                isMyProfile ? 
-                configure(with: true, emptyTitle: DivoStrings.nothingSavedYetMyProfile, emptySubTitle: DivoStrings.nothingSavedSubtitleMyProfile) :
-                configure(with: true, emptyTitle: DivoStrings.nothingSavedYet, emptySubTitle: DivoStrings.nothingSavedSubtitle)
-            } else if self.listType == .views {
-                isMyProfile ? 
-                configure(with: true, emptyTitle: DivoStrings.noProfileViewedYetMyProfile, emptySubTitle: DivoStrings.noProfileViewedSubtitleMyProfile) :
-                configure(with: true, emptyTitle: DivoStrings.noProfileViewedYet, emptySubTitle: DivoStrings.noProfileViewedSubtitle)
-            }
-        } else {
+        guard filteredUsers.isEmpty else {
             configure(with: false)
+            return
         }
+
+        if activeSearchQuery != nil {
+            configure(with: true, isSearchEmpty: true, emptyTitle: DivoStrings.noSearchResults, emptySubTitle: DivoStrings.noSearchResultsSubtitle)
+            return
+        }
+
+        switch listType {
+        case .likes:
+            isMyProfile ?
+            configure(with: true, emptyTitle: DivoStrings.noLikesYetMyProfile, emptySubTitle: DivoStrings.noLikesSubtitleMyProfile) :
+            configure(with: true, emptyTitle: DivoStrings.noLikesYet, emptySubTitle: DivoStrings.noLikesSubtitle)
+        case .saves:
+            isMyProfile ?
+            configure(with: true, emptyTitle: DivoStrings.nothingSavedYetMyProfile, emptySubTitle: DivoStrings.nothingSavedSubtitleMyProfile) :
+            configure(with: true, emptyTitle: DivoStrings.nothingSavedYet, emptySubTitle: DivoStrings.nothingSavedSubtitle)
+        case .views:
+            isMyProfile ?
+            configure(with: true, emptyTitle: DivoStrings.noProfileViewedYetMyProfile, emptySubTitle: DivoStrings.noProfileViewedSubtitleMyProfile) :
+            configure(with: true, emptyTitle: DivoStrings.noProfileViewedYet, emptySubTitle: DivoStrings.noProfileViewedSubtitle)
+        }
+    }
+
+    @objc private func errorRetryTapped() {
+        UIView.animate(withDuration: 0.2, animations: {
+            self.errorContainer.alpha = 0
+        }, completion: { _ in
+            self.errorContainer.isHidden = true
+            self.errorContainer.alpha = 1
+            self.loadInitialData()
+        })
     }
 
     @objc private func dismissKeyboard() {
@@ -438,6 +513,11 @@ final class InteractionListViewController: UIViewController {
         let searchText = searchTextField.text ?? ""
 
         if searchText.isEmpty {
+            activeSearchQuery = nil
+            searchOffset = 0
+            searchHasMore = false
+            loadingSpinner.stopAnimating()
+            loadingSpinner.isHidden = true
             filteredUsers = users
             tableView.reloadData()
             updateEmptyState()
@@ -450,8 +530,15 @@ final class InteractionListViewController: UIViewController {
     }
 
     private func performServerSearch(_ query: String) {
-        loadingSpinner.startAnimating()
-        loadingSpinner.isHidden = false
+        activeSearchQuery = query
+        searchOffset = 0
+        searchHasMore = false
+        emptyContainer.isHidden = true
+
+        if filteredUsers.isEmpty {
+            loadingSpinner.startAnimating()
+            loadingSpinner.isHidden = false
+        }
 
         requestData?(0, query) { [weak self] result in
             guard let self else { return }
@@ -464,17 +551,29 @@ final class InteractionListViewController: UIViewController {
                 switch result {
                 case .success(let page):
                     self.filteredUsers = page.users
+                    self.searchHasMore = page.hasMore
+                    self.searchOffset = self.limit
                     self.tableView.reloadData()
                     self.updateEmptyState()
-                case .failure:
-                    break
+                case .failure(let error):
+                    self.showSnackbar(
+                        message: self.errorMessage(for: error),
+                        style: .error,
+                        retryAction: { [weak self] in
+                            guard let self else { return }
+                            let currentQuery = self.searchTextField.text ?? ""
+                            if !currentQuery.isEmpty {
+                                self.performServerSearch(currentQuery)
+                            }
+                        }
+                    )
                 }
             }
         }
     }
 
     private func errorMessage(for error: Error) -> String {
-        if error is DivoAPIError, case .noInternetConnection = error as! DivoAPIError {
+        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
             return DivoStrings.connectionProblem
         }
         return DivoStrings.failedLoadInteractionList
