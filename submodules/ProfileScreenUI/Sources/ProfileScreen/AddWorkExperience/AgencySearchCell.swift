@@ -102,8 +102,8 @@ final class AgencySearchCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError() }
 
     func configure(with item: AgencyItem, query: String, isSelected: Bool) {
-        let hasUsername = item.username != nil && !item.username!.isEmpty
-        let displayUsername = hasUsername ? "@\(item.username!)" : nil
+        let hasUsername = item.nickname != nil && !item.nickname!.isEmpty
+        let displayUsername = hasUsername ? "@\(item.nickname!)" : nil
 
         usernameLabel.text = displayUsername
         usernameLabel.isHidden = !hasUsername
@@ -115,7 +115,7 @@ final class AgencySearchCell: UITableViewCell {
         logoImageView.image = nil
         logoEmptyImageView.isHidden = false
 
-        if let urlString = item.photo?.fullUrl, let url = URL(string: urlString) {
+        if let urlString = item.agencyAvatarLink, let url = URL(string: urlString) {
             logoImageView.loadImage(from: url) { [weak self] _ in
                 self?.logoEmptyImageView.isHidden = true
             }

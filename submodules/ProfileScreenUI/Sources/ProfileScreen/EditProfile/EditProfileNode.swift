@@ -1010,21 +1010,20 @@ final class EditProfileNode: ASDisplayNode {
         } else {
             for (_, item) in workRawItems.enumerated() {
                 
-                let logoURL: URL? = nil
-                
+                let logoURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+
                 let period = item.formattedPeriod
-                
+
                 let wItem = WorkExperienceItem(
                     id: item.id,
                     companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
                     period: period,
                     logoURL: logoURL
                 )
-                
+
                 let cell = ExperienceView()
-                                
-                let shouldLoadImmediately = (item.agencyId == nil)
-                cell.configure(with: wItem, showOptions: true, loadImage: shouldLoadImmediately)
+
+                cell.configure(with: wItem, showOptions: true, loadImage: true)
                 
                 cell.onEditTapped = { [weak self] in
                     self?.onEditWorkExperience?(item)

@@ -192,7 +192,7 @@ final class DivoProfileSearchSheetController: UIViewController {
         let query = currentQuery
         currentTask = Task { @MainActor in
             do {
-                let request = ModelsSearchRequest(offset: 0, limit: 20, query: query)
+                let request = ModelsSearchRequest(offset: 0, limit: 20, query: query, withoutNfts: true)
                 let response: ModelsSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/feedline/search",
                     method: "POST",

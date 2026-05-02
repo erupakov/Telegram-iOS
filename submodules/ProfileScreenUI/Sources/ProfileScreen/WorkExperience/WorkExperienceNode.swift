@@ -292,7 +292,7 @@ final class WorkExperience: ASDisplayNode {
             }
         } else {
             for (_, item) in rawItems.enumerated() {
-                let logoURL = cachedLogoURLs[item.id]
+                let logoURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
 
                 let period = item.formattedPeriod
 
@@ -306,9 +306,7 @@ final class WorkExperience: ASDisplayNode {
                 let cell = ExperienceView()
 
                 let showOptions = model.isMyProfile && hasStructuredData
-                let hasLogo = logoURL != nil
-                let shouldLoadImmediately = hasLogo || (item.agencyId == nil)
-                cell.configure(with: wItem, showOptions: showOptions, loadImage: shouldLoadImmediately)
+                cell.configure(with: wItem, showOptions: showOptions, loadImage: true)
                 
                 if showOptions {
                     cell.onEditTapped = { [weak self] in

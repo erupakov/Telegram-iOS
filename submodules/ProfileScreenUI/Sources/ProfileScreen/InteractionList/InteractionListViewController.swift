@@ -35,13 +35,14 @@ final class InteractionListViewController: UIViewController {
     private var users: [InteractionUser] = []
     private var filteredUsers: [InteractionUser] = []
 
-    var requestData: ((Int, @escaping (Result<InteractionPage, Error>) -> Void) -> Void)?
-    
+    var requestData: ((Int, String?, @escaping (Result<InteractionPage, Error>) -> Void) -> Void)?
+
     private var currentOffset: Int = 0
     private let limit: Int = 20
     private var isLoadingMore: Bool = false
     private var hasMorePages: Bool = true
     private var isMyProfile: Bool
+    private var searchDebounceTimer: Timer?
 
     var onUserTapped: ((InteractionUser) -> Void)?
 
@@ -312,7 +313,7 @@ final class InteractionListViewController: UIViewController {
         currentOffset = 0
         isLoadingMore = true
 
-        requestData?(0) { [weak self] result in
+        requestData?(0, nil) { [weak self] result in
             guard let self = self else { return }
             self.isLoadingMore = false
 
@@ -356,7 +357,7 @@ final class InteractionListViewController: UIViewController {
 
         let startIndex = self.filteredUsers.count
 
-        requestData?(currentOffset) { [weak self] result in
+        requestData?(currentOffset, nil) { [weak self] result in
             guard let self = self else { return }
             self.isLoadingMore = false
 
@@ -433,13 +434,43 @@ final class InteractionListViewController: UIViewController {
     }
 
     @objc private func searchTextChanged() {
+        searchDebounceTimer?.invalidate()
         let searchText = searchTextField.text ?? ""
+
         if searchText.isEmpty {
             filteredUsers = users
-        } else {
-            filteredUsers = users.filter { $0.name.lowercased().contains(searchText.lowercased()) }
+            tableView.reloadData()
+            updateEmptyState()
+            return
         }
-        tableView.reloadData()
+
+        searchDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            self?.performServerSearch(searchText)
+        }
+    }
+
+    private func performServerSearch(_ query: String) {
+        loadingSpinner.startAnimating()
+        loadingSpinner.isHidden = false
+
+        requestData?(0, query) { [weak self] result in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                self.loadingSpinner.stopAnimating()
+                self.loadingSpinner.isHidden = true
+
+                guard self.searchTextField.text == query else { return }
+
+                switch result {
+                case .success(let page):
+                    self.filteredUsers = page.users
+                    self.tableView.reloadData()
+                    self.updateEmptyState()
+                case .failure:
+                    break
+                }
+            }
+        }
     }
 
     private func errorMessage(for error: Error) -> String {

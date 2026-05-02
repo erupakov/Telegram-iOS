@@ -770,6 +770,7 @@ public class ModelsSearchController: ViewController {
             limit: limit,
             query: query,
             role: role,
+            withoutNfts: true,
             modelParameters: hasModelParams ? ModelSearchParameters(
                 gender: gender,
                 age: age,

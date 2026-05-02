@@ -88,7 +88,6 @@ public final class WorkExperienceController: TelegramBaseController {
                     await MainActor.run {
                         self.controllerNode.reloadWorkHistory(items: items)
                     }
-                    self.fetchAgencyLogos(for: items)
                     return
                 }
             } catch {
@@ -127,9 +126,6 @@ public final class WorkExperienceController: TelegramBaseController {
                 let items = response.data.items
                 await MainActor.run {
                     self.controllerNode.reloadWorkHistory(items: items)
-                }
-                if !items.isEmpty {
-                    self.fetchAgencyLogos(for: items)
                 }
             } catch {
                 await MainActor.run {
@@ -230,9 +226,6 @@ public final class WorkExperienceController: TelegramBaseController {
                         message: DivoStrings.workHistoryDelete,
                         style: .success
                     )
-                }
-                if !items.isEmpty {
-                    self.fetchAgencyLogos(for: items)
                 }
             } catch {
                 await MainActor.run {

@@ -102,7 +102,10 @@ public struct EventAddress: Decodable {
 
 public struct EventCity: Decodable {
     public let id: Int?
-    public let title: String?
+    public let countryCode: String?
+    public let countryName: String?
+    public let areaName: String?
+    public let name: String?
 }
 
 public struct EventUser: Decodable {
