@@ -58,6 +58,8 @@ public final class FaceSearchHistoryController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
+        let items = FaceSearchHistoryStorage.shared.loadAll()
+        self.historyNode?.updateItems(items)
     }
 
     private var historyNode: FaceSearchHistoryScreenNode? {
