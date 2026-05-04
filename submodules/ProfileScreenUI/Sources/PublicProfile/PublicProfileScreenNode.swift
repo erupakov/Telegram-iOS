@@ -3930,10 +3930,22 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
             self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
 
-            // Если новый таб короче, и мы находились в самом низу, скролл должен плавно подняться
+            // Если юзер доскроллил до места, где segmentedBar залипает под навбаром —
+            // сбрасываем скролл ровно к этой точке, чтобы новый таб показывался с начала,
+            // а сверху не торчала предыдущая секция. Иначе позицию не трогаем.
+            // scrollView.top = self.view.top + navigationBarHeight, поэтому sticky-порог
+            // по контенту скролла = segmentedBarContainer.frame.minY (placeholder начинается тут).
+            let stickyThreshold = max(0, self.segmentedBarContainer.frame.minY)
+            var targetOffsetY = self.scrollView.contentOffset.y
+            if targetOffsetY > stickyThreshold {
+                targetOffsetY = stickyThreshold
+            }
+            // Safety: bottomSpacer мог быть скрыт (см. similarProfilesCollectionContainer), тогда
+            // contentSize не добивается до stickyThreshold + scrollViewHeight — не уезжаем за край.
             let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
-            if self.scrollView.contentOffset.y > maxOffset {
-                self.scrollView.contentOffset.y = maxOffset
+            targetOffsetY = min(targetOffsetY, maxOffset)
+            if self.scrollView.contentOffset.y != targetOffsetY {
+                self.scrollView.contentOffset.y = targetOffsetY
             }
 
         }, completion: {[weak self] _ in
