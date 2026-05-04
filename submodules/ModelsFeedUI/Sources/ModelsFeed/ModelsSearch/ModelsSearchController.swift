@@ -315,13 +315,10 @@ public class ModelsSearchController: ViewController {
             return
         }
 
-        let overlay = DivoLoadingOverlay()
-        if let host = self.view.window?.rootViewController?.view {
-            overlay.show(in: host, message: "")
-        }
-
-        ImageLoader.shared.load(url: url) { [weak self] image in
-            overlay.hide()
+        FaceSearchPhotoLoader.loadProfilePhoto(
+            url: url,
+            host: self.view.window?.rootViewController?.view
+        ) { [weak self] image in
             guard let self else { return }
             guard let image else {
                 self.searchNode.showSnackbar(
@@ -377,24 +374,7 @@ public class ModelsSearchController: ViewController {
     }
 
     private func openFaceSearchProfile(for result: FRSearchResult) {
-        let mainImageURL = result.image.flatMap(URL.init(string:))
-        let location = FaceSearchResultsMapper.countryText(code: result.countryCode, name: result.countryName) ?? ""
-        let model = ProfileModel(
-            name: result.fullName ?? "",
-            age: FaceSearchResultsMapper.computeAge(from: result.birthday),
-            location: location,
-            isVerified: false,
-            likesCount: "0",
-            viewsCount: "0",
-            savesCount: "0",
-            biography: "",
-            socialMediaHandles: [],
-            userId: result.userId,
-            role: result.role,
-            mainImageURL: mainImageURL,
-            avatarImageURL: mainImageURL
-        )
-        let controller = PublicProfileScreenController(context: self.context, model: model)
+        let controller = PublicProfileScreenController(context: self.context, model: ProfileModel(faceSearchResult: result))
         (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
     }
 
