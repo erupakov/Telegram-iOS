@@ -175,7 +175,7 @@ final class EventsControllerNode: ASDisplayNode {
         let emptyView = DivoEmptyStateView()
         emptyView.backgroundColor = DivoColorPalette.screenBackground
         emptyView.configure(.init(
-            icon: DivoImage.iconEvents,
+            style: .smallOnTinted(icon: DivoImage.iconEvents),
             title: DivoStrings.noEventsYet,
             subtitle: DivoStrings.noUpcomingEventsSubtitle
         ))

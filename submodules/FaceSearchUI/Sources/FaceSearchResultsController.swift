@@ -790,12 +790,11 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
             sortedByLabel.isHidden = true
             reloadErrorView.isHidden = false
             reloadErrorView.configure(DivoEmptyStateView.Configuration(
-                icon: DivoImage.faceSearchError,
+                style: .largeIcon(icon: DivoImage.faceSearchError),
                 title: title,
                 subtitle: subtitle,
                 ctaTitle: DivoStrings.faceSearchRetrySearch,
-                onCTATapped: retry,
-                iconSize: 68
+                onCTATapped: retry
             ))
             reloadErrorView.animateAppearance()
 
@@ -872,7 +871,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         emptyStateView.isHidden = false
 
         emptyStateView.configure(DivoEmptyStateView.Configuration(
-            icon: DivoImage.faceSearchEmpty,
+            style: .smallOnTinted(icon: DivoImage.faceSearchEmpty),
             title: DivoStrings.faceSearchNoResults,
             subtitle: DivoStrings.faceSearchNoResultsSubtitle,
             ctaTitle: DivoStrings.faceSearchTryDifferentPhoto,

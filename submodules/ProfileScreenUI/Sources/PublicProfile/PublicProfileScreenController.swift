@@ -20,6 +20,7 @@ import ContextUI
 import GalleryUI
 import EventsUI
 import DivoUIKit
+import FaceSearchUI
 
 enum MediaFormatValidator {
     static let videoExtensions: Set<String> = ["mp4", "mov", "avi", "mkv", "webm"]
@@ -294,7 +295,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.handleGridShare(item: item, image: image)
         }
 
-        // FIXME DIVO: implement face scan action
+        self.controllerNode.onFaceScanTapped = { [weak self] in
+            self?.openFaceScanForCurrentProfile()
+        }
+
         // FIXME DIVO: implement report profile action
         // FIXME DIVO: implement block user action
         // FIXME DIVO: implement stories button action
@@ -443,6 +447,41 @@ public final class PublicProfileScreenController: TelegramBaseController {
         } catch {
             divoLog("[ENGAGEMENT TOTALS] Error: \(error)", level: .error)
             return nil
+        }
+    }
+
+    // MARK: - Face Scan
+
+    private func openFaceScanForCurrentProfile() {
+        guard let url = self.model.mainImageURL else {
+            self.controllerNode.showSnackbar(
+                message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                style: .error
+            )
+            return
+        }
+
+        FaceSearchPhotoLoader.loadProfilePhoto(
+            url: url,
+            host: self.view.window?.rootViewController?.view
+        ) { [weak self] image in
+            guard let self else { return }
+            guard let image else {
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                    style: .error,
+                    retryAction: { [weak self] in self?.openFaceScanForCurrentProfile() },
+                    persistent: true
+                )
+                return
+            }
+            let controller = FaceSearchController(context: self.context, image: image)
+            controller.onOpenProfile = { [weak self] result in
+                guard let self else { return }
+                let next = PublicProfileScreenController(context: self.context, model: ProfileModel(faceSearchResult: result))
+                (self.navigationController as? NavigationController)?.pushViewController(next, animated: true)
+            }
+            (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
         }
     }
 

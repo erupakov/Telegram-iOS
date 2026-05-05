@@ -42,6 +42,7 @@ public final class ModelsFeedController: TelegramBaseController {
         var isLoading: Bool = false
         var hasMore: Bool = true
         var isLoaded: Bool = false
+        var hasPaginationError: Bool = false
     }
 
     private var tabStates: [TabState] = [TabState(), TabState(), TabState()]
@@ -227,6 +228,11 @@ public final class ModelsFeedController: TelegramBaseController {
             self.controllerNode.showNetworkError = false
             self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
+        self.controllerNode.onPaginationRetry = { [weak self] in
+            guard let self = self else { return }
+            self.tabStates[self.selectedTabIndex].hasPaginationError = false
+            self.loadNextPage()
+        }
 
         self.displayNodeDidLoad()
         self._ready.set(.single(true))
@@ -244,7 +250,9 @@ public final class ModelsFeedController: TelegramBaseController {
     private func switchToTab(_ index: Int) {
         guard index != selectedTabIndex else { return }
         selectedTabIndex = index
+        tabStates[index].hasPaginationError = false
         let state = tabStates[index]
+        controllerNode.hideSnackbar(animated: false)
         controllerNode.updateCards(state.cards, animated: true)
         controllerNode.showNetworkError = false
         controllerNode.isPaginating = false
@@ -262,7 +270,7 @@ public final class ModelsFeedController: TelegramBaseController {
     private func loadNextPage() {
         let index = selectedTabIndex
         let state = tabStates[index]
-        guard !state.isLoading, state.hasMore else { return }
+        guard !state.isLoading, state.hasMore, !state.hasPaginationError else { return }
         loadFeedline(tabIndex: index, reset: false)
     }
 
@@ -296,13 +304,14 @@ public final class ModelsFeedController: TelegramBaseController {
         if reset {
             tabStates[tabIndex].offset = 0
             tabStates[tabIndex].hasMore = true
+            tabStates[tabIndex].hasPaginationError = false
         }
 
         let offset = tabStates[tabIndex].offset
         let limit = feedlinePageSize
         let body = requestBody(tabIndex: tabIndex, offset: offset, limit: limit)
 
-        Task {
+        Task { [weak self] in
             do {
                 let response: FeedlineResponse = try await DivoAPIClient.shared.request(
                     path: "/feedline/list",
@@ -313,6 +322,7 @@ public final class ModelsFeedController: TelegramBaseController {
                 let profileItems = response.data.items.filter { $0.entity == "users" }
                 let cards = profileItems.map { Self.mapCard($0, isFollowed: isSubscribedTab) }
                 await MainActor.run {
+                    guard let self else { return }
                     if reset {
                         self.tabStates[tabIndex].cards = cards
                     } else {
@@ -323,8 +333,13 @@ public final class ModelsFeedController: TelegramBaseController {
                     self.tabStates[tabIndex].hasMore = totalReceived >= limit
                     self.tabStates[tabIndex].isLoading = false
                     self.tabStates[tabIndex].isLoaded = true
+                    self.tabStates[tabIndex].hasPaginationError = false
 
-                    let willAutoFetch = cards.count < limit && self.tabStates[tabIndex].hasMore && autoFetchCount < self.maxAutoFetches
+                    let isResetCascade = reset || autoFetchCount > 0
+                    let willAutoFetch = isResetCascade
+                        && cards.count < limit
+                        && self.tabStates[tabIndex].hasMore
+                        && autoFetchCount < self.maxAutoFetches
 
                     if tabIndex == self.selectedTabIndex {
                         if reset {
@@ -352,7 +367,11 @@ public final class ModelsFeedController: TelegramBaseController {
             } catch {
                 print("[DivoAPI] feedline/list error (tab \(tabIndex)): \(error)")
                 await MainActor.run {
+                    guard let self else { return }
                     self.tabStates[tabIndex].isLoading = false
+                    if !reset {
+                        self.tabStates[tabIndex].hasPaginationError = true
+                    }
                     if tabIndex == self.selectedTabIndex {
                         self.controllerNode.isLoading = false
                         self.controllerNode.isPaginating = false

@@ -113,6 +113,7 @@ final class CardCollectionViewCell: UICollectionViewCell {
         sv.showsHorizontalScrollIndicator = false
         sv.showsVerticalScrollIndicator = false
         sv.clipsToBounds = false
+        sv.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 16)
         return sv
     }()
 

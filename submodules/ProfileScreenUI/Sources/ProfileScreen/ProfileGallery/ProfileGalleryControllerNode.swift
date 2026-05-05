@@ -149,6 +149,12 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         self.isSyncingScroll = false
     }
     
+    func toggleControlsVisibility() {
+        guard let controller = self.controller else { return }
+        let willShow = !controller.displayNavigationBar
+        controller.setDisplayNavigationBar(willShow, transition: .animated(duration: 0.25, curve: .easeInOut))
+    }
+    
     func pauseAllVideos() {
         guard self.isVideoGallery else { return }
         for cell in self.mainCollectionView.visibleCells {
@@ -403,6 +409,9 @@ extension ProfileGalleryControllerNode: UICollectionViewDataSource {
                 let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PhotoCell", for: indexPath) as! PhotoGalleryCellNode
                 let photo = self.photos[indexPath.item]
                 cell.configure(with: photo.photo)
+                cell.onSingleTap = { [weak self] in
+                    self?.toggleControlsVisibility()
+                }
                 return cell
             }
         } else {

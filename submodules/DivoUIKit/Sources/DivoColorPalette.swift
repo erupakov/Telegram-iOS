@@ -159,6 +159,12 @@ public enum DivoColorPalette {
     public static let emptySubtitleLight = UIColor(white: 0.5, alpha: 1)
     public static let emptyCircleBackground = UIColor(white: 1.0, alpha: 0.8) // #FFFFFFCC
     public static let emptyIconTint = UIColor(white: 0.4, alpha: 1.0)
+    /// #FFFFFF — фон контейнера эмпти-стейта на профильных табах (поверх него рисуется серый круг).
+    public static let profileEmptyBackground = UIColor.white
+    /// #F0F0F0 — серый круг под иконкой в эмпти-стейтах профиля.
+    public static let profileEmptyCircleBackground = UIColor(red: 240/255, green: 240/255, blue: 240/255, alpha: 1.0)
+    /// #22222299 — tint иконки в эмпти-стейтах профиля и алмаза в Agency-табе ленты.
+    public static let profileEmptyIconTint = UIColor(red: 0x22/255, green: 0x22/255, blue: 0x22/255, alpha: 0x99/255)
     public static let placeholderCardBackground = UIColor(white: 0.96, alpha: 1)
     /// #E6E6E6 — skeleton-плейсхолдер (search grid, filter bar).
     public static let skeletonBackground = UIColor(white: 230/255, alpha: 1.0)

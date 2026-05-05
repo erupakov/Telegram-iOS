@@ -885,9 +885,6 @@ final class ModelsSearchNode: ASDisplayNode {
             view.layoutIfNeeded()
             let hasQuery = !(searchTextField.text ?? "").isEmpty
             emptyStateContainer.isHidden = !hasQuery
-            if hasQuery {
-                searchTextField.resignFirstResponder()
-            }
         } else {
             emptyStateContainer.isHidden = true
             let wasHidden = resultsContainer.isHidden
