@@ -826,7 +826,7 @@ public class ModelsSearchController: ViewController {
         }
 
         var isFirst = isFirstPage
-        let maxAutoFetches = 3
+        let maxAutoFetches = isFirstPage ? 3 : 1
 
         currentSearchTask = Task { @MainActor in
             defer { isFetchingGrid = false }

@@ -324,7 +324,11 @@ public final class ModelsFeedController: TelegramBaseController {
                     self.tabStates[tabIndex].isLoading = false
                     self.tabStates[tabIndex].isLoaded = true
 
-                    let willAutoFetch = cards.count < limit && self.tabStates[tabIndex].hasMore && autoFetchCount < self.maxAutoFetches
+                    let isResetCascade = reset || autoFetchCount > 0
+                    let willAutoFetch = isResetCascade
+                        && cards.count < limit
+                        && self.tabStates[tabIndex].hasMore
+                        && autoFetchCount < self.maxAutoFetches
 
                     if tabIndex == self.selectedTabIndex {
                         if reset {
