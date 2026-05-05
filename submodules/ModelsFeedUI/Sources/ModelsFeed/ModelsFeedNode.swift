@@ -118,10 +118,25 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
-    var isPaginating: Bool = false {
-        didSet {
-            guard oldValue != isPaginating else { return }
-            mainCollectionView.reloadData()
+    private var _isPaginating: Bool = false
+    var isPaginating: Bool {
+        get { _isPaginating }
+        set {
+            guard _isPaginating != newValue else { return }
+            guard mainCollectionView.window != nil, !cards.isEmpty else {
+                _isPaginating = newValue
+                mainCollectionView.reloadData()
+                return
+            }
+            let spinnerPath = IndexPath(item: cards.count, section: 0)
+            mainCollectionView.performBatchUpdates({
+                self._isPaginating = newValue
+                if newValue {
+                    self.mainCollectionView.insertItems(at: [spinnerPath])
+                } else {
+                    self.mainCollectionView.deleteItems(at: [spinnerPath])
+                }
+            })
         }
     }
 
@@ -145,6 +160,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     func updateCards(_ newCards: [CardModel], animated: Bool = false) {
         self.cards = newCards
+        self._isPaginating = false
         if animated {
             mainCollectionView.alpha = 0
             mainCollectionView.reloadData()
@@ -171,11 +187,23 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     func appendCards(_ newCards: [CardModel]) {
         guard !newCards.isEmpty else { return }
         let startIndex = cards.count
+        let hadSpinner = _isPaginating
         cards.append(contentsOf: newCards)
-        let indexPaths = (startIndex..<cards.count).map { IndexPath(item: $0, section: 0) }
-        mainCollectionView.performBatchUpdates {
-            mainCollectionView.insertItems(at: indexPaths)
+
+        guard mainCollectionView.window != nil else {
+            _isPaginating = false
+            mainCollectionView.reloadData()
+            return
         }
+
+        let indexPaths = (startIndex..<cards.count).map { IndexPath(item: $0, section: 0) }
+        mainCollectionView.performBatchUpdates({
+            if hadSpinner {
+                self._isPaginating = false
+                self.mainCollectionView.deleteItems(at: [IndexPath(item: startIndex, section: 0)])
+            }
+            self.mainCollectionView.insertItems(at: indexPaths)
+        })
     }
     init(controller: ViewController, context: AccountContext, presentationData: PresentationData) {
         self.controller = controller
