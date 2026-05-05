@@ -3259,7 +3259,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            if self.currentTab == .channels { self.updateCollectionsContainerHeight(animated: true) }
+            if self.currentTab == .channels { self.updateCollectionsContainerHeight(animated: false) }
         }
     }
     
@@ -3301,19 +3301,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.updateScreenBackgroundForCurrentTab()
 
         self.modelGalleryCollectionView.reloadData()
-        
+
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .models {
-                self.updateCollectionsContainerHeight(animated: true)
-
-                if !hasItems && model.isMyProfile && modelRole == .agency {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                        guard let self = self else { return }
-                        let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
-                        self.scrollView.setContentOffset(bottomOffset, animated: true)
-                    }
-                }
+                self.updateCollectionsContainerHeight(animated: false)
             }
         }
     }
@@ -3355,19 +3347,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.updateScreenBackgroundForCurrentTab()
 
         self.eventGalleryCollectionView.reloadData()
-        
+
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .events {
-                self.updateCollectionsContainerHeight(animated: true)
-
-                if !hasItems && model.isMyProfile && modelRole == .agency {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                        guard let self = self else { return }
-                        let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
-                        self.scrollView.setContentOffset(bottomOffset, animated: true)
-                    }
-                }
+                self.updateCollectionsContainerHeight(animated: false)
             }
         }
     }
@@ -4017,63 +4001,32 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int) {
         guard let newTab = profileTab(forSegmentIndex: index), newTab != currentTab else { return }
 
-        let isSlidingLeft = newTab.rawValue > currentTab.rawValue
-        let screenWidth = self.view.bounds.width
-        let offset = isSlidingLeft ? screenWidth : -screenWidth
-
         let oldContainer = getTabContainer(for: currentTab)
         let newContainer = getTabContainer(for: newTab)
-
-        newContainer.transform = CGAffineTransform(translationX: offset, y: 0)
-        newContainer.isHidden = false
 
         loadDataForTab(newTab)
 
         currentTab = newTab
         updateScreenBackgroundForCurrentTab()
 
-        // 1. Устанавливаем новую высоту (вычисляем через наш новый метод)
         collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
 
-        // 2. Анимируем всё вместе: сдвиг, изменение высоты и корректировку скролла
-        UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseInOut, animations: {
-            oldContainer.transform = CGAffineTransform(translationX: -offset, y: 0)
-            newContainer.transform = .identity
-
-            // Плавно применяем новую высоту к Layout
+        UIView.performWithoutAnimation {
+            oldContainer.isHidden = true
+            newContainer.isHidden = false
             self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
 
-            // Если юзер доскроллил до места, где segmentedBar залипает под навбаром —
-            // сбрасываем скролл ровно к этой точке, чтобы новый таб показывался с начала,
-            // а сверху не торчала предыдущая секция. Иначе позицию не трогаем.
-            // scrollView.top = self.view.top + navigationBarHeight, поэтому sticky-порог
-            // по контенту скролла = segmentedBarContainer.frame.minY (placeholder начинается тут).
+            // На любое переключение таба подскролливаем к sticky-позиции — segmentedBar
+            // прилипает под навбаром, новый таб виден сразу с начала (включая эмпти-стейт).
+            // Делаем instant (без animated: true), чтобы переход не дёргал.
             let stickyThreshold = max(0, self.segmentedBarContainer.frame.minY)
-            var targetOffsetY = self.scrollView.contentOffset.y
-            if targetOffsetY > stickyThreshold {
-                targetOffsetY = stickyThreshold
-            }
-            // Safety: bottomSpacer мог быть скрыт (см. similarProfilesCollectionContainer), тогда
-            // contentSize не добивается до stickyThreshold + scrollViewHeight — не уезжаем за край.
             let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
-            targetOffsetY = min(targetOffsetY, maxOffset)
+            let targetOffsetY = min(stickyThreshold, maxOffset)
             if self.scrollView.contentOffset.y != targetOffsetY {
                 self.scrollView.contentOffset.y = targetOffsetY
             }
-
-        }, completion: {[weak self] _ in
-            guard let self = self else { return }
-            oldContainer.isHidden = true
-            oldContainer.transform = .identity
-
-            // Логика автоматического скролла вниз для ПУСТОГО окна добавления моделей
-            let hasItems = !self.modelGalleryItems.isEmpty
-            if newTab == .models && self.model.isMyProfile && self.modelRole == .agency && !hasItems {
-                let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
-                self.scrollView.setContentOffset(bottomOffset, animated: true)
-            }
-        })
+        }
     }
     
     private func loadDataForTab(_ tab: ProfileTab) {
