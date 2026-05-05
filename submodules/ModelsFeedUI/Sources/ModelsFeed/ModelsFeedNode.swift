@@ -884,7 +884,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         )
     }
 
-    private func hideSnackbar(animated: Bool) {
+    func hideSnackbar(animated: Bool) {
         snackbar.hide(animated: animated)
     }
 

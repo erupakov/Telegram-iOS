@@ -250,7 +250,9 @@ public final class ModelsFeedController: TelegramBaseController {
     private func switchToTab(_ index: Int) {
         guard index != selectedTabIndex else { return }
         selectedTabIndex = index
+        tabStates[index].hasPaginationError = false
         let state = tabStates[index]
+        controllerNode.hideSnackbar(animated: false)
         controllerNode.updateCards(state.cards, animated: true)
         controllerNode.showNetworkError = false
         controllerNode.isPaginating = false
@@ -309,7 +311,7 @@ public final class ModelsFeedController: TelegramBaseController {
         let limit = feedlinePageSize
         let body = requestBody(tabIndex: tabIndex, offset: offset, limit: limit)
 
-        Task {
+        Task { [weak self] in
             do {
                 let response: FeedlineResponse = try await DivoAPIClient.shared.request(
                     path: "/feedline/list",
@@ -320,6 +322,7 @@ public final class ModelsFeedController: TelegramBaseController {
                 let profileItems = response.data.items.filter { $0.entity == "users" }
                 let cards = profileItems.map { Self.mapCard($0, isFollowed: isSubscribedTab) }
                 await MainActor.run {
+                    guard let self else { return }
                     if reset {
                         self.tabStates[tabIndex].cards = cards
                     } else {
@@ -364,6 +367,7 @@ public final class ModelsFeedController: TelegramBaseController {
             } catch {
                 print("[DivoAPI] feedline/list error (tab \(tabIndex)): \(error)")
                 await MainActor.run {
+                    guard let self else { return }
                     self.tabStates[tabIndex].isLoading = false
                     if !reset {
                         self.tabStates[tabIndex].hasPaginationError = true
