@@ -364,12 +364,12 @@ final class EditProfileNode: ASDisplayNode {
         var bio = ""
         if model?.role == "agency_employee" {
             name = model?.agency?.title ?? DivoStrings.name
-            placeholder = DivoStrings.agencyProfile
+            placeholder = "\(DivoStrings.agencyProfile) *"
             bioTitle = DivoStrings.descriptionTitle
             bio = model?.agency?.description ?? DivoStrings.fillInInfoAboutAgency
         } else {
             name = model?.fullName ?? DivoStrings.name
-            placeholder = DivoStrings.fullName
+            placeholder = "\(DivoStrings.fullName) *"
             bioTitle = DivoStrings.biographyTitle
             bio = model?.model?.description ?? DivoStrings.fillInInfoAboutYou
         }
@@ -984,7 +984,9 @@ final class EditProfileNode: ASDisplayNode {
         } else {
             applyButton.makeDivoButton(title: DivoStrings.save, loading: DivoStrings.saving)
             let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
-            applyButton.isEnabled = hasChanges
+            let trimmedName = (nameTextField.textField.text ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            applyButton.isEnabled = hasChanges && !trimmedName.isEmpty
         }
     }
 
@@ -1208,9 +1210,13 @@ final class EditProfileNode: ASDisplayNode {
     
     @objc private func saveButtonPressed() {
         self.view.endEditing(true)
-        
+
+        let trimmedName = (self.nameTextField.textField.text ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
         let data = UpdateBiographyPageRequest(
-            fullName: self.nameTextField.textField.text ?? "",
+            fullName: trimmedName,
             gender: self.selectedGenderId,
             model: UpdateBiographyPageRequest.ModelData(
                 description: self.aboutEventTextField.text,
@@ -1250,9 +1256,14 @@ final class EditProfileNode: ASDisplayNode {
 
     @objc private func saveAgencyButtonPressed() {
         self.view.endEditing(true)
+
+        let trimmedTitle = (self.nameTextField.textField.text ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+
         let data = UpdateDescriptionAgencyRequest(
             agencyId: model?.agency?.id,
-            title: self.nameTextField.textField.text,
+            title: trimmedTitle,
             description: self.aboutEventTextField.text
         )
 
