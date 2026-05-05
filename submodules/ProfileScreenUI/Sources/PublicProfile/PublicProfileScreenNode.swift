@@ -2179,32 +2179,39 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Создаем список критериев внешнего вида модели
-    private func buildAppearanceList(from appearance: UserAppearance?, gender: UserGender?) -> [AppearanceAttribute] {
-        
+    private func buildAppearanceList(from appearance: UserAppearance?, gender: UserGender?, age: Int?) -> [AppearanceAttribute] {
+
+        func titleWithUnit(_ title: String, _ unit: String) -> String {
+            "\(title) (\(unit))"
+        }
+
         var items: [AppearanceAttribute] = []
-        
+
         if let gender = gender {
-            items.append(.init(title: DivoStrings.attrGender, value: "\(gender.title)"))
+            items.append(.init(title: DivoStrings.attrGender, value: gender.title))
+        }
+        if let age = age {
+            items.append(.init(title: titleWithUnit(DivoStrings.attrAge, DivoStrings.unitYo), value: "\(age)"))
         }
 
         if let appearance = appearance {
             if let height = appearance.height {
-                items.append(.init(title: DivoStrings.attrHeight, value: "\(height.clean) \(DivoStrings.unitCm)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrHeight, DivoStrings.unitCm), value: height.clean))
+            }
+            if let waist = appearance.waist {
+                items.append(.init(title: titleWithUnit(DivoStrings.attrWaist, DivoStrings.unitCm), value: waist.clean))
             }
             if let weight = appearance.weight {
-                items.append(.init(title: DivoStrings.attrWeight, value: "\(weight.clean) \(DivoStrings.unitKg)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrWeight, DivoStrings.unitKg), value: weight.clean))
             }
             if let bust = appearance.breastSize {
                 items.append(.init(title: DivoStrings.attrBust, value: bust))
             }
-            if let waist = appearance.waist {
-                items.append(.init(title: DivoStrings.attrWaist, value: "\(waist.clean) \(DivoStrings.unitCm)"))
-            }
             if let hips = appearance.hips {
-                items.append(.init(title: DivoStrings.attrHips, value: "\(hips.clean) \(DivoStrings.unitCm)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrHips, DivoStrings.unitCm), value: hips.clean))
             }
             if let shoesSize = appearance.shoesSize {
-                items.append(.init(title: DivoStrings.attrShoes, value: "\(shoesSize.clean) \(DivoStrings.unitEU)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrShoes, DivoStrings.unitEU), value: shoesSize.clean))
             }
             if let hairColor = appearance.hairColor?.title {
                 items.append(.init(title: DivoStrings.attrHairColor, value: hairColor))
@@ -2219,7 +2226,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 items.append(.init(title: DivoStrings.attrSkinColor, value: skinColor))
             }
         }
-        
+
         return items
     }
     
@@ -2540,7 +2547,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             ? (detail.model?.description ?? "")
             :  nil
 
-            appearance = buildAppearanceList(from: detail.model?.appearance, gender: detail.gender)
+            appearance = buildAppearanceList(from: detail.model?.appearance, gender: detail.gender, age: age)
             
             var experience: ExperienceNode? = nil
             if detail.model?.agency != nil {

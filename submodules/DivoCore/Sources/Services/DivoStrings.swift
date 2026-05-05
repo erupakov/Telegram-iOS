@@ -261,10 +261,12 @@ public enum DivoStrings {
     public static var unitCm: String { "cm" }
     public static var unitKg: String { L(en: "kg", ru: "кг", es: "kg", pt: "kg", zh: "公斤") }
     public static var unitEU: String { "EU" }
+    public static var unitYo: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }
 
     // MARK: - Appearance Attributes
 
     public static var attrGender: String { L(en: "Gender", ru: "Пол", es: "Género", pt: "Gênero", zh: "性别") }
+    public static var attrAge: String { L(en: "Age", ru: "Возраст", es: "Edad", pt: "Idade", zh: "年龄") }
     public static var attrHeight: String { L(en: "Height", ru: "Рост", es: "Altura", pt: "Altura", zh: "身高") }
     public static var attrWeight: String { L(en: "Weight", ru: "Вес", es: "Peso", pt: "Peso", zh: "体重") }
     public static var attrBust: String { L(en: "Bust", ru: "Грудь", es: "Busto", pt: "Busto", zh: "胸围") }

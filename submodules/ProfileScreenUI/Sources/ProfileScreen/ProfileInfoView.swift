@@ -736,19 +736,24 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     
     private func createAttributeView(title: String, value: String) -> UIView {
         let container = UIView()
-        
+
         let titleLabel = UILabel()
         titleLabel.font = Font.regular(12)
         titleLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         titleLabel.text = title
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        
+        titleLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        titleLabel.setContentHuggingPriority(.required, for: .horizontal)
+
         let valueLabel = UILabel()
         valueLabel.font = Font.regular(12)
         valueLabel.textColor = DivoColorPalette.primaryText
         valueLabel.text = value
         valueLabel.textAlignment = .right
+        valueLabel.lineBreakMode = .byTruncatingTail
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        valueLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        valueLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
         
         let line = UIView()
         line.backgroundColor = DivoColorPalette.primaryText.withAlphaComponent(0.1)
