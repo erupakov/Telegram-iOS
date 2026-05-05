@@ -13,38 +13,7 @@ import AccountContext
 import AppBundle
 
 final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, CardCellDelegate {
-    private final class PaginationSpinnerCell: UICollectionViewCell {
-        private let spinner: UIActivityIndicatorView = {
-            let s = UIActivityIndicatorView(style: .medium)
-            s.color = .black
-            s.hidesWhenStopped = true
-            return s
-        }()
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            backgroundColor = .clear
-            addSubview(spinner)
-        }
-
-        required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            spinner.center = CGPoint(x: bounds.midX, y: bounds.midY)
-        }
-
-        func startAnimating() {
-            spinner.startAnimating()
-        }
-
-        override func prepareForReuse() {
-            super.prepareForReuse()
-            spinner.stopAnimating()
-        }
-    }
+    private static let paginationSpinnerHeight: CGFloat = 60
 
     private weak var controller: ViewController?
     private let context: AccountContext
@@ -118,26 +87,51 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
-    private var _isPaginating: Bool = false
-    var isPaginating: Bool {
-        get { _isPaginating }
-        set {
-            guard _isPaginating != newValue else { return }
-            guard mainCollectionView.window != nil, !cards.isEmpty else {
-                _isPaginating = newValue
-                mainCollectionView.reloadData()
-                return
+    private let paginationSpinnerView: UIView = {
+        let container = UIView()
+        container.isHidden = true
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.color = .black
+        spinner.startAnimating()
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(spinner)
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        return container
+    }()
+
+    var isPaginating: Bool = false {
+        didSet {
+            guard oldValue != isPaginating else { return }
+            if isPaginating {
+                mainCollectionView.contentInset.bottom = Self.paginationSpinnerHeight
+                paginationSpinnerView.isHidden = false
+                updatePaginationSpinnerFrame()
+            } else {
+                mainCollectionView.contentInset.bottom = 0
+                paginationSpinnerView.isHidden = true
             }
-            let spinnerPath = IndexPath(item: cards.count, section: 0)
-            mainCollectionView.performBatchUpdates({
-                self._isPaginating = newValue
-                if newValue {
-                    self.mainCollectionView.insertItems(at: [spinnerPath])
-                } else {
-                    self.mainCollectionView.deleteItems(at: [spinnerPath])
-                }
-            })
         }
+    }
+
+    private func updatePaginationSpinnerFrame() {
+        let width = mainCollectionView.bounds.width
+        let lastIndex = cards.count - 1
+        let y: CGFloat
+        if lastIndex >= 0,
+           let attrs = mainCollectionView.layoutAttributesForItem(at: IndexPath(item: lastIndex, section: 0)) {
+            y = attrs.frame.maxY
+        } else {
+            y = mainCollectionView.contentSize.height
+        }
+        paginationSpinnerView.frame = CGRect(
+            x: 0,
+            y: y,
+            width: width,
+            height: Self.paginationSpinnerHeight
+        )
     }
 
     var isLoading: Bool = false {
@@ -157,10 +151,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     var loadMore: (() -> Void)?
     var onTabSelected: ((Int) -> Void)?
     var onRetry: (() -> Void)?
+    var onPaginationRetry: (() -> Void)?
 
     func updateCards(_ newCards: [CardModel], animated: Bool = false) {
         self.cards = newCards
-        self._isPaginating = false
+        self.isPaginating = false
         if animated {
             mainCollectionView.alpha = 0
             mainCollectionView.reloadData()
@@ -187,22 +182,20 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     func appendCards(_ newCards: [CardModel]) {
         guard !newCards.isEmpty else { return }
         let startIndex = cards.count
-        let hadSpinner = _isPaginating
-        cards.append(contentsOf: newCards)
 
         guard mainCollectionView.window != nil else {
-            _isPaginating = false
+            cards.append(contentsOf: newCards)
             mainCollectionView.reloadData()
+            updatePaginationSpinnerFrame()
             return
         }
 
-        let indexPaths = (startIndex..<cards.count).map { IndexPath(item: $0, section: 0) }
+        let indexPaths = (startIndex..<startIndex + newCards.count).map { IndexPath(item: $0, section: 0) }
         mainCollectionView.performBatchUpdates({
-            if hadSpinner {
-                self._isPaginating = false
-                self.mainCollectionView.deleteItems(at: [IndexPath(item: startIndex, section: 0)])
-            }
+            self.cards.append(contentsOf: newCards)
             self.mainCollectionView.insertItems(at: indexPaths)
+        }, completion: { [weak self] _ in
+            self?.updatePaginationSpinnerFrame()
         })
     }
     init(controller: ViewController, context: AccountContext, presentationData: PresentationData) {
@@ -245,7 +238,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.mainCollectionView.showsVerticalScrollIndicator = false
 
         self.mainCollectionView.register(CardCollectionViewCell.self, forCellWithReuseIdentifier: "CardCell")
-        self.mainCollectionView.register(PaginationSpinnerCell.self, forCellWithReuseIdentifier: "PaginationSpinnerCell")
+        self.mainCollectionView.addSubview(self.paginationSpinnerView)
 
         self.titleLabel.text = DivoStrings.navModels
 
@@ -361,7 +354,15 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             mainFlowLayout.minimumLineSpacing = 10
         }
 
-        self.mainCollectionView.contentInset = .zero
+        self.mainCollectionView.contentInset = UIEdgeInsets(
+            top: 0,
+            left: 0,
+            bottom: isPaginating ? Self.paginationSpinnerHeight : 0,
+            right: 0
+        )
+        if isPaginating {
+            updatePaginationSpinnerFrame()
+        }
 
         updateHeaderLayout()
         layoutLoadingPlaceholder()
@@ -506,8 +507,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         if collectionView === storiesCollectionView {
             return stories.count
         } else if collectionView === mainCollectionView {
-            let extra = isPaginating ? 1 : 0
-            return cards.count + extra
+            return cards.count
         }
         return 0
     }
@@ -522,14 +522,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             return cell
 
         } else if collectionView === mainCollectionView {
-            if indexPath.item == cards.count {
-                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationSpinnerCell", for: indexPath) as? PaginationSpinnerCell else {
-                    fatalError("Unable to dequeue PaginationSpinnerCell")
-                }
-                cell.startAnimating()
-                return cell
-            }
-
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CardCell", for: indexPath) as? CardCollectionViewCell else {
                 fatalError("Unable to dequeue CardCollectionViewCell")
             }
@@ -549,11 +541,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             return CGSize(width: 70, height: 90)
 
         } else if collectionView === mainCollectionView {
-            if isPaginating && indexPath.item == cards.count {
-                if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
-                    return CGSize(width: flowLayout.itemSize.width, height: 60)
-                }
-            }
             if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
                 return flowLayout.itemSize
             }
@@ -870,7 +857,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             style: .error,
             retryAction: { [weak self] in
                 self?.hideSnackbar(animated: true)
-                self?.loadMore?()
+                self?.onPaginationRetry?()
             },
             persistent: true
         )

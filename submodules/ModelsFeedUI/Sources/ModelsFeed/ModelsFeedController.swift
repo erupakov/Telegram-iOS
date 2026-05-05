@@ -42,6 +42,7 @@ public final class ModelsFeedController: TelegramBaseController {
         var isLoading: Bool = false
         var hasMore: Bool = true
         var isLoaded: Bool = false
+        var hasPaginationError: Bool = false
     }
 
     private var tabStates: [TabState] = [TabState(), TabState(), TabState()]
@@ -227,6 +228,11 @@ public final class ModelsFeedController: TelegramBaseController {
             self.controllerNode.showNetworkError = false
             self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
         }
+        self.controllerNode.onPaginationRetry = { [weak self] in
+            guard let self = self else { return }
+            self.tabStates[self.selectedTabIndex].hasPaginationError = false
+            self.loadNextPage()
+        }
 
         self.displayNodeDidLoad()
         self._ready.set(.single(true))
@@ -262,7 +268,7 @@ public final class ModelsFeedController: TelegramBaseController {
     private func loadNextPage() {
         let index = selectedTabIndex
         let state = tabStates[index]
-        guard !state.isLoading, state.hasMore else { return }
+        guard !state.isLoading, state.hasMore, !state.hasPaginationError else { return }
         loadFeedline(tabIndex: index, reset: false)
     }
 
@@ -296,6 +302,7 @@ public final class ModelsFeedController: TelegramBaseController {
         if reset {
             tabStates[tabIndex].offset = 0
             tabStates[tabIndex].hasMore = true
+            tabStates[tabIndex].hasPaginationError = false
         }
 
         let offset = tabStates[tabIndex].offset
@@ -323,6 +330,7 @@ public final class ModelsFeedController: TelegramBaseController {
                     self.tabStates[tabIndex].hasMore = totalReceived >= limit
                     self.tabStates[tabIndex].isLoading = false
                     self.tabStates[tabIndex].isLoaded = true
+                    self.tabStates[tabIndex].hasPaginationError = false
 
                     let isResetCascade = reset || autoFetchCount > 0
                     let willAutoFetch = isResetCascade
@@ -357,6 +365,9 @@ public final class ModelsFeedController: TelegramBaseController {
                 print("[DivoAPI] feedline/list error (tab \(tabIndex)): \(error)")
                 await MainActor.run {
                     self.tabStates[tabIndex].isLoading = false
+                    if !reset {
+                        self.tabStates[tabIndex].hasPaginationError = true
+                    }
                     if tabIndex == self.selectedTabIndex {
                         self.controllerNode.isLoading = false
                         self.controllerNode.isPaginating = false
