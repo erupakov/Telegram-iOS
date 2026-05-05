@@ -500,6 +500,39 @@ public enum DivoStrings {
     public static var noResultsSubtitle: String { L(en: "No agencies or pro members\nfound at the moment.", ru: "Агентства и модели\nне найдены.", es: "No se encontraron agencias\nni miembros pro.", pt: "Nenhuma agência ou membro\npro encontrado.", zh: "暂未找到经纪公司\n或专业会员。") }
     public static var noUsersFound: String { L(en: "No Users Found", ru: "Пользователи не найдены", es: "No se encontraron usuarios", pt: "Nenhum usuário encontrado", zh: "未找到用户") }
     public static var noUsersFoundSubtitle: String { L(en: "There are no users\nto display right now.", ru: "Сейчас нет пользователей\nдля отображения.", es: "No hay usuarios\npara mostrar ahora.", pt: "Não há usuários\npara exibir agora.", zh: "当前没有\n可显示的用户。") }
+    public static var noModelsTitle: String { L(en: "No Models", ru: "Нет моделей", es: "Sin modelos", pt: "Sem modelos", zh: "暂无模特") }
+    public static var noModelsSubtitle: String { L(en: "No models\nfound at the moment.", ru: "Модели\nне найдены.", es: "No se encontraron\nmodelos.", pt: "Nenhum modelo\nencontrado.", zh: "暂未找到\n模特。") }
+    public static var noNewTalentsTitle: String { L(en: "No New Talents", ru: "Нет новых лиц", es: "Sin nuevos talentos", pt: "Sem novos talentos", zh: "暂无新人才") }
+    public static var noNewTalentsSubtitle: String { L(en: "No new talents\nfound at the moment.", ru: "Новые лица\nне найдены.", es: "No se encontraron\nnuevos talentos.", pt: "Nenhum novo talento\nencontrado.", zh: "暂未找到\n新人才。") }
+    public static var noAgenciesTitle: String { L(en: "No Agencies", ru: "Нет агентств", es: "Sin agencias", pt: "Sem agências", zh: "暂无经纪公司") }
+    public static var noAgenciesSubtitle: String { L(en: "No agencies\nfound at the moment.", ru: "Агентства\nне найдены.", es: "No se encontraron\nagencias.", pt: "Nenhuma agência\nencontrada.", zh: "暂未找到\n经纪公司。") }
+
+    // MARK: - Profile tab empty states
+
+    public static var profileEmptyPhotosTitle: String { L(en: "There are no photos at the moment", ru: "Здесь пока нет фото", es: "Aún no hay fotos", pt: "Ainda não há fotos", zh: "暂时没有照片") }
+    public static var profileEmptyPhotosSubtitleOwn: String { L(en: "You haven't uploaded any photos yet", ru: "Вы ещё не добавили фото", es: "Aún no has subido fotos", pt: "Você ainda não enviou fotos", zh: "您还没有上传任何照片") }
+    public static var profileEmptyPhotosSubtitleOther: String { L(en: "This profile hasn't uploaded any photos yet", ru: "В этом профиле пока нет фото", es: "Este perfil aún no ha subido fotos", pt: "Este perfil ainda não enviou fotos", zh: "该资料尚未上传任何照片") }
+    public static var profileEmptyPhotosCTA: String { L(en: "Add new photo", ru: "Добавить фото", es: "Añadir foto", pt: "Adicionar foto", zh: "添加新照片") }
+
+    public static var profileEmptyVideosTitle: String { L(en: "There are no videos at the moment", ru: "Здесь пока нет видео", es: "Aún no hay videos", pt: "Ainda não há vídeos", zh: "暂时没有视频") }
+    public static var profileEmptyVideosSubtitleOwn: String { L(en: "You haven't uploaded any videos yet", ru: "Вы ещё не добавили видео", es: "Aún no has subido videos", pt: "Você ainda não enviou vídeos", zh: "您还没有上传任何视频") }
+    public static var profileEmptyVideosSubtitleOther: String { L(en: "This profile hasn't uploaded any videos yet", ru: "В этом профиле пока нет видео", es: "Este perfil aún no ha subido videos", pt: "Este perfil ainda não enviou vídeos", zh: "该资料尚未上传任何视频") }
+    public static var profileEmptyVideosCTA: String { L(en: "Upload new video", ru: "Загрузить видео", es: "Subir video", pt: "Enviar vídeo", zh: "上传新视频") }
+
+    public static var profileEmptyChannelsTitle: String { L(en: "There are no channels at the moment", ru: "Здесь пока нет каналов", es: "Aún no hay canales", pt: "Ainda não há canais", zh: "暂时没有频道") }
+    public static var profileEmptyChannelsSubtitleOwn: String { L(en: "You haven't created any channels yet", ru: "Вы ещё не создали каналы", es: "Aún no has creado canales", pt: "Você ainda não criou canais", zh: "您还没有创建任何频道") }
+    public static var profileEmptyChannelsSubtitleOther: String { L(en: "This profile hasn't created any channels yet", ru: "В этом профиле пока нет каналов", es: "Este perfil aún no ha creado canales", pt: "Este perfil ainda não criou canais", zh: "该资料尚未创建任何频道") }
+    public static var profileEmptyChannelsCTA: String { L(en: "Create new channel", ru: "Создать канал", es: "Crear canal", pt: "Criar canal", zh: "创建新频道") }
+
+    public static var profileEmptyModelsTitle: String { L(en: "There are no models at the moment", ru: "Здесь пока нет моделей", es: "Aún no hay modelos", pt: "Ainda não há modelos", zh: "暂时没有模特") }
+    public static var profileEmptyModelsSubtitleOwn: String { L(en: "You haven't added any models yet", ru: "Вы ещё не добавили модели", es: "Aún no has añadido modelos", pt: "Você ainda não adicionou modelos", zh: "您还没有添加任何模特") }
+    public static var profileEmptyModelsSubtitleOther: String { L(en: "This profile hasn't added any models yet", ru: "В этом профиле пока нет моделей", es: "Este perfil aún no ha añadido modelos", pt: "Este perfil ainda não adicionou modelos", zh: "该资料尚未添加任何模特") }
+    public static var profileEmptyModelsCTA: String { L(en: "Add new model", ru: "Добавить модель", es: "Añadir modelo", pt: "Adicionar modelo", zh: "添加新模特") }
+
+    public static var profileEmptyEventsTitle: String { L(en: "There are no events at the moment", ru: "Здесь пока нет событий", es: "Aún no hay eventos", pt: "Ainda não há eventos", zh: "暂时没有活动") }
+    public static var profileEmptyEventsSubtitleOwn: String { L(en: "You haven't created any events yet", ru: "Вы ещё не создали события", es: "Aún no has creado eventos", pt: "Você ainda não criou eventos", zh: "您还没有创建任何活动") }
+    public static var profileEmptyEventsSubtitleOther: String { L(en: "This profile hasn't created any events yet", ru: "В этом профиле пока нет событий", es: "Este perfil aún no ha creado eventos", pt: "Este perfil ainda não criou eventos", zh: "该资料尚未创建任何活动") }
+    public static var profileEmptyEventsCTA: String { L(en: "Create new event", ru: "Создать событие", es: "Crear evento", pt: "Criar evento", zh: "创建新活动") }
     public static var sendDM: String { L(en: "Send DM", ru: "Написать", es: "Enviar MD", pt: "Enviar MD", zh: "发私信") }
     public static var loadingModelsList: String { L(en: "LOADING MODELS LIST...", ru: "ЗАГРУЗКА СПИСКА МОДЕЛЕЙ...", es: "CARGANDO LISTA DE MODELOS...", pt: "CARREGANDO LISTA DE MODELOS...", zh: "加载模特列表...") }
     public static var loadingTalentsList: String { L(en: "LOADING TALENTS...", ru: "ЗАГРУЗКА ТАЛАНТОВ...", es: "CARGANDO TALENTOS...", pt: "CARREGANDO TALENTOS...", zh: "加载新人才...") }

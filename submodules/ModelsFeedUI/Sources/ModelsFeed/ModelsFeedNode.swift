@@ -923,12 +923,24 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let config: DivoEmptyStateView.Configuration
 
         switch selectedTabIndex {
-        case 0:
-            config = .init(icon: DivoImage.heartActionIcon, title: DivoStrings.noSubscriptionsYet, subtitle: DivoStrings.noSubscriptionsSubtitle)
+        case 1:
+            config = .init(
+                style: .smallOnTinted(icon: DivoImage.emptyModelsAgency),
+                title: DivoStrings.noNewTalentsTitle,
+                subtitle: DivoStrings.noNewTalentsSubtitle
+            )
         case 2:
-            config = .init(icon: DivoImage.emptyModelsAgency, title: DivoStrings.noResults, subtitle: DivoStrings.noResultsSubtitle, iconSize: 68)
+            config = .init(
+                style: .smallOnTinted(icon: DivoImage.emptyModelsAgency),
+                title: DivoStrings.noAgenciesTitle,
+                subtitle: DivoStrings.noAgenciesSubtitle
+            )
         default:
-            config = .init(icon: DivoImage.iconModels, title: DivoStrings.noUsersFound, subtitle: DivoStrings.noUsersFoundSubtitle)
+            config = .init(
+                style: .smallOnTinted(icon: DivoImage.emptyModelsAgency),
+                title: DivoStrings.noModelsTitle,
+                subtitle: DivoStrings.noModelsSubtitle
+            )
         }
 
         let emptyView = DivoEmptyStateView()

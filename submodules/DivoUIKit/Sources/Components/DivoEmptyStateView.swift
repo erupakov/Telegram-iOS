@@ -3,40 +3,46 @@ import Display
 
 public final class DivoEmptyStateView: UIView {
 
+    /// Визуальный стиль эмпти-стейта. Иконка binding'ом к стилю — там где она показывается.
+    public enum Style {
+        /// Белый круг 68×68 (полупрозрачный `emptyCircleBackground`) + иконка 24×24, tint `profileEmptyIconTint`. Для эмпти на сером фоне (лента, поиск, список Events).
+        case smallOnTinted(icon: UIImage)
+        /// Серый круг 68×68 (`profileEmptyCircleBackground`) + иконка 24×24, tint `profileEmptyIconTint`. Контейнер красится в белый. Для профильных табов.
+        case smallOnLight(icon: UIImage)
+        /// Иконка 68×68 без круга, в оригинальной отрисовке. Переходный кейс — для face-search error и подобных.
+        case largeIcon(icon: UIImage)
+        /// Только тексты, без иконки и круга.
+        case textOnly
+    }
+
     public struct Configuration {
-        public let icon: UIImage
+        public let style: Style
         public let title: String
         public let subtitle: String
         public let ctaTitle: String?
+        public let ctaLeadingIcon: UIImage?
         public let onCTATapped: (() -> Void)?
         public let secondaryCtaTitle: String?
         public let onSecondaryCTATapped: (() -> Void)?
-        public let iconSize: CGFloat?
-        public let circleSize: CGFloat?
-        public let useOriginalRendering: Bool
 
         public init(
-            icon: UIImage,
+            style: Style,
             title: String,
             subtitle: String,
             ctaTitle: String? = nil,
+            ctaLeadingIcon: UIImage? = nil,
             onCTATapped: (() -> Void)? = nil,
             secondaryCtaTitle: String? = nil,
-            onSecondaryCTATapped: (() -> Void)? = nil,
-            iconSize: CGFloat? = nil,
-            circleSize: CGFloat? = nil,
-            useOriginalRendering: Bool = false
+            onSecondaryCTATapped: (() -> Void)? = nil
         ) {
-            self.icon = icon
+            self.style = style
             self.title = title
             self.subtitle = subtitle
             self.ctaTitle = ctaTitle
+            self.ctaLeadingIcon = ctaLeadingIcon
             self.onCTATapped = onCTATapped
             self.secondaryCtaTitle = secondaryCtaTitle
             self.onSecondaryCTATapped = onSecondaryCTATapped
-            self.iconSize = iconSize
-            self.circleSize = circleSize
-            self.useOriginalRendering = useOriginalRendering
         }
     }
 
@@ -110,33 +116,27 @@ public final class DivoEmptyStateView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     public func configure(_ config: Configuration) {
+        UIView.performWithoutAnimation {
+            self._configure(config)
+            self.layoutIfNeeded()
+        }
+    }
+
+    private func _configure(_ config: Configuration) {
         titleLabel.text = config.title.uppercased()
         subtitleLabel.text = config.subtitle
 
-        if let circleSize = config.circleSize {
-            let renderingMode: UIImage.RenderingMode = config.useOriginalRendering ? .alwaysOriginal : .alwaysTemplate
-            iconView.image = config.icon.withRenderingMode(renderingMode)
-            circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
-            circleWidthConstraint?.constant = circleSize
-            circleHeightConstraint?.constant = circleSize
-            circleView.layer.cornerRadius = circleSize / 2
-            iconWidthConstraint?.constant = config.iconSize ?? 32
-            iconHeightConstraint?.constant = config.iconSize ?? 32
-        } else if let size = config.iconSize {
-            iconView.image = config.icon.withRenderingMode(.alwaysOriginal)
-            circleView.backgroundColor = .clear
-            iconWidthConstraint?.constant = size
-            iconHeightConstraint?.constant = size
-        } else {
-            iconView.image = config.icon.withRenderingMode(.alwaysTemplate)
-            circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
-            iconWidthConstraint?.constant = 32
-            iconHeightConstraint?.constant = 32
-        }
+        applyStyle(config.style)
+
+        let inlineCTA = isInlineCTA(for: config.style)
 
         if let ctaTitle = config.ctaTitle {
-            installCTAIfNeeded()
-            ctaButton?.makeDivoButton(title: ctaTitle)
+            let button = installCTAButton(inline: inlineCTA)
+            if let leadingIcon = config.ctaLeadingIcon {
+                button.makeDivoButton(title: ctaTitle, leadingIcon: leadingIcon, compact: inlineCTA)
+            } else {
+                button.makeDivoButton(title: ctaTitle)
+            }
             ctaAction = config.onCTATapped
         } else {
             ctaButton?.removeFromSuperview()
@@ -153,6 +153,52 @@ public final class DivoEmptyStateView: UIView {
             secondaryCtaButton = nil
             secondaryCtaAction = nil
         }
+    }
+
+    private func applyStyle(_ style: Style) {
+        switch style {
+        case let .smallOnTinted(icon):
+            iconView.image = icon.withRenderingMode(.alwaysTemplate)
+            iconView.tintColor = DivoColorPalette.profileEmptyIconTint
+            circleView.isHidden = false
+            circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
+            setCircleSize(68)
+            setIconSize(24)
+
+        case let .smallOnLight(icon):
+            backgroundColor = DivoColorPalette.profileEmptyBackground
+            iconView.image = icon.withRenderingMode(.alwaysTemplate)
+            iconView.tintColor = DivoColorPalette.profileEmptyIconTint
+            circleView.isHidden = false
+            circleView.backgroundColor = DivoColorPalette.profileEmptyCircleBackground
+            setCircleSize(68)
+            setIconSize(24)
+
+        case let .largeIcon(icon):
+            iconView.image = icon.withRenderingMode(.alwaysOriginal)
+            circleView.isHidden = true
+            circleView.backgroundColor = .clear
+            setCircleSize(0)
+            setIconSize(68)
+
+        case .textOnly:
+            iconView.image = nil
+            circleView.isHidden = true
+            circleView.backgroundColor = .clear
+            setCircleSize(0)
+            setIconSize(0)
+        }
+    }
+
+    private func setCircleSize(_ size: CGFloat) {
+        circleWidthConstraint?.constant = size
+        circleHeightConstraint?.constant = size
+        circleView.layer.cornerRadius = size / 2
+    }
+
+    private func setIconSize(_ size: CGFloat) {
+        iconWidthConstraint?.constant = size
+        iconHeightConstraint?.constant = size
     }
 
     private func setupUI() {
@@ -203,15 +249,33 @@ public final class DivoEmptyStateView: UIView {
         ])
     }
 
-    private func installCTAIfNeeded() {
-        installButtonsStackIfNeeded()
-        guard ctaButton == nil else { return }
+    private func isInlineCTA(for style: Style) -> Bool {
+        if case .smallOnLight = style { return true }
+        return false
+    }
+
+    private func installCTAButton(inline: Bool) -> DivoButton {
+        if let existing = ctaButton {
+            let alreadyInline = contentStack.arrangedSubviews.contains(existing)
+            if alreadyInline == inline {
+                return existing
+            }
+            existing.removeFromSuperview()
+        }
 
         let button = DivoButton()
         button.addTarget(self, action: #selector(ctaTapped), for: .touchUpInside)
-        buttonsStack.insertArrangedSubview(button, at: 0)
+
+        if inline {
+            contentStack.addArrangedSubview(button)
+            contentStack.setCustomSpacing(16, after: subtitleLabel)
+        } else {
+            installButtonsStackIfNeeded()
+            buttonsStack.insertArrangedSubview(button, at: 0)
+        }
 
         ctaButton = button
+        return button
     }
 
     private func installSecondaryCTAIfNeeded() {

@@ -600,7 +600,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let bottomSpacer: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.screenBackground
+        view.backgroundColor = DivoColorPalette.profileEmptyBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -614,7 +614,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private let similarProfilesCollectionContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.screenBackground
+        view.backgroundColor = DivoColorPalette.profileEmptyBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         return view
@@ -674,6 +674,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onCreateEventTapped: (() -> Void)?
     var onAddVideoTapped: ((Bool) -> Void)?
     var onAddPhotoTapped: ((Bool) -> Void)?
+    var onAddChannelTapped: (() -> Void)?
 
     var storiesButtonTapped: (() -> Void)?
     var onAddWorkExperienceTapped: (() -> Void)?
@@ -706,8 +707,42 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
 
-    private let emptyModelsPlaceholderView = EmptyEntityPlaceholderView(title: DivoStrings.emptyTitleAddModel, subtitle: DivoStrings.emptySubTitleAddModel, buttonTitle: DivoStrings.addModel)
-    private let emptyEventsPlaceholderView = EmptyEntityPlaceholderView(title: DivoStrings.emptyTitleAddEvent, subtitle: DivoStrings.emptySubTitleAddEvent, buttonTitle: DivoStrings.addEvent)
+    // MARK: - Profile tab empty states
+
+    private let photoEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let videoEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let channelsEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let modelsEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let eventsEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
 
     // MARK: - NavigationBar
     
@@ -1444,7 +1479,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             whiteSheetBackground.topAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: -20),
             whiteSheetBackground.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             whiteSheetBackground.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            whiteSheetBackground.bottomAnchor.constraint(equalTo: contentViewStack.bottomAnchor, constant: 500),
+            // bottomAnchor с collectionsContainer.topAnchor добавлен ниже, в setupAllCollectionsLayers,
+            // когда collectionsContainer уже в иерархии scrollView
 
             profileInfoContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
             profileInfoContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
@@ -1541,7 +1577,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private func setupAllCollectionsLayers() {
         contentViewStack.addArrangedSubview(collectionsContainer)
-        
+
+        // whiteSheetBackground (серая «подложка» под bio + segmented bar) тянется до верха
+        // collectionsContainer. Активируем здесь, потому что в setupProfileInfoContainer
+        // collectionsContainer ещё не в иерархии scrollView.
+        whiteSheetBackground.bottomAnchor.constraint(equalTo: collectionsContainer.topAnchor).isActive = true
+
         collectionsContainerHeightConstraint = collectionsContainer.heightAnchor.constraint(equalToConstant: 160)
         collectionsContainerHeightConstraint.isActive = true
         
@@ -1563,6 +1604,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         photoTabContainer.addSubview(galleryCollectionView)
         photoTabContainer.addSubview(galleryStatusView)
+        photoTabContainer.addSubview(photoEmptyView)
 
         NSLayoutConstraint.activate([
             galleryCollectionView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
@@ -1573,6 +1615,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
             galleryStatusView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
             galleryStatusView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             galleryStatusView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            photoEmptyView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
+            photoEmptyView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor),
+            photoEmptyView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor),
+            photoEmptyView.bottomAnchor.constraint(equalTo: photoTabContainer.bottomAnchor),
         ])
         galleryCollectionView.isHidden = true
         galleryStatusView.isHidden = false
@@ -1586,16 +1633,22 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         videoTabContainer.addSubview(videoGalleryCollectionView)
         videoTabContainer.addSubview(videoGalleryStatusView)
+        videoTabContainer.addSubview(videoEmptyView)
 
         NSLayoutConstraint.activate([
             videoGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             videoGalleryStatusView.topAnchor.constraint(equalTo: videoTabContainer.topAnchor),
             videoGalleryStatusView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             videoGalleryStatusView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            
+
             videoGalleryCollectionView.topAnchor.constraint(equalTo: videoTabContainer.topAnchor),
             videoGalleryCollectionView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor),
-            videoGalleryCollectionView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor)
+            videoGalleryCollectionView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor),
+
+            videoEmptyView.topAnchor.constraint(equalTo: videoTabContainer.topAnchor),
+            videoEmptyView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor),
+            videoEmptyView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor),
+            videoEmptyView.bottomAnchor.constraint(equalTo: videoTabContainer.bottomAnchor),
         ])
         videoGalleryCollectionView.isHidden = true
         videoGalleryStatusView.isHidden = false
@@ -1609,15 +1662,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         channelTabContainer.addSubview(channelGalleryStatusView)
         channelTabContainer.addSubview(channelGalleryCollectionView)
+        channelTabContainer.addSubview(channelsEmptyView)
         NSLayoutConstraint.activate([
             channelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             channelGalleryStatusView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
             channelGalleryStatusView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             channelGalleryStatusView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            
+
             channelGalleryCollectionView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
             channelGalleryCollectionView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor),
-            channelGalleryCollectionView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor)
+            channelGalleryCollectionView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor),
+
+            channelsEmptyView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
+            channelsEmptyView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor),
+            channelsEmptyView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor),
+            channelsEmptyView.bottomAnchor.constraint(equalTo: channelTabContainer.bottomAnchor),
         ])
         channelGalleryCollectionView.isHidden = true
         channelGalleryStatusView.isHidden = false
@@ -1630,33 +1689,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         modelTabContainer.addSubview(modelGalleryStatusView)
         modelTabContainer.addSubview(modelGalleryCollectionView)
-
-        emptyModelsPlaceholderView.translatesAutoresizingMaskIntoConstraints = false
-        modelTabContainer.addSubview(emptyModelsPlaceholderView)
+        modelTabContainer.addSubview(modelsEmptyView)
 
         NSLayoutConstraint.activate([
             modelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             modelGalleryStatusView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
             modelGalleryStatusView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             modelGalleryStatusView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            
+
             modelGalleryCollectionView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
             modelGalleryCollectionView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
             modelGalleryCollectionView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
 
-            emptyModelsPlaceholderView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
-            emptyModelsPlaceholderView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
-            emptyModelsPlaceholderView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
-            emptyModelsPlaceholderView.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
+            modelsEmptyView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
+            modelsEmptyView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
+            modelsEmptyView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
+            modelsEmptyView.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
         ])
         modelGalleryCollectionView.isHidden = true
-        emptyModelsPlaceholderView.isHidden = true
         modelGalleryStatusView.isHidden = false
         modelGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingModels, isMyProfile: false)
-        
-        emptyModelsPlaceholderView.openAddEntity = { [weak self] in
-            self?.onAddModelTapped?()
-        }
 
         // --- EVENTS ---
         // ЗАМЕНА: Сохраняем констрейнт высоты
@@ -1665,35 +1717,106 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         eventTabContainer.addSubview(eventGalleryStatusView)
         eventTabContainer.addSubview(eventGalleryCollectionView)
-        
-        emptyEventsPlaceholderView.translatesAutoresizingMaskIntoConstraints = false
-        eventTabContainer.addSubview(emptyEventsPlaceholderView)
-        
+        eventTabContainer.addSubview(eventsEmptyView)
+
         NSLayoutConstraint.activate([
             eventGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             eventGalleryStatusView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
             eventGalleryStatusView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             eventGalleryStatusView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            
+
             eventGalleryCollectionView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
             eventGalleryCollectionView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
             eventGalleryCollectionView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
-            
-            emptyEventsPlaceholderView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
-            emptyEventsPlaceholderView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
-            emptyEventsPlaceholderView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
-            emptyEventsPlaceholderView.bottomAnchor.constraint(equalTo: eventTabContainer.bottomAnchor),
+
+            eventsEmptyView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
+            eventsEmptyView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
+            eventsEmptyView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
+            eventsEmptyView.bottomAnchor.constraint(equalTo: eventTabContainer.bottomAnchor),
         ])
         eventGalleryCollectionView.isHidden = true
-        emptyEventsPlaceholderView.isHidden = true
         eventGalleryStatusView.isHidden = false
         eventGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingEvents, isMyProfile: false)
-        
-        emptyEventsPlaceholderView.openAddEntity = { [weak self] in
-            self?.onAddEventTapped?()
+    }
+
+    private func emptyView(for tab: ProfileTab) -> DivoEmptyStateView {
+        switch tab {
+        case .photo: return photoEmptyView
+        case .video: return videoEmptyView
+        case .channels: return channelsEmptyView
+        case .models: return modelsEmptyView
+        case .events: return eventsEmptyView
         }
     }
-    
+
+    private func currentTabIsEmpty() -> Bool {
+        switch currentTab {
+        case .photo: return galleryPhotos.isEmpty
+        case .video: return videoGalleryItems.isEmpty
+        case .channels: return channelGalleryItems.isEmpty
+        case .models: return modelGalleryItems.isEmpty
+        case .events: return eventGalleryItems.isEmpty
+        }
+    }
+
+    private func updateScreenBackgroundForCurrentTab() {
+        // Подход: основной фон экрана — белый, а серая «подложка» лежит под
+        // профильной био-секцией (см. profileInfoContainer.backgroundColor).
+        UIView.performWithoutAnimation {
+            self.view.backgroundColor = DivoColorPalette.profileEmptyBackground
+        }
+    }
+
+    private func configureProfileEmptyView(for tab: ProfileTab, isMyProfile: Bool) {
+        let icon: UIImage
+        let title: String
+        let subtitle: String
+        let cta: String
+        let action: () -> Void
+
+        switch tab {
+        case .photo:
+            icon = DivoImage.photoIcon
+            title = DivoStrings.profileEmptyPhotosTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyPhotosSubtitleOwn : DivoStrings.profileEmptyPhotosSubtitleOther
+            cta = DivoStrings.profileEmptyPhotosCTA
+            action = { [weak self] in self?.onAddPhotoTapped?(false) }
+        case .video:
+            icon = DivoImage.videoIcon
+            title = DivoStrings.profileEmptyVideosTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyVideosSubtitleOwn : DivoStrings.profileEmptyVideosSubtitleOther
+            cta = DivoStrings.profileEmptyVideosCTA
+            action = { [weak self] in self?.onAddVideoTapped?(false) }
+        case .channels:
+            icon = DivoImage.channelIcon
+            title = DivoStrings.profileEmptyChannelsTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyChannelsSubtitleOwn : DivoStrings.profileEmptyChannelsSubtitleOther
+            cta = DivoStrings.profileEmptyChannelsCTA
+            action = { [weak self] in self?.onAddChannelTapped?() }
+        case .models:
+            icon = DivoImage.associatedModels
+            title = DivoStrings.profileEmptyModelsTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyModelsSubtitleOwn : DivoStrings.profileEmptyModelsSubtitleOther
+            cta = DivoStrings.profileEmptyModelsCTA
+            action = { [weak self] in self?.onAddModelTapped?() }
+        case .events:
+            icon = DivoImage.eventsAgency
+            title = DivoStrings.profileEmptyEventsTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyEventsSubtitleOwn : DivoStrings.profileEmptyEventsSubtitleOther
+            cta = DivoStrings.profileEmptyEventsCTA
+            action = { [weak self] in self?.onAddEventTapped?() }
+        }
+
+        emptyView(for: tab).configure(.init(
+            style: .smallOnLight(icon: icon),
+            title: title,
+            subtitle: subtitle,
+            ctaTitle: isMyProfile ? cta : nil,
+            ctaLeadingIcon: isMyProfile ? DivoImage.plus : nil,
+            onCTATapped: isMyProfile ? action : nil
+        ))
+    }
+
     private func setupSimilarProfiles() {
         contentViewStack.addArrangedSubview(similarProfilesCollectionContainer)
         similarProfilesCollectionContainer.addSubview(similarProfilesTitleLabel)
@@ -2283,17 +2406,19 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     func showUploadStatusView(isPhoto: Bool) {
         if isPhoto {
+            galleryStatusView.isHidden = false
             galleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingPhotos, isMyProfile: false)
         } else {
+            videoGalleryStatusView.isHidden = false
             videoGalleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingVideos, isMyProfile: false)
         }
     }
     
     func hideUploadStatusView(isPhoto: Bool) {
         if isPhoto {
-            galleryStatusView.configure(isLoading: false, text: DivoStrings.noPhotosYet, isMyProfile: true)
+            galleryStatusView.isHidden = true
         } else {
-            videoGalleryStatusView.configure(isLoading: false, text: DivoStrings.noVideosYet, isMyProfile: true)
+            videoGalleryStatusView.isHidden = true
         }
     }
 
@@ -2374,6 +2499,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         var appearance: [AppearanceAttribute]
 
         self.modelRole = Role(apiRole: detail.role)
+        self.updateScreenBackgroundForCurrentTab()
 
         if self.modelRole == .agency {
             setupNavigationBarTitle(name: detail.agency?.title ?? DivoStrings.noName)
@@ -2575,12 +2701,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if previousCount == 0 {
             let hasPhotos = !self.galleryPhotos.isEmpty
-            self.galleryStatusView.isHidden = hasPhotos
-            if isMyProfile {
-                self.galleryStatusView.configure(isLoading: false, text: DivoStrings.uploadYourPhotos, isMyProfile: true)
-            } else {
-                self.galleryStatusView.configure(isLoading: false, text: DivoStrings.noPhotosYet, isMyProfile: false)
+            self.galleryStatusView.isHidden = true
+            self.photoEmptyView.isHidden = hasPhotos
+            if !hasPhotos {
+                self.configureProfileEmptyView(for: .photo, isMyProfile: isMyProfile)
             }
+            self.updateScreenBackgroundForCurrentTab()
             self.galleryCollectionView.isHidden = !hasPhotos
             self.galleryCollectionView.reloadData()
             
@@ -2644,6 +2770,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
+            photoEmptyView.isHidden = true
             galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
             if let layout = self.containerLayout?.0 {
@@ -2666,6 +2793,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     func finishPhotoUpload(photo: UserPhoto) {
         uploadingPhotoImage = nil
+        galleryStatusView.isHidden = true
         if !galleryPhotos.isEmpty && galleryPhotos[0].id == -1 {
             galleryPhotos[0] = photo
             galleryCollectionView.reloadItems(at: [IndexPath(item: 0, section: 0)])
@@ -2687,7 +2815,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.galleryPhotos.isEmpty {
-                self.galleryStatusView.isHidden = false
+                self.galleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
+                self.photoEmptyView.isHidden = false
                 self.galleryCollectionView.isHidden = true
             }
         })
@@ -2704,6 +2834,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
+            photoEmptyView.isHidden = true
             galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
 
@@ -2747,13 +2878,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
             guard let self = self else { return }
             // Если удалили последнее фото, показываем заглушку
             if self.galleryPhotos.isEmpty {
-                self.galleryStatusView.isHidden = false
+                self.galleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
+                self.photoEmptyView.isHidden = false
                 self.galleryCollectionView.isHidden = true
             }
         })
         updateFloatingButton(for: currentTab)
     }
-    
+
     // Сброс пагинации галереи
     func resetGalleryPagination() {
         galleryPhotos = []
@@ -2770,11 +2903,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Флаг загрузки галереи
     func setGalleryLoading(_ loading: Bool, _ uploadNew: Bool = false) {
         galleryIsLoading = loading
-        if uploadNew {
-            galleryStatusView.isHidden = false
-        } else {
-            galleryStatusView.isHidden = !galleryPhotos.isEmpty ? true : !loading && galleryPhotos.isEmpty
-        }
+        // Если уже есть фото — лоадер скрыт всегда. Показываем только когда галерея пустая и идёт загрузка.
+        galleryStatusView.isHidden = !galleryPhotos.isEmpty || !loading
         galleryStatusView.loadingSpinner(isLoading: loading)
     }
     
@@ -2868,12 +2998,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if previousCount == 0 {
             let hasVideos = !self.videoGalleryItems.isEmpty
-            self.videoGalleryStatusView.isHidden = hasVideos
-            if isMyProfile {
-                self.videoGalleryStatusView.configure(isLoading: false, text: DivoStrings.uploadYourVideos, isMyProfile: true)
-            } else {
-                self.videoGalleryStatusView.configure(isLoading: false, text: DivoStrings.noVideosYet, isMyProfile: false)
+            self.videoGalleryStatusView.isHidden = true
+            self.videoEmptyView.isHidden = hasVideos
+            if !hasVideos {
+                self.configureProfileEmptyView(for: .video, isMyProfile: isMyProfile)
             }
+            self.updateScreenBackgroundForCurrentTab()
             self.videoGalleryCollectionView.isHidden = !hasVideos
             self.videoGalleryCollectionView.reloadData()
             
@@ -2944,6 +3074,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
             videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
             if let layout = self.containerLayout?.0 {
@@ -2966,6 +3097,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     func finishVideoUpload(video: UserPhoto) {
         uploadingVideoImage = nil
+        videoGalleryStatusView.isHidden = true
         if !videoGalleryItems.isEmpty && videoGalleryItems[0].id == -1 {
             videoGalleryItems[0] = video
             videoGalleryCollectionView.reloadItems(at: [IndexPath(item: 0, section: 0)])
@@ -2987,7 +3119,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = false
+                self.videoGalleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
+                self.videoEmptyView.isHidden = false
                 self.videoGalleryCollectionView.isHidden = true
             }
         })
@@ -3003,6 +3137,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
             videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
 
@@ -3044,7 +3179,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = false
+                self.videoGalleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
+                self.videoEmptyView.isHidden = false
                 self.videoGalleryCollectionView.isHidden = true
             }
         })
@@ -3091,11 +3228,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Флаг загрузки галереи видео
     func setVideoGalleryLoading(_ loading: Bool, _ uploadNew: Bool = false) {
         videoGalleryIsLoading = loading
-        if uploadNew {
-            videoGalleryStatusView.isHidden = false
-        } else {
-            videoGalleryStatusView.isHidden = !videoGalleryItems.isEmpty ? true : !loading && videoGalleryItems.isEmpty
-        }
+        // Если уже есть видео — лоадер скрыт всегда. Показываем только когда галерея пустая и идёт загрузка.
+        videoGalleryStatusView.isHidden = !videoGalleryItems.isEmpty || !loading
         videoGalleryStatusView.loadingSpinner(isLoading: loading)
     }
 
@@ -3114,11 +3248,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func updateChannelsList(_ items: [ProfileChannelItem]) {
         self.channelGalleryItems = items
         let hasItems = !items.isEmpty
-        self.channelGalleryStatusView.isHidden = hasItems
+        self.channelGalleryStatusView.isHidden = true
         self.channelGalleryCollectionView.isHidden = !hasItems
+        self.channelsEmptyView.isHidden = hasItems
         if !hasItems {
-            self.channelGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? DivoStrings.addChannel : DivoStrings.noChannelsYet, isMyProfile: model.isMyProfile)
+            self.configureProfileEmptyView(for: .channels, isMyProfile: model.isMyProfile)
         }
+        self.updateScreenBackgroundForCurrentTab()
         self.channelGalleryCollectionView.reloadData()
         
         if let layout = self.containerLayout?.0 {
@@ -3155,20 +3291,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func updateModelsList(_ items: [ModelItem]) {
         self.modelGalleryItems = items
         let hasItems = !items.isEmpty
-        
+
         self.modelGalleryCollectionView.isHidden = !hasItems
-        
-        if !hasItems && model.isMyProfile && modelRole == .agency {
-            self.modelGalleryStatusView.isHidden = true
-            self.emptyModelsPlaceholderView.isHidden = false
-        } else {
-            self.emptyModelsPlaceholderView.isHidden = true
-            self.modelGalleryStatusView.isHidden = hasItems
-            if !hasItems {
-                self.modelGalleryStatusView.configure(isLoading: false, text: DivoStrings.noModelsYet, isMyProfile: model.isMyProfile)
-            }
+        self.modelGalleryStatusView.isHidden = true
+        self.modelsEmptyView.isHidden = hasItems
+        if !hasItems {
+            self.configureProfileEmptyView(for: .models, isMyProfile: model.isMyProfile)
         }
-        
+        self.updateScreenBackgroundForCurrentTab()
+
         self.modelGalleryCollectionView.reloadData()
         
         if let layout = self.containerLayout?.0 {
@@ -3215,18 +3346,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func updateEventsList(_ items: [EventItem]) {
         self.eventGalleryItems = items
         let hasItems = !items.isEmpty
-        self.eventGalleryStatusView.isHidden = hasItems
+        self.eventGalleryStatusView.isHidden = true
         self.eventGalleryCollectionView.isHidden = !hasItems
-        if !hasItems && model.isMyProfile && modelRole == .agency {
-            self.eventGalleryStatusView.isHidden = true
-            self.emptyEventsPlaceholderView.isHidden = false
-        } else {
-            self.emptyEventsPlaceholderView.isHidden = true
-            self.eventGalleryStatusView.isHidden = hasItems
-            if !hasItems {
-                self.eventGalleryStatusView.configure(isLoading: false, text: DivoStrings.noEventsYet, isMyProfile: model.isMyProfile)
-            }
+        self.eventsEmptyView.isHidden = hasItems
+        if !hasItems {
+            self.configureProfileEmptyView(for: .events, isMyProfile: model.isMyProfile)
         }
+        self.updateScreenBackgroundForCurrentTab()
 
         self.eventGalleryCollectionView.reloadData()
         
@@ -3297,17 +3423,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         func heightFor(isEmpty: Bool, constraint: NSLayoutConstraint, isModelTab: Bool = false) -> CGFloat {
             if isEmpty {
-                if model.isMyProfile {
-                    return fullScreenAvailableHeight
-                }
-                
-                return 160
+                return fullScreenAvailableHeight
             }
-            
-            if model.isMyProfile {
-                return max(constraint.constant, fullScreenAvailableHeight)
-            }
-            
             return constraint.constant
         }
         
@@ -3387,11 +3504,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
         
         if isVisible {
-            floatingAddButton.makeDivoButton(title: title, buttonFont: Font.helveticaNeue(16), radius: 20)
-            floatingAddButton.setImage(icon.withRenderingMode(.alwaysTemplate), for: .normal)
-            floatingAddButton.setImage(icon.withRenderingMode(.alwaysTemplate), for: .highlighted)
-            floatingAddButton.tintColor = DivoColorPalette.primaryTextOnDark
-            floatingAddButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
+            floatingAddButton.makeDivoButton(title: title, leadingIcon: icon, buttonFont: Font.helveticaNeue(16), radius: 20)
             
             if floatingAddButton.isHidden {
                 floatingAddButton.alpha = 0
@@ -3917,6 +4030,7 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
         loadDataForTab(newTab)
 
         currentTab = newTab
+        updateScreenBackgroundForCurrentTab()
 
         // 1. Устанавливаем новую высоту (вычисляем через наш новый метод)
         collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
