@@ -239,7 +239,6 @@ public struct CreateEventRequest: Codable {
     public let paymentType: Int?
     public let paymentFrequency: Int?
     public let cost: String?
-    public let measuringSystem: String?
 
     public let role: [String]?
     public let gender: [String]?
@@ -268,7 +267,6 @@ public struct CreateEventRequest: Codable {
         paymentType: Int?,
         paymentFrequency: Int?,
         cost: String?,
-        measuringSystem: String?,
         role: [String]?,
         gender: [String]?,
         age: EventRangeRequest?,
@@ -294,7 +292,6 @@ public struct CreateEventRequest: Codable {
         self.paymentType = paymentType
         self.paymentFrequency = paymentFrequency
         self.cost = cost
-        self.measuringSystem = measuringSystem
         self.role = role
         self.gender = gender
         self.age = age

@@ -785,7 +785,7 @@ extension PublicProfileScreenController {
                 }
                 
                 let detailedEvents = await fetchEventDetails(for: items.compactMap { $0.id })
-                let eventDataArray: [EventItem] = items.map { item in
+                let eventDataArray: [EventItem] = detailedEvents.map { item in
                     let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: item.date)
 
                     let city = item.address?.city?.name ?? DivoStrings.unknownCity
@@ -795,7 +795,7 @@ extension PublicProfileScreenController {
                     let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
 
                     return EventItem(
-                        name: item.title,
+                        name: item.title ?? "Event",
                         data: formattedDate,
                         time: formattedTime,
                         countryFlag: flag,
@@ -824,6 +824,33 @@ extension PublicProfileScreenController {
                     self.controllerNode.updateEventsList([])
                 }
             }
+        }
+    }
+
+    private func fetchEventDetails(for ids: [Int]) async -> [EventFullDetailData] {
+        return await withTaskGroup(of: EventFullDetailData?.self) { group in
+            for id in ids {
+                group.addTask {
+                    do {
+                        let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                            path: "/event/\(id)",
+                            method: "GET"
+                        )
+                        return response.data
+                    } catch {
+                        print("❌ [EVENT DETAIL] Error loading event \(id): \(error)")
+                        return nil
+                    }
+                }
+            }
+
+            var results: [EventFullDetailData] = []
+            for await detail in group {
+                if let validDetail = detail {
+                    results.append(validDetail)
+                }
+            }
+            return results
         }
     }
 
