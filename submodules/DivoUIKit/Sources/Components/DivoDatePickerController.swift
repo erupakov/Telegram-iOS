@@ -35,8 +35,8 @@ public final class DivoDatePickerController: UIViewController {
         navigationBar.makeNavigationBar(
             title: title,
             font: Font.medium(16),
-            backButtonConfiguration: .circle(UIImage(bundleImageName: "Components/SearchCloseIcon")!),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, UIImage(bundleImageName: "Components/whiteCheckmark")!, .primary),
+            backButtonConfiguration: .circle(DivoImage.searchCloseIcon),
+            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteCheckmark, .primary),
             onBackTapped: { [weak self] in
                 self?.navigationController?.dismiss(animated: true)
             },
@@ -91,7 +91,7 @@ public final class DivoDatePickerController: UIViewController {
                 datePicker.preferredDatePickerStyle = .wheels
             }
         }
-        
+
         if let minTs = minimumTimestamp, minTs > 0 {
             datePicker.minimumDate = Date(timeIntervalSince1970: TimeInterval(minTs))
         }
