@@ -45,6 +45,14 @@ public final class FaceSearchHistoryStorage {
         )
 
         var items = loadAll()
+
+        if let existingIndex = items.firstIndex(where: { existing in
+            existing.faceIndex == faceIndex && self.sourceImageData(for: existing) == sourceImageData
+        }) {
+            removeFiles(for: items[existingIndex])
+            items.remove(at: existingIndex)
+        }
+
         items.insert(item, at: 0)
 
         if items.count > maxStoredItems {

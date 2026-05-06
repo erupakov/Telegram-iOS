@@ -132,7 +132,7 @@ public struct SearchDataContainer: Decodable {
 public struct SearchUserDTO: Decodable {
     public let id: Int
     public let feedId: Int
-    public let title: String
+    public let title: String?
     public let description: String?
     public let entity: String?
     public let type: String?

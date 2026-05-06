@@ -311,6 +311,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
 
         if DivoConfig.isDebugEnabled {
             DivoNetworkOverlay.shared.restoreIfNeeded()
+            DivoTouchOverlay.shared.restoreIfNeeded()
         }
     }
         

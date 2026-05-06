@@ -22,6 +22,7 @@ public struct UserDetail: Decodable {
     public let measuringSystem: String?
     public let pushNotifications: Bool?
     public let isRegistrationFinished: Bool?
+    public let isPremium: Bool?
     public let model: UserModelInfo?
     public let customer: UserCustomerInfo?
     public let agency: UserAgencyInfo?
@@ -31,6 +32,16 @@ public struct UserDetail: Decodable {
     public let isFollowed: Bool?
     public let userRatingStatus: String?
     public let userSocialNetworks: [UserSocialNetwork]?
+
+    enum CodingKeys: String, CodingKey {
+        case id, fullName, gender, birthday, city, email, phone
+        case photo, avatar, role, subrole, roleLabel
+        case measuringSystem, pushNotifications, isRegistrationFinished
+        case isPremium = "is_premium"
+        case model, customer, agency, agencyEmployee
+        case statistic, isFavorite, isFollowed
+        case userRatingStatus, userSocialNetworks
+    }
 }
 
 public struct UserGender: Decodable {
@@ -38,7 +49,7 @@ public struct UserGender: Decodable {
     public let title: String
 }
 
-public struct UserCity: Decodable {
+public struct UserCity: Codable {
     public let id: Int
     public let countryCode: String?
     public let countryName: String?
@@ -51,18 +62,21 @@ public struct UserFile: Decodable {
     public let fullUrl: String?
     public let fileExtension: String?
     public let fileUuid: String?
+    public let photoId: Int?
 
     enum CodingKeys: String, CodingKey {
         case fileName, fullUrl
         case fileExtension = "extension"
         case fileUuid
+        case photoId = "photo_id"
     }
 
-    public init(fileName: String?, fullUrl: String?, fileExtension: String?, fileUuid: String?) {
+    public init(fileName: String?, fullUrl: String?, fileExtension: String?, fileUuid: String?, photoId: Int? = nil) {
         self.fileName = fileName
         self.fullUrl = fullUrl
         self.fileExtension = fileExtension
         self.fileUuid = fileUuid
+        self.photoId = photoId
     }
 }
 
@@ -290,8 +304,8 @@ public struct AgencyListData: Decodable {
 public struct AgencyItem: Decodable {
     public let id: Int
     public let title: String
-    public let username: String?
-    public let photo: UserFile?
+    public let nickname: String?
+    public let agencyAvatarLink: String?
 }
 
 public struct AppearanceDictionaryResponse: Codable {

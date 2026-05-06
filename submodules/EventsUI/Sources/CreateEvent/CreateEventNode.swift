@@ -423,7 +423,7 @@ final class CreateEventNode: ASDisplayNode {
 
     init(addPhoto: @escaping () -> Void) {
         self.addPhoto = addPhoto
-        
+
         self.nameEventTextField = DivoTextField(title: "", prefix: "")
         self.nameEventTextField.textField.attributedPlaceholder = NSAttributedString(
             string: DivoStrings.eventName,

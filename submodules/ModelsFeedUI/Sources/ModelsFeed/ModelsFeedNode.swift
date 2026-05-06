@@ -13,38 +13,7 @@ import AccountContext
 import AppBundle
 
 final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, CardCellDelegate {
-    private final class PaginationSpinnerCell: UICollectionViewCell {
-        private let spinner: UIActivityIndicatorView = {
-            let s = UIActivityIndicatorView(style: .medium)
-            s.color = .black
-            s.hidesWhenStopped = true
-            return s
-        }()
-
-        override init(frame: CGRect) {
-            super.init(frame: frame)
-            backgroundColor = .clear
-            addSubview(spinner)
-        }
-
-        required init?(coder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
-
-        override func layoutSubviews() {
-            super.layoutSubviews()
-            spinner.center = CGPoint(x: bounds.midX, y: bounds.midY)
-        }
-
-        func startAnimating() {
-            spinner.startAnimating()
-        }
-
-        override func prepareForReuse() {
-            super.prepareForReuse()
-            spinner.stopAnimating()
-        }
-    }
+    private static let paginationSpinnerHeight: CGFloat = 60
 
     private weak var controller: ViewController?
     private let context: AccountContext
@@ -105,7 +74,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private var errorView: UIView?
     private var errorIconCenterYConstraint: NSLayoutConstraint?
     private var errorRetryBottomConstraint: NSLayoutConstraint?
-    private var emptyStateView: UIView?
+    private var emptyStateView: DivoEmptyStateView?
 
     var showNetworkError: Bool = false {
         didSet {
@@ -118,11 +87,51 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
+    private let paginationSpinnerView: UIView = {
+        let container = UIView()
+        container.isHidden = true
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.color = .black
+        spinner.startAnimating()
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(spinner)
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        return container
+    }()
+
     var isPaginating: Bool = false {
         didSet {
             guard oldValue != isPaginating else { return }
-            mainCollectionView.reloadData()
+            if isPaginating {
+                mainCollectionView.contentInset.bottom = Self.paginationSpinnerHeight
+                paginationSpinnerView.isHidden = false
+                updatePaginationSpinnerFrame()
+            } else {
+                mainCollectionView.contentInset.bottom = 0
+                paginationSpinnerView.isHidden = true
+            }
         }
+    }
+
+    private func updatePaginationSpinnerFrame() {
+        let width = mainCollectionView.bounds.width
+        let lastIndex = cards.count - 1
+        let y: CGFloat
+        if lastIndex >= 0,
+           let attrs = mainCollectionView.layoutAttributesForItem(at: IndexPath(item: lastIndex, section: 0)) {
+            y = attrs.frame.maxY
+        } else {
+            y = mainCollectionView.contentSize.height
+        }
+        paginationSpinnerView.frame = CGRect(
+            x: 0,
+            y: y,
+            width: width,
+            height: Self.paginationSpinnerHeight
+        )
     }
 
     var isLoading: Bool = false {
@@ -142,9 +151,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     var loadMore: (() -> Void)?
     var onTabSelected: ((Int) -> Void)?
     var onRetry: (() -> Void)?
+    var onPaginationRetry: (() -> Void)?
 
     func updateCards(_ newCards: [CardModel], animated: Bool = false) {
         self.cards = newCards
+        self.isPaginating = false
         if animated {
             mainCollectionView.alpha = 0
             mainCollectionView.reloadData()
@@ -171,11 +182,21 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     func appendCards(_ newCards: [CardModel]) {
         guard !newCards.isEmpty else { return }
         let startIndex = cards.count
-        cards.append(contentsOf: newCards)
-        let indexPaths = (startIndex..<cards.count).map { IndexPath(item: $0, section: 0) }
-        mainCollectionView.performBatchUpdates {
-            mainCollectionView.insertItems(at: indexPaths)
+
+        guard mainCollectionView.window != nil else {
+            cards.append(contentsOf: newCards)
+            mainCollectionView.reloadData()
+            updatePaginationSpinnerFrame()
+            return
         }
+
+        let indexPaths = (startIndex..<startIndex + newCards.count).map { IndexPath(item: $0, section: 0) }
+        mainCollectionView.performBatchUpdates({
+            self.cards.append(contentsOf: newCards)
+            self.mainCollectionView.insertItems(at: indexPaths)
+        }, completion: { [weak self] _ in
+            self?.updatePaginationSpinnerFrame()
+        })
     }
     init(controller: ViewController, context: AccountContext, presentationData: PresentationData) {
         self.controller = controller
@@ -217,7 +238,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.mainCollectionView.showsVerticalScrollIndicator = false
 
         self.mainCollectionView.register(CardCollectionViewCell.self, forCellWithReuseIdentifier: "CardCell")
-        self.mainCollectionView.register(PaginationSpinnerCell.self, forCellWithReuseIdentifier: "PaginationSpinnerCell")
+        self.mainCollectionView.addSubview(self.paginationSpinnerView)
 
         self.titleLabel.text = DivoStrings.navModels
 
@@ -333,7 +354,15 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             mainFlowLayout.minimumLineSpacing = 10
         }
 
-        self.mainCollectionView.contentInset = .zero
+        self.mainCollectionView.contentInset = UIEdgeInsets(
+            top: 0,
+            left: 0,
+            bottom: isPaginating ? Self.paginationSpinnerHeight : 0,
+            right: 0
+        )
+        if isPaginating {
+            updatePaginationSpinnerFrame()
+        }
 
         updateHeaderLayout()
         layoutLoadingPlaceholder()
@@ -478,8 +507,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         if collectionView === storiesCollectionView {
             return stories.count
         } else if collectionView === mainCollectionView {
-            let extra = isPaginating ? 1 : 0
-            return cards.count + extra
+            return cards.count
         }
         return 0
     }
@@ -494,14 +522,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             return cell
 
         } else if collectionView === mainCollectionView {
-            if indexPath.item == cards.count {
-                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PaginationSpinnerCell", for: indexPath) as? PaginationSpinnerCell else {
-                    fatalError("Unable to dequeue PaginationSpinnerCell")
-                }
-                cell.startAnimating()
-                return cell
-            }
-
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CardCell", for: indexPath) as? CardCollectionViewCell else {
                 fatalError("Unable to dequeue CardCollectionViewCell")
             }
@@ -521,11 +541,6 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             return CGSize(width: 70, height: 90)
 
         } else if collectionView === mainCollectionView {
-            if isPaginating && indexPath.item == cards.count {
-                if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
-                    return CGSize(width: flowLayout.itemSize.width, height: 60)
-                }
-            }
             if let flowLayout = collectionViewLayout as? UICollectionViewFlowLayout {
                 return flowLayout.itemSize
             }
@@ -842,7 +857,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             style: .error,
             retryAction: { [weak self] in
                 self?.hideSnackbar(animated: true)
-                self?.loadMore?()
+                self?.onPaginationRetry?()
             },
             persistent: true
         )
@@ -869,7 +884,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         )
     }
 
-    private func hideSnackbar(animated: Bool) {
+    func hideSnackbar(animated: Bool) {
         snackbar.hide(animated: animated)
     }
 
@@ -920,98 +935,42 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private func showEmptyState() {
         guard emptyStateView == nil else { return }
 
-        let container = UIView()
-        container.backgroundColor = .white
-        container.alpha = 0
-
-        let circleSize: CGFloat = 80
-        let circleView = UIView()
-        circleView.backgroundColor = DivoColorPalette.emptyCircleBackground
-        circleView.layer.cornerRadius = circleSize / 2
-        circleView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(circleView)
-
-        let iconLabel = UILabel()
-        iconLabel.text = selectedTabIndex == 0 ? "♡" : "☰"
-        iconLabel.font = .systemFont(ofSize: 32)
-        iconLabel.textColor = DivoColorPalette.emptyIconTint
-        iconLabel.textAlignment = .center
-        iconLabel.translatesAutoresizingMaskIntoConstraints = false
-        circleView.addSubview(iconLabel)
-
-        let titleLabel = UILabel()
-        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
-        titleLabel.textColor = DivoColorPalette.emptyPrimaryDark
-        titleLabel.textAlignment = .center
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
-
-        let subtitleLabel = UILabel()
-        subtitleLabel.font = .systemFont(ofSize: 14)
-        subtitleLabel.textColor = DivoColorPalette.emptySubtitleLight
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(subtitleLabel)
+        let config: DivoEmptyStateView.Configuration
 
         switch selectedTabIndex {
-        case 0:
-            titleLabel.text = DivoStrings.noSubscriptionsYet
-            subtitleLabel.text = DivoStrings.noSubscriptionsSubtitle
+        case 1:
+            config = .init(
+                style: .smallOnTinted(icon: DivoImage.emptyModelsAgency),
+                title: DivoStrings.noNewTalentsTitle,
+                subtitle: DivoStrings.noNewTalentsSubtitle
+            )
         case 2:
-            titleLabel.text = DivoStrings.noResults
-            subtitleLabel.text = DivoStrings.noResultsSubtitle
+            config = .init(
+                style: .smallOnTinted(icon: DivoImage.emptyModelsAgency),
+                title: DivoStrings.noAgenciesTitle,
+                subtitle: DivoStrings.noAgenciesSubtitle
+            )
         default:
-            titleLabel.text = DivoStrings.noUsersFound
-            subtitleLabel.text = DivoStrings.noUsersFoundSubtitle
+            config = .init(
+                style: .smallOnTinted(icon: DivoImage.emptyModelsAgency),
+                title: DivoStrings.noModelsTitle,
+                subtitle: DivoStrings.noModelsSubtitle
+            )
         }
 
-        NSLayoutConstraint.activate([
-            circleView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            circleView.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -50),
-            circleView.widthAnchor.constraint(equalToConstant: circleSize),
-            circleView.heightAnchor.constraint(equalToConstant: circleSize),
+        let emptyView = DivoEmptyStateView()
+        emptyView.backgroundColor = DivoColorPalette.screenBackground
+        emptyView.configure(config)
 
-            iconLabel.centerXAnchor.constraint(equalTo: circleView.centerXAnchor),
-            iconLabel.centerYAnchor.constraint(equalTo: circleView.centerYAnchor),
-
-            titleLabel.topAnchor.constraint(equalTo: circleView.bottomAnchor, constant: 20),
-            titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
-            subtitleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
-            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
-        ])
-
-        self.view.addSubview(container)
-        emptyStateView = container
+        self.view.addSubview(emptyView)
+        emptyStateView = emptyView
 
         if let (layout, navigationBarHeight) = containerLayout {
             let topOffset = navigationBarHeight + storiesHeight + tabsHeight
-            container.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+            emptyView.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
         }
 
-        circleView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
-        titleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        subtitleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        titleLabel.alpha = 0
-        subtitleLabel.alpha = 0
-
-        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: []) {
-            container.alpha = 1
-            circleView.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.1, options: [.curveEaseOut]) {
-            titleLabel.alpha = 1
-            titleLabel.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.15, options: [.curveEaseOut]) {
-            subtitleLabel.alpha = 1
-            subtitleLabel.transform = .identity
-        }
+        emptyView.animateAppearance()
     }
 
     private func hideEmptyState() {

@@ -8,10 +8,12 @@ public final class DivoButton: UIButton {
     private static let buttonFont = Font.helveticaNeue(20)
     private static let kern: CGFloat = 18 * 0.005 // 0.5 %
     private static let buttonHeight: CGFloat = 56
+    private static let compactButtonHeight: CGFloat = 40
     private static let cornerRadius: CGFloat = 28 // TODO: DS alignment — не в шкале Radius
-    
+
     private var normalTitle: String?
     private var loadingTitle: String?
+    private var heightConstraint: NSLayoutConstraint?
     
     // MARK: - Subviews
 
@@ -51,12 +53,37 @@ public final class DivoButton: UIButton {
     public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil) {
         normalTitle = title
         loadingTitle = loading
-        
+
         applyNormalTitle(buttonFont: buttonFont)
         applyDisabledTitle(buttonFont: buttonFont)
-        
+
         guard let radius = radius else { return }
         layer.cornerRadius = radius
+    }
+
+    public func makeDivoButton(
+        title: String,
+        leadingIcon: UIImage,
+        loading: String? = nil,
+        buttonFont: UIFont = Font.helveticaNeue(20),
+        radius: CGFloat? = nil,
+        compact: Bool = false
+    ) {
+        if compact {
+            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius ?? Self.compactButtonHeight / 2)
+            heightConstraint?.constant = Self.compactButtonHeight
+            contentEdgeInsets = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 24)
+        } else {
+            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius)
+        }
+
+        let templated = leadingIcon.withRenderingMode(.alwaysTemplate)
+        setImage(templated, for: .normal)
+        setImage(templated, for: .highlighted)
+        tintColor = DivoColorPalette.primaryTextOnDark
+        let gap = DivoDesignTokens.Spacing.xs
+        imageEdgeInsets = UIEdgeInsets(top: 0, left: -gap, bottom: 0, right: gap)
+        titleEdgeInsets = UIEdgeInsets(top: 0, left: gap, bottom: 0, right: -gap)
     }
     
     // MARK: - Setup
@@ -67,8 +94,10 @@ public final class DivoButton: UIButton {
         layer.cornerRadius = Self.cornerRadius
 
         contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right:  DivoDesignTokens.Spacing.m)
-        
-        heightAnchor.constraint(equalToConstant: Self.buttonHeight).isActive = true
+
+        let h = heightAnchor.constraint(equalToConstant: Self.buttonHeight)
+        h.isActive = true
+        heightConstraint = h
 
         addSubview(spinner)
         addSubview(savingLabel)

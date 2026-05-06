@@ -12,6 +12,7 @@ public enum DivoConfig {
 
     public static let tokenDidChangeNotification = Notification.Name("DivoConfig.tokenDidChange")
     public static let roleDidChangeNotification = Notification.Name("DivoConfig.roleDidChange")
+    public static let profileDidUpdateNotification = Notification.Name("DivoConfig.profileDidUpdate")
 
     // MARK: - User Roles
 
@@ -33,8 +34,8 @@ public enum DivoConfig {
 
     public static var currentUserRole: UserRole {
         get {
-            let rawValue = UserDefaults.standard.string(forKey: roleKey) ?? UserRole.model.rawValue
-            return UserRole(rawValue: rawValue) ?? .model
+            let rawValue = UserDefaults.standard.string(forKey: roleKey) ?? UserRole.agency.rawValue
+            return UserRole(rawValue: rawValue) ?? .agency
         }
         set {
             let oldValue = currentUserRole

@@ -58,6 +58,8 @@ public final class FaceSearchHistoryController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
+        let items = FaceSearchHistoryStorage.shared.loadAll()
+        self.historyNode?.updateItems(items)
     }
 
     private var historyNode: FaceSearchHistoryScreenNode? {
@@ -232,15 +234,13 @@ private final class FaceSearchHistoryScreenNode: ASDisplayNode, UITableViewDataS
         if empty {
             let searchIcon = UIImage(systemName: "magnifyingglass", withConfiguration: UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)) ?? UIImage()
             emptyStateView.configure(DivoEmptyStateView.Configuration(
-                icon: searchIcon,
+                style: .smallOnTinted(icon: searchIcon),
                 title: DivoStrings.faceSearchHistoryNoSearchesTitle,
                 subtitle: DivoStrings.faceSearchHistoryNoSearchesSubtitle,
                 ctaTitle: DivoStrings.faceSearchHistoryStartSearch,
                 onCTATapped: { [weak self] in
                     self?.onStartSearch?()
-                },
-                iconSize: 24,
-                circleSize: 68
+                }
             ))
             emptyStateView.animateAppearance()
         }

@@ -38,11 +38,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private static let mockBiographyText = DivoStrings.noBiography
     private static let mockBiographyMyProfileText = DivoStrings.fillInInfoAboutYou
     private let model: ProfileModel
+    private var modelDetail: UserDetail?
     private var modelRole: Role = .model
     /// myProfile, но НЕ agency (у agency свой набор табов)
     private var isMyModelProfile: Bool {
         model.isMyProfile && modelRole != .agency
     }
+    private var avatarImage: UIImage?
+
     private weak var controller: ViewController?
     private let context: AccountContext
     private var presentationData: PresentationData
@@ -54,11 +57,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Управление моментом, когда начинаем анимировать title в навбаре
     private var titleVisibilityActivated = false
+    private var isPerformingLayout = false
     
     private var headerHeightConstraint: NSLayoutConstraint!
     private var socialHeightConstraint: NSLayoutConstraint!
     private let iconPlaceholder = "HeartActionIcon"
-    private let fixedHeaderHeight: CGFloat = 540.0
+    private let fixedHeaderHeight: CGFloat = 570.0
     private let fixedProfileHeaderHeight: CGFloat = 240.0
     
     private let scrollView: UIScrollView = {
@@ -67,6 +71,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         scrollView.backgroundColor = .clear
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.showsVerticalScrollIndicator = false
+        scrollView.clipsToBounds = false
         return scrollView
     }()
     
@@ -86,13 +91,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }()
     
     private let blurredHeaderImageView: UIVisualEffectView = {
-        let effect = UIBlurEffect(style: .systemChromeMaterialDark)
+        let effect = UIBlurEffect(style: .systemUltraThinMaterialDark)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isUserInteractionEnabled = false
         return view
     }()
-    
+
     private let headerImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -102,30 +107,27 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return iv
     }()
 
-    private let headerSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = .white
-        spinner.hidesWhenStopped = true
+
+    private let headerSpinner: DivoSegmentedSpinner = {
+        let spinner = DivoSegmentedSpinner(color: DivoColorPalette.cardBackground)
         spinner.translatesAutoresizingMaskIntoConstraints = false
+        spinner.isUserInteractionEnabled = false
+        spinner.isHidden = true
         return spinner
     }()
     
-    var currentPhoto: UIImage? = nil {
-        didSet {
-            if let currentPhoto = self.currentPhoto {
-                profileHeaderView.changeAvatar(with: currentPhoto)
-            } else {
-                profileHeaderView.changeAvatar(with: nil)
-            }
-        }
-    }
-    
     // MARK: - Profile Header Section
+
+    private let profileHeaderWrapper: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
     private lazy var infoStack: UIStackView = {
         let infoStack = UIStackView()
         infoStack.axis = .vertical
-        infoStack.alignment = .leading
+        infoStack.alignment = .fill
         infoStack.spacing = 0
         infoStack.translatesAutoresizingMaskIntoConstraints = false
         return infoStack
@@ -140,8 +142,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private lazy var counterActionsStack: UIStackView = {
         let stack = UIStackView()
-        stack.axis = .horizontal
+        stack.axis = .vertical
         stack.distribution = .fillEqually
+        stack.spacing = 10
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.setContentCompressionResistancePriority(.required, for: .horizontal)
         return stack
@@ -158,16 +161,75 @@ final class PublicProfileScreenNode: ASDisplayNode {
         actionsShimmerView.translatesAutoresizingMaskIntoConstraints = false
         return actionsShimmerView
     }()
-    
+
+    private let sendShareContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = false
+        return view
+    }()
+
+    private lazy var dmShareStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.distribution = .fill 
+        stack.alignment = .center
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.isHidden = true
+        return stack
+    }()
+
+    private lazy var dmShareShimmerStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.distribution = .fill 
+        stack.alignment = .center
+        stack.spacing = 0
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private let shareButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.share
+        button.setImage(image, for: .normal)
+        button.tintColor = DivoColorPalette.cardBackground
+
+        button.backgroundColor = DivoColorPalette.statPillBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        button.layer.masksToBounds = true
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let shareShimmerButton: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.statPillForeground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private let dmButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = .black.withAlphaComponent(0.15)
-        button.layer.cornerRadius = 6
-        button.layer.borderWidth = 0.0
-        button.layer.borderColor = UIColor.clear.cgColor
+        button.backgroundColor = DivoColorPalette.statPillBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        button.layer.masksToBounds = true
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.isHidden = true
         return button
+    }()
+
+    private let dmShimmerButton: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.statPillForeground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
     }()
 
     private enum ActionViewTags {
@@ -178,23 +240,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
         static let counterCountLabel = 9_202
         static let counterNameLabel = 9_203
     }
-    
-    private let likesView: UIControl = {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        return control
+
+    private let likesView: StatPillView = {
+        let pill = StatPillView(icon: DivoImage.statLike, filledIcon: DivoImage.statLikeFilled)
+        pill.isUserInteractionEnabled = true
+        return pill
     }()
-    
-    private let viewsView: UIControl = {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        return control
-    }()
-    
-    private let savesView: UIControl = {
-        let control = UIControl()
-        control.translatesAutoresizingMaskIntoConstraints = false
-        return control
+    private let viewsView = StatPillView(icon: DivoImage.statView)
+    private let savesView: StatPillView = {
+        let pill = StatPillView(icon: DivoImage.statSave, filledIcon: DivoImage.statSaveFilled)
+        pill.isUserInteractionEnabled = true
+        return pill
     }()
     
     
@@ -211,7 +267,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             biography: model.biography.isEmpty ? Self.mockBiographyText : model.biography,
             appearance: []
         )
-        view.layer.cornerRadius = 6
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
         view.delegate = self
@@ -220,57 +275,24 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private let profileInfoShimmerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 6
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
-    
-    // MARK: - Current Agency Section
-    
-    private let currentAgencyContainer: UIView = {
+
+    private let profileSegmentedInfoShimmerView: UIView = {
         let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
-    
-    private lazy var currentAgencyView: CurrentAgencyView = {
-        let view = CurrentAgencyView()
-        view.delegate = self
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let currentAgencyShimmerView: UIView = {
+
+    private let profileScrollInfoShimmerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .white.withAlphaComponent(0.1)
-        view.layer.cornerRadius = 6
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
-    }()
-    
-    
-    // MARK: - Work History Section
-    
-    private let addWorkHistoryContainer: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
-    private let addWorkHistoryButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle(DivoStrings.addWorkHistory, for: .normal)
-        button.setTitleColor(.white.withAlphaComponent(0.88), for: .normal)
-        button.titleLabel?.font = Font.helveticaNeue(13)
-        button.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
-        button.contentHorizontalAlignment = .left
-        button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
-        button.backgroundColor = .black.withAlphaComponent(0.15)
-        button.layer.cornerRadius = 6
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
     }()
     
     
@@ -300,7 +322,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let button = UIButton(type: .system)
         button.titleLabel?.font = Font.helveticaNeue(10)
         button.titleLabel?.heightAnchor.constraint(greaterThanOrEqualToConstant: 20).isActive = true
-        button.setTitleColor(.white, for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryText, for: .normal)
         button.setTitle(DivoStrings.editLinks, for: .normal)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -308,8 +330,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let editLinksLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(14)
-        label.textColor = .white
+        label.font = Font.medium(12)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = DivoStrings.myLinks
@@ -341,7 +363,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let view = ProfileSegmentedBar()
         view.delegate = self
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = UIColor.black.withAlphaComponent(0.12)
+        return view
+    }()
+    
+    private let segmentedBarContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
@@ -352,20 +379,28 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return view
     }()
     
+    private let segmentedBarShimmer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
     private var segmentedBarTopConstraint: NSLayoutConstraint?
-    private let segmentedBarHeight: CGFloat = 40.0
+    private let segmentedBarHeight: CGFloat = 32.0
     
     
     // MARK: - Gallery Collections Section
     
     private let collectionsContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .clear
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.clipsToBounds = true
         return view
     }()
-    
+
     
     // MARK: - Tabs & Swipe Logic Variables
     
@@ -491,7 +526,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         layout.minimumInteritemSpacing = 0
         layout.minimumLineSpacing = 0
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .white
+        collectionView.backgroundColor = DivoColorPalette.cardBackground
         collectionView.register(ChannelListCell.self, forCellWithReuseIdentifier: ChannelListCell.reuseIdentifier)
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -518,7 +553,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         layout.minimumInteritemSpacing = 0
         layout.minimumLineSpacing = 0
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .white
+        collectionView.backgroundColor = DivoColorPalette.cardBackground
         collectionView.register(ModelListCell.self, forCellWithReuseIdentifier: ModelListCell.reuseIdentifier)
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -545,7 +580,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         layout.minimumInteritemSpacing = 0
         layout.minimumLineSpacing = 0
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collectionView.backgroundColor = .white
+        collectionView.backgroundColor = DivoColorPalette.cardBackground
         collectionView.register(EventListCell.self, forCellWithReuseIdentifier: EventListCell.reuseIdentifier)
         collectionView.delegate = self
         collectionView.dataSource = self
@@ -561,17 +596,25 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }()
     
     
+    // MARK: - Bottom Spacer
+
+    private let bottomSpacer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.profileEmptyBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    private lazy var bottomSpacerHeightConstraint: NSLayoutConstraint = bottomSpacer.heightAnchor.constraint(equalToConstant: 46)
+
+
     // MARK: - Similar Profiles Section
-    
+
     private var similarProfiles: [SimilarProfileItem] = []
-    private var similarProfilesTotalCount: Int = 0
-    private var similarProfilesOffset: Int = 0
-    private var similarProfilesHasMore: Bool = true
     private var similarProfilesIsLoading: Bool = false
     
     private let similarProfilesCollectionContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.profileEmptyBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         return view
@@ -580,10 +623,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private let similarProfilesTitleLabel: UILabel = {
         let label = UILabel()
         label.text = DivoStrings.similarProfiles
-        label.font = Font.helveticaNeue(18)
+        label.font = Font.helveticaNeue(16)
         label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 30).isActive = true
+        label.heightAnchor.constraint(greaterThanOrEqualToConstant: 28).isActive = true
         return label
     }()
     
@@ -597,6 +640,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         cv.backgroundColor = .clear
         cv.showsHorizontalScrollIndicator = false
         cv.register(SimilarProfileCell.self, forCellWithReuseIdentifier: SimilarProfileCell.reuseIdentifier)
+        cv.register(SimilarProfileShimmerCell.self, forCellWithReuseIdentifier: SimilarProfileShimmerCell.reuseIdentifier)
         cv.dataSource = self
         cv.delegate = self
         cv.translatesAutoresizingMaskIntoConstraints = false
@@ -610,12 +654,32 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onViewsTapped: (() -> Void)?
     var onSavesTapped: (() -> Void)?
     var onEditLinksTapped: (() -> Void)?
-    var onAddPhotoTapped: (() -> Void)?
-    var onAddVideoTapped: (() -> Void)?
     var onAddEventTapped: (() -> Void)?
     var onGalleryItemTapped: ((ProfileTab, Int) -> Void)?
     var onSocialLinkTapped: ((String) -> Void)?
     var onEventButtonTapped: ((Int) -> Void)?
+    var onEventDeleteButtonTapped: ((Int) -> Void)?
+    var onBackTapped: (() -> Void)?
+    var onGridShareTapped: ((UserDetail?, UIImage?) -> Void)?
+    
+    var onFaceScanTapped: (() -> Void)?
+    var onReportProfileTapped: (() -> Void)?
+    var onBlockTapped: (() -> Void)?
+
+    var onEditProfileTapped: ((Int) -> Void)?
+    var onChangeBackgroundTapped: (() -> Void)?
+    var onEditSocialLinksTapped: (() -> Void)?
+    var onManageWorkExperienceTapped: (() -> Void)?
+    var onAddModelTapped: (() -> Void)?
+    var onCreateEventTapped: (() -> Void)?
+    var onAddVideoTapped: ((Bool) -> Void)?
+    var onAddPhotoTapped: ((Bool) -> Void)?
+    var onAddChannelTapped: (() -> Void)?
+
+    var storiesButtonTapped: (() -> Void)?
+    var onAddWorkExperienceTapped: (() -> Void)?
+    var onSimilarProfileTapped: ((SimilarProfileItem) -> Void)?
+    var onModelAgencyTapped: ((ModelItem) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -643,11 +707,187 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
 
-    var onAddModelTapped: (() -> Void)?
-    private let emptyModelsPlaceholderNode: EmptyModelsPlaceholderNode
+    // MARK: - Profile tab empty states
+
+    private let photoEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let videoEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let channelsEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let modelsEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    private let eventsEmptyView: DivoEmptyStateView = {
+        let view = DivoEmptyStateView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    // MARK: - NavigationBar
     
-    var onAddWorkExperienceTapped: (() -> Void)?
+    private let customNavBar: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
+    private let closeButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.searchChevronLeft
+        button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
+        button.tintColor = DivoColorPalette.cardBackground
+
+        button.backgroundColor = .clear
+        button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        button.layer.masksToBounds = true
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let rightButtonContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        view.layer.masksToBounds = true
+        view.layer.borderWidth = 0.5
+        view.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let rightButtonsStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = DivoDesignTokens.Spacing.xs
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private let storiesButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.stories
+        button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
+        button.tintColor = DivoColorPalette.cardBackground
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let editButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.profileEditAction
+        button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
+        button.tintColor = DivoColorPalette.cardBackground
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let moreButton: UIButton = {
+        let button = UIButton(type: .custom)
+        let image = DivoImage.moreActionIcon
+        button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
+        button.tintColor = DivoColorPalette.cardBackground
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let whiteSheetBackground: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.screenBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let floatingAddButton: DivoButton = {
+        let button = DivoButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.layer.applyDivoShadow(opacity: DivoDesignTokens.Shadow.opacityMedium)
+        button.isHidden = true
+        return button
+    }()
+
+    private var currentLikesCount: Int = 0
+    private var currentIsLiked: Bool = false
+    private var isLikingProcess: Bool = false
+    
+    private var currentSavesCount: Int = 0
+    private var currentIsSaved: Bool = false
+    private var isSavingProcess: Bool = false
+
+    private let navBarBlurView: UIVisualEffectView = {
+        let effect = UIBlurEffect(style: .systemUltraThinMaterialLight)
+        let view = UIVisualEffectView(effect: effect)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.alpha = 0.0
+        view.isUserInteractionEnabled = false
+        return view
+    }()
+
+    private let navBarWhiteGradientLayer = CAGradientLayer()
+
+    // Полноэкранный контейнер для перехвата нажатий
+    private let uploadOverlayContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.clear
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        view.alpha = 0.0
+        return view
+    }()
+    
+    private let uploadOverlayView: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = 6
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let uploadOverlaySpinner: DivoSegmentedSpinner = {
+        let spinner = DivoSegmentedSpinner()
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        spinner.isUserInteractionEnabled = false
+        return spinner
+    }()
+    
+    private let uploadOverlayLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(10)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+
     // MARK: - Init
     
     init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel) {
@@ -655,16 +895,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.context = context
         self.presentationData = presentationData
         self.model = model
-        self.emptyModelsPlaceholderNode = EmptyModelsPlaceholderNode(theme: presentationData.theme)
 
         super.init()
         
-        self.view.backgroundColor = .black
+        self.view.backgroundColor = DivoColorPalette.darkBackground
 
         setupContent()
         configureNodes()
         segmentedBar.configure(isAgency: model.role == "agency_employee", isMyProfile: model.isMyProfile, animated: false)
-        loadSimilarProfiles()
     }
     
     required init?(coder: NSCoder) {
@@ -676,27 +914,48 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     override func layout() {
         super.layout()
-        
-        guard let (layout, _) = self.containerLayout else { return }
-        
+
+        guard !isPerformingLayout else { return }
+        isPerformingLayout = true
+        defer { isPerformingLayout = false }
+
+        guard let (layout, navigationBarHeight) = self.containerLayout else { return }
+
         let stackWidth = layout.size.width
-        
+
         contentViewStack.layoutIfNeeded()
-        
-        let contentHeight = contentViewStack.systemLayoutSizeFitting(
+
+        var contentHeight = contentViewStack.systemLayoutSizeFitting(
             CGSize(width: stackWidth, height: UIView.layoutFittingCompressedSize.height),
             withHorizontalFittingPriority: .required,
             verticalFittingPriority: .fittingSizeLevel
         ).height
-        
+
+        let scrollViewHeight = layout.size.height - navigationBarHeight
+        let collapseOffset = segmentedBarContainer.frame.minY
+        if collapseOffset > 0, scrollViewHeight > 0 {
+            let minContentHeight = collapseOffset + scrollViewHeight
+            let currentSpacerHeight = bottomSpacer.isHidden ? 0 : bottomSpacerHeightConstraint.constant
+            let contentWithoutSpacer = contentHeight - currentSpacerHeight
+            let bottomSafeInset = layout.intrinsicInsets.bottom
+            let neededSpacerHeight = max(bottomSafeInset + 12, minContentHeight - contentWithoutSpacer)
+            if !bottomSpacer.isHidden, abs(neededSpacerHeight - currentSpacerHeight) > 1.0 {
+                bottomSpacerHeightConstraint.constant = neededSpacerHeight
+                contentHeight = contentWithoutSpacer + neededSpacerHeight
+            }
+        }
+
         contentViewStack.frame = CGRect(x: 0, y: 0, width: stackWidth, height: contentHeight)
         scrollView.contentSize = CGSize(width: stackWidth, height: contentHeight)
         
         applyGradientBlurMask()
+        updateNavBarBlurMask()
         
         if !profileInfoShimmerView.isHidden {
-            profileInfoShimmerView.stopShimmering()
-            profileInfoShimmerView.startShimmering()
+            profileSegmentedInfoShimmerView.stopShimmering()
+            profileScrollInfoShimmerView.stopShimmering()
+            profileSegmentedInfoShimmerView.startShimmering()
+            profileScrollInfoShimmerView.startShimmering()
         }
         
         if !actionsShimmerView.isHidden {
@@ -706,10 +965,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if !socialShimmerView.isHidden {
             socialShimmerView.startAnimation()
         }
+
+        if !segmentedBarShimmer.isHidden {
+            segmentedBarShimmer.stopShimmering()
+            segmentedBarShimmer.startShimmering()
+        }
         
-        if !currentAgencyShimmerView.isHidden {
-            currentAgencyShimmerView.stopShimmering()
-            currentAgencyShimmerView.startShimmering()
+        if !dmShareShimmerStack.isHidden {
+            dmShimmerButton.stopShimmering()
+            dmShimmerButton.startShimmering()
+            shareShimmerButton.stopShimmering()
+            shareShimmerButton.startShimmering()
         }
         
         updateSegmentedBarPosition()
@@ -718,7 +984,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     override func didLoad() {
         super.didLoad()
         
-        if model.isMyProfile {
+        if !model.isMyProfile {
             dmButton.addTarget(self, action: #selector(dmButtonTapped), for: .touchUpInside)
         }
     }
@@ -728,39 +994,264 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private func setupContent() {
         setupHeaderImageView()
-        setupBlurredHeaderImageView()
-        setupScrollView()
+        setupScrollView()        
+        setupTopBlur()            
+        setupCustomNavBar()        
         setupContentViewStack()
-        setupSegmentedBar()
+        setupSegmentedBar()      
         setupContentLayout()
         setupAllCollectionsLayers()
         setupSimilarProfiles()
     }
     
+    private func setupTopBlur() {
+        view.addSubview(navBarBlurView)
+        
+        NSLayoutConstraint.activate([
+            navBarBlurView.topAnchor.constraint(equalTo: view.topAnchor),
+            navBarBlurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navBarBlurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            navBarBlurView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 280)
+        ])
+    }
+    
+    private func updateNavBarBlurMask() {
+        let bounds = navBarBlurView.bounds
+        guard bounds.height > 0 else { return }
+        
+        // 1. ЦВЕТОВОЙ ГРАДИЕНТ (Linear Gradient из Figma)
+        if navBarWhiteGradientLayer.superlayer == nil {
+            navBarBlurView.contentView.layer.insertSublayer(navBarWhiteGradientLayer, at: 0)
+        }
+        navBarWhiteGradientLayer.frame = bounds
+        navBarWhiteGradientLayer.colors = [
+            UIColor.white.withAlphaComponent(0.74).cgColor,
+            UIColor.white.withAlphaComponent(0.70).cgColor,
+            UIColor.white.withAlphaComponent(0.20).cgColor,
+            UIColor.clear.cgColor
+        ]
+
+        navBarWhiteGradientLayer.locations = [
+            0.0,
+            0.15,
+            0.45,
+            0.70
+        ]
+
+        let maskLayer = CAGradientLayer()
+        maskLayer.frame = bounds
+
+        maskLayer.colors = [
+            UIColor.black.cgColor,
+            UIColor.black.cgColor,
+            UIColor.black.withAlphaComponent(0.4).cgColor,
+            UIColor.clear.cgColor
+        ]
+
+        maskLayer.locations = [
+            0.0,
+            0.22,
+            0.50,
+            0.75
+        ]
+        
+        navBarBlurView.layer.mask = maskLayer
+    }
+
+
+    private func addPillBlur(to view: UIView) {
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        blur.isUserInteractionEnabled = false
+        view.insertSubview(blur, at: 0)
+        NSLayoutConstraint.activate([
+            blur.topAnchor.constraint(equalTo: view.topAnchor),
+            blur.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        if let button = view as? UIButton, let imageView = button.imageView {
+            button.bringSubviewToFront(imageView)
+        }
+    }
+
+    private func setupCustomNavBar() {
+        view.addSubview(customNavBar)
+
+        customNavBar.addSubview(closeButton)
+        customNavBar.addSubview(rightButtonContainer)
+
+        addPillBlur(to: closeButton)
+        addPillBlur(to: rightButtonContainer)
+
+        rightButtonContainer.addSubview(rightButtonsStack)
+        rightButtonsStack.addArrangedSubview(storiesButton)
+        rightButtonsStack.addArrangedSubview(editButton)
+        rightButtonsStack.addArrangedSubview(moreButton)
+        
+        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        closeButton.addDivoPressState(.pill)
+        
+        storiesButton.addTarget(self, action: #selector(storiesTapped), for: .touchUpInside)
+        storiesButton.addDivoPressState(.pill)
+        
+        NSLayoutConstraint.activate([
+            customNavBar.topAnchor.constraint(equalTo: view.topAnchor),
+            customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            customNavBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 52),
+            
+            closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            closeButton.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
+            closeButton.widthAnchor.constraint(equalToConstant: 40),
+            closeButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            rightButtonContainer.trailingAnchor.constraint(equalTo: customNavBar.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            rightButtonContainer.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
+            rightButtonContainer.heightAnchor.constraint(equalToConstant: 40),
+            
+            rightButtonsStack.leadingAnchor.constraint(equalTo: rightButtonContainer.leadingAnchor),
+            rightButtonsStack.trailingAnchor.constraint(equalTo: rightButtonContainer.trailingAnchor),
+            rightButtonsStack.topAnchor.constraint(equalTo: rightButtonContainer.topAnchor),
+            rightButtonsStack.bottomAnchor.constraint(equalTo: rightButtonContainer.bottomAnchor),
+            
+            storiesButton.widthAnchor.constraint(equalToConstant: 40),
+            storiesButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            editButton.widthAnchor.constraint(equalToConstant: 40),
+            editButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            moreButton.widthAnchor.constraint(equalToConstant: 40),
+            moreButton.heightAnchor.constraint(equalToConstant: 40),
+        ])
+        
+        if !model.isMyProfile {
+            storiesButton.isHidden = true
+            editButton.isHidden = true
+        } else {
+            moreButton.isHidden = true
+        }
+    }
+
+    private func setupMoreMenu() {
+        moreButton.adjustsImageWhenHighlighted = false
+        moreButton.addDivoPressState(.pill)
+
+        if #available(iOS 14.0, *) {
+            let faceScanAction = UIAction(
+                title: DivoStrings.findSimilar,
+                image: DivoImage.faceScanBlack,
+            ) {[weak self] _ in
+                self?.onFaceScanTapped?()
+            }
+
+            let reportAction = UIAction(
+                title: DivoStrings.reportProfile,
+                image: DivoImage.report,
+            ) { [weak self] _ in
+                self?.onReportProfileTapped?()
+            }
+            
+            let blockAction = UIAction(
+                title: DivoStrings.blockUser,
+                image: DivoImage.block,
+                attributes: .destructive
+            ) { [weak self] _ in
+                self?.onBlockTapped?()
+            }
+            
+            if modelRole == .agency {
+                let menu = UIMenu(title: "", children: [reportAction, blockAction])
+                moreButton.menu = menu
+            } else {
+                let menu = UIMenu(title: "", children: [faceScanAction, reportAction, blockAction])
+                moreButton.menu = menu
+            }
+            
+            moreButton.showsMenuAsPrimaryAction = true
+        }
+    }
+
+    private func setupEditMenu(isMyProfile: Bool) {
+        editButton.adjustsImageWhenHighlighted = false
+        editButton.addDivoPressState(.pill)
+
+        if #available(iOS 14.0, *) {
+            let editProfileAction = UIAction(
+                title: DivoStrings.editProfile,
+                image: nil,
+            ) {[weak self] _ in
+                self?.onEditProfileTapped?(0)
+            }
+            
+            let changeBackgroundAction = UIAction(
+                title: DivoStrings.changeBackground,
+                image: nil,
+            ) { [weak self] _ in
+                self?.onChangeBackgroundTapped?()
+            }
+
+            let editSocialLinksAction = UIAction(
+                title: DivoStrings.editSocialLinksMenu,
+                image: nil,
+            ) { [weak self] _ in
+                self?.onEditSocialLinksTapped?()
+            }
+
+            let manageWorkExperienceAction = UIAction(
+                title: DivoStrings.manageWorkExperience,
+                image: nil,
+            ) { [weak self] _ in
+                self?.onManageWorkExperienceTapped?()
+            }
+
+            guard isMyProfile else { return }
+
+            if modelRole == .agency {
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction])
+                editButton.menu = menu
+            } else {
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
+                editButton.menu = menu
+            }
+
+            editButton.showsMenuAsPrimaryAction = true
+        }
+    }
+
+    private func animateNavBarButton(_ button: UIButton) {
+        UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseOut, animations: {
+            button.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
+            button.alpha = 0.6
+        }) { _ in
+            UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseOut, animations: {
+                button.transform = .identity
+                button.alpha = 1.0
+            })
+        }
+    }
+
     private func setupHeaderImageView() {
         self.view.addSubview(headerImageView)
-        
+        self.view.addSubview(headerSpinner)
+
         NSLayoutConstraint.activate([
             headerImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
             headerImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             headerImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             headerImageView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-        ])
-    }
-    
-    private func setupBlurredHeaderImageView() {
-        self.view.addSubview(blurredHeaderImageView)
-        
-        NSLayoutConstraint.activate([
-            blurredHeaderImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
-            blurredHeaderImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            blurredHeaderImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            blurredHeaderImageView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+
+            headerSpinner.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            headerSpinner.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 200),
+            headerSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            headerSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
         ])
     }
     
     private func setupScrollView() {
         self.view.addSubview(scrollView)
+
+        scrollView.addSubview(whiteSheetBackground) 
         
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
@@ -790,9 +1281,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.view.addSubview(segmentedBar)
         
         NSLayoutConstraint.activate([
-            segmentedBar.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            segmentedBar.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            segmentedBar.heightAnchor.constraint(equalToConstant: segmentedBarHeight)
+            segmentedBar.centerXAnchor.constraint(equalTo: contentViewStack.centerXAnchor),
+            segmentedBar.heightAnchor.constraint(equalToConstant: segmentedBarHeight),
         ])
         
         segmentedBarTopConstraint = segmentedBar.topAnchor.constraint(equalTo: self.view.topAnchor)
@@ -800,41 +1290,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     private func setupContentLayout() {
-        setupHeaderContainer()
         setupCounterActionsContainer()
+        setupProfileHeaderContainer()
+        setupSendShareContainer()
         setupProfileInfoContainer()
-        setupCurrentAgencyContainer()
-        setupAddWorkHistoryContainer()
         setupSocialMediaContainer()
         setupSegmentedBarPlaceholder()
+        setupMovingBlur()
+        setupFloatingButton()
+        setupUploadOverlay()
     }
-    
-    private func setupHeaderContainer() {
-        contentViewStack.addArrangedSubview(headerContainer)
-        headerHeightConstraint = headerContainer.heightAnchor.constraint(equalToConstant: fixedHeaderHeight)
-        headerHeightConstraint.isActive = true
-        
-        headerContainer.addSubview(infoStack)
-        headerContainer.addSubview(headerSpinner)
-        infoStack.addArrangedSubview(profileHeaderView)
-        // Шиммер как overlay поверх profileHeaderView (не arranged subview),
-        // чтобы избежать UIStackView-анимации при переключении isHidden
-        profileHeaderShimmerView.translatesAutoresizingMaskIntoConstraints = false
-        infoStack.addSubview(profileHeaderShimmerView)
+
+    private func setupMovingBlur() {
+        scrollView.insertSubview(blurredHeaderImageView, at: 0)
         
         NSLayoutConstraint.activate([
-            headerContainer.widthAnchor.constraint(equalTo: contentViewStack.widthAnchor),
+            blurredHeaderImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            blurredHeaderImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             
-            headerSpinner.centerXAnchor.constraint(equalTo: headerContainer.centerXAnchor),
-            headerSpinner.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor, constant: -150),
-
-            infoStack.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 16),
-            infoStack.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
-            infoStack.heightAnchor.constraint(equalToConstant: 85),
-            profileHeaderShimmerView.leadingAnchor.constraint(equalTo: infoStack.leadingAnchor),
-            profileHeaderShimmerView.trailingAnchor.constraint(equalTo: infoStack.trailingAnchor),
-            profileHeaderShimmerView.topAnchor.constraint(equalTo: infoStack.topAnchor),
-            profileHeaderShimmerView.bottomAnchor.constraint(equalTo: infoStack.bottomAnchor),
+            blurredHeaderImageView.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor, constant: -40),
+            blurredHeaderImageView.bottomAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: -20)
         ])
     }
     
@@ -843,97 +1318,197 @@ final class PublicProfileScreenNode: ASDisplayNode {
         counterActionsContainer.addSubview(actionsShimmerView)
         counterActionsContainer.addSubview(counterActionsStack)
         
-        counterActionsStack.addArrangedSubview(dmButton)
         counterActionsStack.addArrangedSubview(likesView)
         counterActionsStack.addArrangedSubview(viewsView)
         counterActionsStack.addArrangedSubview(savesView)
+
+        for pill in [likesView, viewsView, savesView] {
+            pill.backgroundColor = .clear
+            addPillBlur(to: pill)
+        }
+
+        likesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        viewsView.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        savesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
         
         NSLayoutConstraint.activate([
-            counterActionsContainer.topAnchor.constraint(equalTo: infoStack.bottomAnchor, constant: 20),
-            counterActionsContainer.heightAnchor.constraint(equalToConstant: 36),
+            // Убрали жесткую высоту и topAnchor! Стек сам решит, какого он размера.
+            counterActionsContainer.topAnchor.constraint(equalTo: contentViewStack.topAnchor, constant: DivoDesignTokens.Spacing.m),
             counterActionsContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
             counterActionsContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
             
-            actionsShimmerView.leadingAnchor.constraint(equalTo: counterActionsContainer.leadingAnchor, constant: 16),
-            actionsShimmerView.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -16),
+            actionsShimmerView.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             actionsShimmerView.topAnchor.constraint(equalTo: counterActionsContainer.topAnchor),
             actionsShimmerView.bottomAnchor.constraint(equalTo: counterActionsContainer.bottomAnchor),
+            actionsShimmerView.widthAnchor.constraint(equalToConstant: 70),
             
-            counterActionsStack.leadingAnchor.constraint(equalTo: counterActionsContainer.leadingAnchor, constant: 16),
-            counterActionsStack.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -16),
+            counterActionsStack.trailingAnchor.constraint(equalTo: counterActionsContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             counterActionsStack.topAnchor.constraint(equalTo: counterActionsContainer.topAnchor),
             counterActionsStack.bottomAnchor.constraint(equalTo: counterActionsContainer.bottomAnchor),
         ])
         
-        contentViewStack.setCustomSpacing(12, after: counterActionsStack)
-        contentViewStack.setCustomSpacing(12, after: actionsShimmerView)
+        // Расстояние между счетчиками и Именем
+        contentViewStack.setCustomSpacing(60, after: counterActionsContainer)
+
+        if model.isMyProfile {
+            likesView.onAnyTap = { [weak self] in
+                self?.likesViewDidTap()
+            }
+            savesView.onAnyTap = { [weak self] in
+                self?.savesViewDidTap()
+            }
+            
+        } else {
+            likesView.onIconTap = { [weak self] in
+                self?.likesPillTapped()
+            }
+            likesView.onLabelTap = { [weak self] in
+                self?.likesViewDidTap()
+            }
+            savesView.onIconTap = { [weak self] in
+                self?.savesPillTapped()
+            }
+            savesView.onLabelTap = { [weak self] in
+                self?.savesViewDidTap()
+            }
+        }
+        viewsView.onAnyTap = { [weak self] in
+            self?.viewsViewDidTap()
+        }
+    }
+
+    // Раньше это был setupHeaderContainer, мы избавились от него полностью!
+    private func setupProfileHeaderContainer() {
+        // 1. Добавляем обертку в главный стек
+        contentViewStack.addArrangedSubview(profileHeaderWrapper)
+        
+        // 2. В обертку кладем infoStack
+        profileHeaderWrapper.addSubview(infoStack)
+        infoStack.addArrangedSubview(profileHeaderView)
+        
+        profileHeaderShimmerView.translatesAutoresizingMaskIntoConstraints = false
+        infoStack.addSubview(profileHeaderShimmerView)
+        
+        NSLayoutConstraint.activate([
+            // 3. Безопасно делаем отступы от краев обертки
+            infoStack.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor),
+            infoStack.bottomAnchor.constraint(equalTo: profileHeaderWrapper.bottomAnchor),
+            infoStack.leadingAnchor.constraint(equalTo: profileHeaderWrapper.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            infoStack.trailingAnchor.constraint(equalTo: profileHeaderWrapper.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            
+            profileHeaderShimmerView.leadingAnchor.constraint(equalTo: infoStack.leadingAnchor),
+            profileHeaderShimmerView.trailingAnchor.constraint(equalTo: infoStack.trailingAnchor),
+            profileHeaderShimmerView.topAnchor.constraint(equalTo: infoStack.topAnchor),
+            profileHeaderShimmerView.bottomAnchor.constraint(equalTo: infoStack.bottomAnchor),
+        ])
+        
+        // Расстояние между именем и кнопками (обрати внимание, отступ делаем после WRAPPER)
+        contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderWrapper)
+        contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderShimmerView)
+    }
+
+    private func setupSendShareContainer() {
+        contentViewStack.addArrangedSubview(sendShareContainer)
+        sendShareContainer.addSubview(dmShareStack)
+        
+        dmShareStack.addArrangedSubview(dmButton)
+        dmButton.addDivoPressState(.pill)
+        
+        let spacer = UIView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        dmShareStack.addArrangedSubview(spacer)
+        
+        dmShareStack.addArrangedSubview(shareButton)
+        shareButton.addDivoPressState(.pill)
+
+        shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
+
+        sendShareContainer.addSubview(dmShareShimmerStack)
+        dmShareShimmerStack.addArrangedSubview(dmShimmerButton)
+        
+        let spacerShimmer = UIView()
+        spacerShimmer.translatesAutoresizingMaskIntoConstraints = false
+        spacerShimmer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        dmShareShimmerStack.addArrangedSubview(spacerShimmer)
+        
+        dmShareShimmerStack.addArrangedSubview(shareShimmerButton)
+        
+        NSLayoutConstraint.activate([
+            // Высота контейнера
+            sendShareContainer.heightAnchor.constraint(equalToConstant: 44),
+            sendShareContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
+            sendShareContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
+            
+            // Отступы стека от краев экрана
+            dmShareStack.leadingAnchor.constraint(equalTo: sendShareContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            dmShareStack.trailingAnchor.constraint(equalTo: sendShareContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            dmShareStack.topAnchor.constraint(equalTo: sendShareContainer.topAnchor),
+            dmShareStack.bottomAnchor.constraint(equalTo: sendShareContainer.bottomAnchor),
+            
+            dmButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            shareButton.widthAnchor.constraint(equalToConstant: 40),
+            shareButton.heightAnchor.constraint(equalToConstant: 40),
+
+            // Отступы стека от краев экрана
+            dmShareShimmerStack.leadingAnchor.constraint(equalTo: sendShareContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            dmShareShimmerStack.trailingAnchor.constraint(equalTo: sendShareContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            dmShareShimmerStack.topAnchor.constraint(equalTo: sendShareContainer.topAnchor),
+            dmShareShimmerStack.bottomAnchor.constraint(equalTo: sendShareContainer.bottomAnchor),
+            
+            dmShimmerButton.heightAnchor.constraint(equalToConstant: 40),
+            dmShimmerButton.widthAnchor.constraint(equalToConstant: 100),
+            
+            shareShimmerButton.widthAnchor.constraint(equalToConstant: 40),
+            shareShimmerButton.heightAnchor.constraint(equalToConstant: 40),
+        ])
+
+        contentViewStack.setCustomSpacing(44, after: sendShareContainer)
     }
     
     private func setupProfileInfoContainer() {
         contentViewStack.addArrangedSubview(profileInfoContainer)
         profileInfoContainer.addSubview(profileInfoView)
         profileInfoContainer.addSubview(profileInfoShimmerView)
+        profileInfoShimmerView.addSubview(profileSegmentedInfoShimmerView)
+        profileInfoShimmerView.addSubview(profileScrollInfoShimmerView)
+        
         
         NSLayoutConstraint.activate([
+            whiteSheetBackground.topAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: -20),
+            whiteSheetBackground.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            whiteSheetBackground.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            // bottomAnchor с collectionsContainer.topAnchor добавлен ниже, в setupAllCollectionsLayers,
+            // когда collectionsContainer уже в иерархии scrollView
+
             profileInfoContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
             profileInfoContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
             
-            profileInfoView.leadingAnchor.constraint(equalTo: profileInfoContainer.leadingAnchor, constant: 16),
-            profileInfoView.trailingAnchor.constraint(equalTo: profileInfoContainer.trailingAnchor, constant: -16),
+            profileInfoView.leadingAnchor.constraint(equalTo: profileInfoContainer.leadingAnchor),
+            profileInfoView.trailingAnchor.constraint(equalTo: profileInfoContainer.trailingAnchor),
             profileInfoView.topAnchor.constraint(equalTo: profileInfoContainer.topAnchor),
             profileInfoView.bottomAnchor.constraint(equalTo: profileInfoContainer.bottomAnchor),
             
-            profileInfoShimmerView.leadingAnchor.constraint(equalTo: profileInfoContainer.leadingAnchor, constant: 16),
-            profileInfoShimmerView.trailingAnchor.constraint(equalTo: profileInfoContainer.trailingAnchor, constant: -16),
+            profileInfoShimmerView.leadingAnchor.constraint(equalTo: profileInfoContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            profileInfoShimmerView.trailingAnchor.constraint(equalTo: profileInfoContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             profileInfoShimmerView.topAnchor.constraint(equalTo: profileInfoContainer.topAnchor),
             profileInfoShimmerView.bottomAnchor.constraint(equalTo: profileInfoContainer.bottomAnchor),
-        ])
-        
-        contentViewStack.setCustomSpacing(20, after: profileInfoView)
-    }
-    
-    private func setupCurrentAgencyContainer() {
-        contentViewStack.addArrangedSubview(currentAgencyContainer)
-        currentAgencyContainer.addSubview(currentAgencyView)
-        currentAgencyContainer.addSubview(currentAgencyShimmerView)
-        
-        NSLayoutConstraint.activate([
-            currentAgencyContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
-            currentAgencyContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
+            profileInfoShimmerView.heightAnchor.constraint(equalToConstant: 126),
             
-            currentAgencyView.leadingAnchor.constraint(equalTo: currentAgencyContainer.leadingAnchor, constant: 16),
-            currentAgencyView.trailingAnchor.constraint(equalTo: currentAgencyContainer.trailingAnchor, constant: -16),
-            currentAgencyView.topAnchor.constraint(equalTo: currentAgencyContainer.topAnchor),
-            currentAgencyView.bottomAnchor.constraint(equalTo: currentAgencyContainer.bottomAnchor),
+            profileSegmentedInfoShimmerView.leadingAnchor.constraint(equalTo: profileInfoShimmerView.leadingAnchor),
+            profileSegmentedInfoShimmerView.trailingAnchor.constraint(equalTo: profileInfoShimmerView.trailingAnchor),
+            profileSegmentedInfoShimmerView.topAnchor.constraint(equalTo: profileInfoShimmerView.topAnchor),
+            profileSegmentedInfoShimmerView.bottomAnchor.constraint(equalTo: profileScrollInfoShimmerView.topAnchor, constant: -10),
+            profileSegmentedInfoShimmerView.heightAnchor.constraint(equalToConstant: 32),
             
-            currentAgencyShimmerView.leadingAnchor.constraint(equalTo: currentAgencyContainer.leadingAnchor, constant: 16),
-            currentAgencyShimmerView.trailingAnchor.constraint(equalTo: currentAgencyContainer.trailingAnchor, constant: -16),
-            currentAgencyShimmerView.topAnchor.constraint(equalTo: currentAgencyContainer.topAnchor),
-            currentAgencyShimmerView.bottomAnchor.constraint(equalTo: currentAgencyContainer.bottomAnchor),
-        ])
-    }
-    
-    private func setupAddWorkHistoryContainer() {
-        contentViewStack.addArrangedSubview(addWorkHistoryContainer)
-        addWorkHistoryContainer.addSubview(addWorkHistoryButton)
-        
-        NSLayoutConstraint.activate([
-            addWorkHistoryContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor, constant: 16),
-            addWorkHistoryContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor, constant: -16),
-            addWorkHistoryContainer.heightAnchor.constraint(equalToConstant: 36),
-            addWorkHistoryButton.leadingAnchor.constraint(equalTo: addWorkHistoryContainer.leadingAnchor),
-            addWorkHistoryButton.trailingAnchor.constraint(lessThanOrEqualTo: addWorkHistoryContainer.trailingAnchor),
-            addWorkHistoryButton.centerYAnchor.constraint(equalTo: addWorkHistoryContainer.centerYAnchor),
-            addWorkHistoryButton.heightAnchor.constraint(equalToConstant: 36),
+            profileScrollInfoShimmerView.leadingAnchor.constraint(equalTo: profileInfoShimmerView.leadingAnchor),
+            profileScrollInfoShimmerView.trailingAnchor.constraint(equalTo: profileInfoShimmerView.trailingAnchor),
+            profileScrollInfoShimmerView.bottomAnchor.constraint(equalTo: profileInfoShimmerView.bottomAnchor),
+            profileSegmentedInfoShimmerView.heightAnchor.constraint(equalToConstant: 84),
         ])
         
-        addWorkHistoryButton.addTarget(self, action: #selector(addWorkHistoryTapped), for: .touchUpInside)
-
-        contentViewStack.setCustomSpacing(12, after: addWorkHistoryContainer)
-    }
-
-    @objc private func addWorkHistoryTapped() {
-        onAddWorkExperienceTapped?()
+        contentViewStack.setCustomSpacing(12, after: profileInfoView)
     }
 
     private func setupSocialMediaContainer() {
@@ -953,21 +1528,20 @@ final class PublicProfileScreenNode: ASDisplayNode {
             titleEditContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
             titleEditContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
             
-            titleEditStack.leadingAnchor.constraint(equalTo: titleEditContainer.leadingAnchor, constant: 16),
-            titleEditStack.trailingAnchor.constraint(equalTo: titleEditContainer.trailingAnchor, constant: -16),
+            titleEditStack.leadingAnchor.constraint(equalTo: titleEditContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            titleEditStack.trailingAnchor.constraint(equalTo: titleEditContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             titleEditStack.topAnchor.constraint(equalTo: titleEditContainer.topAnchor),
             titleEditStack.bottomAnchor.constraint(equalTo: titleEditContainer.bottomAnchor),
             
             socialMediaContainer.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor),
             socialMediaContainer.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor),
-            socialMediaStack.leadingAnchor.constraint(equalTo: socialMediaContainer.leadingAnchor, constant: 16),
-            socialMediaStack.trailingAnchor.constraint(equalTo: socialMediaContainer.trailingAnchor, constant: -16),
+            socialMediaStack.leadingAnchor.constraint(equalTo: socialMediaContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            socialMediaStack.trailingAnchor.constraint(equalTo: socialMediaContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             socialMediaStack.topAnchor.constraint(equalTo: socialMediaContainer.topAnchor),
             socialMediaStack.bottomAnchor.constraint(equalTo: socialMediaContainer.bottomAnchor),
-            socialMediaStack.heightAnchor.constraint(equalToConstant: 68),
             
-            socialShimmerView.leadingAnchor.constraint(equalTo: socialMediaContainer.leadingAnchor, constant: 16),
-            socialShimmerView.trailingAnchor.constraint(equalTo: socialMediaContainer.trailingAnchor, constant: -16),
+            socialShimmerView.leadingAnchor.constraint(equalTo: socialMediaContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            socialShimmerView.trailingAnchor.constraint(equalTo: socialMediaContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             socialShimmerView.topAnchor.constraint(equalTo: socialMediaContainer.topAnchor),
             socialShimmerView.bottomAnchor.constraint(equalTo: socialMediaContainer.bottomAnchor),
             socialShimmerView.heightAnchor.constraint(equalToConstant: 68),
@@ -982,20 +1556,33 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     private func setupSegmentedBarPlaceholder() {
-        contentViewStack.addArrangedSubview(segmentedBarPlaceholder)
+        contentViewStack.addArrangedSubview(segmentedBarContainer)
+        segmentedBarContainer.addSubview(segmentedBarPlaceholder)
+        segmentedBarContainer.addSubview(segmentedBarShimmer)
         
         NSLayoutConstraint.activate([
-            segmentedBarPlaceholder.leadingAnchor.constraint(equalTo: contentViewStack.leadingAnchor, constant: 0),
-            segmentedBarPlaceholder.trailingAnchor.constraint(equalTo: contentViewStack.trailingAnchor, constant: 0),
-            segmentedBarPlaceholder.heightAnchor.constraint(equalToConstant: 40),
+            segmentedBarContainer.centerXAnchor.constraint(equalTo: contentViewStack.centerXAnchor),
+            segmentedBarContainer.heightAnchor.constraint(equalToConstant: 32),
+            
+            segmentedBarPlaceholder.centerXAnchor.constraint(equalTo: segmentedBarContainer.centerXAnchor),
+            segmentedBarPlaceholder.heightAnchor.constraint(equalToConstant: 32),
+            
+            segmentedBarShimmer.centerXAnchor.constraint(equalTo: segmentedBarContainer.centerXAnchor),
+            segmentedBarShimmer.heightAnchor.constraint(equalToConstant: 32),
+            segmentedBarShimmer.widthAnchor.constraint(equalToConstant: 172),
         ])
         
-        contentViewStack.setCustomSpacing(0, after: segmentedBarPlaceholder)
+        contentViewStack.setCustomSpacing(10, after: segmentedBarContainer)
     }
     
     private func setupAllCollectionsLayers() {
         contentViewStack.addArrangedSubview(collectionsContainer)
-        
+
+        // whiteSheetBackground (серая «подложка» под bio + segmented bar) тянется до верха
+        // collectionsContainer. Активируем здесь, потому что в setupProfileInfoContainer
+        // collectionsContainer ещё не в иерархии scrollView.
+        whiteSheetBackground.bottomAnchor.constraint(equalTo: collectionsContainer.topAnchor).isActive = true
+
         collectionsContainerHeightConstraint = collectionsContainer.heightAnchor.constraint(equalToConstant: 160)
         collectionsContainerHeightConstraint.isActive = true
         
@@ -1017,6 +1604,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         photoTabContainer.addSubview(galleryCollectionView)
         photoTabContainer.addSubview(galleryStatusView)
+        photoTabContainer.addSubview(photoEmptyView)
 
         NSLayoutConstraint.activate([
             galleryCollectionView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
@@ -1025,8 +1613,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
             galleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             galleryStatusView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
-            galleryStatusView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor, constant: 16),
-            galleryStatusView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor, constant: -16),
+            galleryStatusView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            galleryStatusView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            photoEmptyView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
+            photoEmptyView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor),
+            photoEmptyView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor),
+            photoEmptyView.bottomAnchor.constraint(equalTo: photoTabContainer.bottomAnchor),
         ])
         galleryCollectionView.isHidden = true
         galleryStatusView.isHidden = false
@@ -1040,16 +1633,22 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         videoTabContainer.addSubview(videoGalleryCollectionView)
         videoTabContainer.addSubview(videoGalleryStatusView)
+        videoTabContainer.addSubview(videoEmptyView)
 
         NSLayoutConstraint.activate([
             videoGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             videoGalleryStatusView.topAnchor.constraint(equalTo: videoTabContainer.topAnchor),
-            videoGalleryStatusView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor, constant: 16),
-            videoGalleryStatusView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor, constant: -16),
-            
+            videoGalleryStatusView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            videoGalleryStatusView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
             videoGalleryCollectionView.topAnchor.constraint(equalTo: videoTabContainer.topAnchor),
             videoGalleryCollectionView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor),
-            videoGalleryCollectionView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor)
+            videoGalleryCollectionView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor),
+
+            videoEmptyView.topAnchor.constraint(equalTo: videoTabContainer.topAnchor),
+            videoEmptyView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor),
+            videoEmptyView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor),
+            videoEmptyView.bottomAnchor.constraint(equalTo: videoTabContainer.bottomAnchor),
         ])
         videoGalleryCollectionView.isHidden = true
         videoGalleryStatusView.isHidden = false
@@ -1063,15 +1662,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         channelTabContainer.addSubview(channelGalleryStatusView)
         channelTabContainer.addSubview(channelGalleryCollectionView)
+        channelTabContainer.addSubview(channelsEmptyView)
         NSLayoutConstraint.activate([
             channelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             channelGalleryStatusView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
-            channelGalleryStatusView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor, constant: 16),
-            channelGalleryStatusView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor, constant: -16),
-            
+            channelGalleryStatusView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            channelGalleryStatusView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
             channelGalleryCollectionView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
             channelGalleryCollectionView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor),
-            channelGalleryCollectionView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor)
+            channelGalleryCollectionView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor),
+
+            channelsEmptyView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
+            channelsEmptyView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor),
+            channelsEmptyView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor),
+            channelsEmptyView.bottomAnchor.constraint(equalTo: channelTabContainer.bottomAnchor),
         ])
         channelGalleryCollectionView.isHidden = true
         channelGalleryStatusView.isHidden = false
@@ -1084,31 +1689,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         modelTabContainer.addSubview(modelGalleryStatusView)
         modelTabContainer.addSubview(modelGalleryCollectionView)
-
-        emptyModelsPlaceholderNode.view.translatesAutoresizingMaskIntoConstraints = false
-        modelTabContainer.addSubview(emptyModelsPlaceholderNode.view)
+        modelTabContainer.addSubview(modelsEmptyView)
 
         NSLayoutConstraint.activate([
             modelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             modelGalleryStatusView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
-            modelGalleryStatusView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor, constant: 16),
-            modelGalleryStatusView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor, constant: -16),
-            
+            modelGalleryStatusView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            modelGalleryStatusView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
             modelGalleryCollectionView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
             modelGalleryCollectionView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
             modelGalleryCollectionView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
 
-            emptyModelsPlaceholderNode.view.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
-            emptyModelsPlaceholderNode.view.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
-            emptyModelsPlaceholderNode.view.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
-            emptyModelsPlaceholderNode.view.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
+            modelsEmptyView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
+            modelsEmptyView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
+            modelsEmptyView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
+            modelsEmptyView.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
         ])
         modelGalleryCollectionView.isHidden = true
-        emptyModelsPlaceholderNode.isHidden = true
         modelGalleryStatusView.isHidden = false
         modelGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingModels, isMyProfile: false)
-        
-        emptyModelsPlaceholderNode.addButton.addTarget(self, action: #selector(addModelBtnTapped), forControlEvents: .touchUpInside)
 
         // --- EVENTS ---
         // ЗАМЕНА: Сохраняем констрейнт высоты
@@ -1117,39 +1717,127 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         eventTabContainer.addSubview(eventGalleryStatusView)
         eventTabContainer.addSubview(eventGalleryCollectionView)
+        eventTabContainer.addSubview(eventsEmptyView)
+
         NSLayoutConstraint.activate([
             eventGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             eventGalleryStatusView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
-            eventGalleryStatusView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor, constant: 16),
-            eventGalleryStatusView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor, constant: -16),
-            
+            eventGalleryStatusView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            eventGalleryStatusView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
             eventGalleryCollectionView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
             eventGalleryCollectionView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
-            eventGalleryCollectionView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor)
+            eventGalleryCollectionView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
+
+            eventsEmptyView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
+            eventsEmptyView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
+            eventsEmptyView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
+            eventsEmptyView.bottomAnchor.constraint(equalTo: eventTabContainer.bottomAnchor),
         ])
         eventGalleryCollectionView.isHidden = true
         eventGalleryStatusView.isHidden = false
         eventGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingEvents, isMyProfile: false)
-        eventGalleryStatusView.addTarget(self, action: #selector(eventGalleryStatusTapped), for: .touchUpInside)
     }
-    
+
+    private func emptyView(for tab: ProfileTab) -> DivoEmptyStateView {
+        switch tab {
+        case .photo: return photoEmptyView
+        case .video: return videoEmptyView
+        case .channels: return channelsEmptyView
+        case .models: return modelsEmptyView
+        case .events: return eventsEmptyView
+        }
+    }
+
+    private func currentTabIsEmpty() -> Bool {
+        switch currentTab {
+        case .photo: return galleryPhotos.isEmpty
+        case .video: return videoGalleryItems.isEmpty
+        case .channels: return channelGalleryItems.isEmpty
+        case .models: return modelGalleryItems.isEmpty
+        case .events: return eventGalleryItems.isEmpty
+        }
+    }
+
+    private func updateScreenBackgroundForCurrentTab() {
+        // Подход: основной фон экрана — белый, а серая «подложка» лежит под
+        // профильной био-секцией (см. profileInfoContainer.backgroundColor).
+        UIView.performWithoutAnimation {
+            self.view.backgroundColor = DivoColorPalette.profileEmptyBackground
+        }
+    }
+
+    private func configureProfileEmptyView(for tab: ProfileTab, isMyProfile: Bool) {
+        let icon: UIImage
+        let title: String
+        let subtitle: String
+        let cta: String
+        let action: () -> Void
+
+        switch tab {
+        case .photo:
+            icon = DivoImage.photoIcon
+            title = DivoStrings.profileEmptyPhotosTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyPhotosSubtitleOwn : DivoStrings.profileEmptyPhotosSubtitleOther
+            cta = DivoStrings.profileEmptyPhotosCTA
+            action = { [weak self] in self?.onAddPhotoTapped?(false) }
+        case .video:
+            icon = DivoImage.videoIcon
+            title = DivoStrings.profileEmptyVideosTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyVideosSubtitleOwn : DivoStrings.profileEmptyVideosSubtitleOther
+            cta = DivoStrings.profileEmptyVideosCTA
+            action = { [weak self] in self?.onAddVideoTapped?(false) }
+        case .channels:
+            icon = DivoImage.channelIcon
+            title = DivoStrings.profileEmptyChannelsTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyChannelsSubtitleOwn : DivoStrings.profileEmptyChannelsSubtitleOther
+            cta = DivoStrings.profileEmptyChannelsCTA
+            action = { [weak self] in self?.onAddChannelTapped?() }
+        case .models:
+            icon = DivoImage.associatedModels
+            title = DivoStrings.profileEmptyModelsTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyModelsSubtitleOwn : DivoStrings.profileEmptyModelsSubtitleOther
+            cta = DivoStrings.profileEmptyModelsCTA
+            action = { [weak self] in self?.onAddModelTapped?() }
+        case .events:
+            icon = DivoImage.eventsAgency
+            title = DivoStrings.profileEmptyEventsTitle
+            subtitle = isMyProfile ? DivoStrings.profileEmptyEventsSubtitleOwn : DivoStrings.profileEmptyEventsSubtitleOther
+            cta = DivoStrings.profileEmptyEventsCTA
+            action = { [weak self] in self?.onAddEventTapped?() }
+        }
+
+        emptyView(for: tab).configure(.init(
+            style: .smallOnLight(icon: icon),
+            title: title,
+            subtitle: subtitle,
+            ctaTitle: isMyProfile ? cta : nil,
+            ctaLeadingIcon: isMyProfile ? DivoImage.plus : nil,
+            onCTATapped: isMyProfile ? action : nil
+        ))
+    }
+
     private func setupSimilarProfiles() {
         contentViewStack.addArrangedSubview(similarProfilesCollectionContainer)
         similarProfilesCollectionContainer.addSubview(similarProfilesTitleLabel)
         similarProfilesCollectionContainer.addSubview(similarProfilesCollectionView)
-        
+
         NSLayoutConstraint.activate([
-            similarProfilesTitleLabel.topAnchor.constraint(equalTo: similarProfilesCollectionContainer.topAnchor, constant: 16),
-            similarProfilesTitleLabel.leadingAnchor.constraint(equalTo: similarProfilesCollectionContainer.leadingAnchor, constant: 16),
-            similarProfilesTitleLabel.trailingAnchor.constraint(equalTo: similarProfilesCollectionContainer.trailingAnchor, constant: -16),
-            
-            similarProfilesCollectionView.topAnchor.constraint(equalTo: similarProfilesTitleLabel.topAnchor, constant: 16),
+            similarProfilesTitleLabel.topAnchor.constraint(equalTo: similarProfilesCollectionContainer.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            similarProfilesTitleLabel.leadingAnchor.constraint(equalTo: similarProfilesCollectionContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            similarProfilesTitleLabel.trailingAnchor.constraint(equalTo: similarProfilesCollectionContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            similarProfilesCollectionView.topAnchor.constraint(equalTo: similarProfilesTitleLabel.topAnchor, constant: DivoDesignTokens.Spacing.m),
             similarProfilesCollectionView.leadingAnchor.constraint(equalTo: similarProfilesCollectionContainer.leadingAnchor),
             similarProfilesCollectionView.trailingAnchor.constraint(equalTo: similarProfilesCollectionContainer.trailingAnchor),
-            similarProfilesCollectionView.bottomAnchor.constraint(equalTo: similarProfilesCollectionContainer.bottomAnchor, constant: -30),
-            similarProfilesCollectionView.heightAnchor.constraint(equalToConstant: 232)
+            similarProfilesCollectionView.bottomAnchor.constraint(equalTo: similarProfilesCollectionContainer.bottomAnchor, constant: -12),
+            similarProfilesCollectionView.heightAnchor.constraint(equalToConstant: 180)
         ])
-        
+
+        contentViewStack.addArrangedSubview(bottomSpacer)
+        bottomSpacerHeightConstraint.isActive = true
+        contentViewStack.setCustomSpacing(0, after: similarProfilesCollectionContainer)
+
         contentViewStack.setCustomSpacing(0, after: collectionsContainer)
         
         contentViewStack.setCustomSpacing(0, after: videoGalleryCollectionView)
@@ -1164,6 +1852,51 @@ final class PublicProfileScreenNode: ASDisplayNode {
         contentViewStack.setCustomSpacing(0, after: eventGalleryCollectionView)
         contentViewStack.setCustomSpacing(0, after: eventGalleryStatusView)
     }
+
+    private func updateBottomSpacerVisibility() {
+        bottomSpacer.isHidden = !similarProfilesCollectionContainer.isHidden
+    }
+
+    private func setupFloatingButton() {
+        self.view.addSubview(floatingAddButton)
+        
+        NSLayoutConstraint.activate([
+            floatingAddButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            floatingAddButton.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            floatingAddButton.heightAnchor.constraint(equalToConstant: 40),
+        ])
+        
+        floatingAddButton.addTarget(self, action: #selector(floatingAddButtonTapped), for: .touchUpInside)
+    }
+
+    private func setupUploadOverlay() {
+        self.view.addSubview(uploadOverlayContainer)
+        uploadOverlayContainer.addSubview(uploadOverlayView)
+        uploadOverlayView.addSubview(uploadOverlaySpinner)
+        uploadOverlayView.addSubview(uploadOverlayLabel)
+        
+        NSLayoutConstraint.activate([
+            uploadOverlayContainer.topAnchor.constraint(equalTo: self.view.topAnchor),
+            uploadOverlayContainer.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            uploadOverlayContainer.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            uploadOverlayContainer.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            
+            uploadOverlayView.centerXAnchor.constraint(equalTo: uploadOverlayContainer.centerXAnchor),
+            uploadOverlayView.centerYAnchor.constraint(equalTo: uploadOverlayContainer.centerYAnchor),
+            uploadOverlayView.widthAnchor.constraint(greaterThanOrEqualToConstant: 114),
+            uploadOverlayView.heightAnchor.constraint(equalToConstant: 74),
+            
+            uploadOverlaySpinner.centerXAnchor.constraint(equalTo: uploadOverlayView.centerXAnchor),
+            uploadOverlaySpinner.topAnchor.constraint(equalTo: uploadOverlayView.topAnchor, constant: 12),
+            uploadOverlaySpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            uploadOverlaySpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            
+            uploadOverlayLabel.topAnchor.constraint(equalTo: uploadOverlaySpinner.bottomAnchor, constant: 12),
+            uploadOverlayLabel.centerXAnchor.constraint(equalTo: uploadOverlayView.centerXAnchor),
+            uploadOverlayLabel.leadingAnchor.constraint(equalTo: uploadOverlayView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            uploadOverlayLabel.trailingAnchor.constraint(equalTo: uploadOverlayView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
+        ])
+    }
     
     // Настройка шиммеров
     private func configureNodes() {
@@ -1174,14 +1907,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         counterActionsStack.isHidden = true
         
         profileInfoShimmerView.isHidden = false
+        profileInfoView.isHidden = true
         
         socialShimmerView.isHidden = false
-        
-        currentAgencyShimmerView.isHidden = false
-        
-        if !model.isMyProfile {
-            self.addWorkHistoryContainer.removeFromSuperview()
-        }
+
+        segmentedBarShimmer.isHidden = false
+        segmentedBarPlaceholder.isHidden = true
+        segmentedBar.isHidden = true
     }
     
     // Убираем шиммеры, после загрузки
@@ -1206,10 +1938,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
             counterActionsStack.isHidden = false
 
             profileInfoShimmerView.isHidden = true
-
+            profileInfoShimmerView.removeFromSuperview()
+            profileInfoView.alpha = 1.0
+            profileInfoView.isHidden = false
+            
             socialShimmerView.isHidden = true
 
-            currentAgencyShimmerView.isHidden = true
+            segmentedBarShimmer.isHidden = true
+            segmentedBarPlaceholder.isHidden = false
+            segmentedBar.isHidden = false
 
             // Принудительно обновляем layout внутри CATransaction,
             // чтобы изменения фреймов тоже не были анимированы
@@ -1220,30 +1957,24 @@ final class PublicProfileScreenNode: ASDisplayNode {
             CATransaction.commit()
         }
     }
-    
+
     private func applyGradientBlurMask() {
         let blurHeight = blurredHeaderImageView.bounds.height
         guard blurHeight > 0 else { return }
-        let blurStartPoint = blurHeight * 0.02
-        let blurFullPoint = blurHeight * 0.55
         
         let gradientLayer = CAGradientLayer()
         gradientLayer.frame = blurredHeaderImageView.bounds
         
-        let startLocation = blurStartPoint / blurHeight
-        let fullLocation = blurFullPoint / blurHeight
-        
-        let clampedStartLocation = max(0.0, min(1.0, startLocation))
-        let clampedFullLocation = max(0.0, min(1.0, fullLocation))
+        let fadeDistance: CGFloat = 60.0
+        let fadeLocation = min(1.0, fadeDistance / blurHeight)
         
         gradientLayer.colors = [UIColor.clear.cgColor, UIColor.white.cgColor]
         
-        gradientLayer.locations = [NSNumber(value: Double(clampedStartLocation)),
-                                   NSNumber(value: Double(clampedFullLocation))]
+        gradientLayer.locations = [0.0, NSNumber(value: Double(fadeLocation))]
         
         blurredHeaderImageView.layer.mask = gradientLayer
     }
-    
+
     // Настройка SegmentedBar для прилипания
     private func updateSegmentedBarPosition() {
         guard let (_, navigationBarHeight) = self.containerLayout else { return }
@@ -1257,28 +1988,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let finalY = max(naturalY, stickyY)
         
         segmentedBarTopConstraint?.constant = finalY
-        
-        if finalY <= stickyY + 1 {
-            segmentedBar.backgroundColor = UIColor.black.withAlphaComponent(0.65)
-        } else {
-            segmentedBar.backgroundColor = UIColor.black.withAlphaComponent(0.12)
-        }
+        updateFloatingButton(for: currentTab)
     }
     
     // Настройка кнопки чата/загрузки фотографии
     private func setupDmButtonContent() {
-        var iconImageName = "Chat/Context Menu/MessageBubble"
-        var labelText = DivoStrings.sendDM
-        if model.isMyProfile {
-            iconImageName = "Avatar/AddAvatarIconLarge"
-            labelText = DivoStrings.uploadYourPhotos
-        }
-
-        // Важно: не пересоздаем subviews каждый раз (иначе UI заметно дергается при обновлениях)
         if let iconImageView = dmButton.viewWithTag(ActionViewTags.dmIcon) as? UIImageView,
            let label = dmButton.viewWithTag(ActionViewTags.dmLabel) as? UILabel {
-            iconImageView.image = UIImage(bundleImageName: iconImageName)
-            label.text = labelText
+            iconImageView.image = DivoImage.sendDM
+            label.text = DivoStrings.sendDM
             return
         }
 
@@ -1286,8 +2004,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         let iconImageView: UIImageView = {
             let imageView = UIImageView()
-            imageView.image = UIImage(bundleImageName: iconImageName)
-            imageView.tintColor = .white
+            imageView.image = DivoImage.sendDM
+            imageView.tintColor = DivoColorPalette.primaryTextOnDark
             imageView.contentMode = .scaleAspectFit
             imageView.translatesAutoresizingMaskIntoConstraints = false
             imageView.tag = ActionViewTags.dmIcon
@@ -1296,8 +2014,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         let label: UILabel = {
             let label = UILabel()
-            label.text = labelText
-            label.textColor = .white
+            label.text = DivoStrings.sendDM
+            label.textColor = DivoColorPalette.primaryTextOnDark
             label.font = Font.helveticaNeue(13)
             label.translatesAutoresizingMaskIntoConstraints = false
             label.tag = ActionViewTags.dmLabel
@@ -1319,109 +2037,27 @@ final class PublicProfileScreenNode: ASDisplayNode {
         NSLayoutConstraint.activate([
             stackView.centerXAnchor.constraint(equalTo: dmButton.centerXAnchor),
             stackView.centerYAnchor.constraint(equalTo: dmButton.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 20),
-            iconImageView.heightAnchor.constraint(equalToConstant: 20),
-            label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24)
+            
+            stackView.leadingAnchor.constraint(equalTo: dmButton.leadingAnchor, constant: 12),
+            stackView.trailingAnchor.constraint(equalTo: dmButton.trailingAnchor, constant: -12),
+            
+            iconImageView.widthAnchor.constraint(equalToConstant: 24),
+            iconImageView.heightAnchor.constraint(equalToConstant: 24),
+            // label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24)
         ])
-    }
-
-    // Создание кнопок счетчиков (лайки, просмотры, сохраненки)
-    private func setupCounterView(_ container: UIControl, count: String, name: String, iconName: String) {
-        // Важно: не пересоздаем subviews/constraints каждый раз.
-        // Иначе при повторных updateWithUserDetail / refresh будет заметный «рывок».
-        if let iconImageView = container.viewWithTag(ActionViewTags.counterIcon) as? UIImageView,
-           let countLabel = container.viewWithTag(ActionViewTags.counterCountLabel) as? UILabel,
-           let nameLabel = container.viewWithTag(ActionViewTags.counterNameLabel) as? UILabel {
-            iconImageView.image = UIImage(bundleImageName: iconName)
-            countLabel.text = count
-            nameLabel.text = name
-            return
-        }
-
-        container.subviews.forEach { $0.removeFromSuperview() }
-        
-        let icon: UIImageView = {
-            let imageView = UIImageView()
-            imageView.image = UIImage(bundleImageName: iconName)
-            imageView.tintColor = .white
-            imageView.contentMode = .scaleAspectFit
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            imageView.widthAnchor.constraint(equalToConstant: 20).isActive = true
-            imageView.heightAnchor.constraint(equalToConstant: 20).isActive = true
-            imageView.tag = ActionViewTags.counterIcon
-            return imageView
-        }()
-        
-        let countLabel: UILabel = {
-            let label = UILabel()
-            label.text = count
-            label.font = UIFont.boldSystemFont(ofSize: 14)
-            label.textColor = .white
-            label.tag = ActionViewTags.counterCountLabel
-            return label
-        }()
-        
-        let nameLabel: UILabel = {
-            let label = UILabel()
-            label.text = name
-            label.font = UIFont.systemFont(ofSize: 10)
-            label.textColor = .white
-            label.tag = ActionViewTags.counterNameLabel
-            return label
-        }()
-        
-        let countStack: UIStackView = {
-            let stack = UIStackView(arrangedSubviews: [icon, countLabel])
-            stack.axis = .horizontal
-            stack.spacing = 2
-            stack.alignment = .center
-            stack.translatesAutoresizingMaskIntoConstraints = false
-            return stack
-        }()
-        
-        let mainStack: UIStackView = {
-            let stack = UIStackView(arrangedSubviews: [countStack, nameLabel])
-            stack.axis = .horizontal
-            stack.spacing = 4
-            stack.alignment = .center
-            stack.translatesAutoresizingMaskIntoConstraints = false
-            stack.isUserInteractionEnabled = false
-            return stack
-        }()
-        
-        container.addSubview(mainStack)
-        
-        NSLayoutConstraint.activate([
-            mainStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            mainStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            mainStack.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 0),
-            mainStack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor, constant: 0),
-        ])
-        
-        container.removeTarget(nil, action: nil, for: .allEvents)
-        container.addTarget(self, action: #selector(handleTouchDown(_:)), for: [.touchDown, .touchDragEnter])
-        container.addTarget(self, action: #selector(handleTouchUp(_:)), for:[.touchUpInside, .touchUpOutside, .touchCancel, .touchDragExit])
-        
-        if container === likesView {
-            container.addTarget(self, action: #selector(likesViewDidTap), for: .touchUpInside)
-        } else if container === viewsView {
-            container.addTarget(self, action: #selector(viewsViewDidTap), for: .touchUpInside)
-        } else if container === savesView {
-            container.addTarget(self, action: #selector(savesViewDidTap), for: .touchUpInside)
-        }
     }
     
     // Создание кнопок социальных сетей
     private func createSocialMediaButton(handle: String, icon iconImage: UIImage, url: String) -> UIView {
         let button = UIButton(type: .system)
-        button.backgroundColor = .black.withAlphaComponent(0.12)
-        button.layer.cornerRadius = 6
+        button.backgroundColor = DivoColorPalette.cardBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.l
 
         socialLinksMap[button] = url
 
         let icon = UIImageView()
         icon.image = iconImage.withRenderingMode(.alwaysTemplate)
-        icon.tintColor = .white
+        icon.tintColor = DivoColorPalette.primaryText
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.widthAnchor.constraint(equalToConstant: 24).isActive = true
@@ -1429,12 +2065,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         let label = UILabel()
         label.text = handle
-        label.font = Font.helveticaNeue(10)
-        label.textColor = .white
+        label.font = Font.regular(10)
+        label.textColor = DivoColorPalette.primaryText
         
         let stack = UIStackView(arrangedSubviews: [icon, label])
         stack.axis = .vertical
-        stack.spacing = 5
+        stack.spacing = 4
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.isUserInteractionEnabled = false
@@ -1444,8 +2080,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         NSLayoutConstraint.activate([
             stack.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             stack.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            stack.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 4),
-            stack.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -4),
+            stack.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: DivoDesignTokens.Spacing.xs),
+            stack.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -DivoDesignTokens.Spacing.xs),
         ])
 
         button.addTarget(self, action: #selector(socialButtonTapped(_:)), for: .touchUpInside)
@@ -1456,14 +2092,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Создание кнопоки социально сети, если она одна
     private func createSocialOneMediaButton(handle: String, icon iconImage: UIImage, url: String) -> UIView {
         let button = UIButton(type: .system)
-        button.backgroundColor = .black.withAlphaComponent(0.12)
-        button.layer.cornerRadius = 6
+        button.backgroundColor = DivoColorPalette.cardBackground
+        button.layer.cornerRadius = DivoDesignTokens.Radius.l
 
         socialLinksMap[button] = url
 
         let icon = UIImageView()
         icon.image = iconImage.withRenderingMode(.alwaysTemplate)
-        icon.tintColor = .white
+        icon.tintColor = DivoColorPalette.primaryText
         icon.contentMode = .scaleAspectFit
         icon.translatesAutoresizingMaskIntoConstraints = false
         icon.widthAnchor.constraint(equalToConstant: 24).isActive = true
@@ -1471,12 +2107,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         let label = UILabel()
         label.text = handle
-        label.font = Font.helveticaNeue(10)
-        label.textColor = .white
+        label.font = Font.regular(10)
+        label.textColor = DivoColorPalette.primaryText
         
         let stack = UIStackView(arrangedSubviews: [icon, label])
         stack.axis = .horizontal
-        stack.spacing = 5
+        stack.spacing = DivoDesignTokens.Spacing.s
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.isUserInteractionEnabled = false
@@ -1484,8 +2120,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         button.addSubview(stack)
         
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -16),
+            stack.leadingAnchor.constraint(equalTo: button.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            stack.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             stack.centerYAnchor.constraint(equalTo: button.centerYAnchor)
         ])
 
@@ -1495,63 +2131,87 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Добавление коллекции похожих профилей
-    private func appendSimilarProfiles(_ profiles: [SimilarProfileItem], totalCount: Int) {
+    func setSimilarProfilesLoading(_ loading: Bool) {
+        similarProfilesIsLoading = loading
+        if loading && similarProfiles.isEmpty {
+            similarProfilesCollectionContainer.isHidden = false
+            similarProfilesCollectionView.reloadData()
+        } else if !loading && similarProfiles.isEmpty {
+            similarProfilesCollectionContainer.isHidden = true
+            similarProfilesCollectionView.reloadData()
+        }
+        updateBottomSpacerVisibility()
+    }
+    
+    // Заполняет коллекцию реальными данными
+    func appendSimilarProfiles(_ profiles: [SimilarProfileItem]) {
         let previousCount = self.similarProfiles.count
         self.similarProfiles.append(contentsOf: profiles)
-        self.similarProfilesTotalCount = totalCount
-        self.similarProfilesOffset = self.similarProfiles.count
-        self.similarProfilesHasMore = self.similarProfiles.count < totalCount
-        
-        // debug: removed
+        self.similarProfilesIsLoading = false
         
         if previousCount == 0 {
             similarProfilesCollectionView.reloadData()
-        } else {
+        } else if !profiles.isEmpty {
             let newIndices = (previousCount..<(previousCount + profiles.count)).map { IndexPath(item: $0, section: 0) }
-            similarProfilesCollectionView.insertItems(at: newIndices)
+            similarProfilesCollectionView.performBatchUpdates({
+                self.similarProfilesCollectionView.insertItems(at: newIndices)
+            }, completion: nil)
         }
+        
+        if self.similarProfiles.isEmpty {
+            self.similarProfilesCollectionContainer.isHidden = true
+        } else {
+            self.similarProfilesCollectionContainer.isHidden = false
+        }
+        updateBottomSpacerVisibility()
     }
     
     // Вычисляем возраст от года рождения
-    private func calculateAge(from birthdayString: String) -> Int {
+    private func calculateAge(from birthdayString: String) -> Int? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        guard let birthday = formatter.date(from: birthdayString) else { return 0 }
-        
+        guard let birthday = formatter.date(from: birthdayString) else { return nil }
+
         let now = Date()
         let calendar = Calendar.current
-        let ageComponents = calendar.dateComponents([.year], from: birthday, to: now)
-        return ageComponents.year ?? 0
+        return calendar.dateComponents([.year], from: birthday, to: now).year
     }
     
     // Создаем список критериев внешнего вида модели
-    private func buildAppearanceList(from appearance: UserAppearance?, gender: UserGender?) -> [AppearanceAttribute] {
-        
+    private func buildAppearanceList(from appearance: UserAppearance?, gender: UserGender?, age: Int?) -> [AppearanceAttribute] {
+
+        func titleWithUnit(_ title: String, _ unit: String) -> String {
+            "\(title) (\(unit))"
+        }
+
         var items: [AppearanceAttribute] = []
-        
+
         if let gender = gender {
-            items.append(.init(title: DivoStrings.attrGender, value: "\(gender.title)"))
+            items.append(.init(title: DivoStrings.attrGender, value: gender.title))
+        }
+        if let age = age {
+            items.append(.init(title: titleWithUnit(DivoStrings.attrAge, DivoStrings.unitYo), value: "\(age)"))
         }
 
         if let appearance = appearance {
             if let height = appearance.height {
-                items.append(.init(title: DivoStrings.attrHeight, value: "\(height.clean) \(DivoStrings.unitCm)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrHeight, DivoStrings.unitCm), value: height.clean))
+            }
+            if let waist = appearance.waist {
+                items.append(.init(title: titleWithUnit(DivoStrings.attrWaist, DivoStrings.unitCm), value: waist.clean))
             }
             if let weight = appearance.weight {
-                items.append(.init(title: DivoStrings.attrWeight, value: "\(weight.clean) \(DivoStrings.unitKg)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrWeight, DivoStrings.unitKg), value: weight.clean))
             }
             if let bust = appearance.breastSize {
                 items.append(.init(title: DivoStrings.attrBust, value: bust))
             }
-            if let waist = appearance.waist {
-                items.append(.init(title: DivoStrings.attrWaist, value: "\(waist.clean) \(DivoStrings.unitCm)"))
-            }
             if let hips = appearance.hips {
-                items.append(.init(title: DivoStrings.attrHips, value: "\(hips.clean) \(DivoStrings.unitCm)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrHips, DivoStrings.unitCm), value: hips.clean))
             }
             if let shoesSize = appearance.shoesSize {
-                items.append(.init(title: DivoStrings.attrShoes, value: "\(shoesSize.clean) \(DivoStrings.unitEU)"))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrShoes, DivoStrings.unitEU), value: shoesSize.clean))
             }
             if let hairColor = appearance.hairColor?.title {
                 items.append(.init(title: DivoStrings.attrHairColor, value: hairColor))
@@ -1566,7 +2226,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 items.append(.init(title: DivoStrings.attrSkinColor, value: skinColor))
             }
         }
-        
+
         return items
     }
     
@@ -1583,8 +2243,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
                 if links.count == 1 {
                     socialMediaStack.addArrangedSubview(createSocialOneMediaButton(handle: handle, icon: icon, url: link))
+                    socialHeightConstraint.isActive = false
+                    socialHeightConstraint.constant = 48
+                    socialHeightConstraint.isActive = true
                 } else {
                     socialMediaStack.addArrangedSubview(createSocialMediaButton(handle: handle, icon: icon, url: link))
+                    socialHeightConstraint.isActive = false
+                    socialHeightConstraint.constant = 68
+                    socialHeightConstraint.isActive = true
                 }
             }
         }
@@ -1609,63 +2275,100 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Первоначальная настройка титула NavigationBar
     private func setupNavigationBarTitle(name: String, info: String? = nil) {
-        // Проверяем, не создаем ли мы titleView повторно
         if let existingTitleView = self.navigationBarTitleView {
             existingTitleView.configure(name: name, info: info)
         } else {
             let titleView = ProfileNavigationBarTitleView()
-            
+            titleView.translatesAutoresizingMaskIntoConstraints = false
             titleView.configure(name: name, info: info)
             
             self.navigationBarTitleView = titleView
             
-            if let controller = self.controller {
-                controller.navigationItem.titleView = titleView
-            }
+            self.customNavBar.addSubview(titleView)
+            
+            NSLayoutConstraint.activate([
+                titleView.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
+                titleView.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
+                titleView.leadingAnchor.constraint(greaterThanOrEqualTo: closeButton.trailingAnchor, constant: 12),
+                titleView.trailingAnchor.constraint(lessThanOrEqualTo: rightButtonContainer.leadingAnchor, constant: -12)
+            ])
         }
 
-        // Важно: после загрузки titleView НЕ должен появляться мгновенно.
-        // Делаем состояние консистентным сразу после конфигурации.
         if !titleVisibilityActivated {
             navigationBarTitleView?.alpha = 0.0
         }
         updateNavigationBarTitleVisibility()
     }
     
-    // Обновление титула NavigationBar
     private func updateNavigationBarTitleVisibility() {
         guard let titleView = navigationBarTitleView,
-              let (_, navigationBarHeight) = self.containerLayout else { return }
+            let (_, navigationBarHeight) = self.containerLayout else { return }
 
-        // Пока мы не активировали механику появления заголовка (после загрузки данных),
-        // держим его скрытым — он должен появляться только при скролле.
         guard titleVisibilityActivated else {
-            if titleView.alpha != 0.0 {
-                titleView.alpha = 0.0
-            }
+            if titleView.alpha != 0.0 { titleView.alpha = 0.0 }
+            navBarBlurView.alpha = 0
+            customNavBar.backgroundColor = .clear
             return
         }
         
         let offsetY = scrollView.contentOffset.y
         
-        let headerBottomPoint = fixedProfileHeaderHeight - navigationBarHeight
+        // =========================================================
+        // ФАЗА 1: Исчезновение Имени -> Появление титула и цвета НавБара
+        // =========================================================
+        let nameY = infoStack.frame.minY > 0 ? infoStack.frame.minY : 360.0
         
-        let startShowingOffset = headerBottomPoint - 40
-        let fullyVisibleOffset = headerBottomPoint + 60
+        let titleStartShowingOffset = nameY - navigationBarHeight - 40
+        let titleFullyVisibleOffset = nameY - navigationBarHeight + 20
         
-        var alpha: CGFloat = 0.0
+        var titleAlpha: CGFloat = 0.0
+        if offsetY < titleStartShowingOffset { titleAlpha = 0.0 }
+        else if offsetY >= titleFullyVisibleOffset { titleAlpha = 1.0 }
+        else { titleAlpha = (offsetY - titleStartShowingOffset) / (titleFullyVisibleOffset - titleStartShowingOffset) }
         
-        if offsetY < startShowingOffset {
-            alpha = 0.0
-        } else if offsetY >= fullyVisibleOffset {
-            alpha = 1.0
+        if titleView.alpha != titleAlpha {
+            titleView.alpha = titleAlpha
+        }
+        
+        // =========================================================
+        // ПРИМЕНЕНИЕ ФАЗ К UI
+        // =========================================================
+
+        // 1. Блюр стартует вместе с title (нарастает быстрее), навбар всегда прозрачный — фон даёт только блюр
+        navBarBlurView.alpha = min(1.0, titleAlpha * 2.0)
+
+        // 2. Иконки кнопок
+        let maxProgress = titleAlpha
+        let iconColor = DivoColorPalette.primaryTextOnDark.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
+        closeButton.tintColor = iconColor
+        storiesButton.tintColor = iconColor
+        editButton.tintColor = iconColor
+        moreButton.tintColor = iconColor
+        
+        // 3. Фон кнопок
+        let bgStartColor = DivoColorPalette.statPillBackground 
+        let bgEndColor = DivoColorPalette.cardBackground
+        let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: maxProgress)
+        
+        closeButton.backgroundColor = currentBgColor
+        rightButtonContainer.backgroundColor = currentBgColor
+        
+        // 4. Границы прячем
+        let borderStartColor = DivoColorPalette.statPillBorder.cgColor
+        let borderEndColor = UIColor.clear.cgColor
+        closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
+        rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
+
+        // 5. Fade-out stat pills — только при реальном скролле вверх, не при bounce
+        if offsetY > 0 {
+            let pillAlpha = max(0, 1.0 - offsetY / 60.0)
+            counterActionsStack.alpha = pillAlpha
+            actionsShimmerView.alpha = pillAlpha
         } else {
-            alpha = (offsetY - startShowingOffset) / (fullyVisibleOffset - startShowingOffset)
+            counterActionsStack.alpha = 1.0
+            actionsShimmerView.alpha = 1.0
         }
-        
-        if titleView.alpha != alpha {
-            titleView.alpha = alpha
-        }
+
     }
     
     // Активация анимации заголовка навбара
@@ -1683,6 +2386,48 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     
     // MARK: - Internal
+
+    // Вызывается при старте загрузки
+    func showUploadOverlay(isPhoto: Bool) {
+        uploadOverlayLabel.text = isPhoto ? DivoStrings.uploadingPhotos : DivoStrings.uploadingVideos
+        uploadOverlayContainer.isHidden = false
+        uploadOverlaySpinner.startAnimating()
+        
+        UIView.animate(withDuration: 0.3) {
+            self.uploadOverlayContainer.alpha = 1.0
+            self.floatingAddButton.alpha = 0.0
+            self.floatingAddButton.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
+        }
+    }
+    
+    func hideUploadOverlay() {
+        UIView.animate(withDuration: 0.3, animations: {
+            self.uploadOverlayContainer.alpha = 0.0
+            self.floatingAddButton.alpha = 1.0
+            self.floatingAddButton.transform = .identity
+        }) { _ in
+            self.uploadOverlayContainer.isHidden = true
+            self.uploadOverlaySpinner.stopAnimating()
+        }
+    }
+    
+    func showUploadStatusView(isPhoto: Bool) {
+        if isPhoto {
+            galleryStatusView.isHidden = false
+            galleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingPhotos, isMyProfile: false)
+        } else {
+            videoGalleryStatusView.isHidden = false
+            videoGalleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingVideos, isMyProfile: false)
+        }
+    }
+    
+    func hideUploadStatusView(isPhoto: Bool) {
+        if isPhoto {
+            galleryStatusView.isHidden = true
+        } else {
+            videoGalleryStatusView.isHidden = true
+        }
+    }
 
     // Функция для извлечения имени пользователя или домена
     func extractHandle(from urlString: String) -> String {
@@ -1704,80 +2449,42 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return String(components.first ?? "")
     }
     
-    func loadSimilarProfiles() {
-        guard !similarProfilesIsLoading else { return }
-        similarProfilesIsLoading = true
-
-        let currentUserId = model.userId
-        let limit = 10
-
-        let requestBody = FeedlineListRequest(
-            offset: similarProfilesOffset,
-            limit: limit,
-            modelsOnly: true
-        )
-
-        Task { @MainActor in
-            do {
-                let response: FeedlineResponse = try await DivoAPIClient.shared.request(
-                    path: "/feedline/list",
-                    method: "POST",
-                    body: requestBody
-                )
-                let items = response.data.items
-                let profiles = items.compactMap { item -> SimilarProfileItem? in
-                    guard item.user.id != currentUserId else { return nil }
-                    let imageURL = CDNURLHelper.convertToCDNURL(
-                        item.searchImage?.fullUrl ?? item.files.first?.fullUrl
-                    )
-                    return SimilarProfileItem(
-                        id: item.user.id,
-                        name: item.user.fullName,
-                        info: item.user.roleLabel,
-                        avatarURL: imageURL
-                    )
-                }
-                self.similarProfilesIsLoading = false
-                self.similarProfilesHasMore = items.count >= limit
-                appendSimilarProfiles(profiles, totalCount: similarProfilesOffset + profiles.count + (similarProfilesHasMore ? 1 : 0))
-            } catch {
-                print("❌ [SIMILAR] Error loading similar profiles: \(error)")
-                self.similarProfilesIsLoading = false
-            }
-        }
-    }
-    
     // Обновляем Layout после загрузки контроллера
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
-        
+
         navigationBarTitleHeightConstraint.isActive = false
         navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight)
         navigationBarTitleHeightConstraint.isActive = true
-        contentViewStack.setCustomSpacing((-235 - navigationBarHeight), after: headerContainer)
-        
+
+        let bottomSafeInset = layout.intrinsicInsets.bottom
+        bottomSpacerHeightConstraint.constant = bottomSafeInset + 12
+
         applyGradientBlurMask()
-        
+        updateNavBarBlurMask()
+
         updateAllCollectionViewHeights(layout: layout)
         updateCollectionsContainerHeight(animated: false)
-        
+
         galleryCollectionView.collectionViewLayout.invalidateLayout()
         videoGalleryCollectionView.collectionViewLayout.invalidateLayout()
         channelGalleryCollectionView.collectionViewLayout.invalidateLayout()
         modelGalleryCollectionView.collectionViewLayout.invalidateLayout()
         eventGalleryCollectionView.collectionViewLayout.invalidateLayout()
-        
+
         updateNavigationBarTitleVisibility()
-        
+
         self.layoutIfNeeded()
     }
 
     func setBackgroundLoading(_ loading: Bool) {
         if loading {
             headerSpinner.startAnimating()
+            headerSpinner.isHidden = false
             headerImageView.alpha = 0.5
         } else {
             headerSpinner.stopAnimating()
+            headerSpinner.isHidden = true
             headerImageView.alpha = 1.0
         }
     }
@@ -1787,13 +2494,19 @@ final class PublicProfileScreenNode: ASDisplayNode {
             headerImageView.image = image
         }
     }
+
+    func faceSearchSeedImage() -> UIImage? {
+        return avatarImage ?? headerImageView.image
+    }
     
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
-        var bio: String
+        self.modelDetail = detail
+        var bio: String?
         var appearance: [AppearanceAttribute]
 
         self.modelRole = Role(apiRole: detail.role)
+        self.updateScreenBackgroundForCurrentTab()
 
         if self.modelRole == .agency {
             setupNavigationBarTitle(name: detail.agency?.title ?? DivoStrings.noName)
@@ -1810,22 +2523,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 profileInfoView.update(biography: bio)
                 profileInfoView.layoutIfNeeded()
             }
-            currentAgencyContainer.removeFromSuperview()
             segmentedBar.configure(isAgency: true, isMyProfile: isMyProfile)
-            self.addWorkHistoryContainer.removeFromSuperview()
 
             if let avatarURLString = detail.agency?.photo?.fullUrl {
                 if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
                     ImageLoader.shared.load(url: avatarURL) { [weak self] image in
                         if let image = image {
-                            self?.profileHeaderView.changeAvatar(with: image)
+                            self?.avatarImage = image
                         }
                     }
                 }
             }
         } else {
-            let age = detail.birthday.flatMap { calculateAge(from: $0) } ?? 0
-            setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(DivoStrings.ageString(age)) • \(detail.city?.name ?? "")")
+            let age = detail.birthday.flatMap { calculateAge(from: $0) }
+            let agePrefix = age.map { DivoStrings.ageString($0) + " • " } ?? ""
+            setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(agePrefix)\(detail.city?.name ?? "")")
             
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL)
@@ -1833,20 +2545,28 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             bio = (detail.model?.description?.isEmpty == false)
             ? (detail.model?.description ?? "")
-            :  (isMyProfile ? Self.mockBiographyMyProfileText : Self.mockBiographyText)
+            :  nil
+
+            appearance = buildAppearanceList(from: detail.model?.appearance, gender: detail.gender, age: age)
             
-            appearance = buildAppearanceList(from: detail.model?.appearance, gender: detail.gender)
-            
-            UIView.performWithoutAnimation {
-                profileInfoView.update(biography: bio, appearance: appearance)
-                profileInfoView.layoutIfNeeded()
-            }
-            if detail.model?.agency == nil {
-                currentAgencyContainer.removeFromSuperview()
-            } else {
+            var experience: ExperienceNode? = nil
+            if detail.model?.agency != nil {
                 let logoURLString = detail.model?.agency?.photo?.fullUrl
                 let logoURL = logoURLString != nil ? URL(string: logoURLString!) : nil
-                currentAgencyView.configure(name: detail.model?.agency?.title, logoURL: logoURL)
+                experience = ExperienceNode(title: detail.model?.agency?.title, period: detail.model?.agency?.title, logoURL: logoURL, delegate: self)
+            }
+            UIView.performWithoutAnimation {
+                profileInfoView.update(biography: bio, appearance: appearance, experience: experience, isMyProfile: isMyProfile)
+                profileInfoView.openAddWorkExperience = { [weak self] in
+                    self?.onEditProfileTapped?(2)
+                }
+                profileInfoView.openEditBio = { [weak self] in
+                    self?.onEditProfileTapped?(0)
+                }
+                profileInfoView.openEditAppearance = { [weak self] in
+                    self?.onEditProfileTapped?(1)
+                }
+                profileInfoView.layoutIfNeeded()
             }
             segmentedBar.configure(isAgency: false, isMyProfile: isMyProfile)
 
@@ -1854,12 +2574,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
                     ImageLoader.shared.load(url: avatarURL) { [weak self] image in
                         if let image = image {
-                            self?.profileHeaderView.changeAvatar(with: image)
+                            self?.avatarImage = image
                         }
                     }
                 }
             }
         }
+
+        setupMoreMenu()
+        setupEditMenu(isMyProfile: isMyProfile)
 
         var socialLinks: [String] = []
 
@@ -1872,14 +2595,20 @@ final class PublicProfileScreenNode: ASDisplayNode {
         populateSocialMedia(links: socialLinks)
 
         if !isMyProfile {
-            similarProfilesCollectionContainer.isHidden = false
-            dmButton.isHidden = false
+            similarProfilesCollectionContainer.isHidden = self.modelRole == .agency
+            updateBottomSpacerVisibility()
+            sendShareContainer.isHidden = false
+            dmShareStack.isHidden = false
+            dmShareShimmerStack.isHidden = true
             setupDmButtonContent()
             titleEditContainer.removeFromSuperview()
         } else {
+            sendShareContainer.isHidden = true
             titleEditContainer.isHidden = !socialLinks.isEmpty ? false : true
+            contentViewStack.setCustomSpacing(44, after: profileHeaderWrapper)
         }
         
+        // FIXME DIVO: isOnline захардкожен — API пока не возвращает это поле
         UIView.performWithoutAnimation {
             if self.modelRole == .agency {
                 let viewModel = UserProfileViewModel(
@@ -1889,12 +2618,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     countryFlag: Self.flag(for: detail.agency?.address?.city?.countryCode),
                     role: self.modelRole,
                     avatarImage: nil,
-                    isPremium: true,
+                    isPremium: detail.isPremium ?? false,
                     isOnline: true
                 )
                 profileHeaderView.configure(with: viewModel)
             } else {
-                let age = detail.birthday.flatMap { calculateAge(from: $0) } ?? 0
+                let age = detail.birthday.flatMap { calculateAge(from: $0) }
                 let viewModel = UserProfileViewModel(
                     name: detail.fullName ?? DivoStrings.noName,
                     age: age,
@@ -1902,7 +2631,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     countryFlag: Self.flag(for: detail.city?.countryCode),
                     role: self.modelRole,
                     avatarImage: nil,
-                    isPremium: true,
+                    isPremium: detail.isPremium ?? false,
                     isOnline: true
                 )
                 profileHeaderView.configure(with: viewModel)
@@ -1912,10 +2641,48 @@ final class PublicProfileScreenNode: ASDisplayNode {
         activateTitleVisibility()
     }
 
-    func updateEngagementStats(likes: Int, views: Int, saves: Int) {
-        setupCounterView(likesView, count: "\(likes)", name: DivoStrings.counterLike, iconName: "Instant View/Favorite")
-        setupCounterView(viewsView, count: "\(views)", name: DivoStrings.counterViewed, iconName: "Instant View/Visibility")
-        setupCounterView(savesView, count: "\(saves)", name: DivoStrings.counterSave, iconName: "Instant View/Bookmark")
+    func updateEngagementStats(likes: Int, views: Int, saves: Int, isLiked: Bool = false, isSaved: Bool = false) {
+        self.currentLikesCount = likes
+        self.currentIsLiked = isLiked
+        
+        self.currentSavesCount = saves
+        self.currentIsSaved = isSaved
+        
+        likesView.setValue(Self.formatCount(likes))
+        likesView.setActive(isLiked, animated: false)
+        
+        viewsView.setValue(Self.formatCount(views))
+        
+        savesView.setValue(Self.formatCount(saves))
+        savesView.setActive(isSaved, animated: false)
+    }
+
+    /// Formats count to max 4 characters: 999 → "999", 1K, 288K, 1.5M, 10M, 1.5B
+    static func formatCount(_ count: Int) -> String {
+        if count >= 1_000_000_000 {
+            let value = Double(count) / 1_000_000_000.0
+            if value >= 10 {
+                return "\(Int(value))B"
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))B"
+            }
+            return "\(formatted)B"
+        } else if count >= 1_000_000 {
+            let value = Double(count) / 1_000_000.0
+            if value >= 10 {
+                return "\(Int(value))M"
+            }
+            let formatted = String(format: "%.1f", value)
+            if formatted.hasSuffix(".0") {
+                return "\(Int(value))M"
+            }
+            return "\(formatted)M"
+        } else if count >= 1_000 {
+            return "\(count / 1_000)K"
+        }
+        return "\(count)"
     }
     
     // Добавление фотографий в галерею пагинацией
@@ -1927,26 +2694,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if !galleryInitialized {
             self.galleryPhotos = []
             galleryInitialized = true
-            // debug: pagination logs removed
         }
         
+        let existingIds = Set(self.galleryPhotos.map { $0.id })
+        let uniqueNewPhotos = newPhotos.filter { !existingIds.contains($0.id) }
+        
         let previousCount = self.galleryPhotos.count
-        self.galleryPhotos.append(contentsOf: newPhotos)
+        self.galleryPhotos.append(contentsOf: uniqueNewPhotos)
         
         self.galleryCurrentOffset = serverOffset
         self.galleryHasMore = self.galleryPhotos.count < totalCount
         self.galleryIsLoading = false
         
-        // debug: pagination logs removed
-        
         if previousCount == 0 {
             let hasPhotos = !self.galleryPhotos.isEmpty
-            self.galleryStatusView.isHidden = hasPhotos
-            if isMyProfile {
-                self.galleryStatusView.configure(isLoading: false, text: DivoStrings.uploadYourPhotos, isMyProfile: true)
-            } else {
-                self.galleryStatusView.configure(isLoading: false, text: DivoStrings.noVideosYet, isMyProfile: false)
+            self.galleryStatusView.isHidden = true
+            self.photoEmptyView.isHidden = hasPhotos
+            if !hasPhotos {
+                self.configureProfileEmptyView(for: .photo, isMyProfile: isMyProfile)
             }
+            self.updateScreenBackgroundForCurrentTab()
             self.galleryCollectionView.isHidden = !hasPhotos
             self.galleryCollectionView.reloadData()
             
@@ -1957,8 +2724,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                 self?.checkAndLoadMoreGalleryPhotos()
             }
-        } else {
-            let newIndices = (previousCount..<(previousCount + newPhotos.count)).map { IndexPath(item: $0, section: 0) }
+        } else if !uniqueNewPhotos.isEmpty {
+            let newIndices = (previousCount..<(previousCount + uniqueNewPhotos.count)).map { IndexPath(item: $0, section: 0) }
             self.galleryCollectionView.performBatchUpdates({
                 self.galleryCollectionView.insertItems(at: newIndices)
                 if let layout = self.containerLayout?.0 {
@@ -1969,6 +2736,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.checkAndLoadMoreGalleryPhotos()
             })
         }
+        updateFloatingButton(for: currentTab)
     }
     
     // Обновление высоты коллекции галереи
@@ -2009,6 +2777,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
+            photoEmptyView.isHidden = true
             galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
             if let layout = self.containerLayout?.0 {
@@ -2026,14 +2795,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.galleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func finishPhotoUpload(photo: UserPhoto) {
         uploadingPhotoImage = nil
+        galleryStatusView.isHidden = true
         if !galleryPhotos.isEmpty && galleryPhotos[0].id == -1 {
             galleryPhotos[0] = photo
             galleryCollectionView.reloadItems(at: [IndexPath(item: 0, section: 0)])
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func cancelPhotoUpload() {
@@ -2050,10 +2822,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.galleryPhotos.isEmpty {
-                self.galleryStatusView.isHidden = false
+                self.galleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
+                self.photoEmptyView.isHidden = false
                 self.galleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
 
     // Добавление одной новой фотографии в начало (после успешной загрузки)
@@ -2066,6 +2841,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
+            photoEmptyView.isHidden = true
             galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
 
@@ -2086,6 +2862,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.galleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func removePhoto(withId id: Int) {
@@ -2108,12 +2885,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
             guard let self = self else { return }
             // Если удалили последнее фото, показываем заглушку
             if self.galleryPhotos.isEmpty {
-                self.galleryStatusView.isHidden = false
+                self.galleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
+                self.photoEmptyView.isHidden = false
                 self.galleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
-    
+
     // Сброс пагинации галереи
     func resetGalleryPagination() {
         galleryPhotos = []
@@ -2124,17 +2904,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let controller = self.controller as? PublicProfileScreenController {
             controller.clearGalleryData()
         }
-        print("🔄 [PAGINATION] Reset gallery pagination state")
+        divoLog("[PAGINATION] Reset gallery pagination state")
     }
     
     // Флаг загрузки галереи
     func setGalleryLoading(_ loading: Bool, _ uploadNew: Bool = false) {
         galleryIsLoading = loading
-        if uploadNew {
-            galleryStatusView.isHidden = false
-        } else {
-            galleryStatusView.isHidden = !galleryPhotos.isEmpty ? true : !loading && galleryPhotos.isEmpty
-        }
+        // Если уже есть фото — лоадер скрыт всегда. Показываем только когда галерея пустая и идёт загрузка.
+        galleryStatusView.isHidden = !galleryPhotos.isEmpty || !loading
         galleryStatusView.loadingSpinner(isLoading: loading)
     }
     
@@ -2174,6 +2951,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let controller = self.controller as? PublicProfileScreenController {
             controller.loadVideoGalleryPage(userId: userId, offset: 0)
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func appendVideoGalleryItems(_ items: [UserVideoItem], pagination: Meta, isMyProfile: Bool) {
@@ -2227,18 +3005,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
         
         if previousCount == 0 {
             let hasVideos = !self.videoGalleryItems.isEmpty
-            self.videoGalleryStatusView.isHidden = hasVideos
-            if isMyProfile {
-                self.videoGalleryStatusView.configure(isLoading: false, text: DivoStrings.uploadYourVideos, isMyProfile: true)
-            } else {
-                self.videoGalleryStatusView.configure(isLoading: false, text: DivoStrings.noVideosYet, isMyProfile: false)
+            self.videoGalleryStatusView.isHidden = true
+            self.videoEmptyView.isHidden = hasVideos
+            if !hasVideos {
+                self.configureProfileEmptyView(for: .video, isMyProfile: isMyProfile)
             }
+            self.updateScreenBackgroundForCurrentTab()
             self.videoGalleryCollectionView.isHidden = !hasVideos
             self.videoGalleryCollectionView.reloadData()
             
             if let layout = self.containerLayout?.0 {
                 self.updateAllCollectionViewHeights(layout: layout)
                 if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                self?.checkAndLoadMoreVideoGallery()
             }
         } else if !uniquePhotoItems.isEmpty {
             let newIndices = (previousCount..<(previousCount + uniquePhotoItems.count)).map { IndexPath(item: $0, section: 0) }
@@ -2248,10 +3029,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     self.updateAllCollectionViewHeights(layout: layout)
                     if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
                 }
-            }, completion: nil)
+            }, completion: { [weak self] _ in
+                self?.checkAndLoadMoreVideoGallery()
+            })
         }
+        updateFloatingButton(for: currentTab)
     }
     
+    func checkAndLoadMoreVideoGallery() {
+        guard videoGalleryHasMore && !videoGalleryIsLoading else { return }
+
+        videoGalleryCollectionView.layoutIfNeeded()
+
+        let contentHeight = videoGalleryCollectionView.contentSize.height
+        let frameHeight = videoGalleryCollectionView.frame.size.height
+
+        if contentHeight <= frameHeight {
+            loadNextVideoGalleryPage()
+        }
+    }
+
     // Обновление высоты видео галереи
     func updateVideoGalleryCollectionViewHeight() {
         guard let (layout, _) = self.containerLayout else { return }
@@ -2284,6 +3081,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
             videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
             if let layout = self.containerLayout?.0 {
@@ -2301,14 +3099,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.videoGalleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func finishVideoUpload(video: UserPhoto) {
         uploadingVideoImage = nil
+        videoGalleryStatusView.isHidden = true
         if !videoGalleryItems.isEmpty && videoGalleryItems[0].id == -1 {
             videoGalleryItems[0] = video
             videoGalleryCollectionView.reloadItems(at: [IndexPath(item: 0, section: 0)])
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func cancelVideoUpload() {
@@ -2325,10 +3126,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = false
+                self.videoGalleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
+                self.videoEmptyView.isHidden = false
                 self.videoGalleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
 
     func insertNewVideo(_ video: UserPhoto) {
@@ -2340,6 +3144,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
             videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
 
@@ -2360,6 +3165,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self.videoGalleryCollectionView.scrollToItem(at: IndexPath(item: 0, section: 0), at: .left, animated: true)
             })
         }
+        updateFloatingButton(for: currentTab)
     }
 
     func removeVideo(withId id: Int) {
@@ -2380,10 +3186,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = false
+                self.videoGalleryStatusView.isHidden = true
+                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
+                self.videoEmptyView.isHidden = false
                 self.videoGalleryCollectionView.isHidden = true
             }
         })
+        updateFloatingButton(for: currentTab)
     }
     
     // Загрузка следующей страницы видео
@@ -2420,17 +3229,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let controller = self.controller as? PublicProfileScreenController {
             controller.clearGalleryData()
         }
-        print("🔄 [VIDEO] Reset video gallery pagination state")
+        divoLog("[VIDEO] Reset video gallery pagination state")
     }
     
     // Флаг загрузки галереи видео
     func setVideoGalleryLoading(_ loading: Bool, _ uploadNew: Bool = false) {
         videoGalleryIsLoading = loading
-        if uploadNew {
-            videoGalleryStatusView.isHidden = false
-        } else {
-            videoGalleryStatusView.isHidden = !videoGalleryItems.isEmpty ? true : !loading && videoGalleryItems.isEmpty
-        }
+        // Если уже есть видео — лоадер скрыт всегда. Показываем только когда галерея пустая и идёт загрузка.
+        videoGalleryStatusView.isHidden = !videoGalleryItems.isEmpty || !loading
         videoGalleryStatusView.loadingSpinner(isLoading: loading)
     }
 
@@ -2449,22 +3255,24 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func updateChannelsList(_ items: [ProfileChannelItem]) {
         self.channelGalleryItems = items
         let hasItems = !items.isEmpty
-        self.channelGalleryStatusView.isHidden = hasItems
+        self.channelGalleryStatusView.isHidden = true
         self.channelGalleryCollectionView.isHidden = !hasItems
+        self.channelsEmptyView.isHidden = hasItems
         if !hasItems {
-            self.channelGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? DivoStrings.addChannel : DivoStrings.noChannelsYet, isMyProfile: model.isMyProfile)
+            self.configureProfileEmptyView(for: .channels, isMyProfile: model.isMyProfile)
         }
+        self.updateScreenBackgroundForCurrentTab()
         self.channelGalleryCollectionView.reloadData()
         
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            if self.currentTab == .channels { self.updateCollectionsContainerHeight(animated: true) }
+            if self.currentTab == .channels { self.updateCollectionsContainerHeight(animated: false) }
         }
     }
     
     // Загрузка высоты галереи каналов
     private func updateChannelsCollectionViewHeight() {
-        let channelCellHeight: CGFloat = 76.0
+        let channelCellHeight: CGFloat = 66.0
         let channelsHeight = CGFloat(channelGalleryItems.count) * channelCellHeight
         
         channelGalleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
@@ -2487,44 +3295,31 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     // Обновление галереи моделей
-    func updateModelsList(_ items:[ModelItem]) {
+    func updateModelsList(_ items: [ModelItem]) {
         self.modelGalleryItems = items
         let hasItems = !items.isEmpty
-        
+
         self.modelGalleryCollectionView.isHidden = !hasItems
-        
-        if !hasItems && model.isMyProfile && modelRole == .agency {
-            self.modelGalleryStatusView.isHidden = true
-            self.emptyModelsPlaceholderNode.isHidden = false
-        } else {
-            self.emptyModelsPlaceholderNode.isHidden = true
-            self.modelGalleryStatusView.isHidden = hasItems
-            if !hasItems {
-                self.modelGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? "Add model" : "No models yet", isMyProfile: model.isMyProfile)
-            }
+        self.modelGalleryStatusView.isHidden = true
+        self.modelsEmptyView.isHidden = hasItems
+        if !hasItems {
+            self.configureProfileEmptyView(for: .models, isMyProfile: model.isMyProfile)
         }
-        
+        self.updateScreenBackgroundForCurrentTab()
+
         self.modelGalleryCollectionView.reloadData()
-        
+
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .models {
-                self.updateCollectionsContainerHeight(animated: true)
-
-                if !hasItems && model.isMyProfile && modelRole == .agency {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                        guard let self = self else { return }
-                        let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
-                        self.scrollView.setContentOffset(bottomOffset, animated: true)
-                    }
-                }
+                self.updateCollectionsContainerHeight(animated: false)
             }
         }
     }
     
     // Загрузка высоты галереи моделей
     private func updateModelsCollectionViewHeight() {
-        let modelCellHeight: CGFloat = 76.0
+        let modelCellHeight: CGFloat = 66.0
         let modelsHeight = CGFloat(modelGalleryItems.count) * modelCellHeight
         
         modelGalleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
@@ -2550,23 +3345,28 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func updateEventsList(_ items: [EventItem]) {
         self.eventGalleryItems = items
         let hasItems = !items.isEmpty
-        self.eventGalleryStatusView.isHidden = hasItems
+        self.eventGalleryStatusView.isHidden = true
         self.eventGalleryCollectionView.isHidden = !hasItems
+        self.eventsEmptyView.isHidden = hasItems
         if !hasItems {
-            self.eventGalleryStatusView.configure(isLoading: false, text: model.isMyProfile ? DivoStrings.addEvent : DivoStrings.noEventsYet, isMyProfile: model.isMyProfile)
+            self.configureProfileEmptyView(for: .events, isMyProfile: model.isMyProfile)
         }
+        self.updateScreenBackgroundForCurrentTab()
+
         self.eventGalleryCollectionView.reloadData()
-        
+
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
-            if self.currentTab == .events { self.updateCollectionsContainerHeight(animated: true) }
+            if self.currentTab == .events {
+                self.updateCollectionsContainerHeight(animated: false)
+            }
         }
     }
     
     // Загрузка высоты галереи событий
     private func updateEventsCollectionViewHeight() {
-        let eventCellHeight: CGFloat = 76.0
-        let eventsHeight = CGFloat(modelGalleryItems.count) * eventCellHeight
+        let eventCellHeight: CGFloat = 66.0
+        let eventsHeight = CGFloat(eventGalleryItems.count) * eventCellHeight
         
         eventGalleryCollectionView.constraints.filter({ $0.firstAttribute == .height }).forEach({ $0.isActive = false })
         eventGalleryCollectionView.heightAnchor.constraint(equalToConstant: max(eventsHeight, 1.0)).isActive = true
@@ -2595,26 +3395,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoHeightConstraint.constant = max(vHeight, 1.0)
         
         // Channels
-        let cHeight = CGFloat(channelGalleryItems.count) * 76.0
+        let cHeight = CGFloat(channelGalleryItems.count) * 66.0
         channelHeightConstraint.constant = max(cHeight, 1.0)
         
         // Models
-        let mHeight = CGFloat(modelGalleryItems.count) * 76.0
+        let mHeight = CGFloat(modelGalleryItems.count) * 66.0
         modelHeightConstraint.constant = max(mHeight, 1.0)
         
         // Events
-        let eHeight = CGFloat(eventGalleryItems.count) * 76.0
+        let eHeight = CGFloat(eventGalleryItems.count) * 66.0
         eventHeightConstraint.constant = max(eHeight, 1.0)
     }
     
     private func calculateCollectionsContainerHeight() -> CGFloat {
         guard let (layout, navBarHeight) = self.containerLayout else { return 160 }
         
-        let emptyPlaceholderHeight = max(160, layout.size.height - navBarHeight - self.segmentedBarHeight)
+        let fullScreenAvailableHeight = max(160, layout.size.height - navBarHeight - self.segmentedBarHeight - 10) //10 - отступ от сегмент бара до коллекций
         
         func heightFor(isEmpty: Bool, constraint: NSLayoutConstraint, isModelTab: Bool = false) -> CGFloat {
             if isEmpty {
-                return (isModelTab && model.isMyProfile && modelRole == .agency) ? emptyPlaceholderHeight : 160
+                return fullScreenAvailableHeight
             }
             return constraint.constant
         }
@@ -2651,16 +3451,159 @@ final class PublicProfileScreenNode: ASDisplayNode {
             }
         }
     }
+
+    // Метод, который меняет внешний вид кнопки в зависимости от таба
+    private func updateFloatingButton(for tab: ProfileTab) {
+        guard model.isMyProfile else {
+            if !floatingAddButton.isHidden {
+                floatingAddButton.isHidden = true
+            }
+            return
+        }
+        
+        var title = ""
+        var icon = UIImage()
+        var isVisible = true
+        
+        switch tab {
+        case .photo:
+            title = DivoStrings.addPhoto
+            icon = DivoImage.photoIcon
+            isVisible = !galleryPhotos.isEmpty
+            
+        case .video:
+            title = DivoStrings.addVideo
+            icon = DivoImage.videoIcon
+            isVisible = !videoGalleryItems.isEmpty
+            
+        case .models:
+            if modelRole == .agency {
+                title = DivoStrings.addModel
+                icon = DivoImage.associatedModels
+                isVisible = !modelGalleryItems.isEmpty
+            } else {
+                isVisible = false
+            }
+            
+        case .events:
+            title = DivoStrings.createEvent
+            icon = DivoImage.eventsAgency
+            isVisible = !eventGalleryItems.isEmpty
+            
+        case .channels:
+            isVisible = false
+        }
+        
+        if isVisible {
+            floatingAddButton.makeDivoButton(title: title, leadingIcon: icon, buttonFont: Font.helveticaNeue(16), radius: 20)
+            
+            if floatingAddButton.isHidden {
+                floatingAddButton.alpha = 0
+                floatingAddButton.isHidden = false
+                UIView.animate(withDuration: 0.3) {
+                    self.floatingAddButton.alpha = 1.0
+                }
+            } else {
+                UIView.transition(with: floatingAddButton, duration: 0.2, options: .transitionCrossDissolve, animations: nil, completion: nil)
+            }
+        } else {
+            if !floatingAddButton.isHidden {
+                UIView.animate(withDuration: 0.3, animations: {
+                    self.floatingAddButton.alpha = 0.0
+                }) { _ in
+                    self.floatingAddButton.isHidden = true
+                }
+            }
+        }
+    }
     
     
     // MARK: - @objc
+
+    @objc private func likesPillTapped() {
+        guard let userId = model.userId, !isLikingProcess else { return }
+        
+        isLikingProcess = true
+        
+        currentIsLiked.toggle()
+        currentLikesCount = max(0, currentLikesCount + (currentIsLiked ? 1 : -1))
+        
+        likesView.setActive(currentIsLiked, animated: true)
+        likesView.setValue(Self.formatCount(currentLikesCount))
+        likesView.popIcon()
+        
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.toggleLikeProfile(userId: userId, isLiked: currentIsLiked) {[weak self] success in
+                guard let self = self else { return }
+                self.isLikingProcess = false
+                
+                if !success {
+                    self.currentIsLiked.toggle()
+                    self.currentLikesCount = max(0, self.currentLikesCount + (self.currentIsLiked ? 1 : -1))
+                    
+                    self.likesView.setActive(self.currentIsLiked, animated: true)
+                    self.likesView.setValue(Self.formatCount(self.currentLikesCount))
+                }
+            }
+        }
+    }
+    
+    @objc private func savesPillTapped() {
+        guard let userId = model.userId, !isSavingProcess else { return }
+        
+        isSavingProcess = true
+        
+        currentIsSaved.toggle()
+        currentSavesCount = max(0, currentSavesCount + (currentIsSaved ? 1 : -1))
+        
+        savesView.setActive(currentIsSaved, animated: true)
+        savesView.setValue(Self.formatCount(currentSavesCount))
+        savesView.popIcon()
+        
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.toggleSaveProfile(userId: userId, isSaved: currentIsSaved) { [weak self] success in
+                guard let self = self else { return }
+                self.isSavingProcess = false
+                
+                if !success {
+                    self.currentIsSaved.toggle()
+                    self.currentSavesCount = max(0, self.currentSavesCount + (self.currentIsSaved ? 1 : -1))
+                    
+                    self.savesView.setActive(self.currentIsSaved, animated: true)
+                    self.savesView.setValue(Self.formatCount(self.currentSavesCount))
+                }
+            }
+        }
+    }
+
+    // Метод, который вызывает нужный Action в зависимости от открытого таба
+    @objc private func floatingAddButtonTapped() {
+        let maxScrollY = max(0, scrollView.contentSize.height - scrollView.bounds.height)
+        
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseInOut, animations: {
+            self.scrollView.contentOffset = CGPoint(x: 0, y: maxScrollY)
+        }) { _ in
+            switch self.currentTab {
+            case .photo:
+                self.onAddPhotoTapped?(true)
+            case .video:
+                self.onAddVideoTapped?(true)
+            case .models:
+                self.onAddModelTapped?()
+            case .events:
+                self.onAddEventTapped?()
+            case .channels:
+                break
+            }
+        }
+    }
 
     @objc private func addModelBtnTapped() {
         onAddModelTapped?()
     }
     
     @objc private func dmButtonTapped() {
-        
+        // FIXME DIVO: implement send DM action (open chat with user)
     }
     
     @objc private func handleTouchDown(_ sender: UIControl) {
@@ -2700,16 +3643,29 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     @objc private func galleryStatusTapped() {
-        onAddPhotoTapped?()
+        onAddPhotoTapped?(false)
     }
 
     @objc private func videoGalleryStatusTapped() {
-        onAddVideoTapped?()
+        onAddVideoTapped?(false)
     }
 
     @objc private func eventGalleryStatusTapped() {
         onAddEventTapped?()
     }
+
+    @objc private func shareTapped() {
+        onGridShareTapped?(modelDetail, avatarImage)
+    }
+
+    @objc private func closeTapped() {
+        onBackTapped?()
+    }
+
+    @objc private func storiesTapped() {
+        storiesButtonTapped?()
+    }
+
 
     // MARK: - Snackbar
 
@@ -2722,7 +3678,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             in: self.view,
             message: message,
             style: style,
-            bottomInset: 16,
+            bottomInset: DivoDesignTokens.Spacing.m,
             bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
@@ -2745,6 +3701,9 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
         } else if collectionView == videoGalleryCollectionView {
             return videoGalleryItems.count
         } else if collectionView == similarProfilesCollectionView {
+            if similarProfilesIsLoading && similarProfiles.isEmpty {
+                return 6
+            }
             return similarProfiles.count
         } else if collectionView == channelGalleryCollectionView {
             return channelGalleryItems.count
@@ -2758,6 +3717,14 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         if collectionView == similarProfilesCollectionView {
+            if similarProfilesIsLoading && similarProfiles.isEmpty {
+                guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SimilarProfileShimmerCell.reuseIdentifier, for: indexPath) as? SimilarProfileShimmerCell else {
+                    return UICollectionViewCell()
+                }
+                cell.startAnimation()
+                return cell
+            }
+            
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SimilarProfileCell.reuseIdentifier, for: indexPath) as? SimilarProfileCell else {
                 return UICollectionViewCell()
             }
@@ -2816,9 +3783,15 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
             }
             let item = eventGalleryItems[indexPath.item]
             cell.configure(with: item, context: self.context, isMyProfile: self.model.isMyProfile)
-            cell.onButtonTap = { [weak self] eventId in
+            cell.onEditTapped = { [weak self] eventId in
                 if let eventId = eventId {
                     self?.onEventButtonTapped?(eventId)
+                }
+            }
+
+            cell.onDeleteTapped = { [weak self] eventId in
+                if let eventId = eventId {
+                    self?.onEventDeleteButtonTapped?(eventId)
                 }
             }
             return cell
@@ -2833,16 +3806,19 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
 extension PublicProfileScreenNode: UICollectionViewDelegate {
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == similarProfilesCollectionView {
-            _ = similarProfiles[indexPath.item]
-            // debug: removed
-            // TODO: Открыть профиль выбранного пользователя
-            // handleSimilarProfileTap(profile)
+            guard !similarProfilesIsLoading || !similarProfiles.isEmpty else { return }
+            let user = similarProfiles[indexPath.item]
+            onSimilarProfileTapped?(user)
         } else if collectionView == galleryCollectionView {
             guard galleryPhotos[indexPath.item].id != -1 else { return }
             onGalleryItemTapped?(.photo, indexPath.item)
         } else if collectionView == videoGalleryCollectionView {
             guard videoGalleryItems[indexPath.item].id != -1 else { return }
             onGalleryItemTapped?(.video, indexPath.item)
+        } else if collectionView == modelGalleryCollectionView {
+            guard !modelGalleryItems.isEmpty else { return }
+            let user = modelGalleryItems[indexPath.item]
+            onModelAgencyTapped?(user)
         }
     }
 
@@ -2880,7 +3856,7 @@ extension PublicProfileScreenNode {
 extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         if collectionView == similarProfilesCollectionView {
-            return CGSize(width: 166, height: 200)
+            return CGSize(width: 133, height: 145)
         } else if collectionView == galleryCollectionView || collectionView == videoGalleryCollectionView {
             guard let (layout, _) = self.containerLayout else { return .zero }
             let totalSpacing: CGFloat = 2
@@ -2890,7 +3866,7 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
                     || collectionView == modelGalleryCollectionView
                     || collectionView == eventGalleryCollectionView {
             guard let (layout, _) = self.containerLayout else { return .zero }
-            return CGSize(width: layout.size.width, height: 74)
+            return CGSize(width: layout.size.width, height: 66)
         }
         return CGSize()
     }
@@ -2899,11 +3875,12 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
         if collectionView == similarProfilesCollectionView {
             return 6
         } else if collectionView == galleryCollectionView
-                    || collectionView == videoGalleryCollectionView
-                    || collectionView == channelGalleryCollectionView
-                    || collectionView == modelGalleryCollectionView
-                    || collectionView == eventGalleryCollectionView {
+                    || collectionView == videoGalleryCollectionView {
             return 1.0
+        } else if collectionView == channelGalleryCollectionView
+                    || collectionView == eventGalleryCollectionView
+                    || collectionView == modelGalleryCollectionView {
+            return 0.0
         }
         return 0
     }
@@ -2912,18 +3889,19 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
         if collectionView == similarProfilesCollectionView {
             return 6
         } else if collectionView == galleryCollectionView
-                    || collectionView == videoGalleryCollectionView
-                    || collectionView == channelGalleryCollectionView
-                    || collectionView == modelGalleryCollectionView
-                    || collectionView == eventGalleryCollectionView {
+                    || collectionView == videoGalleryCollectionView {
             return 1.0
+        } else if collectionView == channelGalleryCollectionView
+                    || collectionView == eventGalleryCollectionView
+                    || collectionView == modelGalleryCollectionView {
+            return 0.0
         }
         return 0
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
         if collectionView == similarProfilesCollectionView {
-            return UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+            return UIEdgeInsets(top: DivoDesignTokens.Spacing.m, left: DivoDesignTokens.Spacing.m, bottom: DivoDesignTokens.Spacing.m, right: DivoDesignTokens.Spacing.m)
         } else if collectionView == galleryCollectionView
                     || collectionView == videoGalleryCollectionView
                     || collectionView == channelGalleryCollectionView
@@ -2957,10 +3935,9 @@ extension PublicProfileScreenNode: UIScrollViewDelegate {
         updateSegmentedBarPosition()
         updateNavigationBarTitleVisibility()
         
-        // Защита от скролла ниже контента
         let maxScrollY = scrollView.contentSize.height - scrollView.bounds.height
         let bottomLimit = max(0, maxScrollY)
-        
+
         if scrollView.contentOffset.y > bottomLimit {
             scrollView.contentOffset.y = bottomLimit
         }
@@ -2986,9 +3963,16 @@ extension PublicProfileScreenNode: UIScrollViewDelegate {
 
 extension PublicProfileScreenNode: ProfileInfoViewDelegate {
     func profileInfoViewDidUpdateContentHeight(animated: Bool) {
-        UIView.performWithoutAnimation {
-            self.setNeedsLayout()
-            self.layoutIfNeeded()
+        if animated {
+            UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut, .allowUserInteraction]) {
+                self.contentViewStack.layoutIfNeeded()
+                self.view.layoutIfNeeded()
+            }
+        } else {
+            UIView.performWithoutAnimation {
+                self.contentViewStack.layoutIfNeeded()
+                self.view.layoutIfNeeded()
+            }
         }
     }
 }
@@ -3024,50 +4008,32 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int) {
         guard let newTab = profileTab(forSegmentIndex: index), newTab != currentTab else { return }
 
-        let isSlidingLeft = newTab.rawValue > currentTab.rawValue
-        let screenWidth = self.view.bounds.width
-        let offset = isSlidingLeft ? screenWidth : -screenWidth
-
         let oldContainer = getTabContainer(for: currentTab)
         let newContainer = getTabContainer(for: newTab)
-
-        newContainer.transform = CGAffineTransform(translationX: offset, y: 0)
-        newContainer.isHidden = false
 
         loadDataForTab(newTab)
 
         currentTab = newTab
+        updateScreenBackgroundForCurrentTab()
 
-        // 1. Устанавливаем новую высоту (вычисляем через наш новый метод)
         collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
 
-        // 2. Анимируем всё вместе: сдвиг, изменение высоты и корректировку скролла
-        UIView.animate(withDuration: 0.35, delay: 0, options: .curveEaseInOut, animations: {
-            oldContainer.transform = CGAffineTransform(translationX: -offset, y: 0)
-            newContainer.transform = .identity
-
-            // Плавно применяем новую высоту к Layout
+        UIView.performWithoutAnimation {
+            oldContainer.isHidden = true
+            newContainer.isHidden = false
             self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
 
-            // Если новый таб короче, и мы находились в самом низу, скролл должен плавно подняться
+            // На любое переключение таба подскролливаем к sticky-позиции — segmentedBar
+            // прилипает под навбаром, новый таб виден сразу с начала (включая эмпти-стейт).
+            // Делаем instant (без animated: true), чтобы переход не дёргал.
+            let stickyThreshold = max(0, self.segmentedBarContainer.frame.minY)
             let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
-            if self.scrollView.contentOffset.y > maxOffset {
-                self.scrollView.contentOffset.y = maxOffset
+            let targetOffsetY = min(stickyThreshold, maxOffset)
+            if self.scrollView.contentOffset.y != targetOffsetY {
+                self.scrollView.contentOffset.y = targetOffsetY
             }
-
-        }, completion: {[weak self] _ in
-            guard let self = self else { return }
-            oldContainer.isHidden = true
-            oldContainer.transform = .identity
-
-            // Логика автоматического скролла вниз для ПУСТОГО окна добавления моделей
-            let hasItems = !self.modelGalleryItems.isEmpty
-            if newTab == .models && self.model.isMyProfile && self.modelRole == .agency && !hasItems {
-                let bottomOffset = CGPoint(x: 0, y: max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height))
-                self.scrollView.setContentOffset(bottomOffset, animated: true)
-            }
-        })
+        }
     }
     
     private func loadDataForTab(_ tab: ProfileTab) {
@@ -3092,5 +4058,20 @@ extension PublicProfileScreenNode: CurrentAgencyViewDelegate {
     func didTapSeeHistory() {
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.controller?.push(historyController)
+    }
+}
+
+extension UIColor {
+    func blend(with color: UIColor, alpha: CGFloat) -> UIColor {
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        self.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        color.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        return UIColor(
+            red: r1 + (r2 - r1) * alpha,
+            green: g1 + (g2 - g1) * alpha,
+            blue: b1 + (b2 - b1) * alpha,
+            alpha: a1 + (a2 - a1) * alpha
+        )
     }
 }

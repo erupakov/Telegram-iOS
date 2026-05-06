@@ -21,7 +21,9 @@ private struct AppearanceEditItem {
 }
 
 final class EditProfileNode: ASDisplayNode {
-    
+
+    private static let avatarSize: CGFloat = 100
+
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
     private let model: UserDetail?
@@ -202,7 +204,7 @@ final class EditProfileNode: ASDisplayNode {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 50
+        iv.layer.cornerRadius = avatarSize / 2
         iv.layer.borderColor = DivoColorPalette.cardBackground.cgColor
         iv.layer.borderWidth = 1.0
         iv.backgroundColor = DivoColorPalette.cardBackground
@@ -214,7 +216,7 @@ final class EditProfileNode: ASDisplayNode {
     private let avatarImageSpinnerView: UIView = {
         let iv = UIView()
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 50
+        iv.layer.cornerRadius = avatarSize / 2
         iv.backgroundColor = DivoColorPalette.cardBackground
         iv.isUserInteractionEnabled = true
         iv.translatesAutoresizingMaskIntoConstraints = false
@@ -348,9 +350,10 @@ final class EditProfileNode: ASDisplayNode {
 
     // MARK: - Init
     
-    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?) {
+    init(context: AccountContext, presentationData: PresentationData, model: UserDetail?, selectedIndex: Int = 0) {
         self.context = context
         self.model = model
+        self.selectedIndex = selectedIndex
         
         self.presentationData = presentationData
         self.presentationDataPromise = Promise(self.presentationData)
@@ -361,12 +364,12 @@ final class EditProfileNode: ASDisplayNode {
         var bio = ""
         if model?.role == "agency_employee" {
             name = model?.agency?.title ?? DivoStrings.name
-            placeholder = DivoStrings.agencyProfile
+            placeholder = "\(DivoStrings.agencyProfile) *"
             bioTitle = DivoStrings.descriptionTitle
             bio = model?.agency?.description ?? DivoStrings.fillInInfoAboutAgency
         } else {
             name = model?.fullName ?? DivoStrings.name
-            placeholder = DivoStrings.fullName
+            placeholder = "\(DivoStrings.fullName) *"
             bioTitle = DivoStrings.biographyTitle
             bio = model?.model?.description ?? DivoStrings.fillInInfoAboutYou
         }
@@ -430,6 +433,7 @@ final class EditProfileNode: ASDisplayNode {
         scrollView.keyboardDismissMode = .interactive
 
         self.nameTextField.textField.returnKeyType = .next
+        self.nameTextField.textField.autocapitalizationType = .words
         self.nameTextField.textField.delegate = self
 
         keyboardHandler = DivoKeyboardHandler(
@@ -641,13 +645,13 @@ final class EditProfileNode: ASDisplayNode {
             
             avatarImageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
             avatarImageView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 100),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 100),
+            avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
 
             avatarImageSpinnerView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
             avatarImageSpinnerView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
-            avatarImageSpinnerView.widthAnchor.constraint(equalToConstant: 100),
-            avatarImageSpinnerView.heightAnchor.constraint(equalToConstant: 100),
+            avatarImageSpinnerView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageSpinnerView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
 
             chancePhotoView.trailingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DivoDesignTokens.Spacing.xs),
             chancePhotoView.bottomAnchor.constraint(equalTo: avatarImageView.bottomAnchor),
@@ -980,7 +984,9 @@ final class EditProfileNode: ASDisplayNode {
         } else {
             applyButton.makeDivoButton(title: DivoStrings.save, loading: DivoStrings.saving)
             let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
-            applyButton.isEnabled = hasChanges
+            let trimmedName = (nameTextField.textField.text ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            applyButton.isEnabled = hasChanges && !trimmedName.isEmpty
         }
     }
 
@@ -1006,21 +1012,20 @@ final class EditProfileNode: ASDisplayNode {
         } else {
             for (_, item) in workRawItems.enumerated() {
                 
-                let logoURL: URL? = nil
-                
+                let logoURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+
                 let period = item.formattedPeriod
-                
+
                 let wItem = WorkExperienceItem(
                     id: item.id,
                     companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
                     period: period,
                     logoURL: logoURL
                 )
-                
+
                 let cell = ExperienceView()
-                                
-                let shouldLoadImmediately = (item.agencyId == nil)
-                cell.configure(with: wItem, showOptions: true, loadImage: shouldLoadImmediately)
+
+                cell.configure(with: wItem, showOptions: true, loadImage: true)
                 
                 cell.onEditTapped = { [weak self] in
                     self?.onEditWorkExperience?(item)
@@ -1194,20 +1199,24 @@ final class EditProfileNode: ASDisplayNode {
     }
 
     @objc private func avatarTapped() {
-        print("Change photo")
+        divoLog("[EDIT PROFILE] Change photo tapped")
         self.view.endEditing(true)
         onAvatarTap?()
     }
     
     @objc private func updateAccountPeerName() {
-        print("Save button tapped")
+        divoLog("[EDIT PROFILE] Save button tapped")
     }
     
     @objc private func saveButtonPressed() {
         self.view.endEditing(true)
-        
+
+        let trimmedName = (self.nameTextField.textField.text ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+
         let data = UpdateBiographyPageRequest(
-            fullName: self.nameTextField.textField.text ?? "",
+            fullName: trimmedName,
             gender: self.selectedGenderId,
             model: UpdateBiographyPageRequest.ModelData(
                 description: self.aboutEventTextField.text,
@@ -1247,9 +1256,14 @@ final class EditProfileNode: ASDisplayNode {
 
     @objc private func saveAgencyButtonPressed() {
         self.view.endEditing(true)
+
+        let trimmedTitle = (self.nameTextField.textField.text ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
+
         let data = UpdateDescriptionAgencyRequest(
             agencyId: model?.agency?.id,
-            title: self.nameTextField.textField.text,
+            title: trimmedTitle,
             description: self.aboutEventTextField.text
         )
 

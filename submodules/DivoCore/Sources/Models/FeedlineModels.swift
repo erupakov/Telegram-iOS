@@ -5,12 +5,16 @@ public struct FeedlineListRequest: Encodable {
     public let limit: Int
     public let subscribedOnly: Bool?
     public let modelsOnly: Bool?
+    public let role: String?
+    public let withoutNfts: Bool?
 
-    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil) {
+    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil, withoutNfts: Bool? = nil) {
         self.offset = offset
         self.limit = limit
         self.subscribedOnly = subscribedOnly
         self.modelsOnly = modelsOnly
+        self.role = role
+        self.withoutNfts = withoutNfts
     }
 }
 
@@ -26,7 +30,7 @@ public struct FeedlineData: Decodable {
 public struct FeedlineItem: Decodable {
     public let id: Int
     public let feedId: Int
-    public let title: String
+    public let title: String?
     public let description: String?
     public let entity: String
     public let type: String
@@ -48,7 +52,7 @@ public struct FeedlineItem: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         feedId = try container.decode(Int.self, forKey: .feedId)
-        title = try container.decode(String.self, forKey: .title)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         entity = try container.decode(String.self, forKey: .entity)
         type = try container.decode(String.self, forKey: .type)
@@ -82,10 +86,38 @@ public struct FeedlineItem: Decodable {
 
 public struct FeedlineUser: Codable {
     public let id: Int
-    public let fullName: String
+    public let fullName: String?
     public let role: String
     public let subrole: String?
     public let roleLabel: String
+    public let city: UserCity?
+    public let birthday: String?
+    public let countryCode: String?
+    public let countryName: String?
+    public let age: Int?
+    public let height: Double?
+    public let weight: Double?
+    public let likesCount: Int?
+    public let viewsCount: Int?
+    public let followersCount: Int?
+    public let emojiCounts: FeedlineEmojiCounts?
+    public let totalEmojisCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id, fullName, role, subrole, roleLabel
+        case city, birthday, age, height, weight
+        case countryCode = "country_code"
+        case countryName = "country_name"
+        case likesCount, viewsCount, followersCount
+        case emojiCounts, totalEmojisCount
+    }
+}
+
+public struct FeedlineEmojiCounts: Codable {
+    public let thumbsUp: Int
+    public let thumbsDown: Int
+    public let heart: Int
+    public let fire: Int
 }
 
 public struct FeedlineFile: Codable {

@@ -31,29 +31,23 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     }
 
     private var presentationData: PresentationData
-    private var presentationDataDisposable: Any?
     private let userDetailData: UserDetail?
-    private let updatePhoto: (UIImage?) -> Void
 
     private var selectedAvatarImage: UIImage?
     private var selectedAvatarUUID: String?
     private let loadingOverlay = DivoLoadingOverlay()
+    private let selectedIndex: Int
 
     weak var delegate: EditProfileDelegate?
     
-    public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, updatePhoto: @escaping (UIImage?) -> Void) {
+    public init(context: AccountContext, presentationData: PresentationData, userDetailData: UserDetail?, selectedIndex: Int = 0) {
         self.context = context
         self.userDetailData = userDetailData
-        self.updatePhoto = updatePhoto
+        self.selectedIndex = selectedIndex
         
         self.presentationData = presentationData
         
         super.init(navigationBarPresentationData: nil)
-
-        self.presentationDataDisposable = (context.sharedContext.presentationData
-                                           |> deliverOnMainQueue).start(next: { [weak self] presentationData in
-            self?.presentationData = presentationData
-        })
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -62,14 +56,14 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        (self.presentationDataDisposable as? Disposable)?.dispose()
     }
 
     override public func loadDisplayNode() {
         self.displayNode = EditProfileNode(
             context: self.context,
             presentationData: self.presentationData,
-            model: userDetailData
+            model: userDetailData,
+            selectedIndex: selectedIndex
         )
         
         self.editProfileNode.updateTitle(userDetailData?.role == "agency_employee" ? DivoStrings.agencyProfile : DivoStrings.myProfile)
@@ -161,7 +155,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
 
                 self.editProfileNode.reloadWorkHistory(items: response.data.items)
-                self.fetchAgencyLogos(for: response.data.items)
             } catch {
                 if let userDetail = self.userDetailData {
                     self.editProfileNode.reloadLegacyWorkHistory(model: userDetail)
@@ -243,7 +236,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                         style: .success
                     )
                 }
-                self.fetchAgencyLogos(for: items)
             } catch {
                 await MainActor.run {
                     var currentItems = self.editProfileNode.workRawItems
@@ -326,6 +318,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 
 
                 self.delegate?.didUpdateProfileData()
+                NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
                 self.navigationController?.popViewController(animated: true)
 
             } catch {
@@ -356,9 +349,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "POST",
                     body: request
                 )
-                
 
                 self.delegate?.didUpdateProfileData()
+                NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
                 self.navigationController?.popViewController(animated: true)
 
             } catch {

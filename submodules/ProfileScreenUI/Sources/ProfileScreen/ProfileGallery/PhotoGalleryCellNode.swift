@@ -34,6 +34,8 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
         indicator.hidesWhenStopped = true
         return indicator
     }()
+    
+    var onSingleTap: (() -> Void)?
 
 
     // MARK: - Init
@@ -50,6 +52,10 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
         let doubleTap = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTap.numberOfTapsRequired = 2
         self.scrollView.addGestureRecognizer(doubleTap)
+        
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(handleSingleTap(_:)))
+        singleTap.require(toFail: doubleTap)
+        self.scrollView.addGestureRecognizer(singleTap)
     }
     
     required init?(coder: NSCoder) { fatalError() }
@@ -112,6 +118,10 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
     }
 
     // MARK: - @objc
+    
+    @objc private func handleSingleTap(_ recognizer: UITapGestureRecognizer) {
+        self.onSingleTap?()
+    }
     
     @objc private func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
         if scrollView.zoomScale > scrollView.minimumZoomScale {

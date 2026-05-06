@@ -9,11 +9,13 @@ public struct GalleryListRequest: Encodable {
     public let offset: Int
     public let limit: Int
     public let userId: Int
+    public let type: String?
 
-    public init(offset: Int, limit: Int, userId: Int) {
+    public init(offset: Int, limit: Int, userId: Int, type: String? = nil) {
         self.offset = offset
         self.limit = limit
         self.userId = userId
+        self.type = type
     }
 }
 

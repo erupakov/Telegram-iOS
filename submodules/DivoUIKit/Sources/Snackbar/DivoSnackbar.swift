@@ -90,6 +90,7 @@ public final class DivoSnackbar {
             retryButton.titleLabel?.font = UIFont(name: "HelveticaNeue-Bold", size: 14) ?? UIFont.boldSystemFont(ofSize: 14)
             retryButton.setTitleColor(.white, for: .normal)
             retryButton.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 0)
+            retryButton.setContentHuggingPriority(.required, for: .horizontal)
             retryButton.setContentCompressionResistancePriority(.required, for: .horizontal)
             retryButton.addTarget(self, action: #selector(snackbarRetryTapped), for: .touchUpInside)
             retryButton.translatesAutoresizingMaskIntoConstraints = false

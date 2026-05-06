@@ -183,6 +183,21 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     self?.clearImageCache()
                 }),
             ]),
+            (header: DivoStrings.debugUISection, rows: [
+                Row(icon: "hand.tap", title: DivoStrings.debugShowTouches, subtitle: { "" }, accessory: .toggle(
+                    UserDefaults.standard.bool(forKey: "DivoTouchOverlay.enabled"),
+                    { [weak self] enabled in
+                        UserDefaults.standard.set(enabled, forKey: "DivoTouchOverlay.enabled")
+                        if enabled {
+                            DivoTouchOverlay.shared.show()
+                        } else {
+                            DivoTouchOverlay.shared.hide()
+                        }
+                        self?.buildSections()
+                        self?.tableView.reloadData()
+                    }
+                ), action: {}),
+            ]),
             (header: DivoStrings.debugInfo, rows:
                 self.infoRows()
             ),

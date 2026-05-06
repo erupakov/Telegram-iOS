@@ -20,6 +20,7 @@ import ContextUI
 import GalleryUI
 import EventsUI
 import DivoUIKit
+import FaceSearchUI
 
 enum MediaFormatValidator {
     static let videoExtensions: Set<String> = ["mp4", "mov", "avi", "mkv", "webm"]
@@ -90,6 +91,16 @@ public final class PublicProfileScreenController: TelegramBaseController {
         currentGalleryPhotos = []
         currentGalleryVideos = []
     }
+
+    private var isUploadFromFAB: Bool = false
+
+    private var similarProfilesIsLoading: Bool = false
+
+    private struct EngagementTotals {
+        let likes: Int
+        let views: Int
+        let saves: Int
+    }
     
     public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
@@ -97,24 +108,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.isMyProfile = model.isMyProfile
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .clear,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear
-        )
-        
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
 
-        super.init(context: context, navigationBarPresentationData: navigationBarData)
-        updateNavigation()
+        super.init(context: context, navigationBarPresentationData: nil)
     }
     
     deinit {
@@ -124,79 +119,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
     
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    private func updateNavigation() {
-        self.statusBar.statusBarStyle = .White
-
-        let moreButtonImg = generateTintedImage(image: DivoImage.moreActionIcon, color: .white)
-        let moreButton = UIBarButtonItem(image: moreButtonImg, style: .plain, target: self, action: #selector(self.moreMenu))
-
-        if isMyProfile {
-            let editButtonImg = generateTintedImage(image: DivoImage.profileEditAction, color: .white)
-            
-            let editButton = UIBarButtonItem(
-                image: editButtonImg,
-                style: .plain,
-                target: self,
-                action: #selector(self.showEditMenuPressed)
-            )
-            
-            self.navigationItem.rightBarButtonItems = [editButton, moreButton]
-        } else {
-            self.navigationItem.rightBarButtonItems = [moreButton]
-        }
-    }
-    
-    @objc private func showEditMenuPressed() {
-        // debug: removed
-
-        var items: [EditMenuViewController.MenuItem] = [
-            .init(title: DivoStrings.editProfile, action: { [weak self] in
-                self?.navigateToEditProfile()
-            }),
-            .init(title: DivoStrings.changeBackground, action: { [weak self] in
-                self?.navigateToChangeBackground()
-            }),
-            .init(title: DivoStrings.editSocialLinksMenu, action: { [weak self] in
-                self?.navigateToEditSocialLinks()
-            })
-        ]
-
-        if self.userRole != .agency {
-            items.append(.init(title: DivoStrings.manageWorkExperience, action: { [weak self] in
-                self?.navigateToManageExperience()
-            }))
-        } else {
-            items.append(.init(title: DivoStrings.addModel, action: { [weak self] in
-                self?.navigateToAddModel()
-            }))
-            items.append(.init(title: DivoStrings.createEvent, action: { [weak self] in
-                self?.navigateToCreateEvent()
-            }))
-        }
-
-        items.append(.init(title: DivoStrings.addPhoto, action: { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddPhoto()
-            }
-        }))
-
-        items.append(.init(title: DivoStrings.addVideo, action: { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddVideo()
-            }
-        }))
-
-        var sourcePoint = CGPoint(x: UIScreen.main.bounds.width - 20, y: 90)
-
-        if let (_, navigationBarHeight) = self.containerLayout {
-            sourcePoint.y = navigationBarHeight
-        }
-
-        let menuVC = EditMenuViewController(items: items, sourcePoint: sourcePoint)
-
-        self.present(menuVC, animated: false, completion: nil)
     }
 
     private func navigateToCreateEvent() {
@@ -222,7 +144,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
     
     private func onEventApplyTapped(eventId: Int) {
-        print("Apply to event with id: \(eventId)")
+        // FIXME DIVO: implement event apply action
+        divoLog("[EVENT] Apply to event \(eventId) — not implemented yet")
     }
 
     @available(iOS 14, *)
@@ -249,11 +172,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.present(picker, animated: true)
     }
 
-    private func navigateToEditProfile() {
-        // debug: removed
-        let editProfileController = EditProfileController(context: self.context, presentationData: self.presentationData, userDetailData: userDetailModel, updatePhoto: { [weak self] image in
-            self?.controllerNode.currentPhoto = image
-        })
+    private func navigateToEditProfile(selectedIndex: Int = 0) {
+        let editProfileController = EditProfileController(
+            context: self.context, 
+            presentationData: self.presentationData, 
+            userDetailData: userDetailModel, 
+            selectedIndex: selectedIndex
+        )
         editProfileController.delegate = self
         self.push(editProfileController)
     }
@@ -262,19 +187,14 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.pickerPurpose = .background
 
         if #available(iOS 14, *) {
-            PHPhotoLibrary.requestAuthorization(for: .readWrite) { [weak self] status in
-                guard status == .authorized || status == .limited else { return }
-                DispatchQueue.main.async {
-                    var configuration = PHPickerConfiguration()
-                    configuration.filter = .images
-                    configuration.selectionLimit = 1
-                    
-                    let picker = PHPickerViewController(configuration: configuration)
-                    picker.delegate = self
-                    picker.view.tintColor = DivoColorPalette.accent
-                    self?.present(picker, animated: true)
-                }
-            }
+            var configuration = PHPickerConfiguration()
+            configuration.filter = .images
+            configuration.selectionLimit = 1
+
+            let picker = PHPickerViewController(configuration: configuration)
+            picker.delegate = self
+            picker.view.tintColor = DivoColorPalette.accent
+            self.present(picker, animated: true)
         }
     }
     
@@ -340,18 +260,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.controllerNode.onEditLinksTapped = { [weak self] in
             self?.navigateToEditSocialLinks()
         }
-        
-        self.controllerNode.onAddPhotoTapped = { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddPhoto()
-            }
-        }
-
-        self.controllerNode.onAddVideoTapped = { [weak self] in
-            if #available(iOS 14, *) {
-                self?.navigateToAddVideo()
-            }
-        }
 
         self.controllerNode.onAddEventTapped = { [weak self] in
             self?.navigateToCreateEvent()
@@ -365,20 +273,98 @@ public final class PublicProfileScreenController: TelegramBaseController {
             }
         }
 
+        self.controllerNode.onEventDeleteButtonTapped = { [weak self] eventId in
+            if self?.isMyProfile == true {
+                self?.deleteEvent(eventId: eventId)
+            }
+        }
+
         self.controllerNode.onSocialLinkTapped = { [weak self] url in
             self?.openSocialLink(url)
         }
 
-        self.controllerNode.onAddModelTapped = { [weak self] in
-            self?.navigateToAddModel()
+        self.controllerNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
         }
         
         self.controllerNode.onAddWorkExperienceTapped = { [weak self] in
             self?.navigateToAddWorkExperience()
         }
+
+        self.controllerNode.onGridShareTapped = { [weak self] item, image in
+            self?.handleGridShare(item: item, image: image)
+        }
+
+        self.controllerNode.onFaceScanTapped = { [weak self] in
+            self?.openFaceScanForCurrentProfile()
+        }
+
+        // FIXME DIVO: implement report profile action
+        // FIXME DIVO: implement block user action
+        // FIXME DIVO: implement stories button action
+
+        self.controllerNode.onEditProfileTapped = { [weak self] index in
+            self?.navigateToEditProfile(selectedIndex: index)
+        }
+
+        self.controllerNode.onChangeBackgroundTapped = { [weak self] in
+            self?.navigateToChangeBackground()
+        }
+
+        self.controllerNode.onEditSocialLinksTapped = { [weak self] in
+            self?.navigateToEditSocialLinks()
+        }
+
+        self.controllerNode.onManageWorkExperienceTapped = { [weak self] in
+            self?.navigateToManageExperience()
+        }
+
+        self.controllerNode.onAddModelTapped = { [weak self] in
+            self?.navigateToAddModel()
+        }
+
+        self.controllerNode.onCreateEventTapped = { [weak self] in
+            self?.navigateToCreateEvent()
+        }
+
+        self.controllerNode.onAddPhotoTapped = { [weak self] fromFAB in
+            self?.isUploadFromFAB = fromFAB
+            if #available(iOS 14, *) {
+                self?.navigateToAddPhoto()
+            }
+        }
         
+        self.controllerNode.onAddVideoTapped = {[weak self] fromFAB in
+            self?.isUploadFromFAB = fromFAB
+            if #available(iOS 14, *) {
+                self?.navigateToAddVideo()
+            }
+        }
+
+        self.controllerNode.onSimilarProfileTapped = { [weak self] user in
+            self?.openSimilarModelScreen(for: user)
+        }
+
+        self.controllerNode.onModelAgencyTapped = { [weak self] user in
+            self?.openModelAgencyScreen(for: user)
+        }
+
         self.displayNodeDidLoad()
     }
+
+    private func handleGridShare(item: UserDetail?, image: UIImage?) {
+        guard let item = item else { return }
+        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(item.id)")!
+        let shareItem = DivoShareItemSource(
+            url: shareURL,
+            title: item.fullName ?? "",
+            subtitle: item.roleLabel ?? "",
+            image: image
+        )
+        let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
+        self.view.window?.rootViewController?.present(activityVC, animated: true)
+    }
+
     
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
@@ -405,7 +391,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
             await MainActor.run {
                 guard let detail = profile else {
                     self.profileLoaded = false
-                    self.showErrorAlert("Failed to load profile. Please try again.")
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.serverUnavailable,
+                        style: .error
+                    )
                     return
                 }
                 self.userDetailModel = detail
@@ -417,14 +406,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 }
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
+                if !isMyProfile && userRole != .agency {
+                    self.loadSimilarProfiles(photoId: detail.avatar?.photoId)
+                }
             }
         }
-    }
-
-    private struct EngagementTotals {
-        let likes: Int
-        let views: Int
-        let saves: Int
     }
 
     private func fetchUserProfile() async -> UserDetail? {
@@ -459,8 +445,43 @@ public final class PublicProfileScreenController: TelegramBaseController {
             let saves = response.data?.followed?.pagination?.meta?.totalCount ?? response.data?.followed?.pagination?.total ?? 0
             return EngagementTotals(likes: likes, views: views, saves: saves)
         } catch {
-            print("❌ [ENGAGEMENT TOTALS] Error: \(error)")
+            divoLog("[ENGAGEMENT TOTALS] Error: \(error)", level: .error)
             return nil
+        }
+    }
+
+    // MARK: - Face Scan
+
+    private func openFaceScanForCurrentProfile() {
+        guard let url = self.model.mainImageURL else {
+            self.controllerNode.showSnackbar(
+                message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                style: .error
+            )
+            return
+        }
+
+        FaceSearchPhotoLoader.loadProfilePhoto(
+            url: url,
+            host: self.view.window?.rootViewController?.view
+        ) { [weak self] image in
+            guard let self else { return }
+            guard let image else {
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+                    style: .error,
+                    retryAction: { [weak self] in self?.openFaceScanForCurrentProfile() },
+                    persistent: true
+                )
+                return
+            }
+            let controller = FaceSearchController(context: self.context, image: image)
+            controller.onOpenProfile = { [weak self] result in
+                guard let self else { return }
+                let next = PublicProfileScreenController(context: self.context, model: ProfileModel(faceSearchResult: result))
+                (self.navigationController as? NavigationController)?.pushViewController(next, animated: true)
+            }
+            (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
         }
     }
 
@@ -481,16 +502,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         galleryLoaded = true
         controllerNode.resetGalleryPagination()
     }
-    
-    @objc func moreMenu() {
-
-    }
-
-    func showErrorAlert(_ message: String) {
-        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        self.present(alert, animated: true)
-    }
 
     private static func userFacingMessage(from error: Error) -> String {
         if case DivoAPIError.httpError(_, let body) = error, !body.isEmpty {
@@ -502,9 +513,49 @@ public final class PublicProfileScreenController: TelegramBaseController {
             return body
         }
         if (error as NSError).domain == NSURLErrorDomain {
-            return "No internet connection. Please try again."
+            return DivoStrings.noInternetConnection
         }
-        return "Something went wrong. Please try again."
+        return DivoStrings.genericError
+    }
+
+    // Метод для лайка профиля
+    func toggleLikeProfile(userId: Int, isLiked: Bool, completion: @escaping (Bool) -> Void) {
+        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
+        let body = FollowRequest(id: userId)
+        
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+                completion(true)
+            } catch {
+                divoLog("[LIKE] Error toggling like for user \(userId): \(error)", level: .error)
+                completion(false)
+            }
+        }
+    }
+    
+    // Метод для подписки/сохранения профиля
+    func toggleSaveProfile(userId: Int, isSaved: Bool, completion: @escaping (Bool) -> Void) {
+        let path = isSaved ? "/follower/follow" : "/follower/unfollow"
+        let body = FollowRequest(id: userId)
+        
+        Task { @MainActor in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: body
+                )
+                completion(true)
+            } catch {
+                divoLog("[SAVE/FOLLOW] Error toggling save for user \(userId): \(error)", level: .error)
+                completion(false)
+            }
+        }
     }
 }
 
@@ -548,7 +599,7 @@ extension PublicProfileScreenController {
     
     // Открытие галереи на полный экран
     private func openFullScreenGallery(tab: ProfileTab, itemIndex: Int) {
-        print("🖼️ [GALLERY] Opening full-screen gallery, tab=\(tab), itemIndex=\(itemIndex)")
+        divoLog("[GALLERY] Opening full-screen gallery, tab=\(tab), itemIndex=\(itemIndex)")
 
         guard itemIndex >= 0 else { return }
         let galleryController: ProfileGalleryController
@@ -611,8 +662,7 @@ extension PublicProfileScreenController {
     func loadVideoGalleryPage(userId: Int, offset: Int) {
         controllerNode.setVideoGalleryLoading(true)
 
-        var body: GalleryListRequest
-        body = GalleryListRequest(offset: offset, limit: 6, userId: userId)
+        let body = GalleryListRequest(offset: offset, limit: 6, userId: userId, type: "video")
         
         Task {
             do {
@@ -623,10 +673,8 @@ extension PublicProfileScreenController {
                 )
                 
                 await MainActor.run {
-                    let videoItems:[UserVideoItem] = response.data.items.filter { item in
-                        item.files.contains { MediaFormatValidator.isVideo($0.fileExtension) }
-                    }
-                    
+                    let videoItems = response.data.items
+
                     let existingIds = Set(self.currentGalleryVideos.map { $0.id })
                     let newVideos = videoItems.filter { !existingIds.contains($0.id) }
                     
@@ -696,17 +744,19 @@ extension PublicProfileScreenController {
                     body: body
                 )
                 let items = response.data?.items ?? []
-                let models = items.map { item -> ModelItem in
+                let models = items.compactMap { item -> ModelItem? in
+                    guard let userId = item.userId else { return nil }
                     return ModelItem(
-                        name: item.name ?? "Unknown",
-                        role: "Model",
+                        id: userId,
+                        name: item.name ?? DivoStrings.noName,
+                        role: DivoStrings.roleModel,
                         isPremium: false,
                         customAvatarURL: item.photo?.fullUrl
                     )
                 }
                 self.controllerNode.updateModelsList(models)
             } catch {
-                print("❌ [MODELS] Error: \(error)")
+                divoLog("[MODELS] Error: \(error)", level: .error)
                 self.controllerNode.updateModelsList([])
             }
         }
@@ -735,29 +785,27 @@ extension PublicProfileScreenController {
                 }
                 
                 let detailedEvents = await fetchEventDetails(for: items.compactMap { $0.id })
+                let eventDataArray: [EventItem] = items.map { item in
+                    let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: item.date)
 
-                let eventDataArray: [EventItem] = detailedEvents.map { detail in
+                    let city = item.address?.city?.name ?? DivoStrings.unknownCity
+                    let flag = self.emojiFlag(from: item.address?.city?.countryCode)
 
-                    let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: detail.date)
-
-                    let city = detail.address?.city?.name ?? "Unknown city"
-                    let flag = self.emojiFlag(from: detail.address?.city?.countryCode)
-
-                    let avatarUrl = detail.files?.first?.fullUrl
+                    let avatarUrl = item.files?.first?.fullUrl
                     let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
 
                     return EventItem(
-                        name: detail.title ?? "Event",
+                        name: item.title,
                         data: formattedDate,
                         time: formattedTime,
                         countryFlag: flag,
                         city: city,
                         customAvatarURL: finalAvatarUrl,
-                        originalDate: detail.date,
-                        eventId: detail.id
+                        originalDate: item.date,
+                        eventId: item.id
                     )
                 }
-                
+
                 let sortedEvents = eventDataArray.sorted { event1, event2 in
                     guard let date1 = self.parseEventDate(event1.originalDate),
                           let date2 = self.parseEventDate(event2.originalDate) else {
@@ -769,47 +817,42 @@ extension PublicProfileScreenController {
                 await MainActor.run {
                     self.controllerNode.updateEventsList(sortedEvents)
                 }
-                
+
             } catch {
-                print("❌ [EVENTS] Error: \(error)")
+                divoLog("[EVENTS] Error: \(error)", level: .error)
                 await MainActor.run {
                     self.controllerNode.updateEventsList([])
                 }
             }
         }
     }
-    
-    /// Асинхронно скачивает детали по списку ID
-    private func fetchEventDetails(for ids: [Int]) async -> [EventFullDetailData] {
-        return await withTaskGroup(of: EventFullDetailData?.self) { group in
-            for id in ids {
-                group.addTask {
-                    do {
-                        let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
-                            path: "/event/\(id)",
-                            method: "GET"
-                        )
-                        return response.data
-                    } catch {
-                        print("❌ [EVENT DETAIL] Error loading event \(id): \(error)")
-                        return nil
-                    }
-                }
-            }
 
-            var results: [EventFullDetailData] = []
-            for await detail in group {
-                if let validDetail = detail {
-                    results.append(validDetail)
+    private func deleteEvent(eventId: Int) {
+        Task {
+            do {
+                let _: DeleteEventResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)",
+                    method: "DELETE"
+                )
+            } catch {
+                await MainActor.run {
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.failedToDelete,
+                        style: .error
+                    )
                 }
+                return
             }
-            return results
+            
+            await MainActor.run {
+                self.loadEvents()
+            }
         }
     }
     
     private func formatEventDateAndTime(dateString: String?) -> (date: String, time: String) {
         guard let dateString = dateString else {
-            return ("TBD", "TBD")
+            return (DivoStrings.tbd, DivoStrings.tbd)
         }
 
         let serverFormatter = DateFormatter()
@@ -820,12 +863,40 @@ extension PublicProfileScreenController {
             return (dateString, "")
         }
 
+        let languageCode = Locale.preferredLanguages.first?
+            .components(separatedBy: "-")
+            .first?
+            .lowercased() ?? "en"
+        let localeIdentifierByLanguage: [String: String] = [
+            "ru": "ru_RU",
+            "en": "en_US",
+            "pt": "pt_PT",
+            "es": "es_ES",
+            "zh": "zh_CN"
+        ]
+        let locale = Locale(identifier: localeIdentifierByLanguage[languageCode] ?? "en_US")
+
         let dateUIFormatter = DateFormatter()
-        dateUIFormatter.dateFormat = "d MMM"
-        let formattedDate = dateUIFormatter.string(from: date)
+        dateUIFormatter.locale = locale
+        dateUIFormatter.dateFormat = "LLLL d"
+        let rawFormattedDate = dateUIFormatter.string(from: date)
+        let formattedDate: String = {
+            guard let first = rawFormattedDate.first else { return rawFormattedDate }
+            return String(first).uppercased(with: locale) + rawFormattedDate.dropFirst()
+        }()
 
         let timeUIFormatter = DateFormatter()
-        timeUIFormatter.dateFormat = "HH:mm"
+        timeUIFormatter.locale = locale
+        switch languageCode {
+        case "en":
+            timeUIFormatter.dateFormat = "h:mm a"
+        case "zh":
+            timeUIFormatter.dateFormat = "a h:mm"
+        case "ru", "pt", "es":
+            timeUIFormatter.dateFormat = "HH:mm"
+        default:
+            timeUIFormatter.dateFormat = "HH:mm"
+        }
         let formattedTime = timeUIFormatter.string(from: date)
 
         return (formattedDate, formattedTime)
@@ -862,8 +933,8 @@ extension PublicProfileScreenController {
             }
         }
         
-        sheetVC.requestData = { [weak self] offset, completion in
-            self?.loadInteractionData(type: type, offset: offset, completion: completion)
+        sheetVC.requestData = { [weak self] offset, search, completion in
+            self?.loadInteractionData(type: type, offset: offset, search: search, completion: completion)
         }
         
         if #available(iOS 15.0, *) {
@@ -901,14 +972,60 @@ extension PublicProfileScreenController {
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
+
+    private func openSimilarModelScreen(for user: SimilarProfileItem) {
+        let profileModel = ProfileModel(
+            name: user.name ?? "",
+            age: 0,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: user.id,
+            role: "",
+            mainImageURL: user.avatarURL,
+            avatarImageURL: user.avatarURL
+        )
+        let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
+
+    private func openModelAgencyScreen(for user: ModelItem) {
+        let mainImageURL = user.customAvatarURL
+            .flatMap { CDNURLHelper.convertToCDNURL($0) }
+        
+        let profileModel = ProfileModel(
+            name: user.name,
+            age: 0,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: user.id,
+            role: user.role,
+            mainImageURL: mainImageURL,
+            avatarImageURL: mainImageURL
+        )
+        let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
     
-    private func loadInteractionData(type: InteractionListType, offset: Int, completion: @escaping (Result<InteractionPage, Error>) -> Void) {
+    private func loadInteractionData(type: InteractionListType, offset: Int, search: String? = nil, completion: @escaping (Result<InteractionPage, Error>) -> Void) {
         guard self.userID != -1 else { return }
 
         let limit = 20
         Task {
             do {
-                let path = isMyProfile ? "/user/engagement?offset=\(offset)&limit=\(limit)" : "/user/engagement?offset=\(offset)&limit=\(limit)&userId=\(self.userID)"
+                var path = isMyProfile ? "/user/engagement?offset=\(offset)&limit=\(limit)" : "/user/engagement?offset=\(offset)&limit=\(limit)&userId=\(self.userID)"
+                if let search, !search.isEmpty, let encoded = search.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+                    path += "&search=\(encoded)"
+                }
                 let response: UserEngagementResponse = try await DivoAPIClient.shared.request(path: path, method: "GET")
 
                 var apiItems: [EngagementItem] = []
@@ -935,8 +1052,8 @@ extension PublicProfileScreenController {
                     }
                     return InteractionUser(
                         id: id,
-                        name: item.fullName ?? "Unknown",
-                        role: item.roleLabel ?? item.role ?? "User",
+                        name: item.fullName ?? DivoStrings.noName,
+                        role: item.roleLabel ?? item.role ?? DivoStrings.roleFallbackUser,
                         avatarUrl: finalAvatarUrl,
                         isPremium: false
                     )
@@ -1015,6 +1132,11 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                 }
             }
         case .photo:
+            if self.isUploadFromFAB {
+                self.controllerNode.showUploadOverlay(isPhoto: true)
+            } else {
+                self.controllerNode.showUploadStatusView(isPhoto: true)
+            }
             if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
                 result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
                     guard let self = self, let uiImage = image as? UIImage else { return }
@@ -1022,6 +1144,11 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                 }
             }
         case .video:
+            if self.isUploadFromFAB {
+                self.controllerNode.showUploadOverlay(isPhoto: false)
+            } else {
+                self.controllerNode.showUploadStatusView(isPhoto: false)
+            }
             if result.itemProvider.hasItemConformingToTypeIdentifier(UTType.movie.identifier) {
                 result.itemProvider.loadFileRepresentation(forTypeIdentifier: UTType.movie.identifier) { [weak self] url, error in
                     guard let self = self, let url = url else { return }
@@ -1074,12 +1201,25 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                         self.galleryLoaded = false
                         self.getUserGalleryProfile()
                     }
+                    if self.isUploadFromFAB {
+                        self.controllerNode.hideUploadOverlay()
+                    } else {
+                        self.controllerNode.hideUploadStatusView(isPhoto: true)
+                    }
                 }
 
             } catch {
                 await MainActor.run {
                     self.controllerNode.cancelPhotoUpload()
-                    self.showErrorAlert(Self.userFacingMessage(from: error))
+                    if self.isUploadFromFAB {
+                        self.controllerNode.hideUploadOverlay()
+                    } else {
+                        self.controllerNode.hideUploadStatusView(isPhoto: true)
+                    }
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.errorUploadingPhotos,
+                        style: .error
+                    )
                 }
             }
         }
@@ -1087,7 +1227,7 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
 
     private func uploadAndAddVideo(_ videoURL: URL) {
         guard let videoData = try? Data(contentsOf: videoURL) else {
-            print("❌ [UPLOAD VIDEO] Failed to read video data")
+            divoLog("[UPLOAD VIDEO] Failed to read video data", level: .error)
             return
         }
 
@@ -1110,8 +1250,9 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                     throw DivoAPIError.unknown
                 }
                 
-                print("🎬 [UPLOAD VIDEO] File uploaded successfully, uuid: \(fileUuid)")
+                divoLog("[UPLOAD VIDEO] File uploaded successfully, uuid: \(fileUuid)")
                 
+                // FIXME DIVO: заменить хардкод-метаданные на пользовательский ввод (title, description, type)
                 let body = AddPublicationRequest(
                     title: "My Video",
                     description: "Video description",
@@ -1165,13 +1306,26 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                         self.controllerNode.cancelVideoUpload()
                     }
                 }
+                if self.isUploadFromFAB {
+                    self.controllerNode.hideUploadOverlay()
+                } else {
+                    self.controllerNode.hideUploadStatusView(isPhoto: false)
+                }
 
                 try? FileManager.default.removeItem(at: videoURL)
 
             } catch {
                 await MainActor.run {
                     self.controllerNode.cancelVideoUpload()
-                    self.showErrorAlert(Self.userFacingMessage(from: error))
+                    if self.isUploadFromFAB {
+                        self.controllerNode.hideUploadOverlay()
+                    } else {
+                        self.controllerNode.hideUploadStatusView(isPhoto: false)
+                    }
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.errorUploadingVideos,
+                        style: .error
+                    )
                 }
                 try? FileManager.default.removeItem(at: videoURL)
             }
@@ -1239,10 +1393,64 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                 self.debugLog("[DivoAPI] Upload background error: \(error)")
                 await MainActor.run {
                     self.controllerNode.setBackgroundLoading(false)
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.errorUpdateBackground,
+                        style: .error
+                    )
+                }
+            }
+        }
+    }
+}
 
-                    let alert = UIAlertController(title: "Error", message: "Failed to update background: \(error.localizedDescription)", preferredStyle: .alert)
-                    alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
-                    self.present(alert, animated: true)
+extension PublicProfileScreenController {
+    // Загрузка похожих профилей
+    func loadSimilarProfiles(photoId: Int?) {
+        guard !similarProfilesIsLoading else { return }
+        
+        similarProfilesIsLoading = true
+        
+        Task { @MainActor in
+            self.controllerNode.setSimilarProfilesLoading(true)
+        }
+        
+        let topK = 6
+        let requestBody = SearchSimilarRequest(photoId: photoId, topK: topK)
+        
+        Task {
+            do {
+                let response: SearchSimilarResponse = try await DivoAPIClient.shared.request(
+                    path: "/fr/searchSimilar",
+                    method: "POST",
+                    body: requestBody
+                )
+                
+                await MainActor.run {
+                    let items = response.results
+                    let profiles = items.compactMap { item -> SimilarProfileItem? in
+                        guard let userId = item?.userId else { return nil }
+                        
+                        let imageURL = CDNURLHelper.convertToCDNURL(item?.image)
+                                                
+                        return SimilarProfileItem(
+                            id: userId,
+                            name: item?.fullName ?? DivoStrings.noName,
+                            age: item?.birthday,
+                            countryCode: item?.countryCode,
+                            countryName: item?.countryName,
+                            avatarURL: imageURL
+                        )
+                    }
+                    
+                    self.similarProfilesIsLoading = false
+                    
+                    self.controllerNode.appendSimilarProfiles(profiles)
+                }
+            } catch {
+                divoLog("[SIMILAR] Error loading similar profiles: \(error)", level: .error)
+                await MainActor.run {
+                    self.similarProfilesIsLoading = false
+                    self.controllerNode.setSimilarProfilesLoading(false)
                 }
             }
         }

@@ -107,9 +107,10 @@ final class SearchUserCell: UITableViewCell {
             }
         }
         
-        let attributedName = NSMutableAttributedString(string: item.title)
+        let displayName = item.title ?? item.user?.fullName ?? ""
+        let attributedName = NSMutableAttributedString(string: displayName)
         if !query.isEmpty {
-            let range = (item.title.lowercased() as NSString).range(of: query.lowercased())
+            let range = (displayName.lowercased() as NSString).range(of: query.lowercased())
             if range.location != NSNotFound {
                 attributedName.addAttribute(.foregroundColor, value: DivoColorPalette.accent, range: range)
             }

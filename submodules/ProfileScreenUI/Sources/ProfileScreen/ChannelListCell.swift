@@ -16,11 +16,14 @@ struct ProfileChannelItem {
 final class ChannelListCell: UICollectionViewCell {
     static let reuseIdentifier = "ChannelListCell"
 
+    private static let avatarSize: CGFloat = 52
+    private static let badgeHeight: CGFloat = 22
+
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 30
+        iv.layer.cornerRadius = avatarSize / 2
         iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -28,25 +31,45 @@ final class ChannelListCell: UICollectionViewCell {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(16)
+        label.font = Font.medium(16)
         label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 26).isActive = true
         return label
     }()
 
-    private let premiumBadge: UIImageView = {
+    private let premiumBadgeContainer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.layer.cornerRadius = badgeHeight / 2
+        view.layer.borderWidth = 1
+        view.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.1).cgColor
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    private let premiumBadgeIcon: UIImageView = {
         let iv = UIImageView()
-        iv.image = DivoImage.crownPremium.withRenderingMode(.alwaysOriginal)
+        iv.image = DivoImage.premiumIcon
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
-        iv.isHidden = true
         return iv
+    }()
+
+    private let premiumBadgeLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.medium(11)
+        label.textColor = DivoColorPalette.accent
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.premiumLabel
+        label.numberOfLines = 1
+        return label
     }()
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.helveticaNeue(14)
+        label.font = Font.regular(14)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
@@ -63,26 +86,37 @@ final class ChannelListCell: UICollectionViewCell {
     }
 
     private func setupViews() {
-        contentView.backgroundColor = .white
+        contentView.backgroundColor = DivoColorPalette.cardBackground
 
         contentView.addSubview(avatarImageView)
         contentView.addSubview(titleLabel)
-        contentView.addSubview(premiumBadge)
+        contentView.addSubview(premiumBadgeContainer)
+        premiumBadgeContainer.addSubview(premiumBadgeIcon)
+        premiumBadgeContainer.addSubview(premiumBadgeLabel)
         contentView.addSubview(subtitleLabel)
 
         NSLayoutConstraint.activate([
-            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 60),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 60),
+            avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
 
             titleLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
             titleLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),
 
-            premiumBadge.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
-            premiumBadge.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            premiumBadge.widthAnchor.constraint(equalToConstant: 16),
-            premiumBadge.heightAnchor.constraint(equalToConstant: 16),
+            premiumBadgeContainer.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            premiumBadgeContainer.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
+
+            premiumBadgeIcon.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
+            premiumBadgeIcon.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
+            premiumBadgeIcon.leadingAnchor.constraint(equalTo: premiumBadgeContainer.leadingAnchor, constant: 6),
+
+            premiumBadgeLabel.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
+            premiumBadgeLabel.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
+            premiumBadgeLabel.leadingAnchor.constraint(equalTo: premiumBadgeIcon.trailingAnchor, constant: 2),
+            premiumBadgeLabel.trailingAnchor.constraint(equalTo: premiumBadgeContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
 
             subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2)
@@ -98,7 +132,7 @@ final class ChannelListCell: UICollectionViewCell {
     func configure(with item: ProfileChannelItem, context: AccountContext) {
         titleLabel.text = item.title
         subtitleLabel.text = DivoStrings.followersString(item.followersCount)
-        premiumBadge.isHidden = !item.isPremium
+        premiumBadgeContainer.isHidden = !item.isPremium
         if let urlString = item.customAvatarURL, let url = URL(string: urlString) {
             avatarImageView.loadImage(from: url)
         }

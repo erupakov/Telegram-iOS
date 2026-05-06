@@ -373,6 +373,7 @@ final class ModelsSearchNode: ASDisplayNode {
     var mode: SearchMode = .idle
     private var gridState: GridState = .idle
     private var paginationState: PaginationState = .idle
+    private var activeFiltersCount: Int = 0
 
     private var currentTask: Task<Void, Never>?
     
@@ -681,15 +682,18 @@ final class ModelsSearchNode: ASDisplayNode {
 
     private var hasHistoryItems = false
 
+    private func updateFaceSearchHistoryVisibility() {
+        let text = searchTextField.text ?? ""
+        let canShow = hasHistoryItems && text.isEmpty && gridState == .idle && activeFiltersCount == 0
+        faceSearchHistoryView.isHidden = !canShow
+    }
+
     func updateFaceSearchHistory(_ items: [FaceSearchHistoryItem]) {
         hasHistoryItems = !items.isEmpty
-        if items.isEmpty {
-            faceSearchHistoryView.isHidden = true
-        } else {
+        if !items.isEmpty {
             faceSearchHistoryView.configure(with: items)
-            let text = searchTextField.text ?? ""
-            faceSearchHistoryView.isHidden = !text.isEmpty
         }
+        updateFaceSearchHistoryVisibility()
     }
 
     private func updateResultFilterStackVisibility() {
@@ -703,6 +707,7 @@ final class ModelsSearchNode: ASDisplayNode {
     // MARK: - Internal
     
     func updateActiveFiltersCount(_ count: Int) {
+        activeFiltersCount = count
         if count > 0 {
             let baseString = DivoStrings.filterBy + " "
             let numberString = "\(count)"
@@ -880,9 +885,6 @@ final class ModelsSearchNode: ASDisplayNode {
             view.layoutIfNeeded()
             let hasQuery = !(searchTextField.text ?? "").isEmpty
             emptyStateContainer.isHidden = !hasQuery
-            if hasQuery {
-                searchTextField.resignFirstResponder()
-            }
         } else {
             emptyStateContainer.isHidden = true
             let wasHidden = resultsContainer.isHidden
@@ -989,7 +991,7 @@ final class ModelsSearchNode: ASDisplayNode {
 
         if text.isEmpty {
             mode = .autocomplete
-            faceSearchHistoryView.isHidden = !hasHistoryItems
+            updateFaceSearchHistoryVisibility()
             updateAutocomplete(results: [])
             onSearchCleared?()
             return
