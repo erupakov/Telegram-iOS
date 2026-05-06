@@ -374,7 +374,6 @@ final class CreateEventNode: ASDisplayNode {
     var selectCountryCode: (() -> Void)?
     var scheduleTimeController: ((TimeControllerMode) -> Void)?
     var scheduleDeadlineTimeController: ((TimeControllerMode) -> Void)?
-    var showAlert: ((String) -> Void)?
     var onAddGalleryPhotoTapped: (() -> Void)?
     var loadEventTypesList: ((Int, Int) -> Void)?
     var onBackTapped: (() -> Void)?

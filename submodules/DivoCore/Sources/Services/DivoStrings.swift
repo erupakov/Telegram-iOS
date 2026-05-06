@@ -668,6 +668,7 @@ public enum DivoStrings {
     public static var unknownError: String { L(en: "Unknown error", ru: "Неизвестная ошибка", es: "Error desconocido", pt: "Erro desconhecido", zh: "未知错误") }
     public static var failedToLoadEventData: String { L(en: "Failed to load event data", ru: "Не удалось загрузить данные события", es: "Error al cargar datos del evento", pt: "Falha ao carregar dados do evento", zh: "无法加载活动数据") }
     public static var failedToUploadCover: String { L(en: "Failed to upload cover photo", ru: "Не удалось загрузить обложку", es: "Error al subir la foto de portada", pt: "Falha ao enviar a foto de capa", zh: "上传封面照片失败") }
+    public static var failedToUploadAvatar: String { L(en: "Couldn't upload avatar", ru: "Не удалось загрузить аватар", es: "No se pudo subir el avatar", pt: "Não foi possível carregar o avatar", zh: "无法上传头像") }
     public static var unknownCity: String { L(en: "Unknown city", ru: "Неизвестный город", es: "Ciudad desconocida", pt: "Cidade desconhecida", zh: "未知城市") }
     public static var tbd: String { L(en: "TBD", ru: "Уточняется", es: "Por definir", pt: "A definir", zh: "待定") }
     public static var eventFallbackName: String { L(en: "Event", ru: "Событие", es: "Evento", pt: "Evento", zh: "活动") }

@@ -41,7 +41,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         case gallery
     }
     private var currentPickerTarget: PhotoPickerTarget = .avatar
+    
     private weak var activeGalleryController: ProfileGalleryController?
+    
     internal var currentGalleryPhotos: [UserPhoto] = []
 
     public init(context: AccountContext, eventId: Int? = nil) {
@@ -101,9 +103,6 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.createEventNode.scheduleDeadlineTimeController = { [weak self] mode in
             self?.scheduleDeadlineTimeController(mode: mode)
         }
-        self.createEventNode.showAlert = { [weak self] text in
-            self?.showAlert(text: text)
-        }
         self.createEventNode.onCreateEventTapped = { [weak self] in
             self?.createPressed()
         }
@@ -130,16 +129,16 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.createEventNode.presentController = { [weak self] vc in
             self?.view.window?.rootViewController?.present(vc, animated: true)
         }
-
+        
         self.createEventNode.onGalleryItemTapped = {[weak self] fileUuid in
             self?.openFullScreenGallery(for: fileUuid)
         }
 
         self.displayNodeDidLoad()
-
+        
         self.loadInitialData()
     }
-
+    
     private func loadInitialData() {
         self.createEventNode.showScreenLoading()
         
@@ -193,9 +192,10 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
             } catch {
                 self.createEventNode.hideScreenLoading()
-                self.showAlert(text: "Failed to load data: \(error.localizedDescription)") { [weak self] in
-                    self?.navigationController?.popViewController(animated: true)
-                }
+                self.createEventNode.showSnackbar(
+                    message: DivoStrings.failedToLoadEventData,
+                    style: .error
+                )
             }
         }
     }
@@ -252,29 +252,17 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             } catch {
                 await MainActor.run {
                     self.createEventNode.currentPhoto = nil
-                    self.showAlert(text: DivoStrings.failedToUploadCover + ": \(error.localizedDescription)")
+                    self.createEventNode.showSnackbar(
+                        message: DivoStrings.failedToUploadAvatar,
+                        style: .error
+                    )
                 }
             }
         }
     }
-    
-    private func showAlert(text: String, completion: (() -> Void)? = nil) {
-        Queue.mainQueue().async {
-            let alertController = textAlertController(
-                context: self.context,
-                title: nil,
-                text: text,
-                actions:[
-                    TextAlertAction(type: .defaultAction, title: "OK", action: {
-                        completion?()
-                    })
-                ]
-            )
-            self.present(alertController, in: .window(.root))
-        }
-    }
-    
+        
     private func createPressed() {
+        
         do {
             let requestPayload = try self.createEventNode.collectEventData()
 
@@ -297,34 +285,31 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                         self.onEventCreated?()
                         
                         let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
-                        self.showAlert(text: successMessage) { [weak self] in
-                            guard let self = self else { return }
-                            if let nav = self.navigationController as? NavigationController {
-                                _ = nav.popViewController(animated: true)
-                            } else {
-                                self.dismiss()
-                            }
-                        }
+                        self.createEventNode.showSnackbar(
+                            message: successMessage,
+                            style: .success
+                        )
                     } else {
-                        let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
-                        self.showAlert(text: errorMsg)
+                        self.createEventNode.showSnackbar(
+                            message: DivoStrings.unknownError,
+                            style: .error
+                        )
                     }
                     
                 } catch {
                     print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
                     let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
-                    var detail = error.localizedDescription
-                    if case let DivoAPIError.httpError(_, body) = error,
-                       let data = body.data(using: .utf8),
-                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let message = json["message"] as? String, !message.isEmpty {
-                        detail = message
-                    }
-                    self.showAlert(text: failMsg + ": \(detail)")
+                    self.createEventNode.showSnackbar(
+                        message: failMsg,
+                        style: .error
+                    )
                 }
             }
         } catch {
-            self.showAlert(text: error.localizedDescription)
+            self.createEventNode.showSnackbar(
+                message: DivoStrings.unknownError,
+                style: .error
+            )
         }
     }
     
@@ -425,7 +410,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         
         self.present(nav, animated: true)
     }
-        
+    
     private func uploadAvatar(image: UIImage) {
         self.selectedAvatarImage = image
         self.selectedAvatarUUID = nil
@@ -498,7 +483,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             self.createEventNode.cancelPhotoUpload(item: item)
             return
         }
-
+        
         Task {
             do {
                 let uploadResponse: FileUploadResponse = try await DivoAPIClient.shared.upload(
@@ -507,18 +492,18 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     fileName: "event_photo.jpg",
                     mimeType: "image/jpeg"
                 )
-
+                
                 guard let fileUuid = uploadResponse.data?.uuid else {
                     throw DivoAPIError.unknown
                 }
-
+                
                 let userFile = UserFile(
                     fileName: uploadResponse.data?.fileName,
                     fullUrl: uploadResponse.data?.fullUrl,
                     fileExtension: uploadResponse.data?.extensionFile,
                     fileUuid: fileUuid
                 )
-
+                
                 let newPhoto = UserPhoto(
                     id: abs(fileUuid.hashValue),
                     photo: userFile,
@@ -529,13 +514,24 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
                 await MainActor.run {
                     self.createEventNode.finishPhotoUpload(item: item, fileUuid: fileUuid)
+                    
                     self.currentGalleryPhotos.append(newPhoto)
+                    
+                    let uiItems = self.createEventNode.galleryItems
+                    self.currentGalleryPhotos.sort { photo1, photo2 in
+                        let index1 = uiItems.firstIndex(where: { $0.fileUuid == photo1.photo.fileUuid }) ?? 999
+                        let index2 = uiItems.firstIndex(where: { $0.fileUuid == photo2.photo.fileUuid }) ?? 999
+                        return index1 < index2
+                    }
                 }
                 
             } catch {
                 await MainActor.run {
                     self.createEventNode.cancelPhotoUpload(item: item)
-                    self.showAlert(text: DivoStrings.failedToUploadPhoto + ": \(error.localizedDescription)")
+                    self.createEventNode.showSnackbar(
+                        message: DivoStrings.failedToUploadPhoto,
+                        style: .error
+                    )
                 }
             }
         }
