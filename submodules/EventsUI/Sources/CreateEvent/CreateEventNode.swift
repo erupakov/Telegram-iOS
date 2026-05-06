@@ -241,47 +241,6 @@ final class CreateEventNode: ASDisplayNode {
         return stackView
     }()
     private var appearanceEditItems: [AppearanceEditItem] = []
-    
-    private let eventGalleryLabel = UILabel()
-    var galleryItems: [EventGalleryItem] = []
-    
-    private let galleryLabel: UILabel = {
-        let label = UILabel()
-        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
-        label.font = Font.regular(14)
-        label.text = DivoStrings.galleryCreateEvent
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
-        
-    }()
-    
-    private let galleryAddButton: DivoButton = {
-        let button = DivoButton()
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-    
-    private var galleryHeightConstraint: NSLayoutConstraint!
-    
-    private let galleryCollectionContainerView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.backgroundColor = .clear
-        return view
-    }()
-    
-    lazy var galleryCollectionView: UICollectionView = {
-        let layout = UICollectionViewFlowLayout()
-        layout.minimumInteritemSpacing = 0
-        layout.minimumLineSpacing = 0
-        let collection = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        collection.backgroundColor = .clear
-        collection.isScrollEnabled = false
-        collection.delaysContentTouches = false
-        collection.translatesAutoresizingMaskIntoConstraints = false
-        collection.register(EventGalleryCell.self, forCellWithReuseIdentifier: "EventGalleryCell")
-        return collection
-    }()
 
     // MARK: - Step 3 UI
     private let deadlineDate: DateSelectionControl
@@ -330,6 +289,45 @@ final class CreateEventNode: ASDisplayNode {
     ]
     
     private let publicEventSwitch: UISwitch = UISwitch()
+
+    var galleryItems: [EventGalleryItem] = []
+    
+    private let galleryLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.font = Font.regular(14)
+        label.text = DivoStrings.galleryCreateEvent
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private let galleryAddButton: DivoButton = {
+        let button = DivoButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
+    private var galleryHeightConstraint: NSLayoutConstraint!
+    
+    private let galleryCollectionContainerView: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = .clear
+        return view
+    }()
+    
+    lazy var galleryCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.minimumInteritemSpacing = 0
+        layout.minimumLineSpacing = 0
+        let collection = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collection.backgroundColor = .clear
+        collection.isScrollEnabled = false
+        collection.delaysContentTouches = false
+        collection.translatesAutoresizingMaskIntoConstraints = false
+        collection.register(EventGalleryCell.self, forCellWithReuseIdentifier: "EventGalleryCell")
+        return collection
+    }()
 
     // MARK: - Parameters Data
     private var selectedParameters: Set<EventParameter> = []
@@ -382,6 +380,7 @@ final class CreateEventNode: ASDisplayNode {
     var onBackTapped: (() -> Void)?
     var onAvatarTap: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
+    var onGalleryItemTapped: ((String) -> Void)?
 
     private var countryId: String?
     private var countryTitle: String?
@@ -639,7 +638,7 @@ final class CreateEventNode: ASDisplayNode {
             stack.translatesAutoresizingMaskIntoConstraints = false
             stack.axis = .vertical
             stack.spacing = DivoDesignTokens.Spacing.m
-            stack.layoutMargins = UIEdgeInsets(top: 20, left: DivoDesignTokens.Spacing.m, bottom: 0, right: DivoDesignTokens.Spacing.m)
+            stack.layoutMargins = UIEdgeInsets(top: 20, left: 0, bottom: 0, right: 0)
             stack.isLayoutMarginsRelativeArrangement = true
             
             pagerContentView.addSubview(scrollView)
@@ -683,7 +682,6 @@ final class CreateEventNode: ASDisplayNode {
         avatarContainer.addSubview(avatarSpinner)
         avatarSpinner.isHidden = true
 
-        
         NSLayoutConstraint.activate([
             avatarContainer.heightAnchor.constraint(equalToConstant: 120),
             
@@ -717,6 +715,9 @@ final class CreateEventNode: ASDisplayNode {
         step1StackView.addArrangedSubview(eventTypeDropdown)
         eventTypeDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(eventTypeTapped)))
 
+        eventTypeDropdown.leadingAnchor.constraint(equalTo: step1StackView.leadingAnchor, constant: DivoDesignTokens.Spacing.m).isActive = true
+        eventTypeDropdown.trailingAnchor.constraint(equalTo: step1StackView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
+
         step1StackView.addArrangedSubview(nameEventTextField.view)
         nameEventTextField.view.heightAnchor.constraint(equalToConstant: 48).isActive = true
         step1StackView.addArrangedSubview(aboutEventTextField)
@@ -742,6 +743,9 @@ final class CreateEventNode: ASDisplayNode {
         step2StackView.addArrangedSubview(whoCanApplyDropdown)
         whoCanApplyDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(roleTapped)))
                 
+        whoCanApplyDropdown.leadingAnchor.constraint(equalTo: step2StackView.leadingAnchor, constant: DivoDesignTokens.Spacing.m).isActive = true
+        whoCanApplyDropdown.trailingAnchor.constraint(equalTo: step2StackView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
+
         step2StackView.addArrangedSubview(maxParticipantsDropdown)
         maxParticipantsDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(maxParticipantsTapped)))
         
@@ -774,48 +778,46 @@ final class CreateEventNode: ASDisplayNode {
         skinColorDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(skinColorDropdownTapped)))
         
         step2StackView.addArrangedSubview(makeSwitchRow(title: DivoStrings.ndaRequiredCreateEvent, uiSwitch: ndaSwitch))
-                
-        eventGalleryLabel.translatesAutoresizingMaskIntoConstraints = false
-        step2StackView.addArrangedSubview(eventGalleryLabel)
-        
-        let stackGallery = UIStackView()
-        stackGallery.axis = .horizontal
-        stackGallery.translatesAutoresizingMaskIntoConstraints = false
-        
-        stackGallery.addArrangedSubview(galleryLabel)
-        stackGallery.addArrangedSubview(UIView())
-        stackGallery.addArrangedSubview(galleryAddButton)
-        stackGallery.heightAnchor.constraint(equalToConstant: 40).isActive = true
-
-        step2StackView.addArrangedSubview(stackGallery)
-
-        galleryCollectionContainerView.addSubview(galleryCollectionView)
-        
-        NSLayoutConstraint.activate([
-            galleryCollectionView.topAnchor.constraint(equalTo: galleryCollectionContainerView.topAnchor),
-            galleryCollectionView.leadingAnchor.constraint(equalTo: galleryCollectionContainerView.leadingAnchor),
-            galleryCollectionView.trailingAnchor.constraint(equalTo: galleryCollectionContainerView.trailingAnchor),
-            galleryCollectionView.bottomAnchor.constraint(equalTo: galleryCollectionContainerView.bottomAnchor)
-        ])
-        
-        step2StackView.addArrangedSubview(galleryCollectionContainerView)
-        galleryHeightConstraint = galleryCollectionContainerView.heightAnchor.constraint(equalToConstant: 0)
-        galleryHeightConstraint.isActive = true
     }
     
     private func buildStep3() {
+        
+        let dateTimeRowContainer = UIView()
+        dateTimeRowContainer.translatesAutoresizingMaskIntoConstraints = false
+        
         let dateTimeRow = UIStackView()
+        dateTimeRow.translatesAutoresizingMaskIntoConstraints = false
         dateTimeRow.axis = .horizontal
         dateTimeRow.spacing = 12
         dateTimeRow.distribution = .fillEqually
         
         dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.deadlineDate, inputView: deadlineDate))
         dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.deadlineTime, inputView: deadlineTime))
-        step3StackView.addArrangedSubview(dateTimeRow)
-        dateTimeRow.heightAnchor.constraint(equalToConstant: 68).isActive = true
         
-        step3StackView.addArrangedSubview(makeSwitchRow(title: DivoStrings.paidEvent, uiSwitch: paidEventSwitch))
+        dateTimeRowContainer.addSubview(dateTimeRow)
+        step3StackView.addArrangedSubview(dateTimeRowContainer)
+        NSLayoutConstraint.activate([
+            dateTimeRow.trailingAnchor.constraint(equalTo: dateTimeRowContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            dateTimeRow.leadingAnchor.constraint(equalTo: dateTimeRowContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            dateTimeRow.bottomAnchor.constraint(equalTo: dateTimeRowContainer.bottomAnchor),
+            dateTimeRow.topAnchor.constraint(equalTo: dateTimeRowContainer.topAnchor),
+            dateTimeRow.heightAnchor.constraint(equalToConstant: 68),
+        ])
         
+
+        let paidEventSwitchContainer = UIView()
+        paidEventSwitchContainer.translatesAutoresizingMaskIntoConstraints = false
+        let paidEventSwitchUI = makeSwitchRow(title: DivoStrings.paidEvent, uiSwitch: paidEventSwitch)
+        paidEventSwitchUI.translatesAutoresizingMaskIntoConstraints = false
+        paidEventSwitchContainer.addSubview(paidEventSwitchUI)
+        step3StackView.addArrangedSubview(paidEventSwitchContainer)
+        NSLayoutConstraint.activate([
+            paidEventSwitchUI.trailingAnchor.constraint(equalTo: paidEventSwitchContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            paidEventSwitchUI.leadingAnchor.constraint(equalTo: paidEventSwitchContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            paidEventSwitchUI.bottomAnchor.constraint(equalTo: paidEventSwitchContainer.bottomAnchor),
+            paidEventSwitchUI.topAnchor.constraint(equalTo: paidEventSwitchContainer.topAnchor),
+        ])
+
         let rateTimeRow = UIStackView()
         rateTimeRow.axis = .horizontal
         rateTimeRow.spacing = 12
@@ -844,9 +846,67 @@ final class CreateEventNode: ASDisplayNode {
         rateTimeRow.addArrangedSubview(rateTime)
         rateTimeRow.heightAnchor.constraint(equalToConstant: 46).isActive = true
         
-        step3StackView.addArrangedSubview(makeInputStack(title: DivoStrings.rate, inputView: rateTimeRow))
+        let rateTimeRowContainer = UIView()
+        rateTimeRowContainer.translatesAutoresizingMaskIntoConstraints = false
+        let rateTimeRowhUI = makeInputStack(title: DivoStrings.rate, inputView: rateTimeRow)
+        rateTimeRowhUI.translatesAutoresizingMaskIntoConstraints = false
+        rateTimeRowContainer.addSubview(rateTimeRowhUI)
+        step3StackView.addArrangedSubview(rateTimeRowContainer)
+        NSLayoutConstraint.activate([
+            rateTimeRowhUI.trailingAnchor.constraint(equalTo: rateTimeRowContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            rateTimeRowhUI.leadingAnchor.constraint(equalTo: rateTimeRowContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            rateTimeRowhUI.bottomAnchor.constraint(equalTo: rateTimeRowContainer.bottomAnchor),
+            rateTimeRowhUI.topAnchor.constraint(equalTo: rateTimeRowContainer.topAnchor),
+        ])
+
+        let publicEventContainer = UIView()
+        publicEventContainer.translatesAutoresizingMaskIntoConstraints = false
+        let publicEventUI = makeSwitchRow(title: DivoStrings.publicEvent, subtitle: DivoStrings.visibleAllUsers, uiSwitch: publicEventSwitch)
+        publicEventUI.translatesAutoresizingMaskIntoConstraints = false
+        publicEventContainer.addSubview(publicEventUI)
+        step3StackView.addArrangedSubview(publicEventContainer)
+        NSLayoutConstraint.activate([
+            publicEventUI.trailingAnchor.constraint(equalTo: publicEventContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            publicEventUI.leadingAnchor.constraint(equalTo: publicEventContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            publicEventUI.bottomAnchor.constraint(equalTo: publicEventContainer.bottomAnchor),
+            publicEventUI.topAnchor.constraint(equalTo: publicEventContainer.topAnchor),
+        ])
         
-        step3StackView.addArrangedSubview(makeSwitchRow(title: DivoStrings.publicEvent, subtitle: DivoStrings.visibleAllUsers, uiSwitch: publicEventSwitch))
+        let stackGallery = UIStackView()
+        stackGallery.axis = .horizontal
+        stackGallery.translatesAutoresizingMaskIntoConstraints = false
+        
+        stackGallery.addArrangedSubview(galleryLabel)
+        stackGallery.addArrangedSubview(UIView())
+        stackGallery.addArrangedSubview(galleryAddButton)
+        
+        let stackGalleryContainer = UIView()
+        stackGalleryContainer.translatesAutoresizingMaskIntoConstraints = false
+        stackGalleryContainer.addSubview(stackGallery)
+        step3StackView.addArrangedSubview(stackGalleryContainer)
+        NSLayoutConstraint.activate([
+            stackGallery.trailingAnchor.constraint(equalTo: stackGalleryContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            stackGallery.leadingAnchor.constraint(equalTo: stackGalleryContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            stackGallery.bottomAnchor.constraint(equalTo: stackGalleryContainer.bottomAnchor),
+            stackGallery.topAnchor.constraint(equalTo: stackGalleryContainer.topAnchor),
+            stackGallery.heightAnchor.constraint(equalToConstant: 40),
+        ])
+        
+        step3StackView.setCustomSpacing(12, after: stackGalleryContainer)
+
+        step3StackView.addArrangedSubview(galleryCollectionContainerView)
+        galleryCollectionContainerView.addSubview(galleryCollectionView)
+        
+        NSLayoutConstraint.activate([
+            
+            galleryCollectionView.topAnchor.constraint(equalTo: galleryCollectionContainerView.topAnchor),
+            galleryCollectionView.leadingAnchor.constraint(equalTo: galleryCollectionContainerView.leadingAnchor),
+            galleryCollectionView.trailingAnchor.constraint(equalTo: galleryCollectionContainerView.trailingAnchor),
+            galleryCollectionView.bottomAnchor.constraint(equalTo: galleryCollectionContainerView.bottomAnchor)
+        ])
+        
+        galleryHeightConstraint = galleryCollectionContainerView.heightAnchor.constraint(equalToConstant: 0)
+        galleryHeightConstraint.isActive = true
     }
     
     private func reloadAppearanceOptions() {
@@ -1118,24 +1178,32 @@ final class CreateEventNode: ASDisplayNode {
         self.avatarFileUuid = nil
         let sortedFiles = files.sorted { ($0.order ?? 99) < ($1.order ?? 99) }
         
-        for file in sortedFiles {
-            guard let urlString = file.fullUrl, let url = URL(string: urlString), let fileUuid = file.fileUuid else { continue }
-            if file.order == 0 {
-                self.avatarFileUuid = fileUuid
-                Task { @MainActor in
-                    if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
-                        self.currentPhoto = image
-                        self.setAvatarLoading(false)
-                    }
+        if let avatarFile = sortedFiles.first(where: { $0.order == 0 }), let uuid = avatarFile.fileUuid, let urlString = avatarFile.fullUrl, let url = URL(string: urlString) {
+            self.avatarFileUuid = uuid
+            Task { @MainActor in
+                if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
+                    self.currentPhoto = image
+                    self.setAvatarLoading(false)
                 }
-            } else {
-                Task { @MainActor in
-                    if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
-                        let item = EventGalleryItem(image: image, isUploading: false, fileUuid: fileUuid)
-                        self.galleryItems.append(item)
-                        self.galleryCollectionView.reloadData()
-                        self.updateGalleryHeight()
-                    }
+            }
+        } else {
+            self.setAvatarLoading(false)
+        }
+        
+        let galleryFiles = sortedFiles.filter { $0.order != 0 }
+        self.galleryItems = galleryFiles.compactMap { file in
+            guard let uuid = file.fileUuid else { return nil }
+            return EventGalleryItem(image: nil, isUploading: false, fileUuid: uuid)
+        }
+        self.galleryCollectionView.reloadData()
+        self.updateGalleryHeight()
+        
+        for (index, file) in galleryFiles.enumerated() {
+            guard let urlString = file.fullUrl, let url = URL(string: urlString) else { continue }
+            Task { @MainActor in
+                if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
+                    self.galleryItems[index].image = image
+                    self.galleryCollectionView.reloadItems(at:[IndexPath(item: index, section: 0)])
                 }
             }
         }
@@ -1891,8 +1959,14 @@ extension CreateEventNode: UICollectionViewDataSource, UICollectionViewDelegateF
     }
     
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let width = floor((UIScreen.main.bounds.width - 32) / 3.0)
+        let width = floor((UIScreen.main.bounds.width) / 3.0)
         return CGSize(width: width, height: width)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        let item = galleryItems[indexPath.item]
+        guard !item.isUploading, let uuid = item.fileUuid else { return }
+        onGalleryItemTapped?(uuid)
     }
 }
 

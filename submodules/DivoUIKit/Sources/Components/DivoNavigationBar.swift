@@ -159,7 +159,8 @@ public final class DivoNavigationBar: UIView {
         rightButtonConfiguration: RightButtonConfiguration? = nil,
         onBackTapped: (() -> Void)? = nil,
         onCircleRightTapped: (() -> Void)? = nil,
-        onCircleTextTapped: (() -> Void)? = nil
+        onCircleTextTapped: (() -> Void)? = nil,
+        menu: UIMenu? = nil
     ) {
         self.titleLabel.text = title
         self.titleLabel.font = font
@@ -197,6 +198,13 @@ public final class DivoNavigationBar: UIView {
             circleRightButton.addTarget(self, action: #selector(circleRightTapped), for: .touchUpInside)
             circleRightButton.addDivoPressState(style)
 
+            if #available(iOS 14.0, *) {
+                if menu == menu {
+                    circleRightButton.adjustsImageWhenHighlighted = false
+                    circleRightButton.menu = menu
+                    circleRightButton.showsMenuAsPrimaryAction = true
+                }
+            }
         case .text(let title):
             circleRightButton.isHidden = true
             textRightButton.isHidden = false

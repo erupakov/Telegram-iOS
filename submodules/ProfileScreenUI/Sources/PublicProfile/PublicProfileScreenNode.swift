@@ -11,6 +11,7 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 import DivoUIKit
+import DivoGallery
 
 public enum Role {
     case model

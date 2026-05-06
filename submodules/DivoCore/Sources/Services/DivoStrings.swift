@@ -252,6 +252,7 @@ public enum DivoStrings {
     public static var errorUploadingVideos: String { L(en: "Couldn't add video", ru: "Не удалось добавить видео", es: "No se pudo agregar el video", pt: "Não foi possível adicionar o vídeo", zh: "无法添加视频") }
     public static var errorUpdateBackground: String { L(en: "Couldn't update profile background", ru: "Не удалось обновить фон профиля", es: "No se pudo actualizar el fondo del perfil", pt: "Não foi possível atualizar o fundo do perfil", zh: "无法更新个人资料背景") }
     public static var errorLoadingSimilarProfiles: String { L(en: "Couldn't find similar profiles", ru: "Не удалось найти похожие профили", es: "No se pudieron encontrar perfiles similares", pt: "Não foi possível encontrar perfis semelhantes", zh: "无法找到相似的个人资料") }
+    public static var deletePhoto: String { L(en: "Delete photo", ru: "Удалить фото", es: "Eliminar foto", pt: "Deletar foto", zh: "删除照片") }
 
     // MARK: - Units
 
@@ -494,9 +495,9 @@ public enum DivoStrings {
     public static var rateTime: String { L(en: "Rate time", ru: "Время ставки", es: "Tiempo de tarifa", pt: "Tempo da taxa", zh: "费率时间") }
     public static var publicEvent: String { L(en: "Public event", ru: "Публичное мероприятие", es: "Evento público", pt: "Evento público", zh: "公开活动") }
     public static var visibleAllUsers: String { L(en: "Visible to all users", ru: "Видно всем пользователям", es: "Visible para todos los usuarios", pt: "Visível para todos os usuários", zh: "对所有用户可见") }
-    public static var galleryCreateEvent: String { L(en: "Event gallery", ru: "Галерея мероприятия", es: "Galería del evento", pt: "Galeria do evento", zh: "活动图库") }
+    public static var galleryCreateEvent: String { L(en: "Events Photo Gallery", ru: "Фотогалерея событий", es: "Galería de fotos de eventos", pt: "Galeria de fotos de eventos", zh: "活动照片画廊") }
     public static var eventName: String { L(en: "Event name *", ru: "Название события *", es: "Nombre del evento *", pt: "Nome do evento *", zh: "活动名称 *") }
-    public static var addPhotoEvent: String { L(en: "Add photo", ru: "Добавить фото", es: "Agregar foto", pt: "Adicionar foto", zh: "添加照片") }
+    public static var addPhotoEvent: String { L(en: "Upload event photos", ru: "Загрузить фото события", es: "Subir fotos del evento", pt: "Carregar fotos do evento", zh: "上传活动照片") }
     public static var paidEvent: String { L(en: "Paid event", ru: "Платное мероприятие", es: "Evento de pago", pt: "Evento pago", zh: "付费活动") }
     public static var previewEvent: String { L(en: "Preview", ru: "Предпросмотр", es: "Vista previa", pt: "Pré-visualização", zh: "预览") }
     public static func stepCreateEvent(_ currentStep: Int) -> String { L(en: "Step \(currentStep)/3", ru: "Шаг \(currentStep)/3", es: "Paso \(currentStep)/3", pt: "Passo \(currentStep)/3", zh: "步骤 \(currentStep)/3") }

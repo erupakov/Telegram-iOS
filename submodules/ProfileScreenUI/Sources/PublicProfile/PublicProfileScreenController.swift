@@ -21,21 +21,7 @@ import GalleryUI
 import EventsUI
 import DivoUIKit
 import FaceSearchUI
-
-enum MediaFormatValidator {
-    static let videoExtensions: Set<String> = ["mp4", "mov", "avi", "mkv", "webm"]
-    static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "webp", "heic"]
-    
-    static func isVideo(_ ext: String?) -> Bool {
-        guard let ext = ext?.lowercased() else { return false }
-        return videoExtensions.contains(ext)
-    }
-    
-    static func isImage(_ ext: String?) -> Bool {
-        guard let ext = ext?.lowercased() else { return false }
-        return imageExtensions.contains(ext)
-    }
-}
+import DivoGallery
 
 public final class PublicProfileScreenController: TelegramBaseController {
 

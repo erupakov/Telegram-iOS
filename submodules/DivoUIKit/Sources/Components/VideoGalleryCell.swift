@@ -2,12 +2,10 @@ import UIKit
 import AVKit
 import AVFoundation
 import Display
-import TelegramCore
 import DivoCore
-import DivoUIKit
 
-final class VideoGalleryCell: UICollectionViewCell {
-    static let reuseIdentifier = "VideoGalleryCell"
+public final class VideoGalleryCell: UICollectionViewCell {
+    static public let reuseIdentifier = "VideoGalleryCell"
 
     private enum Constants {
         static let softTimeoutSeconds: TimeInterval = 30.0
@@ -29,17 +27,17 @@ final class VideoGalleryCell: UICollectionViewCell {
     /// Возвращает закешированный first-frame для указанного URL (CDN-строка).
     /// Используется в PreviewCell, чтобы не генерировать миниатюру повторно если
     /// VideoGalleryCell уже сделал это раньше (надёжный кадр с ретраями).
-    static func cachedFirstFrame(for urlString: String) -> UIImage? {
+    static public func cachedFirstFrame(for urlString: String) -> UIImage? {
         return firstFrameCache.object(forKey: urlString as NSString)
     }
 
     private static let previewFrameCache = NSCache<NSString, UIImage>()
 
-    static func cachedPreviewFrame(for urlString: String) -> UIImage? {
+    static public func cachedPreviewFrame(for urlString: String) -> UIImage? {
         return previewFrameCache.object(forKey: urlString as NSString)
     }
 
-    static func cachePreviewFrame(_ image: UIImage, for urlString: String) {
+    static public func cachePreviewFrame(_ image: UIImage, for urlString: String) {
         previewFrameCache.setObject(image, forKey: urlString as NSString)
     }
 
@@ -163,7 +161,7 @@ final class VideoGalleryCell: UICollectionViewCell {
     private var timeObserverToken: Any?
     private var totalDurationSeconds: Double = 0
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
     }
@@ -233,7 +231,7 @@ final class VideoGalleryCell: UICollectionViewCell {
         ])
     }
 
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         playerLayer.frame = contentView.bounds
         if self.window != nil && !shimmerContainer.isHidden {
@@ -242,12 +240,12 @@ final class VideoGalleryCell: UICollectionViewCell {
         }
     }
 
-    override func didMoveToWindow() {
+    override public func didMoveToWindow() {
         super.didMoveToWindow()
         layoutIfNeeded()
     }
 
-    func configureUploading(thumbnail: UIImage?) {
+    public func configureUploading(thumbnail: UIImage?) {
         configurationId &+= 1
         fallbackContainer.isHidden = true
         if let thumbnail = thumbnail {
@@ -262,7 +260,7 @@ final class VideoGalleryCell: UICollectionViewCell {
         }
     }
 
-    func configure(with videoUrl: String, previewUrl: String? = nil, title: String? = nil) {
+    public func configure(with videoUrl: String, previewUrl: String? = nil, title: String? = nil) {
         configurationId &+= 1
         let currentConfigurationId = configurationId
 
@@ -341,7 +339,7 @@ final class VideoGalleryCell: UICollectionViewCell {
     /// Иначе принудительно запускаем генерацию thumbnail из видео как fallback,
     /// даже если previewUrl ещё грузится (ImageLoader и thumbnail работают параллельно —
     /// кто первый, тот и покажет картинку).
-    func willDisplay() {
+    public func willDisplay() {
         guard let url = currentVideoUrl else { return }
         guard !hasVisualContent else { return }
 
@@ -723,7 +721,7 @@ final class VideoGalleryCell: UICollectionViewCell {
         fallbackContainer.isHidden = true
     }
 
-    func play() {
+    public func play() {
         guard canAutoPlay else {
             return
         }
@@ -745,13 +743,13 @@ final class VideoGalleryCell: UICollectionViewCell {
         }
     }
 
-    func pause() {
+    public func pause() {
         guard let player = player, isPlaying else { return }
         player.pause()
         isPlaying = false
     }
 
-    func stop() {
+    public func stop() {
         guard let player = player else { return }
         player.pause()
         player.seek(to: .zero)
@@ -761,7 +759,7 @@ final class VideoGalleryCell: UICollectionViewCell {
     }
 
     /// Вызывать, когда ячейка уехала с экрана — освобождаем AVPlayer, чтобы не копить ресурсы.
-    func stopAndReleasePlayer() {
+    public func stopAndReleasePlayer() {
         stop()
         cleanUpPlayerObservers()
         playerLayer.player = nil
@@ -786,7 +784,7 @@ final class VideoGalleryCell: UICollectionViewCell {
         }
     }
 
-    override func prepareForReuse() {
+    override public func prepareForReuse() {
         super.prepareForReuse()
         stopAndReleasePlayer()
 

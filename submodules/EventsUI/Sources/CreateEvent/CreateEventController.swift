@@ -18,6 +18,7 @@ import CountrySelectionUI
 import ChatScheduleTimeController
 import Postbox
 import PhotosUI
+import DivoGallery
 
 public class CreateEventController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
@@ -40,6 +41,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         case gallery
     }
     private var currentPickerTarget: PhotoPickerTarget = .avatar
+    private weak var activeGalleryController: ProfileGalleryController?
+    internal var currentGalleryPhotos: [UserPhoto] = []
 
     public init(context: AccountContext, eventId: Int? = nil) {
         self.context = context
@@ -128,6 +131,10 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             self?.view.window?.rootViewController?.present(vc, animated: true)
         }
 
+        self.createEventNode.onGalleryItemTapped = {[weak self] fileUuid in
+            self?.openFullScreenGallery(for: fileUuid)
+        }
+
         self.displayNodeDidLoad()
 
         self.loadInitialData()
@@ -160,6 +167,26 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
                 if let detail = eventDetail {
                     self.createEventNode.populate(with: detail)
+                    
+                    if let files = detail.files {
+                        let sortedFiles = files.sorted { ($0.order ?? 99) < ($1.order ?? 99) }
+                        self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
+                            guard let uuid = file.fileUuid else { return nil }
+                            let userFile = UserFile(
+                                fileName: file.fileName ?? "event_photo.jpg",
+                                fullUrl: file.fullUrl ?? "",
+                                fileExtension: file.fileExtension ?? "jpg",
+                                fileUuid: uuid
+                            )
+                            return UserPhoto(
+                                id: abs(uuid.hashValue),
+                                photo: userFile,
+                                likesCount: 0,
+                                isLikedByUser: false,
+                                preview: nil
+                            )
+                        }
+                    }
                 }
                 
                 self.createEventNode.hideScreenLoading()
@@ -429,7 +456,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     }
     
     private func openPhotoGallery() {
-        self.currentPickerTarget = .avatar // Указываем цель: Аватар
+        self.currentPickerTarget = .avatar
         
         if #available(iOS 14, *) {
             var configuration = PHPickerConfiguration()
@@ -485,10 +512,26 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     throw DivoAPIError.unknown
                 }
 
+                let userFile = UserFile(
+                    fileName: uploadResponse.data?.fileName,
+                    fullUrl: uploadResponse.data?.fullUrl,
+                    fileExtension: uploadResponse.data?.extensionFile,
+                    fileUuid: fileUuid
+                )
+
+                let newPhoto = UserPhoto(
+                    id: abs(fileUuid.hashValue),
+                    photo: userFile,
+                    likesCount: 0,
+                    isLikedByUser: false,
+                    preview: nil
+                )
+                
                 await MainActor.run {
                     self.createEventNode.finishPhotoUpload(item: item, fileUuid: fileUuid)
+                    self.currentGalleryPhotos.append(newPhoto)
                 }
-
+                
             } catch {
                 await MainActor.run {
                     self.createEventNode.cancelPhotoUpload(item: item)
@@ -498,6 +541,33 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         }
     }
     
+    // Открытие галереи на полный экран
+    private func openFullScreenGallery(for uuid: String) {
+        guard let initialIndex = self.currentGalleryPhotos.firstIndex(where: { $0.photo.fileUuid == uuid }) else { return }
+        
+        let galleryController = ProfileGalleryController(
+            context: self.context,
+            photos: self.currentGalleryPhotos,
+            initialIndex: initialIndex,
+            isVideoGallery: false,
+            isOwnProfile: true,
+            isLocalOnly: true
+        )
+        
+        galleryController.onDeletePublication = { [weak self] deletedId in
+            guard let self = self else { return }
+            if let photoToDelete = self.currentGalleryPhotos.first(where: { $0.id == deletedId }) {
+                let uuidToDelete = photoToDelete.photo.fileUuid
+                self.currentGalleryPhotos.removeAll { $0.id == deletedId }
+                if let itemToRemove = self.createEventNode.galleryItems.first(where: { $0.fileUuid == uuidToDelete }) {
+                    self.createEventNode.removePhoto(item: itemToRemove)
+                }
+            }
+        }
+
+        self.activeGalleryController = galleryController
+        self.push(galleryController)
+    }
 }
 
 @available(iOS 14.0, *)
