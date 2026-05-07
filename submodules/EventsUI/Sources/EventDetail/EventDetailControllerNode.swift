@@ -23,10 +23,12 @@ final class EventDetailControllerNode: ASDisplayNode {
     var onShareTapped: (() -> Void)?
     var onBookmarkTapped: (() -> Void)?
     var onApplyTapped: (() -> Void)?
+    var onGalleryItemTapped: ((String) -> Void)?
 
     var coverImage: UIImage? {
         return backgroundImageView.image
     }
+    private var isDataLoaded: Bool = false
 
     // MARK: - Core Layout
     private var containerLayout: (ContainerViewLayout, CGFloat)?
@@ -38,6 +40,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         scrollView.backgroundColor = .clear
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.showsVerticalScrollIndicator = false
+        scrollView.clipsToBounds = false
         return scrollView
     }()
     
@@ -68,7 +71,9 @@ final class EventDetailControllerNode: ASDisplayNode {
     }()
 
     // MARK: - Navigation Bar
+    private var navigationBarTitleView: ProfileNavigationBarTitleView?
     private var navigationBarTitleHeightConstraint: NSLayoutConstraint!
+    private var titleVisibilityActivated = false
     
     private let navBarBlurView: UIVisualEffectView = {
         let effect = UIBlurEffect(style: .systemUltraThinMaterialLight)
@@ -93,13 +98,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         button.setImage(image, for: .normal)
         button.setImage(image, for: .highlighted)
         button.tintColor = DivoColorPalette.cardBackground
-
         button.backgroundColor = DivoColorPalette.statPillBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         button.layer.masksToBounds = true
         button.layer.borderWidth = 0.5
         button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
-
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -145,8 +148,8 @@ final class EventDetailControllerNode: ASDisplayNode {
     
     private let bookmarkButton = UIButton(type: .custom)
 
+
     // MARK: - Event Info Section (Header)
-    
     private let eventTypeContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -503,31 +506,45 @@ final class EventDetailControllerNode: ASDisplayNode {
     // MARK: - Collections
     private let collectionsContainer: UIView = {
         let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.clipsToBounds = true
+        return view
+    }()
+    
+    private var galleryPhotos: [UserPhoto] = []
+    private var galleryHeightConstraint: NSLayoutConstraint!
+    
+    private let galleryStatusView: GalleryStatusView = {
+        let view = GalleryStatusView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
-    private let previousEventsTitleLabel = UILabel()
-    private let imageGalleryCollectionView: UICollectionView
-    let previousEventsCollectionView: UICollectionView
+    private lazy var galleryCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.minimumInteritemSpacing = 1
+        layout.minimumLineSpacing = 1
+        let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        cv.backgroundColor = .clear
+        cv.isScrollEnabled = false
+        cv.delaysContentTouches = false
+        cv.translatesAutoresizingMaskIntoConstraints = false
+        cv.register(GalleryCell.self, forCellWithReuseIdentifier: "GalleryCell")
+        cv.dataSource = self
+        cv.delegate = self
+        return cv
+    }()
 
     private let isMyEvent: Bool
 
+
     // MARK: - Init
+
     init(context: AccountContext, presentationData: PresentationData, isMyEvent: Bool = false) {
         self.context = context
         self.presentationData = presentationData
         self.isMyEvent = isMyEvent
-
-        let flowLayoutGallery = UICollectionViewFlowLayout()
-        flowLayoutGallery.scrollDirection = .horizontal
-        flowLayoutGallery.minimumLineSpacing = 0
-        flowLayoutGallery.minimumInteritemSpacing = 0
-        self.imageGalleryCollectionView = UICollectionView(frame: .zero, collectionViewLayout: flowLayoutGallery)
-
-        let flowLayoutPreviousEvents = UICollectionViewFlowLayout()
-        flowLayoutPreviousEvents.scrollDirection = .horizontal
-        self.previousEventsCollectionView = UICollectionView(frame: .zero, collectionViewLayout: flowLayoutPreviousEvents)
 
         super.init()
         self.backgroundColor = DivoColorPalette.darkBackground
@@ -538,17 +555,29 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     override func layout() {
         super.layout()
+
+        guard !isPerformingLayout else { return }
+        isPerformingLayout = true
+        defer { isPerformingLayout = false }
+
         guard let (layout, _) = self.containerLayout else { return }
-        
+
         let stackWidth = layout.size.width
-        
+
         contentViewStack.layoutIfNeeded()
-        
-        let contentHeight = contentViewStack.systemLayoutSizeFitting(
+
+        var contentHeight = contentViewStack.systemLayoutSizeFitting(
             CGSize(width: stackWidth, height: UIView.layoutFittingCompressedSize.height),
             withHorizontalFittingPriority: .required,
             verticalFittingPriority: .fittingSizeLevel
         ).height
+        
+        // ЗАЩИТА: Высота контента не может быть меньше высоты экрана + 100 поинтов.
+        // Это предотвращает баг "открытия из точки".
+        let minContentHeight = layout.size.height + 100
+        if contentHeight < minContentHeight {
+            contentHeight = minContentHeight
+        }
         
         contentViewStack.frame = CGRect(x: 0, y: 0, width: stackWidth, height: contentHeight)
         scrollView.contentSize = CGSize(width: stackWidth, height: contentHeight)
@@ -556,6 +585,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyGradientBlurMask()
         updateNavBarBlurMask()
         
+        // Перезапуск анимации шиммеров при любом обновлении Layout
         if !actionsShimmerView.isHidden {
             actionsShimmerView.startAnimation()
         }
@@ -602,7 +632,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         }
     }
 
+
     // MARK: - Setup UI
+
     private func setupUI() {
         setupBackgroundAndScroll()
         setupTopBlur()
@@ -678,7 +710,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             navBarBlurView.topAnchor.constraint(equalTo: view.topAnchor),
             navBarBlurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             navBarBlurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navBarBlurView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 52)
+            navBarBlurView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 280)
         ])
     }
 
@@ -687,6 +719,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         customNavBar.addSubview(closeButton)
         customNavBar.addSubview(rightButtonContainer)
+
+        addPillBlur(to: closeButton)
+        addPillBlur(to: rightButtonContainer)
         
         rightButtonContainer.addSubview(rightButtonsStack)
         rightButtonsStack.addArrangedSubview(shareButton)
@@ -745,6 +780,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         counterActionsStack.addArrangedSubview(viewsView)
         counterActionsStack.addArrangedSubview(savesView)
 
+        for pill in [likesView, viewsView, savesView] {
+            pill.backgroundColor = .clear
+            addPillBlur(to: pill)
+        }
+
         likesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
         viewsView.widthAnchor.constraint(equalToConstant: 70).isActive = true
         savesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
@@ -776,7 +816,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             }
             
         } else {
-            likesView.onIconTap = { [weak self] in
+            likesView.onIconTap = {[weak self] in
                 self?.likesPillTapped()
             }
             likesView.onLabelTap = { [weak self] in
@@ -794,25 +834,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         }
     }
     
-    @objc private func likesViewDidTap() {
-
-    }
-    
-    @objc private func viewsViewDidTap() {
-
-    }
-    
-    @objc private func savesViewDidTap() {
-
-    }
-    
-    @objc private func likesPillTapped() {
-
-    }
-    
-    @objc private func savesPillTapped() {
-
-    }
+    @objc private func likesViewDidTap() {}
+    @objc private func viewsViewDidTap() {}
+    @objc private func savesViewDidTap() {}
+    @objc private func likesPillTapped() {}
+    @objc private func savesPillTapped() {}
     
     private func setupEventType() {
         contentViewStack.addArrangedSubview(eventTypeContainer)
@@ -1066,92 +1092,36 @@ final class EventDetailControllerNode: ASDisplayNode {
             parametersShimmerView.leadingAnchor.constraint(equalTo: containerParametersShimmer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             parametersShimmerView.trailingAnchor.constraint(equalTo: containerParametersShimmer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
         ])
-    }
-
-    private func createParamRow(icon: UIImageView, title: String, valueLabel: UILabel) -> UIView {
-        let view = UIView()
-        icon.translatesAutoresizingMaskIntoConstraints = false
-        icon.tintColor = DivoColorPalette.primaryText
-        icon.contentMode = .scaleAspectFit
-        
-        let titleLbl = UILabel()
-        titleLbl.text = title
-        titleLbl.font = Font.regular(14)
-        titleLbl.textColor = DivoColorPalette.primaryText
-        titleLbl.translatesAutoresizingMaskIntoConstraints = false
-        
-        valueLabel.font = Font.semibold(14)
-        valueLabel.textColor = DivoColorPalette.primaryText
-        valueLabel.textAlignment = .right
-        valueLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        view.addSubview(icon)
-        view.addSubview(titleLbl)
-        view.addSubview(valueLabel)
-        
-        NSLayoutConstraint.activate([
-            icon.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            icon.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            icon.widthAnchor.constraint(equalToConstant: 20),
-            icon.heightAnchor.constraint(equalToConstant: 20),
-            
-            titleLbl.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 12),
-            titleLbl.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            
-            valueLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            valueLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            
-            view.heightAnchor.constraint(equalToConstant: 24)
-        ])
-        return view
-    }
-
-    private func createSeparator() -> UIView {
-        let view = UIView()
-        view.backgroundColor = DivoColorPalette.separatorSoft
-        view.heightAnchor.constraint(equalToConstant: 1).isActive = true
-        return view
+     
+        contentViewStack.setCustomSpacing(24, after: containerParametersShimmer)
+        contentViewStack.setCustomSpacing(24, after: parametersView)
     }
 
     private func setupCollections() {
         contentViewStack.addArrangedSubview(collectionsContainer)
         
-        imageGalleryCollectionView.translatesAutoresizingMaskIntoConstraints = false
-        imageGalleryCollectionView.backgroundColor = .clear
-        imageGalleryCollectionView.dataSource = self
-        imageGalleryCollectionView.delegate = self
-        imageGalleryCollectionView.register(ImageGalleryCell.self, forCellWithReuseIdentifier: "ImageGalleryCell")
+        galleryHeightConstraint = galleryCollectionView.heightAnchor.constraint(equalToConstant: 1)
+        galleryHeightConstraint.isActive = true
         
-        previousEventsTitleLabel.text = DivoStrings.previousEvents
-        previousEventsTitleLabel.font = Font.semibold(18)
-        previousEventsTitleLabel.textColor = DivoColorPalette.primaryText
-        previousEventsTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        previousEventsCollectionView.translatesAutoresizingMaskIntoConstraints = false
-        previousEventsCollectionView.backgroundColor = .clear
-        previousEventsCollectionView.dataSource = self
-        previousEventsCollectionView.delegate = self
-        previousEventsCollectionView.register(EventPreviousCollectionViewCell.self, forCellWithReuseIdentifier: "EventPreviousCollectionViewCell")
-        
-        collectionsContainer.addSubview(imageGalleryCollectionView)
-        collectionsContainer.addSubview(previousEventsTitleLabel)
-        collectionsContainer.addSubview(previousEventsCollectionView)
+        collectionsContainer.addSubview(galleryCollectionView)
+        collectionsContainer.addSubview(galleryStatusView)
         
         NSLayoutConstraint.activate([
-            imageGalleryCollectionView.topAnchor.constraint(equalTo: collectionsContainer.topAnchor),
-            imageGalleryCollectionView.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor),
-            imageGalleryCollectionView.trailingAnchor.constraint(equalTo: collectionsContainer.trailingAnchor),
-            imageGalleryCollectionView.heightAnchor.constraint(equalToConstant: 140),
+            galleryCollectionView.topAnchor.constraint(equalTo: collectionsContainer.topAnchor),
+            galleryCollectionView.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor),
+            galleryCollectionView.trailingAnchor.constraint(equalTo: collectionsContainer.trailingAnchor),
+            galleryHeightConstraint,
+            galleryCollectionView.bottomAnchor.constraint(equalTo: collectionsContainer.bottomAnchor, constant: -20),
             
-            previousEventsTitleLabel.topAnchor.constraint(equalTo: imageGalleryCollectionView.bottomAnchor, constant: 24),
-            previousEventsTitleLabel.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            
-            previousEventsCollectionView.topAnchor.constraint(equalTo: previousEventsTitleLabel.bottomAnchor, constant: 12),
-            previousEventsCollectionView.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor),
-            previousEventsCollectionView.trailingAnchor.constraint(equalTo: collectionsContainer.trailingAnchor),
-            previousEventsCollectionView.heightAnchor.constraint(equalToConstant: 310),
-            previousEventsCollectionView.bottomAnchor.constraint(equalTo: collectionsContainer.bottomAnchor, constant: -40)
+            galleryStatusView.heightAnchor.constraint(equalToConstant: 160),
+            galleryStatusView.topAnchor.constraint(equalTo: collectionsContainer.topAnchor),
+            galleryStatusView.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            galleryStatusView.trailingAnchor.constraint(equalTo: collectionsContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
         ])
+        
+        galleryCollectionView.isHidden = true
+        galleryStatusView.isHidden = false
+        galleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingPhotos, isMyProfile: false)
     }
     
     private func configureNodes() {
@@ -1192,6 +1162,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         parametersShimmerView.isHidden = false
         containerParametersShimmer.isHidden = false
         parametersView.isHidden = true
+
+        galleryCollectionView.isHidden = true
     }
     
     private func stopShimmers() {
@@ -1302,11 +1274,14 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     // MARK: - Data Population
     func updateEventData(_ newEventData: EventFullDetailData) {
+        self.isDataLoaded = true
         self.eventData = newEventData
 
         setImage(urlString: newEventData.files?.first?.fullUrl, for: backgroundImageView)
 
         eventTypeLabel.text = newEventData.type?.title
+        
+        setupNavigationBarTitle(name: newEventData.title ?? DivoStrings.noName)
         
         eventCostTypeLabel.isHidden = newEventData.cost == nil
         eventCostTypeLabel.text = newEventData.cost
@@ -1323,11 +1298,9 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
-        // ПОМЕНЯТЬ ДАТУ ПРИ ОБНОВЛЕНИИ АПИ
         let (_, deadlineTime) = formatEventDateAndTime(dateString: newEventData.date)
         eventDeadlineLabel.text = DivoStrings.deadlineData(deadlineTime)
         
-        // НУЖНО ПОЛУЧАТЬ ИЗ РУЧКИ ДАННЫЕ, ПОКА ИХ ТАМ НЕТ
         currentAppliedLabel.text = DivoStrings.currentApplied(23)
         allAppliedLabel.text = DivoStrings.allApplied(24)
         
@@ -1336,20 +1309,53 @@ final class EventDetailControllerNode: ASDisplayNode {
         organizatiorView.configure(name: newEventData.creator?.fullName , logoURL: logoURL)
         
         descriptionView.update(biography: newEventData.description)
-        
-        // СЮДА НАДО ПЕРЕДАВАТ ЗНАЧЕНИЕ ТРЕБОВАНИЙ, ПОКА НЕТ В АПИ
         requirementsLabel.text = newEventData.description
 
         let appearance = buildAppearanceList(attributes: newEventData.modelAttributes)
         parametersView.update(appearance: appearance)
         
-        // Mock data for counters
         participantsView.setValue("1024")
         likesView.setValue("1.2K")
         viewsView.setValue("2.4K")
         savesView.setValue("300")
         
         stopShimmers()
+        activateTitleVisibility()
+    }
+    
+    func updateGallery(_ photos: [UserPhoto]) {
+        self.isDataLoaded = true
+        self.galleryPhotos = photos
+        self.galleryCollectionView.reloadData()
+        if !photos.isEmpty {
+            self.galleryStatusView.isHidden = true
+            self.galleryCollectionView.isHidden = false
+        }
+        updateGalleryCollectionViewHeight()
+    }
+    
+    private func updateGalleryCollectionViewHeight() {
+        guard let (layout, _) = self.containerLayout else { return }
+        
+        let itemsPerRow: CGFloat = 3
+        let spacing: CGFloat = 1
+        let totalWidth = layout.size.width
+        let itemWidth = (totalWidth - 2 * spacing) / itemsPerRow
+        
+        if !isDataLoaded {
+            galleryHeightConstraint.constant = itemWidth
+            galleryCollectionView.isHidden = true
+        } else if galleryPhotos.isEmpty {
+            galleryHeightConstraint.constant = 1
+            galleryCollectionView.isHidden = true
+        } else {
+            let rows = ceil(CGFloat(galleryPhotos.count) / itemsPerRow)
+            let galleryHeight = rows * itemWidth + max(0, rows - 1) * spacing
+            galleryHeightConstraint.constant = galleryHeight
+            galleryCollectionView.isHidden = false
+        }
+        
+        self.layoutIfNeeded()
     }
     
     // Получаем картинку флага в зависимости от кода страны
@@ -1423,18 +1429,30 @@ final class EventDetailControllerNode: ASDisplayNode {
         self.containerLayout = (layout, navigationBarHeight)
         
         navigationBarTitleHeightConstraint.isActive = false
-        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight + 18)
+        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight)
         navigationBarTitleHeightConstraint.isActive = true
         
         applyGradientBlurMask()
         updateNavBarBlurMask()
+        updateGalleryCollectionViewHeight()
+        
+        updateNavigationBarTitleVisibility()
+        
         self.layoutIfNeeded()
     }
 }
 
 // MARK: - Scroll & Animations
 extension EventDetailControllerNode: UIScrollViewDelegate {
+
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        let maxScrollY = scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom
+        let bottomLimit = max(0, maxScrollY)
+        
+        if scrollView.contentOffset.y > bottomLimit {
+            scrollView.contentOffset.y = bottomLimit
+        }
+        
         updateNavigationBarTitleVisibility()
     }
 
@@ -1481,10 +1499,18 @@ extension EventDetailControllerNode: UIScrollViewDelegate {
     }
 
     private func updateNavigationBarTitleVisibility() {
-        guard let (_, navigationBarHeight) = self.containerLayout else { return }
+        guard let titleView = navigationBarTitleView,
+            let (_, navigationBarHeight) = self.containerLayout else { return }
+
+        guard titleVisibilityActivated else {
+            if titleView.alpha != 0.0 { titleView.alpha = 0.0 }
+            navBarBlurView.alpha = 0
+            customNavBar.backgroundColor = .clear
+            return
+        }
         
         let offsetY = scrollView.contentOffset.y
-        let nameY = eventInfoWrapper.frame.minY > 0 ? eventInfoWrapper.frame.minY : 300.0
+        let nameY = infoStack.frame.minY > 0 ? infoStack.frame.minY : 280.0
         
         let titleStartShowingOffset = nameY - navigationBarHeight - 40
         let titleFullyVisibleOffset = nameY - navigationBarHeight + 20
@@ -1494,19 +1520,21 @@ extension EventDetailControllerNode: UIScrollViewDelegate {
         else if offsetY >= titleFullyVisibleOffset { titleAlpha = 1.0 }
         else { titleAlpha = (offsetY - titleStartShowingOffset) / (titleFullyVisibleOffset - titleStartShowingOffset) }
         
-//        navTitleLabel.alpha = titleAlpha
+        if titleView.alpha != titleAlpha {
+            titleView.alpha = titleAlpha
+        }
+        
         navBarBlurView.alpha = min(1.0, titleAlpha * 2.0)
 
-        // Blend colors
         let maxProgress = titleAlpha
-        let iconColor = DivoColorPalette.primaryTextOnDark //.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
+        let iconColor = DivoColorPalette.primaryTextOnDark.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
         closeButton.tintColor = iconColor
         shareButton.tintColor = iconColor
-        bookmarkButton.tintColor = iconColor
+        moreButton.tintColor = iconColor
         
         let bgStartColor = DivoColorPalette.statPillBackground
-        // let bgEndColor = DivoColorPalette.cardBackground
-        let currentBgColor = bgStartColor //.blend(with: bgEndColor, alpha: maxProgress)
+        let bgEndColor = DivoColorPalette.cardBackground
+        let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: maxProgress)
         
         closeButton.backgroundColor = currentBgColor
         rightButtonContainer.backgroundColor = currentBgColor
@@ -1515,48 +1543,104 @@ extension EventDetailControllerNode: UIScrollViewDelegate {
         let borderEndColor = UIColor.clear.cgColor
         closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
         rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
+
+        if offsetY > 0 {
+            let pillAlpha = max(0, 1.0 - offsetY / 60.0)
+            counterActionsStack.alpha = pillAlpha
+            actionsShimmerView.alpha = pillAlpha
+        } else {
+            counterActionsStack.alpha = 1.0
+            actionsShimmerView.alpha = 1.0
+        }
+    }
+    
+    private func activateTitleVisibility() {
+        guard !titleVisibilityActivated else { return }
+        titleVisibilityActivated = true
+        self.setNeedsLayout()
+        self.layoutIfNeeded()
+        updateNavigationBarTitleVisibility()
+    }
+    
+    private func addPillBlur(to view: UIView) {
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        blur.isUserInteractionEnabled = false
+        view.insertSubview(blur, at: 0)
+        NSLayoutConstraint.activate([
+            blur.topAnchor.constraint(equalTo: view.topAnchor),
+            blur.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        if let button = view as? UIButton, let imageView = button.imageView {
+            button.bringSubviewToFront(imageView)
+        }
+    }
+    
+    private func setupNavigationBarTitle(name: String, info: String? = nil) {
+        if let existingTitleView = self.navigationBarTitleView {
+            existingTitleView.configure(name: name, info: info)
+        } else {
+            let titleView = ProfileNavigationBarTitleView()
+            titleView.translatesAutoresizingMaskIntoConstraints = false
+            titleView.configure(name: name, info: info)
+            
+            self.navigationBarTitleView = titleView
+            self.customNavBar.addSubview(titleView)
+            
+            NSLayoutConstraint.activate([
+                titleView.centerXAnchor.constraint(equalTo: customNavBar.centerXAnchor),
+                titleView.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
+                titleView.leadingAnchor.constraint(greaterThanOrEqualTo: closeButton.trailingAnchor, constant: 12),
+                titleView.trailingAnchor.constraint(lessThanOrEqualTo: rightButtonContainer.leadingAnchor, constant: -12)
+            ])
+        }
+
+        if !titleVisibilityActivated {
+            navigationBarTitleView?.alpha = 0.0
+        }
+        updateNavigationBarTitleVisibility()
     }
 }
 
 // MARK: - Collections Delegate
 extension EventDetailControllerNode: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
-    private var previousEvents: [EventData] {
-        return[
-            EventData(title: "fashion model event", subtitle: "May 27 · 5:00 PM · NY NYFW Magazine", profileName: "", timeRemaining: "", type: "Conference"),
-            EventData(title: "Previous Event 2", subtitle: "", profileName: "", timeRemaining: "", type: "Casting"),
-            EventData(title: "Previous Event 3", subtitle: "", profileName: "", timeRemaining: "", type: "Casting")
-        ]
-    }
-
-    private var imageGalleryItems: [UIImage?] {
-        return Array(repeating: DivoImage.statLike, count: 6)
-    }
-
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        if collectionView == imageGalleryCollectionView { return imageGalleryItems.count }
-        if collectionView == previousEventsCollectionView { return previousEvents.count }
+        if collectionView == galleryCollectionView { return galleryPhotos.count }
         return 0
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        if collectionView == imageGalleryCollectionView {
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageGalleryCell", for: indexPath) as? ImageGalleryCell else { return UICollectionViewCell() }
-            cell.configure(with: imageGalleryItems[indexPath.item])
+        if collectionView == galleryCollectionView {
+            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "GalleryCell", for: indexPath) as? GalleryCell else { return UICollectionViewCell() }
+            
+            let photoItem = galleryPhotos[indexPath.item]
+            if let fullUrlString = photoItem.photo.fullUrl, let url = CDNURLHelper.convertToCDNURL(fullUrlString) {
+                cell.configure(with: url)
+            }
+            
             return cell
-        } else {
-            guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "EventPreviousCollectionViewCell", for: indexPath) as? EventPreviousCollectionViewCell else { return UICollectionViewCell() }
-            cell.configure(with: previousEvents[indexPath.item])
-            return cell
+        }
+        return UICollectionViewCell()
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if collectionView == galleryCollectionView {
+            let photo = galleryPhotos[indexPath.item]
+            guard let uuid = photo.photo.fileUuid else { return }
+            onGalleryItemTapped?(uuid)
         }
     }
 
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        if collectionView == imageGalleryCollectionView {
-            let itemWidth = collectionView.bounds.width / 3.0
-            return CGSize(width: itemWidth, height: 140)
-        } else {
-            return CGSize(width: 240, height: 290)
+        if collectionView == galleryCollectionView {
+            guard let (layout, _) = self.containerLayout else { return .zero }
+            let totalSpacing: CGFloat = 2
+            let width = (layout.size.width - totalSpacing) / 3.0
+            return CGSize(width: width, height: width)
         }
+        return .zero
     }
 }
 

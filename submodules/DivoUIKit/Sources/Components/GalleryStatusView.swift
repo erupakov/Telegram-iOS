@@ -7,9 +7,8 @@
 
 import UIKit
 import Display
-import DivoUIKit
 
-final class GalleryStatusView: UIControl {
+public final class GalleryStatusView: UIControl {
     
     private let containerView: UIView = {
         let view = UIView()
@@ -29,7 +28,7 @@ final class GalleryStatusView: UIControl {
     private let statusImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
-        imageView.image = DivoImage.addMediaProfile
+        imageView.image = UIImage(bundleImageName: "Components/AddMediaProfile")
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isUserInteractionEnabled = false
         return imageView
@@ -52,7 +51,7 @@ final class GalleryStatusView: UIControl {
         return contentView
     }()
     
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         self.isUserInteractionEnabled = true
         setupViews()
@@ -95,7 +94,7 @@ final class GalleryStatusView: UIControl {
         ])
     }
     
-    func configure(isLoading: Bool, text: String, isMyProfile: Bool) {
+    public func configure(isLoading: Bool, text: String, isMyProfile: Bool) {
         if isMyProfile {
             statusImageView.isHidden = false
         }
@@ -114,7 +113,7 @@ final class GalleryStatusView: UIControl {
         }
     }
     
-    func loadingSpinner(isLoading: Bool) {
+    public func loadingSpinner(isLoading: Bool) {
         if isLoading {
             statusImageView.isHidden = true
             loadingSpinner.isHidden = false
@@ -128,7 +127,7 @@ final class GalleryStatusView: UIControl {
         }
     }
     
-    override var isHighlighted: Bool {
+    override public var isHighlighted: Bool {
         didSet {
             UIView.animate(withDuration: 0.15) {
                 self.containerView.alpha = self.isHighlighted ? 0.7 : 1.0

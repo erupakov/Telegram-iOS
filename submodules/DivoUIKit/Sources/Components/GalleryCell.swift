@@ -1,7 +1,6 @@
 import UIKit
-import TelegramCore
 
-final class GalleryCell: UICollectionViewCell {
+public final class GalleryCell: UICollectionViewCell {
     
     private let imageView: UIImageView = {
         let iv = UIImageView()
@@ -18,7 +17,7 @@ final class GalleryCell: UICollectionViewCell {
         return indicator
     }()
     
-    func configure(with image: UIImage, isUploading: Bool = false) {
+    public func configure(with image: UIImage, isUploading: Bool = false) {
         self.imageView.image = image
         if isUploading {
             self.spinner.startAnimating()
@@ -29,13 +28,13 @@ final class GalleryCell: UICollectionViewCell {
         }
     }
     
-    func configure(with url: URL) {
+    public func configure(with url: URL) {
         imageView.loadImage(from: url)
         spinner.stopAnimating()
         imageView.alpha = 1.0
     }
     
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         setupLayout()
     }
@@ -59,7 +58,7 @@ final class GalleryCell: UICollectionViewCell {
         ])
     }
     
-    override func prepareForReuse() {
+    override public func prepareForReuse() {
         super.prepareForReuse()
         imageView.cancelImageLoad()
         imageView.image = nil

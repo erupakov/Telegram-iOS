@@ -7,10 +7,9 @@
 
 import UIKit
 import Display
-import DivoUIKit
-import DivoUIKit
+import DivoCore
 
-final class ProfileNavigationBarTitleView: UIView {
+public final class ProfileNavigationBarTitleView: UIView {
     
     private lazy var containerStack: UIStackView = {
         let infoStack = UIStackView()
@@ -43,7 +42,7 @@ final class ProfileNavigationBarTitleView: UIView {
         return label
     }()
     
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
     }
@@ -64,7 +63,7 @@ final class ProfileNavigationBarTitleView: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     
-    func configure(name: String, info: String? = nil) {
+    public func configure(name: String, info: String? = nil) {
         nameLabel.text = name
         if let info = info {
             infoLabel.text = info
