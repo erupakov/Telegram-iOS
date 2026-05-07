@@ -7,9 +7,8 @@
 
 import UIKit
 import DivoCore
-import DivoUIKit
 
-class CounterActionsShimmerView: UIView {
+public class CounterActionsShimmerView: UIView {
     
     // MARK: - UI Elements
     
@@ -29,7 +28,7 @@ class CounterActionsShimmerView: UIView {
     
     // MARK: - Init
     
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
         setupConstraints()
@@ -39,7 +38,7 @@ class CounterActionsShimmerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         // Запускаем анимацию тут, чтобы градиент знал правильные размеры frame
         startAnimation()
@@ -75,7 +74,7 @@ class CounterActionsShimmerView: UIView {
     
     // MARK: - Animation Logic
     
-    func startAnimation() {
+    public func startAnimation() {
         // Запускаем шиммер на каждом из 4 элементов
         [placeholder1, placeholder2, placeholder3].forEach {
             $0.stopShimmering() // на всякий случай сбрасываем старую
@@ -83,7 +82,7 @@ class CounterActionsShimmerView: UIView {
         }
     }
     
-    func stopAnimation() {
+    public func stopAnimation() {
         [placeholder1, placeholder2, placeholder3].forEach {
             $0.stopShimmering()
         }

@@ -335,6 +335,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.openModelAgencyScreen(for: user)
         }
 
+        self.controllerNode.onEventTapped = { [weak self] event in
+            self?.openEventDetailScreen(for: event)
+        }
+
         self.displayNodeDidLoad()
     }
 
@@ -1026,6 +1030,13 @@ extension PublicProfileScreenController {
             avatarImageURL: mainImageURL
         )
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
+
+    private func openEventDetailScreen(for event: EventItem) {
+        guard let eventId = event.eventId else { return }
+        
+        let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile)
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
     

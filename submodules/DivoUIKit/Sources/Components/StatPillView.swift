@@ -1,17 +1,16 @@
 import UIKit
 import Display
 import DivoCore
-import DivoUIKit
 
-final class StatPillView: UIControl {
+public final class StatPillView: UIControl {
 
     private static let pillHeight: CGFloat = 30
 
     // MARK: - Actions
     
-    var onIconTap: (() -> Void)?
-    var onLabelTap: (() -> Void)?
-    var onAnyTap: (() -> Void)?
+    public var onIconTap: (() -> Void)?
+    public var onLabelTap: (() -> Void)?
+    public var onAnyTap: (() -> Void)?
     
     // MARK: - UI Elements
     
@@ -36,7 +35,7 @@ final class StatPillView: UIControl {
 
     // MARK: - Init
     
-    init(icon: UIImage, filledIcon: UIImage? = nil) {
+    public init(icon: UIImage, filledIcon: UIImage? = nil) {
         self.normalIcon = icon.withRenderingMode(.alwaysTemplate)
         self.filledIcon = filledIcon?.withRenderingMode(.alwaysTemplate)
         super.init(frame: .zero)
@@ -62,12 +61,12 @@ final class StatPillView: UIControl {
 
     // MARK: - Public Methods
     
-    func setValue(_ text: String) {
+    public func setValue(_ text: String) {
         countLabel.text = text
         setNeedsLayout()
     }
 
-    func setActive(_ active: Bool, animated: Bool = false) {
+    public func setActive(_ active: Bool, animated: Bool = false) {
         let change = {
             if active {
                 self.backgroundColor = DivoColorPalette.statPillActiveBackground
@@ -92,13 +91,13 @@ final class StatPillView: UIControl {
         }
     }
 
-    func popIcon() {
+    public func popIcon() {
         iconView.divoPopAnimate()
     }
 
     // MARK: - Layout
     
-    override func layoutSubviews() {
+    override public func layoutSubviews() {
         super.layoutSubviews()
         let iconSize: CGFloat = 16
         let iconX: CGFloat = 8
@@ -110,17 +109,17 @@ final class StatPillView: UIControl {
         countLabel.frame = CGRect(x: labelX, y: 0, width: max(labelWidth, 0), height: bounds.height)
     }
 
-    override var intrinsicContentSize: CGSize {
+    override public var intrinsicContentSize: CGSize {
         return CGSize(width: 64, height: 30)
     }
 
-    override func sizeThatFits(_ size: CGSize) -> CGSize {
+    override public func sizeThatFits(_ size: CGSize) -> CGSize {
         return intrinsicContentSize
     }
     
     // MARK: - Touch Tracking (Разделение кликов)
     
-    override var isHighlighted: Bool {
+    override public var isHighlighted: Bool {
         didSet {
             UIView.animate(withDuration: 0.1) {
                 self.alpha = self.isHighlighted ? 0.6 : 1.0
@@ -128,11 +127,11 @@ final class StatPillView: UIControl {
         }
     }
     
-    override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+    override public func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         return true 
     }
     
-    override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
+    override public func endTracking(_ touch: UITouch?, with event: UIEvent?) {
         super.endTracking(touch, with: event)
         
         guard let location = touch?.location(in: self) else { return }

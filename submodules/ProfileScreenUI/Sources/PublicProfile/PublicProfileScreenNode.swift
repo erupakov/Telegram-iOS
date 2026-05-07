@@ -681,6 +681,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onAddWorkExperienceTapped: (() -> Void)?
     var onSimilarProfileTapped: ((SimilarProfileItem) -> Void)?
     var onModelAgencyTapped: ((ModelItem) -> Void)?
+    var onEventTapped: ((EventItem) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -2385,7 +2386,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         updateNavigationBarTitleVisibility()
     }
     
-    
     // MARK: - Internal
 
     // Вызывается при старте загрузки
@@ -3820,6 +3820,10 @@ extension PublicProfileScreenNode: UICollectionViewDelegate {
             guard !modelGalleryItems.isEmpty else { return }
             let user = modelGalleryItems[indexPath.item]
             onModelAgencyTapped?(user)
+        } else if collectionView == eventGalleryCollectionView {
+            guard !eventGalleryItems.isEmpty else { return }
+            let event = eventGalleryItems[indexPath.item]
+            onEventTapped?(event)
         }
     }
 
