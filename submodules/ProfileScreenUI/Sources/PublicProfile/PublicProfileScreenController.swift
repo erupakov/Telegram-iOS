@@ -391,9 +391,21 @@ public final class PublicProfileScreenController: TelegramBaseController {
             await MainActor.run {
                 guard let detail = profile else {
                     self.profileLoaded = false
+                    // Шиммер остаётся, скролл/свайп залочены (см.
+                    // applyScreenPhase для .failed). Сверху persistent-снекбар
+                    // с Retry — единственный путь юзера выйти из failed-стейта.
+                    self.controllerNode.markProfileDetailFailed()
                     self.controllerNode.showSnackbar(
                         message: DivoStrings.serverUnavailable,
-                        style: .error
+                        style: .error,
+                        retryAction: { [weak self] in
+                            guard let self = self else { return }
+                            self.controllerNode.hideSnackbar(animated: true)
+                            self.controllerNode.resetToInitialLoading()
+                            self.profileLoaded = false  // сбрасываем guard, чтобы перезапрос пошёл
+                            self.loadInitialData()
+                        },
+                        persistent: true
                     )
                     return
                 }
@@ -591,12 +603,19 @@ extension PublicProfileScreenController {
                 }
             } catch {
                 self.debugLog("[DivoAPI] user/\(userId) error: \(error)")
-                controllerNode.setGalleryLoading(false)
-                self.activeGalleryController?.finishLoadingWithoutNewData()
+                await MainActor.run {
+                    self.controllerNode.setGalleryLoading(false)
+                    // Только на первой странице переводим photoPhase в .failed:
+                    // иначе пагинационная ошибка спрячет уже отрендеренный grid.
+                    if offset == 0 {
+                        self.controllerNode.markPhotoGalleryFailed()
+                    }
+                    self.activeGalleryController?.finishLoadingWithoutNewData()
+                }
             }
         }
     }
-    
+
     // Открытие галереи на полный экран
     private func openFullScreenGallery(tab: ProfileTab, itemIndex: Int) {
         divoLog("[GALLERY] Opening full-screen gallery, tab=\(tab), itemIndex=\(itemIndex)")
