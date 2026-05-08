@@ -261,55 +261,131 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         }
     }
         
-    private func createPressed() {
+        
+//    private func createPressed() {
+//        
+//        do {
+//            let requestPayload = try self.createEventNode.collectEventData()
+//
+//            Task { @MainActor in
+//                do {
+//                    var path = ""
+//                    if isEditMode, let eventId = self.eventId {
+//                        path = "/event/update/\(eventId)"
+//                    } else {
+//                        path = "/event/create"
+//                    }
+//                    
+//                    let response: CreateEventResponse = try await DivoAPIClient.shared.request(
+//                        path: path,
+//                        method: "POST",
+//                        body: requestPayload
+//                    )
+//                    
+//                    if response.errors == nil || response.errors?.isEmpty == true {
+//                        self.onEventCreated?()
+//                        
+//                        let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
+//                        self.createEventNode.showSnackbar(
+//                            message: successMessage,
+//                            style: .success
+//                        )
+//                    } else {
+//                        self.createEventNode.showSnackbar(
+//                            message: DivoStrings.unknownError,
+//                            style: .error
+//                        )
+//                    }
+//                    
+//                } catch {
+//                    print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
+//                    let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
+//                    self.createEventNode.showSnackbar(
+//                        message: failMsg,
+//                        style: .error
+//                    )
+//                }
+//            }
+//        } catch {
+//            self.createEventNode.showSnackbar(
+//                message: DivoStrings.unknownError,
+//                style: .error
+//            )
+//        }
+//    }
+    
+    @objc private func createPressed() {
         
         do {
             let requestPayload = try self.createEventNode.collectEventData()
-
-            Task { @MainActor in
-                do {
-                    var path = ""
-                    if isEditMode, let eventId = self.eventId {
-                        path = "/event/update/\(eventId)"
-                    } else {
-                        path = "/event/create"
-                    }
-                    
-                    let response: CreateEventResponse = try await DivoAPIClient.shared.request(
-                        path: path,
-                        method: "POST",
-                        body: requestPayload
-                    )
-                    
-                    if response.errors == nil || response.errors?.isEmpty == true {
-                        self.onEventCreated?()
-                        
-                        let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
-                        self.createEventNode.showSnackbar(
-                            message: successMessage,
-                            style: .success
-                        )
-                    } else {
-                        self.createEventNode.showSnackbar(
-                            message: DivoStrings.unknownError,
-                            style: .error
-                        )
-                    }
-                    
-                } catch {
-                    print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
-                    let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
-                    self.createEventNode.showSnackbar(
-                        message: failMsg,
-                        style: .error
-                    )
-                }
-            }
-        } catch {
-            self.createEventNode.showSnackbar(
-                message: DivoStrings.unknownError,
-                style: .error
+            
+            // Собираем превью-данные для экрана
+            let previewData = EventPreviewData(
+                request: requestPayload,
+                coverImage: self.createEventNode.currentPhoto,
+                gallery: self.currentGalleryPhotos,
+                typeTitle: "Event" // Заглушка, если typeTitle приватный в Node
             )
+            
+            let previewController = EventDetailController(
+                context: self.context,
+                eventId: self.eventId,
+                isMyEvent: true,
+                isPreviewMode: true,
+                previewData: previewData
+            )
+            
+            // Если на странице превью нажмут Publish — запускаем сетевой запрос!
+            previewController.onPublishConfirmed = { [weak self] in
+                self?.performPublishRequest(requestPayload)
+            }
+            
+            self.push(previewController)
+            
+        } catch {
+            self.createEventNode.showSnackbar(message: error.localizedDescription, style: .error)
+        }
+    }
+    
+    // А вот это уже настоящий запрос на сервер
+    private func performPublishRequest(_ payload: CreateEventRequest) {
+        self.createEventNode.showScreenLoading()
+        Task { @MainActor in
+            do {
+                let path = (self.isEditMode && self.eventId != nil) ? "/event/update/\(self.eventId!)" : "/event/create"
+                let response: CreateEventResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: payload
+                )
+                
+                self.createEventNode.hideScreenLoading()
+                
+                if response.errors == nil || response.errors?.isEmpty == true {
+                    self.onEventCreated?()
+                    
+                    // Показываем экран успешной публикации!
+                    let successController = EventPublishedSuccessController(context: self.context, eventTitle: payload.title)
+                    
+                    successController.onViewEventTapped = { 
+                        // [weak self] in
+//                        self?.navigationController?.popToRoot(animated: true)
+                    }
+                    successController.onManageApplicationsTapped = { 
+                        // [weak self] in
+//                        self?.navigationControll er?.popToRoot(animated: true)
+                    }
+                    
+                    self.push(successController)
+                } else {
+                    let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
+                    self.createEventNode.showSnackbar(message: errorMsg, style: .error)
+                }
+                
+            } catch {
+                self.createEventNode.hideScreenLoading()
+                self.createEventNode.showSnackbar(message: error.localizedDescription, style: .error)
+            }
         }
     }
     

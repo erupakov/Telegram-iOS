@@ -13,6 +13,13 @@ import TelegramBaseController
 import DivoUIKit
 import DivoGallery
 
+public struct EventPreviewData {
+    public let request: CreateEventRequest
+    public let coverImage: UIImage?
+    public let gallery: [UserPhoto]
+    public let typeTitle: String
+}
+
 public final class EventDetailController: TelegramBaseController {
 
     private var controllerNode: EventDetailControllerNode {
@@ -23,18 +30,29 @@ public final class EventDetailController: TelegramBaseController {
     private var eventId: Int?
     private var eventData: EventFullDetailData?
     private let context: AccountContext
-    private var presentationData: PresentationData
     private let isMyEvent: Bool?
     
     // Массив для хранения распарсенных фотографий галереи
     internal var currentGalleryPhotos: [UserPhoto] = []
     private weak var activeGalleryController: ProfileGalleryController?
 
-    public init(context: AccountContext, eventId: Int? = nil, isMyEvent: Bool? = nil) {
+    // Свойства для Preview режима
+    private let isPreviewMode: Bool
+    private let previewData: EventPreviewData?
+    public var onPublishConfirmed: (() -> Void)?
+
+    public init(
+        context: AccountContext,
+        eventId: Int? = nil,
+        isMyEvent: Bool? = nil,
+        isPreviewMode: Bool = false,
+        previewData: EventPreviewData? = nil
+    ) {
         self.context = context
         self.eventId = eventId
-        self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.isMyEvent = isMyEvent
+        self.isPreviewMode = isPreviewMode
+        self.previewData = previewData
 
         super.init(context: context, navigationBarPresentationData: nil)
     }
@@ -48,7 +66,11 @@ public final class EventDetailController: TelegramBaseController {
     }
 
     override public func loadDisplayNode() {
-        self.displayNode = EventDetailControllerNode(context: self.context, presentationData: self.presentationData, isMyEvent: self.isMyEvent ?? false)
+        self.displayNode = EventDetailControllerNode(
+            context: self.context,
+            isMyEvent: self.isMyEvent ?? false,
+            isPreviewMode: self.isPreviewMode
+        )
         
         // Перехватываем действия из кастомного навбара
         self.controllerNode.onBackTapped = { [weak self] in
@@ -67,19 +89,34 @@ public final class EventDetailController: TelegramBaseController {
             self?.applyPressed()
         }
         
-        // Клик по фото -> открываем полноэкранную галерею
         self.controllerNode.onGalleryItemTapped = { [weak self] fileUuid in
             self?.openFullScreenGallery(for: fileUuid)
         }
         
+        self.controllerNode.onEditPreviewTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
+        self.controllerNode.onPublishPreviewTapped = { [weak self] in
+            self?.onPublishConfirmed?()
+        }
+        
         self.displayNodeDidLoad()
         
-        getEvent()
+        if isPreviewMode {
+            loadPreview()
+        } else {
+            getEvent()
+        }
     }
 
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+    }
+
+    private func loadPreview() {
+        guard let data = previewData else { return }
+        self.controllerNode.updateWithPreviewData(data)
     }
 
     private func getEvent() {
@@ -125,7 +162,7 @@ public final class EventDetailController: TelegramBaseController {
     }
     
     private func sharePressed() {
-        guard let eventId = eventId else { return }
+        guard !isPreviewMode, let eventId = eventId else { return }
         
         let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/event/\(eventId)")!
         let shareItem = DivoShareItemSource(

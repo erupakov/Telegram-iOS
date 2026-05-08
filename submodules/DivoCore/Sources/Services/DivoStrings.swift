@@ -686,7 +686,10 @@ public enum DivoStrings {
     public static var editEvent: String { L(en: "Edit event", ru: "Редактировать событие", es: "Editar evento", pt: "Editar evento", zh: "编辑活动") }
     public static var closeApplications: String { L(en: "Close applications", ru: "Закрыть подачу заявок", es: "Cerrar inscripciones", pt: "Encerrar inscrições", zh: "关闭申请") }
     public static var cancelEvent: String { L(en: "Cancel event", ru: "Отменить событие", es: "Cancelar evento", pt: "Cancelar evento", zh: "取消活动") }
-
+    public static var publishEvent: String { L(en: "Publish event", ru: "Опубликовать событие", es: "Publicar evento", pt: "Publicar evento", zh: "发布活动") }
+    public static var applyPreviewOnly: String { L(en: "Apply now (preview only)", ru: "Подать заявку (только предпросмотр)", es: "Aplicar ahora (solo vista previa)", pt: "Candidatar-se agora (apenas visualização)", zh: "立即申请（仅预览）") }
+    public static func closesData(_ data: String) -> String { L(en: "Closes: \(data)", ru: "Закрытие: \(data)", es: "Cierre: \(data)", pt: "Encerramento: \(data)", zh: "截止: \(data)") }
+    
     // MARK: - Event Parameter Titles
 
     public static var paramGender: String { L(en: "Gender", ru: "Пол", es: "Género", pt: "Gênero", zh: "性别") }

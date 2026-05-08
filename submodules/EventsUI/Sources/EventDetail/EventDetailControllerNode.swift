@@ -16,7 +16,6 @@ import AppBundle
 final class EventDetailControllerNode: ASDisplayNode {
     private let context: AccountContext
     private var eventData: EventFullDetailData? = nil
-    private var presentationData: PresentationData
 
     // Callbacks
     var onBackTapped: (() -> Void)?
@@ -303,7 +302,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         return stack
     }()
     
-    private let participantsView = StatPillView(icon: DivoImage.statView)
     private let likesView = StatPillView(icon: DivoImage.statLike, filledIcon: DivoImage.statLikeFilled)
     private let viewsView = StatPillView(icon: DivoImage.statView)
     private let savesView = StatPillView(icon: DivoImage.statSave, filledIcon: DivoImage.statSaveFilled)
@@ -536,20 +534,40 @@ final class EventDetailControllerNode: ASDisplayNode {
         return cv
     }()
 
-    private let isMyEvent: Bool
-
     var onEditEventTapped: (() -> Void)?
     var onCloseApplicationsTapped: (() -> Void)?
     var onCancelEventTapped: (() -> Void)?
     var onDeleteTapped: (() -> Void)?
 
-
+    private let isMyEvent: Bool
+    private let isPreviewMode: Bool
+    
+    var onEditPreviewTapped: (() -> Void)?
+    var onPublishPreviewTapped: (() -> Void)?
+    private let previewBottomContainer = UIView()
+    private let editPreviewButton = DivoButton()
+    private let publishPreviewButton = DivoButton()
+    private let bottomFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+                DivoColorPalette.screenBackground.cgColor
+            ]
+            gradient.locations = [0, 0.45]
+        }
+        return view
+    }()
+    
+    
     // MARK: - Init
 
-    init(context: AccountContext, presentationData: PresentationData, isMyEvent: Bool = false) {
+    init(context: AccountContext, isMyEvent: Bool = false, isPreviewMode: Bool = false) {
         self.context = context
-        self.presentationData = presentationData
         self.isMyEvent = isMyEvent
+        self.isPreviewMode = isPreviewMode
 
         super.init()
         self.backgroundColor = DivoColorPalette.darkBackground
@@ -667,9 +685,66 @@ final class EventDetailControllerNode: ASDisplayNode {
             blurredHeaderImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             blurredHeaderImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             blurredHeaderImageView.topAnchor.constraint(equalTo: eventTypeContainer.topAnchor, constant: -20),
-            blurredHeaderImageView.bottomAnchor.constraint(equalTo: whiteSheetBackground.topAnchor, constant: 20)
+            blurredHeaderImageView.bottomAnchor.constraint(equalTo: whiteSheetBackground.topAnchor, constant: 0)
         ])
+         
+        if isPreviewMode {
+            setupPreviewBottomBar()
+        }
     }
+    
+    private func setupPreviewBottomBar() {
+        self.view.addSubview(bottomFadeOverlay)
+        self.view.addSubview(previewBottomContainer)
+        previewBottomContainer.translatesAutoresizingMaskIntoConstraints = false
+        
+        editPreviewButton.makeDivoButton(title: DivoStrings.settingsEdit, buttonFont: Font.helveticaNeue(20), radius: 28, divoButtonStyle: .secondary)
+        editPreviewButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
+        editPreviewButton.setImage(DivoImage.pencil.withRenderingMode(.alwaysTemplate), for: .normal)
+        editPreviewButton.setImage(DivoImage.pencil.withRenderingMode(.alwaysTemplate), for: .highlighted)
+        editPreviewButton.tintColor = DivoColorPalette.primaryTextOnDark
+        editPreviewButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
+        
+        publishPreviewButton.makeDivoButton(title: DivoStrings.publishEvent, buttonFont: Font.helveticaNeue(20), radius: 28)
+        
+        editPreviewButton.translatesAutoresizingMaskIntoConstraints = false
+        publishPreviewButton.translatesAutoresizingMaskIntoConstraints = false
+        
+        let stack = UIStackView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .horizontal
+        stack.spacing = 10
+        stack.distribution = .fillEqually
+        
+        stack.addArrangedSubview(editPreviewButton)
+        stack.addArrangedSubview(publishPreviewButton)
+        previewBottomContainer.addSubview(stack)
+        
+        NSLayoutConstraint.activate([
+            previewBottomContainer.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            previewBottomContainer.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            previewBottomContainer.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            previewBottomContainer.heightAnchor.constraint(equalToConstant: 100),
+            
+            stack.leadingAnchor.constraint(equalTo: previewBottomContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            stack.trailingAnchor.constraint(equalTo: previewBottomContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            stack.topAnchor.constraint(equalTo: previewBottomContainer.topAnchor, constant: DivoDesignTokens.Spacing.m),
+            stack.heightAnchor.constraint(equalToConstant: 56),
+            
+            bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomFadeOverlay.heightAnchor.constraint(equalToConstant: 140)
+        ])
+        
+        editPreviewButton.addTarget(self, action: #selector(editPreviewTapped), for: .touchUpInside)
+        publishPreviewButton.addTarget(self, action: #selector(publishPreviewTapped), for: .touchUpInside)
+        
+        scrollView.contentInset.bottom = 120
+    }
+    
+    @objc private func editPreviewTapped() { onEditPreviewTapped?() }
+    @objc private func publishPreviewTapped() { onPublishPreviewTapped?() }
 
     private func setupBackgroundAndScroll() {
         self.view.addSubview(backgroundImageView)
@@ -1360,10 +1435,101 @@ final class EventDetailControllerNode: ASDisplayNode {
         let appearance = buildAppearanceList(attributes: newEventData.modelAttributes)
         parametersView.update(appearance: appearance)
         
-        participantsView.setValue("1024")
         likesView.setValue("1.2K")
         viewsView.setValue("2.4K")
         savesView.setValue("300")
+        
+        stopShimmers()
+        activateTitleVisibility()
+    }
+
+    func updateWithPreviewData(_ data: EventPreviewData) {
+        self.isDataLoaded = true
+        
+        if let cover = data.coverImage {
+            backgroundImageView.image = cover
+        } else {
+            backgroundImageView.backgroundColor = DivoColorPalette.profileEmptyBackground
+        }
+        
+        eventTypeLabel.text = data.typeTitle
+        setupNavigationBarTitle(name: "PREVIEW")
+        
+        eventCostTypeLabel.isHidden = data.request.cost == nil || data.request.cost?.isEmpty == true
+        eventCostTypeLabel.text = data.request.cost
+        
+        let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)
+        profileHeaderView.configure(
+            with: EventViewModel(
+                name: data.request.title,
+                date: dStr,
+                time: tStr,
+                countryFlag: "🌍",
+                city: "TBD",
+                cost: data.request.cost
+            )
+        )
+        
+        let (cStr, _) = formatEventDateAndTime(dateString: data.request.dateTo)
+        eventDeadlineLabel.text = DivoStrings.closesData(cStr)
+        
+        applyButton.makeDivoButton(title: DivoStrings.applyPreviewOnly, buttonFont: Font.helveticaNeue(14), radius: 18)
+        applyButton.isEnabled = false
+        
+        currentAppliedLabel.text = "0 applied"
+        allAppliedLabel.text = "\(data.request.address.cityId) max spots"
+        
+        organizatiorView.configure(name: "@you", logoURL: nil)
+        
+        descriptionView.update(biography: data.request.description)
+        requirementsLabel.text = data.request.description
+        
+        // Параметры
+        var attrs: [AppearanceAttribute] = []
+        if let gender = data.request.gender {
+            let genderTitles = gender.joined(separator: ", ")
+            attrs.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+        }
+        if let height = data.request.height {
+            attrs.append(.init(title: DivoStrings.heightCm, value: "\(height.from)-\(height.to)"))
+        }
+        if let weight = data.request.weight {
+            attrs.append(.init(title: DivoStrings.weightKg, value: "\(weight.from)-\(weight.to)"))
+        }
+        if let waist = data.request.waist {
+            attrs.append(.init(title: DivoStrings.waistCm, value: "\(waist.from)-\(waist.to)"))
+        }
+        if let hips = data.request.hips {
+            attrs.append(.init(title: DivoStrings.hipsCm, value: "\(hips.from)-\(hips.to)"))
+        }
+        if let shoesSize = data.request.shoesSize {
+            attrs.append(.init(title: DivoStrings.shoeSizeEU, value: "\(shoesSize.from)-\(shoesSize.to)"))
+        }
+        if let hairColor = data.request.hairColor {
+            let hairColorTitles = hairColor.compactMap( { String($0) } ).joined(separator: ", ")
+            attrs.append(.init(title: DivoStrings.attrHairColor, value: hairColorTitles))
+        }
+        if let hairLength = data.request.hairLength {
+            let hairLengthTitles = hairLength.compactMap( { String($0) } ).joined(separator: ", ")
+            attrs.append(.init(title: DivoStrings.attrHairLength, value: hairLengthTitles))
+        }
+        if let eyeColor = data.request.eyeColor {
+            let eyeColorTitles = eyeColor.compactMap( { String($0) } ).joined(separator: ", ")
+            attrs.append(.init(title: DivoStrings.eyeColor, value: eyeColorTitles))
+        }
+        if let skinColor = data.request.skinColor {
+            let skinColorTitles = skinColor.compactMap( { String($0) } ).joined(separator: ", ")
+            attrs.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
+        }
+
+        parametersView.update(appearance: attrs)
+        
+        // Статистика по нулям
+        likesView.setValue("0")
+        viewsView.setValue("0")
+        savesView.setValue("0")
+        
+        updateGallery(data.gallery)
         
         stopShimmers()
         activateTitleVisibility()
