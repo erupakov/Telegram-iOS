@@ -57,6 +57,16 @@ enum PhotoTabPhase: Equatable {
     case failed     // ошибка загрузки фото
 }
 
+/// Унифицированный стейт контентных табов (video / channels / models / events).
+/// Семантика идентичная для всех четырёх — используем общий тип.
+/// `.failed` показывает `ProfileTabErrorView` поверх таба с retry-кнопкой.
+enum ContentTabPhase: Equatable {
+    case loading    // shimmer-сетка / список
+    case content    // collectionView с реальными items
+    case empty      // emptyView (профильный плейсхолдер)
+    case failed(networkError: Bool)  // ProfileTabErrorView, retry
+}
+
 /// Стейт карусели similar внутри photo-таба. Шиммер не показываем — данные
 /// приходят редко, поэтому контейнер либо скрыт, либо виден с реальными карточками.
 enum SimilarPhase: Equatable {
@@ -82,6 +92,20 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var photoPhase: PhotoTabPhase = .loading {
         didSet { if oldValue != photoPhase { applyState() } }
     }
+    /// Стадии остальных контентных табов. Каждый управляется независимо
+    /// (data-запросы идут параллельно с профильным).
+    private var videoPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != videoPhase { applyState() } }
+    }
+    private var channelsPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != channelsPhase { applyState() } }
+    }
+    private var modelsPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != modelsPhase { applyState() } }
+    }
+    private var eventsPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != eventsPhase { applyState() } }
+    }
     /// Стадия similar-карусели (внутри photo-таба).
     private var similarPhase: SimilarPhase = .hidden {
         didSet { if oldValue != similarPhase { applyState() } }
@@ -98,6 +122,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Управление моментом, когда начинаем анимировать title в навбаре
     private var titleVisibilityActivated = false
+    /// Установлен ли начальный contentOffset под contentInset.top — нужно один
+    /// раз на первый layout, чтобы контент сразу встал под navbar.
+    private var hasInitialContentOffsetApplied = false
     private var isPerformingLayout = false
     
     private var headerHeightConstraint: NSLayoutConstraint!
@@ -132,7 +159,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }()
     
     private let blurredHeaderImageView: UIVisualEffectView = {
-        let effect = UIBlurEffect(style: .systemUltraThinMaterialDark)
+        // .regular — нейтральный blur без светлого/тёмного тинта. Стекло
+        // подхватывает цвет фото профиля за ним: светлое фото → светлое
+        // стекло, тёмное → тёмное. Без heavy white frosted overlay.
+        let effect = UIBlurEffect(style: .regular)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isUserInteractionEnabled = false
@@ -430,8 +460,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private var segmentedBarTopConstraint: NSLayoutConstraint?
     private let segmentedBarHeight: CGFloat = 32.0
-    
-    
+
     // MARK: - Gallery Collections Section
     
     private let collectionsContainer: UIView = {
@@ -464,11 +493,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         scroll.showsVerticalScrollIndicator = false
         scroll.bounces = false
         scroll.contentInsetAdjustmentBehavior = .never
-        // Серый screenBackground — продолжение whiteSheet (он тоже серый).
-        // На контентном табе под коротким контентом (например 6 фото) виден
-        // именно этот серый фон, а не белая «дыра». На эмпти-табе пейджер
-        // полностью перекрыт emptyView с белым фоном — серый не светит.
-        scroll.backgroundColor = DivoColorPalette.screenBackground
+        // Белый — единый фон под всеми табами (см. updateContainerBackgrounds).
+        scroll.backgroundColor = DivoColorPalette.profileEmptyBackground
         scroll.translatesAutoresizingMaskIntoConstraints = false
         return scroll
     }()
@@ -677,10 +703,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let bottomSpacer: UIView = {
         let view = UIView()
-        // Серый — продолжение whiteSheet/пейджера на контентном табе:
-        // когда контент короче viewport, пользователь видит нижнюю «полку»
-        // в едином сером цвете, а не белую дыру.
-        view.backgroundColor = DivoColorPalette.screenBackground
+        // Белый — единый фон со всеми контейнерами таба. На практике
+        // bottomSpacer всегда hidden (см. updateBottomSpacerVisibility),
+        // bg оставлен для консистентности на случай возврата видимости.
+        view.backgroundColor = DivoColorPalette.profileEmptyBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -694,9 +720,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private let similarProfilesCollectionContainer: UIView = {
         let view = UIView()
-        // Серый — продолжение whiteSheet/пейджера. Карточки внутри карусели
-        // сами по себе на белом cardBackground выделяются на сером.
-        view.backgroundColor = DivoColorPalette.screenBackground
+        // Белый — единый фон под всеми табами (см. updateContainerBackgrounds).
+        view.backgroundColor = DivoColorPalette.profileEmptyBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         return view
@@ -870,6 +895,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return view
     }()
 
+    // Error-заглушки контентных табов. Создаются on-demand в момент первой
+    // ошибки (см. ensureTabError(...)) — для большинства сессий вообще
+    // не аллоцируются, потому что api-запросы успешны.
+    private var videoErrorView: ProfileTabErrorView?
+    private var channelsErrorView: ProfileTabErrorView?
+    private var modelsErrorView: ProfileTabErrorView?
+    private var eventsErrorView: ProfileTabErrorView?
+
     // MARK: - NavigationBar
     
     private let customNavBar: UIView = {
@@ -886,7 +919,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         button.setImage(image, for: .highlighted)
         button.tintColor = DivoColorPalette.cardBackground
 
-        button.backgroundColor = .clear
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         button.layer.masksToBounds = true
         button.layer.borderWidth = 0.5
@@ -898,7 +931,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let rightButtonContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .clear
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.layer.masksToBounds = true
         view.layer.borderWidth = 0.5
@@ -969,7 +1002,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var isSavingProcess: Bool = false
 
     private let navBarBlurView: UIVisualEffectView = {
-        let effect = UIBlurEffect(style: .systemUltraThinMaterialLight)
+        // .systemChromeMaterialLight — толстое frosted "стекло", аналог
+        // toolbar на macOS / native UINavigationBar в iOS Telegram. Светло-
+        // серое полупрозрачное полотно, пропускает оттенки фона. Доступен
+        // с iOS 13.
+        let effect = UIBlurEffect(style: .systemChromeMaterialLight)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.alpha = 0.0
@@ -1023,8 +1060,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.model = model
 
         super.init()
-        
-        self.view.backgroundColor = DivoColorPalette.darkBackground
+
+        // Белый фон вью — fallback на случай прозрачных зон.
+        self.view.backgroundColor = DivoColorPalette.profileEmptyBackground
 
         setupContent()
         segmentedBar.configure(isAgency: model.role == "agency_employee", isMyProfile: model.isMyProfile, animated: false)
@@ -1068,7 +1106,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
             let currentSpacerHeight = bottomSpacer.isHidden ? 0 : bottomSpacerHeightConstraint.constant
             let contentWithoutSpacer = contentHeight - currentSpacerHeight
             let bottomSafeInset = layout.intrinsicInsets.bottom
-            let neededSpacerHeight = max(bottomSafeInset + 12, minContentHeight - contentWithoutSpacer)
+            // Минимум = safeArea + 4 — последний элемент стоит чуть над home
+            // indicator (не перегораживается им). Для короткого контента
+            // spacer ещё больше — добивает белым до view.bottom.
+            let neededSpacerHeight = max(bottomSafeInset + 4, minContentHeight - contentWithoutSpacer)
             if !bottomSpacer.isHidden, abs(neededSpacerHeight - currentSpacerHeight) > 1.0 {
                 bottomSpacerHeightConstraint.constant = neededSpacerHeight
                 contentHeight = contentWithoutSpacer + neededSpacerHeight
@@ -1148,43 +1189,51 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func updateNavBarBlurMask() {
         let bounds = navBarBlurView.bounds
         guard bounds.height > 0 else { return }
-        
-        // 1. ЦВЕТОВОЙ ГРАДИЕНТ (Linear Gradient из Figma)
+        guard let (_, navHeight) = self.containerLayout else { return }
+
+        // Точка отсечения = collectionsContainer.top в sticky-state
+        // (= navHeight + segmentBarHeight + 10). Считаем долю от bounds.height
+        // динамически — иначе на разных safeArea.top mask промахивается мимо
+        // tab content.
+        let cutoffPt = navHeight + segmentedBarHeight + 10
+        let cutoff = max(0.30, min(0.95, cutoffPt / bounds.height))
+        let glassEnd = max(0.0, cutoff - 0.18)        // glass на customNavBar
+        let fadeMid = max(glassEnd, cutoff - 0.06)     // быстрый фейд
+
         if navBarWhiteGradientLayer.superlayer == nil {
             navBarBlurView.contentView.layer.insertSublayer(navBarWhiteGradientLayer, at: 0)
         }
         navBarWhiteGradientLayer.frame = bounds
+        // Clear сверху (виден chrome glass) → solid white к cutoff
+        // (бесшовный стык с белым tab content).
         navBarWhiteGradientLayer.colors = [
-            UIColor.white.withAlphaComponent(0.74).cgColor,
-            UIColor.white.withAlphaComponent(0.70).cgColor,
-            UIColor.white.withAlphaComponent(0.20).cgColor,
-            UIColor.clear.cgColor
+            UIColor.white.withAlphaComponent(0.0).cgColor,
+            UIColor.white.withAlphaComponent(0.0).cgColor,
+            UIColor.white.withAlphaComponent(1.0).cgColor,
+            UIColor.white.withAlphaComponent(1.0).cgColor
         ]
-
         navBarWhiteGradientLayer.locations = [
             0.0,
-            0.15,
-            0.45,
-            0.70
+            glassEnd as NSNumber,
+            cutoff as NSNumber,
+            1.0
         ]
 
         let maskLayer = CAGradientLayer()
         maskLayer.frame = bounds
-
         maskLayer.colors = [
             UIColor.black.cgColor,
             UIColor.black.cgColor,
             UIColor.black.withAlphaComponent(0.4).cgColor,
             UIColor.clear.cgColor
         ]
-
         maskLayer.locations = [
             0.0,
-            0.22,
-            0.50,
-            0.75
+            glassEnd as NSNumber,
+            fadeMid as NSNumber,
+            cutoff as NSNumber
         ]
-        
+
         navBarBlurView.layer.mask = maskLayer
     }
 
@@ -1381,8 +1430,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupScrollView() {
         self.view.addSubview(scrollView)
 
-        scrollView.addSubview(whiteSheetBackground) 
-        
+        scrollView.addSubview(whiteSheetBackground)
+
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
@@ -1409,12 +1458,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private func setupSegmentedBar() {
         self.view.addSubview(segmentedBar)
-        
+
         NSLayoutConstraint.activate([
             segmentedBar.centerXAnchor.constraint(equalTo: contentViewStack.centerXAnchor),
             segmentedBar.heightAnchor.constraint(equalToConstant: segmentedBarHeight),
         ])
-        
+
         segmentedBarTopConstraint = segmentedBar.topAnchor.constraint(equalTo: self.view.topAnchor)
         segmentedBarTopConstraint?.isActive = true
     }
@@ -1728,11 +1777,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupAllCollectionsLayers() {
         contentViewStack.addArrangedSubview(collectionsContainer)
 
-        // whiteSheetBackground — подложка, накрывающая аватар (`headerImageView`,
-        // прибитый ко всей `self.view`) в зоне профиля и сегмент-бара.
-        // Цвет меняем динамически в applyWhiteSheetColor(forEmpty:) — серый
-        // под контентный таб (старый дизайн), белый под эмпти-таб (тогда
-        // зона вокруг sticky-пилюли визуально сливается с белым эмпти-фоном).
+        // whiteSheetBackground — серая подложка под bio/social, за сегмент-
+        // баром И в 10pt gap. В non-sticky даёт серую полоску под пилюлёй,
+        // как ты просила. В sticky-стейте перекрывается navBarBlurView сверху
+        // (chrome-стекло + gradient к solid white в нижней части).
         whiteSheetBackground.bottomAnchor.constraint(equalTo: collectionsContainer.topAnchor).isActive = true
 
         collectionsContainerHeightConstraint = collectionsContainer.heightAnchor.constraint(equalToConstant: 160)
@@ -1997,52 +2045,44 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
 
+    /// Таб «без контента» — любая фаза кроме `.content` (loading / empty / failed).
+    /// Используется для расчётов высоты и фона.
     private func isEmpty(_ tab: ProfileTab) -> Bool {
         switch tab {
-        case .photo:
-            // Из state machine: считаем «без контента» когда не .content
-            // (loading / empty / failed).
-            return photoPhase != .content
-        case .video: return videoGalleryItems.isEmpty
-        case .channels: return channelGalleryItems.isEmpty
-        case .models: return modelGalleryItems.isEmpty
-        case .events: return eventGalleryItems.isEmpty
+        case .photo:    return photoPhase != .content
+        case .video:    return videoPhase != .content
+        case .channels: return channelsPhase != .content
+        case .models:   return modelsPhase != .content
+        case .events:   return eventsPhase != .content
         }
     }
 
-    // Истинно «пустой» — данные пришли и оказались пустыми. До прихода
-    // данных таб показывает шиммер-скелетон, а не эмпти-плейсхолдер,
-    // поэтому визуально это контентный стейт (whiteSheet серый, отступ 10pt).
+    /// Истинно «пустой» — данные пришли и оказались пустыми. До прихода данных
+    /// таб в `.loading` (шиммер) или `.failed` (error-view), а не в `.empty`.
     private func isShowingEmptyPlaceholder(_ tab: ProfileTab) -> Bool {
         switch tab {
-        case .photo: return photoPhase == .empty
-        case .video: return videoGalleryInitialized && videoGalleryItems.isEmpty
-        case .channels: return channelGalleryInitialized && channelGalleryItems.isEmpty
-        case .models: return modelGalleryInitialized && modelGalleryItems.isEmpty
-        case .events: return eventGalleryInitialized && eventGalleryItems.isEmpty
+        case .photo:    return photoPhase == .empty
+        case .video:    return videoPhase == .empty
+        case .channels: return channelsPhase == .empty
+        case .models:   return modelsPhase == .empty
+        case .events:   return eventsPhase == .empty
         }
     }
 
     // Высота таба:
-    //  • photo content: gallery-зона (= raw) + similar; БЕЗ floor —
-    //    при 1 фото контейнер ровно под 1 ряд, не «дыра» до fullScreen.
-    //  • photo loading/empty/failed: галерея сама держит подходящую высоту
-    //    (см. photoGalleryAreaHeight), плюс floor через max до fullScreen
-    //    чтобы placeholder/шиммер занимали viewport.
-    //  • остальные табы content: raw (без floor, как у photo).
-    //  • остальные табы empty/shimmer: fullScreen (placeholder центрируется).
+    //  • content — natural (без fullScreen floor). Последний элемент стоит
+    //    точно у container.bottom = view.bottom при max scroll, контент
+    //    скроллится под home indicator (safe area bottom). Свайп между
+    //    табами работает в зоне реального контента — её достаточно много.
+    //  • empty/loading/failed — fullScreen, чтобы placeholder/шиммер/error
+    //    занимали viewport.
     private func tabHeight(for tab: ProfileTab) -> CGFloat {
-        if tab == .photo {
-            let galleryArea = photoGalleryAreaHeight()
-            let similar = similarSectionTargetHeight()
-            if photoPhase == .content {
-                return galleryArea + similar
-            }
-            return max(galleryArea + similar, fullScreenAvailableHeight())
-        }
         let floor = fullScreenAvailableHeight()
+        if tab == .photo {
+            let natural = photoGalleryAreaHeight() + similarSectionTargetHeight()
+            return photoPhase == .content ? natural : max(natural, floor)
+        }
         if isEmpty(tab) { return floor }
-        // Контентный — raw, без floor (для тех же причин, что и photo).
         switch tab {
         case .photo: return galleryHeightConstraint.constant
         case .video: return videoHeightConstraint.constant
@@ -2298,13 +2338,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     private func updateBottomSpacerVisibility() {
-        // bottomSpacer держит хвост контента (чтобы можно было доскроллить
-        // до sticky). Скрываем для shimmer- и empty-стейтов: там
-        // tab-container = fullScreen и сам наполняет viewport, лишний
-        // spacer создаст оверскролл.
-        let inShimmerState = isEmpty(currentTab) && !isShowingEmptyPlaceholder(currentTab)
-        let inEmptyState = isShowingEmptyPlaceholder(currentTab)
-        bottomSpacer.isHidden = inShimmerState || inEmptyState
+        // bottomSpacer = белый хвост, добивает контент до view.bottom когда
+        // contentViewStack короче viewport (мало фото / маленький профиль).
+        // Без него под последней ячейкой просвечивает headerImageView.
+        // Динамическая высота выставляется в `layout()`.
+        bottomSpacer.isHidden = false
     }
 
     private func setupFloatingButton() {
@@ -2380,6 +2418,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func applyState() {
         applyScreenPhase()
         applyPhotoPhase()
+        applyVideoPhase()
+        applyChannelsPhase()
+        applyModelsPhase()
+        applyEventsPhase()
         applySimilarPhase()
         applyInteractionEnabled()
         applyHeights()
@@ -2430,17 +2472,220 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     }
 
-    /// Фон пейджера, bottomSpacer'а и whiteSheet под состояние текущего таба.
-    /// На любом эмпти-табе — белый, чтобы placeholder + всё пространство
-    /// вокруг (включая зону сегмент-бара) визуально занимали один белый слой.
-    /// На остальных стейтах — серый `screenBackground` (старый дизайн).
+    private func applyVideoPhase() {
+        switch videoPhase {
+        case .loading:
+            videoGalleryShimmerView.isHidden = false
+            videoGalleryShimmerView.startAnimation()
+            videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
+            videoGalleryCollectionView.isHidden = true
+            videoErrorView?.isHidden = true
+        case .content:
+            videoGalleryShimmerView.stopAnimation()
+            videoGalleryShimmerView.isHidden = true
+            videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
+            videoGalleryCollectionView.isHidden = false
+            videoErrorView?.isHidden = true
+        case .empty:
+            videoGalleryShimmerView.stopAnimation()
+            videoGalleryShimmerView.isHidden = true
+            videoGalleryStatusView.isHidden = true
+            videoGalleryCollectionView.isHidden = true
+            videoEmptyView.isHidden = false
+            configureProfileEmptyView(for: .video, isMyProfile: model.isMyProfile)
+            videoErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            videoGalleryShimmerView.stopAnimation()
+            videoGalleryShimmerView.isHidden = true
+            videoGalleryStatusView.isHidden = true
+            videoGalleryCollectionView.isHidden = true
+            videoEmptyView.isHidden = true
+            let errorView = ensureTabError(&videoErrorView, in: videoTabContainer)
+            errorView.configure(networkError: isNetwork) { [weak self] in
+                self?.retryVideoLoad()
+            }
+        }
+    }
+
+    private func applyChannelsPhase() {
+        switch channelsPhase {
+        case .loading:
+            channelGalleryShimmerView.isHidden = false
+            channelGalleryShimmerView.startAnimation()
+            channelGalleryStatusView.isHidden = true
+            channelsEmptyView.isHidden = true
+            channelGalleryCollectionView.isHidden = true
+            channelsErrorView?.isHidden = true
+        case .content:
+            channelGalleryShimmerView.stopAnimation()
+            channelGalleryShimmerView.isHidden = true
+            channelGalleryStatusView.isHidden = true
+            channelsEmptyView.isHidden = true
+            channelGalleryCollectionView.isHidden = false
+            channelsErrorView?.isHidden = true
+        case .empty:
+            channelGalleryShimmerView.stopAnimation()
+            channelGalleryShimmerView.isHidden = true
+            channelGalleryStatusView.isHidden = true
+            channelGalleryCollectionView.isHidden = true
+            channelsEmptyView.isHidden = false
+            configureProfileEmptyView(for: .channels, isMyProfile: model.isMyProfile)
+            channelsErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            channelGalleryShimmerView.stopAnimation()
+            channelGalleryShimmerView.isHidden = true
+            channelGalleryStatusView.isHidden = true
+            channelGalleryCollectionView.isHidden = true
+            channelsEmptyView.isHidden = true
+            let errorView = ensureTabError(&channelsErrorView, in: channelTabContainer)
+            errorView.configure(networkError: isNetwork) { [weak self] in
+                self?.retryChannelsLoad()
+            }
+        }
+    }
+
+    private func applyModelsPhase() {
+        switch modelsPhase {
+        case .loading:
+            modelGalleryShimmerView.isHidden = false
+            modelGalleryShimmerView.startAnimation()
+            modelGalleryStatusView.isHidden = true
+            modelsEmptyView.isHidden = true
+            modelGalleryCollectionView.isHidden = true
+            modelsErrorView?.isHidden = true
+        case .content:
+            modelGalleryShimmerView.stopAnimation()
+            modelGalleryShimmerView.isHidden = true
+            modelGalleryStatusView.isHidden = true
+            modelsEmptyView.isHidden = true
+            modelGalleryCollectionView.isHidden = false
+            modelsErrorView?.isHidden = true
+        case .empty:
+            modelGalleryShimmerView.stopAnimation()
+            modelGalleryShimmerView.isHidden = true
+            modelGalleryStatusView.isHidden = true
+            modelGalleryCollectionView.isHidden = true
+            modelsEmptyView.isHidden = false
+            configureProfileEmptyView(for: .models, isMyProfile: model.isMyProfile)
+            modelsErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            modelGalleryShimmerView.stopAnimation()
+            modelGalleryShimmerView.isHidden = true
+            modelGalleryStatusView.isHidden = true
+            modelGalleryCollectionView.isHidden = true
+            modelsEmptyView.isHidden = true
+            let errorView = ensureTabError(&modelsErrorView, in: modelTabContainer)
+            errorView.configure(networkError: isNetwork) { [weak self] in
+                self?.retryModelsLoad()
+            }
+        }
+    }
+
+    private func applyEventsPhase() {
+        switch eventsPhase {
+        case .loading:
+            eventGalleryShimmerView.isHidden = false
+            eventGalleryShimmerView.startAnimation()
+            eventGalleryStatusView.isHidden = true
+            eventsEmptyView.isHidden = true
+            eventGalleryCollectionView.isHidden = true
+            eventsErrorView?.isHidden = true
+        case .content:
+            eventGalleryShimmerView.stopAnimation()
+            eventGalleryShimmerView.isHidden = true
+            eventGalleryStatusView.isHidden = true
+            eventsEmptyView.isHidden = true
+            eventGalleryCollectionView.isHidden = false
+            eventsErrorView?.isHidden = true
+        case .empty:
+            eventGalleryShimmerView.stopAnimation()
+            eventGalleryShimmerView.isHidden = true
+            eventGalleryStatusView.isHidden = true
+            eventGalleryCollectionView.isHidden = true
+            eventsEmptyView.isHidden = false
+            configureProfileEmptyView(for: .events, isMyProfile: model.isMyProfile)
+            eventsErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            eventGalleryShimmerView.stopAnimation()
+            eventGalleryShimmerView.isHidden = true
+            eventGalleryStatusView.isHidden = true
+            eventGalleryCollectionView.isHidden = true
+            eventsEmptyView.isHidden = true
+            let errorView = ensureTabError(&eventsErrorView, in: eventTabContainer)
+            errorView.configure(networkError: isNetwork) { [weak self] in
+                self?.retryEventsLoad()
+            }
+        }
+    }
+
+    /// Возвращает (создавая лениво) error-view для указанного таба и
+    /// прикрепляет его на всю площадь контейнера. Используется только в
+    /// `.failed` ветках applyXxxPhase — для табов без ошибок остаётся nil.
+    private func ensureTabError(_ slot: inout ProfileTabErrorView?, in container: UIView) -> ProfileTabErrorView {
+        if let view = slot {
+            view.isHidden = false
+            return view
+        }
+        let view = ProfileTabErrorView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(view)
+        NSLayoutConstraint.activate([
+            view.topAnchor.constraint(equalTo: container.topAnchor),
+            view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            view.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        slot = view
+        return view
+    }
+
+    // MARK: - Tab retry handlers
+    //
+    // Сбрасываем фазу таба обратно в .loading (шиммер) и перезапускаем
+    // соответствующий API-запрос. Pagination-state video-таба сбрасываем
+    // полностью, потому что первая страница не пришла.
+
+    private func retryVideoLoad() {
+        videoGalleryItems = []
+        videoGalleryTotalCount = 0
+        videoGalleryCurrentOffset = 0
+        videoGalleryIsLoading = false
+        videoGalleryHasMore = true
+        videoGalleryRequestedOffsets.removeAll()
+        videoGalleryLastRequestedOffset = nil
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.clearGalleryData()
+        }
+        videoPhase = .loading
+        loadNextVideoGalleryPage()
+    }
+
+    private func retryChannelsLoad() {
+        channelsPhase = .loading
+        loadChannelGallery()
+    }
+
+    private func retryModelsLoad() {
+        modelsPhase = .loading
+        loadModelGallery()
+    }
+
+    private func retryEventsLoad() {
+        eventsPhase = .loading
+        loadEventGallery()
+    }
+
+    /// Фоны контейнеров:
+    ///  • `whiteSheetBackground` — цвет анимируется в `updateNavigationBarTitleVisibility`
+    ///    по `titleAlpha`: серый в non-sticky (под bio + segment + 10pt gap),
+    ///    белый в sticky (бесшовный стык с белым tab content). Здесь не трогаем.
+    ///  • `tabsPager` и `bottomSpacer` — всегда белые. Под контент любого таба
+    ///    (content / empty / error / shimmer) единый белый фон.
     private func updateContainerBackgrounds() {
-        let tailColor: UIColor = isShowingEmptyPlaceholder(currentTab)
-            ? DivoColorPalette.profileEmptyBackground
-            : DivoColorPalette.screenBackground
-        tabsPager.backgroundColor = tailColor
-        bottomSpacer.backgroundColor = tailColor
-        whiteSheetBackground.backgroundColor = tailColor
+        tabsPager.backgroundColor = DivoColorPalette.profileEmptyBackground
+        bottomSpacer.backgroundColor = DivoColorPalette.profileEmptyBackground
     }
 
     private func applySimilarPhase() {
@@ -2482,12 +2727,35 @@ final class PublicProfileScreenNode: ASDisplayNode {
         photoPhase = .failed
     }
 
+    /// Контроллер вызывает в error-ветках первой страницы соответствующего
+    /// таба. `networkError` определяет текст в `ProfileTabErrorView`:
+    /// true → «Нет подключения к интернету», false → «Не удалось загрузить».
+    func markVideoGalleryFailed(networkError: Bool) {
+        videoPhase = .failed(networkError: networkError)
+    }
+
+    func markChannelsFailed(networkError: Bool) {
+        channelsPhase = .failed(networkError: networkError)
+    }
+
+    func markModelsFailed(networkError: Bool) {
+        modelsPhase = .failed(networkError: networkError)
+    }
+
+    func markEventsFailed(networkError: Bool) {
+        eventsPhase = .failed(networkError: networkError)
+    }
+
     /// Сброс в начальное loading-состояние — для retry после failed.
     /// Возвращает экран в шиммер, чтобы при повторном запросе пользователь
     /// видел тот же скелетон, что и при первом открытии.
     func resetToInitialLoading() {
         screenPhase = .loading
         photoPhase = .loading
+        videoPhase = .loading
+        channelsPhase = .loading
+        modelsPhase = .loading
+        eventsPhase = .loading
         similarPhase = .hidden
     }
     
@@ -2553,16 +2821,30 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Настройка SegmentedBar для прилипания
     private func updateSegmentedBarPosition() {
         guard let (_, navigationBarHeight) = self.containerLayout else { return }
-        
+
         let placeholderFrame = segmentedBarPlaceholder.convert(segmentedBarPlaceholder.bounds, to: self.view)
-        
+
         let naturalY = placeholderFrame.minY
-        
+
         let stickyY = navigationBarHeight
-        
+
         let finalY = max(naturalY, stickyY)
-        
+
         segmentedBarTopConstraint?.constant = finalY
+
+        // whiteSheetBackground меняет цвет gray↔white в зависимости от близости
+        // сегмента к sticky-позиции. Bio к этому моменту уже выше viewport,
+        // поэтому потеря серого фона за ней визуально не заметна. Транзишн —
+        // последние 30pt подъёма к navHeight: progress 0→1 даёт плавное
+        // перетекание серого в белый. В sticky фон под пилюлёй и в 10pt gap
+        // становится белым → бесшовный стык с tab content.
+        let transitionRange: CGFloat = 30
+        let progress = max(0, min(1, (stickyY + transitionRange - naturalY) / transitionRange))
+        whiteSheetBackground.backgroundColor = DivoColorPalette.screenBackground.blend(
+            with: DivoColorPalette.profileEmptyBackground,
+            alpha: progress
+        )
+
         updateFloatingButton(for: currentTab)
     }
     
@@ -2904,8 +3186,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // ПРИМЕНЕНИЕ ФАЗ К UI
         // =========================================================
 
-        // 1. Блюр стартует вместе с title (нарастает быстрее), навбар всегда прозрачный — фон даёт только блюр
-        navBarBlurView.alpha = min(1.0, titleAlpha * 2.0)
+        // 1. Блюр поднимается ДО того, как натуральный title начнёт заходить
+        // в зону navbar (= до titleStartShowingOffset). Иначе title «висит в
+        // воздухе» без фона за собой в момент перехода. Fade-in за 30pt до
+        // того места, где title начинает fade-in (titleAlpha = 0).
+        let blurFullOffset = titleStartShowingOffset
+        let blurStartOffset = blurFullOffset - 30
+        let blurAlpha: CGFloat
+        if offsetY < blurStartOffset {
+            blurAlpha = 0
+        } else if offsetY >= blurFullOffset {
+            blurAlpha = 1
+        } else {
+            blurAlpha = (offsetY - blurStartOffset) / (blurFullOffset - blurStartOffset)
+        }
+        navBarBlurView.alpha = blurAlpha
 
         // 2. Иконки кнопок
         let maxProgress = titleAlpha
@@ -2915,11 +3210,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         editButton.tintColor = iconColor
         moreButton.tintColor = iconColor
         
-        // 3. Фон кнопок
-        let bgStartColor = DivoColorPalette.statPillBackground 
-        let bgEndColor = DivoColorPalette.cardBackground
+        // 3. Фон кнопок: в non-sticky полупрозрачный белый поверх фото (как
+        // pill'ы стандартного UIKit). В sticky — серый screenBackground, чтобы
+        // pill'ы выделялись на белой части навбара (которая внизу gradient'a).
+        let bgStartColor = DivoColorPalette.statPillBackground
+        let bgEndColor = DivoColorPalette.screenBackground
         let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: maxProgress)
-        
+
         closeButton.backgroundColor = currentBgColor
         rightButtonContainer.backgroundColor = currentBgColor
         
@@ -2929,9 +3226,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
         rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
 
-        // 5. Fade-out stat pills — только при реальном скролле вверх, не при bounce
-        if offsetY > 0 {
-            let pillAlpha = max(0, 1.0 - offsetY / 60.0)
+        // 5. Fade-out stat pills — relative от точки покоя (с учётом
+        // contentInset.top). При scrolled > 0 (любой скролл вверх от rest)
+        // запускаем fade в 60pt range. Иначе stat-пилюли наезжают на
+        // навбарные кнопки.
+        let scrolled = offsetY + navigationBarHeight
+        if scrolled > 0 {
+            let pillAlpha = max(0, 1.0 - scrolled / 60.0)
             counterActionsStack.alpha = pillAlpha
             actionsShimmerView.alpha = pillAlpha
         } else {
@@ -3024,11 +3325,27 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.containerLayout = (layout, navigationBarHeight)
 
         navigationBarTitleHeightConstraint.isActive = false
-        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight)
+        // scrollView.top = view.top (рамка во весь экран), но contentInset.top
+        // = navigationBarHeight — контент изначально стоит под navbar (как
+        // раньше с фиксированным отступом), но при скролле УХОДИТ ВЫШЕ под
+        // navbar/status bar, давая native-Telegram эффект.
+        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor)
         navigationBarTitleHeightConstraint.isActive = true
+        scrollView.contentInset = UIEdgeInsets(top: navigationBarHeight, left: 0, bottom: 0, right: 0)
+        scrollView.scrollIndicatorInsets = scrollView.contentInset
 
-        let bottomSafeInset = layout.intrinsicInsets.bottom
-        bottomSpacerHeightConstraint.constant = bottomSafeInset + 12
+        // Один раз на первый layout стартуем contentOffset = -navigationBarHeight,
+        // чтобы контент стоял под navbar при первом показе. После этого
+        // оставляем как есть — пользователь свободно скроллит.
+        if !hasInitialContentOffsetApplied {
+            scrollView.contentOffset = CGPoint(x: 0, y: -navigationBarHeight)
+            hasInitialContentOffsetApplied = true
+        }
+
+        // Стартовая высота bottomSpacer = safeArea + 4, чтобы при max scroll
+        // последний элемент стоял чуть над home indicator. layout() добавит
+        // больше для короткого контента.
+        bottomSpacerHeightConstraint.constant = layout.intrinsicInsets.bottom + 4
 
         applyGradientBlurMask()
         updateNavBarBlurMask()
@@ -3353,9 +3670,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
-            photoEmptyView.isHidden = true
-            galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
+            photoPhase = .content
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
                 if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
@@ -3399,9 +3715,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             guard let self = self else { return }
             if self.galleryPhotos.isEmpty {
                 self.galleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
-                self.photoEmptyView.isHidden = false
-                self.galleryCollectionView.isHidden = true
+                self.photoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -3417,9 +3731,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
-            photoEmptyView.isHidden = true
-            galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
+            photoPhase = .content
 
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
@@ -3462,9 +3775,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             // Если удалили последнее фото, показываем заглушку
             if self.galleryPhotos.isEmpty {
                 self.galleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
-                self.photoEmptyView.isHidden = false
-                self.galleryCollectionView.isHidden = true
+                self.photoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -3585,18 +3896,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoGalleryIsLoading = false
         
         if previousCount == 0 {
+            // Первая страница пришла — переключаем фазу видео-таба.
+            // applyState() атомарно расставит видимость shimmer/empty/content
+            // и обновит фон. Высоту пейджера для активного таба обновляем
+            // отдельно, потому что applyHeights() пересчитывает container
+            // только для photo.
             let hasVideos = !self.videoGalleryItems.isEmpty
-            self.videoGalleryStatusView.isHidden = true
-            self.videoGalleryShimmerView.stopAnimation()
-            self.videoGalleryShimmerView.isHidden = true
-            self.videoEmptyView.isHidden = hasVideos
-            if !hasVideos {
-                self.configureProfileEmptyView(for: .video, isMyProfile: isMyProfile)
-            }
-            self.updateScreenBackgroundForCurrentTab()
-            self.videoGalleryCollectionView.isHidden = !hasVideos
             self.videoGalleryCollectionView.reloadData()
-            
+            self.videoPhase = hasVideos ? .content : .empty
             if let layout = self.containerLayout?.0 {
                 self.updateAllCollectionViewHeights(layout: layout)
                 if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
@@ -3663,10 +3970,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoGalleryCurrentOffset += 1
 
         if wasEmpty {
-            videoGalleryStatusView.isHidden = true
-            videoEmptyView.isHidden = true
-            videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
+            videoPhase = .content
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
                 if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
@@ -3709,10 +4014,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
-                self.videoEmptyView.isHidden = false
-                self.videoGalleryCollectionView.isHidden = true
+                self.videoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -3726,14 +4028,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoGalleryCurrentOffset += 1
 
         if wasEmpty {
-            videoGalleryStatusView.isHidden = true
-            videoEmptyView.isHidden = true
-            videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
+            videoPhase = .content
 
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
             }
         } else {
             videoGalleryCollectionView.performBatchUpdates({
@@ -3753,15 +4053,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     func removeVideo(withId id: Int) {
         guard let index = videoGalleryItems.firstIndex(where: { $0.id == id }) else { return }
-        
+
         videoGalleryItems.remove(at: index)
         videoGalleryCurrentOffset = max(0, videoGalleryCurrentOffset - 1)
-        
+
         let indexPath = IndexPath(item: index, section: 0)
-        
+
         videoGalleryCollectionView.performBatchUpdates({
             videoGalleryCollectionView.deleteItems(at: [indexPath])
-            
+
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
                 if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
@@ -3769,10 +4069,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
-                self.videoEmptyView.isHidden = false
-                self.videoGalleryCollectionView.isHidden = true
+                self.videoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -3837,18 +4134,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление галереи каналов
     func updateChannelsList(_ items: [ProfileChannelItem]) {
         self.channelGalleryItems = items
-        let hasItems = !items.isEmpty
-        self.channelGalleryStatusView.isHidden = true
-        self.channelGalleryShimmerView.stopAnimation()
-        self.channelGalleryShimmerView.isHidden = true
-        self.channelGalleryCollectionView.isHidden = !hasItems
-        self.channelsEmptyView.isHidden = hasItems
-        if !hasItems {
-            self.configureProfileEmptyView(for: .channels, isMyProfile: model.isMyProfile)
-        }
-        self.updateScreenBackgroundForCurrentTab()
         self.channelGalleryCollectionView.reloadData()
-        
+        // applyState() расставит видимость shimmer/empty/content и фон.
+        self.channelsPhase = items.isEmpty ? .empty : .content
+
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .channels { self.updateCollectionsContainerHeight(animated: false) }
@@ -3882,19 +4171,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление галереи моделей
     func updateModelsList(_ items: [ModelItem]) {
         self.modelGalleryItems = items
-        let hasItems = !items.isEmpty
-
-        self.modelGalleryCollectionView.isHidden = !hasItems
-        self.modelGalleryStatusView.isHidden = true
-        self.modelGalleryShimmerView.stopAnimation()
-        self.modelGalleryShimmerView.isHidden = true
-        self.modelsEmptyView.isHidden = hasItems
-        if !hasItems {
-            self.configureProfileEmptyView(for: .models, isMyProfile: model.isMyProfile)
-        }
-        self.updateScreenBackgroundForCurrentTab()
-
         self.modelGalleryCollectionView.reloadData()
+        self.modelsPhase = items.isEmpty ? .empty : .content
 
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
@@ -3931,18 +4209,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление галереи событий
     func updateEventsList(_ items: [EventItem]) {
         self.eventGalleryItems = items
-        let hasItems = !items.isEmpty
-        self.eventGalleryStatusView.isHidden = true
-        self.eventGalleryShimmerView.stopAnimation()
-        self.eventGalleryShimmerView.isHidden = true
-        self.eventGalleryCollectionView.isHidden = !hasItems
-        self.eventsEmptyView.isHidden = hasItems
-        if !hasItems {
-            self.configureProfileEmptyView(for: .events, isMyProfile: model.isMyProfile)
-        }
-        self.updateScreenBackgroundForCurrentTab()
-
         self.eventGalleryCollectionView.reloadData()
+        self.eventsPhase = items.isEmpty ? .empty : .content
 
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
@@ -4004,15 +4272,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func updateCollectionsContainerHeight(animated: Bool = true) {
         collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
 
-        // Динамический отступ между сегмент-баром и collectionsContainer:
-        // 10pt для контентного таба (whiteSheet «дышит» под баром), 0pt для
-        // эмпти (иначе при sticky видна полоска screenBackground между баром
-        // и эмпти-фоном — выглядит как лишняя «сепаратор»-линия).
         // Стабильный отступ 10pt под сегмент-баром во всех стейтах
         // (включая empty и shimmer) — placeholder/контент не липнут к пилюле.
         // Серая полоска не образуется, потому что цвет whiteSheet под этим
         // отступом подстраивается в updateContainerBackgrounds().
-        let showsEmpty = isShowingEmptyPlaceholder(currentTab)
         contentViewStack.setCustomSpacing(10, after: segmentedBarContainer)
 
         updateBottomSpacerVisibility()
@@ -4020,12 +4283,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // Скролл/свайп управляется централизованно из applyInteractionEnabled()
         // на основе screenPhase. Здесь не трогаем.
 
-        // Под sticky-пилюлей вокруг неё видна segmentedBarContainer-зона.
-        // Только при показе эмпти-плейсхолдера красим её в белый — иначе
-        // (контент или шиммер) оставляем clear, чтобы просвечивал серый whiteSheet.
-        let segmentedBarContainerBg: UIColor = showsEmpty
-            ? DivoColorPalette.profileEmptyBackground
-            : .clear
+        // segmentedBarContainer оставляем `.clear` всегда — фон под ним даёт
+        // whiteSheetBackground, который перекрашивается в updateContainerBackgrounds().
 
         // Если в этот момент идёт переключение таба — async-загрузка не должна
         // запускать собственную анимацию высоты поверх. Финализация tab-switch
@@ -4039,7 +4298,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             UIView.animate(withDuration: 0.3) {
                 self.contentViewStack.layoutIfNeeded()
                 self.view.layoutIfNeeded()
-                self.segmentedBarContainer.backgroundColor = segmentedBarContainerBg
 
                 let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
                 if self.scrollView.contentOffset.y > maxOffset {
@@ -4050,7 +4308,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             UIView.performWithoutAnimation {
                 CATransaction.begin()
                 CATransaction.setDisableActions(true)
-                self.segmentedBarContainer.backgroundColor = segmentedBarContainerBg
                 self.view.layoutIfNeeded()
                 CATransaction.commit()
             }
@@ -4735,9 +4992,15 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
 
         updateCollectionsContainerHeight(animated: animated)
 
-        let stickyThreshold = max(0, segmentedBarContainer.frame.minY)
-        let maxOffset = max(0, scrollView.contentSize.height - scrollView.bounds.height)
-        let targetOffsetY = min(stickyThreshold, maxOffset)
+        // Цель: сегмент-пилюля встаёт на sticky-позицию (= navHeight в viewport),
+        // первый элемент таба сразу под ней (10pt gap). С contentInset.top =
+        // navHeight: viewport_y = contentY - contentOffset.y → нужен offset =
+        // segmentedBarContainer.frame.minY - navHeight.
+        let navHeight = self.containerLayout?.1 ?? 0
+        let stickyOffset = segmentedBarContainer.frame.minY - navHeight
+        let maxOffset = scrollView.contentSize.height - scrollView.bounds.height
+        let minOffset = -scrollView.contentInset.top
+        let targetOffsetY = min(max(stickyOffset, minOffset), maxOffset)
         if abs(scrollView.contentOffset.y - targetOffsetY) > 0.5 {
             if animated {
                 UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
@@ -4756,8 +5019,8 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
 
         updateFloatingButton(for: newTab)
 
-        // Фон pager + bottomSpacer зависит от того, показывает ли текущий
-        // таб эмпти-плейсхолдер. При смене таба пересчитываем.
+        // Фоны контейнеров не зависят от таба (всегда белый), но вызов
+        // оставлен на случай будущих изменений семантики.
         updateContainerBackgrounds()
     }
 

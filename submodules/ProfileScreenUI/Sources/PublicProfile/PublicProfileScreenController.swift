@@ -571,6 +571,18 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 }
 
+// MARK: - Helpers
+extension PublicProfileScreenController {
+    /// Отделяет «нет интернета» от прочих ошибок API. Используется error-ветками
+    /// табов, чтобы выбрать соответствующий текст в `ProfileTabErrorView`.
+    fileprivate func isNetworkError(_ error: Error) -> Bool {
+        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
+            return true
+        }
+        return false
+    }
+}
+
 // MARK: - Загрузка фотографий
 extension PublicProfileScreenController {
     func loadGalleryPage(userId: Int, offset: Int) {
@@ -714,9 +726,15 @@ extension PublicProfileScreenController {
                 }
             } catch {
                 self.debugLog("[DivoAPI] user-videos error: \(error)")
+                let isNetwork = self.isNetworkError(error)
                 await MainActor.run {
                     controllerNode.videoGalleryRequestDidFail(offset: offset)
                     controllerNode.setVideoGalleryLoading(false)
+                    // Только на первой странице переводим videoPhase в .failed —
+                    // pagination-ошибка не должна прятать уже отрендеренный grid.
+                    if offset == 0 {
+                        self.controllerNode.markVideoGalleryFailed(networkError: isNetwork)
+                    }
                     self.activeGalleryController?.finishLoadingWithoutNewData()
                 }
             }
@@ -776,7 +794,8 @@ extension PublicProfileScreenController {
                 self.controllerNode.updateModelsList(models)
             } catch {
                 divoLog("[MODELS] Error: \(error)", level: .error)
-                self.controllerNode.updateModelsList([])
+                let isNetwork = self.isNetworkError(error)
+                self.controllerNode.markModelsFailed(networkError: isNetwork)
             }
         }
     }
@@ -832,8 +851,9 @@ extension PublicProfileScreenController {
 
             } catch {
                 divoLog("[EVENTS] Error: \(error)", level: .error)
+                let isNetwork = self.isNetworkError(error)
                 await MainActor.run {
-                    self.controllerNode.updateEventsList([])
+                    self.controllerNode.markEventsFailed(networkError: isNetwork)
                 }
             }
         }

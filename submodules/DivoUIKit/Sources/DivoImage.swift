@@ -59,6 +59,7 @@ public enum DivoImage {
     public static var profileLevelInfo3: UIImage { load("DivoProfileLevelInfo3") }
     public static var profileLevelProgressIcon: UIImage { load("DivoProfileLevelProgressIcon") }
     public static var profileLevelWarningIcon: UIImage { load("DivoProfileLevelWarningIcon") }
+    public static var refresh: UIImage { load("DivoRefresh") }
     public static var report: UIImage { load("DivoReport") }
     public static var roleAgency: UIImage { load("DivoRoleAgency") }
     public static var roleModel: UIImage { load("DivoRoleModel") }
