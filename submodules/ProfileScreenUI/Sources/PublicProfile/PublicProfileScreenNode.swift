@@ -4302,7 +4302,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             && !isTabSwitching
 
         if shouldAnimate {
-            UIView.animate(withDuration: 0.3) {
+            UIView.animate(withDuration: 0.30, delay: 0, options: [.curveEaseOut]) {
                 self.contentViewStack.layoutIfNeeded()
                 self.view.layoutIfNeeded()
 
@@ -5010,7 +5010,10 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
         let targetOffsetY = min(max(stickyOffset, minOffset), maxOffset)
         if abs(scrollView.contentOffset.y - targetOffsetY) > 0.5 {
             if animated {
-                UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+                // curveLinear без easeOut: scroll едет с постоянной скоростью
+                // и просто останавливается. easeOut + native UIScrollView
+                // deceleration давали ощущение пружинки в конце snap'а.
+                UIView.animate(withDuration: 0.25, delay: 0, options: [.curveLinear]) {
                     self.scrollView.contentOffset.y = targetOffsetY
                 }
             } else {

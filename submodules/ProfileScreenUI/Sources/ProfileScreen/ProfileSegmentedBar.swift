@@ -170,7 +170,7 @@ public final class ProfileSegmentedBar: UIView {
         let haptic = UIImpactFeedbackGenerator(style: .light)
         haptic.impactOccurred()
 
-        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+        UIView.animate(withDuration: 0.30, delay: 0, options: [.curveEaseOut]) {
             self.layoutIndicator()
         }
         delegate?.segmentedBar(self, didSelectIndex: index)
@@ -183,7 +183,7 @@ public final class ProfileSegmentedBar: UIView {
         selectedIndex = index
 
         if animated {
-            UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+            UIView.animate(withDuration: 0.30, delay: 0, options: [.curveEaseOut]) {
                 self.layoutIndicator()
             }
         } else {
