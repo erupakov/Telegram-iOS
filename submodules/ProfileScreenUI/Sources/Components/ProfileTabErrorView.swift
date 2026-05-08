@@ -88,15 +88,26 @@ final class ProfileTabErrorView: UIView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    /// `networkError == true` → текст про интернет, иначе универсальный «не удалось».
-    func configure(networkError: Bool, onRetry: @escaping () -> Void) {
+    /// `networkError == true` → общий текст про интернет.
+    /// Иначе — per-tab title («Couldn't load videos» / «...channels» / ...).
+    func configure(tab: ProfileTab, networkError: Bool, onRetry: @escaping () -> Void) {
         if networkError {
             titleLabel.text = DivoStrings.profileTabErrorNetworkTitle.uppercased()
         } else {
-            titleLabel.text = DivoStrings.profileTabErrorTitle.uppercased()
+            titleLabel.text = Self.title(for: tab).uppercased()
         }
         subtitleLabel.text = DivoStrings.profileTabErrorSubtitle
         self.onRetry = onRetry
+    }
+
+    private static func title(for tab: ProfileTab) -> String {
+        switch tab {
+        case .photo:    return DivoStrings.profileTabErrorTitlePhoto
+        case .video:    return DivoStrings.profileTabErrorTitleVideo
+        case .channels: return DivoStrings.profileTabErrorTitleChannels
+        case .models:   return DivoStrings.profileTabErrorTitleModels
+        case .events:   return DivoStrings.profileTabErrorTitleEvents
+        }
     }
 
     @objc private func retryTapped() {

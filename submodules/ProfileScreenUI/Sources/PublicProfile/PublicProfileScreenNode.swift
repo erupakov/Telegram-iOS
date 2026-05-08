@@ -159,10 +159,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }()
     
     private let blurredHeaderImageView: UIVisualEffectView = {
-        // .regular — нейтральный blur без светлого/тёмного тинта. Стекло
-        // подхватывает цвет фото профиля за ним: светлое фото → светлое
-        // стекло, тёмное → тёмное. Без heavy white frosted overlay.
-        let effect = UIBlurEffect(style: .regular)
+        // .systemUltraThinMaterialDark — самое тонкое тёмное стекло.
+        // На пёстром/тёмном фото практически сливается с фотографией;
+        // на светлом однотонном (голубой / белый header) даёт лёгкий
+        // scrim для читаемости логотипа и имени, без «стеклянной плашки»
+        // с резкой границей, которую давал .regular.
+        // Mask настраивается в `applyGradientBlurMask` 3-stop gradient'ом
+        // (те же параметры что bottom glass карточек ModelsFeed): top of
+        // view прозрачно, bottom — solid blur, fade ~75% высоты.
+        let effect = UIBlurEffect(style: .systemUltraThinMaterialDark)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isUserInteractionEnabled = false
@@ -1118,7 +1123,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         contentViewStack.frame = CGRect(x: 0, y: 0, width: stackWidth, height: contentHeight)
         scrollView.contentSize = CGSize(width: stackWidth, height: contentHeight)
-        
+
         applyGradientBlurMask()
         updateNavBarBlurMask()
         
@@ -1482,16 +1487,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private func setupMovingBlur() {
         scrollView.insertSubview(blurredHeaderImageView, at: 0)
-        
+
         NSLayoutConstraint.activate([
             blurredHeaderImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             blurredHeaderImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            
+
             blurredHeaderImageView.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor, constant: -40),
             blurredHeaderImageView.bottomAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: -20)
         ])
     }
-    
+
+
     private func setupCounterActionsContainer() {
         contentViewStack.addArrangedSubview(counterActionsContainer)
         counterActionsContainer.addSubview(actionsShimmerView)
@@ -2069,26 +2075,24 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
 
-    // Высота таба:
-    //  • content — natural (без fullScreen floor). Последний элемент стоит
-    //    точно у container.bottom = view.bottom при max scroll, контент
-    //    скроллится под home indicator (safe area bottom). Свайп между
-    //    табами работает в зоне реального контента — её достаточно много.
-    //  • empty/loading/failed — fullScreen, чтобы placeholder/шиммер/error
-    //    занимали viewport.
+    // Высота таба: всегда `max(natural, floor)`. Floor = viewport под
+    // segment-баром + 10pt; pager занимает всю эту зону → горизонтальный
+    // свайп между табами ловится во всей видимой области, в т.ч. под
+    // коротким контентом (1 фото, 0 каналов и т.п.). bottomSpacer при
+    // этом не нужен — pager сам заполняет вьюпорт до home indicator.
     private func tabHeight(for tab: ProfileTab) -> CGFloat {
         let floor = fullScreenAvailableHeight()
         if tab == .photo {
             let natural = photoGalleryAreaHeight() + similarSectionTargetHeight()
-            return photoPhase == .content ? natural : max(natural, floor)
+            return max(natural, floor)
         }
         if isEmpty(tab) { return floor }
         switch tab {
-        case .photo: return galleryHeightConstraint.constant
-        case .video: return videoHeightConstraint.constant
-        case .channels: return channelHeightConstraint.constant
-        case .models: return modelHeightConstraint.constant
-        case .events: return eventHeightConstraint.constant
+        case .photo: return max(galleryHeightConstraint.constant, floor)
+        case .video: return max(videoHeightConstraint.constant, floor)
+        case .channels: return max(channelHeightConstraint.constant, floor)
+        case .models: return max(modelHeightConstraint.constant, floor)
+        case .events: return max(eventHeightConstraint.constant, floor)
         }
     }
 
@@ -2124,12 +2128,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let cellSide = (layout.size.width - (columns - 1) * spacing) / columns
         let rows: CGFloat = 2
         return rows * cellSide + (rows - 1) * spacing
-    }
-
-    /// Текущий таб в шиммер-стейте (данные ещё не пришли). Используется
-    /// для отключения скролла и hide bottomSpacer.
-    private var currentTabIsInShimmerState: Bool {
-        return isEmpty(currentTab) && !isShowingEmptyPlaceholder(currentTab)
     }
 
     private func fullScreenAvailableHeight() -> CGFloat {
@@ -2338,11 +2336,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     private func updateBottomSpacerVisibility() {
-        // bottomSpacer = белый хвост, добивает контент до view.bottom когда
-        // contentViewStack короче viewport (мало фото / маленький профиль).
-        // Без него под последней ячейкой просвечивает headerImageView.
-        // Динамическая высота выставляется в `layout()`.
-        bottomSpacer.isHidden = false
+        // Spacer нужен только когда контент таба длиннее viewport
+        // (natural > floor): он добавляет ~safeArea+4 отступ под последним
+        // элементом, чтобы тот не перекрывался home indicator при max scroll.
+        //
+        // Для short/non-content tab (height == floor) pager сам заполняет
+        // viewport под segment-баром, spacer лишний — давал бы overscroll
+        // за sticky pin (~safeArea+4 «уезжания» шиммера/empty за пилюлю).
+        let floor = fullScreenAvailableHeight()
+        bottomSpacer.isHidden = tabHeight(for: currentTab) <= floor + 0.5
     }
 
     private func setupFloatingButton() {
@@ -2503,7 +2505,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             videoGalleryCollectionView.isHidden = true
             videoEmptyView.isHidden = true
             let errorView = ensureTabError(&videoErrorView, in: videoTabContainer)
-            errorView.configure(networkError: isNetwork) { [weak self] in
+            errorView.configure(tab: .video, networkError: isNetwork) { [weak self] in
                 self?.retryVideoLoad()
             }
         }
@@ -2540,7 +2542,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             channelGalleryCollectionView.isHidden = true
             channelsEmptyView.isHidden = true
             let errorView = ensureTabError(&channelsErrorView, in: channelTabContainer)
-            errorView.configure(networkError: isNetwork) { [weak self] in
+            errorView.configure(tab: .channels, networkError: isNetwork) { [weak self] in
                 self?.retryChannelsLoad()
             }
         }
@@ -2577,7 +2579,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             modelGalleryCollectionView.isHidden = true
             modelsEmptyView.isHidden = true
             let errorView = ensureTabError(&modelsErrorView, in: modelTabContainer)
-            errorView.configure(networkError: isNetwork) { [weak self] in
+            errorView.configure(tab: .models, networkError: isNetwork) { [weak self] in
                 self?.retryModelsLoad()
             }
         }
@@ -2614,7 +2616,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             eventGalleryCollectionView.isHidden = true
             eventsEmptyView.isHidden = true
             let errorView = ensureTabError(&eventsErrorView, in: eventTabContainer)
-            errorView.configure(networkError: isNetwork) { [weak self] in
+            errorView.configure(tab: .events, networkError: isNetwork) { [weak self] in
                 self?.retryEventsLoad()
             }
         }
@@ -2804,17 +2806,22 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func applyGradientBlurMask() {
         let blurHeight = blurredHeaderImageView.bounds.height
         guard blurHeight > 0 else { return }
-        
+
         let gradientLayer = CAGradientLayer()
         gradientLayer.frame = blurredHeaderImageView.bounds
-        
-        let fadeDistance: CGFloat = 60.0
-        let fadeLocation = min(1.0, fadeDistance / blurHeight)
-        
-        gradientLayer.colors = [UIColor.clear.cgColor, UIColor.white.cgColor]
-        
-        gradientLayer.locations = [0.0, NSNumber(value: Double(fadeLocation))]
-        
+
+        // Те же параметры что для bottom glass на карточках ModelsFeed
+        // (см. CardCollectionViewCell). Direction совпадает: top of view —
+        // прозрачно (фото читается чисто), bottom — solid blur (плавный
+        // scrim перед bio). Ширина fade ~75% высоты + 25% solid внизу —
+        // tight transition, не «тинт» на всю площадь.
+        gradientLayer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.white.cgColor,
+            UIColor.white.cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.75, 1.0]
+
         blurredHeaderImageView.layer.mask = gradientLayer
     }
 
