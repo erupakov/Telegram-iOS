@@ -227,6 +227,84 @@ public struct EventTypesData: Decodable {
 
 // MARK: - Create / Update Event
 
+public struct CreateEventPreview: Codable {
+    public let title: String
+    public let description: String
+    public let requirements: String
+    public let type: String
+    public let maxParticipants: Int
+    public let date: String
+    public let dateDeadline: String
+    public let address: EventAddressRequest
+    public let files: [EventFileRequest]
+
+    public let cost: String?
+
+    public let role: [String]?
+    public let gender: [String]?
+    public let age: EventRangeRequest?
+    public let height: EventRangeRequest?
+    public let weight: EventRangeRequest?
+    public let breastSize: EventRangeRequest?
+    public let waist: EventRangeRequest?
+    public let hips: EventRangeRequest?
+    public let shoesSize: EventRangeRequest?
+    public let hairColor: [Int]?
+    public let hairLength: [Int]?
+    public let eyeColor: [Int]?
+    public let skinColor: [Int]?
+
+    public init(
+        title: String,
+        description: String,
+        requirements: String,
+        type: String,
+        maxParticipants: Int,
+        date: String,
+        dateDeadline: String,
+        address: EventAddressRequest,
+        files: [EventFileRequest],
+        cost: String?,
+        role: [String]?,
+        gender: [String]?,
+        age: EventRangeRequest?,
+        height: EventRangeRequest?,
+        weight: EventRangeRequest?,
+        breastSize: EventRangeRequest?,
+        waist: EventRangeRequest?,
+        hips: EventRangeRequest?,
+        shoesSize: EventRangeRequest?,
+        hairColor: [Int]?,
+        hairLength: [Int]?,
+        eyeColor: [Int]?,
+        skinColor: [Int]?
+    ) {
+        self.title = title
+        self.description = description
+        self.requirements = requirements
+        self.type = type
+        self.maxParticipants = maxParticipants
+        self.date = date
+        self.dateDeadline = dateDeadline
+        self.address = address
+        self.files = files
+        self.cost = cost
+        self.role = role
+        self.gender = gender
+        self.age = age
+        self.height = height
+        self.weight = weight
+        self.breastSize = breastSize
+        self.waist = waist
+        self.hips = hips
+        self.shoesSize = shoesSize
+        self.hairColor = hairColor
+        self.hairLength = hairLength
+        self.eyeColor = eyeColor
+        self.skinColor = skinColor
+    }
+}
+
 public struct CreateEventRequest: Codable {
     public let title: String
     public let description: String

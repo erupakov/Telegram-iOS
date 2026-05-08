@@ -260,71 +260,17 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             }
         }
     }
-        
-        
-//    private func createPressed() {
-//        
-//        do {
-//            let requestPayload = try self.createEventNode.collectEventData()
-//
-//            Task { @MainActor in
-//                do {
-//                    var path = ""
-//                    if isEditMode, let eventId = self.eventId {
-//                        path = "/event/update/\(eventId)"
-//                    } else {
-//                        path = "/event/create"
-//                    }
-//                    
-//                    let response: CreateEventResponse = try await DivoAPIClient.shared.request(
-//                        path: path,
-//                        method: "POST",
-//                        body: requestPayload
-//                    )
-//                    
-//                    if response.errors == nil || response.errors?.isEmpty == true {
-//                        self.onEventCreated?()
-//                        
-//                        let successMessage = isEditMode ? DivoStrings.eventSuccessfullyUpdated : DivoStrings.eventSuccessfullyCreated
-//                        self.createEventNode.showSnackbar(
-//                            message: successMessage,
-//                            style: .success
-//                        )
-//                    } else {
-//                        self.createEventNode.showSnackbar(
-//                            message: DivoStrings.unknownError,
-//                            style: .error
-//                        )
-//                    }
-//                    
-//                } catch {
-//                    print("❌ Error \(isEditMode ? "updating" : "creating") event: \(error)")
-//                    let failMsg = isEditMode ? DivoStrings.failedToUpdateEvent : DivoStrings.failedToCreateEvent
-//                    self.createEventNode.showSnackbar(
-//                        message: failMsg,
-//                        style: .error
-//                    )
-//                }
-//            }
-//        } catch {
-//            self.createEventNode.showSnackbar(
-//                message: DivoStrings.unknownError,
-//                style: .error
-//            )
-//        }
-//    }
     
     @objc private func createPressed() {
         
         do {
             let requestPayload = try self.createEventNode.collectEventData()
+            let collectPreviewData = try self.createEventNode.collectPreviewEventData()
             
-            // Собираем превью-данные для экрана
             let previewData = EventPreviewData(
-                request: requestPayload,
+                request: collectPreviewData,
                 coverImage: self.createEventNode.currentPhoto,
-                gallery: self.currentGalleryPhotos,
-                typeTitle: "Event" // Заглушка, если typeTitle приватный в Node
+                gallery: self.currentGalleryPhotos
             )
             
             let previewController = EventDetailController(
@@ -335,9 +281,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 previewData: previewData
             )
             
-            // Если на странице превью нажмут Publish — запускаем сетевой запрос!
-            previewController.onPublishConfirmed = { [weak self] in
-                self?.performPublishRequest(requestPayload)
+            previewController.onPublishConfirmed = { [weak self, weak previewController] in
+                self?.performPublishRequest(requestPayload, previewController: previewController)
             }
             
             self.push(previewController)
@@ -347,8 +292,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         }
     }
     
-    // А вот это уже настоящий запрос на сервер
-    private func performPublishRequest(_ payload: CreateEventRequest) {
+    private func performPublishRequest(_ payload: CreateEventRequest, previewController: EventDetailController?) {
         self.createEventNode.showScreenLoading()
         Task { @MainActor in
             do {
@@ -364,26 +308,39 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 if response.errors == nil || response.errors?.isEmpty == true {
                     self.onEventCreated?()
                     
-                    // Показываем экран успешной публикации!
-                    let successController = EventPublishedSuccessController(context: self.context, eventTitle: payload.title)
+                    let successController = EventPublishedSuccessController(context: self.context)
                     
-                    successController.onViewEventTapped = { 
-                        // [weak self] in
-//                        self?.navigationController?.popToRoot(animated: true)
-                    }
-                    successController.onManageApplicationsTapped = { 
-                        // [weak self] in
-//                        self?.navigationControll er?.popToRoot(animated: true)
+                    let backToProfile: () -> Void = { [weak self] in
+                        guard let self = self, let nav = self.navigationController else { return }
+                        let controllers = nav.viewControllers
+                        
+                        if let myIndex = controllers.firstIndex(where: { $0 === self }), myIndex > 0 {
+                            let profileController = controllers[myIndex - 1]
+                            nav.popToViewController(profileController, animated: true)
+                        } else {
+                            nav.popViewController(animated: true)
+                        }
                     }
                     
+                    successController.onViewEventTapped = {
+                        backToProfile()
+                    }
+                    successController.onManageApplicationsTapped = {
+                        backToProfile()
+                    }
+                    previewController?.toggleSaving(active: false)
                     self.push(successController)
                 } else {
                     let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
+                    previewController?.toggleSaving(active: false)
+                    previewController?.showSnackbar(message: DivoStrings.errorCreateUpdateEvent)
                     self.createEventNode.showSnackbar(message: errorMsg, style: .error)
                 }
                 
             } catch {
                 self.createEventNode.hideScreenLoading()
+                previewController?.toggleSaving(active: false)
+                previewController?.showSnackbar(message: DivoStrings.errorCreateUpdateEvent)
                 self.createEventNode.showSnackbar(message: error.localizedDescription, style: .error)
             }
         }

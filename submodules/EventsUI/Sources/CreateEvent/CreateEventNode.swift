@@ -400,6 +400,7 @@ final class CreateEventNode: ASDisplayNode {
             avatarImageView.applyAvatarTopCropIfNeeded(image: currentPhoto)
             chanceCenterPhotoView.isHidden = currentPhoto != nil
             chancePhotoView.isHidden = currentPhoto == nil
+            validateCurrentStep()
         }
     }
 
@@ -415,6 +416,12 @@ final class CreateEventNode: ASDisplayNode {
     }()
     
     private let loadingSpinner = DivoSegmentedSpinner()
+
+    private let rateTimeRowContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
 
     // MARK: - Init
@@ -543,9 +550,10 @@ final class CreateEventNode: ASDisplayNode {
         )
         keyboardScroll2Handler?.subscribe()
         
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-        tapGesture.cancelsTouchesInView = false
-        self.view.addGestureRecognizer(tapGesture)
+        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        dismissTap.cancelsTouchesInView = false
+        dismissTap.delegate = self
+        self.view.addGestureRecognizer(dismissTap)
 
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
@@ -553,6 +561,13 @@ final class CreateEventNode: ASDisplayNode {
         self.view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
                 
         updateDropdownsUI()
+
+        nameEventTextField.textField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
+        rateTextField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
+        paidEventSwitch.addTarget(self, action: #selector(validateCurrentStep), for: .valueChanged)
+        NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: aboutEventTextField.textView)
+        NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: requirementsTextField.textView)
+        validateCurrentStep()
         
         self.view.setNeedsLayout()
         self.view.layoutIfNeeded()
@@ -845,8 +860,6 @@ final class CreateEventNode: ASDisplayNode {
         rateTimeRow.addArrangedSubview(rateTime)
         rateTimeRow.heightAnchor.constraint(equalToConstant: 46).isActive = true
         
-        let rateTimeRowContainer = UIView()
-        rateTimeRowContainer.translatesAutoresizingMaskIntoConstraints = false
         let rateTimeRowhUI = makeInputStack(title: DivoStrings.rate, inputView: rateTimeRow)
         rateTimeRowhUI.translatesAutoresizingMaskIntoConstraints = false
         rateTimeRowContainer.addSubview(rateTimeRowhUI)
@@ -1093,10 +1106,12 @@ final class CreateEventNode: ASDisplayNode {
                 cell.setItems(item.getValues(), emptyTitle: DivoStrings.notSet)
             }
         }
+        validateCurrentStep()
     }
     
     private func scrollToCurrentStep() {
         updateHeaderAndButton()
+        validateCurrentStep()
         let offsetX = CGFloat(currentStep - 1) * self.view.bounds.width
         horizontalPager.setContentOffset(CGPoint(x: offsetX, y: 0), animated: true)
     }
@@ -1121,6 +1136,7 @@ final class CreateEventNode: ASDisplayNode {
         eyeColorDropdown.setItems(eyeColorDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
         skinColorDropdown.setItems(skinColorDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
         rateTime.setTitle(rateTimeTitle)
+        validateCurrentStep()
     }
     
     private func updateGalleryHeight() {
@@ -1139,6 +1155,7 @@ final class CreateEventNode: ASDisplayNode {
         UIView.animate(withDuration: 0.3) {
             self.view.layoutIfNeeded()
         }
+        validateCurrentStep()
     }
 
     func startPhotoUpload(image: UIImage) -> EventGalleryItem {
@@ -1405,6 +1422,7 @@ final class CreateEventNode: ASDisplayNode {
             eventDateInt = timestamp
             eventDate.setDate(timestamp: timestamp)
         }
+        validateCurrentStep()
     }
     
     func updateDeadlineTime(_ timestamp: Int32, _ mode: TimeControllerMode) {
@@ -1416,6 +1434,7 @@ final class CreateEventNode: ASDisplayNode {
             deadlineDateInt = timestamp
             deadlineDate.setDate(timestamp: timestamp)
         }
+        validateCurrentStep()
     }
     
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -1515,6 +1534,7 @@ final class CreateEventNode: ASDisplayNode {
         shoesRange = EventRangeRequest(from: Float(selectedShoeSize?.lowerBound ?? 0), to: Float(selectedShoeSize?.upperBound ?? 0))
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2
+        let cost = rateTextField.text == "" ? nil : rateTextField.text
         
         return CreateEventRequest(
             title: title,
@@ -1526,7 +1546,7 @@ final class CreateEventNode: ASDisplayNode {
             files: eventFiles,
             paymentType: paymentType,
             paymentFrequency: Int(rateTimeId ?? "1"),
-            cost: rateTextField.text,
+            cost: cost,
             role: roles,
             gender: genders,
             age: ageRange,
@@ -1541,6 +1561,120 @@ final class CreateEventNode: ASDisplayNode {
             eyeColor: eyeColors,
             skinColor: skinColors,
             measuringSystem: "metric"
+        )
+    }
+
+    func collectPreviewEventData() throws -> CreateEventPreview {
+        
+        let title = nameEventTextField.textField.text ?? ""
+        let description = aboutEventTextField.text
+        let requirements = requirementsTextField.text
+
+        let dateObj = Date(timeIntervalSince1970: TimeInterval(eventDateInt))
+        let timeObj = Date(timeIntervalSince1970: TimeInterval(eventTimeInt))
+        
+        let calendar = Calendar.current
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: timeObj)
+        let finalDate = calendar.date(bySettingHour: timeComponents.hour ?? 0, minute: timeComponents.minute ?? 0, second: 0, of: dateObj) ?? dateObj
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let dateString = formatter.string(from: finalDate)
+        
+        let dateDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineDateInt))
+        let timeDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineTimeInt))
+        
+        let timeDeadlineComponents = calendar.dateComponents([.hour, .minute], from: timeDeadlineObj)
+        let finalDeadlineDate = calendar.date(bySettingHour: timeDeadlineComponents.hour ?? 0, minute: timeDeadlineComponents.minute ?? 0, second: 0, of: dateDeadlineObj) ?? dateDeadlineObj
+
+        let dateDeadlineString = formatter.string(from: finalDeadlineDate)
+
+        // TODO: DIVO — city picker not implemented, using 1 as hardcoded stub
+        let cityId = Int(self.countryId ?? "1") ?? 1
+        let address = EventAddressRequest(
+            street: nil,
+            house: nil,
+            apartment: nil,
+            formatted: nil,
+            latitude: nil,
+            longitude: nil,
+            cityId: cityId
+        )
+        
+        var eventFiles: [EventFileRequest] = []
+        var currentOrder = 0
+                
+        if let avatarUuid = avatarFileUuid {
+            eventFiles.append(EventFileRequest(order: currentOrder, fileUuid: avatarUuid))
+            currentOrder += 1
+        }
+        
+        for item in galleryItems {
+            if let uuid = item.fileUuid {
+                eventFiles.append(EventFileRequest(order: currentOrder, fileUuid: uuid))
+                currentOrder += 1
+            }
+        }
+        
+        let roles: [String]? = whoCanApplyIds
+        var ageRange: EventRangeRequest?
+        var heightRange: EventRangeRequest?
+        var weightRange: EventRangeRequest?
+        var waistRange: EventRangeRequest?
+        var hipsRange: EventRangeRequest?
+        var shoesRange: EventRangeRequest?
+        let genders: [String]? = genderDropdownIds
+        let hairColors: [Int]? = hairColorDropdownIds?.map { Int($0) ?? 0 } ?? nil
+        let hairLengths: [Int]? = hairLengthDropdownIds?.map { Int($0) ?? 0 } ?? nil
+        let eyeColors: [Int]? = eyeColorDropdownIds?.map { Int($0) ?? 0 } ?? nil
+        let skinColors: [Int]? = skinColorDropdownIds?.map { Int($0) ?? 0 } ?? nil
+        
+        if let selectedAge = selectedAge {
+            ageRange = EventRangeRequest(from: Float(selectedAge.lowerBound), to: Float(selectedAge.upperBound))
+        }
+        if let selectedHeight = selectedHeight {
+            heightRange = EventRangeRequest(from: Float(selectedHeight.lowerBound), to: Float(selectedHeight.upperBound))
+        }
+        if let selectedWeight = selectedWeight {
+            weightRange = EventRangeRequest(from: Float(selectedWeight.lowerBound), to: Float(selectedWeight.upperBound))
+        }
+        if let selectedWaist = selectedWaist {
+            waistRange = EventRangeRequest(from: Float(selectedWaist.lowerBound), to: Float(selectedWaist.upperBound))
+        }
+        if let selectedHips = selectedHips {
+            hipsRange = EventRangeRequest(from: Float(selectedHips.lowerBound), to: Float(selectedHips.upperBound))
+        }
+        if let selectedShoeSize = selectedShoeSize {
+            shoesRange = EventRangeRequest(from: Float(selectedShoeSize.lowerBound), to: Float(selectedShoeSize.upperBound))
+        }
+        
+        let paymentType = paidEventSwitch.isOn ? 1 : 2
+        let cost = paymentType == 1 ? rateTextField.text == "" ? nil : rateTextField.text : nil
+        
+        return CreateEventPreview(
+            title: title,
+            description: description,
+            requirements: requirements,
+            type: eventTypeTitle ?? "Event",
+            maxParticipants: maxParticipants ?? 0,
+            date: dateString,
+            dateDeadline: dateDeadlineString,
+            address: address,
+            files: eventFiles,
+            cost: cost,
+            role: roles,
+            gender: genders,
+            age: ageRange,
+            height: heightRange,
+            weight: weightRange,
+            breastSize: nil,
+            waist: waistRange,
+            hips: hipsRange,
+            shoesSize: shoesRange,
+            hairColor: hairColors,
+            hairLength: hairLengths,
+            eyeColor: eyeColors,
+            skinColor: skinColors
         )
     }
     
@@ -1917,6 +2051,60 @@ final class CreateEventNode: ASDisplayNode {
         self.selectedParameters.remove(param)
     }
     
+    @objc private func validateCurrentStep() {
+        var isValid = false
+        
+        switch currentStep {
+        case 1:
+            // 1 ШАГ: Проверяем фото, тип, название, описание, дату, время и страну
+            let hasPhoto = currentPhoto != nil || avatarFileUuid != nil
+            let hasEventType = eventTypeId != nil && !eventTypeId!.isEmpty
+            let hasName = !(nameEventTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            
+            let descText = aboutEventTextField.textView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let hasDesc = !descText.isEmpty && descText != DivoStrings.placeholderDescriptionCreateEvent
+            
+            let hasDate = eventDateInt > 0
+            let hasTime = eventTimeInt > 0
+            let hasCountry = countryId != nil && !countryId!.isEmpty
+            
+            isValid = hasPhoto && hasEventType && hasName && hasDesc && hasDate && hasTime && hasCountry
+            
+        case 2:
+            // 2 ШАГ: Проверяем роли, макс. участников, требования и АБСОЛЮТНО ВСЕ параметры внешности
+            let hasRoles = !(whoCanApplyIds?.isEmpty ?? true)
+            let hasMaxParticipants = maxParticipants != nil
+            
+            let reqText = requirementsTextField.textView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let hasReq = !reqText.isEmpty && reqText != DivoStrings.placeholderRequirementsCreateEvent
+            
+            isValid = hasRoles && hasMaxParticipants && hasReq
+            
+        case 3:
+            // 3 ШАГ: Проверяем дедлайн, стоимость и наличие ФОТО В ГАЛЕРЕЕ
+            let hasDate = deadlineDateInt > 0
+            let hasTime = deadlineTimeInt > 0
+            var hasRate = true
+            
+            rateTimeRowContainer.isHidden = !paidEventSwitch.isOn
+            if paidEventSwitch.isOn {
+                hasRate = !(rateTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            }
+            
+            // Галерея не должна быть пустой
+            let hasGallery = !galleryItems.isEmpty
+            
+            isValid = hasDate && hasTime && hasRate && hasGallery
+            
+        default:
+            isValid = true
+        }
+        
+        UIView.animate(withDuration: 0.2) {
+            self.applyButton.isEnabled = isValid
+        }
+    }
+    
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style
@@ -1928,7 +2116,7 @@ final class CreateEventNode: ASDisplayNode {
             in: self.view,
             message: message,
             style: style,
-            bottomInset: 16,
+            bottomInset: DivoDesignTokens.Spacing.m,
             bottomAnchor: applyButton.topAnchor,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
@@ -1996,3 +2184,15 @@ extension CreateEventNode: UITextFieldDelegate {
         return false
     }
 }
+
+
+// MARK: - UIGestureRecognizerDelegate
+extension CreateEventNode: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        if touch.view is UIControl {
+            return false
+        }
+        return true
+    }
+}
+

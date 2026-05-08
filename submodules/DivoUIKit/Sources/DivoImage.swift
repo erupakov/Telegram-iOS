@@ -17,6 +17,7 @@ public enum DivoImage {
     public static var ageIcon: UIImage { load("DivoAgeIcon") }
     public static var associatedModels: UIImage { load("DivoAssociatedModels") }
     public static var badgeBaseWork: UIImage { load("DivoBadgeBaseWork") }
+    public static var badgeCalendar: UIImage { load("DivoBadgeCalendar") }
     public static var basket: UIImage { load("DivoBasket") }
     public static var basketWork: UIImage { load("DivoBasketWork") }
     public static var block: UIImage { load("DivoBlock") }

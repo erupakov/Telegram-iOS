@@ -1,11 +1,11 @@
 import UIKit
 
-final class PaddedLabel: UILabel {
-    var textInsets = UIEdgeInsets.zero {
+public final class PaddedLabel: UILabel {
+    public var textInsets = UIEdgeInsets.zero {
         didSet { invalidateIntrinsicContentSize() }
     }
     
-    override func textRect(forBounds bounds: CGRect, limitedToNumberOfLines numberOfLines: Int) -> CGRect {
+    override public func textRect(forBounds bounds: CGRect, limitedToNumberOfLines numberOfLines: Int) -> CGRect {
         let insetRect = bounds.inset(by: textInsets)
         let textRect = super.textRect(forBounds: insetRect, limitedToNumberOfLines: numberOfLines)
         let invertedInsets = UIEdgeInsets(
@@ -17,7 +17,7 @@ final class PaddedLabel: UILabel {
         return textRect.inset(by: invertedInsets)
     }
     
-    override func drawText(in rect: CGRect) {
+    override public func drawText(in rect: CGRect) {
         super.drawText(in: rect.inset(by: textInsets))
     }
 }

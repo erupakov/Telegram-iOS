@@ -14,10 +14,9 @@ import DivoUIKit
 import DivoGallery
 
 public struct EventPreviewData {
-    public let request: CreateEventRequest
+    public let request: CreateEventPreview
     public let coverImage: UIImage?
     public let gallery: [UserPhoto]
-    public let typeTitle: String
 }
 
 public final class EventDetailController: TelegramBaseController {
@@ -112,6 +111,14 @@ public final class EventDetailController: TelegramBaseController {
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+    }
+
+    public func toggleSaving(active: Bool) {
+        self.controllerNode.toggleSaving(active: active)
+    }
+    
+    public func showSnackbar(message: String) {
+        self.controllerNode.showSnackbar(message: message, style: .error)
     }
 
     private func loadPreview() {

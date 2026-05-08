@@ -689,7 +689,12 @@ public enum DivoStrings {
     public static var publishEvent: String { L(en: "Publish event", ru: "Опубликовать событие", es: "Publicar evento", pt: "Publicar evento", zh: "发布活动") }
     public static var applyPreviewOnly: String { L(en: "Apply now (preview only)", ru: "Подать заявку (только предпросмотр)", es: "Aplicar ahora (solo vista previa)", pt: "Candidatar-se agora (apenas visualização)", zh: "立即申请（仅预览）") }
     public static func closesData(_ data: String) -> String { L(en: "Closes: \(data)", ru: "Закрытие: \(data)", es: "Cierre: \(data)", pt: "Encerramento: \(data)", zh: "截止: \(data)") }
-    
+    public static var viewEventPage: String { L(en: "View event page", ru: "Просмотр страницы события", es: "Ver página del evento", pt: "Ver página do evento", zh: "查看活动页面") }
+    public static var manageApplications: String { L(en: "Manage applications", ru: "Управление заявками", es: "Gestionar solicitudes", pt: "Gerenciar candidaturas", zh: "管理申请") }
+    public static var subtitleCreateEvent: String { L(en: "Fashion model event is now\nvisible to all users", ru: "Событие для фешн-моделей теперь\nвидно всем пользователям", es: "El evento de modelos de moda ahora\nes visible para todos los usuarios", pt: "O evento de modelo de moda agora\nestá visível para todos os usuários", zh: "时尚模特活动现在\n对所有用户可见") }
+    public static var titleCreateEvent: String { L(en: "Your event is live!", ru: "Ваше событие опубликовано!", es: "¡Tu evento está en vivo!", pt: "Seu evento está no ar!", zh: "您的活动已上线！") }
+    public static var errorCreateUpdateEvent: String { L(en: "Couldn't post event", ru: "Не удалось опубликовать событие", es: "No se pudo publicar el evento", pt: "Não foi possível publicar o evento", zh: "无法发布活动") }
+
     // MARK: - Event Parameter Titles
 
     public static var paramGender: String { L(en: "Gender", ru: "Пол", es: "Género", pt: "Gênero", zh: "性别") }

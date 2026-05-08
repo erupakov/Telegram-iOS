@@ -509,6 +509,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         view.clipsToBounds = true
         return view
     }()
+
+    private var collectionsContainerHeightConstraint: NSLayoutConstraint!
     
     private var galleryPhotos: [UserPhoto] = []
     private var galleryHeightConstraint: NSLayoutConstraint!
@@ -560,6 +562,16 @@ final class EventDetailControllerNode: ASDisplayNode {
         }
         return view
     }()
+
+    // MARK: - Bottom Spacer
+    private let bottomSpacer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private lazy var bottomSpacerHeightConstraint: NSLayoutConstraint = bottomSpacer.heightAnchor.constraint(equalToConstant: 0)
     
     
     // MARK: - Init
@@ -571,35 +583,48 @@ final class EventDetailControllerNode: ASDisplayNode {
 
         super.init()
         self.backgroundColor = DivoColorPalette.darkBackground
-
+        
+        self.moreButton.isEnabled = !isPreviewMode
+        self.shareButton.isEnabled = !isPreviewMode
+        self.closeButton.isEnabled = !isPreviewMode
+        self.likesView.isEnabled = !isPreviewMode
+        self.viewsView.isEnabled = !isPreviewMode
+        self.savesView.isEnabled = !isPreviewMode
+        
         setupUI()
         configureNodes()
     }
 
     override func layout() {
         super.layout()
-
+        
         guard !isPerformingLayout else { return }
         isPerformingLayout = true
         defer { isPerformingLayout = false }
 
-        guard let (layout, _) = self.containerLayout else { return }
+        guard let (layout, navigationBarHeight) = self.containerLayout else { return }
 
         let stackWidth = layout.size.width
 
         contentViewStack.layoutIfNeeded()
-
         var contentHeight = contentViewStack.systemLayoutSizeFitting(
             CGSize(width: stackWidth, height: UIView.layoutFittingCompressedSize.height),
             withHorizontalFittingPriority: .required,
             verticalFittingPriority: .fittingSizeLevel
         ).height
-        
-        // ЗАЩИТА: Высота контента не может быть меньше высоты экрана + 100 поинтов.
-        // Это предотвращает баг "открытия из точки".
-        let minContentHeight = layout.size.height + 100
-        if contentHeight < minContentHeight {
-            contentHeight = minContentHeight
+
+        let scrollViewHeight = layout.size.height - navigationBarHeight
+        let collapseOffset = collectionsContainer.frame.minY
+        if collapseOffset > 0, scrollViewHeight > 0 {
+            let minContentHeight = collapseOffset + scrollViewHeight
+            let currentSpacerHeight = bottomSpacer.isHidden ? 0 : bottomSpacerHeightConstraint.constant
+            let contentWithoutSpacer = contentHeight - currentSpacerHeight
+            let bottomSafeInset = layout.intrinsicInsets.bottom
+            let neededSpacerHeight = max(bottomSafeInset + 12, minContentHeight - contentWithoutSpacer)
+            if !bottomSpacer.isHidden, abs(neededSpacerHeight - currentSpacerHeight) > 1.0 {
+                bottomSpacerHeightConstraint.constant = neededSpacerHeight
+                contentHeight = contentWithoutSpacer + neededSpacerHeight
+            }
         }
         
         contentViewStack.frame = CGRect(x: 0, y: 0, width: stackWidth, height: contentHeight)
@@ -608,47 +633,38 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyGradientBlurMask()
         updateNavBarBlurMask()
         
-        // Перезапуск анимации шиммеров при любом обновлении Layout
-        if !actionsShimmerView.isHidden {
-            actionsShimmerView.startAnimation()
-        }
-        
+        // Перезапуск анимации шиммеров
+        if !actionsShimmerView.isHidden { actionsShimmerView.startAnimation() }
         if !eventCostTypeShimmerContainer.isHidden && !eventTypeLabelShimmerContainer.isHidden {
             eventCostTypeShimmerContainer.stopShimmering()
             eventCostTypeShimmerContainer.startShimmering()
             eventTypeLabelShimmerContainer.stopShimmering()
             eventTypeLabelShimmerContainer.startShimmering()
         }
-        
         if !eventDeadlineShimmerContainer.isHidden && !applyButtonShimmer.isHidden {
             eventDeadlineShimmerContainer.stopShimmering()
             applyButtonShimmer.stopShimmering()
             eventDeadlineShimmerContainer.startShimmering()
             applyButtonShimmer.startShimmering()
         }
-        
         if !organizatiorShimmerView.isHidden{
             organizatiorShimmerView.stopShimmering()
             organizatiorShimmerView.startShimmering()
         }
-        
         if !currentAppliedShimmerView.isHidden && !allAppliedShimmerView.isHidden {
             currentAppliedShimmerView.stopShimmering()
             allAppliedShimmerView.stopShimmering()
             currentAppliedShimmerView.startShimmering()
             allAppliedShimmerView.startShimmering()
         }
-        
         if !descriptionShimmerView.isHidden {
             descriptionShimmerView.stopShimmering()
             descriptionShimmerView.startShimmering()
         }
-        
         if !requirementsShimmerContainer.isHidden {
             requirementsShimmerView.stopShimmering()
             requirementsShimmerView.startShimmering()
         }
-        
         if !parametersShimmerView.isHidden {
             parametersShimmerView.stopShimmering()
             parametersShimmerView.startShimmering()
@@ -679,6 +695,10 @@ final class EventDetailControllerNode: ASDisplayNode {
         setupRequirementsContainer()
         setupParametersContainer()
         setupCollections()
+
+        contentViewStack.addArrangedSubview(bottomSpacer)
+        bottomSpacerHeightConstraint.isActive = true
+        contentViewStack.setCustomSpacing(0, after: collectionsContainer)
         
         // Align Moving Blur
         NSLayoutConstraint.activate([
@@ -705,8 +725,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         editPreviewButton.tintColor = DivoColorPalette.primaryTextOnDark
         editPreviewButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
         
-        publishPreviewButton.makeDivoButton(title: DivoStrings.publishEvent, buttonFont: Font.helveticaNeue(20), radius: 28)
-        
+        publishPreviewButton.makeDivoButton(title: DivoStrings.publishEvent, loading: DivoStrings.saving, buttonFont: Font.helveticaNeue(20), radius: 28)
+
         editPreviewButton.translatesAutoresizingMaskIntoConstraints = false
         publishPreviewButton.translatesAutoresizingMaskIntoConstraints = false
         
@@ -739,12 +759,17 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         editPreviewButton.addTarget(self, action: #selector(editPreviewTapped), for: .touchUpInside)
         publishPreviewButton.addTarget(self, action: #selector(publishPreviewTapped), for: .touchUpInside)
-        
-        scrollView.contentInset.bottom = 120
     }
     
     @objc private func editPreviewTapped() { onEditPreviewTapped?() }
-    @objc private func publishPreviewTapped() { onPublishPreviewTapped?() }
+    @objc private func publishPreviewTapped() {
+        toggleSaving(active: true)
+        onPublishPreviewTapped?()
+    }
+    
+    func toggleSaving(active: Bool) {
+        publishPreviewButton.setSaving(active, in: self.view)
+    }
 
     private func setupBackgroundAndScroll() {
         self.view.addSubview(backgroundImageView)
@@ -1181,6 +1206,9 @@ final class EventDetailControllerNode: ASDisplayNode {
     private func setupCollections() {
         contentViewStack.addArrangedSubview(collectionsContainer)
         
+        collectionsContainerHeightConstraint = collectionsContainer.heightAnchor.constraint(equalToConstant: 160)
+        collectionsContainerHeightConstraint.isActive = true
+        
         galleryHeightConstraint = galleryCollectionView.heightAnchor.constraint(equalToConstant: 1)
         galleryHeightConstraint.isActive = true
         
@@ -1192,7 +1220,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             galleryCollectionView.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor),
             galleryCollectionView.trailingAnchor.constraint(equalTo: collectionsContainer.trailingAnchor),
             galleryHeightConstraint,
-            galleryCollectionView.bottomAnchor.constraint(equalTo: collectionsContainer.bottomAnchor, constant: -20),
+            galleryCollectionView.bottomAnchor.constraint(equalTo: collectionsContainer.bottomAnchor),
             
             galleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             galleryStatusView.topAnchor.constraint(equalTo: collectionsContainer.topAnchor),
@@ -1203,6 +1231,45 @@ final class EventDetailControllerNode: ASDisplayNode {
         galleryCollectionView.isHidden = true
         galleryStatusView.isHidden = false
         galleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingPhotos, isMyProfile: false)
+    }
+    
+    private func updateCollectionsContainerHeight(animated: Bool = true) {
+        collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
+        
+        if animated && !scrollView.isDragging && !scrollView.isDecelerating {
+            UIView.animate(withDuration: 0.3) {
+                self.contentViewStack.layoutIfNeeded()
+                self.view.layoutIfNeeded()
+                
+                // Плавно подтягиваем скролл, если контент стал меньше
+                let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
+                if self.scrollView.contentOffset.y > maxOffset {
+                    self.scrollView.contentOffset.y = maxOffset
+                }
+            }
+        } else {
+            UIView.performWithoutAnimation {
+                CATransaction.begin()
+                CATransaction.setDisableActions(true)
+                self.view.layoutIfNeeded()
+                CATransaction.commit()
+            }
+        }
+    }
+    
+    private func calculateCollectionsContainerHeight() -> CGFloat {
+        guard let (layout, navBarHeight) = self.containerLayout else { return 160 }
+        
+        let fullScreenAvailableHeight = max(160, layout.size.height - navBarHeight)
+        
+        func heightFor(isEmpty: Bool, constraint: NSLayoutConstraint, isModelTab: Bool = false) -> CGFloat {
+            if isEmpty {
+                return fullScreenAvailableHeight
+            }
+            return constraint.constant
+        }
+        
+        return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
     }
     
     private func configureNodes() {
@@ -1445,6 +1512,7 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     func updateWithPreviewData(_ data: EventPreviewData) {
         self.isDataLoaded = true
+        stopShimmers()
         
         if let cover = data.coverImage {
             backgroundImageView.image = cover
@@ -1452,10 +1520,10 @@ final class EventDetailControllerNode: ASDisplayNode {
             backgroundImageView.backgroundColor = DivoColorPalette.profileEmptyBackground
         }
         
-        eventTypeLabel.text = data.typeTitle
-        setupNavigationBarTitle(name: "PREVIEW")
+        eventTypeLabel.text = data.request.type
+        setupNavigationBarTitle(name: DivoStrings.previewEvent.uppercased())
         
-        eventCostTypeLabel.isHidden = data.request.cost == nil || data.request.cost?.isEmpty == true
+        eventCostTypeContainer.isHidden = data.request.cost == nil
         eventCostTypeLabel.text = data.request.cost
         
         let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)
@@ -1470,14 +1538,14 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
-        let (cStr, _) = formatEventDateAndTime(dateString: data.request.dateTo)
-        eventDeadlineLabel.text = DivoStrings.closesData(cStr)
+        let (cStr, _) = formatEventDateAndTime(dateString: data.request.dateDeadline)
+        eventDeadlineLabel.text = DivoStrings.deadlineData(cStr)
         
         applyButton.makeDivoButton(title: DivoStrings.applyPreviewOnly, buttonFont: Font.helveticaNeue(14), radius: 18)
         applyButton.isEnabled = false
         
-        currentAppliedLabel.text = "0 applied"
-        allAppliedLabel.text = "\(data.request.address.cityId) max spots"
+        currentAppliedLabel.text = DivoStrings.currentApplied(0)
+        allAppliedLabel.text = DivoStrings.allApplied(data.request.maxParticipants)
         
         organizatiorView.configure(name: "@you", logoURL: nil)
         
@@ -1521,17 +1589,21 @@ final class EventDetailControllerNode: ASDisplayNode {
             let skinColorTitles = skinColor.compactMap( { String($0) } ).joined(separator: ", ")
             attrs.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
         }
-
-        parametersView.update(appearance: attrs)
+        
+        if attrs.isEmpty {
+            parametersView.isHidden = true
+        } else {
+            parametersView.isHidden = false
+            parametersView.update(appearance: attrs)
+        }
         
         // Статистика по нулям
-        likesView.setValue("0")
-        viewsView.setValue("0")
-        savesView.setValue("0")
+        likesView.setValue("1K")
+        viewsView.setValue("1K")
+        savesView.setValue("1K")
         
         updateGallery(data.gallery)
         
-        stopShimmers()
         activateTitleVisibility()
     }
     
@@ -1544,6 +1616,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             self.galleryCollectionView.isHidden = false
         }
         updateGalleryCollectionViewHeight()
+        updateCollectionsContainerHeight(animated: false)
     }
     
     private func updateGalleryCollectionViewHeight() {
@@ -1567,7 +1640,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             galleryCollectionView.isHidden = false
         }
         
-        self.layoutIfNeeded()
+        self.setNeedsLayout()
     }
     
     // Получаем картинку флага в зависимости от кода страны
@@ -1647,10 +1720,34 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyGradientBlurMask()
         updateNavBarBlurMask()
         updateGalleryCollectionViewHeight()
+        updateCollectionsContainerHeight(animated: false)
         
         updateNavigationBarTitleVisibility()
         
         self.layoutIfNeeded()
+    }
+  
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: DivoDesignTokens.Spacing.m,
+            bottomAnchor: editPreviewButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }
 

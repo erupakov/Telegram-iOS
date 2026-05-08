@@ -17,86 +17,99 @@ final class EventPublishedSuccessNode: ASDisplayNode {
     var onViewEvent: (() -> Void)?
     var onManageApplications: (() -> Void)?
     var onBackTapped: (() -> Void)?
+        
+    private let emptyModelsIcon: UIImageView = {
+        let iv = UIImageView()
+        iv.image = DivoImage.badgeCalendar
+        iv.contentMode = .center
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
     
-    private let navBar = DivoNavigationBar()
-    private let iconImageView = UIImageView()
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
+    private let titleLabel: PaddedLabel = {
+        let label = PaddedLabel()
+        label.textInsets = UIEdgeInsets(top: 4, left: 0, bottom: 0, right: 0)
+        label.font = Font.helveticaNeue(26)
+        label.textColor = DivoColorPalette.secondaryButtonPressed
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.titleCreateEvent.uppercased()
+        return label
+    }()
+    
+    private let subtitleLabel: PaddedLabel = {
+        let label = PaddedLabel()
+        label.textInsets = UIEdgeInsets(top: 4, left: 0, bottom: 0, right: 0)
+        label.font = Font.medium(16)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.text = DivoStrings.subtitleCreateEvent
+        return label
+    }()
+    
+    private let contentStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
     
     private let viewEventButton = DivoButton()
     private let manageAppsButton = DivoButton()
     
-    init(eventTitle: String) {
+    override init() {
         super.init()
         self.backgroundColor = DivoColorPalette.screenBackground
-        
-        navBar.makeNavigationBar(
-            title: "",
-            backButtonConfiguration: .circle(UIImage(bundleImageName: "Components/SearchCloseIcon")!),
-            onBackTapped: { [weak self] in self?.onBackTapped?() }
-        )
-        
-        iconImageView.image = UIImage(bundleImageName: "Components/CalendarCheck") // Иконка с галочкой
-        iconImageView.contentMode = .scaleAspectFit
-        iconImageView.tintColor = DivoColorPalette.primaryText
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        
-        titleLabel.text = "YOUR EVENT IS LIVE!"
-        titleLabel.font = Font.bold(24)
-        titleLabel.textColor = DivoColorPalette.primaryText
-        titleLabel.textAlignment = .center
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        subtitleLabel.text = "\(eventTitle) is now\nvisible to all users"
-        subtitleLabel.font = Font.regular(16)
-        subtitleLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 2
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        
-        viewEventButton.makeDivoButton(title: "View event page", buttonFont: Font.helveticaNeue(16), radius: 28)
-        viewEventButton.translatesAutoresizingMaskIntoConstraints = false
+            
+        viewEventButton.makeDivoButton(title: DivoStrings.viewEventPage, buttonFont: Font.helveticaNeue(20), radius: 28)
         viewEventButton.addTarget(self, action: #selector(viewTapped), for: .touchUpInside)
         
-        manageAppsButton.makeDivoButton(title: "Manage applications", buttonFont: Font.helveticaNeue(16), radius: 28)
-        manageAppsButton.backgroundColor = DivoColorPalette.darkBackground
-        manageAppsButton.setTitleColor(.white, for: .normal)
-        manageAppsButton.translatesAutoresizingMaskIntoConstraints = false
+        manageAppsButton.makeDivoButton(title: DivoStrings.manageApplications, buttonFont: Font.helveticaNeue(20), radius: 28, divoButtonStyle: .secondary)
+        manageAppsButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
         manageAppsButton.addTarget(self, action: #selector(manageTapped), for: .touchUpInside)
         
-        self.view.addSubview(navBar)
-        self.view.addSubview(iconImageView)
-        self.view.addSubview(titleLabel)
-        self.view.addSubview(subtitleLabel)
+        view.addSubview(contentStack)
+                
+        contentStack.addArrangedSubview(emptyModelsIcon)
+        contentStack.addArrangedSubview(titleLabel)
+        contentStack.addArrangedSubview(subtitleLabel)
+        
+        contentStack.setCustomSpacing(14, after: emptyModelsIcon)
+        contentStack.setCustomSpacing(6, after: titleLabel)
+        
         self.view.addSubview(viewEventButton)
         self.view.addSubview(manageAppsButton)
         
+        let centerGuide = UILayoutGuide()
+        view.addLayoutGuide(centerGuide)
+        
         NSLayoutConstraint.activate([
-            navBar.topAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor),
-            navBar.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            navBar.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            emptyModelsIcon.widthAnchor.constraint(equalToConstant: 68),
+            emptyModelsIcon.heightAnchor.constraint(equalToConstant: 68),
             
-            iconImageView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor, constant: -100),
-            iconImageView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 80),
-            iconImageView.heightAnchor.constraint(equalToConstant: 80),
+            centerGuide.topAnchor.constraint(equalTo: self.view.topAnchor),
+            centerGuide.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            centerGuide.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            centerGuide.bottomAnchor.constraint(equalTo: viewEventButton.topAnchor),
             
-            titleLabel.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 24),
-            titleLabel.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 32),
-            titleLabel.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -32),
+            contentStack.centerYAnchor.constraint(equalTo: centerGuide.centerYAnchor),
+            contentStack.centerXAnchor.constraint(equalTo: centerGuide.centerXAnchor),
             
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
-            subtitleLabel.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 32),
-            subtitleLabel.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -32),
+            contentStack.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            contentStack.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
-            manageAppsButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor, constant: -24),
-            manageAppsButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 16),
-            manageAppsButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -16),
+            manageAppsButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor),
+            manageAppsButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            manageAppsButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             manageAppsButton.heightAnchor.constraint(equalToConstant: 56),
             
-            viewEventButton.bottomAnchor.constraint(equalTo: manageAppsButton.topAnchor, constant: -12),
-            viewEventButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 16),
-            viewEventButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -16),
+            viewEventButton.bottomAnchor.constraint(equalTo: manageAppsButton.topAnchor, constant: -10),
+            viewEventButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            viewEventButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             viewEventButton.heightAnchor.constraint(equalToConstant: 56),
         ])
     }

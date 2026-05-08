@@ -19,17 +19,14 @@ public final class EventPublishedSuccessController: TelegramBaseController {
     }
     
     private let context: AccountContext
-    private let eventTitle: String
     
     public var onViewEventTapped: (() -> Void)?
     public var onManageApplicationsTapped: (() -> Void)?
     
-    public init(context: AccountContext, eventTitle: String) {
+    public init(context: AccountContext) {
         self.context = context
-        self.eventTitle = eventTitle
+        
         super.init(context: context, navigationBarPresentationData: nil)
-        self.navigationPresentation = .modal
-        self.statusBar.statusBarStyle = .Black
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -37,7 +34,7 @@ public final class EventPublishedSuccessController: TelegramBaseController {
     }
     
     override public func loadDisplayNode() {
-        self.displayNode = EventPublishedSuccessNode(eventTitle: eventTitle)
+        self.displayNode = EventPublishedSuccessNode()
         
         self.controllerNode.onViewEvent = { [weak self] in
             self?.onViewEventTapped?()
