@@ -28,7 +28,7 @@ public final class GalleryStatusView: UIControl {
     private let statusImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
-        imageView.image = UIImage(bundleImageName: "Components/AddMediaProfile")
+        imageView.image = DivoImage.addMediaProfile
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.isUserInteractionEnabled = false
         return imageView
