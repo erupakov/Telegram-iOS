@@ -676,16 +676,16 @@ public enum DivoStrings {
     public static var roleFallbackUser: String { L(en: "User", ru: "Пользователь", es: "Usuario", pt: "Usuário", zh: "用户") }
     public static var failedToUpdateEvent: String { L(en: "Failed to update event", ru: "Не удалось обновить событие", es: "Error al actualizar el evento", pt: "Falha ao atualizar o evento", zh: "更新活动失败") }
     public static var failedToCreateEvent: String { L(en: "Failed to create event", ru: "Не удалось создать событие", es: "Error al crear el evento", pt: "Falha ao criar o evento", zh: "创建活动失败") }
-
     public static var addShort: String { L(en: "+ Add", ru: "+ Добавить", es: "+ Agregar", pt: "+ Adicionar", zh: "+ 添加") }
     public static var searchPlaceholder: String { L(en: "Search...", ru: "Поиск...", es: "Buscar...", pt: "Buscar...", zh: "搜索...") }
-
     public static func nSelected(_ n: Int) -> String {
         L(en: "\(n) selected", ru: "\(n) выбрано", es: "\(n) seleccionados", pt: "\(n) selecionados", zh: "已选\(n)项")
     }
-
     public static var emptyTitleAddEvent: String { L(en: "There are no upcoming\nevents at the moment.", ru: "Пока нет предстоящих\nсобытий", es: "No hay eventos\npróximos en este momento", pt: "Não há eventos\nfuturos no momento", zh: "目前暂无即将举行的活动") }
     public static var emptySubTitleAddEvent: String { L(en: "Check back later or create\na new one", ru: "Загляните позже или\nсоздайте новое", es: "Vuelve más tarde o\ncrea uno nuevo", pt: "Volte mais tarde ou\ncrie um novo", zh: "稍后再试或创建新活动") }
+    public static var editEvent: String { L(en: "Edit event", ru: "Редактировать событие", es: "Editar evento", pt: "Editar evento", zh: "编辑活动") }
+    public static var closeApplications: String { L(en: "Close applications", ru: "Закрыть подачу заявок", es: "Cerrar inscripciones", pt: "Encerrar inscrições", zh: "关闭申请") }
+    public static var cancelEvent: String { L(en: "Cancel event", ru: "Отменить событие", es: "Cancelar evento", pt: "Cancelar evento", zh: "取消活动") }
 
     // MARK: - Event Parameter Titles
 

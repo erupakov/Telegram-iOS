@@ -538,6 +538,11 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     private let isMyEvent: Bool
 
+    var onEditEventTapped: (() -> Void)?
+    var onCloseApplicationsTapped: (() -> Void)?
+    var onCancelEventTapped: (() -> Void)?
+    var onDeleteTapped: (() -> Void)?
+
 
     // MARK: - Init
 
@@ -766,6 +771,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         } else {
             shareButton.isHidden = false
             moreButton.isHidden = false
+            setupMoreMenu()
         }
     }
 
@@ -1220,6 +1226,46 @@ final class EventDetailControllerNode: ASDisplayNode {
             self.view.setNeedsLayout()
             self.view.layoutIfNeeded()
             CATransaction.commit()
+        }
+    }
+
+    private func setupMoreMenu() {
+        moreButton.adjustsImageWhenHighlighted = false
+        moreButton.addDivoPressState(.pill)
+
+        if #available(iOS 14.0, *) {
+            let editEventAction = UIAction(
+                title: DivoStrings.editEvent,
+                image: nil,
+            ) {[weak self] _ in
+                self?.onEditEventTapped?()
+            }
+
+            let closeApplicationsAction = UIAction(
+                title: DivoStrings.closeApplications,
+                image: nil,
+            ) { [weak self] _ in
+                self?.onCloseApplicationsTapped?()
+            }
+            
+            let cancelEventAction = UIAction(
+                title: DivoStrings.cancelEvent,
+                image: nil,
+            ) { [weak self] _ in
+                self?.onCancelEventTapped?()
+            }
+                        
+            let deleteAction = UIAction(
+                title: DivoStrings.delete,
+                image: nil,
+                attributes: .destructive
+            ) { [weak self] _ in
+                self?.onDeleteTapped?()
+            }
+
+            let menu = UIMenu(title: "", children: [editEventAction, closeApplicationsAction, cancelEventAction, deleteAction])
+            moreButton.menu = menu
+            moreButton.showsMenuAsPrimaryAction = true
         }
     }
 
