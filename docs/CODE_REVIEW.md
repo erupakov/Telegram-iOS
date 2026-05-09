@@ -126,11 +126,58 @@
 
 ---
 
+## 6. State-машина UI
+
+Применяется к экранам / секциям, у которых есть несколько состояний (loading / content / empty / failed) — фид, профиль, табы, списки. Разрозненные boolean-флаги (`isLoading`, `*Initialized`, `hasError`, `isEmpty`) рассинхронятся при асинхронных колбэках и приводят к зависшим шиммерам, перекрывающимся вьюшкам и пустым зонам без объяснения.
+
+Эталонная реализация — `PublicProfileScreenNode.swift`: `ScreenLoadPhase`, `ContentTabPhase`, `PhotoTabPhase`, `applyState()`.
+
+### Стейт
+
+- [ ] Состояния экрана/секции описаны **enum'ом**, а не набором boolean-флагов:
+      ```swift
+      enum ContentTabPhase: Equatable {
+          case loading
+          case content
+          case empty
+          case failed(networkError: Bool)
+      }
+      ```
+- [ ] Стейт хранится в `private var phase: Phase = .loading { didSet { ... } }` и в `didSet` вызывает **один** метод (например, `applyState()` / `applyPhase()`), который атомарно расставляет видимости и высоты для всех зависимых вьюшек.
+- [ ] `didSet` сравнивает старое/новое значение, чтобы не перерисовывать UI на ту же фазу: `if oldValue != phase { applyState() }`.
+- [ ] Для повторно используемых типов экранов (`.failed(networkError: Bool)` для пагинации, `.empty` для пустых выборок) — общий enum, а не дубль на каждый раздел.
+
+### applyState
+
+- [ ] Один метод `applyState()` отвечает за расстановку **всех** вьюшек, относящихся к этой фазе, по принципу switch'а на каждое состояние. Никаких partial updates.
+- [ ] В `applyState()` явно гасятся вьюшки других стейтов (`shimmerView.isHidden = true`), чтобы не оставалось наложений после переключения. Не полагаться на «он и так был скрыт».
+- [ ] Высоты контейнеров пересчитываются в `applyState()` (или в `applyHeights()` вызываемом из `applyState()`), а не разбросано по обработчикам сетевых ответов.
+
+### API-колбэки
+
+- [ ] Сетевые success / error колбэки **только меняют стейт** (`phase = .content`, `phase = .failed(networkError: ...)`). Не дёргают `isHidden`, `startAnimating`, не пересчитывают высоты — это делает `applyState()`.
+- [ ] Network detection вынесен в helper (`isNetworkError(_ error: Error) -> Bool`), чтобы catch-блоки не дублировали проверку `DivoAPIError.noInternetConnection`.
+
+### Failed / empty / retry
+
+- [ ] При `.failed` экран **не остаётся пустым** — показывает inline error view с кнопкой Retry (`ProfileTabErrorView` или эквивалент). Допустимо только если ошибка покрыта снекбаром на уровне выше — это должно быть отмечено в комментарии.
+- [ ] `.failed(networkError: Bool)` различает no-internet и generic-error — тексты подбираются по флагу.
+- [ ] Retry-handler сбрасывает phase в `.loading`, чистит кэш пагинации (если применимо) и перезапускает запрос. Не оставлять stale items на экране после retry.
+- [ ] При ошибке пагинации (не первой страницы) phase **не** меняется на `.failed` — иначе уже отрендеренный grid скроется. Используется per-page error UX (snackbar).
+- [ ] `.empty` отделено от `.failed`: empty — данные пришли и оказались пустыми (показываем empty view с CTA), failed — данные не пришли (показываем error view с retry).
+
+### Локализация error-стейтов
+
+- [ ] Per-tab / per-section error titles — отдельные строки в `DivoStrings`, а не один общий «Couldn't load».
+- [ ] Network-вариант общий (`«No internet connection»`), per-context — только для generic ошибки.
+
+---
+
 ## Как проводить ревью
 
 1. **`git diff --stat`** — оценить масштаб, убедиться что нет изменений в Telegram-модулях.
 2. **`git diff --name-only`** — проверить, что DIVO-файлы лежат в DIVO-каталогах.
 3. **grep по diff на hardcoded строки** — `"[A-Z]` в UI-коде без `DivoStrings`.
 4. **grep по diff на hardcoded цвета** — `.white`, `.black`, `UIColor(red:` в DIVO-файлах.
-5. **Пройти по секциям 1-5 этого документа.**
+5. **Пройти по секциям 1-6 этого документа.** Для экранов с несколькими стейтами (loading/content/empty/failed) — отдельно проверить секцию 6 (state-машина).
 6. **Собрать и проверить на симуляторе** — happy path + error path.
