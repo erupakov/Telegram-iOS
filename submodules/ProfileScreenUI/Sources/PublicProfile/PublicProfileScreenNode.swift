@@ -54,7 +54,7 @@ enum PhotoTabPhase: Equatable {
     case loading    // photoGalleryShimmerView (2 ряда)
     case content    // galleryCollectionView с реальными фото
     case empty      // photoEmptyView (центрированный плейсхолдер)
-    case failed     // ошибка загрузки фото
+    case failed(networkError: Bool)  // ProfileTabErrorView, retry
 }
 
 /// Унифицированный стейт контентных табов (video / channels / models / events).
@@ -903,6 +903,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Error-заглушки контентных табов. Создаются on-demand в момент первой
     // ошибки (см. ensureTabError(...)) — для большинства сессий вообще
     // не аллоцируются, потому что api-запросы успешны.
+    private var photoErrorView: ProfileTabErrorView?
     private var videoErrorView: ProfileTabErrorView?
     private var channelsErrorView: ProfileTabErrorView?
     private var modelsErrorView: ProfileTabErrorView?
@@ -2449,12 +2450,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
             galleryStatusView.isHidden = true
             photoEmptyView.isHidden = true
             galleryCollectionView.isHidden = true
+            photoErrorView?.isHidden = true
         case .content:
             photoGalleryShimmerView.stopAnimation()
             photoGalleryShimmerView.isHidden = true
             galleryStatusView.isHidden = true
             photoEmptyView.isHidden = true
             galleryCollectionView.isHidden = false
+            photoErrorView?.isHidden = true
         case .empty:
             photoGalleryShimmerView.stopAnimation()
             photoGalleryShimmerView.isHidden = true
@@ -2462,16 +2465,18 @@ final class PublicProfileScreenNode: ASDisplayNode {
             galleryCollectionView.isHidden = true
             photoEmptyView.isHidden = false
             configureProfileEmptyView(for: .photo, isMyProfile: model.isMyProfile)
-        case .failed:
-            // Ошибка загрузки фото — снимаем шиммер. UX ошибки (снекбар +
-            // retry) — на уровне выше; здесь оставляем зону пустой.
+            photoErrorView?.isHidden = true
+        case .failed(let isNetwork):
             photoGalleryShimmerView.stopAnimation()
             photoGalleryShimmerView.isHidden = true
             galleryStatusView.isHidden = true
             galleryCollectionView.isHidden = true
             photoEmptyView.isHidden = true
+            let errorView = ensureTabError(&photoErrorView, in: photoTabContainer)
+            errorView.configure(tab: .photo, networkError: isNetwork) { [weak self] in
+                self?.retryPhotoLoad()
+            }
         }
-
     }
 
     private func applyVideoPhase() {
@@ -2649,6 +2654,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // соответствующий API-запрос. Pagination-state video-таба сбрасываем
     // полностью, потому что первая страница не пришла.
 
+    private func retryPhotoLoad() {
+        resetGalleryPagination()
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.clearGalleryData()
+        }
+        photoPhase = .loading
+        loadNextGalleryPage()
+    }
+
     private func retryVideoLoad() {
         videoGalleryItems = []
         videoGalleryTotalCount = 0
@@ -2725,8 +2739,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     /// Контроллер вызывает в error-ветке loadGalleryPage первой страницы.
-    func markPhotoGalleryFailed() {
-        photoPhase = .failed
+    /// `networkError` определяет текст в `ProfileTabErrorView`: true →
+    /// «Нет подключения к интернету», false → «Не удалось загрузить фото».
+    func markPhotoGalleryFailed(networkError: Bool) {
+        photoPhase = .failed(networkError: networkError)
     }
 
     /// Контроллер вызывает в error-ветках первой страницы соответствующего

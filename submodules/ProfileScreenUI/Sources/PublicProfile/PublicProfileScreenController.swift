@@ -615,12 +615,13 @@ extension PublicProfileScreenController {
                 }
             } catch {
                 self.debugLog("[DivoAPI] user/\(userId) error: \(error)")
+                let isNetwork = self.isNetworkError(error)
                 await MainActor.run {
                     self.controllerNode.setGalleryLoading(false)
                     // Только на первой странице переводим photoPhase в .failed:
                     // иначе пагинационная ошибка спрячет уже отрендеренный grid.
                     if offset == 0 {
-                        self.controllerNode.markPhotoGalleryFailed()
+                        self.controllerNode.markPhotoGalleryFailed(networkError: isNetwork)
                     }
                     self.activeGalleryController?.finishLoadingWithoutNewData()
                 }

@@ -1,13 +1,19 @@
 import UIKit
 import TelegramCore
+import DivoUIKit
 
 final class GalleryCell: UICollectionViewCell {
-    
+
     private let imageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.translatesAutoresizingMaskIntoConstraints = false
+        // Серый placeholder-фон видим пока URL грузится. ShimmerView из
+        // loadImage добавляется поверх, но на момент cellForItemAt cell ещё
+        // не layoutted (bounds = .zero) — без bg-цвета ячейка визуально
+        // белая, в галерее это выглядело как «нет фото».
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         return iv
     }()
 

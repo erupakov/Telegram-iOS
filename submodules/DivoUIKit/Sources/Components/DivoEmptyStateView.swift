@@ -132,10 +132,13 @@ public final class DivoEmptyStateView: UIView {
 
         if let ctaTitle = config.ctaTitle {
             let button = installCTAButton(inline: inlineCTA)
+            // По дизайну compact-CTA в empty-state: HelveticaNeue-CondensedBold 16.
+            // Полноразмерная (non-compact) CTA остаётся на дефолтных 20pt.
+            let buttonFont = inlineCTA ? Font.helveticaNeue(16) : Font.helveticaNeue(20)
             if let leadingIcon = config.ctaLeadingIcon {
-                button.makeDivoButton(title: ctaTitle, leadingIcon: leadingIcon, compact: inlineCTA)
+                button.makeDivoButton(title: ctaTitle, leadingIcon: leadingIcon, buttonFont: buttonFont, compact: inlineCTA)
             } else {
-                button.makeDivoButton(title: ctaTitle)
+                button.makeDivoButton(title: ctaTitle, buttonFont: buttonFont)
             }
             ctaAction = config.onCTATapped
         } else {
