@@ -55,7 +55,11 @@ public final class SearchResultGridCell: UICollectionViewCell {
     }()
 
     private let progressiveBlurView: UIVisualEffectView = {
-        let blurEffect = UIBlurEffect(style: .light)
+        // Dark material — пока фото не загрузилось, чтобы дать scrim
+        // для белого текста на светлом placeholder. После загрузки фото
+        // переключаемся на `.light` — прежний визуал blur поверх фото
+        // (см. configure).
+        let blurEffect = UIBlurEffect(style: .systemUltraThinMaterialDark)
         let blurView = UIVisualEffectView(effect: blurEffect)
         blurView.alpha = 0.0
         blurView.translatesAutoresizingMaskIntoConstraints = false
@@ -428,10 +432,14 @@ public final class SearchResultGridCell: UICollectionViewCell {
 
         if let url = viewModel.imageURL {
             applyDarkTextStyle(false)
+            // Blur показываем сразу — на dark material даёт scrim для
+            // белого текста на placeholder. Когда фото загрузится —
+            // переключаем material на `.light` (прежний визуал поверх фото).
+            progressiveBlurView.effect = UIBlurEffect(style: .systemUltraThinMaterialDark)
+            animateBlurAppearance()
             backgroundImageView.loadImage(from: url) { [weak self] image in
                 guard let self, image != nil else { return }
-                self.layoutIfNeeded()
-                self.animateBlurAppearance()
+                self.progressiveBlurView.effect = UIBlurEffect(style: .light)
             }
         } else {
             applyDarkTextStyle(true)

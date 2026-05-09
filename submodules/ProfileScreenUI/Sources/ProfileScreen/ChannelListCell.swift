@@ -24,7 +24,7 @@ final class ChannelListCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = avatarSize / 2
-        iv.backgroundColor = DivoColorPalette.imagePlaceholderDark
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()

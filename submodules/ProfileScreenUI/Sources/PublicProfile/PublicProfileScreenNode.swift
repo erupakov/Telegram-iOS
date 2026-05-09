@@ -34,17 +34,82 @@ public enum Role {
     }
 }
 
+// MARK: - Screen state types
+//
+// Один источник правды для loading-стейта экрана. API-колбэки выставляют
+// новый стейт, applyState() атомарно расставляет все view'шки. Это
+// исключает рассинхрон, который раньше получался из-за дюжины разрозненных
+// флагов (galleryInitialized, similarProfilesIsLoading, ...).
+
+/// Стадия загрузки всего экрана (= стадия профильного запроса).
+enum ScreenLoadPhase: Equatable {
+    case loading    // профильные шиммеры (header/info/social/segment) видны, scroll/swipe залочены
+    case ready      // профиль загружен, шиммеры сняты, скролл/свайп активны
+    case failed     // ошибка загрузки профиля (заглушка + снекбар)
+}
+
+/// Стейт фото-таба. Управляется отдельно: профиль может быть `.ready`,
+/// а фото ещё в `.loading` (фото-шиммер показан в photoTabContainer).
+enum PhotoTabPhase: Equatable {
+    case loading    // photoGalleryShimmerView (2 ряда)
+    case content    // galleryCollectionView с реальными фото
+    case empty      // photoEmptyView (центрированный плейсхолдер)
+    case failed(networkError: Bool)  // ProfileTabErrorView, retry
+}
+
+/// Унифицированный стейт контентных табов (video / channels / models / events).
+/// Семантика идентичная для всех четырёх — используем общий тип.
+/// `.failed` показывает `ProfileTabErrorView` поверх таба с retry-кнопкой.
+enum ContentTabPhase: Equatable {
+    case loading    // shimmer-сетка / список
+    case content    // collectionView с реальными items
+    case empty      // emptyView (профильный плейсхолдер)
+    case failed(networkError: Bool)  // ProfileTabErrorView, retry
+}
+
+/// Стейт карусели similar внутри photo-таба. Шиммер не показываем — данные
+/// приходят редко, поэтому контейнер либо скрыт, либо виден с реальными карточками.
+enum SimilarPhase: Equatable {
+    case hidden     // similarProfilesCollectionContainer.isHidden = true
+    case visible    // показан с данными из similarProfiles
+}
+
 final class PublicProfileScreenNode: ASDisplayNode {
     private static let mockBiographyText = DivoStrings.noBiography
     private static let mockBiographyMyProfileText = DivoStrings.fillInInfoAboutYou
     private let model: ProfileModel
     private var modelDetail: UserDetail?
     private var modelRole: Role = .model
-    /// myProfile, но НЕ agency (у agency свой набор табов)
-    private var isMyModelProfile: Bool {
-        model.isMyProfile && modelRole != .agency
-    }
     private var avatarImage: UIImage?
+
+    // MARK: - Screen state (см. enum'ы выше)
+
+    /// Стадия профиля. didSet → applyState() атомарно расставляет всё.
+    private var screenPhase: ScreenLoadPhase = .loading {
+        didSet { if oldValue != screenPhase { applyState() } }
+    }
+    /// Стадия photo-таба.
+    private var photoPhase: PhotoTabPhase = .loading {
+        didSet { if oldValue != photoPhase { applyState() } }
+    }
+    /// Стадии остальных контентных табов. Каждый управляется независимо
+    /// (data-запросы идут параллельно с профильным).
+    private var videoPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != videoPhase { applyState() } }
+    }
+    private var channelsPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != channelsPhase { applyState() } }
+    }
+    private var modelsPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != modelsPhase { applyState() } }
+    }
+    private var eventsPhase: ContentTabPhase = .loading {
+        didSet { if oldValue != eventsPhase { applyState() } }
+    }
+    /// Стадия similar-карусели (внутри photo-таба).
+    private var similarPhase: SimilarPhase = .hidden {
+        didSet { if oldValue != similarPhase { applyState() } }
+    }
 
     private weak var controller: ViewController?
     private let context: AccountContext
@@ -57,6 +122,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Управление моментом, когда начинаем анимировать title в навбаре
     private var titleVisibilityActivated = false
+    /// Установлен ли начальный contentOffset под contentInset.top — нужно один
+    /// раз на первый layout, чтобы контент сразу встал под navbar.
+    private var hasInitialContentOffsetApplied = false
     private var isPerformingLayout = false
     
     private var headerHeightConstraint: NSLayoutConstraint!
@@ -91,6 +159,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }()
     
     private let blurredHeaderImageView: UIVisualEffectView = {
+        // .systemUltraThinMaterialDark — самое тонкое тёмное стекло.
+        // На пёстром/тёмном фото практически сливается с фотографией;
+        // на светлом однотонном (голубой / белый header) даёт лёгкий
+        // scrim для читаемости логотипа и имени, без «стеклянной плашки»
+        // с резкой границей, которую давал .regular.
+        // Mask настраивается в `applyGradientBlurMask` 3-stop gradient'ом
+        // (те же параметры что bottom glass карточек ModelsFeed): top of
+        // view прозрачно, bottom — solid blur, fade ~75% высоты.
         let effect = UIBlurEffect(style: .systemUltraThinMaterialDark)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -389,8 +465,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private var segmentedBarTopConstraint: NSLayoutConstraint?
     private let segmentedBarHeight: CGFloat = 32.0
-    
-    
+
     // MARK: - Gallery Collections Section
     
     private let collectionsContainer: UIView = {
@@ -403,15 +478,52 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     
     // MARK: - Tabs & Swipe Logic Variables
-    
+
     private var galleryHeightConstraint: NSLayoutConstraint!
     private var videoHeightConstraint: NSLayoutConstraint!
     private var channelHeightConstraint: NSLayoutConstraint!
     private var modelHeightConstraint: NSLayoutConstraint!
     private var eventHeightConstraint: NSLayoutConstraint!
-    
+
     private var currentTab: ProfileTab = .photo
     private var collectionsContainerHeightConstraint: NSLayoutConstraint!
+
+    // Горизонтальный paging-скролл для табов: 1 страница = 1 таб.
+    // Свайп — нативный, тап на дальний таб делается через snapshot+fade
+    // с мгновенным contentOffset (без промежуточных слайдов).
+    private let tabsPager: UIScrollView = {
+        let scroll = UIScrollView()
+        scroll.isPagingEnabled = true
+        scroll.showsHorizontalScrollIndicator = false
+        scroll.showsVerticalScrollIndicator = false
+        scroll.bounces = false
+        scroll.contentInsetAdjustmentBehavior = .never
+        // Белый — единый фон под всеми табами (см. updateContainerBackgrounds).
+        scroll.backgroundColor = DivoColorPalette.profileEmptyBackground
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+        return scroll
+    }()
+
+    // У каждого таб-контейнера своя высота — благодаря этому центрированный
+    // эмпти-стейт центрируется в собственной фиксированной высоте таба
+    // и не «подъезжает» при смене высоты `collectionsContainer`.
+    private var photoTabHeightConstraint: NSLayoutConstraint!
+    private var videoTabHeightConstraint: NSLayoutConstraint!
+    private var channelTabHeightConstraint: NSLayoutConstraint!
+    private var modelTabHeightConstraint: NSLayoutConstraint!
+    private var eventTabHeightConstraint: NSLayoutConstraint!
+
+    // Констрейнты, которые перестраиваются при смене набора видимых табов
+    // (зависит от роли — см. `orderedTabs`).
+    private var pagerLayoutConstraints: [NSLayoutConstraint] = []
+
+    // Защита от вторичных анимаций высоты во время переключения таба:
+    // когда async-загрузка прилетает в фоне, мы не дёргаем layout анимировано.
+    private var isTabSwitching: Bool = false
+
+    // Ширина шиммера сегмент-бара зависит от роли (3 таба vs 5).
+    private var segmentShimmerWidthConstraint: NSLayoutConstraint?
+
     
     private let photoTabContainer: UIView = {
         let view = UIView()
@@ -422,28 +534,24 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private let videoTabContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.isHidden = true
         return view
     }()
-    
+
     private let channelTabContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.isHidden = true
         return view
     }()
-    
+
     private let modelTabContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.isHidden = true
         return view
     }()
-    
+
     private let eventTabContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
-        view.isHidden = true
         return view
     }()
     
@@ -600,6 +708,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let bottomSpacer: UIView = {
         let view = UIView()
+        // Белый — единый фон со всеми контейнерами таба. На практике
+        // bottomSpacer всегда hidden (см. updateBottomSpacerVisibility),
+        // bg оставлен для консистентности на случай возврата видимости.
         view.backgroundColor = DivoColorPalette.profileEmptyBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -614,6 +725,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private let similarProfilesCollectionContainer: UIView = {
         let view = UIView()
+        // Белый — единый фон под всеми табами (см. updateContainerBackgrounds).
         view.backgroundColor = DivoColorPalette.profileEmptyBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
@@ -716,6 +828,50 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return view
     }()
 
+    // Скелетон во время первичной загрузки фото-таба (3-колоночная сетка
+    // шиммер-ячеек). Заменяет старый galleryStatusView со starburst-спиннером.
+    private let photoGalleryShimmerView: PhotoGalleryShimmerView = {
+        let view = PhotoGalleryShimmerView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
+    // Обёртка для зоны фото-сетки внутри photoTabContainer. Внутри неё
+    // overlap'ятся galleryCollectionView, galleryStatusView, photoEmptyView,
+    // photoGalleryShimmerView. Снаружи (но всё ещё в photoTabContainer)
+    // ниже неё ставится similarProfilesCollectionContainer.
+    private let galleryAreaWrapper: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    private var galleryAreaHeightConstraint: NSLayoutConstraint!
+    private var similarSectionHeightConstraint: NSLayoutConstraint!
+
+    // Шиммеры остальных табов (заменяют их starburst-спиннеры в *GalleryStatusView).
+    // video — 3-колоночная сетка (как photo). channels/models/events — список
+    // 66pt-рядов с rounded corners.
+    private let videoGalleryShimmerView: PhotoGalleryShimmerView = {
+        let view = PhotoGalleryShimmerView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    private let channelGalleryShimmerView: GalleryListShimmerView = {
+        let view = GalleryListShimmerView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    private let modelGalleryShimmerView: GalleryListShimmerView = {
+        let view = GalleryListShimmerView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    private let eventGalleryShimmerView: GalleryListShimmerView = {
+        let view = GalleryListShimmerView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     private let videoEmptyView: DivoEmptyStateView = {
         let view = DivoEmptyStateView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -744,6 +900,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return view
     }()
 
+    // Error-заглушки контентных табов. Создаются on-demand в момент первой
+    // ошибки (см. ensureTabError(...)) — для большинства сессий вообще
+    // не аллоцируются, потому что api-запросы успешны.
+    private var photoErrorView: ProfileTabErrorView?
+    private var videoErrorView: ProfileTabErrorView?
+    private var channelsErrorView: ProfileTabErrorView?
+    private var modelsErrorView: ProfileTabErrorView?
+    private var eventsErrorView: ProfileTabErrorView?
+
     // MARK: - NavigationBar
     
     private let customNavBar: UIView = {
@@ -760,7 +925,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         button.setImage(image, for: .highlighted)
         button.tintColor = DivoColorPalette.cardBackground
 
-        button.backgroundColor = .clear
+        button.backgroundColor = DivoColorPalette.cardBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         button.layer.masksToBounds = true
         button.layer.borderWidth = 0.5
@@ -772,7 +937,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let rightButtonContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .clear
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
         view.layer.masksToBounds = true
         view.layer.borderWidth = 0.5
@@ -843,7 +1008,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var isSavingProcess: Bool = false
 
     private let navBarBlurView: UIVisualEffectView = {
-        let effect = UIBlurEffect(style: .systemUltraThinMaterialLight)
+        // .systemChromeMaterialLight — толстое frosted "стекло", аналог
+        // toolbar на macOS / native UINavigationBar в iOS Telegram. Светло-
+        // серое полупрозрачное полотно, пропускает оттенки фона. Доступен
+        // с iOS 13.
+        let effect = UIBlurEffect(style: .systemChromeMaterialLight)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.alpha = 0.0
@@ -897,12 +1066,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.model = model
 
         super.init()
-        
-        self.view.backgroundColor = DivoColorPalette.darkBackground
+
+        // Белый фон вью — fallback на случай прозрачных зон.
+        self.view.backgroundColor = DivoColorPalette.profileEmptyBackground
 
         setupContent()
-        configureNodes()
         segmentedBar.configure(isAgency: model.role == "agency_employee", isMyProfile: model.isMyProfile, animated: false)
+        rebuildTabsPagerLayout()
+        // Initial state: screenPhase = .loading + photoPhase = .loading + similarPhase = .hidden
+        // (значения по умолчанию у stored properties). applyState() расставит
+        // шиммеры, заблокирует scroll/swipe.
+        applyState()
     }
     
     required init?(coder: NSCoder) {
@@ -938,7 +1112,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
             let currentSpacerHeight = bottomSpacer.isHidden ? 0 : bottomSpacerHeightConstraint.constant
             let contentWithoutSpacer = contentHeight - currentSpacerHeight
             let bottomSafeInset = layout.intrinsicInsets.bottom
-            let neededSpacerHeight = max(bottomSafeInset + 12, minContentHeight - contentWithoutSpacer)
+            // Минимум = safeArea + 4 — последний элемент стоит чуть над home
+            // indicator (не перегораживается им). Для короткого контента
+            // spacer ещё больше — добивает белым до view.bottom.
+            let neededSpacerHeight = max(bottomSafeInset + 4, minContentHeight - contentWithoutSpacer)
             if !bottomSpacer.isHidden, abs(neededSpacerHeight - currentSpacerHeight) > 1.0 {
                 bottomSpacerHeightConstraint.constant = neededSpacerHeight
                 contentHeight = contentWithoutSpacer + neededSpacerHeight
@@ -947,7 +1124,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         contentViewStack.frame = CGRect(x: 0, y: 0, width: stackWidth, height: contentHeight)
         scrollView.contentSize = CGSize(width: stackWidth, height: contentHeight)
-        
+
         applyGradientBlurMask()
         updateNavBarBlurMask()
         
@@ -1018,43 +1195,51 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func updateNavBarBlurMask() {
         let bounds = navBarBlurView.bounds
         guard bounds.height > 0 else { return }
-        
-        // 1. ЦВЕТОВОЙ ГРАДИЕНТ (Linear Gradient из Figma)
+        guard let (_, navHeight) = self.containerLayout else { return }
+
+        // Точка отсечения = collectionsContainer.top в sticky-state
+        // (= navHeight + segmentBarHeight + 10). Считаем долю от bounds.height
+        // динамически — иначе на разных safeArea.top mask промахивается мимо
+        // tab content.
+        let cutoffPt = navHeight + segmentedBarHeight + 10
+        let cutoff = max(0.30, min(0.95, cutoffPt / bounds.height))
+        let glassEnd = max(0.0, cutoff - 0.18)        // glass на customNavBar
+        let fadeMid = max(glassEnd, cutoff - 0.06)     // быстрый фейд
+
         if navBarWhiteGradientLayer.superlayer == nil {
             navBarBlurView.contentView.layer.insertSublayer(navBarWhiteGradientLayer, at: 0)
         }
         navBarWhiteGradientLayer.frame = bounds
+        // Clear сверху (виден chrome glass) → solid white к cutoff
+        // (бесшовный стык с белым tab content).
         navBarWhiteGradientLayer.colors = [
-            UIColor.white.withAlphaComponent(0.74).cgColor,
-            UIColor.white.withAlphaComponent(0.70).cgColor,
-            UIColor.white.withAlphaComponent(0.20).cgColor,
-            UIColor.clear.cgColor
+            UIColor.white.withAlphaComponent(0.0).cgColor,
+            UIColor.white.withAlphaComponent(0.0).cgColor,
+            UIColor.white.withAlphaComponent(1.0).cgColor,
+            UIColor.white.withAlphaComponent(1.0).cgColor
         ]
-
         navBarWhiteGradientLayer.locations = [
             0.0,
-            0.15,
-            0.45,
-            0.70
+            glassEnd as NSNumber,
+            cutoff as NSNumber,
+            1.0
         ]
 
         let maskLayer = CAGradientLayer()
         maskLayer.frame = bounds
-
         maskLayer.colors = [
             UIColor.black.cgColor,
             UIColor.black.cgColor,
             UIColor.black.withAlphaComponent(0.4).cgColor,
             UIColor.clear.cgColor
         ]
-
         maskLayer.locations = [
             0.0,
-            0.22,
-            0.50,
-            0.75
+            glassEnd as NSNumber,
+            fadeMid as NSNumber,
+            cutoff as NSNumber
         ]
-        
+
         navBarBlurView.layer.mask = maskLayer
     }
 
@@ -1251,8 +1436,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupScrollView() {
         self.view.addSubview(scrollView)
 
-        scrollView.addSubview(whiteSheetBackground) 
-        
+        scrollView.addSubview(whiteSheetBackground)
+
         NSLayoutConstraint.activate([
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
@@ -1279,12 +1464,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private func setupSegmentedBar() {
         self.view.addSubview(segmentedBar)
-        
+
         NSLayoutConstraint.activate([
             segmentedBar.centerXAnchor.constraint(equalTo: contentViewStack.centerXAnchor),
             segmentedBar.heightAnchor.constraint(equalToConstant: segmentedBarHeight),
         ])
-        
+
         segmentedBarTopConstraint = segmentedBar.topAnchor.constraint(equalTo: self.view.topAnchor)
         segmentedBarTopConstraint?.isActive = true
     }
@@ -1303,16 +1488,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private func setupMovingBlur() {
         scrollView.insertSubview(blurredHeaderImageView, at: 0)
-        
+
         NSLayoutConstraint.activate([
             blurredHeaderImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             blurredHeaderImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            
+
             blurredHeaderImageView.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor, constant: -40),
             blurredHeaderImageView.bottomAnchor.constraint(equalTo: profileInfoContainer.topAnchor, constant: -20)
         ])
     }
-    
+
+
     private func setupCounterActionsContainer() {
         contentViewStack.addArrangedSubview(counterActionsContainer)
         counterActionsContainer.addSubview(actionsShimmerView)
@@ -1569,60 +1755,121 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
             segmentedBarShimmer.centerXAnchor.constraint(equalTo: segmentedBarContainer.centerXAnchor),
             segmentedBarShimmer.heightAnchor.constraint(equalToConstant: 32),
-            segmentedBarShimmer.widthAnchor.constraint(equalToConstant: 172),
         ])
-        
+
+        // Ширина шиммера сегмента под роль: 3 таба для модели, 5 для агентства.
+        // Изначально берём из raw model.role (до updateWithUserDetail
+        // typed modelRole ещё дефолтный); после прихода данных
+        // applySegmentShimmerWidth(isAgency:) обновит при необходимости.
+        segmentShimmerWidthConstraint = segmentedBarShimmer.widthAnchor.constraint(
+            equalToConstant: segmentShimmerWidth(isAgency: model.role == "agency_employee")
+        )
+        segmentShimmerWidthConstraint?.isActive = true
+
         contentViewStack.setCustomSpacing(10, after: segmentedBarContainer)
+    }
+
+    private func segmentShimmerWidth(isAgency: Bool) -> CGFloat {
+        // Согласовано визуально с шириной реальной пилюли сегмент-бара.
+        // 3 таба ≈ 172pt (раньше прописано константой); 5 табов — пропорционально.
+        return isAgency ? 287 : 172
+    }
+
+    private func applySegmentShimmerWidth(isAgency: Bool) {
+        let w = segmentShimmerWidth(isAgency: isAgency)
+        guard segmentShimmerWidthConstraint?.constant != w else { return }
+        segmentShimmerWidthConstraint?.constant = w
     }
     
     private func setupAllCollectionsLayers() {
         contentViewStack.addArrangedSubview(collectionsContainer)
 
-        // whiteSheetBackground (серая «подложка» под bio + segmented bar) тянется до верха
-        // collectionsContainer. Активируем здесь, потому что в setupProfileInfoContainer
-        // collectionsContainer ещё не в иерархии scrollView.
+        // whiteSheetBackground — серая подложка под bio/social, за сегмент-
+        // баром И в 10pt gap. В non-sticky даёт серую полоску под пилюлёй,
+        // как ты просила. В sticky-стейте перекрывается navBarBlurView сверху
+        // (chrome-стекло + gradient к solid white в нижней части).
         whiteSheetBackground.bottomAnchor.constraint(equalTo: collectionsContainer.topAnchor).isActive = true
 
         collectionsContainerHeightConstraint = collectionsContainer.heightAnchor.constraint(equalToConstant: 160)
         collectionsContainerHeightConstraint.isActive = true
-        
-        let containers = [photoTabContainer, videoTabContainer, channelTabContainer, modelTabContainer, eventTabContainer]
-        for container in containers {
-            collectionsContainer.addSubview(container)
-            NSLayoutConstraint.activate([
-                container.topAnchor.constraint(equalTo: collectionsContainer.topAnchor),
-                container.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor),
-                container.trailingAnchor.constraint(equalTo: collectionsContainer.trailingAnchor),
-                container.bottomAnchor.constraint(equalTo: collectionsContainer.bottomAnchor)
-            ])
-        }
+
+        // Горизонтальный paging-скролл — хост табов. Высота пейджера = высоте
+        // collectionsContainer, ширина страницы = ширине пейджера. У каждого
+        // таб-контейнера внутри своя высота (см. *TabHeightConstraint),
+        // поэтому центрированный эмпти-стейт стабилен на screen-Y и не
+        // «подъезжает» при изменении высоты соседних табов.
+        collectionsContainer.addSubview(tabsPager)
+        NSLayoutConstraint.activate([
+            tabsPager.topAnchor.constraint(equalTo: collectionsContainer.topAnchor),
+            tabsPager.leadingAnchor.constraint(equalTo: collectionsContainer.leadingAnchor),
+            tabsPager.trailingAnchor.constraint(equalTo: collectionsContainer.trailingAnchor),
+            tabsPager.bottomAnchor.constraint(equalTo: collectionsContainer.bottomAnchor),
+        ])
+        tabsPager.delegate = self
+
+        photoTabHeightConstraint = photoTabContainer.heightAnchor.constraint(equalToConstant: 1)
+        videoTabHeightConstraint = videoTabContainer.heightAnchor.constraint(equalToConstant: 1)
+        channelTabHeightConstraint = channelTabContainer.heightAnchor.constraint(equalToConstant: 1)
+        modelTabHeightConstraint = modelTabContainer.heightAnchor.constraint(equalToConstant: 1)
+        eventTabHeightConstraint = eventTabContainer.heightAnchor.constraint(equalToConstant: 1)
+        NSLayoutConstraint.activate([
+            photoTabHeightConstraint,
+            videoTabHeightConstraint,
+            channelTabHeightConstraint,
+            modelTabHeightConstraint,
+            eventTabHeightConstraint,
+        ])
         
         // --- PHOTO ---
         // ЗАМЕНА: Сохраняем констрейнт высоты
         galleryHeightConstraint = galleryCollectionView.heightAnchor.constraint(equalToConstant: 1)
         galleryHeightConstraint.isActive = true
         
-        photoTabContainer.addSubview(galleryCollectionView)
-        photoTabContainer.addSubview(galleryStatusView)
-        photoTabContainer.addSubview(photoEmptyView)
+        // photoTabContainer теперь делится на 2 секции:
+        //   1) galleryAreaWrapper — gallery + status + empty + shimmer (overlap'ятся)
+        //   2) similarProfilesCollectionContainer — переехал из contentViewStack
+        // Между ними 0pt: similar ставится сразу под gallery без зазора.
+        // Ниже в этом методе (после блока EVENTS) фактически переносим similar.
+
+        photoTabContainer.addSubview(galleryAreaWrapper)
+        galleryAreaWrapper.addSubview(galleryCollectionView)
+        galleryAreaWrapper.addSubview(galleryStatusView)
+        galleryAreaWrapper.addSubview(photoEmptyView)
+        galleryAreaWrapper.addSubview(photoGalleryShimmerView)
+
+        galleryAreaHeightConstraint = galleryAreaWrapper.heightAnchor.constraint(equalToConstant: 1)
+        galleryAreaHeightConstraint.isActive = true
 
         NSLayoutConstraint.activate([
-            galleryCollectionView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
-            galleryCollectionView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor),
-            galleryCollectionView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor),
+            galleryAreaWrapper.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
+            galleryAreaWrapper.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor),
+            galleryAreaWrapper.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor),
+
+            galleryCollectionView.topAnchor.constraint(equalTo: galleryAreaWrapper.topAnchor),
+            galleryCollectionView.leadingAnchor.constraint(equalTo: galleryAreaWrapper.leadingAnchor),
+            galleryCollectionView.trailingAnchor.constraint(equalTo: galleryAreaWrapper.trailingAnchor),
 
             galleryStatusView.heightAnchor.constraint(equalToConstant: 160),
-            galleryStatusView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
-            galleryStatusView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            galleryStatusView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            galleryStatusView.topAnchor.constraint(equalTo: galleryAreaWrapper.topAnchor),
+            galleryStatusView.leadingAnchor.constraint(equalTo: galleryAreaWrapper.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            galleryStatusView.trailingAnchor.constraint(equalTo: galleryAreaWrapper.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
-            photoEmptyView.topAnchor.constraint(equalTo: photoTabContainer.topAnchor),
-            photoEmptyView.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor),
-            photoEmptyView.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor),
-            photoEmptyView.bottomAnchor.constraint(equalTo: photoTabContainer.bottomAnchor),
+            photoEmptyView.topAnchor.constraint(equalTo: galleryAreaWrapper.topAnchor),
+            photoEmptyView.leadingAnchor.constraint(equalTo: galleryAreaWrapper.leadingAnchor),
+            photoEmptyView.trailingAnchor.constraint(equalTo: galleryAreaWrapper.trailingAnchor),
+            photoEmptyView.bottomAnchor.constraint(equalTo: galleryAreaWrapper.bottomAnchor),
+
+            photoGalleryShimmerView.topAnchor.constraint(equalTo: galleryAreaWrapper.topAnchor),
+            photoGalleryShimmerView.leadingAnchor.constraint(equalTo: galleryAreaWrapper.leadingAnchor),
+            photoGalleryShimmerView.trailingAnchor.constraint(equalTo: galleryAreaWrapper.trailingAnchor),
+            photoGalleryShimmerView.bottomAnchor.constraint(equalTo: galleryAreaWrapper.bottomAnchor),
         ])
         galleryCollectionView.isHidden = true
-        galleryStatusView.isHidden = false
+        // На первичной загрузке показываем skeleton-shimmer, а не starburst-спиннер.
+        // galleryStatusView оставляем для пользовательских upload-сценариев
+        // (включается в setGalleryLoading, когда galleryInitialized == true).
+        galleryStatusView.isHidden = true
+        photoGalleryShimmerView.isHidden = false
         galleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingPhotos, isMyProfile: false)
         galleryStatusView.addTarget(self, action: #selector(galleryStatusTapped), for: .touchUpInside)
 
@@ -1634,6 +1881,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoTabContainer.addSubview(videoGalleryCollectionView)
         videoTabContainer.addSubview(videoGalleryStatusView)
         videoTabContainer.addSubview(videoEmptyView)
+        videoTabContainer.addSubview(videoGalleryShimmerView)
 
         NSLayoutConstraint.activate([
             videoGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
@@ -1649,9 +1897,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
             videoEmptyView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor),
             videoEmptyView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor),
             videoEmptyView.bottomAnchor.constraint(equalTo: videoTabContainer.bottomAnchor),
+
+            videoGalleryShimmerView.topAnchor.constraint(equalTo: videoTabContainer.topAnchor),
+            videoGalleryShimmerView.leadingAnchor.constraint(equalTo: videoTabContainer.leadingAnchor),
+            videoGalleryShimmerView.trailingAnchor.constraint(equalTo: videoTabContainer.trailingAnchor),
+            videoGalleryShimmerView.bottomAnchor.constraint(equalTo: videoTabContainer.bottomAnchor),
         ])
         videoGalleryCollectionView.isHidden = true
-        videoGalleryStatusView.isHidden = false
+        // status-view со starburst-спиннером скрыт по дефолту, его заменяет
+        // skeleton-shimmer. Останется только для пользовательских upload-сценариев.
+        videoGalleryStatusView.isHidden = true
+        videoGalleryShimmerView.isHidden = false
         videoGalleryStatusView.configure(isLoading: true, text: DivoStrings.uploadingVideos, isMyProfile: false)
         videoGalleryStatusView.addTarget(self, action: #selector(videoGalleryStatusTapped), for: .touchUpInside)
 
@@ -1663,6 +1919,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         channelTabContainer.addSubview(channelGalleryStatusView)
         channelTabContainer.addSubview(channelGalleryCollectionView)
         channelTabContainer.addSubview(channelsEmptyView)
+        channelTabContainer.addSubview(channelGalleryShimmerView)
         NSLayoutConstraint.activate([
             channelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
             channelGalleryStatusView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
@@ -1677,9 +1934,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
             channelsEmptyView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor),
             channelsEmptyView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor),
             channelsEmptyView.bottomAnchor.constraint(equalTo: channelTabContainer.bottomAnchor),
+
+            channelGalleryShimmerView.topAnchor.constraint(equalTo: channelTabContainer.topAnchor),
+            channelGalleryShimmerView.leadingAnchor.constraint(equalTo: channelTabContainer.leadingAnchor),
+            channelGalleryShimmerView.trailingAnchor.constraint(equalTo: channelTabContainer.trailingAnchor),
+            channelGalleryShimmerView.bottomAnchor.constraint(equalTo: channelTabContainer.bottomAnchor),
         ])
         channelGalleryCollectionView.isHidden = true
-        channelGalleryStatusView.isHidden = false
+        channelGalleryStatusView.isHidden = true
+        channelGalleryShimmerView.isHidden = false
         channelGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingChannels, isMyProfile: false)
         
         // --- MODELS ---
@@ -1690,6 +1953,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         modelTabContainer.addSubview(modelGalleryStatusView)
         modelTabContainer.addSubview(modelGalleryCollectionView)
         modelTabContainer.addSubview(modelsEmptyView)
+        modelTabContainer.addSubview(modelGalleryShimmerView)
 
         NSLayoutConstraint.activate([
             modelGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
@@ -1705,9 +1969,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
             modelsEmptyView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
             modelsEmptyView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
             modelsEmptyView.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
+
+            modelGalleryShimmerView.topAnchor.constraint(equalTo: modelTabContainer.topAnchor),
+            modelGalleryShimmerView.leadingAnchor.constraint(equalTo: modelTabContainer.leadingAnchor),
+            modelGalleryShimmerView.trailingAnchor.constraint(equalTo: modelTabContainer.trailingAnchor),
+            modelGalleryShimmerView.bottomAnchor.constraint(equalTo: modelTabContainer.bottomAnchor),
         ])
         modelGalleryCollectionView.isHidden = true
-        modelGalleryStatusView.isHidden = false
+        modelGalleryStatusView.isHidden = true
+        modelGalleryShimmerView.isHidden = false
         modelGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingModels, isMyProfile: false)
 
         // --- EVENTS ---
@@ -1718,6 +1988,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         eventTabContainer.addSubview(eventGalleryStatusView)
         eventTabContainer.addSubview(eventGalleryCollectionView)
         eventTabContainer.addSubview(eventsEmptyView)
+        eventTabContainer.addSubview(eventGalleryShimmerView)
 
         NSLayoutConstraint.activate([
             eventGalleryStatusView.heightAnchor.constraint(equalToConstant: 160),
@@ -1733,10 +2004,210 @@ final class PublicProfileScreenNode: ASDisplayNode {
             eventsEmptyView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
             eventsEmptyView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
             eventsEmptyView.bottomAnchor.constraint(equalTo: eventTabContainer.bottomAnchor),
+
+            eventGalleryShimmerView.topAnchor.constraint(equalTo: eventTabContainer.topAnchor),
+            eventGalleryShimmerView.leadingAnchor.constraint(equalTo: eventTabContainer.leadingAnchor),
+            eventGalleryShimmerView.trailingAnchor.constraint(equalTo: eventTabContainer.trailingAnchor),
+            eventGalleryShimmerView.bottomAnchor.constraint(equalTo: eventTabContainer.bottomAnchor),
         ])
         eventGalleryCollectionView.isHidden = true
-        eventGalleryStatusView.isHidden = false
+        eventGalleryStatusView.isHidden = true
+        eventGalleryShimmerView.isHidden = false
         eventGalleryStatusView.configure(isLoading: true, text: DivoStrings.loadingEvents, isMyProfile: false)
+
+        rebuildTabsPagerLayout()
+    }
+
+    // MARK: - Tabs Pager
+
+    // Правило: model — всегда 3 таба, agency — всегда 5.
+    // На момент init() modelRole ещё дефолтный, поэтому проверяем и raw
+    // model.role (строка из ProfileModel) — до updateWithUserDetail
+    // ориентируемся по ней, после — по типизированному `.agency`.
+    private var orderedTabs: [ProfileTab] {
+        let isAgencyRole = modelRole == .agency || model.role == "agency_employee"
+        if isAgencyRole {
+            return [.photo, .video, .models, .channels, .events]
+        }
+        return [.photo, .video, .channels]
+    }
+
+    private func heightConstraint(for tab: ProfileTab) -> NSLayoutConstraint {
+        switch tab {
+        case .photo: return photoTabHeightConstraint
+        case .video: return videoTabHeightConstraint
+        case .channels: return channelTabHeightConstraint
+        case .models: return modelTabHeightConstraint
+        case .events: return eventTabHeightConstraint
+        }
+    }
+
+    private func tabContainer(for tab: ProfileTab) -> UIView {
+        switch tab {
+        case .photo: return photoTabContainer
+        case .video: return videoTabContainer
+        case .models: return modelTabContainer
+        case .channels: return channelTabContainer
+        case .events: return eventTabContainer
+        }
+    }
+
+    /// Таб «без контента» — любая фаза кроме `.content` (loading / empty / failed).
+    /// Используется для расчётов высоты и фона.
+    private func isEmpty(_ tab: ProfileTab) -> Bool {
+        switch tab {
+        case .photo:    return photoPhase != .content
+        case .video:    return videoPhase != .content
+        case .channels: return channelsPhase != .content
+        case .models:   return modelsPhase != .content
+        case .events:   return eventsPhase != .content
+        }
+    }
+
+    /// Истинно «пустой» — данные пришли и оказались пустыми. До прихода данных
+    /// таб в `.loading` (шиммер) или `.failed` (error-view), а не в `.empty`.
+    private func isShowingEmptyPlaceholder(_ tab: ProfileTab) -> Bool {
+        switch tab {
+        case .photo:    return photoPhase == .empty
+        case .video:    return videoPhase == .empty
+        case .channels: return channelsPhase == .empty
+        case .models:   return modelsPhase == .empty
+        case .events:   return eventsPhase == .empty
+        }
+    }
+
+    // Высота таба: всегда `max(natural, floor)`. Floor = viewport под
+    // segment-баром + 10pt; pager занимает всю эту зону → горизонтальный
+    // свайп между табами ловится во всей видимой области, в т.ч. под
+    // коротким контентом (1 фото, 0 каналов и т.п.). bottomSpacer при
+    // этом не нужен — pager сам заполняет вьюпорт до home indicator.
+    private func tabHeight(for tab: ProfileTab) -> CGFloat {
+        let floor = fullScreenAvailableHeight()
+        if tab == .photo {
+            let natural = photoGalleryAreaHeight() + similarSectionTargetHeight()
+            return max(natural, floor)
+        }
+        if isEmpty(tab) { return floor }
+        switch tab {
+        case .photo: return max(galleryHeightConstraint.constant, floor)
+        case .video: return max(videoHeightConstraint.constant, floor)
+        case .channels: return max(channelHeightConstraint.constant, floor)
+        case .models: return max(modelHeightConstraint.constant, floor)
+        case .events: return max(eventHeightConstraint.constant, floor)
+        }
+    }
+
+    /// Высота `galleryAreaWrapper` внутри photoTabContainer — зависит
+    /// от стейта photo-таба.
+    private func photoGalleryAreaHeight() -> CGFloat {
+        switch photoPhase {
+        case .loading: return photoShimmerTabHeight()        // 2 ряда шиммер-сетки
+        case .content: return galleryHeightConstraint.constant // высота сетки фото
+        case .empty:
+            // Заполняем весь viewport под similar (если она есть) — placeholder
+            // центрируется в видимой зоне под sticky-баром.
+            return max(160, fullScreenAvailableHeight() - similarSectionTargetHeight())
+        case .failed:
+            return fullScreenAvailableHeight()
+        }
+    }
+
+    /// Высота секции similar внутри photo-таба. 0 — если контейнер скрыт
+    /// (нет данных, идёт загрузка), иначе дизайнерская высота карусели.
+    private func similarSectionTargetHeight() -> CGFloat {
+        return similarProfilesCollectionContainer.isHidden ? 0 : similarSectionVisibleHeight
+    }
+    private let similarSectionVisibleHeight: CGFloat = 250
+
+    /// Высота 2 рядов шиммер-сетки — ровно столько занимает
+    /// `PhotoGalleryShimmerView` под `maxRows = 2`. Должно быть в синхроне
+    /// с константой `columns`/`cellSpacing` в самом шиммер-вью.
+    private func photoShimmerTabHeight() -> CGFloat {
+        guard let (layout, _) = self.containerLayout else { return 270 }
+        let columns: CGFloat = 3
+        let spacing: CGFloat = 1
+        let cellSide = (layout.size.width - (columns - 1) * spacing) / columns
+        let rows: CGFloat = 2
+        return rows * cellSide + (rows - 1) * spacing
+    }
+
+    private func fullScreenAvailableHeight() -> CGFloat {
+        guard let (layout, navBarHeight) = self.containerLayout else { return 160 }
+        // Стабильный 10pt отступ под сегмент-баром во всех стейтах
+        // (см. spacing в updateCollectionsContainerHeight). Без этого
+        // при empty-стейте contentSize получает +10pt оверскролла.
+        return max(160, layout.size.height - navBarHeight - self.segmentedBarHeight - 10)
+    }
+
+
+    // Перестраивает chain-констрейнты пейджера под orderedTabs.
+    // Вызывается после первичной настройки и при смене роли — мы вызываем
+    // её сразу после segmentedBar.configure (см. updateProfileInfoView).
+    private func rebuildTabsPagerLayout() {
+        NSLayoutConstraint.deactivate(pagerLayoutConstraints)
+        pagerLayoutConstraints.removeAll()
+
+        let allContainers: [(ProfileTab, UIView)] = [
+            (.photo, photoTabContainer),
+            (.video, videoTabContainer),
+            (.models, modelTabContainer),
+            (.channels, channelTabContainer),
+            (.events, eventTabContainer),
+        ]
+        let visibleSet = Set(orderedTabs)
+        for (tab, container) in allContainers {
+            if visibleSet.contains(tab) {
+                if container.superview !== tabsPager {
+                    container.removeFromSuperview()
+                    tabsPager.addSubview(container)
+                }
+            } else if container.superview != nil {
+                container.removeFromSuperview()
+            }
+        }
+
+        let visibleContainers = orderedTabs.map { tabContainer(for: $0) }
+        guard !visibleContainers.isEmpty else { return }
+
+        let contentGuide = tabsPager.contentLayoutGuide
+        let frameGuide = tabsPager.frameLayoutGuide
+
+        var constraints: [NSLayoutConstraint] = []
+        var previousTrailing: NSLayoutXAxisAnchor = contentGuide.leadingAnchor
+
+        for container in visibleContainers {
+            constraints.append(container.topAnchor.constraint(equalTo: contentGuide.topAnchor))
+            constraints.append(container.leadingAnchor.constraint(equalTo: previousTrailing))
+            constraints.append(container.widthAnchor.constraint(equalTo: frameGuide.widthAnchor))
+            previousTrailing = container.trailingAnchor
+        }
+        constraints.append(visibleContainers.last!.trailingAnchor.constraint(equalTo: contentGuide.trailingAnchor))
+        // Привязываем contentGuide.height к frameGuide — пейджер не должен
+        // скроллиться вертикально, его высота диктуется collectionsContainer.
+        constraints.append(contentGuide.heightAnchor.constraint(equalTo: frameGuide.heightAnchor))
+
+        NSLayoutConstraint.activate(constraints)
+        pagerLayoutConstraints = constraints
+
+        // После ребилда выровняем offset на текущий таб — иначе при смене
+        // роли пейджер может остаться на «чужой» странице.
+        DispatchQueue.main.async { [weak self] in
+            self?.snapPagerToCurrentTab(animated: false)
+        }
+    }
+
+    private func pageIndex(for tab: ProfileTab) -> Int? {
+        return orderedTabs.firstIndex(of: tab)
+    }
+
+    private func snapPagerToCurrentTab(animated: Bool) {
+        guard let idx = pageIndex(for: currentTab) else { return }
+        let pageWidth = tabsPager.bounds.width
+        guard pageWidth > 0 else { return }
+        let target = CGPoint(x: CGFloat(idx) * pageWidth, y: 0)
+        if abs(tabsPager.contentOffset.x - target.x) > 0.5 {
+            tabsPager.setContentOffset(target, animated: animated)
+        }
     }
 
     private func emptyView(for tab: ProfileTab) -> DivoEmptyStateView {
@@ -1818,11 +2289,24 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     private func setupSimilarProfiles() {
-        contentViewStack.addArrangedSubview(similarProfilesCollectionContainer)
+        // similar — часть фото-таба: ставим внутрь photoTabContainer прямо
+        // под galleryAreaWrapper с 0pt gap. На остальных табах similar
+        // структурно отсутствует (никакого toggling видимости по табу).
+        photoTabContainer.addSubview(similarProfilesCollectionContainer)
         similarProfilesCollectionContainer.addSubview(similarProfilesTitleLabel)
         similarProfilesCollectionContainer.addSubview(similarProfilesCollectionView)
 
+        // Высота секции similar внутри фото-таба: 0pt, когда контейнер
+        // скрыт (нет данных или загрузка), либо ~250pt, когда показан.
+        // Управляется в applySimilarSectionHeight().
+        similarSectionHeightConstraint = similarProfilesCollectionContainer.heightAnchor.constraint(equalToConstant: 0)
+        similarSectionHeightConstraint.isActive = true
+
         NSLayoutConstraint.activate([
+            similarProfilesCollectionContainer.topAnchor.constraint(equalTo: galleryAreaWrapper.bottomAnchor),
+            similarProfilesCollectionContainer.leadingAnchor.constraint(equalTo: photoTabContainer.leadingAnchor),
+            similarProfilesCollectionContainer.trailingAnchor.constraint(equalTo: photoTabContainer.trailingAnchor),
+
             similarProfilesTitleLabel.topAnchor.constraint(equalTo: similarProfilesCollectionContainer.topAnchor, constant: DivoDesignTokens.Spacing.m),
             similarProfilesTitleLabel.leadingAnchor.constraint(equalTo: similarProfilesCollectionContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             similarProfilesTitleLabel.trailingAnchor.constraint(equalTo: similarProfilesCollectionContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -1836,7 +2320,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         contentViewStack.addArrangedSubview(bottomSpacer)
         bottomSpacerHeightConstraint.isActive = true
-        contentViewStack.setCustomSpacing(0, after: similarProfilesCollectionContainer)
 
         contentViewStack.setCustomSpacing(0, after: collectionsContainer)
         
@@ -1854,7 +2337,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     private func updateBottomSpacerVisibility() {
-        bottomSpacer.isHidden = !similarProfilesCollectionContainer.isHidden
+        // Spacer нужен только когда контент таба длиннее viewport
+        // (natural > floor): он добавляет ~safeArea+4 отступ под последним
+        // элементом, чтобы тот не перекрывался home indicator при max scroll.
+        //
+        // Для short/non-content tab (height == floor) pager сам заполняет
+        // viewport под segment-баром, spacer лишний — давал бы overscroll
+        // за sticky pin (~safeArea+4 «уезжания» шиммера/empty за пилюлю).
+        let floor = fullScreenAvailableHeight()
+        bottomSpacer.isHidden = tabHeight(for: currentTab) <= floor + 0.5
     }
 
     private func setupFloatingButton() {
@@ -1898,22 +2389,392 @@ final class PublicProfileScreenNode: ASDisplayNode {
         ])
     }
     
-    // Настройка шиммеров
+    // Настройка шиммеров (= initial state, screenPhase == .loading).
+    // Дальнейшие переходы — через applyState().
     private func configureNodes() {
         profileHeaderShimmerView.isHidden = false
         profileHeaderView.isHidden = true
-        
+
         actionsShimmerView.isHidden = false
         counterActionsStack.isHidden = true
-        
+
         profileInfoShimmerView.isHidden = false
         profileInfoView.isHidden = true
-        
+
         socialShimmerView.isHidden = false
 
+        // Во время загрузки профиля показываем шиммер-плейсхолдер сегмент-бара
+        // (его ширина под роль обновляется в applySegmentShimmerWidth()).
+        // Реальный сегмент покажется в applyScreenPhase(.ready) после
+        // прихода данных через stopShimmers().
         segmentedBarShimmer.isHidden = false
         segmentedBarPlaceholder.isHidden = true
         segmentedBar.isHidden = true
+    }
+
+    // MARK: - State application
+    //
+    // Один путь: меняем screenPhase / photoPhase / similarPhase → didSet
+    // вызывает applyState() → атомарно расставляются ВСЕ view'шки.
+    // API-колбэки только меняют стейт, view'шки напрямую не дёргают.
+
+    private func applyState() {
+        applyScreenPhase()
+        applyPhotoPhase()
+        applyVideoPhase()
+        applyChannelsPhase()
+        applyModelsPhase()
+        applyEventsPhase()
+        applySimilarPhase()
+        applyInteractionEnabled()
+        applyHeights()
+        updateContainerBackgrounds()
+    }
+
+    private func applyScreenPhase() {
+        switch screenPhase {
+        case .loading, .failed:
+            // .failed визуально не отличается от .loading — остаёмся в
+            // шиммерах (без stopShimmers), скролл/свайп залочен. Сверху
+            // контроллер кладёт persistent-snackbar с кнопкой Retry.
+            configureNodes()
+        case .ready:
+            stopShimmers()
+        }
+    }
+
+    private func applyPhotoPhase() {
+        switch photoPhase {
+        case .loading:
+            photoGalleryShimmerView.isHidden = false
+            galleryStatusView.isHidden = true
+            photoEmptyView.isHidden = true
+            galleryCollectionView.isHidden = true
+            photoErrorView?.isHidden = true
+        case .content:
+            photoGalleryShimmerView.stopAnimation()
+            photoGalleryShimmerView.isHidden = true
+            galleryStatusView.isHidden = true
+            photoEmptyView.isHidden = true
+            galleryCollectionView.isHidden = false
+            photoErrorView?.isHidden = true
+        case .empty:
+            photoGalleryShimmerView.stopAnimation()
+            photoGalleryShimmerView.isHidden = true
+            galleryStatusView.isHidden = true
+            galleryCollectionView.isHidden = true
+            photoEmptyView.isHidden = false
+            configureProfileEmptyView(for: .photo, isMyProfile: model.isMyProfile)
+            photoErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            photoGalleryShimmerView.stopAnimation()
+            photoGalleryShimmerView.isHidden = true
+            galleryStatusView.isHidden = true
+            galleryCollectionView.isHidden = true
+            photoEmptyView.isHidden = true
+            let errorView = ensureTabError(&photoErrorView, in: photoTabContainer)
+            errorView.configure(tab: .photo, networkError: isNetwork) { [weak self] in
+                self?.retryPhotoLoad()
+            }
+        }
+    }
+
+    private func applyVideoPhase() {
+        switch videoPhase {
+        case .loading:
+            videoGalleryShimmerView.isHidden = false
+            videoGalleryShimmerView.startAnimation()
+            videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
+            videoGalleryCollectionView.isHidden = true
+            videoErrorView?.isHidden = true
+        case .content:
+            videoGalleryShimmerView.stopAnimation()
+            videoGalleryShimmerView.isHidden = true
+            videoGalleryStatusView.isHidden = true
+            videoEmptyView.isHidden = true
+            videoGalleryCollectionView.isHidden = false
+            videoErrorView?.isHidden = true
+        case .empty:
+            videoGalleryShimmerView.stopAnimation()
+            videoGalleryShimmerView.isHidden = true
+            videoGalleryStatusView.isHidden = true
+            videoGalleryCollectionView.isHidden = true
+            videoEmptyView.isHidden = false
+            configureProfileEmptyView(for: .video, isMyProfile: model.isMyProfile)
+            videoErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            videoGalleryShimmerView.stopAnimation()
+            videoGalleryShimmerView.isHidden = true
+            videoGalleryStatusView.isHidden = true
+            videoGalleryCollectionView.isHidden = true
+            videoEmptyView.isHidden = true
+            let errorView = ensureTabError(&videoErrorView, in: videoTabContainer)
+            errorView.configure(tab: .video, networkError: isNetwork) { [weak self] in
+                self?.retryVideoLoad()
+            }
+        }
+    }
+
+    private func applyChannelsPhase() {
+        switch channelsPhase {
+        case .loading:
+            channelGalleryShimmerView.isHidden = false
+            channelGalleryShimmerView.startAnimation()
+            channelGalleryStatusView.isHidden = true
+            channelsEmptyView.isHidden = true
+            channelGalleryCollectionView.isHidden = true
+            channelsErrorView?.isHidden = true
+        case .content:
+            channelGalleryShimmerView.stopAnimation()
+            channelGalleryShimmerView.isHidden = true
+            channelGalleryStatusView.isHidden = true
+            channelsEmptyView.isHidden = true
+            channelGalleryCollectionView.isHidden = false
+            channelsErrorView?.isHidden = true
+        case .empty:
+            channelGalleryShimmerView.stopAnimation()
+            channelGalleryShimmerView.isHidden = true
+            channelGalleryStatusView.isHidden = true
+            channelGalleryCollectionView.isHidden = true
+            channelsEmptyView.isHidden = false
+            configureProfileEmptyView(for: .channels, isMyProfile: model.isMyProfile)
+            channelsErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            channelGalleryShimmerView.stopAnimation()
+            channelGalleryShimmerView.isHidden = true
+            channelGalleryStatusView.isHidden = true
+            channelGalleryCollectionView.isHidden = true
+            channelsEmptyView.isHidden = true
+            let errorView = ensureTabError(&channelsErrorView, in: channelTabContainer)
+            errorView.configure(tab: .channels, networkError: isNetwork) { [weak self] in
+                self?.retryChannelsLoad()
+            }
+        }
+    }
+
+    private func applyModelsPhase() {
+        switch modelsPhase {
+        case .loading:
+            modelGalleryShimmerView.isHidden = false
+            modelGalleryShimmerView.startAnimation()
+            modelGalleryStatusView.isHidden = true
+            modelsEmptyView.isHidden = true
+            modelGalleryCollectionView.isHidden = true
+            modelsErrorView?.isHidden = true
+        case .content:
+            modelGalleryShimmerView.stopAnimation()
+            modelGalleryShimmerView.isHidden = true
+            modelGalleryStatusView.isHidden = true
+            modelsEmptyView.isHidden = true
+            modelGalleryCollectionView.isHidden = false
+            modelsErrorView?.isHidden = true
+        case .empty:
+            modelGalleryShimmerView.stopAnimation()
+            modelGalleryShimmerView.isHidden = true
+            modelGalleryStatusView.isHidden = true
+            modelGalleryCollectionView.isHidden = true
+            modelsEmptyView.isHidden = false
+            configureProfileEmptyView(for: .models, isMyProfile: model.isMyProfile)
+            modelsErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            modelGalleryShimmerView.stopAnimation()
+            modelGalleryShimmerView.isHidden = true
+            modelGalleryStatusView.isHidden = true
+            modelGalleryCollectionView.isHidden = true
+            modelsEmptyView.isHidden = true
+            let errorView = ensureTabError(&modelsErrorView, in: modelTabContainer)
+            errorView.configure(tab: .models, networkError: isNetwork) { [weak self] in
+                self?.retryModelsLoad()
+            }
+        }
+    }
+
+    private func applyEventsPhase() {
+        switch eventsPhase {
+        case .loading:
+            eventGalleryShimmerView.isHidden = false
+            eventGalleryShimmerView.startAnimation()
+            eventGalleryStatusView.isHidden = true
+            eventsEmptyView.isHidden = true
+            eventGalleryCollectionView.isHidden = true
+            eventsErrorView?.isHidden = true
+        case .content:
+            eventGalleryShimmerView.stopAnimation()
+            eventGalleryShimmerView.isHidden = true
+            eventGalleryStatusView.isHidden = true
+            eventsEmptyView.isHidden = true
+            eventGalleryCollectionView.isHidden = false
+            eventsErrorView?.isHidden = true
+        case .empty:
+            eventGalleryShimmerView.stopAnimation()
+            eventGalleryShimmerView.isHidden = true
+            eventGalleryStatusView.isHidden = true
+            eventGalleryCollectionView.isHidden = true
+            eventsEmptyView.isHidden = false
+            configureProfileEmptyView(for: .events, isMyProfile: model.isMyProfile)
+            eventsErrorView?.isHidden = true
+        case .failed(let isNetwork):
+            eventGalleryShimmerView.stopAnimation()
+            eventGalleryShimmerView.isHidden = true
+            eventGalleryStatusView.isHidden = true
+            eventGalleryCollectionView.isHidden = true
+            eventsEmptyView.isHidden = true
+            let errorView = ensureTabError(&eventsErrorView, in: eventTabContainer)
+            errorView.configure(tab: .events, networkError: isNetwork) { [weak self] in
+                self?.retryEventsLoad()
+            }
+        }
+    }
+
+    /// Возвращает (создавая лениво) error-view для указанного таба и
+    /// прикрепляет его на всю площадь контейнера. Используется только в
+    /// `.failed` ветках applyXxxPhase — для табов без ошибок остаётся nil.
+    private func ensureTabError(_ slot: inout ProfileTabErrorView?, in container: UIView) -> ProfileTabErrorView {
+        if let view = slot {
+            view.isHidden = false
+            return view
+        }
+        let view = ProfileTabErrorView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(view)
+        NSLayoutConstraint.activate([
+            view.topAnchor.constraint(equalTo: container.topAnchor),
+            view.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            view.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            view.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        slot = view
+        return view
+    }
+
+    // MARK: - Tab retry handlers
+    //
+    // Сбрасываем фазу таба обратно в .loading (шиммер) и перезапускаем
+    // соответствующий API-запрос. Pagination-state video-таба сбрасываем
+    // полностью, потому что первая страница не пришла.
+
+    private func retryPhotoLoad() {
+        resetGalleryPagination()
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.clearGalleryData()
+        }
+        photoPhase = .loading
+        loadNextGalleryPage()
+    }
+
+    private func retryVideoLoad() {
+        videoGalleryItems = []
+        videoGalleryTotalCount = 0
+        videoGalleryCurrentOffset = 0
+        videoGalleryIsLoading = false
+        videoGalleryHasMore = true
+        videoGalleryRequestedOffsets.removeAll()
+        videoGalleryLastRequestedOffset = nil
+        if let controller = self.controller as? PublicProfileScreenController {
+            controller.clearGalleryData()
+        }
+        videoPhase = .loading
+        loadNextVideoGalleryPage()
+    }
+
+    private func retryChannelsLoad() {
+        channelsPhase = .loading
+        loadChannelGallery()
+    }
+
+    private func retryModelsLoad() {
+        modelsPhase = .loading
+        loadModelGallery()
+    }
+
+    private func retryEventsLoad() {
+        eventsPhase = .loading
+        loadEventGallery()
+    }
+
+    /// Фоны контейнеров:
+    ///  • `whiteSheetBackground` — цвет анимируется в `updateNavigationBarTitleVisibility`
+    ///    по `titleAlpha`: серый в non-sticky (под bio + segment + 10pt gap),
+    ///    белый в sticky (бесшовный стык с белым tab content). Здесь не трогаем.
+    ///  • `tabsPager` и `bottomSpacer` — всегда белые. Под контент любого таба
+    ///    (content / empty / error / shimmer) единый белый фон.
+    private func updateContainerBackgrounds() {
+        tabsPager.backgroundColor = DivoColorPalette.profileEmptyBackground
+        bottomSpacer.backgroundColor = DivoColorPalette.profileEmptyBackground
+    }
+
+    private func applySimilarPhase() {
+        switch similarPhase {
+        case .hidden:
+            similarProfilesCollectionContainer.isHidden = true
+        case .visible:
+            similarProfilesCollectionContainer.isHidden = false
+            similarProfilesCollectionView.reloadData()
+        }
+    }
+
+    private func applyInteractionEnabled() {
+        // Скролл и горизонтальный свайп активны только когда профиль
+        // загружен. В .loading и .failed (шиммер + retry-снекбар) залочено.
+        let interactive = (screenPhase == .ready)
+        scrollView.isScrollEnabled = interactive
+        tabsPager.isScrollEnabled = interactive
+    }
+
+    private func applyHeights() {
+        guard let layout = containerLayout?.0 else { return }
+        updateAllCollectionViewHeights(layout: layout)
+        if currentTab == .photo {
+            updateCollectionsContainerHeight(animated: false)
+        }
+        updateBottomSpacerVisibility()
+    }
+
+    // MARK: - Public state mutators (для controller'а)
+
+    /// Контроллер вызывает в error-ветке fetchUserProfile.
+    func markProfileDetailFailed() {
+        screenPhase = .failed
+    }
+
+    /// Контроллер вызывает в error-ветке loadGalleryPage первой страницы.
+    /// `networkError` определяет текст в `ProfileTabErrorView`: true →
+    /// «Нет подключения к интернету», false → «Не удалось загрузить фото».
+    func markPhotoGalleryFailed(networkError: Bool) {
+        photoPhase = .failed(networkError: networkError)
+    }
+
+    /// Контроллер вызывает в error-ветках первой страницы соответствующего
+    /// таба. `networkError` определяет текст в `ProfileTabErrorView`:
+    /// true → «Нет подключения к интернету», false → «Не удалось загрузить».
+    func markVideoGalleryFailed(networkError: Bool) {
+        videoPhase = .failed(networkError: networkError)
+    }
+
+    func markChannelsFailed(networkError: Bool) {
+        channelsPhase = .failed(networkError: networkError)
+    }
+
+    func markModelsFailed(networkError: Bool) {
+        modelsPhase = .failed(networkError: networkError)
+    }
+
+    func markEventsFailed(networkError: Bool) {
+        eventsPhase = .failed(networkError: networkError)
+    }
+
+    /// Сброс в начальное loading-состояние — для retry после failed.
+    /// Возвращает экран в шиммер, чтобы при повторном запросе пользователь
+    /// видел тот же скелетон, что и при первом открытии.
+    func resetToInitialLoading() {
+        screenPhase = .loading
+        photoPhase = .loading
+        videoPhase = .loading
+        channelsPhase = .loading
+        modelsPhase = .loading
+        eventsPhase = .loading
+        similarPhase = .hidden
     }
     
     // Убираем шиммеры, после загрузки
@@ -1961,33 +2822,52 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func applyGradientBlurMask() {
         let blurHeight = blurredHeaderImageView.bounds.height
         guard blurHeight > 0 else { return }
-        
+
         let gradientLayer = CAGradientLayer()
         gradientLayer.frame = blurredHeaderImageView.bounds
-        
-        let fadeDistance: CGFloat = 60.0
-        let fadeLocation = min(1.0, fadeDistance / blurHeight)
-        
-        gradientLayer.colors = [UIColor.clear.cgColor, UIColor.white.cgColor]
-        
-        gradientLayer.locations = [0.0, NSNumber(value: Double(fadeLocation))]
-        
+
+        // Те же параметры что для bottom glass на карточках ModelsFeed
+        // (см. CardCollectionViewCell). Direction совпадает: top of view —
+        // прозрачно (фото читается чисто), bottom — solid blur (плавный
+        // scrim перед bio). Ширина fade ~75% высоты + 25% solid внизу —
+        // tight transition, не «тинт» на всю площадь.
+        gradientLayer.colors = [
+            UIColor.clear.cgColor,
+            UIColor.white.cgColor,
+            UIColor.white.cgColor
+        ]
+        gradientLayer.locations = [0.0, 0.75, 1.0]
+
         blurredHeaderImageView.layer.mask = gradientLayer
     }
 
     // Настройка SegmentedBar для прилипания
     private func updateSegmentedBarPosition() {
         guard let (_, navigationBarHeight) = self.containerLayout else { return }
-        
+
         let placeholderFrame = segmentedBarPlaceholder.convert(segmentedBarPlaceholder.bounds, to: self.view)
-        
+
         let naturalY = placeholderFrame.minY
-        
+
         let stickyY = navigationBarHeight
-        
+
         let finalY = max(naturalY, stickyY)
-        
+
         segmentedBarTopConstraint?.constant = finalY
+
+        // whiteSheetBackground меняет цвет gray↔white в зависимости от близости
+        // сегмента к sticky-позиции. Bio к этому моменту уже выше viewport,
+        // поэтому потеря серого фона за ней визуально не заметна. Транзишн —
+        // последние 30pt подъёма к navHeight: progress 0→1 даёт плавное
+        // перетекание серого в белый. В sticky фон под пилюлёй и в 10pt gap
+        // становится белым → бесшовный стык с tab content.
+        let transitionRange: CGFloat = 30
+        let progress = max(0, min(1, (stickyY + transitionRange - naturalY) / transitionRange))
+        whiteSheetBackground.backgroundColor = DivoColorPalette.screenBackground.blend(
+            with: DivoColorPalette.profileEmptyBackground,
+            alpha: progress
+        )
+
         updateFloatingButton(for: currentTab)
     }
     
@@ -2133,14 +3013,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Добавление коллекции похожих профилей
     func setSimilarProfilesLoading(_ loading: Bool) {
         similarProfilesIsLoading = loading
-        if loading && similarProfiles.isEmpty {
-            similarProfilesCollectionContainer.isHidden = false
-            similarProfilesCollectionView.reloadData()
-        } else if !loading && similarProfiles.isEmpty {
-            similarProfilesCollectionContainer.isHidden = true
-            similarProfilesCollectionView.reloadData()
+        // Шиммер для similar НЕ показываем — данные приходят редко, лишний
+        // плейсхолдер только мерцает. Контейнер появится через
+        // similarPhase = .visible в appendSimilarProfiles, когда придёт
+        // непустой массив. Если ответ пуст и не загружается — .hidden.
+        if !loading && similarProfiles.isEmpty {
+            similarPhase = .hidden
         }
-        updateBottomSpacerVisibility()
     }
     
     // Заполняет коллекцию реальными данными
@@ -2158,12 +3037,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             }, completion: nil)
         }
         
-        if self.similarProfiles.isEmpty {
-            self.similarProfilesCollectionContainer.isHidden = true
-        } else {
-            self.similarProfilesCollectionContainer.isHidden = false
-        }
-        updateBottomSpacerVisibility()
+        // applyState() в didSet расставит isHidden + reloadData + пересчёт высот.
+        similarPhase = self.similarProfiles.isEmpty ? .hidden : .visible
     }
     
     // Вычисляем возраст от года рождения
@@ -2334,8 +3209,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // ПРИМЕНЕНИЕ ФАЗ К UI
         // =========================================================
 
-        // 1. Блюр стартует вместе с title (нарастает быстрее), навбар всегда прозрачный — фон даёт только блюр
-        navBarBlurView.alpha = min(1.0, titleAlpha * 2.0)
+        // 1. Блюр поднимается ДО того, как натуральный title начнёт заходить
+        // в зону navbar (= до titleStartShowingOffset). Иначе title «висит в
+        // воздухе» без фона за собой в момент перехода. Fade-in за 30pt до
+        // того места, где title начинает fade-in (titleAlpha = 0).
+        let blurFullOffset = titleStartShowingOffset
+        let blurStartOffset = blurFullOffset - 30
+        let blurAlpha: CGFloat
+        if offsetY < blurStartOffset {
+            blurAlpha = 0
+        } else if offsetY >= blurFullOffset {
+            blurAlpha = 1
+        } else {
+            blurAlpha = (offsetY - blurStartOffset) / (blurFullOffset - blurStartOffset)
+        }
+        navBarBlurView.alpha = blurAlpha
 
         // 2. Иконки кнопок
         let maxProgress = titleAlpha
@@ -2345,11 +3233,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         editButton.tintColor = iconColor
         moreButton.tintColor = iconColor
         
-        // 3. Фон кнопок
-        let bgStartColor = DivoColorPalette.statPillBackground 
-        let bgEndColor = DivoColorPalette.cardBackground
+        // 3. Фон кнопок: в non-sticky полупрозрачный белый поверх фото (как
+        // pill'ы стандартного UIKit). В sticky — серый screenBackground, чтобы
+        // pill'ы выделялись на белой части навбара (которая внизу gradient'a).
+        let bgStartColor = DivoColorPalette.statPillBackground
+        let bgEndColor = DivoColorPalette.screenBackground
         let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: maxProgress)
-        
+
         closeButton.backgroundColor = currentBgColor
         rightButtonContainer.backgroundColor = currentBgColor
         
@@ -2359,9 +3249,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
         rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
 
-        // 5. Fade-out stat pills — только при реальном скролле вверх, не при bounce
-        if offsetY > 0 {
-            let pillAlpha = max(0, 1.0 - offsetY / 60.0)
+        // 5. Fade-out stat pills — relative от точки покоя (с учётом
+        // contentInset.top). При scrolled > 0 (любой скролл вверх от rest)
+        // запускаем fade в 60pt range. Иначе stat-пилюли наезжают на
+        // навбарные кнопки.
+        let scrolled = offsetY + navigationBarHeight
+        if scrolled > 0 {
+            let pillAlpha = max(0, 1.0 - scrolled / 60.0)
             counterActionsStack.alpha = pillAlpha
             actionsShimmerView.alpha = pillAlpha
         } else {
@@ -2454,11 +3348,27 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.containerLayout = (layout, navigationBarHeight)
 
         navigationBarTitleHeightConstraint.isActive = false
-        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navigationBarHeight)
+        // scrollView.top = view.top (рамка во весь экран), но contentInset.top
+        // = navigationBarHeight — контент изначально стоит под navbar (как
+        // раньше с фиксированным отступом), но при скролле УХОДИТ ВЫШЕ под
+        // navbar/status bar, давая native-Telegram эффект.
+        navigationBarTitleHeightConstraint = scrollView.topAnchor.constraint(equalTo: self.view.topAnchor)
         navigationBarTitleHeightConstraint.isActive = true
+        scrollView.contentInset = UIEdgeInsets(top: navigationBarHeight, left: 0, bottom: 0, right: 0)
+        scrollView.scrollIndicatorInsets = scrollView.contentInset
 
-        let bottomSafeInset = layout.intrinsicInsets.bottom
-        bottomSpacerHeightConstraint.constant = bottomSafeInset + 12
+        // Один раз на первый layout стартуем contentOffset = -navigationBarHeight,
+        // чтобы контент стоял под navbar при первом показе. После этого
+        // оставляем как есть — пользователь свободно скроллит.
+        if !hasInitialContentOffsetApplied {
+            scrollView.contentOffset = CGPoint(x: 0, y: -navigationBarHeight)
+            hasInitialContentOffsetApplied = true
+        }
+
+        // Стартовая высота bottomSpacer = safeArea + 4, чтобы при max scroll
+        // последний элемент стоял чуть над home indicator. layout() добавит
+        // больше для короткого контента.
+        bottomSpacerHeightConstraint.constant = layout.intrinsicInsets.bottom + 4
 
         applyGradientBlurMask()
         updateNavBarBlurMask()
@@ -2475,6 +3385,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
         updateNavigationBarTitleVisibility()
 
         self.layoutIfNeeded()
+
+        // После любого layout-апдейта (стартового и при ротации) выровняем
+        // пейджер на текущую страницу — иначе offset остаётся в старой
+        // системе координат и выглядит как «таб уехал в сторону».
+        snapPagerToCurrentTab(animated: false)
     }
 
     func setBackgroundLoading(_ loading: Bool) {
@@ -2523,7 +3438,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 profileInfoView.update(biography: bio)
                 profileInfoView.layoutIfNeeded()
             }
-            segmentedBar.configure(isAgency: true, isMyProfile: isMyProfile)
+            // animated: false — иначе иконки "прилетают" поверх шиммера
+            // в момент перехода screenPhase = .ready (см. applyScreenPhase).
+            segmentedBar.configure(isAgency: true, isMyProfile: isMyProfile, animated: false)
+            rebuildTabsPagerLayout()
 
             if let avatarURLString = detail.agency?.photo?.fullUrl {
                 if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
@@ -2568,7 +3486,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 }
                 profileInfoView.layoutIfNeeded()
             }
-            segmentedBar.configure(isAgency: false, isMyProfile: isMyProfile)
+            // animated: false — см. комментарий выше про agency-ветку.
+            segmentedBar.configure(isAgency: false, isMyProfile: isMyProfile, animated: false)
+            rebuildTabsPagerLayout()
 
             if let avatarURLString = detail.avatar?.fullUrl {
                 if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
@@ -2595,8 +3515,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         populateSocialMedia(links: socialLinks)
 
         if !isMyProfile {
-            similarProfilesCollectionContainer.isHidden = self.modelRole == .agency
-            updateBottomSpacerVisibility()
+            // similarPhase = .hidden по дефолту; .visible выставится только
+            // в appendSimilarProfiles при непустом ответе. Для agency запрос
+            // similar вообще не делается (см. контроллер), карусель навсегда скрыта.
             sendShareContainer.isHidden = false
             dmShareStack.isHidden = false
             dmShareShimmerStack.isHidden = true
@@ -2637,7 +3558,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 profileHeaderView.configure(with: viewModel)
             }
         }
-        stopShimmers()
+        // Профиль загружен — переходим в .ready. applyState() атомарно
+        // снимет шиммеры (через stopShimmers), активирует scroll/swipe.
+        screenPhase = .ready
         activateTitleVisibility()
     }
 
@@ -2707,20 +3630,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.galleryIsLoading = false
         
         if previousCount == 0 {
-            let hasPhotos = !self.galleryPhotos.isEmpty
-            self.galleryStatusView.isHidden = true
-            self.photoEmptyView.isHidden = hasPhotos
-            if !hasPhotos {
-                self.configureProfileEmptyView(for: .photo, isMyProfile: isMyProfile)
-            }
-            self.updateScreenBackgroundForCurrentTab()
-            self.galleryCollectionView.isHidden = !hasPhotos
+            // Первая страница пришла — переключаем стейт фото-таба.
+            // applyState() атомарно расставит видимость collection/empty/shimmer
+            // и пересчитает высоты.
             self.galleryCollectionView.reloadData()
-            
-            if let layout = self.containerLayout?.0 {
-                self.updateAllCollectionViewHeights(layout: layout)
-                if self.currentTab == .photo { self.updateCollectionsContainerHeight(animated: false) }
-            }
+            self.updateScreenBackgroundForCurrentTab()
+            self.photoPhase = self.galleryPhotos.isEmpty ? .empty : .content
+
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                 self?.checkAndLoadMoreGalleryPhotos()
             }
@@ -2777,9 +3693,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
-            photoEmptyView.isHidden = true
-            galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
+            photoPhase = .content
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
                 if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
@@ -2823,9 +3738,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             guard let self = self else { return }
             if self.galleryPhotos.isEmpty {
                 self.galleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
-                self.photoEmptyView.isHidden = false
-                self.galleryCollectionView.isHidden = true
+                self.photoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -2841,9 +3754,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         if wasEmpty {
             galleryStatusView.isHidden = true
-            photoEmptyView.isHidden = true
-            galleryCollectionView.isHidden = false
             galleryCollectionView.reloadData()
+            photoPhase = .content
 
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
@@ -2886,9 +3798,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             // Если удалили последнее фото, показываем заглушку
             if self.galleryPhotos.isEmpty {
                 self.galleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .photo, isMyProfile: self.model.isMyProfile)
-                self.photoEmptyView.isHidden = false
-                self.galleryCollectionView.isHidden = true
+                self.photoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -2910,6 +3820,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Флаг загрузки галереи
     func setGalleryLoading(_ loading: Bool, _ uploadNew: Bool = false) {
         galleryIsLoading = loading
+        // Первичная загрузка — её показывает photoGalleryShimmerView (skeleton),
+        // galleryStatusView не трогаем. Только после `galleryInitialized = true`
+        // (т.е. при пользовательских upload-сценариях) галерейный статус-вью
+        // снова в игре.
+        guard galleryInitialized else { return }
         // Если уже есть фото — лоадер скрыт всегда. Показываем только когда галерея пустая и идёт загрузка.
         galleryStatusView.isHidden = !galleryPhotos.isEmpty || !loading
         galleryStatusView.loadingSpinner(isLoading: loading)
@@ -3004,16 +3919,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoGalleryIsLoading = false
         
         if previousCount == 0 {
+            // Первая страница пришла — переключаем фазу видео-таба.
+            // applyState() атомарно расставит видимость shimmer/empty/content
+            // и обновит фон. Высоту пейджера для активного таба обновляем
+            // отдельно, потому что applyHeights() пересчитывает container
+            // только для photo.
             let hasVideos = !self.videoGalleryItems.isEmpty
-            self.videoGalleryStatusView.isHidden = true
-            self.videoEmptyView.isHidden = hasVideos
-            if !hasVideos {
-                self.configureProfileEmptyView(for: .video, isMyProfile: isMyProfile)
-            }
-            self.updateScreenBackgroundForCurrentTab()
-            self.videoGalleryCollectionView.isHidden = !hasVideos
             self.videoGalleryCollectionView.reloadData()
-            
+            self.videoPhase = hasVideos ? .content : .empty
             if let layout = self.containerLayout?.0 {
                 self.updateAllCollectionViewHeights(layout: layout)
                 if self.currentTab == .video { self.updateCollectionsContainerHeight(animated: true) }
@@ -3080,10 +3993,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoGalleryCurrentOffset += 1
 
         if wasEmpty {
-            videoGalleryStatusView.isHidden = true
-            videoEmptyView.isHidden = true
-            videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
+            videoPhase = .content
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
                 if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
@@ -3126,10 +4037,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
-                self.videoEmptyView.isHidden = false
-                self.videoGalleryCollectionView.isHidden = true
+                self.videoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -3143,14 +4051,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         videoGalleryCurrentOffset += 1
 
         if wasEmpty {
-            videoGalleryStatusView.isHidden = true
-            videoEmptyView.isHidden = true
-            videoGalleryCollectionView.isHidden = false
             videoGalleryCollectionView.reloadData()
+            videoPhase = .content
 
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
-                if currentTab == .photo { updateCollectionsContainerHeight(animated: true) }
+                if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
             }
         } else {
             videoGalleryCollectionView.performBatchUpdates({
@@ -3170,15 +4076,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     func removeVideo(withId id: Int) {
         guard let index = videoGalleryItems.firstIndex(where: { $0.id == id }) else { return }
-        
+
         videoGalleryItems.remove(at: index)
         videoGalleryCurrentOffset = max(0, videoGalleryCurrentOffset - 1)
-        
+
         let indexPath = IndexPath(item: index, section: 0)
-        
+
         videoGalleryCollectionView.performBatchUpdates({
             videoGalleryCollectionView.deleteItems(at: [indexPath])
-            
+
             if let layout = self.containerLayout?.0 {
                 updateAllCollectionViewHeights(layout: layout)
                 if currentTab == .video { updateCollectionsContainerHeight(animated: true) }
@@ -3186,10 +4092,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             guard let self = self else { return }
             if self.videoGalleryItems.isEmpty {
-                self.videoGalleryStatusView.isHidden = true
-                self.configureProfileEmptyView(for: .video, isMyProfile: self.model.isMyProfile)
-                self.videoEmptyView.isHidden = false
-                self.videoGalleryCollectionView.isHidden = true
+                self.videoPhase = .empty
             }
         })
         updateFloatingButton(for: currentTab)
@@ -3254,16 +4157,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление галереи каналов
     func updateChannelsList(_ items: [ProfileChannelItem]) {
         self.channelGalleryItems = items
-        let hasItems = !items.isEmpty
-        self.channelGalleryStatusView.isHidden = true
-        self.channelGalleryCollectionView.isHidden = !hasItems
-        self.channelsEmptyView.isHidden = hasItems
-        if !hasItems {
-            self.configureProfileEmptyView(for: .channels, isMyProfile: model.isMyProfile)
-        }
-        self.updateScreenBackgroundForCurrentTab()
         self.channelGalleryCollectionView.reloadData()
-        
+        // applyState() расставит видимость shimmer/empty/content и фон.
+        self.channelsPhase = items.isEmpty ? .empty : .content
+
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .channels { self.updateCollectionsContainerHeight(animated: false) }
@@ -3297,17 +4194,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление галереи моделей
     func updateModelsList(_ items: [ModelItem]) {
         self.modelGalleryItems = items
-        let hasItems = !items.isEmpty
-
-        self.modelGalleryCollectionView.isHidden = !hasItems
-        self.modelGalleryStatusView.isHidden = true
-        self.modelsEmptyView.isHidden = hasItems
-        if !hasItems {
-            self.configureProfileEmptyView(for: .models, isMyProfile: model.isMyProfile)
-        }
-        self.updateScreenBackgroundForCurrentTab()
-
         self.modelGalleryCollectionView.reloadData()
+        self.modelsPhase = items.isEmpty ? .empty : .content
 
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
@@ -3344,16 +4232,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновление галереи событий
     func updateEventsList(_ items: [EventItem]) {
         self.eventGalleryItems = items
-        let hasItems = !items.isEmpty
-        self.eventGalleryStatusView.isHidden = true
-        self.eventGalleryCollectionView.isHidden = !hasItems
-        self.eventsEmptyView.isHidden = hasItems
-        if !hasItems {
-            self.configureProfileEmptyView(for: .events, isMyProfile: model.isMyProfile)
-        }
-        self.updateScreenBackgroundForCurrentTab()
-
         self.eventGalleryCollectionView.reloadData()
+        self.eventsPhase = items.isEmpty ? .empty : .content
 
         if let layout = self.containerLayout?.0 {
             self.updateAllCollectionViewHeights(layout: layout)
@@ -3383,60 +4263,65 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let spacing: CGFloat = 1
         let totalWidth = layout.size.width
         let itemWidth = (totalWidth - 2 * spacing) / itemsPerRow
-        
-        // Photo
+
         let pRows = ceil(CGFloat(galleryPhotos.count) / itemsPerRow)
-        let pHeight = pRows * itemWidth + max(0, pRows - 1) * spacing
-        galleryHeightConstraint.constant = max(pHeight, 1.0)
-        
-        // Video
+        galleryHeightConstraint.constant = max(pRows * itemWidth + max(0, pRows - 1) * spacing, 1.0)
+
         let vRows = ceil(CGFloat(videoGalleryItems.count) / itemsPerRow)
-        let vHeight = vRows * itemWidth + max(0, vRows - 1) * spacing
-        videoHeightConstraint.constant = max(vHeight, 1.0)
-        
-        // Channels
-        let cHeight = CGFloat(channelGalleryItems.count) * 66.0
-        channelHeightConstraint.constant = max(cHeight, 1.0)
-        
-        // Models
-        let mHeight = CGFloat(modelGalleryItems.count) * 66.0
-        modelHeightConstraint.constant = max(mHeight, 1.0)
-        
-        // Events
-        let eHeight = CGFloat(eventGalleryItems.count) * 66.0
-        eventHeightConstraint.constant = max(eHeight, 1.0)
+        videoHeightConstraint.constant = max(vRows * itemWidth + max(0, vRows - 1) * spacing, 1.0)
+
+        channelHeightConstraint.constant = max(CGFloat(channelGalleryItems.count) * 66.0, 1.0)
+        modelHeightConstraint.constant = max(CGFloat(modelGalleryItems.count) * 66.0, 1.0)
+        eventHeightConstraint.constant = max(CGFloat(eventGalleryItems.count) * 66.0, 1.0)
+
+        // Высота gallery-зоны фото-таба (внутри неё overlap'ятся grid /
+        // empty / shimmer / status). Зависит от стейта photo-таба.
+        galleryAreaHeightConstraint.constant = photoGalleryAreaHeight()
+
+        // Высота секции similar внутри photo-таба: 0 если контейнер скрыт,
+        // дизайнерская высота если виден.
+        similarSectionHeightConstraint.constant = similarSectionTargetHeight()
+
+        // Подтягиваем высоту каждого таб-контейнера в пейджере к актуальной.
+        for tab in ProfileTab.allCases {
+            heightConstraint(for: tab).constant = tabHeight(for: tab)
+        }
     }
-    
+
     private func calculateCollectionsContainerHeight() -> CGFloat {
-        guard let (layout, navBarHeight) = self.containerLayout else { return 160 }
-        
-        let fullScreenAvailableHeight = max(160, layout.size.height - navBarHeight - self.segmentedBarHeight - 10) //10 - отступ от сегмент бара до коллекций
-        
-        func heightFor(isEmpty: Bool, constraint: NSLayoutConstraint, isModelTab: Bool = false) -> CGFloat {
-            if isEmpty {
-                return fullScreenAvailableHeight
-            }
-            return constraint.constant
-        }
-        
-        switch currentTab {
-        case .photo: return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
-        case .video: return heightFor(isEmpty: videoGalleryItems.isEmpty, constraint: videoHeightConstraint)
-        case .models: return heightFor(isEmpty: modelGalleryItems.isEmpty, constraint: modelHeightConstraint, isModelTab: true)
-        case .channels: return heightFor(isEmpty: channelGalleryItems.isEmpty, constraint: channelHeightConstraint)
-        case .events: return heightFor(isEmpty: eventGalleryItems.isEmpty, constraint: eventHeightConstraint)
-        }
+        return tabHeight(for: currentTab)
     }
     
     private func updateCollectionsContainerHeight(animated: Bool = true) {
         collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
-        
-        if animated && !scrollView.isDragging && !scrollView.isDecelerating {
-            UIView.animate(withDuration: 0.3) {
+
+        // Стабильный отступ 10pt под сегмент-баром во всех стейтах
+        // (включая empty и shimmer) — placeholder/контент не липнут к пилюле.
+        // Серая полоска не образуется, потому что цвет whiteSheet под этим
+        // отступом подстраивается в updateContainerBackgrounds().
+        contentViewStack.setCustomSpacing(10, after: segmentedBarContainer)
+
+        updateBottomSpacerVisibility()
+
+        // Скролл/свайп управляется централизованно из applyInteractionEnabled()
+        // на основе screenPhase. Здесь не трогаем.
+
+        // segmentedBarContainer оставляем `.clear` всегда — фон под ним даёт
+        // whiteSheetBackground, который перекрашивается в updateContainerBackgrounds().
+
+        // Если в этот момент идёт переключение таба — async-загрузка не должна
+        // запускать собственную анимацию высоты поверх. Финализация tab-switch
+        // сама приведёт layout к нужному состоянию.
+        let shouldAnimate = animated
+            && !scrollView.isDragging
+            && !scrollView.isDecelerating
+            && !isTabSwitching
+
+        if shouldAnimate {
+            UIView.animate(withDuration: 0.30, delay: 0, options: [.curveEaseOut]) {
                 self.contentViewStack.layoutIfNeeded()
                 self.view.layoutIfNeeded()
-                
-                // Плавно подтягиваем скролл, если контент стал меньше
+
                 let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
                 if self.scrollView.contentOffset.y > maxOffset {
                     self.scrollView.contentOffset.y = maxOffset
@@ -3918,23 +4803,33 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
 
 extension PublicProfileScreenNode: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        
+        if scrollView === tabsPager {
+            // Горизонтальный пейджер — двигаем индикатор сегмент-бара вместе
+            // с пальцем (в т.ч. при программном setContentOffset для соседнего
+            // таба). Никаких других побочных эффектов.
+            let pageWidth = scrollView.bounds.width
+            guard pageWidth > 0 else { return }
+            let progress = scrollView.contentOffset.x / pageWidth
+            segmentedBar.setIndicatorProgress(progress)
+            return
+        }
+
         let offsetY = scrollView.contentOffset.y
-        
+
         // ПРАВИЛЬНЫЙ РАСЧЕТ ПАГИНАЦИИ (относительно основного скролла)
         let contentHeight = scrollView.contentSize.height
         let frameHeight = scrollView.bounds.height
-        
+
         // Триггер: за 500 пикселей до конца экрана
         let threshold = contentHeight - frameHeight - 500
-        
+
         if offsetY > threshold {
             triggerLoadMoreForActiveTab()
         }
-        
+
         updateSegmentedBarPosition()
         updateNavigationBarTitleVisibility()
-        
+
         let maxScrollY = scrollView.contentSize.height - scrollView.bounds.height
         let bottomLimit = max(0, maxScrollY)
 
@@ -3942,7 +4837,50 @@ extension PublicProfileScreenNode: UIScrollViewDelegate {
             scrollView.contentOffset.y = bottomLimit
         }
     }
-    
+
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        guard scrollView === tabsPager else { return }
+        // Свайп начался — pre-grow collectionsContainer до max соседних высот,
+        // чтобы оба соседних таба полностью попадали в viewport пейджера во
+        // время drag'а (особенно важно, когда сосед выше текущего: иначе
+        // его центрированный плейсхолдер срежется снизу).
+        isTabSwitching = true
+
+        guard let currentIdx = pageIndex(for: currentTab) else { return }
+        var maxHeight = tabHeight(for: currentTab)
+        if currentIdx > 0 {
+            maxHeight = max(maxHeight, tabHeight(for: orderedTabs[currentIdx - 1]))
+        }
+        if currentIdx + 1 < orderedTabs.count {
+            maxHeight = max(maxHeight, tabHeight(for: orderedTabs[currentIdx + 1]))
+        }
+        if abs(collectionsContainerHeightConstraint.constant - maxHeight) > 0.5 {
+            collectionsContainerHeightConstraint.constant = maxHeight
+            UIView.animate(withDuration: 0.15, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
+                self.contentViewStack.layoutIfNeeded()
+                self.view.layoutIfNeeded()
+            }
+        }
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        guard scrollView === tabsPager else { return }
+        finalizeAfterPagerSettle()
+    }
+
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        guard scrollView === tabsPager else { return }
+        finalizeAfterPagerSettle()
+    }
+
+    private func finalizeAfterPagerSettle() {
+        let pageWidth = tabsPager.bounds.width
+        guard pageWidth > 0 else { return }
+        let idx = Int((tabsPager.contentOffset.x / pageWidth).rounded())
+        guard idx >= 0, idx < orderedTabs.count else { return }
+        finalizeTabSwitch(to: orderedTabs[idx], animated: true)
+    }
+
     // Менеджер загрузки для текущей вкладки
     private func triggerLoadMoreForActiveTab() {
         switch currentTab {
@@ -3983,59 +4921,135 @@ extension PublicProfileScreenNode: ProfileInfoViewDelegate {
 extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
     
     private func profileTab(forSegmentIndex index: Int) -> ProfileTab? {
-        let tabs: [ProfileTab]
-        if isMyModelProfile {
-            tabs = [.photo, .video]
-        } else if (modelRole == .model || modelRole == .newFace) && !model.isMyProfile {
-            tabs = [.photo, .video, .channels]
-        } else {
-            tabs = [.photo, .video, .models, .channels, .events]
-        }
-        guard index >= 0 && index < tabs.count else { return nil }
-        return tabs[index]
+        guard index >= 0 && index < orderedTabs.count else { return nil }
+        return orderedTabs[index]
     }
 
-    private func getTabContainer(for tab: ProfileTab) -> UIView {
-        switch tab {
-        case .photo: return photoTabContainer
-        case .video: return videoTabContainer
-        case .models: return modelTabContainer
-        case .channels: return channelTabContainer
-        case .events: return eventTabContainer
-        }
-    }
-    
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int) {
         guard let newTab = profileTab(forSegmentIndex: index), newTab != currentTab else { return }
+        guard let newPageIndex = pageIndex(for: newTab),
+              let oldPageIndex = pageIndex(for: currentTab) else { return }
 
-        let oldContainer = getTabContainer(for: currentTab)
-        let newContainer = getTabContainer(for: newTab)
+        let pageWidth = tabsPager.bounds.width
+        guard pageWidth > 0 else {
+            // Layout ещё не выполнен (раннее срабатывание). Финализируем
+            // мгновенно, пейджер сам подъедет на первом layout-проходе.
+            finalizeTabSwitch(to: newTab, animated: false)
+            snapPagerToCurrentTab(animated: false)
+            return
+        }
 
-        loadDataForTab(newTab)
+        let delta = abs(newPageIndex - oldPageIndex)
+        if delta == 1 {
+            // Сосед — нативный анимированный setContentOffset. Финализация
+            // придёт через scrollViewDidEndScrollingAnimation: там currentTab
+            // обновляется на landed. Пред-расширим высоту до max(текущая,
+            // целевая), чтобы целевой таб полностью отрисовался во время слайда.
+            isTabSwitching = true
+            preGrowCollectionsHeight(forSwipeBetween: currentTab, and: newTab)
 
-        currentTab = newTab
-        updateScreenBackgroundForCurrentTab()
-
-        collectionsContainerHeightConstraint.constant = calculateCollectionsContainerHeight()
-
-        UIView.performWithoutAnimation {
-            oldContainer.isHidden = true
-            newContainer.isHidden = false
-            self.view.setNeedsLayout()
-            self.view.layoutIfNeeded()
-
-            // На любое переключение таба подскролливаем к sticky-позиции — segmentedBar
-            // прилипает под навбаром, новый таб виден сразу с начала (включая эмпти-стейт).
-            // Делаем instant (без animated: true), чтобы переход не дёргал.
-            let stickyThreshold = max(0, self.segmentedBarContainer.frame.minY)
-            let maxOffset = max(0, self.scrollView.contentSize.height - self.scrollView.bounds.height)
-            let targetOffsetY = min(stickyThreshold, maxOffset)
-            if self.scrollView.contentOffset.y != targetOffsetY {
-                self.scrollView.contentOffset.y = targetOffsetY
-            }
+            let target = CGPoint(x: CGFloat(newPageIndex) * pageWidth, y: 0)
+            tabsPager.setContentOffset(target, animated: true)
+        } else {
+            // Дальний переход — без промежуточных слайдов: snapshot текущего
+            // видимого участка пейджера, мгновенный offset, плавный fade.
+            performFarTabSwitch(to: newTab, newPageIndex: newPageIndex, pageWidth: pageWidth)
         }
     }
-    
+
+    // Перед свайпом/слайдом расширяем collectionsContainer до максимума из
+    // соседних высот, чтобы таб с центрированным эмпти полностью попадал в
+    // viewport пейджера во время горизонтального движения. После settle —
+    // finalizeTabSwitch анимирует обратно к высоте приземлившегося таба.
+    private func preGrowCollectionsHeight(forSwipeBetween a: ProfileTab, and b: ProfileTab) {
+        let targetHeight = max(tabHeight(for: a), tabHeight(for: b))
+        guard abs(collectionsContainerHeightConstraint.constant - targetHeight) > 0.5 else { return }
+        collectionsContainerHeightConstraint.constant = targetHeight
+        UIView.animate(withDuration: 0.15, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
+            self.contentViewStack.layoutIfNeeded()
+            self.view.layoutIfNeeded()
+        }
+    }
+
+    private func performFarTabSwitch(to newTab: ProfileTab, newPageIndex: Int, pageWidth: CGFloat) {
+        isTabSwitching = true
+
+        // Снэпшот текущего видимого участка — кладём поверх collectionsContainer,
+        // чтобы старый таб не пропадал одним кадром после прыжка offset.
+        let snapshot = collectionsContainer.snapshotView(afterScreenUpdates: false)
+        if let snapshot = snapshot {
+            snapshot.frame = collectionsContainer.bounds
+            collectionsContainer.addSubview(snapshot)
+        }
+
+        // Прыжок на целевую страницу мгновенно — без animated: true, чтобы
+        // не было слайда через промежуточные табы.
+        UIView.performWithoutAnimation {
+            tabsPager.setContentOffset(CGPoint(x: CGFloat(newPageIndex) * pageWidth, y: 0), animated: false)
+        }
+
+        finalizeTabSwitch(to: newTab, animated: false)
+
+        UIView.animate(withDuration: 0.22, delay: 0, options: [.curveEaseOut, .allowUserInteraction]) {
+            snapshot?.alpha = 0
+        } completion: { _ in
+            snapshot?.removeFromSuperview()
+        }
+    }
+
+    // Общая точка финализации после settle пейджера: и для тапа-соседа
+    // (через scrollViewDidEndScrollingAnimation), и для свайпа (через
+    // scrollViewDidEndDecelerating), и для дальнего тапа (instant).
+    private func finalizeTabSwitch(to newTab: ProfileTab, animated: Bool) {
+        let didChangeTab = (newTab != currentTab)
+        currentTab = newTab
+
+        // isTabSwitching снимаем ДО updateCollectionsContainerHeight, чтобы тот
+        // мог анимировать высоту до целевой (во время свайпа высота была pre-grow).
+        isTabSwitching = false
+
+        if didChangeTab {
+            updateScreenBackgroundForCurrentTab()
+            loadDataForTab(newTab)
+        }
+
+        updateCollectionsContainerHeight(animated: animated)
+
+        // Цель: сегмент-пилюля встаёт на sticky-позицию (= navHeight в viewport),
+        // первый элемент таба сразу под ней (10pt gap). С contentInset.top =
+        // navHeight: viewport_y = contentY - contentOffset.y → нужен offset =
+        // segmentedBarContainer.frame.minY - navHeight.
+        let navHeight = self.containerLayout?.1 ?? 0
+        let stickyOffset = segmentedBarContainer.frame.minY - navHeight
+        let maxOffset = scrollView.contentSize.height - scrollView.bounds.height
+        let minOffset = -scrollView.contentInset.top
+        let targetOffsetY = min(max(stickyOffset, minOffset), maxOffset)
+        if abs(scrollView.contentOffset.y - targetOffsetY) > 0.5 {
+            if animated {
+                // curveLinear без easeOut: scroll едет с постоянной скоростью
+                // и просто останавливается. easeOut + native UIScrollView
+                // deceleration давали ощущение пружинки в конце snap'а.
+                UIView.animate(withDuration: 0.25, delay: 0, options: [.curveLinear]) {
+                    self.scrollView.contentOffset.y = targetOffsetY
+                }
+            } else {
+                scrollView.contentOffset.y = targetOffsetY
+            }
+        }
+
+        if didChangeTab, let idx = pageIndex(for: newTab) {
+            // Не анимируем — индикатор уже на нужной X-позиции от
+            // setIndicatorProgress в scrollViewDidScroll.
+            segmentedBar.selectIndex(idx, animated: false)
+        }
+
+        updateFloatingButton(for: newTab)
+
+        // Фоны контейнеров не зависят от таба (всегда белый), но вызов
+        // оставлен на случай будущих изменений семантики.
+        updateContainerBackgrounds()
+    }
+
     private func loadDataForTab(_ tab: ProfileTab) {
         switch tab {
         case .photo: break

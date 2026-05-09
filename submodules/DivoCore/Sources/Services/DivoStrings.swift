@@ -543,6 +543,13 @@ public enum DivoStrings {
     public static var feedLoadErrorTitle: String { L(en: "Couldn't load models", ru: "Не удалось загрузить модели", es: "No se pudieron cargar modelos", pt: "Não foi possível carregar modelos", zh: "无法加载模特") }
     public static var feedLoadErrorSubtitle: String { L(en: "Something went wrong on our end.\nCheck your connection and try again.", ru: "Что-то пошло не так.\nПроверьте подключение и попробуйте снова.", es: "Algo salió mal de nuestro lado.\nVerifique su conexión e inténtelo de nuevo.", pt: "Algo deu errado do nosso lado.\nVerifique sua conexão e tente novamente.", zh: "我们这边出了点问题。\n请检查连接并重试。") }
     public static var feedPaginationError: String { L(en: "Failed to load more", ru: "Не удалось загрузить ещё", es: "Error al cargar más", pt: "Falha ao carregar mais", zh: "加载更多失败") }
+    public static var profileTabErrorTitlePhoto: String { L(en: "Couldn't load photos", ru: "Не удалось загрузить фото", es: "No se pudieron cargar fotos", pt: "Não foi possível carregar fotos", zh: "无法加载照片") }
+    public static var profileTabErrorTitleVideo: String { L(en: "Couldn't load videos", ru: "Не удалось загрузить видео", es: "No se pudieron cargar videos", pt: "Não foi possível carregar vídeos", zh: "无法加载视频") }
+    public static var profileTabErrorTitleChannels: String { L(en: "Couldn't load channels", ru: "Не удалось загрузить каналы", es: "No se pudieron cargar canales", pt: "Não foi possível carregar canais", zh: "无法加载频道") }
+    public static var profileTabErrorTitleModels: String { L(en: "Couldn't load models", ru: "Не удалось загрузить модели", es: "No se pudieron cargar modelos", pt: "Não foi possível carregar modelos", zh: "无法加载模特") }
+    public static var profileTabErrorTitleEvents: String { L(en: "Couldn't load events", ru: "Не удалось загрузить события", es: "No se pudieron cargar eventos", pt: "Não foi possível carregar eventos", zh: "无法加载活动") }
+    public static var profileTabErrorNetworkTitle: String { L(en: "No internet connection", ru: "Нет подключения к интернету", es: "Sin conexión a internet", pt: "Sem conexão com a internet", zh: "无网络连接") }
+    public static var profileTabErrorSubtitle: String { L(en: "Check your connection\nand try again.", ru: "Проверьте подключение\nи попробуйте снова.", es: "Verifique su conexión\ne inténtelo de nuevo.", pt: "Verifique sua conexão\ne tente novamente.", zh: "请检查您的连接\n并重试。") }
     public static var profileSaved: String { L(en: "Saved", ru: "Сохранено", es: "Guardado", pt: "Salvo", zh: "已保存") }
     public static var viewAction: String { L(en: "View", ru: "Смотреть", es: "Ver", pt: "Ver", zh: "查看") }
     public static var yearsOld: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }

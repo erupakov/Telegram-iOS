@@ -287,18 +287,18 @@ final class CardCollectionViewCell: UICollectionViewCell {
         let placeholderColor = DivoColorPalette.imagePlaceholderLight
 
         // Main image
-        topGlassView.alpha = 0
-        bottomGlassView.alpha = 0
         if let url = model.mainImageURL {
+            // Glass показываем сразу при наличии URL — он даёт scrim в зоне
+            // текста ещё до загрузки фото, белый текст имени читается на
+            // светлом placeholder. Когда фото придёт — glass уже на месте,
+            // лишнего fade-in не нужно.
+            topGlassView.alpha = 1
+            bottomGlassView.alpha = 1
             mainImageView.backgroundColor = placeholderColor
-            mainImageView.loadImage(from: url) { [weak self] image in
-                guard let self, image != nil else { return }
-                UIView.animate(withDuration: 0.3) {
-                    self.topGlassView.alpha = 1
-                    self.bottomGlassView.alpha = 1
-                }
-            }
+            mainImageView.loadImage(from: url)
         } else {
+            topGlassView.alpha = 0
+            bottomGlassView.alpha = 0
             mainImageView.backgroundColor = placeholderColor
         }
 

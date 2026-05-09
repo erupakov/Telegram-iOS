@@ -1,7 +1,7 @@
 import UIKit
 import DivoUIKit
 
-enum ProfileTab: Int {
+enum ProfileTab: Int, CaseIterable {
     case photo = 0
     case video = 1
     case models = 2
@@ -48,11 +48,6 @@ public final class ProfileSegmentedBar: UIView {
     
     // MARK: - Data
     
-    private let myProfileIcons: [UIImage] = [
-        DivoImage.photoIcon,
-        DivoImage.videoIcon
-    ]
-
     private let modelIcons: [UIImage] = [
         DivoImage.photoIcon,
         DivoImage.videoIcon,
@@ -91,7 +86,8 @@ public final class ProfileSegmentedBar: UIView {
     // MARK: - Configuration
     
     func configure(isAgency: Bool, isMyProfile: Bool, animated: Bool = true) {
-        let newIcons = isAgency ? agencyIcons : (isMyProfile ? myProfileIcons : modelIcons)
+        // myProfile/нет: для модели всегда 3 таба, для агентства всегда 5.
+        let newIcons = isAgency ? agencyIcons : modelIcons
         
         guard currentIcons != newIcons else { return }
         currentIcons = newIcons
@@ -130,6 +126,21 @@ public final class ProfileSegmentedBar: UIView {
         backgroundView.frame = bounds
         backgroundView.layer.cornerRadius = bounds.height / 2
         layoutIndicator()
+        applyPillShadow()
+    }
+
+    // Лёгкая тень под пилюлей сегмент-бара. Нужна, чтобы на эмпти-табах
+    // (где зона вокруг пилюли становится белой) пилюля не сливалась с фоном.
+    // Тень рисуется на самом self.layer, потому что у backgroundView
+    // masksToBounds=true (для корректного клиппинга индикатора по скруглению).
+    private func applyPillShadow() {
+        let path = UIBezierPath(roundedRect: bounds, cornerRadius: bounds.height / 2)
+        layer.shadowPath = path.cgPath
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowOpacity = 0.08
+        layer.shadowOffset = CGSize(width: 0, height: 2)
+        layer.shadowRadius = 6
+        layer.masksToBounds = false
     }
 
     private func layoutIndicator() {
@@ -159,7 +170,7 @@ public final class ProfileSegmentedBar: UIView {
         let haptic = UIImpactFeedbackGenerator(style: .light)
         haptic.impactOccurred()
 
-        UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+        UIView.animate(withDuration: 0.30, delay: 0, options: [.curveEaseOut]) {
             self.layoutIndicator()
         }
         delegate?.segmentedBar(self, didSelectIndex: index)
@@ -172,7 +183,7 @@ public final class ProfileSegmentedBar: UIView {
         selectedIndex = index
 
         if animated {
-            UIView.animate(withDuration: 0.25, delay: 0, options: [.curveEaseInOut]) {
+            UIView.animate(withDuration: 0.30, delay: 0, options: [.curveEaseOut]) {
                 self.layoutIndicator()
             }
         } else {

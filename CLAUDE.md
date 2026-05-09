@@ -19,7 +19,7 @@ This is a fork of Telegram-iOS with a DIVO layer on top. DIVO code uses REST API
 ## Build
 - Bazel. **Never run `bazel` or `make` — the user always runs builds manually.**
 - All modules use `glob(["Sources/**/*.swift"])` — new files are picked up automatically.
-- Simulator ID: `C00BA86B-0536-4BFC-A845-F46BB4E2267D` (iPhone 15 / iOS 18)
+- Simulator ID: `A8E24D67-ABD0-4292-9D64-11710CEE46F9` (iPhone 17 / iOS 26.1)
 - App binary: `bazel-bin/Telegram/Telegram_archive-root/Payload/Telegram.app`
 
 ## Developer setup

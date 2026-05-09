@@ -19,7 +19,7 @@ final class SimilarProfileCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = DivoDesignTokens.Radius.m
-        iv.backgroundColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        iv.backgroundColor = DivoColorPalette.imagePlaceholderMedium
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
