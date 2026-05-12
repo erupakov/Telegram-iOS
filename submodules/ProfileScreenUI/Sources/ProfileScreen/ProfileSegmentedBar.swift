@@ -1,14 +1,6 @@
 import UIKit
 import DivoUIKit
 
-enum ProfileTab: Int, CaseIterable {
-    case photo = 0
-    case video = 1
-    case models = 2
-    case channels = 3
-    case events = 4
-}
-
 protocol ProfileSegmentedBarDelegate: AnyObject {
     func segmentedBar(_ segmentedBar: ProfileSegmentedBar, didSelectIndex index: Int)
 }

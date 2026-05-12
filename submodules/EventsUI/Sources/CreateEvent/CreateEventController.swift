@@ -68,7 +68,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         let theme = self.presentationData.theme
 
-        self.displayNode = CreateEventNode(addPhoto: { [weak self] in
+        self.displayNode = CreateEventNode(
+            addPhoto: { [weak self] in
             presentLegacyAvatarPicker(holder: currentAvatarMixin, signup: true, theme: theme, present: { c, a in
                 self?.view.endEditing(true)
                 self?.present(c, in: .window(.root), with: a)
@@ -118,6 +119,10 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             self?.openFullScreenGallery(for: fileUuid)
         }
 
+        self.createEventNode.retryLoadEventData = { [weak self] in
+            self?.retryLoadEventData()
+        }
+
         self.displayNodeDidLoad()
         
         self.loadInitialData()
@@ -136,6 +141,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
                 let eventDetail: EventFullDetailData? = try await {
                     if self.isEditMode, let eventId = self.eventId {
+                        self.createEventNode.configure(mode: .edit, eventId: eventId)
                         let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(path: "/event/\(eventId)", method: "GET")
                         return response.data
                     }
@@ -150,7 +156,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
                 if let detail = eventDetail {
                     self.createEventNode.populate(with: detail)
-                    
+                    self.createEventNode.markDataLoaded()
                     if let files = detail.files {
                         let sortedFiles = files.sorted { ($0.order ?? 99) < ($1.order ?? 99) }
                         self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
@@ -172,14 +178,10 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     }
                 }
                 
-                self.createEventNode.hideScreenLoading()
+                self.createEventNode.markDataLoaded()
                 
             } catch {
-                self.createEventNode.hideScreenLoading()
-                self.createEventNode.showSnackbar(
-                    message: DivoStrings.failedToLoadEventData,
-                    style: .error
-                )
+                self.createEventNode.markDataLoadFailed(networkError: false)
             }
         }
     }
@@ -187,7 +189,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
 
-        self.createEventNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+        self.createEventNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY)
     }
 
     private func loadEventTypesList(offset: Int, limit: Int) {
@@ -580,6 +582,12 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
         self.activeGalleryController = galleryController
         self.push(galleryController)
+    }
+
+    // Retry после ошибки
+    private func retryLoadEventData() {
+        createEventNode.resetToInitialLoading()
+        self.loadInitialData()
     }
 }
 

@@ -48,9 +48,13 @@ public enum DivoImage {
     public static var iconModels: UIImage { load("DivoIconModels") }
     public static var instaIcon: UIImage { load("DivoInstaIcon") }
     public static var link: UIImage { load("DivoLink") }
+    public static var logo: UIImage { load("DivoLogo") }
     public static var moreActionIcon: UIImage { load("DivoMoreActionIcon") }
     public static var moreActionIconBlack: UIImage { load("DivoMoreActionIconBlack") }
     public static var moreIcon: UIImage { load("DivoMoreIcon") }
+    public static var onboardingFirst: UIImage { load("DivoOnboardingFirst") }
+    public static var onboardingSecond: UIImage { load("DivoOnboardingSecond") }
+    public static var onboardingThird: UIImage { load("DivoOnboardingThird") }
     public static var paid: UIImage { load("DivoPaid") }
     public static var pencil: UIImage { load("DivoPencil") }
     public static var photoIcon: UIImage { load("DivoPhotoIcon") }
@@ -85,6 +89,7 @@ public enum DivoImage {
     public static var signUpFan: UIImage { load("DivoSignUpFan") }
     public static var signUpModel: UIImage { load("DivoSignUpModel") }
     public static var signUpNewTalent: UIImage { load("DivoSignUpNewTalent") }
+    public static var splashScreen: UIImage { load("DivoSplashScreen") }
     public static var statLike: UIImage { load("DivoStatLike") }
     public static var statLikeFilled: UIImage { load("DivoStatLikeFilled") }
     public static var statSave: UIImage { load("DivoStatSave") }

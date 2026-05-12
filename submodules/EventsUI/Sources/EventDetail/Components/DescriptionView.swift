@@ -39,6 +39,8 @@ final class DescriptionView: UIView {
         return stack
     }()
 
+    private var mainVerticalStackBottomConstraint: NSLayoutConstraint!
+
     private let contentLabel: UILabel = {
         let label = UILabel()
         label.font = Font.regular(12)
@@ -91,6 +93,7 @@ final class DescriptionView: UIView {
         mainVerticalStack.addArrangedSubview(seeMoreWrapper)
         
         seeMoreButton.addTarget(self, action: #selector(seeMoreTapped), for: .touchUpInside)
+        mainVerticalStackBottomConstraint = mainVerticalStack.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs)
         
         NSLayoutConstraint.activate([
             containerView.topAnchor.constraint(equalTo: self.topAnchor),
@@ -101,7 +104,7 @@ final class DescriptionView: UIView {
             mainVerticalStack.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             mainVerticalStack.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             mainVerticalStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            mainVerticalStack.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs)
+            mainVerticalStackBottomConstraint,
         ])
     }
     
@@ -130,6 +133,7 @@ final class DescriptionView: UIView {
         let shouldShowSeeMore = actualLines > maxLinesCollapsed
         
         seeMoreWrapper.isHidden = !shouldShowSeeMore
+        mainVerticalStackBottomConstraint.constant = shouldShowSeeMore ? -DivoDesignTokens.Spacing.xs : -12
         
         let newTitle = isExpanded ? DivoStrings.seeLess : DivoStrings.seeMore
         seeMoreButton.setTitle(newTitle, for: .normal)

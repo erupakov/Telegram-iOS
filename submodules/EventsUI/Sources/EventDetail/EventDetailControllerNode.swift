@@ -1541,7 +1541,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         setupNavigationBarTitle(name: newEventData.title ?? DivoStrings.noName)
         
-        eventCostTypeLabel.isHidden = newEventData.cost == nil
+        eventCostTypeLabel.isHidden = newEventData.paymentType?.id == 2
         eventCostTypeLabel.text = newEventData.cost
         
         let (data, time) = formatEventDateAndTime(dateString: newEventData.date)
@@ -1556,18 +1556,18 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
-        let (_, deadlineTime) = formatEventDateAndTime(dateString: newEventData.date)
+        let (_, deadlineTime) = formatEventDateAndTime(dateString: newEventData.applicationDeadline)
         eventDeadlineLabel.text = DivoStrings.deadlineData(deadlineTime)
         
-        currentAppliedLabel.text = DivoStrings.currentApplied(23)
-        allAppliedLabel.text = DivoStrings.allApplied(24)
+        currentAppliedLabel.text = DivoStrings.currentApplied(newEventData.appliesCount ?? 0)
+        allAppliedLabel.text = DivoStrings.allApplied(newEventData.maxAttendees ?? 0)
         
         let logoURLString = newEventData.creator?.avatar?.fullUrl
         let logoURL = logoURLString != nil ? URL(string: logoURLString!) : nil
         organizatiorView.configure(name: newEventData.creator?.fullName , logoURL: logoURL)
         
         descriptionView.update(biography: newEventData.description)
-        requirementsLabel.text = newEventData.description
+        requirementsLabel.text = newEventData.requirements
 
         let appearance = buildAppearanceList(attributes: newEventData.modelAttributes)
         parametersView.update(appearance: appearance)
@@ -1608,19 +1608,19 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
-        let (cStr, _) = formatEventDateAndTime(dateString: data.request.dateDeadline)
+        let (cStr, _) = formatEventDateAndTime(dateString: data.request.applicationDeadline)
         eventDeadlineLabel.text = DivoStrings.deadlineData(cStr)
         
         applyButton.makeDivoButton(title: DivoStrings.applyPreviewOnly, buttonFont: Font.helveticaNeue(14), radius: 18)
         applyButton.isEnabled = false
         
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
-        allAppliedLabel.text = DivoStrings.allApplied(data.request.maxParticipants)
+        allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
         organizatiorView.configure(name: "@you", logoURL: nil)
         
         descriptionView.update(biography: data.request.description)
-        requirementsLabel.text = data.request.description
+        requirementsLabel.text = data.request.requirements
         
         // Параметры
         var attrs: [AppearanceAttribute] = []

@@ -56,8 +56,57 @@ private struct AppearanceEditItem {
     let onTap: () -> Void
 }
 
+/// Основные режимы экрана
+enum CreateEventMode {
+    case create   // создание нового события
+    case edit     // редактирование существующего
+}
+
+/// Валидация шага (для enable/disable кнопки)
+enum StepValidationStatus {
+    case valid
+    case invalid(reason: String?)
+}
+
+/// Стадия загрузки всего экрана (= стадия профильного запроса).
+enum ScreenLoadPhase: Equatable {
+    case loading    // профильные шиммеры (header/info/social/segment) видны, scroll/swipe залочены
+    case ready      // профиль загружен, шиммеры сняты, скролл/свайп активны
+    case failed     // ошибка загрузки профиля (заглушка + снекбар)
+}
+
 // MARK: - CreateEventNode
 final class CreateEventNode: ASDisplayNode {
+    
+    // MARK: - State Properties
+
+    private var mode: CreateEventMode = .create {
+        didSet {
+            if oldValue != mode {
+                self.containerLayoutUpdated(self.currentLayoutData?.0, navigationBarHeight: self.currentLayoutData?.1 ?? 0.0, actualNavigationBarHeight: self.currentLayoutData?.2 ?? 0.0)
+            }
+        }
+    }
+    
+    private var loadPhase: ScreenLoadPhase = .loading {
+        didSet {
+            if oldValue != loadPhase {
+                applyLoadPhase()
+            }
+        }
+    }
+    
+    private var editingEventId: Int?
+    private var hasLoadedInitialData: Bool = false
+    
+    // MARK: - State UI Elements
+
+    private let errorPlaceholderView: ProfileTabErrorView = {
+        let view = ProfileTabErrorView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
 
     // MARK: - Core & Context
     private(set) var eventDateInt: Int32 = 0
@@ -97,8 +146,20 @@ final class CreateEventNode: ASDisplayNode {
     private let step3StackView = UIStackView()
 
     // MARK: - Global Action Button
+    
+    let stackButtons: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .vertical
+        stackView.spacing = DivoDesignTokens.Spacing.m
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        return stackView
+    }()
+    
     private let applyButton = DivoButton()
     private var applyButtonBottomConstraint: NSLayoutConstraint!
+    
+    private let discardChangesButton = DivoButton()
+    private var discardChangesButtonBottomConstraint: NSLayoutConstraint!
     
     private let bottomFadeOverlay: UIView = {
         let view = GradientView()
@@ -379,6 +440,7 @@ final class CreateEventNode: ASDisplayNode {
     var onAvatarTap: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
     var onGalleryItemTapped: ((String) -> Void)?
+    var retryLoadEventData: (() -> Void)?
 
     private var countryId: String?
     private var countryTitle: String?
@@ -400,10 +462,13 @@ final class CreateEventNode: ASDisplayNode {
             chanceCenterPhotoView.isHidden = currentPhoto != nil
             chancePhotoView.isHidden = currentPhoto == nil
             validateCurrentStep()
+            if initialSnapshot != nil && oldValue != nil {
+                avatarChanged = true
+            }
         }
     }
 
-    private var currentLayoutData: (ContainerViewLayout, CGFloat, CGFloat)?
+    private var currentLayoutData: (ContainerViewLayout?, CGFloat, CGFloat)?
 
     private let loadingOverlay: UIView = {
         let view = UIView()
@@ -421,6 +486,45 @@ final class CreateEventNode: ASDisplayNode {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+
+    private struct EventSnapshot: Equatable {
+        let type: Int?
+        let typeTitle: String?
+        let name: String?
+        let description: String?
+        let date: String?
+        let role: [String]?
+        let maxAttendees: Int?
+        let requirements: String?
+        let genderId: [String]?
+        let genderTitle: [String]?
+        let age: ClosedRange<Int>?
+        let height: ClosedRange<Double>?
+        let weight: ClosedRange<Double>?
+        let waist: ClosedRange<Double>?
+        let hips: ClosedRange<Double>?
+        let shoeSize: ClosedRange<Double>?
+        let hairLengthId: [Int]?
+        let hairLengthTitle: [String]?
+        let hairColorId: [Int]?
+        let hairColorTitle: [String]?
+        let eyeColorId: [Int]?
+        let eyeColorTitle: [String]?
+        let skinColorId: [Int]?
+        let skinColorTitle: [String]?
+        let nda: Bool?
+        let deadlineDate: String?
+        let cost: String?
+        let paymentType: Int?
+        let paymentFrequency: Int?
+        let paymentFrequencyTitle: String?
+        let isPublic: Bool?
+    }
+
+    private var initialSnapshot: EventSnapshot?
+    private var avatarChanged = false
+    private var hasChanges = false
+    private var changeGallery = false
     
 
     // MARK: - Init
@@ -476,6 +580,9 @@ final class CreateEventNode: ASDisplayNode {
 
         applyButton.makeDivoButton(title: DivoStrings.continueButton)
         applyButton.addTarget(self, action: #selector(mainActionButtonTapped), for: .touchUpInside)
+
+        discardChangesButton.isHidden = false
+        discardChangesButton.addTarget(self, action: #selector(discardActionButtonTapped), for: .touchUpInside)
         
         chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
         chancePhotoView.addDivoPressState(.pill)
@@ -556,8 +663,9 @@ final class CreateEventNode: ASDisplayNode {
         updateDropdownsUI()
 
         nameEventTextField.textField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
-        rateTextField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
-        paidEventSwitch.addTarget(self, action: #selector(validateCurrentStep), for: .valueChanged)
+        rateTextField.addTarget(self, action: #selector(switchChange), for: .editingChanged)
+        paidEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
+        publicEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
         NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: aboutEventTextField.textView)
         NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: requirementsTextField.textView)
         validateCurrentStep()
@@ -581,9 +689,12 @@ final class CreateEventNode: ASDisplayNode {
         let bottomFadeOverlayCns = bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         bottomFadeOverlayBottomConstraint = bottomFadeOverlayCns
         
-        view.addSubview(applyButton)
+        stackButtons.addArrangedSubview(applyButton)
+        stackButtons.addArrangedSubview(discardChangesButton)
+        view.addSubview(stackButtons)
         applyButton.translatesAutoresizingMaskIntoConstraints = false
-        applyButtonBottomConstraint = applyButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
+        applyButtonBottomConstraint = stackButtons.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -40)
+        discardChangesButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
             navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -601,9 +712,10 @@ final class CreateEventNode: ASDisplayNode {
             pagerContentView.trailingAnchor.constraint(equalTo: horizontalPager.contentLayoutGuide.trailingAnchor),
             pagerContentView.heightAnchor.constraint(equalTo: horizontalPager.frameLayoutGuide.heightAnchor),
             
-            applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            stackButtons.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            stackButtons.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             applyButton.heightAnchor.constraint(equalToConstant: 56),
+            discardChangesButton.heightAnchor.constraint(equalToConstant: 56),
             applyButtonBottomConstraint,
             
             bottomFadeOverlayCns,
@@ -617,6 +729,7 @@ final class CreateEventNode: ASDisplayNode {
         view.addSubview(loadingOverlay)
         loadingSpinner.translatesAutoresizingMaskIntoConstraints = false
         loadingOverlay.addSubview(loadingSpinner)
+        view.addSubview(errorPlaceholderView)
         
         NSLayoutConstraint.activate([
             loadingOverlay.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
@@ -628,7 +741,54 @@ final class CreateEventNode: ASDisplayNode {
             loadingSpinner.centerYAnchor.constraint(equalTo: loadingOverlay.centerYAnchor),
             loadingSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             loadingSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            
+            errorPlaceholderView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
+            errorPlaceholderView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            errorPlaceholderView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            errorPlaceholderView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+    }
+
+    private func applyLoadPhase() {
+        switch loadPhase {
+        case .loading:
+            // Показываем лоадер, скрываем форму и ошибку
+            loadingOverlay.isHidden = false
+            loadingSpinner.startAnimating()
+            errorPlaceholderView.isHidden = true
+            
+            // Блокируем взаимодействие с формой
+            horizontalPager.isUserInteractionEnabled = false
+            applyButton.isEnabled = false
+            
+        case .ready:
+            // Скрываем лоадер, показываем форму
+            loadingOverlay.isHidden = true
+            loadingSpinner.stopAnimating()
+            errorPlaceholderView.isHidden = true
+            
+            // Разблокируем форму
+            horizontalPager.isUserInteractionEnabled = true
+            validateCurrentStep()
+            
+        case .failed:
+            // Показываем ошибку с кнопкой retry
+            loadingOverlay.isHidden = true
+            loadingSpinner.stopAnimating()
+            
+            errorPlaceholderView.isHidden = false
+            errorPlaceholderView.configure(
+                tab: .events,
+                networkError: true
+            ) { [weak self] in
+                self?.loadPhase = .loading
+                self?.retryLoadEventData?()
+            }
+            
+            // Блокируем форму
+            horizontalPager.isUserInteractionEnabled = false
+            applyButton.isEnabled = false
+        }
     }
     
     private func setupSteps() {
@@ -639,7 +799,9 @@ final class CreateEventNode: ASDisplayNode {
             scrollView.translatesAutoresizingMaskIntoConstraints = false
             scrollView.showsVerticalScrollIndicator = false
             scrollView.keyboardDismissMode = .onDrag
-            let bottomInset: CGFloat = (index == 2) ? 120 : 80
+            let bottomInset: CGFloat = (index == 2) ?
+            self.mode == .create ? 120 : 160
+            : 80
             scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
             
             let stack = stacks[index]
@@ -1127,8 +1289,19 @@ final class CreateEventNode: ASDisplayNode {
     private func updateHeaderAndButton() {
         navigationBar.setRightTitle(DivoStrings.stepCreateEvent(currentStep))
         if currentStep == 3 {
-            applyButton.makeDivoButton(title: DivoStrings.previewEvent)
+            discardChangesButton.isHidden = self.mode == .edit ? false : true
+            discardChangesButton.makeDivoButton(title: DivoStrings.discardChanges, divoButtonStyle: .secondary)
+            discardChangesButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
+            
+            applyButton.makeDivoButton(title: self.mode == .edit ? DivoStrings.saveChanges : DivoStrings.previewEvent)
+            let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged || changeGallery
+            if self.mode == .edit {
+                self.hasChanges = hasChanges
+            } else {
+                self.hasChanges = true
+            }
         } else {
+            discardChangesButton.isHidden = true
             applyButton.makeDivoButton(title: DivoStrings.continueButton)
         }
     }
@@ -1144,6 +1317,7 @@ final class CreateEventNode: ASDisplayNode {
         eyeColorDropdown.setItems(eyeColorDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
         skinColorDropdown.setItems(skinColorDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
         rateTime.setTitle(rateTimeTitle)
+        updateHeaderAndButton()
         validateCurrentStep()
     }
     
@@ -1164,6 +1338,7 @@ final class CreateEventNode: ASDisplayNode {
             self.view.layoutIfNeeded()
         }
         
+        updateHeaderAndButton()
         validateCurrentStep()
     }
 
@@ -1308,6 +1483,64 @@ final class CreateEventNode: ASDisplayNode {
         return row
     }
 
+    private func makeSnapshot() -> EventSnapshot {
+        let dateObj = Date(timeIntervalSince1970: TimeInterval(eventDateInt))
+        let timeObj = Date(timeIntervalSince1970: TimeInterval(eventTimeInt))
+        
+        let calendar = Calendar.current
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: timeObj)
+        let finalDate = calendar.date(bySettingHour: timeComponents.hour ?? 0, minute: timeComponents.minute ?? 0, second: 0, of: dateObj) ?? dateObj
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let dateString = formatter.string(from: finalDate)
+        
+        let dateDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineDateInt))
+        let timeDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineTimeInt))
+        
+        let deadlineCalendar = Calendar.current
+        let deadlineTimeComponents = deadlineCalendar.dateComponents([.hour, .minute], from: timeDeadlineObj)
+        let deadlineFinalDate = calendar.date(bySettingHour: deadlineTimeComponents.hour ?? 0, minute: deadlineTimeComponents.minute ?? 0, second: 0, of: dateDeadlineObj) ?? dateDeadlineObj
+        
+        let deadlineFormatter = DateFormatter()
+        deadlineFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let deadlineDateString = formatter.string(from: deadlineFinalDate)
+        
+        return EventSnapshot(
+            type: Int(eventTypeId ?? "0") ?? 0,
+            typeTitle: eventTypeTitle,
+            name: nameEventTextField.textField.text ?? "",
+            description: aboutEventTextField.text,
+            date: dateString,
+            role: whoCanApplyIds,
+            maxAttendees: maxParticipants,
+            requirements: requirementsTextField.text == "" ? nil : requirementsTextField.text,
+            genderId: genderDropdownIds,
+            genderTitle: genderDropdownTitles,
+            age: selectedAge,
+            height: selectedHeight,
+            weight: selectedWeight,
+            waist: selectedWaist,
+            hips: selectedHips,
+            shoeSize: selectedShoeSize,
+            hairLengthId: hairLengthDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            hairLengthTitle: hairLengthDropdownTitles,
+            hairColorId: hairColorDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            hairColorTitle: hairColorDropdownTitles,
+            eyeColorId: eyeColorDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            eyeColorTitle: eyeColorDropdownTitles,
+            skinColorId: skinColorDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            skinColorTitle: skinColorDropdownTitles,
+            nda: ndaSwitch.isOn,
+            deadlineDate: deadlineDateString,
+            cost: rateTextField.text == "" ? nil : rateTextField.text,
+            paymentType: paidEventSwitch.isOn ? 1 : 2,
+            paymentFrequency: Int(rateTimeId ?? "1"),
+            paymentFrequencyTitle: rateTimeTitle,
+            isPublic: publicEventSwitch.isOn
+        )
+    }
+
 
     // MARK: - Internal
     
@@ -1324,6 +1557,11 @@ final class CreateEventNode: ASDisplayNode {
         galleryItems[index].isUploading = false
         galleryItems[index].fileUuid = fileUuid
         galleryCollectionView.reloadItems(at: [IndexPath(item: index, section: 0)])
+        if initialSnapshot != nil {
+            changeGallery = true
+            updateHeaderAndButton()
+            validateCurrentStep()
+        }
     }
     
     func cancelPhotoUpload(item: EventGalleryItem) {
@@ -1333,6 +1571,12 @@ final class CreateEventNode: ASDisplayNode {
     func removePhoto(item: EventGalleryItem) {
         guard let index = galleryItems.firstIndex(of: item) else { return }
         galleryItems.remove(at: index)
+        
+        if initialSnapshot != nil {
+            changeGallery = true
+            updateHeaderAndButton()
+            validateCurrentStep()
+        }
         
         galleryCollectionView.performBatchUpdates({
             galleryCollectionView.deleteItems(at:[IndexPath(item: index, section: 0)])
@@ -1443,17 +1687,32 @@ final class CreateEventNode: ASDisplayNode {
             deadlineDateInt = timestamp
             deadlineDate.setDate(timestamp: timestamp)
         }
+        updateHeaderAndButton()
         validateCurrentStep()
     }
     
-    func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
+    func containerLayoutUpdated(_ layout: ContainerViewLayout? = nil, navigationBarHeight: CGFloat, actualNavigationBarHeight: CGFloat) {
         self.currentLayoutData = (layout, navigationBarHeight, actualNavigationBarHeight)
+        
+        guard let layout = layout else { return }
+        
+        if !errorPlaceholderView.isHidden {
+            let topInset = navigationBarHeight
+            errorPlaceholderView.frame = CGRect(
+                x: 0,
+                y: topInset,
+                width: layout.size.width,
+                height: layout.size.height - topInset
+            )
+        }
         
         let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
         for (index, scroll) in scrolls.enumerated() {
             var insets = scroll.contentInset
             insets.top = navigationBarHeight
-            insets.bottom = (index == 2) ? 120 : 80
+            insets.bottom = (index == 2) ?
+            self.mode == .create ? 120 : 160
+            : 80
             
             scroll.contentInset = insets
             scroll.scrollIndicatorInsets = insets
@@ -1496,6 +1755,17 @@ final class CreateEventNode: ASDisplayNode {
         
         let dateToObj = calendar.date(byAdding: .hour, value: 2, to: finalDate) ?? finalDate
         let dateToString = formatter.string(from: dateToObj)
+        
+        let dateDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineDateInt))
+        let timeDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineTimeInt))
+        
+        let deadlineCalendar = Calendar.current
+        let deadlineTimeComponents = deadlineCalendar.dateComponents([.hour, .minute], from: timeDeadlineObj)
+        let deadlineFinalDate = calendar.date(bySettingHour: deadlineTimeComponents.hour ?? 0, minute: deadlineTimeComponents.minute ?? 0, second: 0, of: dateDeadlineObj) ?? dateDeadlineObj
+        
+        let deadlineFormatter = DateFormatter()
+        deadlineFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let deadlineDateString = formatter.string(from: deadlineFinalDate)
         
         // TODO: DIVO — city picker not implemented, using 1 as hardcoded stub
         let cityId = Int(self.countryId ?? "1") ?? 1
@@ -1546,6 +1816,7 @@ final class CreateEventNode: ASDisplayNode {
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2
         let cost = rateTextField.text == "" ? nil : rateTextField.text
+        let requirements = requirementsTextField.text == "" ? nil : requirementsTextField.text
         
         return CreateEventRequest(
             title: title,
@@ -1558,6 +1829,11 @@ final class CreateEventNode: ASDisplayNode {
             paymentType: paymentType,
             paymentFrequency: Int(rateTimeId ?? "1"),
             cost: cost,
+            isPublic: publicEventSwitch.isOn,
+            ndaRequired: ndaSwitch.isOn,
+            applicationDeadline: deadlineDateString,
+            maxAttendees: maxParticipants,
+            requirements: requirements,
             role: roles,
             gender: genders,
             age: ageRange,
@@ -1665,14 +1941,16 @@ final class CreateEventNode: ASDisplayNode {
         return CreateEventPreview(
             title: title,
             description: description,
-            requirements: requirements,
             type: eventTypeTitle ?? "Event",
-            maxParticipants: maxParticipants ?? 0,
             date: dateString,
-            dateDeadline: dateDeadlineString,
             address: address,
             files: eventFiles,
             cost: cost,
+            isPublic: publicEventSwitch.isOn,
+            ndaRequired: ndaSwitch.isOn,
+            applicationDeadline: dateDeadlineString,
+            maxAttendees: maxParticipants ?? 0,
+            requirements: requirements,
             role: roles,
             gender: genders,
             age: ageRange,
@@ -1691,9 +1969,13 @@ final class CreateEventNode: ASDisplayNode {
     
     func populate(with detail: EventFullDetailData) {
         
+        guard mode == .edit else {
+            print("⚠️ Попытка заполнить форму в режиме создания")
+            return
+        }
+        
         eventTypeId = "\(detail.type?.id ?? 1)"
         eventTypeTitle = detail.type?.title
-        eventTypeDropdown.setItems([eventTypeTitle ?? ""], emptyTitle: "")
         
         nameEventTextField.textField.text = detail.title
         
@@ -1718,10 +2000,11 @@ final class CreateEventNode: ASDisplayNode {
         whoCanApplyTitles = whoCanApplyIds?.compactMap { id in
             roleOptions.first(where: { $0.id == id })?.title
         }
-        whoCanApplyDropdown.setItems(whoCanApplyTitles ?? [], emptyTitle: "")
         
-        // НИЧЕГО НЕТ ПРО МАКСИМАЛЬНОЕ КОЛИЧЕСТВО УЧАСТНИКОВ
-        // НИЧЕГО НЕТ ПРО ОПИСАНИЕ ОБЯЗАНОСТЕЙ
+        maxParticipants = detail.maxAttendees
+        
+        requirementsTextField.textView.text = detail.requirements
+        requirementsTextField.textView.textColor = DivoColorPalette.primaryText
         
         genderDropdownIds = detail.modelAttributes?.gender?.map(\.id!)
         genderDropdownTitles = detail.modelAttributes?.gender?.map(\.title!)
@@ -1738,7 +2021,6 @@ final class CreateEventNode: ASDisplayNode {
         skinColorDropdownIds = detail.modelAttributes?.skinColor?.compactMap { String($0.id!) }
         skinColorDropdownTitles = detail.modelAttributes?.skinColor?.map(\.title!)
         
-        
         selectedAge = Int(detail.modelAttributes?.age?.from ?? 0)...Int(detail.modelAttributes?.age?.to ?? 0)
         selectedHeight = Double(detail.modelAttributes?.height?.from ?? 0)...Double(detail.modelAttributes?.height?.to ?? 0)
         selectedWeight = Double(detail.modelAttributes?.weight?.from ?? 0)...Double(detail.modelAttributes?.weight?.to ?? 0)
@@ -1746,23 +2028,74 @@ final class CreateEventNode: ASDisplayNode {
         selectedHips = Double(detail.modelAttributes?.hips?.from ?? 0)...Double(detail.modelAttributes?.hips?.to ?? 0)
         selectedShoeSize = Double(detail.modelAttributes?.shoesSize?.from ?? 0)...Double(detail.modelAttributes?.shoesSize?.to ?? 0)
         
-        // НИЧЕГО НЕТ ДЛЯ НДА
-        // НИЧЕГО НЕТ ДЛЯ ВЫСТАВЛЕНИЯ ВРЕМЕНИ ДЕДЛАЙНА
+        ndaSwitch.isOn = detail.ndaRequired ?? false
+        
+        if let deadlineDateString = detail.applicationDeadline {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            
+            if let dateObj = formatter.date(from: deadlineDateString) {
+                let timestamp = Int32(dateObj.timeIntervalSince1970)
+                self.updateDeadlineTime(timestamp, .date)
+                self.updateDeadlineTime(timestamp, .time)
+            }
+        }
         
         paidEventSwitch.isOn = detail.paymentType?.id == 1
         rateTextField.text = detail.cost
         rateTimeId = String(detail.paymentFrequency?.id ?? 0)
         rateTimeTitle = detail.paymentFrequency?.title ?? ""
         
-        // НИЧЕГО НЕТ ДЛЯ ПУБЛИЧНОГО ЭВЕНТА
+        publicEventSwitch.isOn = detail.isPublic ?? false
+        
         updateDropdownsUI()
         updateAppearanceValues()
         
+        // 6. Галерея и Обложка (Фотографии)
         if let files = detail.files {
             loadExistingFiles(files)
         }
+        initialSnapshot = makeSnapshot()
+        markDataLoaded()
     }
     
+    // MARK: - Public State Methods
+
+    /// Настройка режима экрана (вызывается перед показом)
+    func configure(mode: CreateEventMode, eventId: Int? = nil) {
+        self.mode = mode
+        self.editingEventId = eventId
+        
+        // Обновляем UI в зависимости от режима
+        if mode == .edit {
+            navigationBar.setRightTitle(DivoStrings.stepCreateEvent(currentStep))
+            loadPhase = .loading
+        } else {
+            loadPhase = .ready // Для создания сразу показываем форму
+        }
+        
+        // Меняем заголовок кнопки на последнем шаге
+        updateHeaderAndButton()
+    }
+
+    /// Отметить, что данные успешно загружены (вызывается из контроллера)
+    func markDataLoaded() {
+        loadPhase = .ready
+        hasLoadedInitialData = true
+    }
+
+    /// Отметить, что загрузка данных завершилась ошибкой
+    func markDataLoadFailed(networkError: Bool) {
+        loadPhase = .failed
+    }
+
+    /// Сбросить в начальное состояние (для retry)
+    func resetToInitialLoading() {
+        loadPhase = .loading
+        hasLoadedInitialData = false
+    }
+
     
     // MARK: - Handlers & Navigations
     
@@ -1779,6 +2112,91 @@ final class CreateEventNode: ASDisplayNode {
         } else {
             onCreateEventTapped?()
         }
+    }
+
+    @objc private func discardActionButtonTapped() {
+        guard mode == .edit else {
+            print("⚠️ Попытка заполнить форму в режиме создания")
+            return
+        }
+        
+        eventTypeId = "\(initialSnapshot?.type ?? 0)"
+        eventTypeTitle = initialSnapshot?.typeTitle
+        
+        nameEventTextField.textField.text = initialSnapshot?.name
+        
+        aboutEventTextField.textView.text = initialSnapshot?.description
+        aboutEventTextField.textView.textColor = DivoColorPalette.primaryText
+        
+        if let dateString = initialSnapshot?.date {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            
+            if let dateObj = formatter.date(from: dateString) {
+                let timestamp = Int32(dateObj.timeIntervalSince1970)
+                self.updateTime(timestamp, .date)
+                self.updateTime(timestamp, .time)
+            }
+        }
+        
+        // НИЧЕГО НЕ ПРО СТРАНУ И НЕПОНЯТНО КАК ЗАПОЛНЯТЬ АДРЕС
+        
+        whoCanApplyIds = initialSnapshot?.role
+        whoCanApplyTitles = whoCanApplyIds?.compactMap { id in
+            roleOptions.first(where: { $0.id == id })?.title
+        }
+        
+        maxParticipants = initialSnapshot?.maxAttendees
+        
+        requirementsTextField.textView.text = initialSnapshot?.requirements
+        requirementsTextField.textView.textColor = DivoColorPalette.primaryText
+        
+        genderDropdownIds = initialSnapshot?.genderId
+        genderDropdownTitles = initialSnapshot?.genderTitle
+        
+        hairLengthDropdownIds = initialSnapshot?.hairLengthId?.compactMap({String($0)})
+        hairLengthDropdownTitles = initialSnapshot?.hairLengthTitle
+        
+        hairColorDropdownIds = initialSnapshot?.hairColorId?.compactMap({String($0)})
+        hairColorDropdownTitles = initialSnapshot?.hairColorTitle
+        
+        eyeColorDropdownIds = initialSnapshot?.eyeColorId?.compactMap({String($0)})
+        eyeColorDropdownTitles = initialSnapshot?.eyeColorTitle
+        
+        skinColorDropdownIds = initialSnapshot?.skinColorId?.compactMap({String($0)})
+        skinColorDropdownTitles = initialSnapshot?.skinColorTitle
+        
+        selectedAge = initialSnapshot?.age
+        selectedHeight = initialSnapshot?.height
+        selectedWeight = initialSnapshot?.weight
+        selectedWaist = initialSnapshot?.waist
+        selectedHips = initialSnapshot?.hips
+        selectedShoeSize = initialSnapshot?.shoeSize
+        
+        ndaSwitch.isOn = initialSnapshot?.nda ?? false
+        
+        if let deadlineDateString = initialSnapshot?.deadlineDate {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            
+            if let dateObj = formatter.date(from: deadlineDateString) {
+                let timestamp = Int32(dateObj.timeIntervalSince1970)
+                self.updateDeadlineTime(timestamp, .date)
+                self.updateDeadlineTime(timestamp, .time)
+            }
+        }
+        
+        paidEventSwitch.isOn = initialSnapshot?.paymentType == 1
+        rateTextField.text = initialSnapshot?.cost
+        rateTimeId = String(initialSnapshot?.paymentFrequency ?? 0)
+        rateTimeTitle = initialSnapshot?.paymentFrequencyTitle ?? ""
+        
+        publicEventSwitch.isOn = initialSnapshot?.isPublic ?? false
+        
+        updateDropdownsUI()
+        updateAppearanceValues()
     }
     
     @objc private func backButtonTapped() {
@@ -2042,7 +2460,9 @@ final class CreateEventNode: ASDisplayNode {
         let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
         let activeScroll = scrolls[currentStep - 1]
         
-        let bottomInset: CGFloat = (currentStep == 3) ? 120 : 80
+        let bottomInset: CGFloat = (currentStep == 3) ?
+        self.mode == .create ? 120 : 160
+        : 80
         activeScroll.contentInset.bottom = bottomInset
         
         UIView.animate(withDuration: 0.3) {
@@ -2060,12 +2480,22 @@ final class CreateEventNode: ASDisplayNode {
         self.selectedParameters.remove(param)
     }
     
+    @objc private func switchChange() {
+        updateHeaderAndButton()
+        validateCurrentStep()
+    }
+    
     @objc private func validateCurrentStep() {
+        // Если данные ещё не загружены (режим редактирования) — кнопка неактивна
+        if mode == .edit && loadPhase != .ready {
+            applyButton.isEnabled = false
+            return
+        }
+        
         var isValid = false
         
         switch currentStep {
         case 1:
-            // 1 ШАГ: Проверяем фото, тип, название, описание, дату, время и страну
             let hasPhoto = currentPhoto != nil || avatarFileUuid != nil
             let hasEventType = eventTypeId != nil && !eventTypeId!.isEmpty
             let hasName = !(nameEventTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
@@ -2080,7 +2510,6 @@ final class CreateEventNode: ASDisplayNode {
             isValid = hasPhoto && hasEventType && hasName && hasDesc && hasDate && hasTime && hasCountry
             
         case 2:
-            // 2 ШАГ: Проверяем роли, макс. участников, требования и АБСОЛЮТНО ВСЕ параметры внешности
             let hasRoles = !(whoCanApplyIds?.isEmpty ?? true)
             let hasMaxParticipants = maxParticipants != nil
             
@@ -2090,7 +2519,6 @@ final class CreateEventNode: ASDisplayNode {
             isValid = hasRoles && hasMaxParticipants && hasReq
             
         case 3:
-            // 3 ШАГ: Проверяем дедлайн, стоимость и наличие ФОТО В ГАЛЕРЕЕ
             let hasDate = deadlineDateInt > 0
             let hasTime = deadlineTimeInt > 0
             var hasRate = true
@@ -2100,18 +2528,14 @@ final class CreateEventNode: ASDisplayNode {
                 hasRate = !(rateTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             }
             
-            // Галерея не должна быть пустой
             let hasGallery = !galleryItems.isEmpty
-            
-            isValid = hasDate && hasTime && hasRate && hasGallery
+            isValid = hasDate && hasTime && hasRate && hasGallery && self.hasChanges
             
         default:
             isValid = true
         }
         
-        UIView.animate(withDuration: 0.2) {
-            self.applyButton.isEnabled = isValid
-        }
+        applyButton.isEnabled = isValid
     }
     
     // MARK: - Snackbar

@@ -130,6 +130,11 @@ public struct EventFullDetailData: Decodable {
     public let paymentType: EventFullIdTitle?
     public let paymentFrequency: EventFullIdTitle?
     public let cost: String?
+    public let isPublic: Bool?
+    public let ndaRequired: Bool?
+    public let applicationDeadline: String?
+    public let maxAttendees: Int?
+    public let requirements: String?
     public let address: EventFullAddress?
     public let files: [EventFile]?
     public let modelAttributes: EventFullModelAttributes?
@@ -230,15 +235,17 @@ public struct EventTypesData: Decodable {
 public struct CreateEventPreview: Codable {
     public let title: String
     public let description: String
-    public let requirements: String
     public let type: String
-    public let maxParticipants: Int
     public let date: String
-    public let dateDeadline: String
     public let address: EventAddressRequest
     public let files: [EventFileRequest]
 
     public let cost: String?
+    public let isPublic: Bool?
+    public let ndaRequired: Bool?
+    public let applicationDeadline: String?
+    public let maxAttendees: Int?
+    public let requirements: String?
 
     public let role: [String]?
     public let gender: [String]?
@@ -257,14 +264,16 @@ public struct CreateEventPreview: Codable {
     public init(
         title: String,
         description: String,
-        requirements: String,
         type: String,
-        maxParticipants: Int,
         date: String,
-        dateDeadline: String,
         address: EventAddressRequest,
         files: [EventFileRequest],
         cost: String?,
+        isPublic: Bool?,
+        ndaRequired: Bool?,
+        applicationDeadline: String?,
+        maxAttendees: Int?,
+        requirements: String?,
         role: [String]?,
         gender: [String]?,
         age: EventRangeRequest?,
@@ -281,14 +290,16 @@ public struct CreateEventPreview: Codable {
     ) {
         self.title = title
         self.description = description
-        self.requirements = requirements
         self.type = type
-        self.maxParticipants = maxParticipants
         self.date = date
-        self.dateDeadline = dateDeadline
         self.address = address
         self.files = files
         self.cost = cost
+        self.isPublic = isPublic
+        self.ndaRequired = ndaRequired
+        self.applicationDeadline = applicationDeadline
+        self.maxAttendees = maxAttendees
+        self.requirements = requirements
         self.role = role
         self.gender = gender
         self.age = age
@@ -317,7 +328,13 @@ public struct CreateEventRequest: Codable {
     public let paymentType: Int?
     public let paymentFrequency: Int?
     public let cost: String?
-
+    
+    public let isPublic: Bool?
+    public let ndaRequired: Bool?
+    public let applicationDeadline: String?
+    public let maxAttendees: Int?
+    public let requirements: String?
+    
     public let role: [String]?
     public let gender: [String]?
     public let age: EventRangeRequest?
@@ -345,6 +362,11 @@ public struct CreateEventRequest: Codable {
         paymentType: Int?,
         paymentFrequency: Int?,
         cost: String?,
+        isPublic: Bool?,
+        ndaRequired: Bool?,
+        applicationDeadline: String?,
+        maxAttendees: Int?,
+        requirements: String?,
         role: [String]?,
         gender: [String]?,
         age: EventRangeRequest?,
@@ -370,6 +392,11 @@ public struct CreateEventRequest: Codable {
         self.paymentType = paymentType
         self.paymentFrequency = paymentFrequency
         self.cost = cost
+        self.isPublic = isPublic
+        self.ndaRequired = ndaRequired
+        self.applicationDeadline = applicationDeadline
+        self.maxAttendees = maxAttendees
+        self.requirements = requirements
         self.role = role
         self.gender = gender
         self.age = age
