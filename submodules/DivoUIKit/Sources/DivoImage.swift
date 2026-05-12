@@ -53,7 +53,6 @@ public enum DivoImage {
     public static var onboardingFirst: UIImage { load("DivoOnboardingFirst") }
     public static var onboardingSecond: UIImage { load("DivoOnboardingSecond") }
     public static var onboardingThird: UIImage { load("DivoOnboardingThird") }
-    public static var paid: UIImage { load("DivoPaid") }
     public static var pencil: UIImage { load("DivoPencil") }
     public static var photoIcon: UIImage { load("DivoPhotoIcon") }
     public static var plus: UIImage { load("DivoPlus") }
