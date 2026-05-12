@@ -1,11 +1,5 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
 
-filegroup(
-    name = "OnboardingUIAssets",
-    srcs = glob(["OnboardingUIImages.xcassets/**"]),
-    visibility = ["//visibility:public"],
-)
-
 swift_library(
     name = "OnboardingUI",
     module_name = "OnboardingUI",

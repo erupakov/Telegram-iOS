@@ -94,7 +94,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
             } else if case let .unauthorized(state) = state {
                 return .state(state.contents)
             } else {
-                return .state(.empty)///////////////////
+                return .state(.empty)
             }
         }
         |> distinctUntilChanged
@@ -130,19 +130,19 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         self.view.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
     }
     
-    private func splashController() -> AuthorizationSequenceSplashController {
-        var currentController: AuthorizationSequenceSplashController?
+    private func splashController() -> DivoSplashController {
+        var currentController: DivoSplashController?
         for c in self.viewControllers {
-            if let c = c as? AuthorizationSequenceSplashController {
+            if let c = c as? DivoSplashController {
                 currentController = c
                 break
             }
         }
-        let controller: AuthorizationSequenceSplashController
+        let controller: DivoSplashController
         if let currentController = currentController {
             controller = currentController
         } else {
-            controller = AuthorizationSequenceSplashController(accountManager: self.sharedContext.accountManager, account: self.account, theme: self.presentationData.theme)
+            controller = DivoSplashController(theme: self.presentationData.theme)
             controller.nextPressed = { [weak self] strings in
                 if let strongSelf = self {
                     if let strings = strings {
@@ -151,6 +151,13 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
 
                     let proceedToPhoneEntry = {
                         guard let strongSelf = self else { return }
+                        
+                        let transition = CATransition()
+                        transition.duration = 0.3
+                        transition.type = .fade
+                        transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                        strongSelf.view.layer.add(transition, forKey: kCATransition)
+                        
                         let masterDatacenterId = strongSelf.account.masterDatacenterId
                         let isTestingEnvironment = strongSelf.account.testingEnvironment
                         let countryCode = AuthorizationSequenceCountrySelectionController.defaultCountryCode()
@@ -162,13 +169,19 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         strongSelf.addChild(onboarding)
                         onboarding.view.frame = strongSelf.view.bounds
                         onboarding.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                        
+                        onboarding.view.alpha = 0.0
                         strongSelf.view.addSubview(onboarding.view)
                         onboarding.didMove(toParent: strongSelf)
+                        
+                        UIView.animate(withDuration: 0.3) {
+                            onboarding.view.alpha = 1.0
+                        }
+                        
                         onboarding.onFinish = { [weak onboarding, weak self] in
-                            // Clear nav stack so proceedToPhoneEntry animates without showing splash
                             self?.setViewControllers([], animated: false)
                             proceedToPhoneEntry()
-                            UIView.animate(withDuration: 0.3, delay: 0.05, options: [], animations: {
+                            UIView.animate(withDuration: 0.3, delay: 0.05, options:[], animations: {
                                 onboarding?.view.alpha = 0
                             }, completion: { _ in
                                 onboarding?.willMove(toParent: nil)
@@ -185,7 +198,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         return controller
     }
     
-    private func phoneEntryController(countryCode: Int32, number: String, splashController: AuthorizationSequenceSplashController?) -> AuthorizationSequencePhoneEntryController {
+    private func phoneEntryController(countryCode: Int32, number: String) -> AuthorizationSequencePhoneEntryController {
         var currentController: AuthorizationSequencePhoneEntryController?
         for c in self.viewControllers {
             if let c = c as? AuthorizationSequencePhoneEntryController {
@@ -211,9 +224,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: strongSelf.account.testingEnvironment, masterDatacenterId: strongSelf.account.masterDatacenterId, contents: .empty)).startStandalone()
                 }
             })
-            if let splashController = splashController {
-                controller.animateWithSplashController(splashController)
-            }
+            
             controller.accountUpdated = { [weak self] updatedAccount in
                 guard let strongSelf = self else {
                     return
@@ -1325,13 +1336,13 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         case let .state(state):
             switch state {
                 case .empty:
-                    if let _ = self.viewControllers.last as? AuthorizationSequenceSplashController {
+                    if let _ = self.viewControllers.last as? DivoSplashController {
                     } else {
                         var controllers: [ViewController] = []
                         if self.otherAccountPhoneNumbers.1.isEmpty {
                             controllers.append(self.splashController())
                         } else {
-                            controllers.append(self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "", splashController: nil))
+                            controllers.append(self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: ""))
                         }
                         self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                     }
@@ -1345,14 +1356,14 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     if !self.otherAccountPhoneNumbers.1.isEmpty {
                         controllers.append(self.splashController())
                     }
-                    controllers.append(self.phoneEntryController(countryCode: countryCode, number: number, splashController: nil))
+                    controllers.append(self.phoneEntryController(countryCode: countryCode, number: number))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                 case let .confirmationCodeEntry(number, type, phoneCodeHash, timeout, nextType, _, previousCodeEntry, usePrevious):
                     var controllers: [ViewController] = []
                     if !self.otherAccountPhoneNumbers.1.isEmpty {
                         controllers.append(self.splashController())
                     }
-                    controllers.append(self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "", splashController: nil))
+                    controllers.append(self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: ""))
                 
                     var isGoingBack = false
                     if case let .emailSetupRequired(appleSignInAllowed) = type {
@@ -1431,7 +1442,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         let wasEmpty = self.viewControllers.isEmpty
         super.setViewControllers(viewControllers, animated: animated)
         if wasEmpty {
-            if self.topViewController is AuthorizationSequenceSplashController {
+            if self.topViewController is DivoSplashController {
             } else {
                 self.topViewController?.view.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
             }
@@ -1475,7 +1486,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         if !self.otherAccountPhoneNumbers.1.isEmpty {
             self.view.layer.animatePosition(from: CGPoint(x: self.view.layer.position.x, y: self.view.layer.position.y + self.view.layer.bounds.size.height), to: self.view.layer.position, duration: 0.5, timingFunction: kCAMediaTimingFunctionSpring)
         } else {
-            if let splashController = self.topViewController as? AuthorizationSequenceSplashController {
+            if let splashController = self.topViewController as? DivoSplashController {
                 splashController.animateIn()
             }
         }

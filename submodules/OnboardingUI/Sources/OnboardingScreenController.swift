@@ -22,9 +22,9 @@ import AppBundle
 public class OnboardingScreenController: UIViewController, UIScrollViewDelegate {
     
     private let pagesData: [OnboardingPage] = [
-        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingFirst"), title: DivoStrings.onboardingTitle1, subtitle: DivoStrings.onboardingSubTitle1),
-        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingSecond"), title: DivoStrings.onboardingTitle2, subtitle: DivoStrings.onboardingSubTitle2),
-        OnboardingPage(image: UIImage(bundleImageName: "Onboarding/OnboardingThird"), title: DivoStrings.onboardingTitle3, subtitle: DivoStrings.onboardingSubTitle3)
+        OnboardingPage(image: DivoImage.onboardingFirst, title: DivoStrings.onboardingTitle1, subtitle: DivoStrings.onboardingSubTitle1),
+        OnboardingPage(image: DivoImage.onboardingSecond, title: DivoStrings.onboardingTitle2, subtitle: DivoStrings.onboardingSubTitle2),
+        OnboardingPage(image: DivoImage.onboardingThird, title: DivoStrings.onboardingTitle3, subtitle: DivoStrings.onboardingSubTitle3)
     ]
     
     public var onFinish: (() -> Void)?
@@ -33,7 +33,7 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
         let sv = UIScrollView()
         sv.isPagingEnabled = true
         sv.showsHorizontalScrollIndicator = false
-        sv.backgroundColor = .black
+        sv.backgroundColor = .clear
         sv.contentInsetAdjustmentBehavior = .never
         sv.delegate = self
         sv.translatesAutoresizingMaskIntoConstraints = false
@@ -53,7 +53,7 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     private let pageControlStackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 8
+        stack.spacing = DivoDesignTokens.Spacing.s
         stack.distribution = .fill
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -63,9 +63,8 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     private var indicatorViews = [UIView]()
     private var indicatorWidthConstraints = [NSLayoutConstraint]()
     
-    private lazy var continueButton: DivoBrandButton = {
-        let btn = DivoBrandButton()
-        btn.setTitle(DivoStrings.continueButton, for: .normal)
+    private let continueButton: DivoButton = {
+        let btn = DivoButton()
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
@@ -82,7 +81,9 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     
     // MARK: - UI Setup
     private func setupUI() {
-        view.backgroundColor = .black
+        continueButton.makeDivoButton(title: DivoStrings.continueButton)
+        
+        view.backgroundColor = DivoColorPalette.shadow
         
         view.addSubview(scrollView)
         scrollView.addSubview(pagesStackView)
@@ -114,8 +115,8 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
             pagesStackView.heightAnchor.constraint(equalTo: scrollView.frameLayoutGuide.heightAnchor),
             
             continueButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40),
-            continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             continueButton.heightAnchor.constraint(equalToConstant: 56),
             
             pageControlStackView.bottomAnchor.constraint(equalTo: continueButton.topAnchor, constant: -30),
@@ -127,12 +128,12 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     private func setupIndicators() {
         for _ in 0..<pagesData.count {
             let view = UIView()
-            view.backgroundColor = .white.withAlphaComponent(0.6)
-            view.layer.cornerRadius = 4
+            view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.6)
+            view.layer.cornerRadius = DivoDesignTokens.Radius.xs
             view.translatesAutoresizingMaskIntoConstraints = false
             
-            view.heightAnchor.constraint(equalToConstant: 8).isActive = true
-            let widthConstraint = view.widthAnchor.constraint(equalToConstant: 8)
+            view.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.s).isActive = true
+            let widthConstraint = view.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.s)
             widthConstraint.isActive = true
             indicatorWidthConstraints.append(widthConstraint)
             
@@ -175,13 +176,14 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
             
             indicatorWidthConstraints[index].constant = newWidth
             
-            let inactiveColor = UIColor.white.withAlphaComponent(0.6)
+            let inactiveColor = DivoColorPalette.cardBackground.withAlphaComponent(0.6)
             view.backgroundColor = blendColor(from: inactiveColor, to: DivoColorPalette.accent, percentage: activeRatio)
         }
         
         self.pageControlStackView.layoutIfNeeded()
     }
-
+    
+    // Вспомогательная функция для плавного смешивания двух цветов
     private func blendColor(from color1: UIColor, to color2: UIColor, percentage: CGFloat) -> UIColor {
         var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
         var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
@@ -201,9 +203,9 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     
     public func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView.bounds.width > 0 else { return }
-
+        
         let progress = scrollView.contentOffset.x / scrollView.bounds.width
-
+        
         updateIndicatorsContinuously(progress: progress)
     }
 }
