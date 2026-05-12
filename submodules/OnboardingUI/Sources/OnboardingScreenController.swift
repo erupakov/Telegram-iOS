@@ -1,25 +1,10 @@
-//
-//  OnboardingScreenController.swift
-//  divo-ios
-//
-//  Created by Michail Shagovitov on 28.02.2026.
-//
-
-import Foundation
 import UIKit
-import AsyncDisplayKit
-import Display
-import TelegramCore
 import DivoCore
 import DivoUIKit
-import SwiftSignalKit
-import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
-import AccountContext
-import AppBundle
 
 public class OnboardingScreenController: UIViewController, UIScrollViewDelegate {
+    
+    public static let hasSeenOnboardingKey = "hasSeenOnboarding"
     
     private let pagesData: [OnboardingPage] = [
         OnboardingPage(image: DivoImage.onboardingFirst, title: DivoStrings.onboardingTitle1, subtitle: DivoStrings.onboardingSubTitle1),
@@ -83,7 +68,7 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     private func setupUI() {
         continueButton.makeDivoButton(title: DivoStrings.continueButton)
         
-        view.backgroundColor = DivoColorPalette.shadow
+        view.backgroundColor = DivoColorPalette.splashBackground
         
         view.addSubview(scrollView)
         scrollView.addSubview(pagesStackView)
@@ -157,8 +142,8 @@ public class OnboardingScreenController: UIViewController, UIScrollViewDelegate 
     }
     
     private func finishOnboarding() {
-        print("Onboarding Finished!")
-        UserDefaults.standard.set(true, forKey: "hasSeenOnboarding")
+        divoLog("Onboarding finished")
+        UserDefaults.standard.set(true, forKey: Self.hasSeenOnboardingKey)
         onFinish?()
     }
     

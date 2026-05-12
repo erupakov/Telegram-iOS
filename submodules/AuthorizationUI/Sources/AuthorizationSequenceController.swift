@@ -142,7 +142,8 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         if let currentController = currentController {
             controller = currentController
         } else {
-            controller = DivoSplashController(theme: self.presentationData.theme)
+            let fadeDuration: TimeInterval = 0.3
+            controller = DivoSplashController()
             controller.nextPressed = { [weak self] strings in
                 if let strongSelf = self {
                     if let strings = strings {
@@ -153,7 +154,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         guard let strongSelf = self else { return }
                         
                         let transition = CATransition()
-                        transition.duration = 0.3
+                        transition.duration = fadeDuration
                         transition.type = .fade
                         transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
                         strongSelf.view.layer.add(transition, forKey: kCATransition)
@@ -164,7 +165,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: isTestingEnvironment, masterDatacenterId: masterDatacenterId, contents: .phoneEntry(countryCode: countryCode, number: ""))).startStandalone()
                     }
 
-                    if !UserDefaults.standard.bool(forKey: "hasSeenOnboarding") {
+                    if !UserDefaults.standard.bool(forKey: OnboardingScreenController.hasSeenOnboardingKey) {
                         let onboarding = OnboardingScreenController()
                         strongSelf.addChild(onboarding)
                         onboarding.view.frame = strongSelf.view.bounds
@@ -174,14 +175,15 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                         strongSelf.view.addSubview(onboarding.view)
                         onboarding.didMove(toParent: strongSelf)
                         
-                        UIView.animate(withDuration: 0.3) {
+                        UIView.animate(withDuration: fadeDuration) {
                             onboarding.view.alpha = 1.0
                         }
                         
                         onboarding.onFinish = { [weak onboarding, weak self] in
+                            // Clear nav stack so proceedToPhoneEntry animates without showing splash
                             self?.setViewControllers([], animated: false)
                             proceedToPhoneEntry()
-                            UIView.animate(withDuration: 0.3, delay: 0.05, options:[], animations: {
+                            UIView.animate(withDuration: fadeDuration, delay: 0.05, options: [], animations: {
                                 onboarding?.view.alpha = 0
                             }, completion: { _ in
                                 onboarding?.willMove(toParent: nil)

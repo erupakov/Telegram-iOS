@@ -45,6 +45,7 @@ import RecaptchaEnterprise
 import NavigationBarImpl
 import ContextUI
 import ContextControllerImpl
+import DivoUIKit
 
 #if canImport(AppCenter)
 import AppCenter
@@ -394,6 +395,18 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         
         let (window, hostView) = nativeWindowHostView()
+        // DIVO: подкладываем splash-картинку как sublayer в hostView, чтобы при системном crossfade между
+        // LaunchScreen и первым view-controller'ом пользователь видел ту же splash, а не белый системный фон.
+        // Слой удаляется через 1 секунду — к этому моменту первый VC уже точно показан, а при смене
+        // rootController (auth → main) sublayers могут переупорядочиться и splash перекроет таб-бар.
+        let splashLayer = CALayer()
+        splashLayer.contents = DivoImage.splashScreen.cgImage
+        splashLayer.contentsGravity = .resizeAspectFill
+        splashLayer.frame = hostView.containerView.bounds
+        hostView.containerView.layer.insertSublayer(splashLayer, at: 0)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak splashLayer] in
+            splashLayer?.removeFromSuperlayer()
+        }
         let statusBarHost = ApplicationStatusBarHost(scene: window.windowScene)
         self.mainWindow = Window1(hostView: hostView, statusBarHost: statusBarHost)
         if let traitCollection = window.rootViewController?.traitCollection {

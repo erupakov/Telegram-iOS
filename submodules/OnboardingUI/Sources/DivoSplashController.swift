@@ -1,35 +1,21 @@
-//
-//  OnboardingCell.swift
-//  divo-ios
-//
-//  Created by Michail Shagovitov on 28.02.2026.
-//
-
-import Foundation
 import UIKit
-import AsyncDisplayKit
 import Display
-import TelegramCore
 import SwiftSignalKit
 import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
-import AccountContext
-import AppBundle
-import DivoUIKit
-import DivoCore
 
 public final class DivoSplashController: ViewController {
+    private static let autoProceedDelay: TimeInterval = 2.0
+
     private var controllerNode: DivoSplashControllerNode {
         return self.displayNode as! DivoSplashControllerNode
     }
 
-    private let theme: PresentationTheme
     public var nextPressed: ((PresentationStrings?) -> Void)?
-    private var transitionTimer: SwiftSignalKit.Timer?
 
-    public init(theme: PresentationTheme) {
-        self.theme = theme
+    private var transitionTimer: SwiftSignalKit.Timer?
+    private var didProceed = false
+
+    public init() {
         super.init(navigationBarPresentationData: nil)
         self.supportedOrientations = ViewControllerSupportedOrientations(regularSize: .portrait, compactSize: .portrait)
     }
@@ -43,13 +29,15 @@ public final class DivoSplashController: ViewController {
     }
 
     public override func loadDisplayNode() {
-        self.displayNode = DivoSplashControllerNode(theme: self.theme)
+        self.displayNode = DivoSplashControllerNode()
         self.displayNodeDidLoad()
     }
 
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        transitionTimer = SwiftSignalKit.Timer(timeout: 2.0, repeat: false, completion: { [weak self] in
+        guard !didProceed else { return }
+        transitionTimer?.invalidate()
+        transitionTimer = SwiftSignalKit.Timer(timeout: Self.autoProceedDelay, repeat: false, completion: { [weak self] in
             self?.proceedNext()
         }, queue: Queue.mainQueue())
         transitionTimer?.start()
@@ -65,7 +53,9 @@ public final class DivoSplashController: ViewController {
     }
 
     private func proceedNext() {
+        guard !didProceed else { return }
         if let navigationController = self.navigationController, navigationController.viewControllers.last === self {
+            didProceed = true
             self.nextPressed?(nil)
         }
     }

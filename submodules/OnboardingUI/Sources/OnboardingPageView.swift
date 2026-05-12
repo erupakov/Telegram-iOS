@@ -1,23 +1,6 @@
-//
-//  OnboardingCell.swift
-//  divo-ios
-//
-//  Created by Michail Shagovitov on 28.02.2026.
-//
-
-import Foundation
 import UIKit
-import AsyncDisplayKit
 import Display
-import TelegramCore
-import SwiftSignalKit
-import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
-import AccountContext
-import AppBundle
 import DivoUIKit
-import DivoCore
 
 struct OnboardingPage {
     let image: UIImage?

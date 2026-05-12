@@ -1,25 +1,13 @@
-//
-//  OnboardingCell.swift
-//  divo-ios
-//
-//  Created by Michail Shagovitov on 28.02.2026.
-//
-
-import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
-import TelegramCore
-import SwiftSignalKit
-import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
-import AccountContext
-import AppBundle
 import DivoUIKit
-import DivoCore
 
 final class DivoSplashControllerNode: ASDisplayNode {
+    private static let overlayAlpha: CGFloat = 0.2
+    private static let logoSize = CGSize(width: 160, height: 54)
+    private static let logoFadeInDuration: TimeInterval = 0.3
+
     private let backgroundImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
@@ -31,7 +19,7 @@ final class DivoSplashControllerNode: ASDisplayNode {
 
     private let overlayView: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.shadow.withAlphaComponent(0.2)
+        view.backgroundColor = DivoColorPalette.shadow.withAlphaComponent(DivoSplashControllerNode.overlayAlpha)
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -45,9 +33,13 @@ final class DivoSplashControllerNode: ASDisplayNode {
         return imageView
     }()
 
-    init(theme: PresentationTheme) {
+    override init() {
         super.init()
-        self.backgroundColor = DivoColorPalette.shadow
+        self.backgroundColor = DivoColorPalette.splashBackground
+    }
+
+    override func didLoad() {
+        super.didLoad()
         self.view.disablesInteractiveTransitionGestureRecognizer = true
         setupViews()
     }
@@ -70,14 +62,14 @@ final class DivoSplashControllerNode: ASDisplayNode {
 
             logoImageView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
             logoImageView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor),
-            logoImageView.widthAnchor.constraint(equalToConstant: 160),
-            logoImageView.heightAnchor.constraint(equalToConstant: 54)
+            logoImageView.widthAnchor.constraint(equalToConstant: Self.logoSize.width),
+            logoImageView.heightAnchor.constraint(equalToConstant: Self.logoSize.height)
         ])
     }
 
     func animateIn() {
         logoImageView.alpha = 0
-        UIView.animate(withDuration: 0.3) {
+        UIView.animate(withDuration: Self.logoFadeInDuration) {
             self.logoImageView.alpha = 1
         }
     }
