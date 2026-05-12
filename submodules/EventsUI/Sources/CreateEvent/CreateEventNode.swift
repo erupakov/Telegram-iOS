@@ -301,19 +301,11 @@ final class CreateEventNode: ASDisplayNode {
         return label
     }()
     
-    private let gallerySmallAddButton: DivoButton = {
-        let button = DivoButton()
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-    
     private let galleryAddButton: DivoButton = {
         let button = DivoButton()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
-    private var galleryHeightAddButtonConstraint: NSLayoutConstraint!
     
     private var galleryHeightConstraint: NSLayoutConstraint!
     
@@ -509,10 +501,7 @@ final class CreateEventNode: ASDisplayNode {
             self?.view.endEditing(true)
             self?.scheduleDeadlineTimeController?(.time)
         }
-        
-        gallerySmallAddButton.makeDivoButton(title: DivoStrings.addOnlyTextShort, leadingIcon: DivoImage.addPhotoIcon.withRenderingMode(.alwaysTemplate), buttonFont: Font.helveticaNeue(16), radius: 20)
-        gallerySmallAddButton.addTarget(self, action: #selector(dashedUploadTapped), for: .touchUpInside)
-        
+
         galleryAddButton.makeDivoButton(title: DivoStrings.addPhotoEvent, leadingIcon: DivoImage.addPhotoIcon.withRenderingMode(.alwaysTemplate), buttonFont: Font.helveticaNeue(16), radius: 20)
         galleryAddButton.addTarget(self, action: #selector(dashedUploadTapped), for: .touchUpInside)
         
@@ -650,7 +639,8 @@ final class CreateEventNode: ASDisplayNode {
             scrollView.translatesAutoresizingMaskIntoConstraints = false
             scrollView.showsVerticalScrollIndicator = false
             scrollView.keyboardDismissMode = .onDrag
-            scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 80, right: 0)
+            let bottomInset: CGFloat = (index == 2) ? 120 : 80
+            scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
             
             let stack = stacks[index]
             stack.translatesAutoresizingMaskIntoConstraints = false
@@ -894,26 +884,18 @@ final class CreateEventNode: ASDisplayNode {
         
         stackGallery.addArrangedSubview(galleryLabel)
         stackGallery.addArrangedSubview(UIView())
-        stackGallery.addArrangedSubview(gallerySmallAddButton)
         
         let stackGalleryContainer = UIView()
         stackGalleryContainer.translatesAutoresizingMaskIntoConstraints = false
         stackGalleryContainer.addSubview(stackGallery)
-        stackGalleryContainer.addSubview(galleryAddButton)
         step3StackView.addArrangedSubview(stackGalleryContainer)
-        
-        galleryHeightAddButtonConstraint = galleryAddButton.heightAnchor.constraint(equalToConstant: 40)
         
         NSLayoutConstraint.activate([
             stackGallery.trailingAnchor.constraint(equalTo: stackGalleryContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             stackGallery.leadingAnchor.constraint(equalTo: stackGalleryContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             stackGallery.topAnchor.constraint(equalTo: stackGalleryContainer.topAnchor),
-            stackGallery.heightAnchor.constraint(equalToConstant: 40),
-            
-            galleryAddButton.centerXAnchor.constraint(equalTo: stackGallery.centerXAnchor),
-            galleryAddButton.bottomAnchor.constraint(equalTo: stackGalleryContainer.bottomAnchor),
-            galleryAddButton.topAnchor.constraint(equalTo: stackGallery.bottomAnchor, constant: 12),
-            galleryHeightAddButtonConstraint,
+            stackGallery.bottomAnchor.constraint(equalTo: stackGalleryContainer.bottomAnchor),
+            stackGallery.heightAnchor.constraint(equalToConstant: 20),
         ])
         
         step3StackView.setCustomSpacing(12, after: stackGalleryContainer)
@@ -922,7 +904,6 @@ final class CreateEventNode: ASDisplayNode {
         galleryCollectionContainerView.addSubview(galleryCollectionView)
         
         NSLayoutConstraint.activate([
-            
             galleryCollectionView.topAnchor.constraint(equalTo: galleryCollectionContainerView.topAnchor),
             galleryCollectionView.leadingAnchor.constraint(equalTo: galleryCollectionContainerView.leadingAnchor),
             galleryCollectionView.trailingAnchor.constraint(equalTo: galleryCollectionContainerView.trailingAnchor),
@@ -931,6 +912,21 @@ final class CreateEventNode: ASDisplayNode {
         
         galleryHeightConstraint = galleryCollectionContainerView.heightAnchor.constraint(equalToConstant: 0)
         galleryHeightConstraint.isActive = true
+        
+        step3StackView.setCustomSpacing(12, after: galleryCollectionContainerView)
+
+        let addButtonContainer = UIView()
+        addButtonContainer.translatesAutoresizingMaskIntoConstraints = false
+        addButtonContainer.addSubview(galleryAddButton)
+        
+        step3StackView.addArrangedSubview(addButtonContainer)
+        
+        NSLayoutConstraint.activate([
+            addButtonContainer.heightAnchor.constraint(equalToConstant: 40),
+            galleryAddButton.heightAnchor.constraint(equalToConstant: 40),
+            galleryAddButton.centerXAnchor.constraint(equalTo: addButtonContainer.centerXAnchor),
+            galleryAddButton.centerYAnchor.constraint(equalTo: addButtonContainer.centerYAnchor),
+        ])
     }
     
     private func reloadAppearanceOptions() {
@@ -1153,15 +1149,9 @@ final class CreateEventNode: ASDisplayNode {
     
     private func updateGalleryHeight() {
         if galleryItems.isEmpty {
-            galleryAddButton.isHidden = false
-            gallerySmallAddButton.isHidden = true
-            galleryHeightAddButtonConstraint.constant = 40
             galleryHeightConstraint.constant = 0
             galleryCollectionView.isHidden = true
         } else {
-            galleryAddButton.isHidden = true
-            gallerySmallAddButton.isHidden = false
-            galleryHeightAddButtonConstraint.constant = 0
             galleryCollectionView.isHidden = false
             let fullWidth = UIScreen.main.bounds.width
             let itemWidth = floor(fullWidth / 3.0)
@@ -1460,9 +1450,11 @@ final class CreateEventNode: ASDisplayNode {
         self.currentLayoutData = (layout, navigationBarHeight, actualNavigationBarHeight)
         
         let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
-        for scroll in scrolls {
+        for (index, scroll) in scrolls.enumerated() {
             var insets = scroll.contentInset
             insets.top = navigationBarHeight
+            insets.bottom = (index == 2) ? 120 : 80
+            
             scroll.contentInset = insets
             scroll.scrollIndicatorInsets = insets
         }
@@ -2049,7 +2041,9 @@ final class CreateEventNode: ASDisplayNode {
         applyButtonBottomConstraint.constant = -40
         let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
         let activeScroll = scrolls[currentStep - 1]
-        activeScroll.contentInset.bottom = 100
+        
+        let bottomInset: CGFloat = (currentStep == 3) ? 120 : 80
+        activeScroll.contentInset.bottom = bottomInset
         
         UIView.animate(withDuration: 0.3) {
             self.view.layoutIfNeeded()

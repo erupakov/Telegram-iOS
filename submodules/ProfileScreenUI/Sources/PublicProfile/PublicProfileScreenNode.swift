@@ -4229,6 +4229,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
             controller.loadEvents()
         }
     }
+
+    func startLoadEventsList() {
+        self.eventsPhase = .loading
+
+        if let layout = self.containerLayout?.0 {
+            self.updateAllCollectionViewHeights(layout: layout)
+            if self.currentTab == .events {
+                self.updateCollectionsContainerHeight(animated: false)
+            }
+        }
+    }
     
     // Обновление галереи событий
     func updateEventsList(_ items: [EventItem]) {
@@ -4669,17 +4680,6 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
             }
             let item = eventGalleryItems[indexPath.item]
             cell.configure(with: item, context: self.context, isMyProfile: self.model.isMyProfile)
-            cell.onEditTapped = { [weak self] eventId in
-                if let eventId = eventId {
-                    self?.onEventButtonTapped?(eventId)
-                }
-            }
-
-            cell.onDeleteTapped = { [weak self] eventId in
-                if let eventId = eventId {
-                    self?.onEventDeleteButtonTapped?(eventId)
-                }
-            }
             return cell
         }
         return UICollectionViewCell()

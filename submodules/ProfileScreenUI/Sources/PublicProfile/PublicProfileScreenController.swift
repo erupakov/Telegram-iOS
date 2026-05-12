@@ -795,6 +795,8 @@ extension PublicProfileScreenController {
 // Загрузка событий через feedline/search (event/list недоступен для всех ролей)
 extension PublicProfileScreenController {
     func loadEvents() {
+        self.controllerNode.startLoadEventsList()
+        
         let body = EventListRequest(offset: 0, limit: 30, creatorId: userID)
         Task {
             do {
@@ -1077,6 +1079,9 @@ extension PublicProfileScreenController {
         guard let eventId = event.eventId else { return }
         
         let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile)
+        detailController.onEventModified = { [weak self] in
+            self?.loadEvents()
+        }
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
     

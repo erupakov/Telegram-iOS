@@ -39,6 +39,7 @@ public final class EventDetailController: TelegramBaseController {
     private let isPreviewMode: Bool
     private let previewData: EventPreviewData?
     public var onPublishConfirmed: (() -> Void)?
+    public var onEventModified: (() -> Void)?
 
     public init(
         context: AccountContext,
@@ -97,6 +98,14 @@ public final class EventDetailController: TelegramBaseController {
         }
         self.controllerNode.onPublishPreviewTapped = { [weak self] in
             self?.onPublishConfirmed?()
+        }
+
+        self.controllerNode.onEditEventTapped = { [weak self] in
+            self?.navigateToEditEvent()
+        }
+        
+        self.controllerNode.onDeleteTapped = { [weak self] in
+            self?.performDeleteEvent()
         }
         
         self.displayNodeDidLoad()
@@ -164,6 +173,43 @@ public final class EventDetailController: TelegramBaseController {
                 }
             } catch {
                 print("❌[DivoAPI] event/\(eventId) error: \(error)")
+            }
+        }
+    }
+
+    // Переход на экран редактирования
+    private func navigateToEditEvent() {
+        guard let eventId = self.eventId else { return }
+        
+        let editEventController = CreateEventController(context: self.context, eventId: eventId)
+        
+        // Обновляем текущий экран после успешного редактирования и возврата
+        editEventController.onEventCreated = { [weak self] in
+            self?.getEvent()
+            self?.onEventModified?()
+        }
+        
+        self.push(editEventController)
+    }
+    
+    private func performDeleteEvent() {
+        guard let eventId = self.eventId else { return }
+        
+        Task { @MainActor in
+            do {
+                let _: DeleteEventResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)",
+                    method: "DELETE"
+                )
+                
+                self.onEventModified?()
+                self.navigationController?.popViewController(animated: true)
+                
+            } catch {
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.failedToDelete,
+                    style: .error
+                )
             }
         }
     }
