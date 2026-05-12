@@ -130,76 +130,61 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         self.view.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
     }
     
-    private func splashController() -> DivoSplashController {
-        var currentController: DivoSplashController?
-        for c in self.viewControllers {
-            if let c = c as? DivoSplashController {
-                currentController = c
-                break
-            }
-        }
-        let controller: DivoSplashController
-        if let currentController = currentController {
-            controller = currentController
-        } else {
-            let fadeDuration: TimeInterval = 0.3
-            controller = DivoSplashController()
-            controller.nextPressed = { [weak self] strings in
-                if let strongSelf = self {
-                    if let strings = strings {
-                        strongSelf.presentationData = strongSelf.presentationData.withStrings(strings)
-                    }
+    private var isPresentingOnboarding = false
 
-                    let proceedToPhoneEntry = {
-                        guard let strongSelf = self else { return }
-                        
-                        let transition = CATransition()
-                        transition.duration = fadeDuration
-                        transition.type = .fade
-                        transition.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                        strongSelf.view.layer.add(transition, forKey: kCATransition)
-                        
-                        let masterDatacenterId = strongSelf.account.masterDatacenterId
-                        let isTestingEnvironment = strongSelf.account.testingEnvironment
-                        let countryCode = AuthorizationSequenceCountrySelectionController.defaultCountryCode()
-                        let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: isTestingEnvironment, masterDatacenterId: masterDatacenterId, contents: .phoneEntry(countryCode: countryCode, number: ""))).startStandalone()
-                    }
-
-                    if !UserDefaults.standard.bool(forKey: OnboardingScreenController.hasSeenOnboardingKey) {
-                        let onboarding = OnboardingScreenController()
-                        strongSelf.addChild(onboarding)
-                        onboarding.view.frame = strongSelf.view.bounds
-                        onboarding.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                        
-                        onboarding.view.alpha = 0.0
-                        strongSelf.view.addSubview(onboarding.view)
-                        onboarding.didMove(toParent: strongSelf)
-                        
-                        UIView.animate(withDuration: fadeDuration) {
-                            onboarding.view.alpha = 1.0
-                        }
-                        
-                        onboarding.onFinish = { [weak onboarding, weak self] in
-                            // Clear nav stack so proceedToPhoneEntry animates without showing splash
-                            self?.setViewControllers([], animated: false)
-                            proceedToPhoneEntry()
-                            UIView.animate(withDuration: fadeDuration, delay: 0.05, options: [], animations: {
-                                onboarding?.view.alpha = 0
-                            }, completion: { _ in
-                                onboarding?.willMove(toParent: nil)
-                                onboarding?.view.removeFromSuperview()
-                                onboarding?.removeFromParent()
-                            })
-                        }
-                    } else {
-                        proceedToPhoneEntry()
-                    }
-                }
-            }
-        }
-        return controller
+    // DIVO: исторический Telegram back-cover для multi-account flow. У нас splash отрисовывает
+    // DivoSplashOverlayView в AppDelegate, поэтому здесь возвращаем прозрачный stub —
+    // он остаётся в navigation stack для совместимости с upstream-кодом, но визуально не виден.
+    private func splashController() -> ViewController {
+        return ViewController(navigationBarPresentationData: nil)
     }
-    
+
+    // Показывается поверх phone entry на cold start, если пользователь ещё не видел onboarding.
+    // Splash-эффект на старте обеспечивает DivoSplashOverlayView в AppDelegate.
+    private func presentOnboardingIfNeeded() {
+        guard !self.isPresentingOnboarding else { return }
+        guard !UserDefaults.standard.bool(forKey: OnboardingScreenController.hasSeenOnboardingKey) else { return }
+        guard self.otherAccountPhoneNumbers.1.isEmpty else { return }
+
+        self.isPresentingOnboarding = true
+
+        // Navigation stack пуст (мы держим phoneEntry отложенным), поэтому setViewControllers
+        // не сработает и context.isReady никогда не выпустит signal → app покажет .loading overlay.
+        // Сигналим ready вручную, чтобы лоадер не появлялся поверх onboarding.
+        if !self.didSetReady {
+            self.didSetReady = true
+            self._ready.set(.single(true))
+        }
+
+        let onboarding = OnboardingScreenController()
+        self.addChild(onboarding)
+        onboarding.view.frame = self.view.bounds
+        onboarding.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        onboarding.view.alpha = 0.0
+        self.view.addSubview(onboarding.view)
+        onboarding.didMove(toParent: self)
+
+        let fadeDuration: TimeInterval = 0.3
+        UIView.animate(withDuration: fadeDuration) {
+            onboarding.view.alpha = 1.0
+        }
+
+        onboarding.onFinish = { [weak onboarding, weak self] in
+            UIView.animate(withDuration: fadeDuration, animations: {
+                onboarding?.view.alpha = 0
+            }, completion: { _ in
+                onboarding?.willMove(toParent: nil)
+                onboarding?.view.removeFromSuperview()
+                onboarding?.removeFromParent()
+                guard let self else { return }
+                self.isPresentingOnboarding = false
+                let phoneEntry = self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "")
+                self.setViewControllers([phoneEntry], animated: false)
+            })
+        }
+    }
+
+
     private func phoneEntryController(countryCode: Int32, number: String) -> AuthorizationSequencePhoneEntryController {
         var currentController: AuthorizationSequencePhoneEntryController?
         for c in self.viewControllers {
@@ -1338,15 +1323,17 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         case let .state(state):
             switch state {
                 case .empty:
-                    if let _ = self.viewControllers.last as? DivoSplashController {
+                    let shouldShowOnboarding = self.otherAccountPhoneNumbers.1.isEmpty && !UserDefaults.standard.bool(forKey: OnboardingScreenController.hasSeenOnboardingKey)
+                    if shouldShowOnboarding {
+                        // Phone entry поставится только после onboarding'a — иначе его viewDidAppear
+                        // активирует input и поверх onboarding'a всплывает клавиатура.
+                        self.presentOnboardingIfNeeded()
                     } else {
-                        var controllers: [ViewController] = []
-                        if self.otherAccountPhoneNumbers.1.isEmpty {
-                            controllers.append(self.splashController())
-                        } else {
-                            controllers.append(self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: ""))
+                        let alreadyShowingPhoneEntry = self.viewControllers.last is AuthorizationSequencePhoneEntryController
+                        if !alreadyShowingPhoneEntry {
+                            let phoneEntry = self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "")
+                            self.setViewControllers([phoneEntry], animated: !self.viewControllers.isEmpty)
                         }
-                        self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                     }
                 case let .newScreen(typeOfRole):
                     var controllers: [ViewController] = []
@@ -1434,7 +1421,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     if !self.otherAccountPhoneNumbers.1.isEmpty {
                         controllers.append(self.splashController())
                     }
-                controllers.append(self.paymentController(number: number, phoneCodeHash: codeHash, storeProduct: storeProduct, supportEmailAddress: supportEmailAddress, supportEmailSubject: supportEmailSubject))
+                    controllers.append(self.paymentController(number: number, phoneCodeHash: codeHash, storeProduct: storeProduct, supportEmailAddress: supportEmailAddress, supportEmailSubject: supportEmailSubject))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
             }
         }
@@ -1444,10 +1431,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         let wasEmpty = self.viewControllers.isEmpty
         super.setViewControllers(viewControllers, animated: animated)
         if wasEmpty {
-            if self.topViewController is DivoSplashController {
-            } else {
-                self.topViewController?.view.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
-            }
+            self.topViewController?.view.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.3)
         }
         if !self.didSetReady {
             self.didSetReady = true
@@ -1487,10 +1471,6 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     private func animateIn() {
         if !self.otherAccountPhoneNumbers.1.isEmpty {
             self.view.layer.animatePosition(from: CGPoint(x: self.view.layer.position.x, y: self.view.layer.position.y + self.view.layer.bounds.size.height), to: self.view.layer.position, duration: 0.5, timingFunction: kCAMediaTimingFunctionSpring)
-        } else {
-            if let splashController = self.topViewController as? DivoSplashController {
-                splashController.animateIn()
-            }
         }
     }
     
