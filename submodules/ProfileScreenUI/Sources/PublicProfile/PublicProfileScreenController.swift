@@ -381,9 +381,21 @@ public final class PublicProfileScreenController: TelegramBaseController {
             await MainActor.run {
                 guard let detail = profile else {
                     self.profileLoaded = false
+                    // Шиммер остаётся, скролл/свайп залочены (см.
+                    // applyScreenPhase для .failed). Сверху persistent-снекбар
+                    // с Retry — единственный путь юзера выйти из failed-стейта.
+                    self.controllerNode.markProfileDetailFailed()
                     self.controllerNode.showSnackbar(
                         message: DivoStrings.serverUnavailable,
-                        style: .error
+                        style: .error,
+                        retryAction: { [weak self] in
+                            guard let self = self else { return }
+                            self.controllerNode.hideSnackbar(animated: true)
+                            self.controllerNode.resetToInitialLoading()
+                            self.profileLoaded = false  // сбрасываем guard, чтобы перезапрос пошёл
+                            self.loadInitialData()
+                        },
+                        persistent: true
                     )
                     return
                 }
@@ -549,6 +561,18 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 }
 
+// MARK: - Helpers
+extension PublicProfileScreenController {
+    /// Отделяет «нет интернета» от прочих ошибок API. Используется error-ветками
+    /// табов, чтобы выбрать соответствующий текст в `ProfileTabErrorView`.
+    fileprivate func isNetworkError(_ error: Error) -> Bool {
+        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
+            return true
+        }
+        return false
+    }
+}
+
 // MARK: - Загрузка фотографий
 extension PublicProfileScreenController {
     func loadGalleryPage(userId: Int, offset: Int) {
@@ -581,12 +605,20 @@ extension PublicProfileScreenController {
                 }
             } catch {
                 self.debugLog("[DivoAPI] user/\(userId) error: \(error)")
-                controllerNode.setGalleryLoading(false)
-                self.activeGalleryController?.finishLoadingWithoutNewData()
+                let isNetwork = self.isNetworkError(error)
+                await MainActor.run {
+                    self.controllerNode.setGalleryLoading(false)
+                    // Только на первой странице переводим photoPhase в .failed:
+                    // иначе пагинационная ошибка спрячет уже отрендеренный grid.
+                    if offset == 0 {
+                        self.controllerNode.markPhotoGalleryFailed(networkError: isNetwork)
+                    }
+                    self.activeGalleryController?.finishLoadingWithoutNewData()
+                }
             }
         }
     }
-    
+
     // Открытие галереи на полный экран
     private func openFullScreenGallery(tab: ProfileTab, itemIndex: Int) {
         divoLog("[GALLERY] Opening full-screen gallery, tab=\(tab), itemIndex=\(itemIndex)")
@@ -685,9 +717,15 @@ extension PublicProfileScreenController {
                 }
             } catch {
                 self.debugLog("[DivoAPI] user-videos error: \(error)")
+                let isNetwork = self.isNetworkError(error)
                 await MainActor.run {
                     controllerNode.videoGalleryRequestDidFail(offset: offset)
                     controllerNode.setVideoGalleryLoading(false)
+                    // Только на первой странице переводим videoPhase в .failed —
+                    // pagination-ошибка не должна прятать уже отрендеренный grid.
+                    if offset == 0 {
+                        self.controllerNode.markVideoGalleryFailed(networkError: isNetwork)
+                    }
                     self.activeGalleryController?.finishLoadingWithoutNewData()
                 }
             }
@@ -747,7 +785,8 @@ extension PublicProfileScreenController {
                 self.controllerNode.updateModelsList(models)
             } catch {
                 divoLog("[MODELS] Error: \(error)", level: .error)
-                self.controllerNode.updateModelsList([])
+                let isNetwork = self.isNetworkError(error)
+                self.controllerNode.markModelsFailed(networkError: isNetwork)
             }
         }
     }
@@ -810,8 +849,9 @@ extension PublicProfileScreenController {
 
             } catch {
                 divoLog("[EVENTS] Error: \(error)", level: .error)
+                let isNetwork = self.isNetworkError(error)
                 await MainActor.run {
-                    self.controllerNode.updateEventsList([])
+                    self.controllerNode.markEventsFailed(networkError: isNetwork)
                 }
             }
         }
