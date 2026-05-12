@@ -301,11 +301,19 @@ final class CreateEventNode: ASDisplayNode {
         return label
     }()
     
+    private let gallerySmallAddButton: DivoButton = {
+        let button = DivoButton()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+    
     private let galleryAddButton: DivoButton = {
         let button = DivoButton()
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
+    
+    private var galleryHeightAddButtonConstraint: NSLayoutConstraint!
     
     private var galleryHeightConstraint: NSLayoutConstraint!
     
@@ -371,7 +379,6 @@ final class CreateEventNode: ASDisplayNode {
     // MARK: - Callbacks
     var onCreateEventTapped: (() -> Void)?
     private let addPhoto: () -> Void
-    var selectCountryCode: (() -> Void)?
     var scheduleTimeController: ((TimeControllerMode) -> Void)?
     var scheduleDeadlineTimeController: ((TimeControllerMode) -> Void)?
     var onAddGalleryPhotoTapped: (() -> Void)?
@@ -503,13 +510,10 @@ final class CreateEventNode: ASDisplayNode {
             self?.scheduleDeadlineTimeController?(.time)
         }
         
-        galleryAddButton.makeDivoButton(title: DivoStrings.addPhotoEvent, buttonFont: Font.helveticaNeue(16), radius: 20)
+        gallerySmallAddButton.makeDivoButton(title: DivoStrings.addOnlyTextShort, leadingIcon: DivoImage.addPhotoIcon.withRenderingMode(.alwaysTemplate), buttonFont: Font.helveticaNeue(16), radius: 20)
+        gallerySmallAddButton.addTarget(self, action: #selector(dashedUploadTapped), for: .touchUpInside)
         
-        galleryAddButton.setImage(DivoImage.addPhotoIcon.withRenderingMode(.alwaysTemplate), for: .normal)
-        galleryAddButton.setImage(DivoImage.addPhotoIcon.withRenderingMode(.alwaysTemplate), for: .highlighted)
-        galleryAddButton.tintColor = DivoColorPalette.primaryTextOnDark
-        galleryAddButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
-        
+        galleryAddButton.makeDivoButton(title: DivoStrings.addPhotoEvent, leadingIcon: DivoImage.addPhotoIcon.withRenderingMode(.alwaysTemplate), buttonFont: Font.helveticaNeue(16), radius: 20)
         galleryAddButton.addTarget(self, action: #selector(dashedUploadTapped), for: .touchUpInside)
         
         galleryCollectionView.delegate = self
@@ -890,18 +894,26 @@ final class CreateEventNode: ASDisplayNode {
         
         stackGallery.addArrangedSubview(galleryLabel)
         stackGallery.addArrangedSubview(UIView())
-        stackGallery.addArrangedSubview(galleryAddButton)
+        stackGallery.addArrangedSubview(gallerySmallAddButton)
         
         let stackGalleryContainer = UIView()
         stackGalleryContainer.translatesAutoresizingMaskIntoConstraints = false
         stackGalleryContainer.addSubview(stackGallery)
+        stackGalleryContainer.addSubview(galleryAddButton)
         step3StackView.addArrangedSubview(stackGalleryContainer)
+        
+        galleryHeightAddButtonConstraint = galleryAddButton.heightAnchor.constraint(equalToConstant: 40)
+        
         NSLayoutConstraint.activate([
             stackGallery.trailingAnchor.constraint(equalTo: stackGalleryContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             stackGallery.leadingAnchor.constraint(equalTo: stackGalleryContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            stackGallery.bottomAnchor.constraint(equalTo: stackGalleryContainer.bottomAnchor),
             stackGallery.topAnchor.constraint(equalTo: stackGalleryContainer.topAnchor),
             stackGallery.heightAnchor.constraint(equalToConstant: 40),
+            
+            galleryAddButton.centerXAnchor.constraint(equalTo: stackGallery.centerXAnchor),
+            galleryAddButton.bottomAnchor.constraint(equalTo: stackGalleryContainer.bottomAnchor),
+            galleryAddButton.topAnchor.constraint(equalTo: stackGallery.bottomAnchor, constant: 12),
+            galleryHeightAddButtonConstraint,
         ])
         
         step3StackView.setCustomSpacing(12, after: stackGalleryContainer)
@@ -1141,9 +1153,15 @@ final class CreateEventNode: ASDisplayNode {
     
     private func updateGalleryHeight() {
         if galleryItems.isEmpty {
+            galleryAddButton.isHidden = false
+            gallerySmallAddButton.isHidden = true
+            galleryHeightAddButtonConstraint.constant = 40
             galleryHeightConstraint.constant = 0
             galleryCollectionView.isHidden = true
         } else {
+            galleryAddButton.isHidden = true
+            gallerySmallAddButton.isHidden = false
+            galleryHeightAddButtonConstraint.constant = 0
             galleryCollectionView.isHidden = false
             let fullWidth = UIScreen.main.bounds.width
             let itemWidth = floor(fullWidth / 3.0)
@@ -1155,39 +1173,10 @@ final class CreateEventNode: ASDisplayNode {
         UIView.animate(withDuration: 0.3) {
             self.view.layoutIfNeeded()
         }
+        
         validateCurrentStep()
     }
 
-    func startPhotoUpload(image: UIImage) -> EventGalleryItem {
-        let item = EventGalleryItem(image: image, isUploading: true)
-        galleryItems.append(item)
-        galleryCollectionView.reloadData()
-        updateGalleryHeight()
-        return item
-    }
-    
-    func finishPhotoUpload(item: EventGalleryItem, fileUuid: String) {
-        guard let index = galleryItems.firstIndex(of: item) else { return }
-        galleryItems[index].isUploading = false
-        galleryItems[index].fileUuid = fileUuid
-        galleryCollectionView.reloadItems(at: [IndexPath(item: index, section: 0)])
-    }
-    
-    func cancelPhotoUpload(item: EventGalleryItem) {
-        removePhoto(item: item)
-    }
-    
-    func removePhoto(item: EventGalleryItem) {
-        guard let index = galleryItems.firstIndex(of: item) else { return }
-        galleryItems.remove(at: index)
-        
-        galleryCollectionView.performBatchUpdates({
-            galleryCollectionView.deleteItems(at:[IndexPath(item: index, section: 0)])
-        }, completion: { [weak self] _ in
-            self?.updateGalleryHeight()
-        })
-    }
-    
     private func loadExistingFiles(_ files: [EventFile]) {
         setAvatarLoading(true)
         self.galleryItems.removeAll()
@@ -1331,6 +1320,36 @@ final class CreateEventNode: ASDisplayNode {
 
 
     // MARK: - Internal
+    
+    func startPhotoUpload(image: UIImage) -> EventGalleryItem {
+        let item = EventGalleryItem(image: image, isUploading: true)
+        galleryItems.append(item)
+        galleryCollectionView.reloadData()
+        updateGalleryHeight()
+        return item
+    }
+    
+    func finishPhotoUpload(item: EventGalleryItem, fileUuid: String) {
+        guard let index = galleryItems.firstIndex(of: item) else { return }
+        galleryItems[index].isUploading = false
+        galleryItems[index].fileUuid = fileUuid
+        galleryCollectionView.reloadItems(at: [IndexPath(item: index, section: 0)])
+    }
+    
+    func cancelPhotoUpload(item: EventGalleryItem) {
+        removePhoto(item: item)
+    }
+    
+    func removePhoto(item: EventGalleryItem) {
+        guard let index = galleryItems.firstIndex(of: item) else { return }
+        galleryItems.remove(at: index)
+        
+        galleryCollectionView.performBatchUpdates({
+            galleryCollectionView.deleteItems(at:[IndexPath(item: index, section: 0)])
+        }, completion: { [weak self] _ in
+            self?.updateGalleryHeight()
+        })
+    }
     
     func showScreenLoading() {
         loadingOverlay.isHidden = false
@@ -2041,10 +2060,6 @@ final class CreateEventNode: ASDisplayNode {
         self.view.endEditing(true)
     }
 
-    func updateCountry(countryId: String, countryName: String) {
-
-    }
-
     @objc private func dashedUploadTapped() { onAddGalleryPhotoTapped?() }
     @objc private func deleteParameterTapped(_ button: ASButtonNode) {
         guard let param = deleteButtons.first(where: { $0.value === button })?.key else { return }
@@ -2129,7 +2144,9 @@ final class CreateEventNode: ASDisplayNode {
     }
 }
 
+
 // MARK: - UICollectionViewDataSource & Delegate
+
 extension CreateEventNode: UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return galleryItems.count
@@ -2156,6 +2173,9 @@ extension CreateEventNode: UICollectionViewDataSource, UICollectionViewDelegateF
         onGalleryItemTapped?(uuid)
     }
 }
+
+
+// MARK: - UITextFieldDelegate
 
 extension CreateEventNode: UITextFieldDelegate {
     func textFieldDidBeginEditing(_ textField: UITextField) {
@@ -2187,6 +2207,7 @@ extension CreateEventNode: UITextFieldDelegate {
 
 
 // MARK: - UIGestureRecognizerDelegate
+
 extension CreateEventNode: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         if touch.view is UIControl {

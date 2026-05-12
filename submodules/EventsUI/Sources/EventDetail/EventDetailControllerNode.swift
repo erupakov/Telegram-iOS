@@ -27,6 +27,8 @@ final class EventDetailControllerNode: ASDisplayNode {
     var coverImage: UIImage? {
         return backgroundImageView.image
     }
+
+    // Указывает, загружены ли данные с сервера (скрывает шиммеры)
     private var isDataLoaded: Bool = false
 
     // MARK: - Core Layout
@@ -75,13 +77,18 @@ final class EventDetailControllerNode: ASDisplayNode {
     private var titleVisibilityActivated = false
     
     private let navBarBlurView: UIVisualEffectView = {
-        let effect = UIBlurEffect(style: .systemUltraThinMaterialLight)
+        // .systemChromeMaterialLight — толстое frosted "стекло", аналог
+        // toolbar на macOS / native UINavigationBar в iOS Telegram. Светло-
+        // серое полупрозрачное полотно, пропускает оттенки фона. Доступен
+        // с iOS 13.
+        let effect = UIBlurEffect(style: .systemChromeMaterialLight)
         let view = UIVisualEffectView(effect: effect)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.alpha = 0.0
         view.isUserInteractionEnabled = false
         return view
     }()
+
     private let navBarWhiteGradientLayer = CAGradientLayer()
 
     private let customNavBar: UIView = {
@@ -145,22 +152,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         return button
     }()
     
-    private let bookmarkButton = UIButton(type: .custom)
-
-
     // MARK: - Event Info Section (Header)
     private let eventTypeContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
-    }()
-    
-    private let eventInfoWrapper: UIStackView = {
-        let stack = UIStackView()
-        stack.axis = .horizontal
-        stack.distribution = .fill
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        return stack
     }()
     
     private let eventTypeLabelContainer: UIView = {
@@ -239,6 +235,14 @@ final class EventDetailControllerNode: ASDisplayNode {
     }()
     private lazy var profileHeaderView = EventHeaderView()
     private lazy var profileHeaderShimmerView = EventHeaderShimmerView()
+    
+    private let eventInfoWrapper: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.distribution = .fill
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
     
     private let applyButtonShimmer: UIView = {
         let view = UIView()
@@ -509,7 +513,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         view.clipsToBounds = true
         return view
     }()
-
+    
     private var collectionsContainerHeightConstraint: NSLayoutConstraint!
     
     private var galleryPhotos: [UserPhoto] = []
@@ -540,7 +544,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     var onCloseApplicationsTapped: (() -> Void)?
     var onCancelEventTapped: (() -> Void)?
     var onDeleteTapped: (() -> Void)?
-
+    
     private let isMyEvent: Bool
     private let isPreviewMode: Bool
     
@@ -562,7 +566,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         }
         return view
     }()
-
+    
     // MARK: - Bottom Spacer
     private let bottomSpacer: UIView = {
         let view = UIView()
@@ -575,7 +579,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     
     
     // MARK: - Init
-
+    
     init(context: AccountContext, isMyEvent: Bool = false, isPreviewMode: Bool = false) {
         self.context = context
         self.isMyEvent = isMyEvent
@@ -671,9 +675,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         }
     }
 
-
-    // MARK: - Setup UI
-
+    
+    // MARK: - Private
+    
     private func setupUI() {
         setupBackgroundAndScroll()
         setupTopBlur()
@@ -695,7 +699,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         setupRequirementsContainer()
         setupParametersContainer()
         setupCollections()
-
+        
         contentViewStack.addArrangedSubview(bottomSpacer)
         bottomSpacerHeightConstraint.isActive = true
         contentViewStack.setCustomSpacing(0, after: collectionsContainer)
@@ -707,7 +711,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             blurredHeaderImageView.topAnchor.constraint(equalTo: eventTypeContainer.topAnchor, constant: -20),
             blurredHeaderImageView.bottomAnchor.constraint(equalTo: whiteSheetBackground.topAnchor, constant: 0)
         ])
-         
+        
         if isPreviewMode {
             setupPreviewBottomBar()
         }
@@ -726,7 +730,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         editPreviewButton.imageEdgeInsets = UIEdgeInsets(top: 0, left: -DivoDesignTokens.Spacing.xs, bottom: 0, right: DivoDesignTokens.Spacing.xs)
         
         publishPreviewButton.makeDivoButton(title: DivoStrings.publishEvent, loading: DivoStrings.saving, buttonFont: Font.helveticaNeue(20), radius: 28)
-
+        
         editPreviewButton.translatesAutoresizingMaskIntoConstraints = false
         publishPreviewButton.translatesAutoresizingMaskIntoConstraints = false
         
@@ -759,16 +763,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         editPreviewButton.addTarget(self, action: #selector(editPreviewTapped), for: .touchUpInside)
         publishPreviewButton.addTarget(self, action: #selector(publishPreviewTapped), for: .touchUpInside)
-    }
-    
-    @objc private func editPreviewTapped() { onEditPreviewTapped?() }
-    @objc private func publishPreviewTapped() {
-        toggleSaving(active: true)
-        onPublishPreviewTapped?()
-    }
-    
-    func toggleSaving(active: Bool) {
-        publishPreviewButton.setSaving(active, in: self.view)
     }
 
     private func setupBackgroundAndScroll() {
@@ -824,7 +818,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         customNavBar.addSubview(closeButton)
         customNavBar.addSubview(rightButtonContainer)
-
+        
         addPillBlur(to: closeButton)
         addPillBlur(to: rightButtonContainer)
         
@@ -885,7 +879,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         counterActionsStack.addArrangedSubview(likesView)
         counterActionsStack.addArrangedSubview(viewsView)
         counterActionsStack.addArrangedSubview(savesView)
-
+        
         for pill in [likesView, viewsView, savesView] {
             pill.backgroundColor = .clear
             addPillBlur(to: pill)
@@ -939,12 +933,6 @@ final class EventDetailControllerNode: ASDisplayNode {
             self?.viewsViewDidTap()
         }
     }
-    
-    @objc private func likesViewDidTap() {}
-    @objc private func viewsViewDidTap() {}
-    @objc private func savesViewDidTap() {}
-    @objc private func likesPillTapped() {}
-    @objc private func savesPillTapped() {}
     
     private func setupEventType() {
         contentViewStack.addArrangedSubview(eventTypeContainer)
@@ -1198,7 +1186,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             parametersShimmerView.leadingAnchor.constraint(equalTo: containerParametersShimmer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             parametersShimmerView.trailingAnchor.constraint(equalTo: containerParametersShimmer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
         ])
-     
+        
         contentViewStack.setCustomSpacing(24, after: containerParametersShimmer)
         contentViewStack.setCustomSpacing(24, after: parametersView)
     }
@@ -1310,7 +1298,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         parametersShimmerView.isHidden = false
         containerParametersShimmer.isHidden = false
         parametersView.isHidden = true
-
+        
         galleryCollectionView.isHidden = true
     }
     
@@ -1370,7 +1358,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             CATransaction.commit()
         }
     }
-
+    
     private func setupMoreMenu() {
         moreButton.adjustsImageWhenHighlighted = false
         moreButton.addDivoPressState(.pill)
@@ -1410,12 +1398,6 @@ final class EventDetailControllerNode: ASDisplayNode {
             moreButton.showsMenuAsPrimaryAction = true
         }
     }
-
-    // MARK: - Actions
-    @objc private func backTapped() { onBackTapped?() }
-    @objc private func shareTapped() { onShareTapped?() }
-    @objc private func bookmarkTapped() { onBookmarkTapped?() }
-    @objc private func applyTapped() { onApplyTapped?() }
     
     private func buildAppearanceList(attributes: EventFullModelAttributes?) -> [AppearanceAttribute] {
         
@@ -1459,8 +1441,96 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         return items
     }
+    
+    private func updateGalleryCollectionViewHeight() {
+        guard let (layout, _) = self.containerLayout else { return }
+        
+        let itemsPerRow: CGFloat = 3
+        let spacing: CGFloat = 1
+        let totalWidth = layout.size.width
+        let itemWidth = (totalWidth - 2 * spacing) / itemsPerRow
+        
+        if !isDataLoaded {
+            galleryHeightConstraint.constant = itemWidth
+            galleryCollectionView.isHidden = true
+        } else if galleryPhotos.isEmpty {
+            galleryHeightConstraint.constant = 1
+            galleryCollectionView.isHidden = true
+        } else {
+            let rows = ceil(CGFloat(galleryPhotos.count) / itemsPerRow)
+            let galleryHeight = rows * itemWidth + max(0, rows - 1) * spacing
+            galleryHeightConstraint.constant = galleryHeight
+            galleryCollectionView.isHidden = false
+        }
+        
+        self.setNeedsLayout()
+    }
+    
+    private static func flag(for countryCode: String?) -> String {
+        guard let code = countryCode, code.count == 2 else { return "" }
+        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
+            result + String(UnicodeScalar(127397 + scalar.value)!)
+        }
+    }
+    
+    private func formatEventDateAndTime(dateString: String?) -> (date: String, time: String) {
+        guard let dateString = dateString else {
+            return ("TBD", "TBD")
+        }
 
-    // MARK: - Data Population
+        let serverFormatter = DateFormatter()
+        serverFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        serverFormatter.locale = Locale(identifier: "en_US_POSIX")
+
+        guard let date = serverFormatter.date(from: dateString) else {
+            return (dateString, "")
+        }
+
+        let languageCode = Locale.preferredLanguages.first?.components(separatedBy: "-").first?.lowercased() ?? "en"
+        let localeIdentifierByLanguage:[String: String] = [
+            "ru": "ru_RU",
+            "en": "en_US",
+            "pt": "pt_PT",
+            "es": "es_ES",
+            "zh": "zh_CN"
+        ]
+        let locale = Locale(identifier: localeIdentifierByLanguage[languageCode] ?? "en_US")
+
+        let dateUIFormatter = DateFormatter()
+        dateUIFormatter.locale = locale
+        dateUIFormatter.dateFormat = "LLLL d"
+        let rawFormattedDate = dateUIFormatter.string(from: date)
+        let formattedDate: String = {
+            guard let first = rawFormattedDate.first else { return rawFormattedDate }
+            return String(first).uppercased(with: locale) + rawFormattedDate.dropFirst()
+        }()
+
+        let timeUIFormatter = DateFormatter()
+        timeUIFormatter.locale = locale
+        switch languageCode {
+        case "en": timeUIFormatter.dateFormat = "h:mm a"
+        case "zh": timeUIFormatter.dateFormat = "a h:mm"
+        case "ru", "pt", "es": timeUIFormatter.dateFormat = "HH:mm"
+        default: timeUIFormatter.dateFormat = "HH:mm"
+        }
+        let formattedTime = timeUIFormatter.string(from: date)
+
+        return (formattedDate, formattedTime)
+    }
+    
+    private func setImage(urlString: String? = nil, for imageView: UIImageView) {
+        if let photoURLString = urlString, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            imageView.loadImage(from: photoURL)
+        }
+    }
+    
+    
+    // MARK: - Internal
+    
+    func toggleSaving(active: Bool) {
+        publishPreviewButton.setSaving(active, in: self.view)
+    }
+    
     func updateEventData(_ newEventData: EventFullDetailData) {
         self.isDataLoaded = true
         self.eventData = newEventData
@@ -1509,7 +1579,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         stopShimmers()
         activateTitleVisibility()
     }
-
+    
     func updateWithPreviewData(_ data: EventPreviewData) {
         self.isDataLoaded = true
         stopShimmers()
@@ -1618,97 +1688,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         updateGalleryCollectionViewHeight()
         updateCollectionsContainerHeight(animated: false)
     }
-    
-    private func updateGalleryCollectionViewHeight() {
-        guard let (layout, _) = self.containerLayout else { return }
-        
-        let itemsPerRow: CGFloat = 3
-        let spacing: CGFloat = 1
-        let totalWidth = layout.size.width
-        let itemWidth = (totalWidth - 2 * spacing) / itemsPerRow
-        
-        if !isDataLoaded {
-            galleryHeightConstraint.constant = itemWidth
-            galleryCollectionView.isHidden = true
-        } else if galleryPhotos.isEmpty {
-            galleryHeightConstraint.constant = 1
-            galleryCollectionView.isHidden = true
-        } else {
-            let rows = ceil(CGFloat(galleryPhotos.count) / itemsPerRow)
-            let galleryHeight = rows * itemWidth + max(0, rows - 1) * spacing
-            galleryHeightConstraint.constant = galleryHeight
-            galleryCollectionView.isHidden = false
-        }
-        
-        self.setNeedsLayout()
-    }
-    
-    // Получаем картинку флага в зависимости от кода страны
-    private static func flag(for countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2 else { return "" }
-        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
-        }
-    }
-    
-    private func formatEventDateAndTime(dateString: String?) -> (date: String, time: String) {
-        guard let dateString = dateString else {
-            return ("TBD", "TBD")
-        }
-
-        let serverFormatter = DateFormatter()
-        serverFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        serverFormatter.locale = Locale(identifier: "en_US_POSIX")
-
-        guard let date = serverFormatter.date(from: dateString) else {
-            return (dateString, "")
-        }
-
-        let languageCode = Locale.preferredLanguages.first?
-            .components(separatedBy: "-")
-            .first?
-            .lowercased() ?? "en"
-        let localeIdentifierByLanguage: [String: String] = [
-            "ru": "ru_RU",
-            "en": "en_US",
-            "pt": "pt_PT",
-            "es": "es_ES",
-            "zh": "zh_CN"
-        ]
-        let locale = Locale(identifier: localeIdentifierByLanguage[languageCode] ?? "en_US")
-
-        let dateUIFormatter = DateFormatter()
-        dateUIFormatter.locale = locale
-        dateUIFormatter.dateFormat = "LLLL d"
-        let rawFormattedDate = dateUIFormatter.string(from: date)
-        let formattedDate: String = {
-            guard let first = rawFormattedDate.first else { return rawFormattedDate }
-            return String(first).uppercased(with: locale) + rawFormattedDate.dropFirst()
-        }()
-
-        let timeUIFormatter = DateFormatter()
-        timeUIFormatter.locale = locale
-        switch languageCode {
-        case "en":
-            timeUIFormatter.dateFormat = "h:mm a"
-        case "zh":
-            timeUIFormatter.dateFormat = "a h:mm"
-        case "ru", "pt", "es":
-            timeUIFormatter.dateFormat = "HH:mm"
-        default:
-            timeUIFormatter.dateFormat = "HH:mm"
-        }
-        let formattedTime = timeUIFormatter.string(from: date)
-
-        return (formattedDate, formattedTime)
-    }
-    
-
-    private func setImage(urlString: String? = nil, for imageView: UIImageView) {
-        if let photoURLString = urlString, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-            imageView.loadImage(from: photoURL)
-        }
-    }
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
@@ -1726,7 +1705,29 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         self.layoutIfNeeded()
     }
-  
+    
+    
+    // MARK: - Actions
+    
+    @objc private func backTapped() { onBackTapped?() }
+    @objc private func shareTapped() { onShareTapped?() }
+    @objc private func bookmarkTapped() { onBookmarkTapped?() }
+    @objc private func applyTapped() { onApplyTapped?() }
+    
+    @objc private func likesViewDidTap() {}
+    @objc private func viewsViewDidTap() {}
+    @objc private func savesViewDidTap() {}
+    @objc private func likesPillTapped() {}
+    @objc private func savesPillTapped() {}
+    
+    
+    @objc private func editPreviewTapped() { onEditPreviewTapped?() }
+    @objc private func publishPreviewTapped() {
+        toggleSaving(active: true)
+        onPublishPreviewTapped?()
+    }
+    
+    
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style
@@ -1751,9 +1752,10 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
 }
 
-// MARK: - Scroll & Animations
-extension EventDetailControllerNode: UIScrollViewDelegate {
 
+// MARK: - Scroll & Animations
+
+extension EventDetailControllerNode: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         let maxScrollY = scrollView.contentSize.height - scrollView.bounds.height + scrollView.contentInset.bottom
         let bottomLimit = max(0, maxScrollY)
@@ -1782,18 +1784,35 @@ extension EventDetailControllerNode: UIScrollViewDelegate {
     private func updateNavBarBlurMask() {
         let bounds = navBarBlurView.bounds
         guard bounds.height > 0 else { return }
-        
+        guard let (_, navHeight) = self.containerLayout else { return }
+
+        // Точка отсечения = collectionsContainer.top в sticky-state
+        // (= navHeight + segmentBarHeight + 10). Считаем долю от bounds.height
+        // динамически — иначе на разных safeArea.top mask промахивается мимо
+        // tab content.
+        let cutoffPt = navHeight
+        let cutoff = max(0.30, min(0.95, cutoffPt / bounds.height))
+        let glassEnd = max(0.0, cutoff - 0.18)        // glass на customNavBar
+        let fadeMid = max(glassEnd, cutoff - 0.06)     // быстрый фейд
+
         if navBarWhiteGradientLayer.superlayer == nil {
             navBarBlurView.contentView.layer.insertSublayer(navBarWhiteGradientLayer, at: 0)
         }
         navBarWhiteGradientLayer.frame = bounds
+        // Clear сверху (виден chrome glass) → solid white к cutoff
+        // (бесшовный стык с белым tab content).
         navBarWhiteGradientLayer.colors = [
-            UIColor.white.withAlphaComponent(0.74).cgColor,
-            UIColor.white.withAlphaComponent(0.70).cgColor,
-            UIColor.white.withAlphaComponent(0.20).cgColor,
-            UIColor.clear.cgColor
+            UIColor.white.withAlphaComponent(0.0).cgColor,
+            UIColor.white.withAlphaComponent(0.0).cgColor,
+            UIColor.white.withAlphaComponent(1.0).cgColor,
+            UIColor.white.withAlphaComponent(1.0).cgColor
         ]
-        navBarWhiteGradientLayer.locations = [0.0, 0.15, 0.45, 0.70]
+        navBarWhiteGradientLayer.locations = [
+            0.0,
+            glassEnd as NSNumber,
+            cutoff as NSNumber,
+            1.0
+        ]
 
         let maskLayer = CAGradientLayer()
         maskLayer.frame = bounds
@@ -1803,7 +1822,13 @@ extension EventDetailControllerNode: UIScrollViewDelegate {
             UIColor.black.withAlphaComponent(0.4).cgColor,
             UIColor.clear.cgColor
         ]
-        maskLayer.locations = [0.0, 0.22, 0.50, 0.75]
+        maskLayer.locations = [
+            0.0,
+            glassEnd as NSNumber,
+            fadeMid as NSNumber,
+            cutoff as NSNumber
+        ]
+
         navBarBlurView.layer.mask = maskLayer
     }
 
@@ -1842,7 +1867,7 @@ extension EventDetailControllerNode: UIScrollViewDelegate {
         moreButton.tintColor = iconColor
         
         let bgStartColor = DivoColorPalette.statPillBackground
-        let bgEndColor = DivoColorPalette.cardBackground
+        let bgEndColor = DivoColorPalette.screenBackground
         let currentBgColor = bgStartColor.blend(with: bgEndColor, alpha: maxProgress)
         
         closeButton.backgroundColor = currentBgColor
@@ -1913,7 +1938,9 @@ extension EventDetailControllerNode: UIScrollViewDelegate {
     }
 }
 
+
 // MARK: - Collections Delegate
+
 extension EventDetailControllerNode: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView == galleryCollectionView { return galleryPhotos.count }
@@ -1972,6 +1999,9 @@ extension EventDetailControllerNode: DescriptionViewDelegate {
     }
 }
 
+
+// MARK: - ParametersViewDelegate
+
 extension EventDetailControllerNode: ParametersViewDelegate {
     func parametersViewDidUpdateContentHeight(animated: Bool) {
         if animated {
@@ -1987,4 +2017,3 @@ extension EventDetailControllerNode: ParametersViewDelegate {
         }
     }
 }
-

@@ -81,22 +81,6 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             })
         })
 
-        self.createEventNode.selectCountryCode = { [weak self] in
-            if let strongSelf = self {
-                let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, displayCodes: false, glass: true)
-                controller.completeWithCountryCode = { _, countryId, name in
-
-                    if let strongSelf = self {
-                        strongSelf.createEventNode.updateCountry(countryId: countryId, countryName: name)
-                    }
-                }
-                controller.dismissed = {
-
-                }
-                strongSelf.push(controller)
-            }
-        }
-
         self.createEventNode.scheduleTimeController = { [weak self] mode in
             self?.scheduleTimeController(mode: mode)
         }

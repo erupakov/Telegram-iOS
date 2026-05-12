@@ -1,5 +1,4 @@
-import TelegramCore
-import DivoUIKit
+import UIKit
 
 public final class GalleryCell: UICollectionViewCell {
 

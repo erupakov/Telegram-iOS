@@ -684,6 +684,7 @@ public enum DivoStrings {
     public static var failedToUpdateEvent: String { L(en: "Failed to update event", ru: "Не удалось обновить событие", es: "Error al actualizar el evento", pt: "Falha ao atualizar o evento", zh: "更新活动失败") }
     public static var failedToCreateEvent: String { L(en: "Failed to create event", ru: "Не удалось создать событие", es: "Error al crear el evento", pt: "Falha ao criar o evento", zh: "创建活动失败") }
     public static var addShort: String { L(en: "+ Add", ru: "+ Добавить", es: "+ Agregar", pt: "+ Adicionar", zh: "+ 添加") }
+    public static var addOnlyTextShort: String { L(en: "Add", ru: "Добавить", es: "Agregar", pt: "Adicionar", zh: "添加") }
     public static var searchPlaceholder: String { L(en: "Search...", ru: "Поиск...", es: "Buscar...", pt: "Buscar...", zh: "搜索...") }
     public static func nSelected(_ n: Int) -> String {
         L(en: "\(n) selected", ru: "\(n) выбрано", es: "\(n) seleccionados", pt: "\(n) selecionados", zh: "已选\(n)项")
