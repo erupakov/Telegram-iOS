@@ -374,7 +374,6 @@ swift_library(
         "//submodules/TelegramUI:TelegramUIAssets",
         "//submodules/DivoCore:DivoCoreAssets",
         "//submodules/DivoCore:DivoCoreResources",
-        "//submodules/OnboardingUI:OnboardingUIAssets",
         "//submodules/TelegramUI/Components/Calls/CallScreen:Assets",
         ":GeneratedPresentationStrings/Resources/PresentationStrings.data",
     ],

@@ -84,6 +84,8 @@ public enum DivoColorPalette {
 
     // MARK: - Controls
     public static let shadow = UIColor.black                            // применяется с alpha 0.08/0.1
+    /// Фон splash- и onboarding-экранов. Совпадает с LaunchScreen, чтобы не было белой вспышки на старте.
+    public static let splashBackground = UIColor.black
     public static let navBarDisabledButtonColor = UIColor(red: 0.322, green: 0.322, blue: 0.322, alpha: 1)
     /// #343434 — secondary button normal state.
     public static let secondaryButtonBackground = UIColor(hexString: "#343434")!

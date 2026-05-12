@@ -1,21 +1,6 @@
-//
-//  OnboardingCell.swift
-//  divo-ios
-//
-//  Created by Michail Shagovitov on 28.02.2026.
-//
-
-import Foundation
 import UIKit
-import AsyncDisplayKit
 import Display
-import TelegramCore
-import SwiftSignalKit
-import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
-import AccountContext
-import AppBundle
+import DivoUIKit
 
 struct OnboardingPage {
     let image: UIImage?
@@ -68,7 +53,7 @@ class OnboardingPageView: UIView {
     
     func configure(image: UIImage?, title: String, subtitle: String) {
         backgroundImageView.image = image
-        categoryImageView.image = UIImage(bundleImageName: "Onboarding/logo")
+        categoryImageView.image = DivoImage.logo
         titleLabel.text = title
         subtitleLabel.text = subtitle
     }
@@ -76,8 +61,8 @@ class OnboardingPageView: UIView {
     private func setupUI() {
         backgroundImageView.contentMode = .scaleAspectFill
         backgroundImageView.clipsToBounds = true
-        addSubview(backgroundImageView)
         backgroundImageView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(backgroundImageView)
         
         gradientLayer.colors = [
             UIColor.black.withAlphaComponent(0.1).cgColor,
@@ -98,15 +83,15 @@ class OnboardingPageView: UIView {
             backgroundImageView.trailingAnchor.constraint(equalTo: trailingAnchor),
             
             subtitleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -170),
-            subtitleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            subtitleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
             titleLabel.bottomAnchor.constraint(equalTo: subtitleLabel.topAnchor, constant: -20),
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
-            categoryImageView.bottomAnchor.constraint(equalTo: titleLabel.topAnchor, constant: -32),
-            categoryImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            categoryImageView.bottomAnchor.constraint(equalTo: titleLabel.topAnchor, constant: -DivoDesignTokens.Spacing.xl),
+            categoryImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             categoryImageView.heightAnchor.constraint(equalToConstant: 26),
             categoryImageView.widthAnchor.constraint(equalToConstant: 68),
         ])
