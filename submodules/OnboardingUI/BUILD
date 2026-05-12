@@ -1,11 +1,5 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
 
-filegroup(
-    name = "OnboardingUIAssets",
-    srcs = glob(["OnboardingUIImages.xcassets/**"]),
-    visibility = ["//visibility:public"],
-)
-
 swift_library(
     name = "OnboardingUI",
     module_name = "OnboardingUI",
@@ -16,15 +10,7 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
-        "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
-        "//submodules/AsyncDisplayKit:AsyncDisplayKit",
         "//submodules/Display:Display",
-        "//submodules/TelegramCore:TelegramCore",
-        "//submodules/TelegramPresentationData:TelegramPresentationData",
-        "//submodules/AccountContext:AccountContext",
-        "//submodules/ItemListUI:ItemListUI",
-        "//submodules/PresentationDataUtils:PresentationDataUtils",
-        "//submodules/AppBundle:AppBundle",
         "//submodules/DivoCore:DivoCore",
         "//submodules/DivoUIKit:DivoUIKit",
     ],

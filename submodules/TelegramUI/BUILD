@@ -163,6 +163,7 @@ swift_library(
         "//submodules/ProfileScreenUI:ProfileScreenUI",
         "//submodules/DebugScreenUI:DebugScreenUI",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/DivoUIKit:DivoUIKit",
         "//submodules/ChatListUI:ChatListUI",
         "//submodules/ChatTitleActivityNode:ChatTitleActivityNode",
         "//submodules/DeleteChatPeerActionSheetItem:DeleteChatPeerActionSheetItem",

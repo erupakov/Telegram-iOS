@@ -45,6 +45,7 @@ import RecaptchaEnterprise
 import NavigationBarImpl
 import ContextUI
 import ContextControllerImpl
+import DivoUIKit
 
 #if canImport(AppCenter)
 import AppCenter
@@ -217,6 +218,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     @objc var window: UIWindow?
     var nativeWindow: (UIWindow & WindowHost)?
     var mainWindow: Window1!
+    private var splashOverlay: DivoSplashOverlayView? // DIVO: splash, снимается когда rootController ready
     private var dataImportSplash: LegacyDataImportSplash?
     private var memoryUsageOverlayView: UILabel?
     
@@ -394,6 +396,15 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }
         
         let (window, hostView) = nativeWindowHostView()
+        // DIVO: splash-overlay поверх любого rootController на cold start — закрывает iOS системный crossfade
+        // между LaunchScreen и первым кадром приложения, и даёт единый брендовый splash. Снимается, когда
+        // rootController готов отрисоваться (см. dismissWhenReady ниже), но не раньше 0.5с — иначе fade-in
+        // лого не успеет проиграться на быстрых устройствах.
+        let splashOverlay = DivoSplashOverlayView(frame: hostView.containerView.bounds)
+        splashOverlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        hostView.containerView.addSubview(splashOverlay)
+        splashOverlay.animateIn()
+        self.splashOverlay = splashOverlay
         let statusBarHost = ApplicationStatusBarHost(scene: window.windowScene)
         self.mainWindow = Window1(hostView: hostView, statusBarHost: statusBarHost)
         if let traitCollection = window.rootViewController?.traitCollection {
@@ -1282,7 +1293,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
 
                     self.mainWindow.debugAction = nil
                     self.mainWindow.viewController = context.rootController
-                    
+
+                    // DIVO: rootController готов — снимаем splash overlay (но не раньше min visible duration).
+                    let splashOverlay = self.splashOverlay
+                    self.splashOverlay = nil
+                    splashOverlay?.dismissWhenReady()
+
                     if firstTime {
                         let layer = context.rootController.view.layer
                         layer.allowsGroupOpacity = true
@@ -1365,6 +1381,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 |> deliverOnMainQueue).start(next: { _ in
                     progressDisposable.dispose()
                     self.mainWindow.present(context.rootController, on: .root)
+                    // DIVO: auth context готов — снимаем splash. Для unauth-пользователя держим splash подольше
+                    // (брендовый «первый запуск»), для повторных запусков с уже авторизованным аккаунтом он
+                    // снимается короче — см. main path в .start { _ in mainWindow.viewController = ... }.
+                    let splashOverlay = self.splashOverlay
+                    self.splashOverlay = nil
+                    splashOverlay?.dismissWhenReady(minVisibleDuration: 2.0)
                 }))
             } else {
                 authContextReadyDisposable.set(nil)
