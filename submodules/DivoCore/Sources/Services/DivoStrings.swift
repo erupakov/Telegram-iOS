@@ -293,6 +293,7 @@ public enum DivoStrings {
     public static var dataStorage: String { L(en: "Data and Storage", ru: "Данные и хранилище", es: "Datos y almacenamiento", pt: "Dados e armazenamento", zh: "数据和存储") }
     public static var language: String { L(en: "Language", ru: "Язык", es: "Idioma", pt: "Idioma", zh: "语言") }
     public static var logOut: String { L(en: "Log out", ru: "Выйти", es: "Cerrar sesión", pt: "Sair", zh: "退出") }
+    public static var measuringSystem: String { L(en: "Measuring System", ru: "Система измерения", es: "Sistema de medición", pt: "Sistema de medição", zh: "测量系统") }
     public static var myParameters: String { L(en: "My Parameters", ru: "Мои параметры", es: "Mis parámetros", pt: "Meus parâmetros", zh: "我的参数") }
     public static var saveParameters: String { L(en: "Save parameters", ru: "Сохранить параметры", es: "Guardar parámetros", pt: "Salvar parâmetros", zh: "保存参数") }
     public static var settingsBannerDescription: String { L(en: "Publish your profile as a model, join castings or add events as agency — be part of the global fashion network.", ru: "Опубликуйте профиль модели, участвуйте в кастингах или добавляйте события — станьте частью мировой fashion-сети.", es: "Publica tu perfil como modelo, únete a castings o añade eventos como agencia — forma parte de la red global de moda.", pt: "Publique seu perfil como modelo, participe de castings ou adicione eventos como agência — faça parte da rede global de moda.", zh: "发布您的模特资料，参加选角或作为经纪公司添加活动——成为全球时尚网络的一部分。") }

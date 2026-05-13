@@ -74,7 +74,7 @@ public class EditParametersController: ViewController, UINavigationControllerDel
     private func loadDictionaries() {
         self.editParametersNode.toggleSpinner(active: true)
         self.editParametersNode.showScreenLoading()
-        
+
         Task { @MainActor in
             do {
                 async let appearanceTask = DivoAPIClient.shared.request(
@@ -93,10 +93,9 @@ public class EditParametersController: ViewController, UINavigationControllerDel
                 self.editParametersNode.configureGenderDictionaries(genderResponse)
                 self.editParametersNode.toggleSpinner(active: false)
                 self.editParametersNode.hideScreenLoading()
-                
             } catch {
                 self.editParametersNode.toggleSpinner(active: false)
-                self.editParametersNode.hideScreenLoading()
+                self.editParametersNode.changeBackgroundScreenLoading()
                 self.editParametersNode.showSnackbar(
                     message: DivoStrings.failedLoadInteractionList,
                     style: .error,

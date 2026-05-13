@@ -10,9 +10,26 @@ import AppBundle
 import DivoCore
 import DivoUIKit
 
+struct MeasuringOption {
+    let id: String
+    let title: String
+}
+
+// MARK: - Screen Load Phase
+enum ScreenLoadPhase: Equatable {
+    case loading
+    case ready
+    case failed
+}
+
 final class DivoSettingsNode: ASDisplayNode {
     
     private let context: AccountContext
+    
+    // Стейт экрана
+    private var screenPhase: ScreenLoadPhase = .loading {
+        didSet { if oldValue != screenPhase { applyState() } }
+    }
     
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -35,12 +52,16 @@ final class DivoSettingsNode: ASDisplayNode {
 
     // Profile section
     private let profileContainer = UIView()
-    private let profileHeader = HeaderSettings()
+    private let profileHeader = HeaderSettingsView()
+    
+    // Shimmer для Profile section
+    private let profileShimmerView = HeaderSettingsShimmerView()
 
     // Set Username section
     private let usernameContainer = SettingsRowView(icon: DivoImage.settingsSetUsername, title: DivoStrings.settingsSetUsername, isLast: false)
-    
     private let parametersContainer = SettingsRowView(icon: DivoImage.settingsParameters, title: DivoStrings.fillYourParameters, isLast: true)
+    
+    private let parametersUsernameStackContainer = UIView() // Контейнер для секции Username+Parameters
 
     // Promo banner
     private let bannerOuterContainer: UIView = {
@@ -55,21 +76,33 @@ final class DivoSettingsNode: ASDisplayNode {
         return bannerView
     }()
     
-    private let savedMessagesContainer = SettingsRowView(icon: DivoImage.settingsSavedMessages, title: DivoStrings.savedMessages, isLast: true)
+    private let savedMessagesStackContainer = UIView()
+    private let savedMessagesContainer = SettingsRowView(icon: DivoImage.settingsSavedMessages.withRenderingMode(.alwaysTemplate), title: DivoStrings.savedMessages, isLast: true)
     
-    private let notificationsSoundsContainer = SettingsRowView(icon: DivoImage.settingsNotifications, title: DivoStrings.notificationsSounds, isLast: false)
-    private let privacySecurityContainer = SettingsRowView(icon: DivoImage.settingsPrivacy, title: DivoStrings.privacySecurity, isLast: false)
-    private let dataStorageContainer = SettingsRowView(icon: DivoImage.settingsData, title: DivoStrings.dataStorage, isLast: false)
-    private let languageContainer = SettingsRowView(icon: DivoImage.settingsLanguage, title: DivoStrings.language, isLast: true)
-    
-    private let logOutContainer = SettingsRowView(icon: DivoImage.settingsLogOut, title: DivoStrings.logOut, isLast: true)
+    private let mainSettingsStackContainer = UIView()
+    private let notificationsSoundsContainer = SettingsRowView(icon: DivoImage.settingsNotifications.withRenderingMode(.alwaysTemplate), title: DivoStrings.notificationsSounds, isLast: false)
+    private let privacySecurityContainer = SettingsRowView(icon: DivoImage.settingsPrivacy.withRenderingMode(.alwaysTemplate), title: DivoStrings.privacySecurity, isLast: false)
+    private let dataStorageContainer = SettingsRowView(icon: DivoImage.settingsData.withRenderingMode(.alwaysTemplate), title: DivoStrings.dataStorage, isLast: false)
+    private let languageContainer = SettingsRowView(icon: DivoImage.settingsLanguage.withRenderingMode(.alwaysTemplate), title: DivoStrings.language, isLast: false)
+    private let measuringSystemContainer = SettingsRowView(icon: UIImage(systemName: "scalemass.fill")!.withRenderingMode(.alwaysTemplate), title: DivoStrings.measuringSystem, isLast: true)
+
+    private let logOutStackContainer = UIView()
+    private let logOutContainer = SettingsRowView(icon: DivoImage.settingsLogOut.withRenderingMode(.alwaysTemplate), title: DivoStrings.logOut, isLast: true)
 
     var onProfileTapped: (() -> Void)?
     var onSetUsernameTapped: (() -> Void)?
     var onFillParametersTapped: (() -> Void)?
     var onLearnMoreTapped: (() -> Void)?
+    var presentController: ((UIViewController) -> Void)?
 
     private var containerLayout: (ContainerViewLayout, CGFloat)?
+    
+    private var selectedMeasuringSystemId: String?
+    private var selectedMeasuringSystemTitle: String?
+    private let measuringSystem: [MeasuringOption] = [
+        MeasuringOption(id: "metric", title: "Metric"),
+        MeasuringOption(id: "imperial", title: "Imperial"),
+    ]
 
     init(context: AccountContext) {
         self.context = context
@@ -85,9 +118,84 @@ final class DivoSettingsNode: ASDisplayNode {
             onCircleTextTapped: { [weak self] in self?.onProfileTapped?() }
         )
         
+        measuringSystemContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(measuringSystemTapped)))
+        
         setupCustomNavBar()
         setupUI()
+        
+        // Начальное состояние
+        applyState()
     }
+
+    override func layout() {
+        super.layout()
+        if screenPhase == .loading {
+            profileShimmerView.startAnimation() // Предполагается, что у вас есть расширение startShimmering()
+        }
+    }
+
+    // MARK: - State Management
+    
+    private func applyState() {
+        switch screenPhase {
+        case .loading, .failed:
+            // Блокируем взаимодействие
+            scrollView.isScrollEnabled = false
+            
+            // Показываем шиммер профиля, прячем реальный контент профиля
+            profileShimmerView.isHidden = false
+            profileHeader.isHidden = true
+            
+            // Настройки можно оставить видимыми, но некликабельными, либо тоже спрятать
+            // Я делаю их полупрозрачными и неактивными, как скелетон
+            parametersUsernameStackContainer.alpha = 0.5
+            parametersUsernameStackContainer.isUserInteractionEnabled = false
+            
+            bannerOuterContainer.alpha = 0.5
+            bannerOuterContainer.isUserInteractionEnabled = false
+            
+            savedMessagesStackContainer.alpha = 0.5
+            savedMessagesStackContainer.isUserInteractionEnabled = false
+            
+            mainSettingsStackContainer.alpha = 0.5
+            mainSettingsStackContainer.isUserInteractionEnabled = false
+            
+            logOutStackContainer.alpha = 0.5
+            logOutStackContainer.isUserInteractionEnabled = false
+            
+            if screenPhase == .loading {
+                profileShimmerView.startAnimation()
+            }
+            
+        case .ready:
+            UIView.animate(withDuration: 0.3) {
+                // Разблокируем взаимодействие
+                self.scrollView.isScrollEnabled = true
+                
+                // Прячем шиммер, показываем контент
+                self.profileShimmerView.isHidden = true
+                self.profileShimmerView.stopAnimation()
+                self.profileHeader.isHidden = false
+                
+                // Возвращаем нормальный вид настройкам
+                self.parametersUsernameStackContainer.alpha = 1.0
+                self.parametersUsernameStackContainer.isUserInteractionEnabled = true
+                
+                self.bannerOuterContainer.alpha = 1.0
+                self.bannerOuterContainer.isUserInteractionEnabled = true
+                
+                self.savedMessagesStackContainer.alpha = 1.0
+                self.savedMessagesStackContainer.isUserInteractionEnabled = true
+                
+                self.mainSettingsStackContainer.alpha = 1.0
+                self.mainSettingsStackContainer.isUserInteractionEnabled = true
+                
+                self.logOutStackContainer.alpha = 1.0
+                self.logOutStackContainer.isUserInteractionEnabled = true
+            }
+        }
+    }
+    
 
     // MARK: - Setup
     
@@ -120,7 +228,8 @@ final class DivoSettingsNode: ASDisplayNode {
 
         setupProfileSection()
         setupUsernameParametersSection()
-        setupBannerSection()
+        // Добавление баннера пока убрано
+        // setupBannerSection()
         setupSavedMessagesSection()
         setupMainSection()
         setupLogOutSection()
@@ -140,6 +249,9 @@ final class DivoSettingsNode: ASDisplayNode {
 
         profileContainer.addSubview(profileHeader)
         profileHeader.translatesAutoresizingMaskIntoConstraints = false
+        
+        profileContainer.addSubview(profileShimmerView)
+        profileShimmerView.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
             profileContainer.heightAnchor.constraint(equalToConstant: 152),
@@ -148,6 +260,12 @@ final class DivoSettingsNode: ASDisplayNode {
             profileHeader.trailingAnchor.constraint(equalTo: profileContainer.trailingAnchor),
             profileHeader.bottomAnchor.constraint(equalTo: profileContainer.bottomAnchor),
             profileHeader.topAnchor.constraint(equalTo: profileContainer.topAnchor),
+            
+            profileShimmerView.leadingAnchor.constraint(equalTo: profileContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            profileShimmerView.trailingAnchor.constraint(equalTo: profileContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            profileShimmerView.bottomAnchor.constraint(equalTo: profileContainer.bottomAnchor),
+            profileShimmerView.topAnchor.constraint(equalTo: profileContainer.topAnchor, constant: 12),
+            profileShimmerView.heightAnchor.constraint(equalToConstant: 152),
         ])
 
         contentViewStack.addArrangedSubview(profileContainer)
@@ -160,6 +278,8 @@ final class DivoSettingsNode: ASDisplayNode {
         stackContainer.axis = .vertical
         stackContainer.addArrangedSubview(usernameContainer)
         stackContainer.addArrangedSubview(parametersContainer)
+        parametersContainer.isHidden = true
+        usernameContainer.setSeparator(true)
         
         let whiteContainer = UIView()
         whiteContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -167,15 +287,14 @@ final class DivoSettingsNode: ASDisplayNode {
         whiteContainer.backgroundColor = DivoColorPalette.cardBackground
         whiteContainer.addSubview(stackContainer)
         
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(whiteContainer)
+        parametersUsernameStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        parametersUsernameStackContainer.addSubview(whiteContainer)
         
         NSLayoutConstraint.activate([
-            whiteContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            whiteContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            whiteContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            whiteContainer.topAnchor.constraint(equalTo: container.topAnchor),
+            whiteContainer.leadingAnchor.constraint(equalTo: parametersUsernameStackContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            whiteContainer.trailingAnchor.constraint(equalTo: parametersUsernameStackContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            whiteContainer.bottomAnchor.constraint(equalTo: parametersUsernameStackContainer.bottomAnchor),
+            whiteContainer.topAnchor.constraint(equalTo: parametersUsernameStackContainer.topAnchor),
             
             stackContainer.leadingAnchor.constraint(equalTo: whiteContainer.leadingAnchor),
             stackContainer.trailingAnchor.constraint(equalTo: whiteContainer.trailingAnchor),
@@ -189,7 +308,7 @@ final class DivoSettingsNode: ASDisplayNode {
         let profileTap = UITapGestureRecognizer(target: self, action: #selector(parametersTapped))
         parametersContainer.addGestureRecognizer(profileTap)
         
-        contentViewStack.addArrangedSubview(container)
+        contentViewStack.addArrangedSubview(parametersUsernameStackContainer)
     }
 
     private func setupBannerSection() {
@@ -221,15 +340,14 @@ final class DivoSettingsNode: ASDisplayNode {
         whiteContainer.backgroundColor = DivoColorPalette.cardBackground
         whiteContainer.addSubview(stackContainer)
         
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(whiteContainer)
+        savedMessagesStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        savedMessagesStackContainer.addSubview(whiteContainer)
         
         NSLayoutConstraint.activate([
-            whiteContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            whiteContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            whiteContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            whiteContainer.topAnchor.constraint(equalTo: container.topAnchor),
+            whiteContainer.leadingAnchor.constraint(equalTo: savedMessagesStackContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            whiteContainer.trailingAnchor.constraint(equalTo: savedMessagesStackContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            whiteContainer.bottomAnchor.constraint(equalTo: savedMessagesStackContainer.bottomAnchor),
+            whiteContainer.topAnchor.constraint(equalTo: savedMessagesStackContainer.topAnchor),
             
             stackContainer.leadingAnchor.constraint(equalTo: whiteContainer.leadingAnchor),
             stackContainer.trailingAnchor.constraint(equalTo: whiteContainer.trailingAnchor),
@@ -239,7 +357,7 @@ final class DivoSettingsNode: ASDisplayNode {
             savedMessagesContainer.heightAnchor.constraint(equalToConstant: 46),
         ])
         
-        contentViewStack.addArrangedSubview(container)
+        contentViewStack.addArrangedSubview(savedMessagesStackContainer)
     }
     
     private func setupMainSection() {
@@ -250,6 +368,9 @@ final class DivoSettingsNode: ASDisplayNode {
         stackContainer.addArrangedSubview(privacySecurityContainer)
         stackContainer.addArrangedSubview(dataStorageContainer)
         stackContainer.addArrangedSubview(languageContainer)
+        stackContainer.addArrangedSubview(measuringSystemContainer)
+        measuringSystemContainer.isHidden = true
+        languageContainer.setSeparator(true)
         
         let whiteContainer = UIView()
         whiteContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -257,15 +378,14 @@ final class DivoSettingsNode: ASDisplayNode {
         whiteContainer.backgroundColor = DivoColorPalette.cardBackground
         whiteContainer.addSubview(stackContainer)
         
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(whiteContainer)
+        mainSettingsStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        mainSettingsStackContainer.addSubview(whiteContainer)
         
         NSLayoutConstraint.activate([
-            whiteContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            whiteContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            whiteContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            whiteContainer.topAnchor.constraint(equalTo: container.topAnchor),
+            whiteContainer.leadingAnchor.constraint(equalTo: mainSettingsStackContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            whiteContainer.trailingAnchor.constraint(equalTo: mainSettingsStackContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            whiteContainer.bottomAnchor.constraint(equalTo: mainSettingsStackContainer.bottomAnchor),
+            whiteContainer.topAnchor.constraint(equalTo: mainSettingsStackContainer.topAnchor),
             
             stackContainer.leadingAnchor.constraint(equalTo: whiteContainer.leadingAnchor),
             stackContainer.trailingAnchor.constraint(equalTo: whiteContainer.trailingAnchor),
@@ -276,9 +396,10 @@ final class DivoSettingsNode: ASDisplayNode {
             privacySecurityContainer.heightAnchor.constraint(equalToConstant: 46),
             dataStorageContainer.heightAnchor.constraint(equalToConstant: 46),
             languageContainer.heightAnchor.constraint(equalToConstant: 46),
+            measuringSystemContainer.heightAnchor.constraint(equalToConstant: 46),
         ])
         
-        contentViewStack.addArrangedSubview(container)
+        contentViewStack.addArrangedSubview(mainSettingsStackContainer)
     }
     
     private func setupLogOutSection() {
@@ -293,15 +414,14 @@ final class DivoSettingsNode: ASDisplayNode {
         whiteContainer.backgroundColor = DivoColorPalette.cardBackground
         whiteContainer.addSubview(stackContainer)
         
-        let container = UIView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(whiteContainer)
+        logOutStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        logOutStackContainer.addSubview(whiteContainer)
         
         NSLayoutConstraint.activate([
-            whiteContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            whiteContainer.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            whiteContainer.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            whiteContainer.topAnchor.constraint(equalTo: container.topAnchor),
+            whiteContainer.leadingAnchor.constraint(equalTo: logOutStackContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            whiteContainer.trailingAnchor.constraint(equalTo: logOutStackContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            whiteContainer.bottomAnchor.constraint(equalTo: logOutStackContainer.bottomAnchor),
+            whiteContainer.topAnchor.constraint(equalTo: logOutStackContainer.topAnchor),
             
             stackContainer.leadingAnchor.constraint(equalTo: whiteContainer.leadingAnchor),
             stackContainer.trailingAnchor.constraint(equalTo: whiteContainer.trailingAnchor),
@@ -311,10 +431,35 @@ final class DivoSettingsNode: ASDisplayNode {
             logOutContainer.heightAnchor.constraint(equalToConstant: 46),
         ])
         
-        contentViewStack.addArrangedSubview(container)
+        contentViewStack.addArrangedSubview(logOutStackContainer)
     }
     
-    // MARK: - Layout
+    private func presentSheet(_ vc: UIViewController) {
+        let nav = UINavigationController(rootViewController: vc)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        presentController?(nav)
+    }
+    
+    private func updateDropdownsUI() {
+        measuringSystemContainer.setItems(selectedMeasuringSystemTitle ?? "")
+    }
+    
+    // MARK: - Internal
+
+    func markLoading() {
+        self.screenPhase = .loading
+    }
+    
+    func markFailed() {
+        self.screenPhase = .failed
+    }
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat) {
         self.containerLayout = (layout, navigationBarHeight)
@@ -334,9 +479,21 @@ final class DivoSettingsNode: ASDisplayNode {
 
     func updateWithProfile(_ user: UserDetail) {
         profileHeader.configure(fullUrl: user.avatar?.fullUrl, fullName: user.fullName, phone: user.phone)
+        selectedMeasuringSystemId = user.measuringSystem
+        for option in measuringSystem where option.id == user.measuringSystem {
+            selectedMeasuringSystemTitle = option.title
+        }
+        updateDropdownsUI()
+        parametersContainer.isHidden = Role(apiRole: user.role) == .agency
+        usernameContainer.setSeparator(Role(apiRole: user.role) == .agency)
+
+        measuringSystemContainer.isHidden = Role(apiRole: user.role) == .agency
+        languageContainer.setSeparator(Role(apiRole: user.role) == .agency)
+
+        self.screenPhase = .ready // Переключаем стейт в готовый
     }
 
-        
+
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style
@@ -361,16 +518,81 @@ final class DivoSettingsNode: ASDisplayNode {
     }
 
     // MARK: - Actions
+    
+    @objc private func measuringSystemTapped() {
+        guard screenPhase == .ready else { return } // Защита от кликов во время загрузки
+        
+        let options = measuringSystem.map { FilterOptionItem(id: String($0.id), title: $0.title) }
+        let selectedIds = selectedMeasuringSystemId != nil ? [String(selectedMeasuringSystemId!)] :[]
+        
+        let vc = FilterOptionsController(
+            title: DivoStrings.measuringSystem,
+            options: options,
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: false,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            if let selected = selectedItems.first {
+                self?.selectedMeasuringSystemId = selected.id
+                self?.selectedMeasuringSystemTitle = selected.title
+            } else {
+                self?.selectedMeasuringSystemId = nil
+                self?.selectedMeasuringSystemTitle = nil
+            }
+            self?.updateDropdownsUI()
+        }
+        presentSheet(vc)
+    }
 
     @objc private func profileTapped() {
+        guard screenPhase == .ready else { return }
         onProfileTapped?()
     }
 
     @objc private func usernameTapped() {
+        guard screenPhase == .ready else { return }
         onSetUsernameTapped?()
     }
 
     @objc private func parametersTapped() {
+        guard screenPhase == .ready else { return }
         onFillParametersTapped?()
+    }
+}
+
+extension UIView {
+    func startShimmering() {
+        let gradient = CAGradientLayer()
+        gradient.startPoint = CGPoint(x: 0, y: 0.5)
+        gradient.endPoint = CGPoint(x: 1, y: 0.5)
+        
+        let baseColor = DivoColorPalette.shimmerBase.cgColor
+        let highlightColor = DivoColorPalette.shimmerHighlight.cgColor
+        
+        gradient.colors = [baseColor, highlightColor, baseColor]
+        gradient.locations = [0.0, 0.5, 1.0]
+        
+        gradient.frame = CGRect(x: -self.bounds.width, y: 0, width: self.bounds.width * 3, height: self.bounds.height)
+        
+        let animation = CABasicAnimation(keyPath: "locations")
+        animation.fromValue = [0.0, 0.1, 0.2]
+        animation.toValue = [0.8, 0.9, 1.0]
+        animation.duration = 1.5
+        animation.repeatCount = .infinity
+        animation.isRemovedOnCompletion = false
+        
+        gradient.add(animation, forKey: "shimmer")
+        
+        self.layer.mask = self.layer.cornerRadius > 0 ? nil : nil
+        self.layer.addSublayer(gradient)
+        self.layer.masksToBounds = true
+    }
+    
+    func stopShimmering() {
+        self.layer.sublayers?.forEach { $0.removeFromSuperlayer() }
     }
 }

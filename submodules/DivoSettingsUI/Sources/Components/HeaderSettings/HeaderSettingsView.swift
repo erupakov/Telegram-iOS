@@ -10,7 +10,7 @@ import Display
 import DivoUIKit
 import DivoCore
 
-class HeaderSettings: UIView {
+class HeaderSettingsView: UIView {
     
     static let avatarSize: CGFloat = 94
     
@@ -31,6 +31,7 @@ class HeaderSettings: UIView {
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         nameLabel.font = Font.medium(18)
         nameLabel.textColor = DivoColorPalette.settingsNameText
+        nameLabel.text = "Name"
         return nameLabel
     }()
     
@@ -39,6 +40,7 @@ class HeaderSettings: UIView {
         phoneLabel.translatesAutoresizingMaskIntoConstraints = false
         phoneLabel.font = Font.regular(14)
         phoneLabel.textColor = DivoColorPalette.settingsPhoneText
+        phoneLabel.text = "Name"
         return phoneLabel
     }()
     

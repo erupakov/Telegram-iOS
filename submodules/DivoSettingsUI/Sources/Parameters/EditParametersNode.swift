@@ -133,7 +133,7 @@ final class EditParametersNode: ASDisplayNode, UITextFieldDelegate {
 
     private let loadingOverlay: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(0.4)
+        view.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(0.6)
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         view.isUserInteractionEnabled = true
@@ -520,6 +520,7 @@ final class EditParametersNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     func showScreenLoading() {
+        loadingOverlay.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(0.6)
         loadingOverlay.isHidden = false
         loadingSpinner.isHidden = false
         loadingSpinner.startAnimating()
@@ -528,6 +529,12 @@ final class EditParametersNode: ASDisplayNode, UITextFieldDelegate {
     
     func hideScreenLoading() {
         loadingOverlay.isHidden = true
+        loadingSpinner.stopAnimating()
+        loadingSpinner.isHidden = true
+    }
+
+    func changeBackgroundScreenLoading() {
+        loadingOverlay.backgroundColor = DivoColorPalette.screenBackground.withAlphaComponent(0.1)
         loadingSpinner.stopAnimating()
         loadingSpinner.isHidden = true
     }

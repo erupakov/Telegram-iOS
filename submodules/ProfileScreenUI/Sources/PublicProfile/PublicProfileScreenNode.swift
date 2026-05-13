@@ -12,28 +12,6 @@ import AccountContext
 import AppBundle
 import DivoUIKit
 
-public enum Role {
-    case model
-    case newFace
-    case agency
-
-    init(apiRole: String?) {
-        switch apiRole {
-        case "agency_employee": self = .agency
-        case "new_face":        self = .newFace
-        default:                self = .model
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .model: DivoStrings.roleModel
-        case .newFace: DivoStrings.roleNewFace
-        case .agency: DivoStrings.roleAgency
-        }
-    }
-}
-
 // MARK: - Screen state types
 //
 // Один источник правды для loading-стейта экрана. API-колбэки выставляют

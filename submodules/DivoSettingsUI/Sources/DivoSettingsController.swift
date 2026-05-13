@@ -78,6 +78,10 @@ public final class DivoSettingsController: TelegramBaseController {
             _ = self
         }
         
+        self.controllerNode.presentController = { [weak self] vc in
+            self?.view.window?.rootViewController?.present(vc, animated: true)
+        }
+        
         self.displayNodeDidLoad()
     }
 
@@ -88,7 +92,9 @@ public final class DivoSettingsController: TelegramBaseController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        self.loadProfile()
+        if !isProfileLoaded {
+            loadProfileData()
+        }
     }
 
     // MARK: - Actions
@@ -128,8 +134,9 @@ public final class DivoSettingsController: TelegramBaseController {
         }
     }
     
-    private func loadProfile() {
-        guard !isProfileLoaded else { return }
+    private func loadProfileData() {
+        self.controllerNode.markLoading()
+        
         Task { @MainActor in
             do {
                 let response: UserDetailResponse = try await DivoAPIClient.shared.request(
@@ -139,14 +146,23 @@ public final class DivoSettingsController: TelegramBaseController {
                 self.userDetailData = response.data
                 self.controllerNode.updateWithProfile(response.data)
             } catch {
-                
+                self.controllerNode.markFailed()
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.failedLoadInteractionList, // Замените на вашу строку, например DivoStrings.serverUnavailable
+                    style: .error,
+                    retryAction: { [weak self] in
+                        self?.controllerNode.hideSnackbar(animated: true)
+                        self?.loadProfileData()
+                    },
+                    persistent: true
+                )
             }
         }
     }
     
     private func reloadProfile() {
         isProfileLoaded = false
-        loadProfile()
+        loadProfileData()
     }
 }
 

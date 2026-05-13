@@ -12,9 +12,18 @@ import DivoCore
 
 final class SettingsRowView: UIView {
     
+    private let settingsIconContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.backgroundColor = DivoColorPalette.screenBackground
+        view.layer.cornerRadius = 6
+        return view
+    }()
+    
     private let settingsIcon: UIImageView = {
         let iv = UIImageView()
         iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         return iv
     }()
     
@@ -35,6 +44,13 @@ final class SettingsRowView: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
+
+    private let separator: UIView = {
+        let separator = UIView()
+        separator.backgroundColor = DivoColorPalette.primaryText.withAlphaComponent(0.1)
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        return separator
+    }()
     
     init(icon: UIImage, title: String, isLast: Bool) {
         super.init(frame: .zero)
@@ -44,7 +60,8 @@ final class SettingsRowView: UIView {
         
         settingsIcon.image = icon
         titleLabel.text = title
-        addSubview(settingsIcon)
+        addSubview(settingsIconContainer)
+        settingsIconContainer.addSubview(settingsIcon)
         addSubview(titleLabel)
         addSubview(valueLabel)
         
@@ -55,9 +72,6 @@ final class SettingsRowView: UIView {
         addSubview(chevronImageView)
         
         if !isLast {
-            let separator = UIView()
-            separator.backgroundColor = DivoColorPalette.primaryText.withAlphaComponent(0.1)
-            separator.translatesAutoresizingMaskIntoConstraints = false
             addSubview(separator)
             
             NSLayoutConstraint.activate([
@@ -69,10 +83,15 @@ final class SettingsRowView: UIView {
         }
         
         NSLayoutConstraint.activate([
-            settingsIcon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            settingsIcon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            settingsIcon.heightAnchor.constraint(equalToConstant: 29),
-            settingsIcon.widthAnchor.constraint(equalToConstant: 29),
+            settingsIconContainer.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            settingsIconContainer.centerYAnchor.constraint(equalTo: centerYAnchor),
+            settingsIconContainer.heightAnchor.constraint(equalToConstant: 29),
+            settingsIconContainer.widthAnchor.constraint(equalToConstant: 29),
+            
+            settingsIcon.centerXAnchor.constraint(equalTo: settingsIconContainer.centerXAnchor),
+            settingsIcon.centerYAnchor.constraint(equalTo: settingsIconContainer.centerYAnchor),
+            settingsIcon.heightAnchor.constraint(equalToConstant: 20),
+            settingsIcon.widthAnchor.constraint(equalToConstant: 20),
             
             titleLabel.leadingAnchor.constraint(equalTo: settingsIcon.trailingAnchor, constant: 10),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -92,6 +111,12 @@ final class SettingsRowView: UIView {
     
     func setItems(_ text: String) {
         self.valueLabel.text = text
+        self.setNeedsLayout()
+        self.layoutIfNeeded()
+    }
+
+    func setSeparator(_ isHidden: Bool) {
+        self.separator.isHidden = isHidden
         self.setNeedsLayout()
         self.layoutIfNeeded()
     }

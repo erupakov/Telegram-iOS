@@ -80,7 +80,6 @@ public enum DivoImage {
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
     public static var searchWhiteCheckmark: UIImage { load("DivoSearchWhiteCheckmark") }
     public static var sendDM: UIImage { load("DivoSendDM") }
-    public static var settingsAppearance: UIImage { load("DivoSettingsAppearance") }
     public static var settingsBannerBackground: UIImage { load("DivoSettingsBannerBackground") }
     public static var settingsData: UIImage { load("DivoSettingsData") }
     public static var settingsLanguage: UIImage { load("DivoSettingsLanguage") }
