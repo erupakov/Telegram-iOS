@@ -284,9 +284,18 @@ public enum DivoStrings {
     public static var settingsEdit: String { L(en: "Edit", ru: "Ред.", es: "Editar", pt: "Editar", zh: "编辑") }
     public static var settingsSetUsername: String { L(en: "Set Username", ru: "Установить имя", es: "Establecer nombre", pt: "Definir nome", zh: "设置用户名") }
     public static var settingsFillParameters: String { L(en: "Fill your parameters", ru: "Заполните параметры", es: "Complete sus parámetros", pt: "Preencha seus parâmetros", zh: "填写您的参数") }
-    public static var settingsBannerTitle: String { L(en: "GET DISCOVERED IN THE FASHION WORLD", ru: "СТАНЬ ЗАМЕТНЫМ В МИРЕ МОДЫ", es: "HAZTE NOTAR EN EL MUNDO DE LA MODA", pt: "SEJA DESCOBERTO NO MUNDO DA MODA", zh: "在时尚界崭露头角") }
+    public static var settingsBannerTitle: String { L(en: "Get Discovered in the Fashion World", ru: "Будьте замечены в мире моды", es: "Hazte notar en el mundo de la moda", pt: "Seja descoberto no mundo da moda", zh: "在时尚界被发现") }
+    public static var settingsLearnMore: String { L(en: "Learn More", ru: "Узнать больше", es: "Más información", pt: "Saiba mais", zh: "了解更多") }
+    public static var fillYourParameters: String { L(en: "Fill your parameters", ru: "Заполните параметры", es: "Completa tus parámetros", pt: "Preencha seus parâmetros", zh: "填写您的参数") }
+    public static var savedMessages: String { L(en: "Saved Messages", ru: "Сохранённые сообщения", es: "Mensajes guardados", pt: "Mensagens salvas", zh: "已保存的消息") }
+    public static var notificationsSounds: String { L(en: "Notifications and Sounds", ru: "Уведомления и звуки", es: "Notificaciones y sonidos", pt: "Notificações e sons", zh: "通知和声音") }
+    public static var privacySecurity: String { L(en: "Privacy and Security", ru: "Конфиденциальность и безопасность", es: "Privacidad y seguridad", pt: "Privacidade e segurança", zh: "隐私与安全") }
+    public static var dataStorage: String { L(en: "Data and Storage", ru: "Данные и хранилище", es: "Datos y almacenamiento", pt: "Dados e armazenamento", zh: "数据和存储") }
+    public static var language: String { L(en: "Language", ru: "Язык", es: "Idioma", pt: "Idioma", zh: "语言") }
+    public static var logOut: String { L(en: "Log out", ru: "Выйти", es: "Cerrar sesión", pt: "Sair", zh: "退出") }
+    public static var myParameters: String { L(en: "My Parameters", ru: "Мои параметры", es: "Mis parámetros", pt: "Meus parâmetros", zh: "我的参数") }
+    public static var saveParameters: String { L(en: "Save parameters", ru: "Сохранить параметры", es: "Guardar parámetros", pt: "Salvar parâmetros", zh: "保存参数") }
     public static var settingsBannerDescription: String { L(en: "Publish your profile as a model, join castings or add events as agency — be part of the global fashion network.", ru: "Опубликуйте профиль модели, участвуйте в кастингах или добавляйте события — станьте частью мировой fashion-сети.", es: "Publica tu perfil como modelo, únete a castings o añade eventos como agencia — forma parte de la red global de moda.", pt: "Publique seu perfil como modelo, participe de castings ou adicione eventos como agência — faça parte da rede global de moda.", zh: "发布您的模特资料，参加选角或作为经纪公司添加活动——成为全球时尚网络的一部分。") }
-    public static var settingsLearnMore: String { L(en: "LEARN MORE", ru: "УЗНАТЬ БОЛЬШЕ", es: "MÁS INFORMACIÓN", pt: "SAIBA MAIS", zh: "了解更多") }
 
     // MARK: - Common
 
@@ -333,9 +342,11 @@ public enum DivoStrings {
     public static var editSocialLinks: String { L(en: "EDIT SOCIAL LINKS", ru: "РЕДАКТИРОВАТЬ ССЫЛКИ", es: "EDITAR REDES SOCIALES", pt: "EDITAR REDES SOCIAIS", zh: "编辑社交链接") }
     public static var enterYourWebsite: String { L(en: "Enter your website", ru: "Введите ваш сайт", es: "Ingrese su sitio web", pt: "Insira seu site", zh: "输入您的网站") }
     public static var socialLinksUpdated: String { L(en: "Social links updated", ru: "Ссылки обновлены", es: "Enlaces actualizados", pt: "Links atualizados", zh: "社交链接已更新") }
+    public static var prametersUpdated: String { L(en: "Parameters updated", ru: "Параметры обновлены", es: "Parámetros actualizados", pt: "Parâmetros atualizados", zh: "参数已更新") }
     public static var failedLinksUpdated: String { L(en: "Couldn't update social links", ru: "Не удалось обновить ссылки на соцсети", es: "No se pudieron actualizar los enlaces sociales", pt: "Não foi possível atualizar os links sociais", zh: "无法更新社交链接") }
     public static var profileUpdated: String { L(en: "Profile updated", ru: "Профиль обновлён", es: "Perfil actualizado", pt: "Perfil atualizado", zh: "个人资料已更新") }
     public static var failedProfileUpdated: String { L(en: "Couldn't update profile", ru: "Не удалось обновить профиль", es: "No se pudo actualizar el perfil", pt: "Não foi possível atualizar o perfil", zh: "无法更新个人资料") }
+    public static var failedParametersUpdated: String { L(en: "Couldn't update parameters", ru: "Не удалось обновить параметры", es: "No se pudieron actualizar los parámetros", pt: "Não foi possível atualizar os parâmetros", zh: "无法更新参数") }
     public static var failedToLoadAppearance: String { L(en: "Failed to load appearance options.", ru: "Не удалось загрузить параметры внешности.", es: "Error al cargar las opciones de apariencia.", pt: "Falha ao carregar as opções de aparência.", zh: "无法加载外观选项。") }
     public static var failedToUploadPhoto: String { L(en: "Failed to upload photo", ru: "Не удалось загрузить фото", es: "Error al subir la foto", pt: "Falha ao enviar a foto", zh: "上传照片失败") }
     public static var similarProfiles: String { L(en: "You may be interested in similar profiles", ru: "Вам могут быть интересны похожие профили", es: "Perfiles similares que podrían interesarle", pt: "Perfis semelhantes que podem interessar", zh: "您可能感兴趣的类似资料") }

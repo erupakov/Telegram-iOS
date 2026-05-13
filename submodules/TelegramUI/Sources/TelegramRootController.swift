@@ -36,6 +36,7 @@ import ShareWithPeersScreen
 import ChatEmptyNode
 import DebugScreenUI
 import ProfileScreenUI
+import DivoSettingsUI
 
 private class DetailsChatPlaceholderNode: ASDisplayNode, NavigationDetailsPlaceholderNode {
     private var presentationData: PresentationData
