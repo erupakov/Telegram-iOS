@@ -107,7 +107,13 @@ public final class EventDetailController: TelegramBaseController {
         self.controllerNode.onDeleteTapped = { [weak self] in
             self?.performDeleteEvent()
         }
-        
+
+        self.controllerNode.onRetryTapped = { [weak self] in
+            guard let self = self else { return }
+            self.controllerNode.resetToLoading()
+            self.getEvent()
+        }
+
         self.displayNodeDidLoad()
         
         if isPreviewMode {
@@ -182,9 +188,19 @@ public final class EventDetailController: TelegramBaseController {
                     self.controllerNode.updateGallery(self.currentGalleryPhotos) // Отдаем фото в Node
                 }
             } catch {
-                divoLog("❌[DivoAPI] event/\(eventId) error: \(error)", level: .error)
+                divoLog("[DivoAPI] event/\(eventId) error: \(error)", level: .error)
+                await MainActor.run {
+                    self.controllerNode.markFailed(networkError: self.isNetworkError(error))
+                }
             }
         }
+    }
+
+    private func isNetworkError(_ error: Error) -> Bool {
+        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
+            return true
+        }
+        return false
     }
 
     // Переход на экран редактирования

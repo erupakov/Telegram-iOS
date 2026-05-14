@@ -570,6 +570,7 @@ public enum DivoStrings {
     public static var profileTabErrorTitleChannels: String { L(en: "Couldn't load channels", ru: "Не удалось загрузить каналы", es: "No se pudieron cargar canales", pt: "Não foi possível carregar canais", zh: "无法加载频道") }
     public static var profileTabErrorTitleModels: String { L(en: "Couldn't load models", ru: "Не удалось загрузить модели", es: "No se pudieron cargar modelos", pt: "Não foi possível carregar modelos", zh: "无法加载模特") }
     public static var profileTabErrorTitleEvents: String { L(en: "Couldn't load events", ru: "Не удалось загрузить события", es: "No se pudieron cargar eventos", pt: "Não foi possível carregar eventos", zh: "无法加载活动") }
+    public static var eventDetailErrorTitle: String { L(en: "Couldn't load event", ru: "Не удалось загрузить событие", es: "No se pudo cargar el evento", pt: "Não foi possível carregar o evento", zh: "无法加载活动") }
     public static var profileTabErrorNetworkTitle: String { L(en: "No internet connection", ru: "Нет подключения к интернету", es: "Sin conexión a internet", pt: "Sem conexão com a internet", zh: "无网络连接") }
     public static var profileTabErrorSubtitle: String { L(en: "Check your connection\nand try again.", ru: "Проверьте подключение\nи попробуйте снова.", es: "Verifique su conexión\ne inténtelo de nuevo.", pt: "Verifique sua conexão\ne tente novamente.", zh: "请检查您的连接\n并重试。") }
     public static var profileSaved: String { L(en: "Saved", ru: "Сохранено", es: "Guardado", pt: "Salvo", zh: "已保存") }

@@ -28,8 +28,31 @@ final class EventDetailControllerNode: ASDisplayNode {
         return backgroundImageView.image
     }
 
-    // Указывает, загружены ли данные с сервера (скрывает шиммеры)
-    private var isDataLoaded: Bool = false
+    // MARK: - Load phase
+
+    enum LoadPhase: Equatable {
+        case loading
+        case content
+        case failed(networkError: Bool)
+    }
+
+    // Единое состояние экрана. applyPhase() в didSet атомарно расставляет
+    // видимости шиммеров/контента/error-view — точечные isHidden из сетевых
+    // колбэков сюда не приходят, только смена фазы через сеттер.
+    private var phase: LoadPhase = .loading {
+        didSet {
+            if oldValue != phase { applyPhase() }
+        }
+    }
+
+    private let errorView: ProfileTabErrorView = {
+        let view = ProfileTabErrorView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
+    var onRetryTapped: (() -> Void)?
 
     // MARK: - Core Layout
     private var containerLayout: (ContainerViewLayout, CGFloat)?
@@ -595,7 +618,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         self.savesView.isEnabled = !isPreviewMode
         
         setupUI()
-        configureNodes()
+        setupErrorView()
+        applyPhase()
     }
 
     override func layout() {
@@ -636,39 +660,29 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyGradientBlurMask()
         updateNavBarBlurMask()
         
-        // Перезапуск анимации шиммеров
-        if !actionsShimmerView.isHidden { actionsShimmerView.startAnimation() }
-        if !eventCostTypeShimmerContainer.isHidden && !eventTypeLabelShimmerContainer.isHidden {
+        // Шиммеры на CAGradientLayer теряют корректный фрейм при ресайзе вью,
+        // поэтому на каждом ре-лейауте пересоздаём анимацию — только в .loading,
+        // в остальных фазах шиммеры скрыты и пересоздание не нужно.
+        if phase == .loading {
+            actionsShimmerView.startAnimation()
             eventCostTypeShimmerContainer.stopShimmering()
             eventCostTypeShimmerContainer.startShimmering()
             eventTypeLabelShimmerContainer.stopShimmering()
             eventTypeLabelShimmerContainer.startShimmering()
-        }
-        if !eventDeadlineShimmerContainer.isHidden && !applyButtonShimmer.isHidden {
             eventDeadlineShimmerContainer.stopShimmering()
-            applyButtonShimmer.stopShimmering()
             eventDeadlineShimmerContainer.startShimmering()
+            applyButtonShimmer.stopShimmering()
             applyButtonShimmer.startShimmering()
-        }
-        if !organizerShimmerView.isHidden{
             organizerShimmerView.stopShimmering()
             organizerShimmerView.startShimmering()
-        }
-        if !currentAppliedShimmerView.isHidden && !allAppliedShimmerView.isHidden {
             currentAppliedShimmerView.stopShimmering()
-            allAppliedShimmerView.stopShimmering()
             currentAppliedShimmerView.startShimmering()
+            allAppliedShimmerView.stopShimmering()
             allAppliedShimmerView.startShimmering()
-        }
-        if !descriptionShimmerView.isHidden {
             descriptionShimmerView.stopShimmering()
             descriptionShimmerView.startShimmering()
-        }
-        if !requirementsShimmerContainer.isHidden {
             requirementsShimmerView.stopShimmering()
             requirementsShimmerView.startShimmering()
-        }
-        if !parametersShimmerView.isHidden {
             parametersShimmerView.stopShimmering()
             parametersShimmerView.startShimmering()
         }
@@ -1259,6 +1273,75 @@ final class EventDetailControllerNode: ASDisplayNode {
         return heightFor(isEmpty: galleryPhotos.isEmpty, constraint: galleryHeightConstraint)
     }
     
+    private func setupErrorView() {
+        self.view.addSubview(errorView)
+        NSLayoutConstraint.activate([
+            errorView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            errorView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            errorView.topAnchor.constraint(equalTo: self.view.topAnchor),
+            errorView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
+        ])
+        // Navbar должен оставаться поверх errorView, чтобы кнопка «Назад» была
+        // доступна в .failed-фазе.
+        self.view.bringSubviewToFront(navBarBlurView)
+        self.view.bringSubviewToFront(customNavBar)
+    }
+
+    private func applyPhase() {
+        switch phase {
+        case .loading:
+            errorView.isHidden = true
+            shareButton.isHidden = false
+            moreButton.isHidden = false
+            configureNodes()
+        case .content:
+            errorView.isHidden = true
+            shareButton.isHidden = false
+            moreButton.isHidden = false
+            stopShimmers()
+        case .failed(let networkError):
+            // stopShimmers скроет шиммеры (и попутно покажет контент-вьюхи),
+            // hideAllContentSections тут же закроет контент — итого экран чист.
+            stopShimmers()
+            hideAllContentSections()
+            // На .failed события нет — share/more над пустым экраном бессмысленны.
+            shareButton.isHidden = true
+            moreButton.isHidden = true
+            errorView.configure(
+                title: networkError ? DivoStrings.profileTabErrorNetworkTitle : DivoStrings.eventDetailErrorTitle,
+                subtitle: DivoStrings.profileTabErrorSubtitle,
+                onRetry: { [weak self] in self?.onRetryTapped?() }
+            )
+            errorView.isHidden = false
+        }
+    }
+
+    private func hideAllContentSections() {
+        counterActionsStack.isHidden = true
+        eventCostTypeContainer.isHidden = true
+        eventTypeLabelContainer.isHidden = true
+        profileHeaderView.isHidden = true
+        eventDeadlineContainer.isHidden = true
+        applyButton.isHidden = true
+        organizerView.isHidden = true
+        allAppliedContainer.isHidden = true
+        currentAppliedContainer.isHidden = true
+        descriptionView.isHidden = true
+        containerRequirementsContainer.isHidden = true
+        parametersView.isHidden = true
+        galleryCollectionView.isHidden = true
+    }
+
+    // MARK: - Phase API for controller
+
+    func markFailed(networkError: Bool) {
+        phase = .failed(networkError: networkError)
+    }
+
+    func resetToLoading() {
+        phase = .loading
+    }
+
     private func configureNodes() {
         actionsShimmerView.isHidden = false
         counterActionsStack.isHidden = true
@@ -1449,7 +1532,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         let totalWidth = layout.size.width
         let itemWidth = (totalWidth - 2 * spacing) / itemsPerRow
         
-        if !isDataLoaded {
+        if phase != .content {
             galleryHeightConstraint.constant = itemWidth
             galleryCollectionView.isHidden = true
         } else if galleryPhotos.isEmpty {
@@ -1531,7 +1614,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
     
     func updateEventData(_ newEventData: EventFullDetailData) {
-        self.isDataLoaded = true
+        self.phase = .content
         self.eventData = newEventData
 
         setImage(urlString: newEventData.files?.first?.fullUrl, for: backgroundImageView)
@@ -1574,14 +1657,12 @@ final class EventDetailControllerNode: ASDisplayNode {
         likesView.setValue("1.2K")
         viewsView.setValue("2.4K")
         savesView.setValue("300")
-        
-        stopShimmers()
+
         activateTitleVisibility()
     }
-    
+
     func updateWithPreviewData(_ data: EventPreviewData) {
-        self.isDataLoaded = true
-        stopShimmers()
+        self.phase = .content
         
         if let cover = data.coverImage {
             backgroundImageView.image = cover
@@ -1678,7 +1759,6 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
     
     func updateGallery(_ photos: [UserPhoto]) {
-        self.isDataLoaded = true
         self.galleryPhotos = photos
         self.galleryCollectionView.reloadData()
         if !photos.isEmpty {

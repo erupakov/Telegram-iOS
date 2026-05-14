@@ -98,12 +98,17 @@ public final class ProfileTabErrorView: UIView {
     /// `networkError == true` → общий текст про интернет.
     /// Иначе — per-tab title («Couldn't load videos» / «...channels» / ...).
     public func configure(tab: ProfileTab, networkError: Bool, onRetry: @escaping () -> Void) {
-        if networkError {
-            titleLabel.text = DivoStrings.profileTabErrorNetworkTitle.uppercased()
-        } else {
-            titleLabel.text = Self.title(for: tab).uppercased()
-        }
-        subtitleLabel.text = DivoStrings.profileTabErrorSubtitle
+        let title = networkError
+            ? DivoStrings.profileTabErrorNetworkTitle
+            : Self.title(for: tab)
+        configure(title: title, subtitle: DivoStrings.profileTabErrorSubtitle, onRetry: onRetry)
+    }
+
+    /// Generic-overload: per-context title задаётся вызывающей стороной.
+    /// Для network-варианта передавай `DivoStrings.profileTabErrorNetworkTitle`.
+    public func configure(title: String, subtitle: String, onRetry: @escaping () -> Void) {
+        titleLabel.text = title.uppercased()
+        subtitleLabel.text = subtitle
         self.onRetry = onRetry
     }
 
