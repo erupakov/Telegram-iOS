@@ -704,6 +704,7 @@ public enum DivoStrings {
     public static var titleCreateEvent: String { L(en: "Your event is live!", ru: "Ваше событие опубликовано!", es: "¡Tu evento está en vivo!", pt: "Seu evento está no ar!", zh: "您的活动已上线！") }
     public static var errorCreateUpdateEvent: String { L(en: "Couldn't post event", ru: "Не удалось опубликовать событие", es: "No se pudo publicar el evento", pt: "Não foi possível publicar o evento", zh: "无法发布活动") }
     public static var chooseEvent: String { L(en: "Choose an event", ru: "Выберите событие", es: "Elige un evento", pt: "Escolha um evento", zh: "选择一个活动") }
+    public static var you: String { L(en: "@you", ru: "@вы", es: "@tú", pt: "@você", zh: "@你") }
 
     // MARK: - Event Parameter Titles
 
@@ -720,7 +721,6 @@ public enum DivoStrings {
     public static var paramEyeColor: String { L(en: "Eye color", ru: "Цвет глаз", es: "Color de ojos", pt: "Cor dos olhos", zh: "眼色") }
     public static var paramSkinColor: String { L(en: "Skin color", ru: "Цвет кожи", es: "Color de piel", pt: "Cor da pele", zh: "肤色") }
     public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)") }
-    public static var organizatior: String { L(en: "Organizatior", ru: "Организатор", es: "Organizador", pt: "Organizador", zh: "组织者") }
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
 

@@ -352,7 +352,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
-        label.text = "All applied"
         return label
     }()
     
@@ -389,7 +388,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 1
-        label.text = "All applied"
         return label
     }()
 
@@ -400,13 +398,13 @@ final class EventDetailControllerNode: ASDisplayNode {
         return view
     }()
     
-    private let organizatiorView: OrganizatiorView = {
-        let organizatiorView = OrganizatiorView()
-        organizatiorView.translatesAutoresizingMaskIntoConstraints = false
-        return organizatiorView
+    private let organizerView: OrganizerView = {
+        let organizerView = OrganizerView()
+        organizerView.translatesAutoresizingMaskIntoConstraints = false
+        return organizerView
     }()
     
-    private let organizatiorShimmerView: UIView = {
+    private let organizerShimmerView: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
         view.layer.cornerRadius = DivoDesignTokens.Radius.l
@@ -652,9 +650,9 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventDeadlineShimmerContainer.startShimmering()
             applyButtonShimmer.startShimmering()
         }
-        if !organizatiorShimmerView.isHidden{
-            organizatiorShimmerView.stopShimmering()
-            organizatiorShimmerView.startShimmering()
+        if !organizerShimmerView.isHidden{
+            organizerShimmerView.stopShimmering()
+            organizerShimmerView.startShimmering()
         }
         if !currentAppliedShimmerView.isHidden && !allAppliedShimmerView.isHidden {
             currentAppliedShimmerView.stopShimmering()
@@ -1111,20 +1109,20 @@ final class EventDetailControllerNode: ASDisplayNode {
     private func setupOrganizerContainer() {
         contentViewStack.addArrangedSubview(organizerContainer)
 
-        organizerContainer.addSubview(organizatiorView)
-        organizerContainer.addSubview(organizatiorShimmerView)
+        organizerContainer.addSubview(organizerView)
+        organizerContainer.addSubview(organizerShimmerView)
         
         NSLayoutConstraint.activate([
-            organizatiorView.leadingAnchor.constraint(equalTo: organizerContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            organizatiorView.topAnchor.constraint(equalTo: organizerContainer.topAnchor),
-            organizatiorView.trailingAnchor.constraint(equalTo: organizerContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            organizatiorView.bottomAnchor.constraint(equalTo: organizerContainer.bottomAnchor),
+            organizerView.leadingAnchor.constraint(equalTo: organizerContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            organizerView.topAnchor.constraint(equalTo: organizerContainer.topAnchor),
+            organizerView.trailingAnchor.constraint(equalTo: organizerContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            organizerView.bottomAnchor.constraint(equalTo: organizerContainer.bottomAnchor),
             
-            organizatiorShimmerView.leadingAnchor.constraint(equalTo: organizerContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            organizatiorShimmerView.topAnchor.constraint(equalTo: organizerContainer.topAnchor),
-            organizatiorShimmerView.trailingAnchor.constraint(equalTo: organizerContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            organizatiorShimmerView.bottomAnchor.constraint(equalTo: organizerContainer.bottomAnchor),
-            organizatiorShimmerView.heightAnchor.constraint(equalToConstant: 96)
+            organizerShimmerView.leadingAnchor.constraint(equalTo: organizerContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            organizerShimmerView.topAnchor.constraint(equalTo: organizerContainer.topAnchor),
+            organizerShimmerView.trailingAnchor.constraint(equalTo: organizerContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            organizerShimmerView.bottomAnchor.constraint(equalTo: organizerContainer.bottomAnchor),
+            organizerShimmerView.heightAnchor.constraint(equalToConstant: 96)
         ])
     }
 
@@ -1280,8 +1278,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyButtonShimmer.isHidden = false
         applyButton.isHidden = true
         
-        organizatiorShimmerView.isHidden = false
-        organizatiorView.isHidden = true
+        organizerShimmerView.isHidden = false
+        organizerView.isHidden = true
         
         allAppliedShimmerView.isHidden = false
         allAppliedContainer.isHidden = true
@@ -1332,8 +1330,8 @@ final class EventDetailControllerNode: ASDisplayNode {
             applyButtonShimmer.isHidden = true
             applyButton.isHidden = false
             
-            organizatiorShimmerView.isHidden = true
-            organizatiorView.isHidden = false
+            organizerShimmerView.isHidden = true
+            organizerView.isHidden = false
 
             allAppliedShimmerView.isHidden = true
             allAppliedContainer.isHidden = false
@@ -1476,7 +1474,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     
     private func formatEventDateAndTime(dateString: String?) -> (date: String, time: String) {
         guard let dateString = dateString else {
-            return ("TBD", "TBD")
+            return (DivoStrings.tbd, DivoStrings.tbd)
         }
 
         let serverFormatter = DateFormatter()
@@ -1565,7 +1563,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         let logoURLString = newEventData.creator?.avatar?.fullUrl
         let logoURL = logoURLString != nil ? URL(string: logoURLString!) : nil
-        organizatiorView.configure(name: newEventData.creator?.fullName , logoURL: logoURL)
+        organizerView.configure(name: newEventData.creator?.fullName , logoURL: logoURL)
         
         descriptionView.update(biography: newEventData.description)
         requirementsLabel.text = newEventData.requirements
@@ -1604,7 +1602,7 @@ final class EventDetailControllerNode: ASDisplayNode {
                 date: dStr,
                 time: tStr,
                 countryFlag: "🌍",
-                city: "TBD",
+                city: DivoStrings.tbd,
                 cost: data.request.cost
             )
         )
@@ -1618,7 +1616,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
-        organizatiorView.configure(name: "@you", logoURL: nil)
+        organizerView.configure(name: DivoStrings.you, logoURL: nil)
         
         descriptionView.update(biography: data.request.description)
         requirementsLabel.text = data.request.requirements

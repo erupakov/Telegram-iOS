@@ -146,14 +146,24 @@ public final class EventDetailController: TelegramBaseController {
                 
                 // Парсим файлы галереи
                 if let files = item.files {
-                    let sortedFiles = files.sorted { ($0.order ?? 99) < ($1.order ?? 99) }
+                    let sortedFiles = files.sorted {
+                        guard let order1 = $0.order else { return false }
+                        guard let order2 = $1.order else { return true }
+                        return order1 < order2
+                    }
                     // Фильтруем обложку (обычно order == 0) и конвертируем остальные фото в UserPhoto
                     self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
+                        guard let uuid = file.fileUuid,
+                              let fileExtension = file.fileExtension,
+                              let fullUrl = file.fullUrl,
+                              let fileName = file.fileName
+                        else { return nil }
+                        
                         let userFile = UserFile(
-                            fileName: file.fileName ?? "event_photo.jpg",
-                            fullUrl: file.fullUrl ?? "",
-                            fileExtension: file.fileExtension ?? "jpg",
-                            fileUuid: file.fileUuid
+                            fileName: fileName,
+                            fullUrl: fullUrl,
+                            fileExtension: fileExtension,
+                            fileUuid: uuid
                         )
                         return UserPhoto(
                             id: abs(file.fileUuid.hashValue),
@@ -172,7 +182,7 @@ public final class EventDetailController: TelegramBaseController {
                     self.controllerNode.updateGallery(self.currentGalleryPhotos) // Отдаем фото в Node
                 }
             } catch {
-                print("❌[DivoAPI] event/\(eventId) error: \(error)")
+                divoLog("❌[DivoAPI] event/\(eventId) error: \(error)", level: .error)
             }
         }
     }
@@ -229,11 +239,11 @@ public final class EventDetailController: TelegramBaseController {
     }
 
     private func bookmarkPressed() {
-        print("Bookmark button pressed")
+        divoLog("Bookmark button pressed")
     }
     
     private func applyPressed() {
-        print("Apply button pressed")
+        divoLog("Apply button pressed")
     }
     
     // Открытие галереи на полный экран

@@ -199,7 +199,7 @@ public final class DivoNavigationBar: UIView {
             circleRightButton.addDivoPressState(style)
 
             if #available(iOS 14.0, *) {
-                if menu == menu {
+                if let menu = menu {
                     circleRightButton.adjustsImageWhenHighlighted = false
                     circleRightButton.menu = menu
                     circleRightButton.showsMenuAsPrimaryAction = true

@@ -117,9 +117,9 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
 
-        let uncheckedImage = UIImage(systemName: "square")?
+        let uncheckedImage = UIImage(systemName: "circle")?
             .withTintColor(DivoColorPalette.primaryText.withAlphaComponent(0.4), renderingMode: .alwaysOriginal)
-        let checkedImage = UIImage(systemName: "checkmark.square.fill")?
+        let checkedImage = UIImage(systemName: "checkmark.circle.fill")?
             .withTintColor(DivoColorPalette.accent, renderingMode: .alwaysOriginal)
 
         button.setImage(uncheckedImage, for: .normal)
@@ -451,8 +451,8 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             currentlyWorkingCheckbox.topAnchor.constraint(equalTo: startDateView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             currentlyWorkingCheckbox.topAnchor.constraint(equalTo: endTimeView.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             currentlyWorkingCheckbox.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            currentlyWorkingCheckbox.widthAnchor.constraint(equalToConstant: 44),
-            currentlyWorkingCheckbox.heightAnchor.constraint(equalToConstant: 44),
+            currentlyWorkingCheckbox.widthAnchor.constraint(equalToConstant: 30),
+            currentlyWorkingCheckbox.heightAnchor.constraint(equalToConstant: 30),
 
             currentlyWorkingLabel.centerYAnchor.constraint(equalTo: currentlyWorkingCheckbox.centerYAnchor),
             currentlyWorkingLabel.leadingAnchor.constraint(equalTo: currentlyWorkingCheckbox.trailingAnchor, constant: 6),
@@ -480,32 +480,15 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     private func setupInteractions() {
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
         
-        // startDateView.onDateSelected = { [weak self] timestamp in
-        //     if let currentEndTime = self?.endTime {
-        //         if timestamp > currentEndTime {
-        //             self?.endTime = timestamp
-        //             self?.endTimeView.setDate(timestamp: timestamp)
-        //         }
-        //     }
-        //     self?.endTimeView.datePicker.minimumDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
-        //     self?.updateTime(timestamp, type: .start)
-        //     self?.updateApplyButtonState()
-        // }
+        startDateView.onTap = { [weak self] in
+            self?.view.endEditing(true)
+            self?.scheduleTimeController?(.start)
+        }
         
-        // endTimeView.onDateSelected = { [weak self] timestamp in
-        //     self?.updateTime(timestamp, type: .end)
-        //     self?.updateApplyButtonState()
-        // }
-        
-        // startDateView.onBeginEditing = { [weak self] in
-        //     guard let self else { return }
-        //     self.scrollToView(self.startDateView)
-        // }
-
-        // endTimeView.onBeginEditing = { [weak self] in
-        //     guard let self else { return }
-        //     self.scrollToView(self.endTimeView)
-        // }
+        endTimeView.onTap = { [weak self] in
+            self?.view.endEditing(true)
+            self?.scheduleTimeController?(.end)
+        }
         
         let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         dismissTap.cancelsTouchesInView = false
@@ -529,12 +512,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
                 if self.agencyNameTextField.textField.isFirstResponder {
                     self.scrollToView(self.agencyNameTextField.view)
                 }
-                // else if self.startDateView.isActive {
-                //     self.scrollToView(self.startDateView)
-                // }
-                // else if self.endTimeView.isActive {
-                //     self.scrollToView(self.endTimeView)
-                // }
             }
         )
         keyboardHandler?.subscribe()
@@ -726,10 +703,22 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         case .start:
             startTime = timestamp
             startDateView.setDate(timestamp: timestamp)
+            
+            if !currentlyWorkingCheckbox.isSelected, let currentEnd = endTime {
+                let startStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(timestamp)))
+                let endStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(currentEnd)))
+                
+                if startStart > endStart {
+                    endTime = nil
+                    endTimeView.setDate(timestamp: Int32(Date().timeIntervalSince1970))
+                }
+            }
         case .end:
             endTime = timestamp
             endTimeView.setDate(timestamp: timestamp)
         }
+        
+        updateApplyButtonState()
     }
     
     func loadAvatar(isLoading: Bool) {
@@ -742,6 +731,14 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
 
     func toggleSpinner(active: Bool) {
         applyButton.setSaving(active, in: self.view)
+    }
+    
+    func getStartTime() -> Int32? {
+        return startTime
+    }
+    
+    func getEndTime() -> Int32? {
+        return endTime
     }
     
     

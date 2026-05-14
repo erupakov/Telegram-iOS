@@ -8,7 +8,6 @@ import DivoCore
 import DivoUIKit
 import TelegramPresentationData
 import AccountContext
-import DivoUIKit
 
 public class ProfileGalleryController: TelegramBaseController {
     private var galleryNode: ProfileGalleryControllerNode {

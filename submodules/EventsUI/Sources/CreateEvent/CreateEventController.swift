@@ -166,13 +166,19 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     if let files = detail.files {
                         let sortedFiles = files.sorted { ($0.order ?? 99) < ($1.order ?? 99) }
                         self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
-                            guard let uuid = file.fileUuid else { return nil }
+                            guard let uuid = file.fileUuid,
+                                  let fileExtension = file.fileExtension,
+                                  let fullUrl = file.fullUrl,
+                                  let fileName = file.fileName
+                            else { return nil }
+                            
                             let userFile = UserFile(
-                                fileName: file.fileName ?? "event_photo.jpg",
-                                fullUrl: file.fullUrl ?? "",
-                                fileExtension: file.fileExtension ?? "jpg",
+                                fileName: fileName,
+                                fullUrl: fullUrl,
+                                fileExtension: fileExtension,
                                 fileUuid: uuid
                             )
+                            
                             return UserPhoto(
                                 id: abs(uuid.hashValue),
                                 photo: userFile,
@@ -215,7 +221,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 )
 
             } catch {
-                print("❌ Error loading event types list: \(error)")
+                divoLog("❌ Error loading event types list: \(error)", level: .error)
                 self.createEventNode.loadEventTypesComplete([], totalCount: 0, offset: offset)
             }
         }
@@ -280,7 +286,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             self.push(previewController)
             
         } catch {
-            self.createEventNode.showSnackbar(message: error.localizedDescription, style: .error)
+            divoLog("\(error.localizedDescription)", level: .error)
         }
     }
     

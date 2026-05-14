@@ -10,7 +10,7 @@ import Display
 import DivoUIKit
 import DivoCore
 
-final class OrganizatiorView: UIView {
+final class OrganizerView: UIView {
         
     private let containerView: UIView = {
         let view = UIView()
@@ -22,7 +22,7 @@ final class OrganizatiorView: UIView {
     
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = DivoStrings.organizatior
+        label.text = DivoStrings.organizer
         label.font = Font.regular(12)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.translatesAutoresizingMaskIntoConstraints = false

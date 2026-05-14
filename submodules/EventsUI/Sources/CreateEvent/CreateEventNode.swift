@@ -311,7 +311,7 @@ final class CreateEventNode: ASDisplayNode {
     
     private let rateFieldContainer: UIView = {
         let view = UIView()
-        view.backgroundColor = .white
+        view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = 23
         view.layer.masksToBounds = false
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -1338,7 +1338,11 @@ final class CreateEventNode: ASDisplayNode {
         setAvatarLoading(true)
         self.galleryItems.removeAll()
         self.avatarFileUuid = nil
-        let sortedFiles = files.sorted { ($0.order ?? 99) < ($1.order ?? 99) }
+        let sortedFiles = files.sorted { file1, file2 in
+            guard let order1 = file1.order else { return false }
+            guard let order2 = file2.order else { return true }
+            return order1 < order2
+        }
         
         if let avatarFile = sortedFiles.first(where: { $0.order == 0 }), let uuid = avatarFile.fileUuid, let urlString = avatarFile.fullUrl, let url = URL(string: urlString) {
             self.avatarFileUuid = uuid
@@ -1499,14 +1503,14 @@ final class CreateEventNode: ASDisplayNode {
         let deadlineDateString = formatter.string(from: deadlineFinalDate)
         
         return EventSnapshot(
-            type: Int(eventTypeId ?? "0") ?? 0,
+            type: eventTypeId.flatMap { Int($0) } ?? 0,
             typeTitle: eventTypeTitle,
-            name: nameEventTextField.textField.text ?? "",
+            name: nameEventTextField.textField.text?.trimmingCharacters(in: .whitespaces),
             description: aboutEventTextField.text,
             date: dateString,
             role: whoCanApplyIds,
             maxAttendees: maxParticipants,
-            requirements: requirementsTextField.text == "" ? nil : requirementsTextField.text,
+            requirements: requirementsTextField.text.trimmingCharacters(in: .whitespaces),
             genderId: genderDropdownIds,
             genderTitle: genderDropdownTitles,
             age: selectedAge,
@@ -1525,7 +1529,7 @@ final class CreateEventNode: ASDisplayNode {
             skinColorTitle: skinColorDropdownTitles,
             nda: ndaSwitch.isOn,
             deadlineDate: deadlineDateString,
-            cost: rateTextField.text == "" ? nil : rateTextField.text,
+            cost: rateTextField.text?.trimmingCharacters(in: .whitespaces),
             paymentType: paidEventSwitch.isOn ? 1 : 2,
             paymentFrequency: Int(rateTimeId ?? "1"),
             paymentFrequencyTitle: rateTimeTitle,
@@ -1959,11 +1963,13 @@ final class CreateEventNode: ASDisplayNode {
     func populate(with detail: EventFullDetailData) {
         
         guard mode == .edit else {
-            print("⚠️ Попытка заполнить форму в режиме создания")
+            divoLog("⚠️ Попытка заполнить форму в режиме создания")
             return
         }
         
-        eventTypeId = "\(detail.type?.id ?? 1)"
+        guard let typeId = detail.type?.id else { return }
+        
+        eventTypeId = "\(typeId)"
         eventTypeTitle = detail.type?.title
         
         nameEventTextField.textField.text = detail.title
@@ -2105,7 +2111,7 @@ final class CreateEventNode: ASDisplayNode {
 
     @objc private func discardActionButtonTapped() {
         guard mode == .edit else {
-            print("⚠️ Попытка заполнить форму в режиме создания")
+            divoLog("⚠️ Попытка заполнить форму в режиме создания")
             return
         }
         
