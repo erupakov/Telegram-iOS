@@ -38,6 +38,7 @@ final class OrganizatiorView: UIView {
         iv.layer.borderWidth = 1
         iv.layer.borderColor = DivoColorPalette.borderWorkHistoryImage.cgColor
         iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.image = DivoImage.defWork
         return iv
     }()
     

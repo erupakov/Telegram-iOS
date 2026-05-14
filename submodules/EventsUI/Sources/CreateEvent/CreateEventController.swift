@@ -336,10 +336,15 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         let pickerMode: DivoDatePickerController.Mode
         let currentTime: Int32
         
+        var minimumTimestamp: Int32? = nil
+        
         switch mode {
         case .date:
             pickerMode = .date
             currentTime = self.createEventNode.eventDateInt
+            
+            let todayStart = Calendar.current.startOfDay(for: Date())
+            minimumTimestamp = Int32(todayStart.timeIntervalSince1970)
             
         case .time:
             pickerMode = .time
@@ -348,7 +353,12 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         
         let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
         
-        let controller = DivoDatePickerController(mode: pickerMode, initialTimestamp: initialTime, title: mode == .date ? DivoStrings.eventDate : DivoStrings.eventTime)
+        let controller = DivoDatePickerController(
+            mode: pickerMode,
+            initialTimestamp: initialTime,
+            title: mode == .date ? DivoStrings.eventDate : DivoStrings.eventTime,
+            minimumTimestamp: minimumTimestamp
+        )
         
         controller.onSave = {[weak self] selectedTimestamp in
             guard let self = self else { return }
@@ -390,11 +400,15 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         let currentTime: Int32
         
         var maximumTimestamp: Int32? = nil
+        var minimumTimestamp: Int32? = nil
         
         switch mode {
         case .date:
             pickerMode = .date
             currentTime = self.createEventNode.deadlineDateInt
+            
+            let todayStart = Calendar.current.startOfDay(for: Date())
+            minimumTimestamp = Int32(todayStart.timeIntervalSince1970)
             
             let eventDateInt = self.createEventNode.eventDateInt
             if eventDateInt > 0 {
@@ -411,7 +425,13 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         
         let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
         
-        let controller = DivoDatePickerController(mode: pickerMode, initialTimestamp: initialTime, title: mode == .date ? DivoStrings.deadlineDate : DivoStrings.deadlineTime, maximumTimestamp: maximumTimestamp)
+        let controller = DivoDatePickerController(
+            mode: pickerMode,
+            initialTimestamp: initialTime,
+            title: mode == .date ? DivoStrings.deadlineDate : DivoStrings.deadlineTime,
+            minimumTimestamp: minimumTimestamp,
+            maximumTimestamp: maximumTimestamp
+        )
         
         controller.onSave = { [weak self] selectedTimestamp in
             self?.createEventNode.updateDeadlineTime(selectedTimestamp, mode)

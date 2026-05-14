@@ -491,8 +491,8 @@ public enum DivoStrings {
     public static var requirementsCreateEvent: String { L(en: "Requirements", ru: "Требования", es: "Requisitos", pt: "Requisitos", zh: "要求") }
     public static var placeholderRequirementsCreateEvent: String { L(en: "Description about requirements", ru: "Описание требований", es: "Descripción de requisitos", pt: "Descrição dos requisitos", zh: "要求描述") }
     public static var ndaRequiredCreateEvent: String { L(en: "NDA required", ru: "Требуется NDA", es: "NDA requerido", pt: "NDA obrigatório", zh: "需要保密协议") }
-    public static var deadlineDate: String { L(en: "Application deadline date", ru: "Дедлайн подачи заявок", es: "Fecha límite de solicitud", pt: "Data limite para inscrições", zh: "申请截止日期") }
-    public static var deadlineTime: String { L(en: "Application deadline time", ru: "Время дедлайна", es: "Hora límite de solicitud", pt: "Horário limite para inscrições", zh: "申请截止时间*") }
+    public static var deadlineDate: String { L(en: "Application deadline date *", ru: "Дата окончания приема заявок *", es: "Fecha límite de solicitud *", pt: "Data limite para inscrição *", zh: "申请截止日期 *") }
+    public static var deadlineTime: String { L(en: "Application deadline time *", ru: "Время окончания приема заявок *", es: "Hora límite de solicitud *", pt: "Horário limite para inscrição *", zh: "申请截止时间 *") }
     public static var rate: String { L(en: "Rate", ru: "Ставка", es: "Tarifa", pt: "Taxa", zh: "费率") }
     public static var rateTime: String { L(en: "Rate time", ru: "Время ставки", es: "Tiempo de tarifa", pt: "Tempo da taxa", zh: "费率时间") }
     public static var publicEvent: String { L(en: "Public event", ru: "Публичное мероприятие", es: "Evento público", pt: "Evento público", zh: "公开活动") }
@@ -703,6 +703,7 @@ public enum DivoStrings {
     public static var subtitleCreateEvent: String { L(en: "Fashion model event is now\nvisible to all users", ru: "Событие для фешн-моделей теперь\nвидно всем пользователям", es: "El evento de modelos de moda ahora\nes visible para todos los usuarios", pt: "O evento de modelo de moda agora\nestá visível para todos os usuários", zh: "时尚模特活动现在\n对所有用户可见") }
     public static var titleCreateEvent: String { L(en: "Your event is live!", ru: "Ваше событие опубликовано!", es: "¡Tu evento está en vivo!", pt: "Seu evento está no ar!", zh: "您的活动已上线！") }
     public static var errorCreateUpdateEvent: String { L(en: "Couldn't post event", ru: "Не удалось опубликовать событие", es: "No se pudo publicar el evento", pt: "Não foi possível publicar o evento", zh: "无法发布活动") }
+    public static var chooseEvent: String { L(en: "Choose an event", ru: "Выберите событие", es: "Elige un evento", pt: "Escolha um evento", zh: "选择一个活动") }
 
     // MARK: - Event Parameter Titles
 

@@ -240,6 +240,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.distribution = .fill
+        stack.spacing = DivoDesignTokens.Spacing.s
         stack.translatesAutoresizingMaskIntoConstraints = false
         return stack
     }()

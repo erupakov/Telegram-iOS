@@ -122,7 +122,7 @@ final class CreateEventNode: ASDisplayNode {
     private let navigationBar = DivoNavigationBar()
 
     // MARK: - Layout Views (Paging)
-    private let horizontalPager: UIScrollView = {
+    private lazy var horizontalPager: UIScrollView = {
         let sv = UIScrollView()
         sv.isPagingEnabled = true
         sv.isScrollEnabled = false
@@ -569,16 +569,11 @@ final class CreateEventNode: ASDisplayNode {
         self.rateTextField.delegate = self
     }
 
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
-
     override func didLoad() {
         super.didLoad()
 
         self.backgroundColor = DivoColorPalette.screenBackground
 
-        applyButton.makeDivoButton(title: DivoStrings.continueButton)
         applyButton.addTarget(self, action: #selector(mainActionButtonTapped), for: .touchUpInside)
 
         discardChangesButton.isHidden = false
@@ -622,6 +617,25 @@ final class CreateEventNode: ASDisplayNode {
         self.nameEventTextField.textField.returnKeyType = .next
         self.nameEventTextField.textField.delegate = self
         
+        horizontalPager.keyboardDismissMode = .interactive
+
+        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        dismissTap.cancelsTouchesInView = false
+        dismissTap.delegate = self
+        self.view.addGestureRecognizer(dismissTap)
+
+        self.view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+        
+        nameEventTextField.textField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
+        rateTextField.addTarget(self, action: #selector(switchChange), for: .editingChanged)
+        paidEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
+        publicEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
+        NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: aboutEventTextField.textView)
+        NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: requirementsTextField.textView)
+
+        updateDropdownsUI()
+        validateCurrentStep()
+        
         keyboardScroll1Handler = DivoKeyboardHandler(
             scrollView: step1ScrollView,
             buttonConstraint: applyButtonBottomConstraint!,
@@ -649,26 +663,6 @@ final class CreateEventNode: ASDisplayNode {
             }
         )
         keyboardScroll2Handler?.subscribe()
-        
-        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
-        dismissTap.cancelsTouchesInView = false
-        dismissTap.delegate = self
-        self.view.addGestureRecognizer(dismissTap)
-
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: UIResponder.keyboardWillShowNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
-
-        self.view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
-                
-        updateDropdownsUI()
-
-        nameEventTextField.textField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
-        rateTextField.addTarget(self, action: #selector(switchChange), for: .editingChanged)
-        paidEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
-        publicEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
-        NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: aboutEventTextField.textView)
-        NotificationCenter.default.addObserver(self, selector: #selector(validateCurrentStep), name: UITextView.textDidChangeNotification, object: requirementsTextField.textView)
-        validateCurrentStep()
         
         self.view.setNeedsLayout()
         self.view.layoutIfNeeded()
@@ -798,7 +792,7 @@ final class CreateEventNode: ASDisplayNode {
         for (index, scrollView) in scrolls.enumerated() {
             scrollView.translatesAutoresizingMaskIntoConstraints = false
             scrollView.showsVerticalScrollIndicator = false
-            scrollView.keyboardDismissMode = .onDrag
+            scrollView.keyboardDismissMode = .interactive
             let bottomInset: CGFloat = (index == 2) ?
             self.mode == .create ? 120 : 160
             : 80
@@ -1307,15 +1301,15 @@ final class CreateEventNode: ASDisplayNode {
     }
     
     private func updateDropdownsUI() {
-        eventTypeDropdown.setItems([eventTypeTitle ?? ""], emptyTitle: DivoStrings.notSet)
-        countryRow.setItems([countryTitle ?? ""], emptyTitle: DivoStrings.notSet)
-        whoCanApplyDropdown.setItems(whoCanApplyTitles ?? [], emptyTitle: DivoStrings.debugAll)
+        eventTypeDropdown.setItems(eventTypeTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.chooseEvent)
+        countryRow.setItems(countryTitle.map { [$0] } ?? [], emptyTitle: "")
+        whoCanApplyDropdown.setItems(whoCanApplyTitles ?? [], emptyTitle: DivoStrings.notSet)
         maxParticipantsDropdown.setItems(maxParticipants.map {["\($0)"] } ?? [], emptyTitle: DivoStrings.notSet)
-        genderDropdown.setItems(genderDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
-        hairLengthDropdown.setItems(hairLengthDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
-        hairColorDropdown.setItems(hairColorDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
-        eyeColorDropdown.setItems(eyeColorDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
-        skinColorDropdown.setItems(skinColorDropdownTitles ?? [], emptyTitle: DivoStrings.debugAll)
+        genderDropdown.setItems(genderDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
+        hairLengthDropdown.setItems(hairLengthDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
+        hairColorDropdown.setItems(hairColorDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
+        eyeColorDropdown.setItems(eyeColorDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
+        skinColorDropdown.setItems(skinColorDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
         rateTime.setTitle(rateTimeTitle)
         updateHeaderAndButton()
         validateCurrentStep()
@@ -1334,10 +1328,8 @@ final class CreateEventNode: ASDisplayNode {
             galleryHeightConstraint.constant = newHeight
         }
         
-        UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
-        }
-        
+        self.view.layoutIfNeeded()
+
         updateHeaderAndButton()
         validateCurrentStep()
     }
@@ -1707,12 +1699,9 @@ final class CreateEventNode: ASDisplayNode {
         }
         
         let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
-        for (index, scroll) in scrolls.enumerated() {
+        for (_, scroll) in scrolls.enumerated() {
             var insets = scroll.contentInset
             insets.top = navigationBarHeight
-            insets.bottom = (index == 2) ?
-            self.mode == .create ? 120 : 160
-            : 80
             
             scroll.contentInset = insets
             scroll.scrollIndicatorInsets = insets
@@ -2197,6 +2186,8 @@ final class CreateEventNode: ASDisplayNode {
         
         updateDropdownsUI()
         updateAppearanceValues()
+
+        onBackTapped?()
     }
     
     @objc private func backButtonTapped() {
@@ -2284,8 +2275,13 @@ final class CreateEventNode: ASDisplayNode {
         )
         
         vc.onSave = {[weak self] selectedItems in
-            self?.whoCanApplyIds = selectedItems.map { $0.id }
-            self?.whoCanApplyTitles = selectedItems.map { $0.title }
+            if selectedItems.isEmpty {
+                self?.whoCanApplyIds = self?.roleOptions.dropFirst().map { $0.id }
+                self?.whoCanApplyTitles = self?.roleOptions.dropFirst().map { $0.title }
+            } else {
+                self?.whoCanApplyIds = selectedItems.map { $0.id }
+                self?.whoCanApplyTitles = selectedItems.map { $0.title }
+            }
             self?.updateDropdownsUI()
         }
         presentSheet(vc)
@@ -2304,8 +2300,13 @@ final class CreateEventNode: ASDisplayNode {
         )
         
         vc.onSave = {[weak self] selectedItems in
-            self?.genderDropdownIds = selectedItems.map { $0.id }
-            self?.genderDropdownTitles = selectedItems.map { $0.title }
+            if selectedItems.isEmpty {
+                self?.genderDropdownIds = self?.genderOptions.dropFirst().map { $0.id }
+                self?.genderDropdownTitles = self?.genderOptions.dropFirst().map { $0.title }
+            } else {
+                self?.genderDropdownIds = selectedItems.map { $0.id }
+                self?.genderDropdownTitles = selectedItems.map { $0.title }
+            }
             self?.updateDropdownsUI()
         }
         presentSheet(vc)
@@ -2352,8 +2353,13 @@ final class CreateEventNode: ASDisplayNode {
         )
         
         vc.onSave = {[weak self] selectedItems in
-            self?.hairLengthDropdownIds = selectedItems.map { $0.id }
-            self?.hairLengthDropdownTitles = selectedItems.map { $0.title }
+            if selectedItems.isEmpty {
+                self?.hairLengthDropdownIds = self?.hairLengthOptions.dropFirst().map { $0.id }
+                self?.hairLengthDropdownTitles = self?.hairLengthOptions.dropFirst().map { $0.title }
+            } else {
+                self?.hairLengthDropdownIds = selectedItems.map { $0.id }
+                self?.hairLengthDropdownTitles = selectedItems.map { $0.title }
+            }
             self?.updateDropdownsUI()
         }
         presentSheet(vc)
@@ -2372,8 +2378,13 @@ final class CreateEventNode: ASDisplayNode {
         )
         
         vc.onSave = {[weak self] selectedItems in
-            self?.hairColorDropdownIds = selectedItems.map { $0.id }
-            self?.hairColorDropdownTitles = selectedItems.map { $0.title }
+            if selectedItems.isEmpty {
+                self?.hairColorDropdownIds = self?.hairColorOptions.dropFirst().map { $0.id }
+                self?.hairColorDropdownTitles = self?.hairColorOptions.dropFirst().map { $0.title }
+            } else {
+                self?.hairColorDropdownIds = selectedItems.map { $0.id }
+                self?.hairColorDropdownTitles = selectedItems.map { $0.title }
+            }
             self?.updateDropdownsUI()
         }
         presentSheet(vc)
@@ -2392,8 +2403,13 @@ final class CreateEventNode: ASDisplayNode {
         )
         
         vc.onSave = {[weak self] selectedItems in
-            self?.eyeColorDropdownIds = selectedItems.map { $0.id }
-            self?.eyeColorDropdownTitles = selectedItems.map { $0.title }
+            if selectedItems.isEmpty {
+                self?.eyeColorDropdownIds = self?.eyeColorOptions.dropFirst().map { $0.id }
+                self?.eyeColorDropdownTitles = self?.eyeColorOptions.dropFirst().map { $0.title }
+            } else {
+                self?.eyeColorDropdownIds = selectedItems.map { $0.id }
+                self?.eyeColorDropdownTitles = selectedItems.map { $0.title }
+            }
             self?.updateDropdownsUI()
         }
         presentSheet(vc)
@@ -2412,8 +2428,13 @@ final class CreateEventNode: ASDisplayNode {
         )
         
         vc.onSave = {[weak self] selectedItems in
-            self?.skinColorDropdownIds = selectedItems.map { $0.id }
-            self?.skinColorDropdownTitles = selectedItems.map { $0.title }
+            if selectedItems.isEmpty {
+                self?.skinColorDropdownIds = self?.skinColorOptions.dropFirst().map { $0.id }
+                self?.skinColorDropdownTitles = self?.skinColorOptions.dropFirst().map { $0.title }
+            } else {
+                self?.skinColorDropdownIds = selectedItems.map { $0.id }
+                self?.skinColorDropdownTitles = selectedItems.map { $0.title }
+            }
             self?.updateDropdownsUI()
         }
         presentSheet(vc)
@@ -2438,38 +2459,7 @@ final class CreateEventNode: ASDisplayNode {
         }
         presentSheet(vc)
     }
-    
-    @objc func keyboardWillShow(notification: NSNotification) {
-        guard let userInfo = notification.userInfo,
-              let keyboardFrame = userInfo[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
-
-        let keyboardHeight = keyboardFrame.cgRectValue.height
-        applyButtonBottomConstraint.constant = -keyboardHeight - 16
         
-        let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
-        let activeScroll = scrolls[currentStep - 1]
-        activeScroll.contentInset.bottom = keyboardHeight
-        
-        UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
-        }
-    }
-
-    @objc func keyboardWillHide(notification: NSNotification) {
-        applyButtonBottomConstraint.constant = -40
-        let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
-        let activeScroll = scrolls[currentStep - 1]
-        
-        let bottomInset: CGFloat = (currentStep == 3) ?
-        self.mode == .create ? 120 : 160
-        : 80
-        activeScroll.contentInset.bottom = bottomInset
-        
-        UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
-        }
-    }
-    
     @objc private func dismissKeyboard() {
         self.view.endEditing(true)
     }
