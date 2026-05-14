@@ -235,6 +235,7 @@ public final class EventsController: TelegramBaseController {
 
     @objc private func addPressed() {
         let controller = CreateEventController(context: context)
+        controller.delegate = self
         self.push(controller)
     }
 
@@ -273,5 +274,11 @@ public final class EventsController: TelegramBaseController {
         super.containerLayoutUpdated(layout, transition: transition)
 
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+    }
+}
+
+extension EventsController: CreateEventDelegate {
+    func didCreateEvent() {
+        self.getEvents()
     }
 }

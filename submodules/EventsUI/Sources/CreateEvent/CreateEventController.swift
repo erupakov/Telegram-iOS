@@ -20,6 +20,10 @@ import Postbox
 import PhotosUI
 import DivoGallery
 
+protocol CreateEventDelegate: AnyObject {
+    func didCreateEvent()
+}
+
 public class CreateEventController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
     private let eventId: Int?
@@ -43,6 +47,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     private var currentPickerTarget: PhotoPickerTarget = .avatar
     
     private weak var activeGalleryController: ProfileGalleryController?
+
+    weak var delegate: CreateEventDelegate?
     
     internal var currentGalleryPhotos: [UserPhoto] = []
 
@@ -302,8 +308,10 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                         
                         if let myIndex = controllers.firstIndex(where: { $0 === self }), myIndex > 0 {
                             let profileController = controllers[myIndex - 1]
+                            self.delegate?.didCreateEvent()
                             nav.popToViewController(profileController, animated: true)
                         } else {
+                            self.delegate?.didCreateEvent()
                             nav.popViewController(animated: true)
                         }
                     }
