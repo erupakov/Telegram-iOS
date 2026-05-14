@@ -226,6 +226,7 @@ final class WorkExperience: ASDisplayNode {
                 agencyId: nil,
                 agencyName: name,
                 agencyDisplayName: name,
+                agencyAvatarLink: nil,
                 startDate: nil,
                 endDate: nil,
                 isCurrent: false
@@ -292,7 +293,10 @@ final class WorkExperience: ASDisplayNode {
             }
         } else {
             for (_, item) in rawItems.enumerated() {
-                let logoURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+                var logoURL: URL? = nil
+                if let link = item.agencyAvatarLink, let url = URL(string: link) {
+                    logoURL = url
+                }
 
                 let period = item.formattedPeriod
 
@@ -306,7 +310,9 @@ final class WorkExperience: ASDisplayNode {
                 let cell = ExperienceView()
 
                 let showOptions = model.isMyProfile && hasStructuredData
-                cell.configure(with: wItem, showOptions: showOptions, loadImage: true)
+                let hasLogo = logoURL != nil
+                let shouldLoadImmediately = hasLogo || (item.agencyId == nil)
+                cell.configure(with: wItem, showOptions: showOptions, loadImage: shouldLoadImmediately)
                 
                 if showOptions {
                     cell.onEditTapped = { [weak self] in

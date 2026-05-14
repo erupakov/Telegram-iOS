@@ -354,7 +354,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         }
         
         if !appearance.isEmpty {
-            titles.append(DivoStrings.appearanceTitle)
+            titles.append(DivoStrings.myParameters)
             newActiveContainers.append(appearanceContainer)
         } else {
             newActiveContainers.append(emptyAppearanceView)

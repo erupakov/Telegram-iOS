@@ -3424,7 +3424,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.updateScreenBackgroundForCurrentTab()
 
         if self.modelRole == .agency {
-            setupNavigationBarTitle(name: detail.agency?.title ?? DivoStrings.noName)
+            let rolePrefix = self.modelRole.title + " • "
+            setupNavigationBarTitle(name: detail.agency?.title ?? DivoStrings.noName, info: "\(rolePrefix)\(detail.agency?.address?.city?.name ?? ""), \(Self.flag(for: detail.agency?.address?.city?.countryCode))")
             
             if let photoURLString = detail.agency?.background?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL)
@@ -3455,7 +3456,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         } else {
             let age = detail.birthday.flatMap { calculateAge(from: $0) }
             let agePrefix = age.map { DivoStrings.ageString($0) + " • " } ?? ""
-            setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(agePrefix)\(detail.city?.name ?? "")")
+            let rolePrefix = self.modelRole.title + " • "
+            setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(rolePrefix)\(agePrefix)\(detail.city?.name ?? ""), \(Self.flag(for: detail.city?.countryCode))")
             
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL)

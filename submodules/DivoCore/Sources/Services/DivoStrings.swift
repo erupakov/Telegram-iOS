@@ -287,6 +287,7 @@ public enum DivoStrings {
     public static var settingsBannerTitle: String { L(en: "GET DISCOVERED IN THE FASHION WORLD", ru: "СТАНЬ ЗАМЕТНЫМ В МИРЕ МОДЫ", es: "HAZTE NOTAR EN EL MUNDO DE LA MODA", pt: "SEJA DESCOBERTO NO MUNDO DA MODA", zh: "在时尚界崭露头角") }
     public static var settingsBannerDescription: String { L(en: "Publish your profile as a model, join castings or add events as agency — be part of the global fashion network.", ru: "Опубликуйте профиль модели, участвуйте в кастингах или добавляйте события — станьте частью мировой fashion-сети.", es: "Publica tu perfil como modelo, únete a castings o añade eventos como agencia — forma parte de la red global de moda.", pt: "Publique seu perfil como modelo, participe de castings ou adicione eventos como agência — faça parte da rede global de moda.", zh: "发布您的模特资料，参加选角或作为经纪公司添加活动——成为全球时尚网络的一部分。") }
     public static var settingsLearnMore: String { L(en: "LEARN MORE", ru: "УЗНАТЬ БОЛЬШЕ", es: "MÁS INFORMACIÓN", pt: "SAIBA MAIS", zh: "了解更多") }
+    public static var myParameters: String { L(en: "My Parameters", ru: "Мои параметры", es: "Mis parámetros", pt: "Meus parâmetros", zh: "我的参数") }
 
     // MARK: - Common
 

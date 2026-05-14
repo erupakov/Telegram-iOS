@@ -146,7 +146,7 @@ final class ExperienceView: UIView {
                 logoEmptyImageView.isHidden = false
             }
         } else {
-            logoImageView.addShimmerOverlay()
+            logoEmptyImageView.isHidden = false
         }
     }
     

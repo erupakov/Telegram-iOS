@@ -19,13 +19,13 @@ public struct WorkHistoryItem: Decodable {
     public let startDate: String?
     public let endDate: String?
     public let isCurrent: Bool?
-
+    
     public init(
         id: Int,
         agencyId: Int?,
         agencyName: String?,
         agencyDisplayName: String?,
-        agencyAvatarLink: String? = nil,
+        agencyAvatarLink: String?,
         startDate: String?,
         endDate: String?,
         isCurrent: Bool?
