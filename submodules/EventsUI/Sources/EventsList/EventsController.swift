@@ -130,7 +130,7 @@ public final class EventsController: TelegramBaseController {
                     }
                 }
             } catch {
-                print("⚠️ fetchUserRole failed: \(error)")
+                divoLog("fetchUserRole failed: \(error)", level: .error)
             }
         }
     }

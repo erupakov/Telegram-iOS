@@ -1,5 +1,5 @@
 //
-//  DescripytionView.swift
+//  DescriptionView.swift
 //  divo-ios
 //
 //  Created by Michail Shagovitov on 07.05.2026.

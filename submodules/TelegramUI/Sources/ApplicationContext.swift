@@ -977,7 +977,7 @@ final class AuthorizedApplicationContext {
 
         case "event":
             self.rootController.rootTabController?.selectedIndex = 1
-            let controller = EventDetailController(context: self.context, eventId: id) 
+            let controller = EventDetailController(context: self.context, eventId: id)
             navigationController.pushViewController(controller, animated: true)
             return true
 
