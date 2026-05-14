@@ -239,10 +239,12 @@ public final class EventDetailController: TelegramBaseController {
     }
 
     private func bookmarkPressed() {
+        // TODO DIVO: реализовать сохранение события в избранное (REST endpoint + состояние кнопки)
         divoLog("Bookmark button pressed")
     }
-    
+
     private func applyPressed() {
+        // TODO DIVO: реализовать подачу заявки на событие (REST endpoint + состояние кнопки)
         divoLog("Apply button pressed")
     }
     

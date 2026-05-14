@@ -1479,6 +1479,9 @@ final class CreateEventNode: ASDisplayNode {
         return row
     }
 
+    // TODO DIVO: убрать round-trip String↔Int и `?? 0` для type / `?? "1"` для rateTimeId
+    // после переезда формы на новый контракт бэка. Сейчас защищено validateCurrentStep() —
+    // обязательные id не должны доходить сюда nil; силовой фоллбек оставлен как сетка безопасности.
     private func makeSnapshot() -> EventSnapshot {
         let dateObj = Date(timeIntervalSince1970: TimeInterval(eventDateInt))
         let timeObj = Date(timeIntervalSince1970: TimeInterval(eventTimeInt))
@@ -1519,13 +1522,13 @@ final class CreateEventNode: ASDisplayNode {
             waist: selectedWaist,
             hips: selectedHips,
             shoeSize: selectedShoeSize,
-            hairLengthId: hairLengthDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            hairLengthId: hairLengthDropdownIds?.compactMap { Int($0) } ?? [],
             hairLengthTitle: hairLengthDropdownTitles,
-            hairColorId: hairColorDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            hairColorId: hairColorDropdownIds?.compactMap { Int($0) } ?? [],
             hairColorTitle: hairColorDropdownTitles,
-            eyeColorId: eyeColorDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            eyeColorId: eyeColorDropdownIds?.compactMap { Int($0) } ?? [],
             eyeColorTitle: eyeColorDropdownTitles,
-            skinColorId: skinColorDropdownIds?.map { Int($0) ?? 0 } ?? [],
+            skinColorId: skinColorDropdownIds?.compactMap { Int($0) } ?? [],
             skinColorTitle: skinColorDropdownTitles,
             nda: ndaSwitch.isOn,
             deadlineDate: deadlineDateString,
@@ -1729,6 +1732,8 @@ final class CreateEventNode: ASDisplayNode {
         }
     }
  
+    // TODO DIVO: убрать round-trip String↔Int и `?? 0` для eventTypeId / `?? "1"` для rateTimeId
+    // после переезда формы на новый контракт бэка. См. комментарий над makeSnapshot().
     func collectEventData() throws -> CreateEventRequest {
         
         let title = nameEventTextField.textField.text ?? ""
@@ -1795,10 +1800,10 @@ final class CreateEventNode: ASDisplayNode {
         var hipsRange: EventRangeRequest?
         var shoesRange: EventRangeRequest?
         let genders: [String]? = genderDropdownIds
-        let hairColors: [Int] = hairColorDropdownIds?.map { Int($0) ?? 0 } ?? []
-        let hairLengths: [Int] = hairLengthDropdownIds?.map { Int($0) ?? 0 } ?? []
-        let eyeColors: [Int] = eyeColorDropdownIds?.map { Int($0) ?? 0 } ?? []
-        let skinColors: [Int] = skinColorDropdownIds?.map { Int($0) ?? 0 } ?? []
+        let hairColors: [Int] = hairColorDropdownIds?.compactMap { Int($0) } ?? []
+        let hairLengths: [Int] = hairLengthDropdownIds?.compactMap { Int($0) } ?? []
+        let eyeColors: [Int] = eyeColorDropdownIds?.compactMap { Int($0) } ?? []
+        let skinColors: [Int] = skinColorDropdownIds?.compactMap { Int($0) } ?? []
         
         ageRange = EventRangeRequest(from: Float(selectedAge?.lowerBound ?? 0), to: Float(selectedAge?.upperBound ?? 0))
         heightRange = EventRangeRequest(from: Float(selectedHeight?.lowerBound ?? 0), to: Float(selectedHeight?.upperBound ?? 0))

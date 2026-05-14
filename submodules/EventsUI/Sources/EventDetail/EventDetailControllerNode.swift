@@ -1616,6 +1616,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
+        // TODO DIVO: подтянуть handle/avatar текущего пользователя из контекста вместо плейсхолдера
         organizerView.configure(name: DivoStrings.you, logoURL: nil)
         
         descriptionView.update(biography: data.request.description)

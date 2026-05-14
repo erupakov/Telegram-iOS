@@ -164,7 +164,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     self.createEventNode.populate(with: detail)
                     self.createEventNode.markDataLoaded()
                     if let files = detail.files {
-                        let sortedFiles = files.sorted { ($0.order ?? 99) < ($1.order ?? 99) }
+                        // Файлы без order считаем «без порядка» и кладём в конец списка.
+                        let sortedFiles = files.sorted { ($0.order ?? Int.max) < ($1.order ?? Int.max) }
                         self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
                             guard let uuid = file.fileUuid,
                                   let fileExtension = file.fileExtension,
