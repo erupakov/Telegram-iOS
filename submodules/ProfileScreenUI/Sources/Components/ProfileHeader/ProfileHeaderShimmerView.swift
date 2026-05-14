@@ -10,10 +10,16 @@ import DivoCore
 import DivoUIKit
 
 class ProfileHeaderShimmerView: UIView {
-
-    private static let badgeHeight: CGFloat = 22
-
+    
     // MARK: - UI Elements (Placeholders)
+    
+    private let avatarPlaceholder: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Spacing.xl
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     
     private let namePlaceholder: UIView = {
         let view = UIView()
@@ -26,7 +32,7 @@ class ProfileHeaderShimmerView: UIView {
     private let premiumBadgePlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
-        view.layer.cornerRadius = badgeHeight / 2
+        view.layer.cornerRadius = 10
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -34,7 +40,7 @@ class ProfileHeaderShimmerView: UIView {
     private let rolePlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
-        view.layer.cornerRadius = badgeHeight / 2
+        view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -42,7 +48,7 @@ class ProfileHeaderShimmerView: UIView {
     private let infoPlaceholder: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
-        view.layer.cornerRadius = badgeHeight / 2
+        view.layer.cornerRadius = 11
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
@@ -66,6 +72,7 @@ class ProfileHeaderShimmerView: UIView {
     }
     
     private func setupViews() {
+        addSubview(avatarPlaceholder)
         addSubview(namePlaceholder)
         addSubview(premiumBadgePlaceholder)
         addSubview(rolePlaceholder)
@@ -73,28 +80,36 @@ class ProfileHeaderShimmerView: UIView {
     }
     
     private func setupConstraints() {
+        let avatarSize: CGFloat = 64
+        
         NSLayoutConstraint.activate([
+            
+            avatarPlaceholder.leadingAnchor.constraint(equalTo: leadingAnchor),
+            avatarPlaceholder.bottomAnchor.constraint(equalTo: bottomAnchor),
+            avatarPlaceholder.widthAnchor.constraint(equalToConstant: avatarSize),
+            avatarPlaceholder.heightAnchor.constraint(equalToConstant: avatarSize),
+            
             namePlaceholder.topAnchor.constraint(equalTo: topAnchor),
-            namePlaceholder.leadingAnchor.constraint(equalTo: leadingAnchor),
+            namePlaceholder.leadingAnchor.constraint(equalTo: avatarPlaceholder.trailingAnchor, constant: 10),
             namePlaceholder.widthAnchor.constraint(equalToConstant: 180),
             namePlaceholder.heightAnchor.constraint(equalToConstant: 64),
-            
+            namePlaceholder.bottomAnchor.constraint(equalTo: rolePlaceholder.topAnchor, constant: -DivoDesignTokens.Spacing.s),
+
             premiumBadgePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
-            premiumBadgePlaceholder.bottomAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
-            premiumBadgePlaceholder.widthAnchor.constraint(equalToConstant: 80),
-            premiumBadgePlaceholder.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
-            premiumBadgePlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
+            premiumBadgePlaceholder.bottomAnchor.constraint(equalTo: rolePlaceholder.topAnchor, constant: -6),
+            premiumBadgePlaceholder.widthAnchor.constraint(equalToConstant: 20),
+            premiumBadgePlaceholder.heightAnchor.constraint(equalToConstant: 20),
             
-            rolePlaceholder.topAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: 6),
+            rolePlaceholder.topAnchor.constraint(equalTo: namePlaceholder.bottomAnchor, constant: 5),
             rolePlaceholder.leadingAnchor.constraint(equalTo: namePlaceholder.leadingAnchor),
             rolePlaceholder.widthAnchor.constraint(equalToConstant: 100),
-            rolePlaceholder.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
+            rolePlaceholder.heightAnchor.constraint(equalToConstant: 22),
             rolePlaceholder.bottomAnchor.constraint(equalTo: bottomAnchor),
             
             infoPlaceholder.leadingAnchor.constraint(equalTo: rolePlaceholder.trailingAnchor, constant: 10),
             infoPlaceholder.centerYAnchor.constraint(equalTo: rolePlaceholder.centerYAnchor),
             infoPlaceholder.widthAnchor.constraint(equalToConstant: 140),
-            infoPlaceholder.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
+            infoPlaceholder.heightAnchor.constraint(equalToConstant: 22),
             infoPlaceholder.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor)
         ])
     }
@@ -102,14 +117,14 @@ class ProfileHeaderShimmerView: UIView {
     // MARK: - Animation
     
     func startAnimation() {
-        [namePlaceholder, premiumBadgePlaceholder, rolePlaceholder, infoPlaceholder].forEach {
+        [avatarPlaceholder, namePlaceholder, premiumBadgePlaceholder, rolePlaceholder, infoPlaceholder].forEach {
             $0.stopShimmering()
             $0.startShimmering()
         }
     }
     
     func stopAnimation() {
-        [namePlaceholder, premiumBadgePlaceholder, rolePlaceholder, infoPlaceholder].forEach {
+        [avatarPlaceholder, namePlaceholder, premiumBadgePlaceholder, rolePlaceholder, infoPlaceholder].forEach {
             $0.stopShimmering()
         }
     }

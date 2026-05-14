@@ -213,6 +213,16 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private lazy var profileHeaderShimmerView = ProfileHeaderShimmerView()
     
+    var currentPhoto: UIImage? = nil {
+        didSet {
+            if let currentPhoto = self.currentPhoto {
+                profileHeaderView.changeAvatar(with: currentPhoto)
+            } else {
+                profileHeaderView.changeAvatar(with: nil)
+            }
+        }
+    }
+
     
     // MARK: - Actions Section
     
@@ -1589,8 +1599,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         ])
         
         // Расстояние между именем и кнопками (обрати внимание, отступ делаем после WRAPPER)
-        contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderWrapper)
-        contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderShimmerView)
+        contentViewStack.setCustomSpacing(20, after: profileHeaderWrapper)
+        contentViewStack.setCustomSpacing(20, after: profileHeaderShimmerView)
     }
 
     private func setupSendShareContainer() {
@@ -3416,6 +3426,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
+        self.profileHeaderView.toggleSpinner(active: true)
         self.modelDetail = detail
         var bio: String?
         var appearance: [AppearanceAttribute]
@@ -3448,7 +3459,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
                     ImageLoader.shared.load(url: avatarURL) { [weak self] image in
                         if let image = image {
-                            self?.avatarImage = image
+                            self?.profileHeaderView.changeAvatar(with: image)
+                            self?.profileHeaderView.toggleSpinner(active: false)
                         }
                     }
                 }
@@ -3496,7 +3508,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
                     ImageLoader.shared.load(url: avatarURL) { [weak self] image in
                         if let image = image {
-                            self?.avatarImage = image
+                            self?.profileHeaderView.changeAvatar(with: image)
+                            self?.profileHeaderView.toggleSpinner(active: false)
                         }
                     }
                 }

@@ -63,6 +63,7 @@ public enum DivoImage {
     public static var profileLevelInfo3: UIImage { load("DivoProfileLevelInfo3") }
     public static var profileLevelProgressIcon: UIImage { load("DivoProfileLevelProgressIcon") }
     public static var profileLevelWarningIcon: UIImage { load("DivoProfileLevelWarningIcon") }
+    public static var qrCode: UIImage { load("DivoQrCode") }
     public static var refresh: UIImage { load("DivoRefresh") }
     public static var report: UIImage { load("DivoReport") }
     public static var roleAgency: UIImage { load("DivoRoleAgency") }
@@ -79,6 +80,7 @@ public enum DivoImage {
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
     public static var searchWhiteCheckmark: UIImage { load("DivoSearchWhiteCheckmark") }
     public static var sendDM: UIImage { load("DivoSendDM") }
+    public static var settingsBannerBackground: UIImage { load("DivoSettingsBannerBackground") }
     public static var share: UIImage { load("DivoShare") }
     public static var signUpAgencies: UIImage { load("DivoSignUpAgencies") }
     public static var signUpChooseRoleBackground: UIImage { load("DivoSignUpChooseRoleBackground") }
