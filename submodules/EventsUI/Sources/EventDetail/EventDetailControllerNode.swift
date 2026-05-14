@@ -610,9 +610,10 @@ final class EventDetailControllerNode: ASDisplayNode {
         super.init()
         self.backgroundColor = DivoColorPalette.darkBackground
         
-        self.moreButton.isEnabled = !isPreviewMode
-        self.shareButton.isEnabled = !isPreviewMode
-        self.closeButton.isEnabled = !isPreviewMode
+        // В preview share/more скрываются (нечего шарить, нет действий над черновиком),
+        // back — всегда работает (закрывает preview → возвращает в CreateEvent).
+        // Stats-pills (likes/views/saves) остаются видимыми, но без интерактивности —
+        // чтобы пользователь видел будущий layout боевого экрана.
         self.likesView.isEnabled = !isPreviewMode
         self.viewsView.isEnabled = !isPreviewMode
         self.savesView.isEnabled = !isPreviewMode
@@ -1288,16 +1289,19 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
 
     private func applyPhase() {
+        // Share/More имеют смысл только в обычном просмотре опубликованного события:
+        // в preview черновика — шарить нечего и действий над черновиком нет;
+        // moreButton дополнительно завязан на isMyEvent (для чужих событий он скрыт).
         switch phase {
         case .loading:
             errorView.isHidden = true
-            shareButton.isHidden = false
-            moreButton.isHidden = false
+            shareButton.isHidden = isPreviewMode
+            moreButton.isHidden = isPreviewMode || !isMyEvent
             configureNodes()
         case .content:
             errorView.isHidden = true
-            shareButton.isHidden = false
-            moreButton.isHidden = false
+            shareButton.isHidden = isPreviewMode
+            moreButton.isHidden = isPreviewMode || !isMyEvent
             stopShimmers()
         case .failed(let networkError):
             // stopShimmers скроет шиммеры (и попутно покажет контент-вьюхи),

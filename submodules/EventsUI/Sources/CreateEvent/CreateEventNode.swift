@@ -103,6 +103,10 @@ final class CreateEventNode: ASDisplayNode {
 
     private let errorPlaceholderView: ProfileTabErrorView = {
         let view = ProfileTabErrorView()
+        // ProfileTabErrorView по умолчанию использует cardBackground (под профиль),
+        // а в CreateEvent основной фон ноды — screenBackground (серый),
+        // поэтому переопределяем, чтобы error не выбивался из общего тона экрана.
+        view.backgroundColor = DivoColorPalette.screenBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isHidden = true
         return view

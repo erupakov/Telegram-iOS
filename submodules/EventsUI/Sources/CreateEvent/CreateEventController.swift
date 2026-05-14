@@ -357,13 +357,25 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         case .date:
             pickerMode = .date
             currentTime = self.createEventNode.eventDateInt
-            
+
             let todayStart = Calendar.current.startOfDay(for: Date())
             minimumTimestamp = Int32(todayStart.timeIntervalSince1970)
-            
+
         case .time:
             pickerMode = .time
             currentTime = self.createEventNode.eventTimeInt
+
+            // Если выбранная дата события — сегодня, минимально допустимое время
+            // — текущий момент (нельзя в прошлое). Для дат в будущем ограничения нет.
+            // Если дата ещё не выбрана — страхуемся таким же ограничением.
+            let calendar = Calendar.current
+            let todayStart = calendar.startOfDay(for: Date())
+            let eventDateStart = self.createEventNode.eventDateInt > 0
+                ? calendar.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(self.createEventNode.eventDateInt)))
+                : todayStart
+            if eventDateStart == todayStart {
+                minimumTimestamp = Int32(Date().timeIntervalSince1970)
+            }
         }
         
         let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
@@ -382,16 +394,16 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             
             if mode == .date {
                 let currentDeadlineInt = self.createEventNode.deadlineDateInt
-                
+
                 if currentDeadlineInt > 0 {
                     let newEventStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(selectedTimestamp)))
                     let currentDeadlineStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(currentDeadlineInt)))
-                    
-                    if currentDeadlineStart >= newEventStart {
-                        if let newDeadlineDate = Calendar.current.date(byAdding: .day, value: -1, to: newEventStart) {
-                            let newDeadlineTimestamp = Int32(newDeadlineDate.timeIntervalSince1970)
-                            self.createEventNode.updateDeadlineTime(newDeadlineTimestamp, .date)
-                        }
+
+                    // Deadline допустим в день события включительно — сбрасываем
+                    // только если он строго позже новой даты события.
+                    if currentDeadlineStart > newEventStart {
+                        let newDeadlineTimestamp = Int32(newEventStart.timeIntervalSince1970)
+                        self.createEventNode.updateDeadlineTime(newDeadlineTimestamp, .date)
                     }
                 }
             }
@@ -427,10 +439,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             
             let eventDateInt = self.createEventNode.eventDateInt
             if eventDateInt > 0 {
+                // Deadline допустим в тот же день, что и событие (но не позже).
                 let eventStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(eventDateInt)))
-                if let maxDate = Calendar.current.date(byAdding: .day, value: -1, to: eventStart) {
-                    maximumTimestamp = Int32(maxDate.timeIntervalSince1970)
-                }
+                maximumTimestamp = Int32(eventStart.timeIntervalSince1970)
             }
             
         case .time:
