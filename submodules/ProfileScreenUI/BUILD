@@ -40,6 +40,7 @@ swift_library(
         "//submodules/FaceSearchUI:FaceSearchUI",
         "//submodules/DivoCore:DivoCore",
         "//submodules/DivoUIKit:DivoUIKit",
+        "//submodules/DivoGallery:DivoGallery",
     ],
     visibility = [
         "//visibility:public",

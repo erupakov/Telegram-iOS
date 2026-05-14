@@ -50,13 +50,14 @@ public final class DivoButton: UIButton {
 
     // MARK: - Configuration
     
-    public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil) {
+    public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil, divoButtonStyle: DivoButtonStyle = .primary) {
         normalTitle = title
         loadingTitle = loading
 
         applyNormalTitle(buttonFont: buttonFont)
         applyDisabledTitle(buttonFont: buttonFont)
-
+        addDivoPressState(divoButtonStyle)
+        
         guard let radius = radius else { return }
         layer.cornerRadius = radius
     }
@@ -84,6 +85,8 @@ public final class DivoButton: UIButton {
         let gap = DivoDesignTokens.Spacing.xs
         imageEdgeInsets = UIEdgeInsets(top: 0, left: -gap, bottom: 0, right: gap)
         titleEdgeInsets = UIEdgeInsets(top: 0, left: gap, bottom: 0, right: -gap)
+                
+        addDivoPressState(.primary)
     }
     
     // MARK: - Setup
@@ -92,6 +95,10 @@ public final class DivoButton: UIButton {
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = Self.cornerRadius
+
+        // Если текст не помещается — обрезаем с конца. Главное слово
+        // обычно идёт первым («Publish event» → «Publish ev…»).
+        titleLabel?.lineBreakMode = .byTruncatingTail
 
         contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right:  DivoDesignTokens.Spacing.m)
 
@@ -108,8 +115,6 @@ public final class DivoButton: UIButton {
             spinner.trailingAnchor.constraint(equalTo: savingLabel.leadingAnchor, constant: -8),
             spinner.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
-
-        addDivoPressState(.primary)
     }
 
     // MARK: - Attributed titles
@@ -148,6 +153,15 @@ public final class DivoButton: UIButton {
 
     override public var isHighlighted: Bool {
         didSet {}
+    }
+
+    // MARK: - Enabled / disabled
+
+    override public var isEnabled: Bool {
+        didSet {
+            guard !isSaving else { return }
+            backgroundColor = isEnabled ? DivoColorPalette.accent : DivoColorPalette.buttonDisabledBackground
+        }
     }
 
     // MARK: - Saving state

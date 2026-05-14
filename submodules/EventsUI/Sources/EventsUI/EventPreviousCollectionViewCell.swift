@@ -160,7 +160,7 @@ final class EventPreviousCollectionViewCell: UICollectionViewCell {
         } else {
             imageView.image = nil
         }
-        titleLabel.text = event.title.uppercased()
+        titleLabel.text = event.title?.uppercased()
         subtitleLabel.text = event.subtitle
         tagLabel.text = event.type
         likesLabel.text = "1K"

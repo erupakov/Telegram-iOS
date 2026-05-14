@@ -137,20 +137,57 @@ public class AddWorkExperienceController: ViewController, UINavigationController
     }
     
     private func scheduleTimeController(type: TimeType) {
-        let peerId = PeerId(0)
-        let controller = TimeController(
-            context: context,
-            updatedPresentationData: nil,
-            peerId: peerId,
+        let currentTime: Int32
+        var minimumTimestamp: Int32? = nil
+        var maximumTimestamp: Int32? = nil
+        
+        let todayStart = Calendar.current.startOfDay(for: Date())
+        let todayTimestamp = Int32(todayStart.timeIntervalSince1970)
+        
+        switch type {
+        case .start:
+            currentTime = self.addWorkExperienceNode.getStartTime() ?? todayTimestamp
+            maximumTimestamp = todayTimestamp
+            
+        case .end:
+            currentTime = self.addWorkExperienceNode.getEndTime() ?? todayTimestamp
+            maximumTimestamp = todayTimestamp
+            
+            if let startTime = self.addWorkExperienceNode.getStartTime() {
+                let startStart = Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(startTime)))
+                minimumTimestamp = Int32(startStart.timeIntervalSince1970)
+            }
+        }
+        
+        let initialTime = currentTime > 0 ? currentTime : todayTimestamp
+        
+        let title = type == .start ? DivoStrings.eventDate : DivoStrings.endDate
+        
+        let controller = DivoDatePickerController(
             mode: .date,
-            style: .default,
-            currentTime: nil,
-            minimalTime: nil,
-            completion: { [weak self] time in
-                self?.addWorkExperienceNode.updateTime(time, type: type)
-            })
-        present(controller, in: .window(.root))
+            initialTimestamp: initialTime,
+            title: title,
+            minimumTimestamp: minimumTimestamp,
+            maximumTimestamp: maximumTimestamp
+        )
+        
+        controller.onSave = { [weak self] selectedTimestamp in
+            self?.addWorkExperienceNode.updateTime(selectedTimestamp, type: type)
+        }
+        
+        let nav = UINavigationController(rootViewController: controller)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        
+        self.present(nav, animated: true)
     }
+
 
     // MARK: - Network Request
     

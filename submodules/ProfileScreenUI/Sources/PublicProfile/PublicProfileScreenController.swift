@@ -21,21 +21,7 @@ import GalleryUI
 import EventsUI
 import DivoUIKit
 import FaceSearchUI
-
-enum MediaFormatValidator {
-    static let videoExtensions: Set<String> = ["mp4", "mov", "avi", "mkv", "webm"]
-    static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "webp", "heic"]
-    
-    static func isVideo(_ ext: String?) -> Bool {
-        guard let ext = ext?.lowercased() else { return false }
-        return videoExtensions.contains(ext)
-    }
-    
-    static func isImage(_ ext: String?) -> Bool {
-        guard let ext = ext?.lowercased() else { return false }
-        return imageExtensions.contains(ext)
-    }
-}
+import DivoGallery
 
 public final class PublicProfileScreenController: TelegramBaseController {
 
@@ -347,6 +333,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onModelAgencyTapped = { [weak self] user in
             self?.openModelAgencyScreen(for: user)
+        }
+
+        self.controllerNode.onEventTapped = { [weak self] event in
+            self?.openEventDetailScreen(for: event)
         }
 
         self.displayNodeDidLoad()
@@ -805,8 +795,9 @@ extension PublicProfileScreenController {
 // Загрузка событий через feedline/search (event/list недоступен для всех ролей)
 extension PublicProfileScreenController {
     func loadEvents() {
-        guard userID != -1 else { return }
-        let body = EventListRequest(offset: 0, limit: 30)
+        self.controllerNode.startLoadEventsList()
+        
+        let body = EventListRequest(offset: 0, limit: 30, creatorId: userID)
         Task {
             do {
                 let response: EventListResponse = try await DivoAPIClient.shared.request(
@@ -815,9 +806,17 @@ extension PublicProfileScreenController {
                     body: body
                 )
 
-                let items = response.data.items.filter({ ($0.creator?.id ?? $0.user?.id) == self.userID })
-
-                let eventDataArray: [EventItem] = items.map { item in
+                let items = response.data.items
+                
+                if items.isEmpty {
+                    await MainActor.run {
+                        self.controllerNode.updateEventsList([])
+                    }
+                    return
+                }
+                
+                let detailedEvents = await fetchEventDetails(for: items.compactMap { $0.id })
+                let eventDataArray: [EventItem] = detailedEvents.map { item in
                     let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: item.date)
 
                     let city = item.address?.city?.name ?? DivoStrings.unknownCity
@@ -827,7 +826,7 @@ extension PublicProfileScreenController {
                     let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
 
                     return EventItem(
-                        name: item.title,
+                        name: item.title ?? "Event",
                         data: formattedDate,
                         time: formattedTime,
                         countryFlag: flag,
@@ -857,6 +856,33 @@ extension PublicProfileScreenController {
                     self.controllerNode.markEventsFailed(networkError: isNetwork)
                 }
             }
+        }
+    }
+
+    private func fetchEventDetails(for ids: [Int]) async -> [EventFullDetailData] {
+        return await withTaskGroup(of: EventFullDetailData?.self) { group in
+            for id in ids {
+                group.addTask {
+                    do {
+                        let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                            path: "/event/\(id)",
+                            method: "GET"
+                        )
+                        return response.data
+                    } catch {
+                        print("❌ [EVENT DETAIL] Error loading event \(id): \(error)")
+                        return nil
+                    }
+                }
+            }
+
+            var results: [EventFullDetailData] = []
+            for await detail in group {
+                if let validDetail = detail {
+                    results.append(validDetail)
+                }
+            }
+            return results
         }
     }
 
@@ -1046,6 +1072,16 @@ extension PublicProfileScreenController {
             avatarImageURL: mainImageURL
         )
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
+        (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
+    }
+
+    private func openEventDetailScreen(for event: EventItem) {
+        guard let eventId = event.eventId else { return }
+        
+        let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile)
+        detailController.onEventModified = { [weak self] in
+            self?.loadEvents()
+        }
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
     

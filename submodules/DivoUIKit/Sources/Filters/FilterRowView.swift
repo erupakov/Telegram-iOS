@@ -33,7 +33,7 @@ public final class FilterRowView: UIView {
     private var currentItems: [String] = []
     private var emptyTitle: String = ""
 
-    public init(title: String) {
+    public init(title: String = "") {
         super.init(frame: .zero)
         self.isUserInteractionEnabled = true
 
@@ -70,6 +70,12 @@ public final class FilterRowView: UIView {
     public func setItems(_ items: [String], emptyTitle: String) {
         self.currentItems = items
         self.emptyTitle = emptyTitle
+        self.setNeedsLayout()
+        self.layoutIfNeeded()
+    }
+
+    public func setTitle(_ item: String) {
+        titleLabel.text = item
         self.setNeedsLayout()
         self.layoutIfNeeded()
     }

@@ -1,14 +1,21 @@
 import UIKit
 import Display
 import DivoCore
-import DivoUIKit
+
+public enum ProfileTab: Int, CaseIterable {
+    case photo = 0
+    case video = 1
+    case models = 2
+    case channels = 3
+    case events = 4
+}
 
 /// Заглушка-ошибка для контентных табов профиля (video/channels/models/events).
 /// Стиль выровнен с error-стейтом главной ленты, но кнопка не прибита снизу,
 /// а лежит сразу под subtitle (отступ 16pt) — ширина по контенту, иконка
 /// refresh 20×20 + текст. Используется только когда первая страница таба
 /// не загрузилась — для pagination-ошибок отдельной заглушки нет (см. ТЗ).
-final class ProfileTabErrorView: UIView {
+public final class ProfileTabErrorView: UIView {
 
     private let iconView: UIImageView = {
         let view = UIImageView(image: DivoImage.faceSearchError)
@@ -52,7 +59,7 @@ final class ProfileTabErrorView: UIView {
 
     private var onRetry: (() -> Void)?
 
-    override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = DivoColorPalette.cardBackground
 
@@ -90,13 +97,18 @@ final class ProfileTabErrorView: UIView {
 
     /// `networkError == true` → общий текст про интернет.
     /// Иначе — per-tab title («Couldn't load videos» / «...channels» / ...).
-    func configure(tab: ProfileTab, networkError: Bool, onRetry: @escaping () -> Void) {
-        if networkError {
-            titleLabel.text = DivoStrings.profileTabErrorNetworkTitle.uppercased()
-        } else {
-            titleLabel.text = Self.title(for: tab).uppercased()
-        }
-        subtitleLabel.text = DivoStrings.profileTabErrorSubtitle
+    public func configure(tab: ProfileTab, networkError: Bool, onRetry: @escaping () -> Void) {
+        let title = networkError
+            ? DivoStrings.profileTabErrorNetworkTitle
+            : Self.title(for: tab)
+        configure(title: title, subtitle: DivoStrings.profileTabErrorSubtitle, onRetry: onRetry)
+    }
+
+    /// Generic-overload: per-context title задаётся вызывающей стороной.
+    /// Для network-варианта передавай `DivoStrings.profileTabErrorNetworkTitle`.
+    public func configure(title: String, subtitle: String, onRetry: @escaping () -> Void) {
+        titleLabel.text = title.uppercased()
+        subtitleLabel.text = subtitle
         self.onRetry = onRetry
     }
 

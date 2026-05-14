@@ -17,6 +17,7 @@ public enum DivoImage {
     public static var ageIcon: UIImage { load("DivoAgeIcon") }
     public static var associatedModels: UIImage { load("DivoAssociatedModels") }
     public static var badgeBaseWork: UIImage { load("DivoBadgeBaseWork") }
+    public static var badgeCalendar: UIImage { load("DivoBadgeCalendar") }
     public static var basket: UIImage { load("DivoBasket") }
     public static var basketWork: UIImage { load("DivoBasketWork") }
     public static var block: UIImage { load("DivoBlock") }
@@ -40,6 +41,7 @@ public enum DivoImage {
     public static var faceSearchError: UIImage { load("DivoFaceSearchError") }
     public static var faceSearchInfo: UIImage { load("DivoFaceSearchInfo") }
     public static var genderIcon: UIImage { load("DivoGenderIcon") }
+    public static var group: UIImage { load("DivoGroup") }
     public static var heartActionIcon: UIImage { load("DivoHeartActionIcon") }
     public static var heightIcon: UIImage { load("DivoHeightIcon") }
     public static var iconEvents: UIImage { load("DivoIconEvents") }
@@ -53,6 +55,7 @@ public enum DivoImage {
     public static var onboardingFirst: UIImage { load("DivoOnboardingFirst") }
     public static var onboardingSecond: UIImage { load("DivoOnboardingSecond") }
     public static var onboardingThird: UIImage { load("DivoOnboardingThird") }
+    public static var paid: UIImage { load("DivoPaid") }
     public static var pencil: UIImage { load("DivoPencil") }
     public static var photoIcon: UIImage { load("DivoPhotoIcon") }
     public static var plus: UIImage { load("DivoPlus") }
@@ -78,6 +81,7 @@ public enum DivoImage {
     public static var searchOrangeCheckmark: UIImage { load("DivoSearchOrangeCheckmark") }
     public static var searchPersonHeart: UIImage { load("DivoSearchPersonHeart") }
     public static var searchWhiteCheckmark: UIImage { load("DivoSearchWhiteCheckmark") }
+    public static var seat: UIImage { load("DivoSeat") }
     public static var sendDM: UIImage { load("DivoSendDM") }
     public static var share: UIImage { load("DivoShare") }
     public static var signUpAgencies: UIImage { load("DivoSignUpAgencies") }
@@ -101,6 +105,7 @@ public enum DivoImage {
     public static var storyAvatarStub7: UIImage { load("DivoStoryAvatarStub7") }
     public static var storyAvatarStub8: UIImage { load("DivoStoryAvatarStub8") }
     public static var tikTokIcon: UIImage { load("DivoTikTokIcon") }
+    public static var timeIcon: UIImage { load("DivoTimeIcon") }
     public static var videoIcon: UIImage { load("DivoVideoIcon") }
     public static var webIcon: UIImage { load("DivoWebIcon") }
     public static var whitePlus: UIImage { load("DivoWhitePlus") }

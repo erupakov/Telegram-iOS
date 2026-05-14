@@ -5,10 +5,10 @@ import DivoCore
 
 public struct EventData {
     let id: Int
-    let title: String
-    let subtitle: String
-    let profileName: String
-    let timeRemaining: String
+    let title: String?
+    let subtitle: String?
+    let profileName: String?
+    let timeRemaining: String?
     let type: String
     let coverPhoto: TelegramMediaImage?
     let profilePhoto: TelegramMediaImage?
@@ -16,20 +16,24 @@ public struct EventData {
     let profilePhotoURL: String?
     let location: String
     let eventDateFormatted: String
+    let cost: String?
+    let countryFlag: String?
 
     public init(
         id: Int = 0,
-        title: String,
-        subtitle: String,
-        profileName: String,
-        timeRemaining: String,
+        title: String? = nil,
+        subtitle: String? = nil,
+        profileName: String? = nil,
+        timeRemaining: String? = nil,
         type: String = "",
         coverPhoto: TelegramMediaImage? = nil,
         profilePhoto: TelegramMediaImage? = nil,
         coverPhotoURL: String? = nil,
         profilePhotoURL: String? = nil,
         location: String = "",
-        eventDateFormatted: String = ""
+        eventDateFormatted: String = "",
+        cost: String? = nil,
+        countryFlag: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -43,6 +47,8 @@ public struct EventData {
         self.profilePhotoURL = profilePhotoURL
         self.location = location
         self.eventDateFormatted = eventDateFormatted
+        self.cost = cost
+        self.countryFlag = countryFlag
     }
 
     private static func mockDateFormatted(_ isoDate: String) -> String {

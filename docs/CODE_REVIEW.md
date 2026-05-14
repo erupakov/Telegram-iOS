@@ -104,6 +104,16 @@
 - [ ] Если словарь / метаданные (gender, appearance, countries) не загрузились — **не** подставлять hardcoded fallback. Зависящий UI остаётся в disabled-состоянии + persistent snackbar с Retry.
 - [ ] Retry перезапускает запрос и возвращает UI в loading-state.
 - [ ] На success-path снекбар успеха показывается на экране, **который виден пользователю** (часто — предыдущий экран через делегат), а не на том, который закрывается.
+- [ ] **Текст ошибки в snackbar — через `DivoAPIError.userFacingMessage`** с fallback на per-context строку из `DivoStrings`. Не использовать `error.localizedDescription` (он не локализован) и не оставлять только generic fallback — пользователь не поймёт, что чинить.
+
+      ```swift
+      } catch {
+          let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToUploadPhoto
+          showSnackbar(message: userMsg, style: .error)
+      }
+      ```
+
+      `userFacingMessage` парсит body 4xx-ответа в `{message, errors: [String: [String]]}` и склеивает `message` + первое детальное сообщение. Для не-httpError (network, decoding) вернёт `nil` — сработает fallback. Для `DivoAPIError.noInternetConnection` используется отдельная ветка с `isNetworkError(_:)` (см. `PublicProfileScreenController.isNetworkError`).
 
 ### Fallback-значения
 

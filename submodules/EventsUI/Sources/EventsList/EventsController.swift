@@ -130,14 +130,14 @@ public final class EventsController: TelegramBaseController {
                     }
                 }
             } catch {
-                print("⚠️ fetchUserRole failed: \(error)")
+                divoLog("fetchUserRole failed: \(error)", level: .error)
             }
         }
     }
 
     private func getEvents() {
         self.controllerNode.beginLoading()
-        let body = EventListRequest(offset: 0, limit: 30)
+        let body = EventListRequest(offset: 0, limit: 30, creatorId: nil)
         Task {
             do {
                 let response: EventListResponse = try await DivoAPIClient.shared.request(
@@ -210,13 +210,13 @@ public final class EventsController: TelegramBaseController {
                 timeRemaining = ""
             }
             let coverURL = item.files?.first?.fullUrl
-            let avatarURL = item.eventCreator?.avatar?.fullUrl
+            let avatarURL = item.creator?.avatar?.fullUrl
             let cityName = item.address?.city?.name ?? ""
             return EventData(
                 id: item.id,
-                title: item.title,
+                title: item.title ?? "",
                 subtitle: item.type?.title ?? "",
-                profileName: "@" + (item.eventCreator?.fullName ?? ""),
+                profileName: "@" + (item.creator?.fullName ?? ""),
                 timeRemaining: timeRemaining,
                 type: item.type?.title ?? "",
                 coverPhotoURL: coverURL,
@@ -235,6 +235,7 @@ public final class EventsController: TelegramBaseController {
 
     @objc private func addPressed() {
         let controller = CreateEventController(context: context)
+        controller.delegate = self
         self.push(controller)
     }
 
@@ -273,5 +274,11 @@ public final class EventsController: TelegramBaseController {
         super.containerLayoutUpdated(layout, transition: transition)
 
         self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+    }
+}
+
+extension EventsController: CreateEventDelegate {
+    func didCreateEvent() {
+        self.getEvents()
     }
 }

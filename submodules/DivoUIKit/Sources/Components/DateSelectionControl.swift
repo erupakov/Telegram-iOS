@@ -1,9 +1,8 @@
 import UIKit
 import Display
 import DivoCore
-import DivoUIKit
 
-final class DateSelectionControl: UIControl {
+public final class DateSelectionControl: UIControl {
     
     private let valueLabel: UILabel = {
         let label = UILabel()
@@ -15,54 +14,48 @@ final class DateSelectionControl: UIControl {
     
     private let iconImageView: UIImageView = {
         let iv = UIImageView()
-        iv.image = DivoImage.calendar
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
     
-    
-    private let hiddenTextField = UITextField()
-    let datePicker = UIDatePicker()
-    private let placeholder: Int32
+    private let placeholderTimestamp: Int32
     private let localeIdentifier: String
-    private var placeholderString: String?
+    private var placeholderString: String = ""
+    private let isTime: Bool
     
-    private(set) var hasSelection = false
-
-    var onDateSelected: ((Int32) -> Void)?
-
-    var onBeginEditing: (() -> Void)?
+    public var hasSelection = false
     
-    var isActive: Bool {
-        return hiddenTextField.isFirstResponder
-    }
+    // Новое событие для открытия пикера
+    public var onTap: (() -> Void)?
     
-    init(placeholder: Int32, localeIdentifier: String) {
-        self.placeholder = placeholder
+    public init(placeholder: Int32, localeIdentifier: String, isTime: Bool = false) {
+        self.placeholderTimestamp = placeholder
         self.localeIdentifier = localeIdentifier
+        self.isTime = isTime
         super.init(frame: .zero)
         
+        let date = Date(timeIntervalSince1970: TimeInterval(placeholder))
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: localeIdentifier)
+        formatter.dateFormat = isTime ? "HH:mm" : "d MMM yyyy"
+        self.placeholderString = formatter.string(from: date)
+        
+        iconImageView.image = isTime ? DivoImage.timeIcon : DivoImage.calendar
+        
         setupUI()
-        setupDatePicker()
     }
     
     required init?(coder: NSCoder) { fatalError() }
     
     private func setupUI() {
         self.backgroundColor = DivoColorPalette.cardBackground
-        self.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        self.layer.cornerRadius = 23
         self.translatesAutoresizingMaskIntoConstraints = false
         
         addSubview(valueLabel)
         addSubview(iconImageView)
         
-        let date = Date(timeIntervalSince1970: TimeInterval(placeholder))
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: localeIdentifier)
-        formatter.dateFormat = "d MMM yyyy"
-        
-        placeholderString = formatter.string(from: date)
         valueLabel.text = placeholderString
         
         NSLayoutConstraint.activate([
@@ -78,35 +71,11 @@ final class DateSelectionControl: UIControl {
         ])
         
         addTarget(self, action: #selector(touchDown), for: .touchDown)
-        addTarget(self, action: #selector(touchUp), for:[.touchUpInside, .touchUpOutside, .touchCancel])
+        addTarget(self, action: #selector(touchUp), for: [.touchUpInside, .touchUpOutside, .touchCancel])
         addTarget(self, action: #selector(tapped), for: .touchUpInside)
     }
     
-    private func setupDatePicker() {
-        addSubview(hiddenTextField)
-        hiddenTextField.isHidden = true
-        
-        datePicker.datePickerMode = .date
-        if #available(iOS 14.0, *) {
-            datePicker.preferredDatePickerStyle = .inline
-        }
-        
-        datePicker.tintColor = DivoColorPalette.accent
-        
-        let container = UIView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: 380))
-        container.backgroundColor = DivoColorPalette.cardBackground
-        
-        datePicker.frame = CGRect(x: DivoDesignTokens.Spacing.m, y: DivoDesignTokens.Spacing.m, width: container.bounds.width - DivoDesignTokens.Spacing.xl, height: container.bounds.height - DivoDesignTokens.Spacing.xl)
-        datePicker.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        container.addSubview(datePicker)
-        
-        hiddenTextField.inputView = container
- 
-        datePicker.addTarget(self, action: #selector(dateChanged), for: .valueChanged)
-        hiddenTextField.addTarget(self, action: #selector(editingDidBegin), for: .editingDidBegin)
-    }
-    
-    func setDate(timestamp: Int32?) {
+    public func setDate(timestamp: Int32?) {
         guard let timestamp = timestamp, timestamp > 0 else {
             hasSelection = false
             valueLabel.text = placeholderString
@@ -117,19 +86,9 @@ final class DateSelectionControl: UIControl {
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: localeIdentifier)
-        formatter.dateFormat = "d MMM yyyy"
+        formatter.dateFormat = isTime ? "HH:mm" : "d MMM yyyy"
         valueLabel.text = formatter.string(from: date)
         valueLabel.textColor = DivoColorPalette.primaryText
-        datePicker.date = date
-    }
-    
-    @objc private func editingDidBegin() {
-        if !hasSelection {
-            hasSelection = true
-            valueLabel.textColor = DivoColorPalette.primaryText
-            onDateSelected?(Int32(datePicker.date.timeIntervalSince1970))
-        }
-        onBeginEditing?()
     }
     
     @objc private func touchDown() {
@@ -141,12 +100,6 @@ final class DateSelectionControl: UIControl {
     }
     
     @objc private func tapped() {
-        hiddenTextField.becomeFirstResponder()
-    }
-    
-    @objc private func dateChanged() {
-        hasSelection = true
-        valueLabel.textColor = DivoColorPalette.primaryText
-        onDateSelected?(Int32(datePicker.date.timeIntervalSince1970))
+        onTap?()
     }
 }

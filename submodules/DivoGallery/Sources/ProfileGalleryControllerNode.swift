@@ -5,6 +5,7 @@ import Display
 import AsyncDisplayKit
 import TelegramCore
 import DivoCore
+import DivoUIKit
 import TelegramPresentationData
 import AccountContext
 import PhotoResources
@@ -36,6 +37,10 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
     var onIndexChanged: ((Int, Int) -> Void)?
     var requestMoreData: (() -> Void)?
     var currentIndex: Int { return _currentIndex }
+    var onBackTapped: (() -> Void)?
+    var onMenuTapped: (() -> Void)?
+    
+    private let navigationBar = DivoNavigationBar()
     
     // MARK: - Init
     
@@ -61,10 +66,29 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         
         super.init()
         
-        self.backgroundColor = .black
+        navigationBar.makeNavigationBar(
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
+            rightButtonConfiguration: isOwnProfile ? .circle(DivoColorPalette.cardBackground, DivoColorPalette.primaryText, DivoImage.moreActionIconBlack, .pill) : nil,
+            onBackTapped: {
+                [weak self] in self?.onBackTapped?()
+            },
+            onCircleRightTapped: {
+                [weak self] in self?.onMenuTapped?()
+            },
+            menu: setupMenu()
+        )
+        
+        self.backgroundColor = .clear
         
         self.setupMainCollectionView()
         self.setupPreviewCollectionView()
+        
+        self.view.addSubview(navigationBar)
+        NSLayoutConstraint.activate([
+            navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
     }
     
     required init?(coder: NSCoder) {
@@ -99,6 +123,22 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
             return videos[index].id
         } else {
             return photos[index].id
+        }
+    }
+
+    private func setupMenu() -> UIMenu {
+        if #available(iOS 14.0, *) {
+            let blockAction = UIAction(
+                title: DivoStrings.deletePhoto,
+                image: nil,
+                attributes: .destructive
+            ) { [weak self] _ in
+                self?.onMenuTapped?()
+            }
+            
+            return UIMenu(title: "", children: [blockAction])
+        } else {
+            return UIMenu()
         }
     }
     
@@ -372,6 +412,30 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         default:
             break
         }
+    }
+
+        
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: DivoDesignTokens.Spacing.m,
+            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }
 

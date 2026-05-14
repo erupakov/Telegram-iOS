@@ -16,6 +16,7 @@ import LocalizedPeerData
 import ContextUI
 import TelegramBaseController
 import ProfileScreenUI
+import DivoGallery
 
 public final class ModelsFeedController: TelegramBaseController {
     private var controllerNode: ModelsFeedNode {
