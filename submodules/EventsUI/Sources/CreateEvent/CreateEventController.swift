@@ -251,8 +251,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             } catch {
                 await MainActor.run {
                     self.createEventNode.currentPhoto = nil
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToUploadAvatar
                     self.createEventNode.showSnackbar(
-                        message: DivoStrings.failedToUploadAvatar,
+                        message: userMsg,
                         style: .error
                     )
                 }
@@ -341,8 +342,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             } catch {
                 self.createEventNode.hideScreenLoading()
                 previewController?.toggleSaving(active: false)
-                previewController?.showSnackbar(message: DivoStrings.errorCreateUpdateEvent)
-                self.createEventNode.showSnackbar(message: error.localizedDescription, style: .error)
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.errorCreateUpdateEvent
+                previewController?.showSnackbar(message: userMsg)
+                self.createEventNode.showSnackbar(message: userMsg, style: .error)
             }
         }
     }
@@ -497,8 +499,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 self.createEventNode.setAvatarLoading(false)
             } catch {
                 self.createEventNode.setAvatarLoading(false)
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToUploadPhoto
                 self.createEventNode.showSnackbar(
-                    message: DivoStrings.failedToUploadPhoto,
+                    message: userMsg,
                     style: .error
                 )
             }
@@ -593,8 +596,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             } catch {
                 await MainActor.run {
                     self.createEventNode.cancelPhotoUpload(item: item)
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToUploadPhoto
                     self.createEventNode.showSnackbar(
-                        message: DivoStrings.failedToUploadPhoto,
+                        message: userMsg,
                         style: .error
                     )
                 }

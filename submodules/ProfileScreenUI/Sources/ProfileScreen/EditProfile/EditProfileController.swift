@@ -215,8 +215,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             } catch {
                 await MainActor.run {
                     self.loadingOverlay.hide()
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToDelete
                     self.editProfileNode.showSnackbar(
-                        message: DivoStrings.failedToDelete,
+                        message: userMsg,
                         style: .error
                     )
                 }
@@ -289,8 +290,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 self.editProfileNode.setAvatarLoading(false)
             } catch {
                 self.editProfileNode.setAvatarLoading(false)
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToUploadPhoto
                 self.editProfileNode.showSnackbar(
-                    message: DivoStrings.failedToUploadPhoto,
+                    message: userMsg,
                     style: .error
                 )
             }
@@ -323,8 +325,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
             } catch {
                 self.editProfileNode.toggleSaving(active: false)
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedProfileUpdated
                 self.editProfileNode.showSnackbar(
-                    message: DivoStrings.failedProfileUpdated,
+                    message: userMsg,
                     style: .error
                 )
             }
@@ -356,8 +359,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
             } catch {
                 self.editProfileNode.toggleSaving(active: false)
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedProfileUpdated
                 self.editProfileNode.showSnackbar(
-                    message: DivoStrings.failedProfileUpdated,
+                    message: userMsg,
                     style: .error
                 )
             }

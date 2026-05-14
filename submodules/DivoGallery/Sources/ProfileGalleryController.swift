@@ -135,8 +135,9 @@ public class ProfileGalleryController: TelegramBaseController {
                         )
                     }
                 } catch {
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToDelete
                     self.galleryNode.showSnackbar(
-                        message: DivoStrings.failedToDelete,
+                        message: userMsg,
                         style: .error
                     )
                 }

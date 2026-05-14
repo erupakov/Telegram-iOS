@@ -232,8 +232,9 @@ public final class EventDetailController: TelegramBaseController {
                 self.navigationController?.popViewController(animated: true)
                 
             } catch {
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToDelete
                 self.controllerNode.showSnackbar(
-                    message: DivoStrings.failedToDelete,
+                    message: userMsg,
                     style: .error
                 )
             }

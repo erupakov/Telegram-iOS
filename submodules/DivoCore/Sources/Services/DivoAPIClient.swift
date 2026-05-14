@@ -494,6 +494,26 @@ public enum DivoAPIError: Error, LocalizedError {
         case .unknown: return "Unknown API error"
         }
     }
+
+    /// Текст для пользователя из тела ошибки сервера (validation errors 4xx).
+    /// Собирает message + первое детальное сообщение из errors (`{"field": ["..."]}`),
+    /// чтобы пользователю было понятно, какое поле починить.
+    /// Возвращает nil, если это не httpError или body не парсится — caller подставляет fallback.
+    public var userFacingMessage: String? {
+        guard case .httpError(_, let body) = self,
+              let data = body.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode(ServerValidationError.self, from: data) else {
+            return nil
+        }
+        let detail = decoded.errors?.values.first?.first
+        let parts = [decoded.message, detail].compactMap { $0 }.filter { !$0.isEmpty }
+        return parts.isEmpty ? nil : parts.joined(separator: "\n")
+    }
+}
+
+private struct ServerValidationError: Decodable {
+    let message: String?
+    let errors: [String: [String]]?
 }
 
 private struct EmptyBody: Encodable {}
