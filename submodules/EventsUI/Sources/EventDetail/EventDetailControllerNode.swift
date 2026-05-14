@@ -781,12 +781,16 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     private func setupBackgroundAndScroll() {
         self.view.addSubview(backgroundImageView)
-        
+
+        // Cover-image — шапка экрана фиксированной высоты. Раньше backgroundImageView
+        // занимал весь экран и .scaleAspectFill обрезал картинку до середины горизонтальной
+        // полосы (вьюпорт узкий и высокий). Теперь ограничиваем высоту, чтобы aspect ratio
+        // области показа был близок к ratio самой картинки.
         NSLayoutConstraint.activate([
             backgroundImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
             backgroundImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             backgroundImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            backgroundImageView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            backgroundImageView.heightAnchor.constraint(equalToConstant: 360),
         ])
         
         self.view.addSubview(scrollView)
@@ -1062,7 +1066,15 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
         applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
-        
+
+        // Дедлайн — информативная пилюль с датой, важно показать целиком.
+        // applyButton может сжаться (truncate текста) — особенно в preview,
+        // где текст «Apply now (preview only)» длиннее.
+        eventDeadlineContainer.setContentCompressionResistancePriority(.required, for: .horizontal)
+        eventDeadlineContainer.setContentHuggingPriority(.required, for: .horizontal)
+        eventDeadlineLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        applyButton.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         contentViewStack.setCustomSpacing(24, after: container)
     }
     
@@ -1694,9 +1706,14 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         let (cStr, _) = formatEventDateAndTime(dateString: data.request.applicationDeadline)
         eventDeadlineLabel.text = DivoStrings.deadlineData(cStr)
-        
+        // Дедлайн — информационная пилюля, не интерактивная. В preview явно
+        // блокируем тапы, чтобы не было press-feedback'а на нажатие.
+        eventDeadlineContainer.isUserInteractionEnabled = false
+
+        // applyButton в preview оставляем визуально активной (как будет на боевом),
+        // но без интерактивности — нечего «подать заявку» на ещё не опубликованное событие.
         applyButton.makeDivoButton(title: DivoStrings.applyPreviewOnly, buttonFont: Font.helveticaNeue(14), radius: 18)
-        applyButton.isEnabled = false
+        applyButton.isUserInteractionEnabled = false
         
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)

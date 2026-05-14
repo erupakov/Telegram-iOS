@@ -96,6 +96,10 @@ public final class DivoButton: UIButton {
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = Self.cornerRadius
 
+        // Если текст не помещается — обрезаем с конца. Главное слово
+        // обычно идёт первым («Publish event» → «Publish ev…»).
+        titleLabel?.lineBreakMode = .byTruncatingTail
+
         contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right:  DivoDesignTokens.Spacing.m)
 
         let h = heightAnchor.constraint(equalToConstant: Self.buttonHeight)

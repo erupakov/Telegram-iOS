@@ -271,6 +271,66 @@ final class CreateEventNode: ASDisplayNode {
         FilterOptionItem(id: "new_face", title: DivoStrings.debugNewTalent),
         FilterOptionItem(id: "agency_employee", title: DivoStrings.debugAgency)
     ]
+
+    /// Универсальный разворот выбора multi-select filter'а под отправку на бэк.
+    /// Семантика FilterOptionsController: пустой selectedOptionIds = «Все»
+    /// (мастер-пункт подсвечивается). На бэке мастер-id «all» не существует —
+    /// разворачиваем пустой массив в полный список конкретных опций (всё, кроме first).
+    /// Сохраняем nil как nil («пользователь не открывал picker»).
+    private func resolvedSelection(_ ids: [String]?, options: [FilterOptionItem]) -> [String]? {
+        guard let ids = ids else { return nil }
+        if ids.isEmpty {
+            return options.dropFirst().map { $0.id }
+        }
+        return ids
+    }
+
+    /// Универсальный helper для открытия multi-select picker'а.
+    /// Загрузка: если currentIds == полный список конкретных id (например, в edit-mode
+    /// сервер вернул все роли) — передаём пустой selectedOptionIds, чтобы
+    /// FilterOptionsController подсветил мастер-пункт «Все».
+    /// Сохранение: пустой выбор → state = [] (= «Все») и title мастер-пункта,
+    /// иначе — массив id/title выбранных.
+    private func presentMultiSelectFilter(
+        title: String,
+        options: [FilterOptionItem],
+        currentIds: [String]?,
+        bind: @escaping ([String], [String]) -> Void
+    ) {
+        self.view.endEditing(true)
+        let concreteIds = Set(options.dropFirst().map { $0.id })
+        let isAllSelected = currentIds.map { !$0.isEmpty && Set($0) == concreteIds } ?? false
+        let selectedIds: [String] = isAllSelected ? [] : (currentIds ?? [])
+
+        let vc = FilterOptionsController(
+            title: title,
+            options: options,
+            selectedOptionIds: selectedIds,
+            isMultiSelect: true,
+            isOpenPresent: true,
+            isResetButton: false,
+        )
+        vc.onSave = { [weak self] selectedItems in
+            guard let self = self else { return }
+            // Если пользователь вручную выбрал все конкретные пункты — нормализуем
+            // в state «выбрано Всё» (empty + title мастер-пункта), чтобы dropdown
+            // в форме показал «Все», а не список из всех ролей.
+            let selectedIds = Set(selectedItems.map { $0.id })
+            let isAllExplicitlySelected = !selectedItems.isEmpty && selectedIds == concreteIds
+            let ids: [String]
+            let titles: [String]
+            if selectedItems.isEmpty || isAllExplicitlySelected {
+                ids = []
+                titles = [options.first?.title].compactMap { $0 }
+            } else {
+                ids = selectedItems.map { $0.id }
+                titles = selectedItems.map { $0.title }
+            }
+            bind(ids, titles)
+            self.updateDropdownsUI()
+        }
+        presentSheet(vc)
+    }
     
     private let maxParticipantsDropdown = FilterRowView(title: DivoStrings.maxParticipants)
     private var maxParticipants: Int?
@@ -1515,10 +1575,10 @@ final class CreateEventNode: ASDisplayNode {
             name: nameEventTextField.textField.text?.trimmingCharacters(in: .whitespaces),
             description: aboutEventTextField.text,
             date: dateString,
-            role: whoCanApplyIds,
+            role: resolvedSelection(whoCanApplyIds, options: roleOptions),
             maxAttendees: maxParticipants,
             requirements: requirementsTextField.text.trimmingCharacters(in: .whitespaces),
-            genderId: genderDropdownIds,
+            genderId: resolvedSelection(genderDropdownIds, options: genderOptions),
             genderTitle: genderDropdownTitles,
             age: selectedAge,
             height: selectedHeight,
@@ -1526,13 +1586,13 @@ final class CreateEventNode: ASDisplayNode {
             waist: selectedWaist,
             hips: selectedHips,
             shoeSize: selectedShoeSize,
-            hairLengthId: hairLengthDropdownIds?.compactMap { Int($0) } ?? [],
+            hairLengthId: resolvedSelection(hairLengthDropdownIds, options: hairLengthOptions)?.compactMap { Int($0) } ?? [],
             hairLengthTitle: hairLengthDropdownTitles,
-            hairColorId: hairColorDropdownIds?.compactMap { Int($0) } ?? [],
+            hairColorId: resolvedSelection(hairColorDropdownIds, options: hairColorOptions)?.compactMap { Int($0) } ?? [],
             hairColorTitle: hairColorDropdownTitles,
-            eyeColorId: eyeColorDropdownIds?.compactMap { Int($0) } ?? [],
+            eyeColorId: resolvedSelection(eyeColorDropdownIds, options: eyeColorOptions)?.compactMap { Int($0) } ?? [],
             eyeColorTitle: eyeColorDropdownTitles,
-            skinColorId: skinColorDropdownIds?.compactMap { Int($0) } ?? [],
+            skinColorId: resolvedSelection(skinColorDropdownIds, options: skinColorOptions)?.compactMap { Int($0) } ?? [],
             skinColorTitle: skinColorDropdownTitles,
             nda: ndaSwitch.isOn,
             deadlineDate: deadlineDateString,
@@ -1796,18 +1856,18 @@ final class CreateEventNode: ASDisplayNode {
             }
         }
         
-        let roles: [String]? = whoCanApplyIds
+        let roles = resolvedSelection(whoCanApplyIds, options: roleOptions)
         var ageRange: EventRangeRequest?
         var heightRange: EventRangeRequest?
         var weightRange: EventRangeRequest?
         var waistRange: EventRangeRequest?
         var hipsRange: EventRangeRequest?
         var shoesRange: EventRangeRequest?
-        let genders: [String]? = genderDropdownIds
-        let hairColors: [Int] = hairColorDropdownIds?.compactMap { Int($0) } ?? []
-        let hairLengths: [Int] = hairLengthDropdownIds?.compactMap { Int($0) } ?? []
-        let eyeColors: [Int] = eyeColorDropdownIds?.compactMap { Int($0) } ?? []
-        let skinColors: [Int] = skinColorDropdownIds?.compactMap { Int($0) } ?? []
+        let genders = resolvedSelection(genderDropdownIds, options: genderOptions)
+        let hairColors: [Int] = resolvedSelection(hairColorDropdownIds, options: hairColorOptions)?.compactMap { Int($0) } ?? []
+        let hairLengths: [Int] = resolvedSelection(hairLengthDropdownIds, options: hairLengthOptions)?.compactMap { Int($0) } ?? []
+        let eyeColors: [Int] = resolvedSelection(eyeColorDropdownIds, options: eyeColorOptions)?.compactMap { Int($0) } ?? []
+        let skinColors: [Int] = resolvedSelection(skinColorDropdownIds, options: skinColorOptions)?.compactMap { Int($0) } ?? []
         
         ageRange = EventRangeRequest(from: Float(selectedAge?.lowerBound ?? 0), to: Float(selectedAge?.upperBound ?? 0))
         heightRange = EventRangeRequest(from: Float(selectedHeight?.lowerBound ?? 0), to: Float(selectedHeight?.upperBound ?? 0))
@@ -1905,18 +1965,18 @@ final class CreateEventNode: ASDisplayNode {
             }
         }
         
-        let roles: [String]? = whoCanApplyIds
+        let roles = resolvedSelection(whoCanApplyIds, options: roleOptions)
         var ageRange: EventRangeRequest?
         var heightRange: EventRangeRequest?
         var weightRange: EventRangeRequest?
         var waistRange: EventRangeRequest?
         var hipsRange: EventRangeRequest?
         var shoesRange: EventRangeRequest?
-        let genders: [String]? = genderDropdownIds
-        let hairColors: [Int]? = hairColorDropdownIds?.map { Int($0) ?? 0 } ?? nil
-        let hairLengths: [Int]? = hairLengthDropdownIds?.map { Int($0) ?? 0 } ?? nil
-        let eyeColors: [Int]? = eyeColorDropdownIds?.map { Int($0) ?? 0 } ?? nil
-        let skinColors: [Int]? = skinColorDropdownIds?.map { Int($0) ?? 0 } ?? nil
+        let genders = resolvedSelection(genderDropdownIds, options: genderOptions)
+        let hairColors: [Int]? = resolvedSelection(hairColorDropdownIds, options: hairColorOptions)?.compactMap { Int($0) }
+        let hairLengths: [Int]? = resolvedSelection(hairLengthDropdownIds, options: hairLengthOptions)?.compactMap { Int($0) }
+        let eyeColors: [Int]? = resolvedSelection(eyeColorDropdownIds, options: eyeColorOptions)?.compactMap { Int($0) }
+        let skinColors: [Int]? = resolvedSelection(skinColorDropdownIds, options: skinColorOptions)?.compactMap { Int($0) }
         
         if let selectedAge = selectedAge {
             ageRange = EventRangeRequest(from: Float(selectedAge.lowerBound), to: Float(selectedAge.upperBound))
@@ -2278,53 +2338,25 @@ final class CreateEventNode: ASDisplayNode {
     }
     
     @objc private func roleTapped() {
-        self.view.endEditing(true)
-        let selectedIds = whoCanApplyIds ?? []
-        let vc = FilterOptionsController(
+        presentMultiSelectFilter(
             title: DivoStrings.whoCanApply,
             options: roleOptions,
-            selectedOptionIds: selectedIds,
-            isMultiSelect: true,
-            isOpenPresent: true,
-            isResetButton: false,
-        )
-        
-        vc.onSave = {[weak self] selectedItems in
-            if selectedItems.isEmpty {
-                self?.whoCanApplyIds = self?.roleOptions.dropFirst().map { $0.id }
-                self?.whoCanApplyTitles = self?.roleOptions.dropFirst().map { $0.title }
-            } else {
-                self?.whoCanApplyIds = selectedItems.map { $0.id }
-                self?.whoCanApplyTitles = selectedItems.map { $0.title }
-            }
-            self?.updateDropdownsUI()
+            currentIds: whoCanApplyIds
+        ) { [weak self] ids, titles in
+            self?.whoCanApplyIds = ids
+            self?.whoCanApplyTitles = titles
         }
-        presentSheet(vc)
     }
     
     @objc private func genderDropdownTapped() {
-        self.view.endEditing(true)
-        let selectedIds = genderDropdownIds ?? []
-        let vc = FilterOptionsController(
+        presentMultiSelectFilter(
             title: DivoStrings.gender,
             options: genderOptions,
-            selectedOptionIds: selectedIds,
-            isMultiSelect: true,
-            isOpenPresent: true,
-            isResetButton: false,
-        )
-        
-        vc.onSave = {[weak self] selectedItems in
-            if selectedItems.isEmpty {
-                self?.genderDropdownIds = self?.genderOptions.dropFirst().map { $0.id }
-                self?.genderDropdownTitles = self?.genderOptions.dropFirst().map { $0.title }
-            } else {
-                self?.genderDropdownIds = selectedItems.map { $0.id }
-                self?.genderDropdownTitles = selectedItems.map { $0.title }
-            }
-            self?.updateDropdownsUI()
+            currentIds: genderDropdownIds
+        ) { [weak self] ids, titles in
+            self?.genderDropdownIds = ids
+            self?.genderDropdownTitles = titles
         }
-        presentSheet(vc)
     }
     
     @objc private func rateTimeTapped() {
@@ -2356,103 +2388,47 @@ final class CreateEventNode: ASDisplayNode {
     }
     
     @objc private func hairLengthDropdownTapped() {
-        self.view.endEditing(true)
-        let selectedIds = hairLengthDropdownIds ?? []
-        let vc = FilterOptionsController(
-            title: DivoStrings.gender,
+        presentMultiSelectFilter(
+            title: DivoStrings.attrHairLength,
             options: hairLengthOptions,
-            selectedOptionIds: selectedIds,
-            isMultiSelect: true,
-            isOpenPresent: true,
-            isResetButton: false,
-        )
-        
-        vc.onSave = {[weak self] selectedItems in
-            if selectedItems.isEmpty {
-                self?.hairLengthDropdownIds = self?.hairLengthOptions.dropFirst().map { $0.id }
-                self?.hairLengthDropdownTitles = self?.hairLengthOptions.dropFirst().map { $0.title }
-            } else {
-                self?.hairLengthDropdownIds = selectedItems.map { $0.id }
-                self?.hairLengthDropdownTitles = selectedItems.map { $0.title }
-            }
-            self?.updateDropdownsUI()
+            currentIds: hairLengthDropdownIds
+        ) { [weak self] ids, titles in
+            self?.hairLengthDropdownIds = ids
+            self?.hairLengthDropdownTitles = titles
         }
-        presentSheet(vc)
     }
-    
+
     @objc private func hairColorDropdownTapped() {
-        self.view.endEditing(true)
-        let selectedIds = hairColorDropdownIds ?? []
-        let vc = FilterOptionsController(
-            title: DivoStrings.gender,
+        presentMultiSelectFilter(
+            title: DivoStrings.attrHairColor,
             options: hairColorOptions,
-            selectedOptionIds: selectedIds,
-            isMultiSelect: true,
-            isOpenPresent: true,
-            isResetButton: false,
-        )
-        
-        vc.onSave = {[weak self] selectedItems in
-            if selectedItems.isEmpty {
-                self?.hairColorDropdownIds = self?.hairColorOptions.dropFirst().map { $0.id }
-                self?.hairColorDropdownTitles = self?.hairColorOptions.dropFirst().map { $0.title }
-            } else {
-                self?.hairColorDropdownIds = selectedItems.map { $0.id }
-                self?.hairColorDropdownTitles = selectedItems.map { $0.title }
-            }
-            self?.updateDropdownsUI()
+            currentIds: hairColorDropdownIds
+        ) { [weak self] ids, titles in
+            self?.hairColorDropdownIds = ids
+            self?.hairColorDropdownTitles = titles
         }
-        presentSheet(vc)
     }
-    
+
     @objc private func eyeColorDropdownTapped() {
-        self.view.endEditing(true)
-        let selectedIds = eyeColorDropdownIds ?? []
-        let vc = FilterOptionsController(
-            title: DivoStrings.gender,
+        presentMultiSelectFilter(
+            title: DivoStrings.attrEyeColor,
             options: eyeColorOptions,
-            selectedOptionIds: selectedIds,
-            isMultiSelect: true,
-            isOpenPresent: true,
-            isResetButton: false,
-        )
-        
-        vc.onSave = {[weak self] selectedItems in
-            if selectedItems.isEmpty {
-                self?.eyeColorDropdownIds = self?.eyeColorOptions.dropFirst().map { $0.id }
-                self?.eyeColorDropdownTitles = self?.eyeColorOptions.dropFirst().map { $0.title }
-            } else {
-                self?.eyeColorDropdownIds = selectedItems.map { $0.id }
-                self?.eyeColorDropdownTitles = selectedItems.map { $0.title }
-            }
-            self?.updateDropdownsUI()
+            currentIds: eyeColorDropdownIds
+        ) { [weak self] ids, titles in
+            self?.eyeColorDropdownIds = ids
+            self?.eyeColorDropdownTitles = titles
         }
-        presentSheet(vc)
     }
     
     @objc private func skinColorDropdownTapped() {
-        self.view.endEditing(true)
-        let selectedIds = skinColorDropdownIds ?? []
-        let vc = FilterOptionsController(
-            title: DivoStrings.gender,
+        presentMultiSelectFilter(
+            title: DivoStrings.attrSkinColor,
             options: skinColorOptions,
-            selectedOptionIds: selectedIds,
-            isMultiSelect: true,
-            isOpenPresent: true,
-            isResetButton: false,
-        )
-        
-        vc.onSave = {[weak self] selectedItems in
-            if selectedItems.isEmpty {
-                self?.skinColorDropdownIds = self?.skinColorOptions.dropFirst().map { $0.id }
-                self?.skinColorDropdownTitles = self?.skinColorOptions.dropFirst().map { $0.title }
-            } else {
-                self?.skinColorDropdownIds = selectedItems.map { $0.id }
-                self?.skinColorDropdownTitles = selectedItems.map { $0.title }
-            }
-            self?.updateDropdownsUI()
+            currentIds: skinColorDropdownIds
+        ) { [weak self] ids, titles in
+            self?.skinColorDropdownIds = ids
+            self?.skinColorDropdownTitles = titles
         }
-        presentSheet(vc)
     }
     
     @objc private func maxParticipantsTapped() {
@@ -2515,7 +2491,10 @@ final class CreateEventNode: ASDisplayNode {
             isValid = hasPhoto && hasEventType && hasName && hasDesc && hasDate && hasTime && hasCountry
             
         case 2:
-            let hasRoles = !(whoCanApplyIds?.isEmpty ?? true)
+            // Пустой массив тоже валиден — означает выбор мастер-пункта «Все»
+            // (см. семантику FilterOptionsController). Невалидно только nil — когда
+            // пользователь ни разу не открывал picker.
+            let hasRoles = whoCanApplyIds != nil
             let hasMaxParticipants = maxParticipants != nil
             
             let reqText = requirementsTextField.textView.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
