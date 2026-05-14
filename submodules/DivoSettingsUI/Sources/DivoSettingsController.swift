@@ -81,6 +81,10 @@ public final class DivoSettingsController: TelegramBaseController {
         self.controllerNode.presentController = { [weak self] vc in
             self?.view.window?.rootViewController?.present(vc, animated: true)
         }
+
+        self.controllerNode.saveMeasuringSystem = { [weak self] measuring in
+            self?.handleSaveMeasuringSystem(with: measuring)
+        }
         
         self.displayNodeDidLoad()
     }
@@ -163,6 +167,24 @@ public final class DivoSettingsController: TelegramBaseController {
     private func reloadProfile() {
         isProfileLoaded = false
         loadProfileData()
+    }
+  
+    private func handleSaveMeasuringSystem(with rawData: String?) {
+        Task { @MainActor in
+            do {
+                let request = UpdateMeasuringSystemRequest(measuringSystem: rawData)
+                let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/update-profile",
+                    method: "POST",
+                    body: request
+                )
+            } catch {
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.failedMeasuringSystemUpdated,
+                    style: .error
+                )
+            }
+        }
     }
 }
 

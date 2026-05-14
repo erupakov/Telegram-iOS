@@ -94,14 +94,15 @@ final class DivoSettingsNode: ASDisplayNode {
     var onFillParametersTapped: (() -> Void)?
     var onLearnMoreTapped: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
+    var saveMeasuringSystem: ((String?) -> Void)?
 
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
     private var selectedMeasuringSystemId: String?
     private var selectedMeasuringSystemTitle: String?
     private let measuringSystem: [MeasuringOption] = [
-        MeasuringOption(id: "metric", title: "Metric"),
-        MeasuringOption(id: "imperial", title: "Imperial"),
+        MeasuringOption(id: "metric", title: DivoStrings.metric),
+        MeasuringOption(id: "imperial", title: DivoStrings.imperial),
     ]
 
     init(context: AccountContext) {
@@ -539,6 +540,7 @@ final class DivoSettingsNode: ASDisplayNode {
             if let selected = selectedItems.first {
                 self?.selectedMeasuringSystemId = selected.id
                 self?.selectedMeasuringSystemTitle = selected.title
+                self?.saveMeasuringSystem?(self?.selectedMeasuringSystemId)
             } else {
                 self?.selectedMeasuringSystemId = nil
                 self?.selectedMeasuringSystemTitle = nil
