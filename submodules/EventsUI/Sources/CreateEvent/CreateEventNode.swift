@@ -57,9 +57,19 @@ private struct AppearanceEditItem {
 }
 
 /// Основные режимы экрана
-enum CreateEventMode {
-    case create   // создание нового события
-    case edit     // редактирование существующего
+public enum CreateEventMode: Equatable {
+    case create                  // создание нового события
+    case edit(eventId: Int)      // редактирование существующего
+
+    public var isEdit: Bool {
+        if case .edit = self { return true }
+        return false
+    }
+
+    public var eventId: Int? {
+        if case .edit(let id) = self { return id }
+        return nil
+    }
 }
 
 /// Валидация шага (для enable/disable кнопки)
@@ -84,6 +94,9 @@ final class CreateEventNode: ASDisplayNode {
         didSet {
             if oldValue != mode {
                 self.containerLayoutUpdated(self.currentLayoutData?.0, navigationBarHeight: self.currentLayoutData?.1 ?? 0.0, actualNavigationBarHeight: self.currentLayoutData?.2 ?? 0.0)
+                // В edit-режиме внизу появляется второй кнопочный ряд (Discard),
+                // поэтому bottom-инсет шага 3 пересчитываем.
+                self.refreshStepBottomInsets()
             }
         }
     }
@@ -96,7 +109,6 @@ final class CreateEventNode: ASDisplayNode {
         }
     }
     
-    private var editingEventId: Int?
     private var hasLoadedInitialData: Bool = false
     
     // MARK: - State UI Elements
@@ -243,7 +255,7 @@ final class CreateEventNode: ASDisplayNode {
     
     private let avatarSpinner = DivoSegmentedSpinner()
     
-    private var eventTypeDropdown = FilterRowView(title: DivoStrings.eventType)
+    private var eventTypeDropdown = FilterRowView(title: DivoStrings.eventType + " *")
     private var eventTypeItems: [AgencyItem] = []
     private var eventTypeId: String?
     private var eventTypeTitle: String?
@@ -254,7 +266,7 @@ final class CreateEventNode: ASDisplayNode {
     private let eventDate: DateSelectionControl
     private let eventTime: DateSelectionControl
 
-    private let countryRow = FilterRowView(title: DivoStrings.debugCountry)
+    private let countryRow = FilterRowView(title: DivoStrings.debugCountry + " *")
     lazy var countryOptions: [FilterOptionItem] = {
         var options: [FilterOptionItem] = []
         options.append(contentsOf: CountryHelper.getAllCountries())
@@ -262,7 +274,7 @@ final class CreateEventNode: ASDisplayNode {
     }()
 
     // MARK: - Step 2 UI
-    private let whoCanApplyDropdown = FilterRowView(title: DivoStrings.whoCanApply)
+    private let whoCanApplyDropdown = FilterRowView(title: DivoStrings.whoCanApply + " *")
     private var whoCanApplyIds: [String]?
     private var whoCanApplyTitles: [String]?
     var roleOptions: [FilterOptionItem] = [
@@ -283,6 +295,19 @@ final class CreateEventNode: ASDisplayNode {
             return options.dropFirst().map { $0.id }
         }
         return ids
+    }
+
+    /// Восстанавливает массив title'ов из массива id с учётом семантики
+    /// FilterOptionsController: пустой массив id = «Все» → возвращаем title
+    /// мастер-пункта (первый элемент options).
+    private func restoreSelectionTitles(ids: [String]?, options: [FilterOptionItem]) -> [String]? {
+        guard let ids = ids else { return nil }
+        if ids.isEmpty {
+            return [options.first?.title].compactMap { $0 }
+        }
+        return ids.compactMap { id in
+            options.first(where: { $0.id == id })?.title
+        }
     }
 
     /// Универсальный helper для открытия multi-select picker'а.
@@ -332,7 +357,7 @@ final class CreateEventNode: ASDisplayNode {
         presentSheet(vc)
     }
     
-    private let maxParticipantsDropdown = FilterRowView(title: DivoStrings.maxParticipants)
+    private let maxParticipantsDropdown = FilterRowView(title: DivoStrings.maxParticipants + " *")
     private var maxParticipants: Int?
     
     private let requirementsTextField: DivoTextView
@@ -421,7 +446,7 @@ final class CreateEventNode: ASDisplayNode {
         let label = UILabel()
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.font = Font.regular(14)
-        label.text = DivoStrings.galleryCreateEvent
+        label.text = DivoStrings.galleryCreateEvent + " *"
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -612,7 +637,7 @@ final class CreateEventNode: ASDisplayNode {
 
         eventTime = DateSelectionControl(placeholder: Int32(Date().timeIntervalSince1970), localeIdentifier: DivoStrings.current.localeIdentifier, isTime: true)
  
-        self.requirementsTextField = DivoTextView(title: DivoStrings.requirementsCreateEvent, initialText: "", placeholder: DivoStrings.placeholderRequirementsCreateEvent)
+        self.requirementsTextField = DivoTextView(title: DivoStrings.requirementsCreateEvent + " *", initialText: "", placeholder: DivoStrings.placeholderRequirementsCreateEvent)
         self.requirementsTextField.textView.text = DivoStrings.placeholderRequirementsCreateEvent
         self.requirementsTextField.textView.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
 
@@ -849,6 +874,32 @@ final class CreateEventNode: ASDisplayNode {
         }
     }
     
+    /// Высота нижнего content-инсета для каждого шага.
+    /// Шаг 3 обязан полностью очищать кнопочный стек (apply [+ discard в edit] + margin от низа + padding),
+    /// иначе последние строки контента уходят под кнопки и сам жест скролла не зацепляется.
+    private func bottomInsetForStep(at index: Int) -> CGFloat {
+        guard index == 2 else { return 80 }
+        let buttonHeight: CGFloat = 56
+        let buttonsBottomMargin: CGFloat = 40
+        let buttonsExtraPadding: CGFloat = 32
+        let stackHeight: CGFloat = self.mode.isEdit
+            ? (buttonHeight + DivoDesignTokens.Spacing.m + buttonHeight)
+            : buttonHeight
+        return stackHeight + buttonsBottomMargin + buttonsExtraPadding
+    }
+
+    /// Обновляет bottom-инсет step-scroll'ов в соответствии с текущим mode.
+    /// Top-инсет управляется отдельно через containerLayoutUpdated.
+    private func refreshStepBottomInsets() {
+        let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
+        for (index, scroll) in scrolls.enumerated() {
+            var insets = scroll.contentInset
+            insets.bottom = bottomInsetForStep(at: index)
+            scroll.contentInset = insets
+            scroll.scrollIndicatorInsets = insets
+        }
+    }
+
     private func setupSteps() {
         let scrolls = [step1ScrollView, step2ScrollView, step3ScrollView]
         let stacks = [step1StackView, step2StackView, step3StackView]
@@ -857,10 +908,7 @@ final class CreateEventNode: ASDisplayNode {
             scrollView.translatesAutoresizingMaskIntoConstraints = false
             scrollView.showsVerticalScrollIndicator = false
             scrollView.keyboardDismissMode = .interactive
-            let bottomInset: CGFloat = (index == 2) ?
-            self.mode == .create ? 120 : 160
-            : 80
-            scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
+            scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInsetForStep(at: index), right: 0)
             
             let stack = stacks[index]
             stack.translatesAutoresizingMaskIntoConstraints = false
@@ -956,8 +1004,8 @@ final class CreateEventNode: ASDisplayNode {
         dateTimeRow.spacing = 12
         dateTimeRow.distribution = .fillEqually
         
-        dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventDate, inputView: eventDate))
-        dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventTime, inputView: eventTime))
+        dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventDate + " *", inputView: eventDate))
+        dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventTime + " *", inputView: eventTime))
         step1StackView.addArrangedSubview(dateTimeRow)
         dateTimeRow.heightAnchor.constraint(equalToConstant: 68).isActive = true
         
@@ -1347,13 +1395,13 @@ final class CreateEventNode: ASDisplayNode {
     private func updateHeaderAndButton() {
         navigationBar.setRightTitle(DivoStrings.stepCreateEvent(currentStep))
         if currentStep == 3 {
-            discardChangesButton.isHidden = self.mode == .edit ? false : true
+            discardChangesButton.isHidden = !self.mode.isEdit
             discardChangesButton.makeDivoButton(title: DivoStrings.discardChanges, divoButtonStyle: .secondary)
             discardChangesButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
-            
-            applyButton.makeDivoButton(title: self.mode == .edit ? DivoStrings.saveChanges : DivoStrings.previewEvent)
+
+            applyButton.makeDivoButton(title: self.mode.isEdit ? DivoStrings.saveChanges : DivoStrings.previewEvent)
             let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged || changeGallery
-            if self.mode == .edit {
+            if self.mode.isEdit {
                 self.hasChanges = hasChanges
             } else {
                 self.hasChanges = true
@@ -1727,6 +1775,100 @@ final class CreateEventNode: ASDisplayNode {
         }
     }
 
+    /// Дефолтные значения параметров шага 2: мультивыборы → «Все»
+    /// (мастер-пункт), диапазоны → полный диапазон, maxParticipants → 100.
+    /// В режиме создания вызывается с overrideExisting=true сразу после
+    /// загрузки словарей. В режиме редактирования — с overrideExisting=false
+    /// после populate, чтобы дозаполнить только те поля, что сервер вернул
+    /// пустыми/нулевыми.
+    func applyDefaultStep2Parameters(overrideExisting: Bool) {
+        applyDefaultMultiSelect(
+            ids: &whoCanApplyIds,
+            titles: &whoCanApplyTitles,
+            options: roleOptions,
+            overrideExisting: overrideExisting
+        )
+        applyDefaultMultiSelect(
+            ids: &genderDropdownIds,
+            titles: &genderDropdownTitles,
+            options: genderOptions,
+            overrideExisting: overrideExisting
+        )
+        applyDefaultMultiSelect(
+            ids: &hairLengthDropdownIds,
+            titles: &hairLengthDropdownTitles,
+            options: hairLengthOptions,
+            overrideExisting: overrideExisting
+        )
+        applyDefaultMultiSelect(
+            ids: &hairColorDropdownIds,
+            titles: &hairColorDropdownTitles,
+            options: hairColorOptions,
+            overrideExisting: overrideExisting
+        )
+        applyDefaultMultiSelect(
+            ids: &eyeColorDropdownIds,
+            titles: &eyeColorDropdownTitles,
+            options: eyeColorOptions,
+            overrideExisting: overrideExisting
+        )
+        applyDefaultMultiSelect(
+            ids: &skinColorDropdownIds,
+            titles: &skinColorDropdownTitles,
+            options: skinColorOptions,
+            overrideExisting: overrideExisting
+        )
+
+        if overrideExisting || maxParticipants == nil {
+            maxParticipants = 100
+        }
+
+        applyDefaultRange(range: &selectedAge, defaultRange: 16...70, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedHeight, defaultRange: 100...250, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedWeight, defaultRange: 40...120, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedWaist, defaultRange: 50...120, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedHips, defaultRange: 70...130, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedShoeSize, defaultRange: 25...38, overrideExisting: overrideExisting)
+
+        updateDropdownsUI()
+        updateAppearanceValues()
+    }
+
+    private func applyDefaultMultiSelect(
+        ids: inout [String]?,
+        titles: inout [String]?,
+        options: [FilterOptionItem],
+        overrideExisting: Bool
+    ) {
+        let isMissing = (ids == nil) || (ids?.isEmpty == true && titles?.isEmpty != false)
+        guard overrideExisting || isMissing else { return }
+        ids = []
+        titles = [options.first?.title].compactMap { $0 }
+    }
+
+    private func applyDefaultRange<T: AdditiveArithmetic & Comparable>(
+        range: inout ClosedRange<T>?,
+        defaultRange: ClosedRange<T>,
+        overrideExisting: Bool
+    ) {
+        let isMissing: Bool
+        if let current = range {
+            isMissing = current.lowerBound == .zero && current.upperBound == .zero
+        } else {
+            isMissing = true
+        }
+        guard overrideExisting || isMissing else { return }
+        range = defaultRange
+    }
+
+    /// Округляет значение слайдера до 2 знаков после запятой и конвертит в Float.
+    /// Слайдер выдаёт сырой Double (например, 76.79375 из интерполяции по позиции),
+    /// бэк ожидает аккуратные значения — режем хвост на границе сериализации.
+    private func rangeFloat(_ value: Double?) -> Float {
+        guard let value = value else { return 0 }
+        return Float((value * 100).rounded() / 100)
+    }
+
     // MARK: - Populate & Collect Data
     
     func updateTime(_ timestamp: Int32, _ mode: TimeControllerMode) {
@@ -1870,11 +2012,11 @@ final class CreateEventNode: ASDisplayNode {
         let skinColors: [Int] = resolvedSelection(skinColorDropdownIds, options: skinColorOptions)?.compactMap { Int($0) } ?? []
         
         ageRange = EventRangeRequest(from: Float(selectedAge?.lowerBound ?? 0), to: Float(selectedAge?.upperBound ?? 0))
-        heightRange = EventRangeRequest(from: Float(selectedHeight?.lowerBound ?? 0), to: Float(selectedHeight?.upperBound ?? 0))
-        weightRange = EventRangeRequest(from: Float(selectedWeight?.lowerBound ?? 0), to: Float(selectedWeight?.upperBound ?? 0))
-        waistRange = EventRangeRequest(from: Float(selectedWaist?.lowerBound ?? 0), to: Float(selectedWaist?.upperBound ?? 0))
-        hipsRange = EventRangeRequest(from: Float(selectedHips?.lowerBound ?? 0), to: Float(selectedHips?.upperBound ?? 0))
-        shoesRange = EventRangeRequest(from: Float(selectedShoeSize?.lowerBound ?? 0), to: Float(selectedShoeSize?.upperBound ?? 0))
+        heightRange = EventRangeRequest(from: rangeFloat(selectedHeight?.lowerBound), to: rangeFloat(selectedHeight?.upperBound))
+        weightRange = EventRangeRequest(from: rangeFloat(selectedWeight?.lowerBound), to: rangeFloat(selectedWeight?.upperBound))
+        waistRange = EventRangeRequest(from: rangeFloat(selectedWaist?.lowerBound), to: rangeFloat(selectedWaist?.upperBound))
+        hipsRange = EventRangeRequest(from: rangeFloat(selectedHips?.lowerBound), to: rangeFloat(selectedHips?.upperBound))
+        shoesRange = EventRangeRequest(from: rangeFloat(selectedShoeSize?.lowerBound), to: rangeFloat(selectedShoeSize?.upperBound))
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2
         let cost = rateTextField.text == "" ? nil : rateTextField.text
@@ -1982,19 +2124,19 @@ final class CreateEventNode: ASDisplayNode {
             ageRange = EventRangeRequest(from: Float(selectedAge.lowerBound), to: Float(selectedAge.upperBound))
         }
         if let selectedHeight = selectedHeight {
-            heightRange = EventRangeRequest(from: Float(selectedHeight.lowerBound), to: Float(selectedHeight.upperBound))
+            heightRange = EventRangeRequest(from: rangeFloat(selectedHeight.lowerBound), to: rangeFloat(selectedHeight.upperBound))
         }
         if let selectedWeight = selectedWeight {
-            weightRange = EventRangeRequest(from: Float(selectedWeight.lowerBound), to: Float(selectedWeight.upperBound))
+            weightRange = EventRangeRequest(from: rangeFloat(selectedWeight.lowerBound), to: rangeFloat(selectedWeight.upperBound))
         }
         if let selectedWaist = selectedWaist {
-            waistRange = EventRangeRequest(from: Float(selectedWaist.lowerBound), to: Float(selectedWaist.upperBound))
+            waistRange = EventRangeRequest(from: rangeFloat(selectedWaist.lowerBound), to: rangeFloat(selectedWaist.upperBound))
         }
         if let selectedHips = selectedHips {
-            hipsRange = EventRangeRequest(from: Float(selectedHips.lowerBound), to: Float(selectedHips.upperBound))
+            hipsRange = EventRangeRequest(from: rangeFloat(selectedHips.lowerBound), to: rangeFloat(selectedHips.upperBound))
         }
         if let selectedShoeSize = selectedShoeSize {
-            shoesRange = EventRangeRequest(from: Float(selectedShoeSize.lowerBound), to: Float(selectedShoeSize.upperBound))
+            shoesRange = EventRangeRequest(from: rangeFloat(selectedShoeSize.lowerBound), to: rangeFloat(selectedShoeSize.upperBound))
         }
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2
@@ -2030,8 +2172,8 @@ final class CreateEventNode: ASDisplayNode {
     }
     
     func populate(with detail: EventFullDetailData) {
-        
-        guard mode == .edit else {
+
+        guard mode.isEdit else {
             divoLog("⚠️ Попытка заполнить форму в режиме создания")
             return
         }
@@ -2113,9 +2255,14 @@ final class CreateEventNode: ASDisplayNode {
         
         publicEventSwitch.isOn = detail.isPublic ?? false
         
+        // Дозаполняем пустые/нулевые поля шага 2 дефолтами (мультивыборы → «Все»,
+        // диапазоны → полный диапазон). До снятия initialSnapshot, чтобы
+        // hasChanges не срабатывал на восстановленные дефолты.
+        applyDefaultStep2Parameters(overrideExisting: false)
+
         updateDropdownsUI()
         updateAppearanceValues()
-        
+
         // 6. Галерея и Обложка (Фотографии)
         if let files = detail.files {
             loadExistingFiles(files)
@@ -2127,18 +2274,19 @@ final class CreateEventNode: ASDisplayNode {
     // MARK: - Public State Methods
 
     /// Настройка режима экрана (вызывается перед показом)
-    func configure(mode: CreateEventMode, eventId: Int? = nil) {
+    func configure(mode: CreateEventMode) {
         self.mode = mode
-        self.editingEventId = eventId
-        
+
+        navigationBar.setTitle((mode.isEdit ? DivoStrings.editEvent : DivoStrings.createEvent).uppercased())
+
         // Обновляем UI в зависимости от режима
-        if mode == .edit {
+        if mode.isEdit {
             navigationBar.setRightTitle(DivoStrings.stepCreateEvent(currentStep))
             loadPhase = .loading
         } else {
             loadPhase = .ready // Для создания сразу показываем форму
         }
-        
+
         // Меняем заголовок кнопки на последнем шаге
         updateHeaderAndButton()
     }
@@ -2179,7 +2327,7 @@ final class CreateEventNode: ASDisplayNode {
     }
 
     @objc private func discardActionButtonTapped() {
-        guard mode == .edit else {
+        guard mode.isEdit else {
             divoLog("⚠️ Попытка заполнить форму в режиме создания")
             return
         }
@@ -2207,9 +2355,7 @@ final class CreateEventNode: ASDisplayNode {
         // НИЧЕГО НЕ ПРО СТРАНУ И НЕПОНЯТНО КАК ЗАПОЛНЯТЬ АДРЕС
         
         whoCanApplyIds = initialSnapshot?.role
-        whoCanApplyTitles = whoCanApplyIds?.compactMap { id in
-            roleOptions.first(where: { $0.id == id })?.title
-        }
+        whoCanApplyTitles = restoreSelectionTitles(ids: whoCanApplyIds, options: roleOptions)
         
         maxParticipants = initialSnapshot?.maxAttendees
         
@@ -2468,7 +2614,7 @@ final class CreateEventNode: ASDisplayNode {
     
     @objc private func validateCurrentStep() {
         // Если данные ещё не загружены (режим редактирования) — кнопка неактивна
-        if mode == .edit && loadPhase != .ready {
+        if mode.isEdit && loadPhase != .ready {
             applyButton.isEnabled = false
             return
         }

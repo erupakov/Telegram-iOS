@@ -119,7 +119,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     
     private func navigateToEditEvent(eventId: Int) {
         // Открываем CreateEventController в режиме редактирования
-        let editEventController = CreateEventController(context: self.context, eventId: eventId)
+        let editEventController = CreateEventController(context: self.context, mode: .edit(eventId: eventId))
         
         // Обновляем список событий после успешного сохранения
         editEventController.onEventCreated = { [weak self] in
@@ -807,16 +807,17 @@ extension PublicProfileScreenController {
                 )
 
                 let items = response.data.items
-                
+
                 if items.isEmpty {
                     await MainActor.run {
                         self.controllerNode.updateEventsList([])
                     }
                     return
                 }
-                
-                let detailedEvents = await fetchEventDetails(for: items.compactMap { $0.id })
-                let eventDataArray: [EventItem] = detailedEvents.map { item in
+
+                // EventListItem уже содержит все поля для карточки в списке
+                // (title/date/address/files), отдельный /event/{id} per item не нужен.
+                let eventDataArray: [EventItem] = items.map { item in
                     let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: item.date)
 
                     let city = item.address?.city?.name ?? DivoStrings.unknownCity
@@ -859,32 +860,6 @@ extension PublicProfileScreenController {
         }
     }
 
-    private func fetchEventDetails(for ids: [Int]) async -> [EventFullDetailData] {
-        return await withTaskGroup(of: EventFullDetailData?.self) { group in
-            for id in ids {
-                group.addTask {
-                    do {
-                        let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
-                            path: "/event/\(id)",
-                            method: "GET"
-                        )
-                        return response.data
-                    } catch {
-                        print("❌ [EVENT DETAIL] Error loading event \(id): \(error)")
-                        return nil
-                    }
-                }
-            }
-
-            var results: [EventFullDetailData] = []
-            for await detail in group {
-                if let validDetail = detail {
-                    results.append(validDetail)
-                }
-            }
-            return results
-        }
-    }
 
     private func deleteEvent(eventId: Int) {
         Task {

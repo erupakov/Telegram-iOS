@@ -207,7 +207,7 @@ public final class EventDetailController: TelegramBaseController {
     private func navigateToEditEvent() {
         guard let eventId = self.eventId else { return }
         
-        let editEventController = CreateEventController(context: self.context, eventId: eventId)
+        let editEventController = CreateEventController(context: self.context, mode: .edit(eventId: eventId))
         
         // Обновляем текущий экран после успешного редактирования и возврата
         editEventController.onEventCreated = { [weak self] in
