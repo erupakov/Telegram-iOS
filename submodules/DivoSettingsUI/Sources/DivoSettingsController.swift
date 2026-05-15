@@ -5,14 +5,13 @@ import SwiftSignalKit
 import AccountContext
 import TelegramPresentationData
 import TelegramBaseController
-import TelegramCore
+import AppBundle
 import DivoCore
 import DivoUIKit
-import AppBundle
 import ProfileScreenUI
 
 public final class DivoSettingsController: TelegramBaseController {
-    
+
     private var controllerNode: DivoSettingsNode {
         return self.displayNode as! DivoSettingsNode
     }
@@ -24,10 +23,11 @@ public final class DivoSettingsController: TelegramBaseController {
 
     private let context: AccountContext
     private var presentationData: PresentationData
-    
+
     private var userDetailData: UserDetail?
-    
     private var isProfileLoaded = false
+
+    private var notificationObservers: [NSObjectProtocol] = []
 
     public init(context: AccountContext) {
         self.context = context
@@ -41,43 +41,44 @@ public final class DivoSettingsController: TelegramBaseController {
         self.tabBarItem.image = settingsIcon
         self.tabBarItem.selectedImage = settingsIconSelected
 
-        NotificationCenter.default.addObserver(forName: DivoConfig.tokenDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self = self else { return }
-            self.reloadProfile()
-        }
-        NotificationCenter.default.addObserver(forName: DivoConfig.profileDidUpdateNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self = self else { return }
-            self.reloadProfile()
-        }
-
-        NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self = self else { return }
-            self.tabBarItem.title = DivoStrings.tabSettings
-        }
+        let center = NotificationCenter.default
+        notificationObservers.append(center.addObserver(forName: DivoConfig.tokenDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.reloadProfile()
+        })
+        notificationObservers.append(center.addObserver(forName: DivoConfig.profileDidUpdateNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.reloadProfile()
+        })
+        notificationObservers.append(center.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.tabBarItem.title = DivoStrings.tabSettings
+        })
     }
 
     required init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
+    deinit {
+        notificationObservers.forEach(NotificationCenter.default.removeObserver)
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = DivoSettingsNode(context: self.context)
-        
+
         self.controllerNode.onProfileTapped = { [weak self] in
             self?.openMyProfile()
         }
         self.controllerNode.onSetUsernameTapped = { [weak self] in
-            // TODO: open set username flow
+            // TODO(DIVO): open set username flow.
             _ = self
         }
         self.controllerNode.onFillParametersTapped = { [weak self] in
             self?.openMyParameters()
         }
-        self.controllerNode.onLearnMoreTapped = { [weak self] in
-            // TODO: open learn more
+        self.controllerNode.onQrTapped = { [weak self] in
+            // TODO(DIVO): open QR scanner.
             _ = self
         }
-        
+
         self.controllerNode.presentController = { [weak self] vc in
             self?.view.window?.rootViewController?.present(vc, animated: true)
         }
@@ -85,7 +86,7 @@ public final class DivoSettingsController: TelegramBaseController {
         self.controllerNode.saveMeasuringSystem = { [weak self] measuring in
             self?.handleSaveMeasuringSystem(with: measuring)
         }
-        
+
         self.displayNodeDidLoad()
     }
 
@@ -103,33 +104,29 @@ public final class DivoSettingsController: TelegramBaseController {
 
     // MARK: - Actions
 
-    @objc private func qrTapped() {
-        // TODO: open QR scanner
-    }
-
-    @objc private func editTapped() {
-        openMyProfile()
-    }
-
     private func openMyProfile() {
+        guard let user = userDetailData else { return }
         let profileModel = ProfileModel(
-            name: "",
-            age: 0,
+            name: user.fullName ?? "",
+            age: nil,
             location: "",
             isVerified: false,
             likesCount: "0",
             viewsCount: "0",
             savesCount: "0",
-            biography: "",
+            biography: user.model?.description ?? "",
             socialMediaHandles: [],
-            isMyProfile: true
+            isMyProfile: true,
+            userId: user.id,
+            role: user.role,
+            avatarImageURL: CDNURLHelper.convertToCDNURL(user.avatar?.fullUrl)
         )
         let profileController = PublicProfileScreenController(context: context, model: profileModel)
         if let nav = self.navigationController as? NavigationController {
             nav.pushViewController(profileController, animated: true)
         }
     }
-    
+
     private func openMyParameters() {
         let profileController = EditParametersController(context: context, userDetailData: self.userDetailData)
         profileController.delegate = self
@@ -137,22 +134,20 @@ public final class DivoSettingsController: TelegramBaseController {
             nav.pushViewController(profileController, animated: true)
         }
     }
-    
+
     private func loadProfileData() {
         self.controllerNode.markLoading()
-        
+
         Task { @MainActor in
             do {
-                let response: UserDetailResponse = try await DivoAPIClient.shared.request(
-                    path: "/user/info"
-                )
+                let response: UserDetailResponse = try await DivoAPIClient.shared.request(path: "/user/info")
                 self.isProfileLoaded = true
                 self.userDetailData = response.data
                 self.controllerNode.updateWithProfile(response.data)
             } catch {
                 self.controllerNode.markFailed()
                 self.controllerNode.showSnackbar(
-                    message: DivoStrings.failedLoadInteractionList, // Замените на вашу строку, например DivoStrings.serverUnavailable
+                    message: DivoStrings.failedLoadInteractionList,
                     style: .error,
                     retryAction: { [weak self] in
                         self?.controllerNode.hideSnackbar(animated: true)
@@ -163,12 +158,12 @@ public final class DivoSettingsController: TelegramBaseController {
             }
         }
     }
-    
+
     private func reloadProfile() {
         isProfileLoaded = false
         loadProfileData()
     }
-  
+
     private func handleSaveMeasuringSystem(with rawData: String?) {
         Task { @MainActor in
             do {
@@ -178,6 +173,7 @@ public final class DivoSettingsController: TelegramBaseController {
                     method: "POST",
                     body: request
                 )
+                self.reloadProfile()
             } catch {
                 self.controllerNode.showSnackbar(
                     message: DivoStrings.failedMeasuringSystemUpdated,
@@ -193,7 +189,7 @@ extension DivoSettingsController: EditParametersDelegate {
         self.reloadProfile()
 
         self.controllerNode.showSnackbar(
-            message: DivoStrings.prametersUpdated,
+            message: DivoStrings.parametersUpdated,
             style: .success
         )
     }

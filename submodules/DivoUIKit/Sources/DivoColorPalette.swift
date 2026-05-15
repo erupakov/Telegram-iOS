@@ -29,7 +29,7 @@ public enum DivoColorPalette {
     public static let secondaryText = UIColor(white: 153/255, alpha: 1) // #999999
     public static let disabledText = UIColor(white: 0.69, alpha: 1)     // #AFAFB1
     public static let primaryTextOnDark: UIColor = .white
-    public static let bannerSecondary: UIColor = UIColor(hexString: "#C3C3C3")!
+    public static let bannerSecondary = UIColor(white: 195/255, alpha: 1) // #C3C3C3
 
     // MARK: - Text (iOS system-like labels)
     /// #17181C — почти-чёрный header text на светлых экранах.
@@ -177,8 +177,8 @@ public enum DivoColorPalette {
     public static let settingsSecondaryText = UIColor(white: 0.45, alpha: 1)
     public static let settingsChevron = UIColor(white: 0.75, alpha: 1)
     public static let settingsBannerSubtitle = UIColor(white: 0.82, alpha: 1)
-    public static let settingsNameText = UIColor(hexString: "#000000")!
-    public static let settingsPhoneText = UIColor(hexString: "#7E7E82")!
+    public static let settingsNameText: UIColor = .black
+    public static let settingsPhoneText = UIColor(white: 126/255, alpha: 1) // #7E7E82
 
     // MARK: - Feed typography
     public static let feedTitleText = UIColor(white: 0.2, alpha: 1.0)
