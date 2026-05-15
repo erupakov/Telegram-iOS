@@ -425,10 +425,12 @@ final class DivoSettingsNode: ASDisplayNode {
     }
 
     func updateWithProfile(_ user: UserDetail) {
-        profileHeader.configure(fullUrl: user.avatar?.fullUrl, fullName: user.fullName, phone: user.phone)
+        let isAgency = Role(apiRole: user.role) == .agency
+        let headerName = isAgency ? user.agency?.title : user.fullName
+        let headerAvatar = isAgency ? user.agency?.photo?.fullUrl : user.avatar?.fullUrl
+        profileHeader.configure(fullUrl: headerAvatar, fullName: headerName, phone: user.phone)
         applyMeasuringSystem(user.measuringSystem)
 
-        let isAgency = Role(apiRole: user.role) == .agency
         parametersContainer.isHidden = isAgency
         usernameContainer.setSeparatorHidden(isAgency)
         measuringSystemContainer.isHidden = isAgency

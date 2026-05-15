@@ -118,6 +118,7 @@ public enum DivoImage {
     public static var tikTokIcon: UIImage { load("DivoTikTokIcon") }
     public static var timeIcon: UIImage { load("DivoTimeIcon") }
     public static var videoIcon: UIImage { load("DivoVideoIcon") }
+    public static var videoIconButton: UIImage { load("DivoVideoIconButton") }
     public static var webIcon: UIImage { load("DivoWebIcon") }
     public static var whitePlus: UIImage { load("DivoWhitePlus") }
     public static var youtubeIcon: UIImage { load("DivoYoutubeIcon") }

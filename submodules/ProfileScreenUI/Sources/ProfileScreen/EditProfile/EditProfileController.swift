@@ -44,7 +44,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         self.context = context
         self.userDetailData = userDetailData
         self.selectedIndex = selectedIndex
-        
         self.presentationData = presentationData
         
         super.init(navigationBarPresentationData: nil)
@@ -109,7 +108,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
     private func loadAppearanceDictionary() {
         self.editProfileNode.toggleSpinner(active: true)
-        
         Task { @MainActor in
             do {
                 let response: AppearanceDictionaryResponse = try await DivoAPIClient.shared.request(
@@ -169,12 +167,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     )
                 }
             }
-        }
-    }
-
-    private func fetchAgencyLogos(for items:[WorkHistoryItem]) {
-        AgencyLogoFetcher.fetch(for: items) { [weak self] itemId, url in
-            self?.editProfileNode.updateAgencyLogo(itemId: itemId, url: url)
         }
     }
     
@@ -317,7 +309,6 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "POST",
                     body: request
                 )
-                
 
                 self.delegate?.didUpdateProfileData()
                 NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)

@@ -142,12 +142,6 @@ public final class WorkExperienceController: TelegramBaseController {
         }
     }
     
-    private func fetchAgencyLogos(for items:[WorkHistoryItem]) {
-        AgencyLogoFetcher.fetch(for: items) { [weak self] itemId, url in
-            self?.controllerNode.updateAgencyLogo(itemId: itemId, url: url)
-        }
-    }
-
     override public func loadDisplayNode() {
         self.displayNode = WorkExperience(
             controller: self,
@@ -172,7 +166,7 @@ public final class WorkExperienceController: TelegramBaseController {
         }
 
         self.displayNodeDidLoad()
-        self.fetchData() 
+        self.fetchData()
     }
 
     private func editWorkExperience(_ item: WorkHistoryItem) {
@@ -256,4 +250,3 @@ extension WorkExperienceController: AddWorkExperienceDelegate {
         )
     }
 }
-

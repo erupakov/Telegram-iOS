@@ -86,7 +86,7 @@ final class EditProfileNode: ASDisplayNode {
     private lazy var segmentedControl: DivoSegmentedControl = {
         let control = DivoSegmentedControl(titles: [
             DivoStrings.biographyTitle,
-            DivoStrings.appearanceTitle,
+            DivoStrings.myParameters,
             DivoStrings.experienceTitle
         ])
         control.translatesAutoresizingMaskIntoConstraints = false
@@ -94,6 +94,20 @@ final class EditProfileNode: ASDisplayNode {
     }()
 
     private var selectedIndex: Int = 0
+
+    private let searchFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.cgColor,
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+            ]
+            gradient.locations = [0, 0.45]
+        }
+        return view
+    }()
     
     
     // MARK: - Swipe Pager
@@ -516,50 +530,57 @@ final class EditProfileNode: ASDisplayNode {
     
     private func setupUI() {
         view.addSubview(navigationBar)
-        
         view.addSubview(scrollView)
         scrollView.addSubview(mainStackView)
-        
+
         NSLayoutConstraint.activate([
             navigationBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-            
+
             mainStackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 20),
             mainStackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             mainStackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
             mainStackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -40),
             mainStackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
         ])
-        
+
         if model?.role != "agency_employee" {
-            setupTabs()
+            let segmentedControlView = UIView()
+            segmentedControlView.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(segmentedControlView)
+            segmentedControlView.addSubview(segmentedControl)
+            view.addSubview(searchFadeOverlay)
+
+            NSLayoutConstraint.activate([
+                segmentedControlView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: DivoDesignTokens.Spacing.l),
+                segmentedControlView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                segmentedControlView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+
+                segmentedControl.heightAnchor.constraint(equalToConstant: 32),
+                segmentedControl.leadingAnchor.constraint(equalTo: segmentedControlView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+                segmentedControl.trailingAnchor.constraint(equalTo: segmentedControlView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+                segmentedControl.topAnchor.constraint(equalTo: segmentedControlView.topAnchor),
+                segmentedControl.bottomAnchor.constraint(equalTo: segmentedControlView.bottomAnchor),
+
+                searchFadeOverlay.topAnchor.constraint(equalTo: segmentedControlView.bottomAnchor),
+                searchFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                searchFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                searchFadeOverlay.heightAnchor.constraint(equalToConstant: 60),
+
+                scrollView.topAnchor.constraint(equalTo: segmentedControlView.bottomAnchor)
+            ])
             setupPager()
         } else {
+            scrollView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor).isActive = true
             setupAgencyPager()
         }
 
         scrollView.delegate = self
-    }
-    
-    private func setupTabs() {
-
-        let segmentedControlView = UIView()
-        segmentedControlView.translatesAutoresizingMaskIntoConstraints = false
-        mainStackView.addArrangedSubview(segmentedControlView)
-
-        segmentedControlView.addSubview(segmentedControl)
-
-        segmentedControl.heightAnchor.constraint(equalToConstant: 32).isActive = true
-        segmentedControl.leadingAnchor.constraint(equalTo: segmentedControlView.leadingAnchor, constant: DivoDesignTokens.Spacing.m).isActive = true
-        segmentedControl.trailingAnchor.constraint(equalTo: segmentedControlView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
-        segmentedControl.topAnchor.constraint(equalTo: segmentedControlView.topAnchor).isActive = true
-        segmentedControl.bottomAnchor.constraint(equalTo: segmentedControlView.bottomAnchor).isActive = true
     }
     
     private func setupPager() {
@@ -1011,21 +1032,19 @@ final class EditProfileNode: ASDisplayNode {
             }
         } else {
             for (_, item) in workRawItems.enumerated() {
-                
                 let logoURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
-
-                let period = item.formattedPeriod
 
                 let wItem = WorkExperienceItem(
                     id: item.id,
                     companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
-                    period: period,
+                    period: item.formattedPeriod,
                     logoURL: logoURL
                 )
 
                 let cell = ExperienceView()
 
-                cell.configure(with: wItem, showOptions: true, loadImage: true)
+                let shouldLoadImmediately = logoURL != nil || item.agencyId == nil
+                cell.configure(with: wItem, showOptions: true, loadImage: shouldLoadImmediately)
                 
                 cell.onEditTapped = { [weak self] in
                     self?.onEditWorkExperience?(item)
@@ -1159,6 +1178,7 @@ final class EditProfileNode: ASDisplayNode {
                 agencyId: nil,
                 agencyName: name,
                 agencyDisplayName: name,
+                agencyAvatarLink: nil,
                 startDate: nil,
                 endDate: nil,
                 isCurrent: false
@@ -1168,23 +1188,7 @@ final class EditProfileNode: ASDisplayNode {
         updateWorkEmptyState()
         renderWorkList()
     }
-    
-    func updateAgencyLogo(itemId: Int, url: URL?) {
-        guard let cell = workExperienceCells[itemId],
-              let item = workRawItems.first(where: { $0.id == itemId }) else { return }
-        
-        let period = item.formattedPeriod
-        
-        let wItem = WorkExperienceItem(
-            id: item.id,
-            companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
-            period: period,
-            logoURL: url
-        )
-        
-        cell.configure(with: wItem, showOptions: true, loadImage: true)
-    }
-    
+
     @objc private func appearanceCellTapped(_ gesture: UITapGestureRecognizer) {
         guard let view = gesture.view, view.tag < appearanceEditItems.count else { return }
         appearanceEditItems[view.tag].onTap()
