@@ -17,18 +17,23 @@ private var pressHandlerKey: UInt8 = 0
 extension UIView {
 
     /// Добавляет стандартный press-state: alpha снижается при нажатии, восстанавливается при отпускании.
+    /// Опционально применяется и лёгкий scale — для list-row-ячеек на карточках.
     ///
-    /// Безопасен для scroll-контейнеров: при начале скролла жест отменяется и alpha возвращается.
+    /// Безопасен для scroll-контейнеров: при начале скролла жест отменяется и alpha/scale возвращаются.
     /// Не конфликтует с `UITapGestureRecognizer` — распознавание параллельное.
     ///
-    /// - Parameter alpha: alpha при нажатии. По умолчанию `PressState.alpha` (0.65) —
-    ///   для ячеек с прозрачным фоном используйте `PressState.alphaOnClear` (0.4).
-    public func addPressState(alpha: CGFloat = DivoDesignTokens.PressState.alpha) {
+    /// - Parameters:
+    ///   - alpha: alpha при нажатии. По умолчанию `PressState.alpha` (0.65) —
+    ///     для ячеек с прозрачным фоном используйте `PressState.alphaOnClear` (0.4).
+    ///   - scale: scale при нажатии. По умолчанию `1.0` (без scale). Для list-row-ячеек
+    ///     используйте `PressState.scaleListRow` (0.98).
+    public func addPressState(alpha: CGFloat = DivoDesignTokens.PressState.alpha, scale: CGFloat = 1.0) {
         guard objc_getAssociatedObject(self, &pressHandlerKey) == nil else { return }
 
         let handler = PressStateHandler()
         handler.targetView = self
         handler.pressAlpha = alpha
+        handler.pressScale = scale
 
         let press = UILongPressGestureRecognizer(target: handler, action: #selector(PressStateHandler.handlePress(_:)))
         press.minimumPressDuration = 0
@@ -65,6 +70,7 @@ extension UITableViewCell {
 private final class PressStateHandler: NSObject, UIGestureRecognizerDelegate {
     weak var targetView: UIView?
     var pressAlpha: CGFloat = DivoDesignTokens.PressState.alpha
+    var pressScale: CGFloat = 1.0
 
     @objc func handlePress(_ gesture: UILongPressGestureRecognizer) {
         guard let view = targetView else { return }
@@ -72,10 +78,14 @@ private final class PressStateHandler: NSObject, UIGestureRecognizerDelegate {
         case .began:
             UIView.animate(withDuration: DivoDesignTokens.PressState.pressDuration) {
                 view.alpha = self.pressAlpha
+                if self.pressScale != 1.0 {
+                    view.transform = CGAffineTransform(scaleX: self.pressScale, y: self.pressScale)
+                }
             }
         case .ended, .cancelled, .failed:
             UIView.animate(withDuration: DivoDesignTokens.PressState.releaseDuration) {
                 view.alpha = 1.0
+                view.transform = .identity
             }
         default:
             break
