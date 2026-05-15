@@ -10,6 +10,7 @@ public enum BackButtonConfiguration {
 public enum RightButtonConfiguration {
     case circle(UIColor, UIColor, UIImage, DivoButtonStyle)
     case text(String)
+    case onlyText(String)
 }
 
 public final class DivoNavigationBar: UIView {
@@ -81,6 +82,14 @@ public final class DivoNavigationBar: UIView {
         return btn
     }()
     
+    private let textRightLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(15)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
     public override init(frame: CGRect) {
         super.init(frame: frame)
         setup()
@@ -99,6 +108,7 @@ public final class DivoNavigationBar: UIView {
         addSubview(titleLabel)
         addSubview(circleRightButton)
         addSubview(textRightButton)
+        addSubview(textRightLabel)
 
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 50),
@@ -123,6 +133,10 @@ public final class DivoNavigationBar: UIView {
             textRightButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             textRightButton.centerYAnchor.constraint(equalTo: centerYAnchor),
             textRightButton.heightAnchor.constraint(equalToConstant: 40),
+            
+            textRightLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            textRightLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textRightLabel.heightAnchor.constraint(equalToConstant: 40),
         ])
     }
 
@@ -134,6 +148,10 @@ public final class DivoNavigationBar: UIView {
         textRightButton.isEnabled = isEnabled
     }
     
+    public func setRightTitle(_ title: String) {
+        textRightLabel.text = title
+    }
+    
     public func makeNavigationBar(
         title: String? = nil,
         font: UIFont? = Font.helveticaNeue(20),
@@ -141,7 +159,8 @@ public final class DivoNavigationBar: UIView {
         rightButtonConfiguration: RightButtonConfiguration? = nil,
         onBackTapped: (() -> Void)? = nil,
         onCircleRightTapped: (() -> Void)? = nil,
-        onCircleTextTapped: (() -> Void)? = nil
+        onCircleTextTapped: (() -> Void)? = nil,
+        menu: UIMenu? = nil
     ) {
         self.titleLabel.text = title
         self.titleLabel.font = font
@@ -169,6 +188,7 @@ public final class DivoNavigationBar: UIView {
         case .circle(let backgroundColor, let titleColor, let image, let style):
             circleRightButton.isHidden = false
             textRightButton.isHidden = true
+            textRightLabel.isHidden = true
             
             circleRightButton.setImage(image, for: .normal)
             circleRightButton.setImage(image, for: .highlighted)
@@ -178,16 +198,30 @@ public final class DivoNavigationBar: UIView {
             circleRightButton.addTarget(self, action: #selector(circleRightTapped), for: .touchUpInside)
             circleRightButton.addDivoPressState(style)
 
+            if #available(iOS 14.0, *) {
+                if let menu = menu {
+                    circleRightButton.adjustsImageWhenHighlighted = false
+                    circleRightButton.menu = menu
+                    circleRightButton.showsMenuAsPrimaryAction = true
+                }
+            }
         case .text(let title):
             circleRightButton.isHidden = true
             textRightButton.isHidden = false
+            textRightLabel.isHidden = true
             textRightButton.setTitle(title, for: .normal)
 
             textRightButton.addTarget(self, action: #selector(circleTextTapped), for: .touchUpInside)
             textRightButton.addDivoPressState(.text)
+        case .onlyText(let title):
+            circleRightButton.isHidden = true
+            textRightButton.isHidden = true
+            textRightLabel.isHidden = false
+            textRightLabel.text = title
         case .none:
             circleRightButton.isHidden = true
             textRightButton.isHidden = true
+            textRightLabel.isHidden = true
         }
         self.onBackTapped = onBackTapped
         self.onCircleRightTapped = onCircleRightTapped

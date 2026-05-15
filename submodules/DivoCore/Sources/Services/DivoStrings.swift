@@ -252,6 +252,7 @@ public enum DivoStrings {
     public static var errorUploadingVideos: String { L(en: "Couldn't add video", ru: "Не удалось добавить видео", es: "No se pudo agregar el video", pt: "Não foi possível adicionar o vídeo", zh: "无法添加视频") }
     public static var errorUpdateBackground: String { L(en: "Couldn't update profile background", ru: "Не удалось обновить фон профиля", es: "No se pudo actualizar el fondo del perfil", pt: "Não foi possível atualizar o fundo do perfil", zh: "无法更新个人资料背景") }
     public static var errorLoadingSimilarProfiles: String { L(en: "Couldn't find similar profiles", ru: "Не удалось найти похожие профили", es: "No se pudieron encontrar perfiles similares", pt: "Não foi possível encontrar perfis semelhantes", zh: "无法找到相似的个人资料") }
+    public static var deletePhoto: String { L(en: "Delete photo", ru: "Удалить фото", es: "Eliminar foto", pt: "Deletar foto", zh: "删除照片") }
 
     // MARK: - Units
 
@@ -284,10 +285,21 @@ public enum DivoStrings {
     public static var settingsEdit: String { L(en: "Edit", ru: "Ред.", es: "Editar", pt: "Editar", zh: "编辑") }
     public static var settingsSetUsername: String { L(en: "Set Username", ru: "Установить имя", es: "Establecer nombre", pt: "Definir nome", zh: "设置用户名") }
     public static var settingsFillParameters: String { L(en: "Fill your parameters", ru: "Заполните параметры", es: "Complete sus parámetros", pt: "Preencha seus parâmetros", zh: "填写您的参数") }
-    public static var settingsBannerTitle: String { L(en: "GET DISCOVERED IN THE FASHION WORLD", ru: "СТАНЬ ЗАМЕТНЫМ В МИРЕ МОДЫ", es: "HAZTE NOTAR EN EL MUNDO DE LA MODA", pt: "SEJA DESCOBERTO NO MUNDO DA MODA", zh: "在时尚界崭露头角") }
+    public static var settingsBannerTitle: String { L(en: "Get Discovered in the Fashion World", ru: "Будьте замечены в мире моды", es: "Hazte notar en el mundo de la moda", pt: "Seja descoberto no mundo da moda", zh: "在时尚界被发现") }
     public static var settingsBannerDescription: String { L(en: "Publish your profile as a model, join castings or add events as agency — be part of the global fashion network.", ru: "Опубликуйте профиль модели, участвуйте в кастингах или добавляйте события — станьте частью мировой fashion-сети.", es: "Publica tu perfil como modelo, únete a castings o añade eventos como agencia — forma parte de la red global de moda.", pt: "Publique seu perfil como modelo, participe de castings ou adicione eventos como agência — faça parte da rede global de moda.", zh: "发布您的模特资料，参加选角或作为经纪公司添加活动——成为全球时尚网络的一部分。") }
-    public static var settingsLearnMore: String { L(en: "LEARN MORE", ru: "УЗНАТЬ БОЛЬШЕ", es: "MÁS INFORMACIÓN", pt: "SAIBA MAIS", zh: "了解更多") }
+    public static var settingsLearnMore: String { L(en: "Learn More", ru: "Узнать больше", es: "Más información", pt: "Saiba mais", zh: "了解更多") }
+    public static var fillYourParameters: String { L(en: "Fill your parameters", ru: "Заполните параметры", es: "Completa tus parámetros", pt: "Preencha seus parâmetros", zh: "填写您的参数") }
+    public static var savedMessages: String { L(en: "Saved Messages", ru: "Сохранённые сообщения", es: "Mensajes guardados", pt: "Mensagens salvas", zh: "已保存的消息") }
+    public static var notificationsSounds: String { L(en: "Notifications and Sounds", ru: "Уведомления и звуки", es: "Notificaciones y sonidos", pt: "Notificações e sons", zh: "通知和声音") }
+    public static var privacySecurity: String { L(en: "Privacy and Security", ru: "Конфиденциальность и безопасность", es: "Privacidad y seguridad", pt: "Privacidade e segurança", zh: "隐私与安全") }
+    public static var dataStorage: String { L(en: "Data and Storage", ru: "Данные и хранилище", es: "Datos y almacenamiento", pt: "Dados e armazenamento", zh: "数据和存储") }
+    public static var language: String { L(en: "Language", ru: "Язык", es: "Idioma", pt: "Idioma", zh: "语言") }
+    public static var logOut: String { L(en: "Log out", ru: "Выйти", es: "Cerrar sesión", pt: "Sair", zh: "退出") }
+    public static var measuringSystem: String { L(en: "Measuring System", ru: "Система измерения", es: "Sistema de medición", pt: "Sistema de medição", zh: "测量系统") }
     public static var myParameters: String { L(en: "My Parameters", ru: "Мои параметры", es: "Mis parámetros", pt: "Meus parâmetros", zh: "我的参数") }
+    public static var saveParameters: String { L(en: "Save parameters", ru: "Сохранить параметры", es: "Guardar parámetros", pt: "Salvar parâmetros", zh: "保存参数") }
+    public static var metric: String { L(en: "Metric", ru: "Метрическая", es: "Métrico", pt: "Métrico", zh: "公制") }
+    public static var imperial: String { L(en: "Imperial", ru: "Имперская", es: "Imperial", pt: "Imperial", zh: "英制") }
 
     // MARK: - Common
 
@@ -304,11 +316,13 @@ public enum DivoStrings {
     public static var error: String { L(en: "Error", ru: "Ошибка", es: "Error", pt: "Erro", zh: "错误") }
     public static var search: String { L(en: "Search", ru: "Поиск", es: "Buscar", pt: "Buscar", zh: "搜索") }
     public static var apply: String { L(en: "Apply", ru: "Подать заявку", es: "Aplicar", pt: "Aplicar", zh: "申请") }
+    public static var applyNow: String { L(en: "Apply now", ru: "Подать заявку сейчас", es: "Aplicar ahora", pt: "Candidatar-se agora", zh: "立即申请") }
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...") }
     public static var continueButton: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }
     public static var notSet: String { L(en: "Not set", ru: "Не задано", es: "No establecido", pt: "Não definido", zh: "未设置") }
-
+    public static var discardChanges: String { L(en: "Discard changes", ru: "Отменить изменения", es: "Descartar cambios", pt: "Descartar alterações", zh: "放弃更改") }
+    
     public static func xOfY(_ x: Int, _ y: Int) -> String {
         L(en: "\(x) of \(y)", ru: "\(x) из \(y)", es: "\(x) de \(y)", pt: "\(x) de \(y)", zh: "\(x) / \(y)")
     }
@@ -334,9 +348,12 @@ public enum DivoStrings {
     public static var editSocialLinks: String { L(en: "EDIT SOCIAL LINKS", ru: "РЕДАКТИРОВАТЬ ССЫЛКИ", es: "EDITAR REDES SOCIALES", pt: "EDITAR REDES SOCIAIS", zh: "编辑社交链接") }
     public static var enterYourWebsite: String { L(en: "Enter your website", ru: "Введите ваш сайт", es: "Ingrese su sitio web", pt: "Insira seu site", zh: "输入您的网站") }
     public static var socialLinksUpdated: String { L(en: "Social links updated", ru: "Ссылки обновлены", es: "Enlaces actualizados", pt: "Links atualizados", zh: "社交链接已更新") }
+    public static var parametersUpdated: String { L(en: "Parameters updated", ru: "Параметры обновлены", es: "Parámetros actualizados", pt: "Parâmetros atualizados", zh: "参数已更新") }
     public static var failedLinksUpdated: String { L(en: "Couldn't update social links", ru: "Не удалось обновить ссылки на соцсети", es: "No se pudieron actualizar los enlaces sociales", pt: "Não foi possível atualizar os links sociais", zh: "无法更新社交链接") }
     public static var profileUpdated: String { L(en: "Profile updated", ru: "Профиль обновлён", es: "Perfil actualizado", pt: "Perfil atualizado", zh: "个人资料已更新") }
     public static var failedProfileUpdated: String { L(en: "Couldn't update profile", ru: "Не удалось обновить профиль", es: "No se pudo actualizar el perfil", pt: "Não foi possível atualizar o perfil", zh: "无法更新个人资料") }
+    public static var failedParametersUpdated: String { L(en: "Couldn't update parameters", ru: "Не удалось обновить параметры", es: "No se pudieron actualizar los parámetros", pt: "Não foi possível atualizar os parâmetros", zh: "无法更新参数") }
+    public static var failedMeasuringSystemUpdated: String { L(en: "Failed to update the measurement system", ru: "Не удалось обновить систему измерения", es: "Error al actualizar el sistema de medición", pt: "Falha ao atualizar o sistema de medição", zh: "更新测量系统失败") }
     public static var failedToLoadAppearance: String { L(en: "Failed to load appearance options.", ru: "Не удалось загрузить параметры внешности.", es: "Error al cargar las opciones de apariencia.", pt: "Falha ao carregar as opções de aparência.", zh: "无法加载外观选项。") }
     public static var failedToUploadPhoto: String { L(en: "Failed to upload photo", ru: "Не удалось загрузить фото", es: "Error al subir la foto", pt: "Falha ao enviar a foto", zh: "上传照片失败") }
     public static var similarProfiles: String { L(en: "You may be interested in similar profiles", ru: "Вам могут быть интересны похожие профили", es: "Perfiles similares que podrían interesarle", pt: "Perfis semelhantes que podem interessar", zh: "您可能感兴趣的类似资料") }
@@ -482,6 +499,25 @@ public enum DivoStrings {
     public static var from: String { L(en: "From", ru: "От", es: "Desde", pt: "De", zh: "从") }
     public static var to: String { L(en: "To", ru: "До", es: "Hasta", pt: "Até", zh: "到") }
     public static var applyFilter: String { L(en: "Apply filter", ru: "Применить фильтр", es: "Aplicar filtro", pt: "Aplicar filtro", zh: "应用筛选") }
+    public static var whoCanApply: String { L(en: "Who can apply", ru: "Кто может подать заявку", es: "Quién puede aplicar", pt: "Quem pode se inscrever", zh: "谁可以申请") }
+    public static var maxParticipants: String { L(en: "Max participants", ru: "Макс. участников", es: "Máx. participantes", pt: "Máx. participantes", zh: "最大参与人数") }
+    public static var descriptionCreateEvent: String { L(en: "Description *", ru: "Описание *", es: "Descripción *", pt: "Descrição *", zh: "描述 *") }
+    public static var placeholderDescriptionCreateEvent: String { L(en: "Description about event", ru: "Описание события", es: "Descripción del evento", pt: "Descrição do evento", zh: "活动描述") }
+    public static var requirementsCreateEvent: String { L(en: "Requirements", ru: "Требования", es: "Requisitos", pt: "Requisitos", zh: "要求") }
+    public static var placeholderRequirementsCreateEvent: String { L(en: "Description about requirements", ru: "Описание требований", es: "Descripción de requisitos", pt: "Descrição dos requisitos", zh: "要求描述") }
+    public static var ndaRequiredCreateEvent: String { L(en: "NDA required", ru: "Требуется NDA", es: "NDA requerido", pt: "NDA obrigatório", zh: "需要保密协议") }
+    public static var deadlineDate: String { L(en: "Application deadline date *", ru: "Дата окончания приема заявок *", es: "Fecha límite de solicitud *", pt: "Data limite para inscrição *", zh: "申请截止日期 *") }
+    public static var deadlineTime: String { L(en: "Application deadline time *", ru: "Время окончания приема заявок *", es: "Hora límite de solicitud *", pt: "Horário limite para inscrição *", zh: "申请截止时间 *") }
+    public static var rate: String { L(en: "Rate", ru: "Ставка", es: "Tarifa", pt: "Taxa", zh: "费率") }
+    public static var rateTime: String { L(en: "Rate time", ru: "Время ставки", es: "Tiempo de tarifa", pt: "Tempo da taxa", zh: "费率时间") }
+    public static var publicEvent: String { L(en: "Public event", ru: "Публичное мероприятие", es: "Evento público", pt: "Evento público", zh: "公开活动") }
+    public static var visibleAllUsers: String { L(en: "Visible to all users", ru: "Видно всем пользователям", es: "Visible para todos los usuarios", pt: "Visível para todos os usuários", zh: "对所有用户可见") }
+    public static var galleryCreateEvent: String { L(en: "Events Photo Gallery", ru: "Фотогалерея событий", es: "Galería de fotos de eventos", pt: "Galeria de fotos de eventos", zh: "活动照片画廊") }
+    public static var eventName: String { L(en: "Event name *", ru: "Название события *", es: "Nombre del evento *", pt: "Nome do evento *", zh: "活动名称 *") }
+    public static var addPhotoEvent: String { L(en: "Upload event photos", ru: "Загрузить фото события", es: "Subir fotos del evento", pt: "Carregar fotos do evento", zh: "上传活动照片") }
+    public static var paidEvent: String { L(en: "Paid event", ru: "Платное мероприятие", es: "Evento de pago", pt: "Evento pago", zh: "付费活动") }
+    public static var previewEvent: String { L(en: "Preview", ru: "Предпросмотр", es: "Vista previa", pt: "Pré-visualização", zh: "预览") }
+    public static func stepCreateEvent(_ currentStep: Int) -> String { L(en: "Step \(currentStep)/3", ru: "Шаг \(currentStep)/3", es: "Paso \(currentStep)/3", pt: "Passo \(currentStep)/3", zh: "步骤 \(currentStep)/3") }
 
     // MARK: - Models Feed
 
@@ -549,6 +585,7 @@ public enum DivoStrings {
     public static var profileTabErrorTitleChannels: String { L(en: "Couldn't load channels", ru: "Не удалось загрузить каналы", es: "No se pudieron cargar canales", pt: "Não foi possível carregar canais", zh: "无法加载频道") }
     public static var profileTabErrorTitleModels: String { L(en: "Couldn't load models", ru: "Не удалось загрузить модели", es: "No se pudieron cargar modelos", pt: "Não foi possível carregar modelos", zh: "无法加载模特") }
     public static var profileTabErrorTitleEvents: String { L(en: "Couldn't load events", ru: "Не удалось загрузить события", es: "No se pudieron cargar eventos", pt: "Não foi possível carregar eventos", zh: "无法加载活动") }
+    public static var eventDetailErrorTitle: String { L(en: "Couldn't load event", ru: "Не удалось загрузить событие", es: "No se pudo cargar el evento", pt: "Não foi possível carregar o evento", zh: "无法加载活动") }
     public static var profileTabErrorNetworkTitle: String { L(en: "No internet connection", ru: "Нет подключения к интернету", es: "Sin conexión a internet", pt: "Sem conexão com a internet", zh: "无网络连接") }
     public static var profileTabErrorSubtitle: String { L(en: "Check your connection\nand try again.", ru: "Проверьте подключение\nи попробуйте снова.", es: "Verifique su conexión\ne inténtelo de nuevo.", pt: "Verifique sua conexão\ne tente novamente.", zh: "请检查您的连接\n并重试。") }
     public static var profileSaved: String { L(en: "Saved", ru: "Сохранено", es: "Guardado", pt: "Salvo", zh: "已保存") }
@@ -656,22 +693,34 @@ public enum DivoStrings {
     public static var unknownError: String { L(en: "Unknown error", ru: "Неизвестная ошибка", es: "Error desconocido", pt: "Erro desconhecido", zh: "未知错误") }
     public static var failedToLoadEventData: String { L(en: "Failed to load event data", ru: "Не удалось загрузить данные события", es: "Error al cargar datos del evento", pt: "Falha ao carregar dados do evento", zh: "无法加载活动数据") }
     public static var failedToUploadCover: String { L(en: "Failed to upload cover photo", ru: "Не удалось загрузить обложку", es: "Error al subir la foto de portada", pt: "Falha ao enviar a foto de capa", zh: "上传封面照片失败") }
+    public static var failedToUploadAvatar: String { L(en: "Couldn't upload avatar", ru: "Не удалось загрузить аватар", es: "No se pudo subir el avatar", pt: "Não foi possível carregar o avatar", zh: "无法上传头像") }
     public static var unknownCity: String { L(en: "Unknown city", ru: "Неизвестный город", es: "Ciudad desconocida", pt: "Cidade desconhecida", zh: "未知城市") }
     public static var tbd: String { L(en: "TBD", ru: "Уточняется", es: "Por definir", pt: "A definir", zh: "待定") }
     public static var eventFallbackName: String { L(en: "Event", ru: "Событие", es: "Evento", pt: "Evento", zh: "活动") }
     public static var roleFallbackUser: String { L(en: "User", ru: "Пользователь", es: "Usuario", pt: "Usuário", zh: "用户") }
     public static var failedToUpdateEvent: String { L(en: "Failed to update event", ru: "Не удалось обновить событие", es: "Error al actualizar el evento", pt: "Falha ao atualizar o evento", zh: "更新活动失败") }
     public static var failedToCreateEvent: String { L(en: "Failed to create event", ru: "Не удалось создать событие", es: "Error al crear el evento", pt: "Falha ao criar o evento", zh: "创建活动失败") }
-
     public static var addShort: String { L(en: "+ Add", ru: "+ Добавить", es: "+ Agregar", pt: "+ Adicionar", zh: "+ 添加") }
+    public static var addOnlyTextShort: String { L(en: "Add", ru: "Добавить", es: "Agregar", pt: "Adicionar", zh: "添加") }
     public static var searchPlaceholder: String { L(en: "Search...", ru: "Поиск...", es: "Buscar...", pt: "Buscar...", zh: "搜索...") }
-
     public static func nSelected(_ n: Int) -> String {
         L(en: "\(n) selected", ru: "\(n) выбрано", es: "\(n) seleccionados", pt: "\(n) selecionados", zh: "已选\(n)项")
     }
-
     public static var emptyTitleAddEvent: String { L(en: "There are no upcoming\nevents at the moment.", ru: "Пока нет предстоящих\nсобытий", es: "No hay eventos\npróximos en este momento", pt: "Não há eventos\nfuturos no momento", zh: "目前暂无即将举行的活动") }
     public static var emptySubTitleAddEvent: String { L(en: "Check back later or create\na new one", ru: "Загляните позже или\nсоздайте новое", es: "Vuelve más tarde o\ncrea uno nuevo", pt: "Volte mais tarde ou\ncrie um novo", zh: "稍后再试或创建新活动") }
+    public static var editEvent: String { L(en: "Edit event", ru: "Редактировать событие", es: "Editar evento", pt: "Editar evento", zh: "编辑活动") }
+    public static var closeApplications: String { L(en: "Close applications", ru: "Закрыть подачу заявок", es: "Cerrar inscripciones", pt: "Encerrar inscrições", zh: "关闭申请") }
+    public static var cancelEvent: String { L(en: "Cancel event", ru: "Отменить событие", es: "Cancelar evento", pt: "Cancelar evento", zh: "取消活动") }
+    public static var publishEvent: String { L(en: "Publish event", ru: "Опубликовать событие", es: "Publicar evento", pt: "Publicar evento", zh: "发布活动") }
+    public static var applyPreviewOnly: String { L(en: "Apply now (preview only)", ru: "Подать заявку (только предпросмотр)", es: "Aplicar ahora (solo vista previa)", pt: "Candidatar-se agora (apenas visualização)", zh: "立即申请（仅预览）") }
+    public static func closesData(_ data: String) -> String { L(en: "Closes: \(data)", ru: "Закрытие: \(data)", es: "Cierre: \(data)", pt: "Encerramento: \(data)", zh: "截止: \(data)") }
+    public static var viewEventPage: String { L(en: "View event page", ru: "Просмотр страницы события", es: "Ver página del evento", pt: "Ver página do evento", zh: "查看活动页面") }
+    public static var manageApplications: String { L(en: "Manage applications", ru: "Управление заявками", es: "Gestionar solicitudes", pt: "Gerenciar candidaturas", zh: "管理申请") }
+    public static var subtitleCreateEvent: String { L(en: "Fashion model event is now\nvisible to all users", ru: "Событие для фешн-моделей теперь\nвидно всем пользователям", es: "El evento de modelos de moda ahora\nes visible para todos los usuarios", pt: "O evento de modelo de moda agora\nestá visível para todos os usuários", zh: "时尚模特活动现在\n对所有用户可见") }
+    public static var titleCreateEvent: String { L(en: "Your event is live!", ru: "Ваше событие опубликовано!", es: "¡Tu evento está en vivo!", pt: "Seu evento está no ar!", zh: "您的活动已上线！") }
+    public static var errorCreateUpdateEvent: String { L(en: "Couldn't post event", ru: "Не удалось опубликовать событие", es: "No se pudo publicar el evento", pt: "Não foi possível publicar o evento", zh: "无法发布活动") }
+    public static var chooseEvent: String { L(en: "Choose an event", ru: "Выберите событие", es: "Elige un evento", pt: "Escolha um evento", zh: "选择一个活动") }
+    public static var you: String { L(en: "@you", ru: "@вы", es: "@tú", pt: "@você", zh: "@你") }
 
     // MARK: - Event Parameter Titles
 
@@ -687,6 +736,9 @@ public enum DivoStrings {
     public static var paramHairColor: String { L(en: "Hair color", ru: "Цвет волос", es: "Color de cabello", pt: "Cor do cabelo", zh: "发色") }
     public static var paramEyeColor: String { L(en: "Eye color", ru: "Цвет глаз", es: "Color de ojos", pt: "Cor dos olhos", zh: "眼色") }
     public static var paramSkinColor: String { L(en: "Skin color", ru: "Цвет кожи", es: "Color de piel", pt: "Cor da pele", zh: "肤色") }
+    public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)") }
+    public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
+    public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
 
     // MARK: - Helpers
 

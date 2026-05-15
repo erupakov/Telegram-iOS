@@ -227,6 +227,14 @@ public extension Double {
     }
 }
 
+public struct UpdateMeasuringSystemRequest: Encodable {
+    public let measuringSystem: String?
+
+    public init(measuringSystem: String? = nil) {
+        self.measuringSystem = measuringSystem
+    }
+}
+
 public struct UpdateBiographyPageRequest: Encodable {
     public let fullName: String?
     public let gender: String?

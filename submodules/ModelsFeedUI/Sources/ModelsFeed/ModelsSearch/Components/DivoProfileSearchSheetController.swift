@@ -205,9 +205,10 @@ final class DivoProfileSearchSheetController: UIViewController {
             } catch {
                 if Task.isCancelled { return }
                 self.loader.stopAnimating()
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.feedSearchResultsLoadFailed
                 self.snackbar.show(
                     in: self.view,
-                    message: DivoStrings.feedSearchResultsLoadFailed,
+                    message: userMsg,
                     style: .error,
                     bottomInset: DivoDesignTokens.Spacing.m,
                     bottomAnchor: self.view.safeAreaLayoutGuide.bottomAnchor,

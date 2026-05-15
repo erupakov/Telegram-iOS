@@ -11,6 +11,13 @@ import AccountContext
 import AppBundle
 import TelegramBaseController
 import DivoUIKit
+import DivoGallery
+
+public struct EventPreviewData {
+    public let request: CreateEventPreview
+    public let coverImage: UIImage?
+    public let gallery: [UserPhoto]
+}
 
 public final class EventDetailController: TelegramBaseController {
 
@@ -19,41 +26,35 @@ public final class EventDetailController: TelegramBaseController {
     }
 
     private let getEventDisposable = MetaDisposable()
-    private var customBackSwipeGestureRecognizer: UIScreenEdgePanGestureRecognizer?
-
-    private var eventData: EventData
+    private var eventId: Int?
+    private var eventData: EventFullDetailData?
     private let context: AccountContext
-    private var presentationData: PresentationData
+    private let isMyEvent: Bool?
+    
+    // Массив для хранения распарсенных фотографий галереи
+    internal var currentGalleryPhotos: [UserPhoto] = []
+    private weak var activeGalleryController: ProfileGalleryController?
 
-    private var navigationBarIsTransparent = true
+    // Свойства для Preview режима
+    private let isPreviewMode: Bool
+    private let previewData: EventPreviewData?
+    public var onPublishConfirmed: (() -> Void)?
+    public var onEventModified: (() -> Void)?
 
-    public init(context: AccountContext, eventData: EventData) {
+    public init(
+        context: AccountContext,
+        eventId: Int? = nil,
+        isMyEvent: Bool? = nil,
+        isPreviewMode: Bool = false,
+        previewData: EventPreviewData? = nil
+    ) {
         self.context = context
-        self.eventData = eventData
-        self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        self.eventId = eventId
+        self.isMyEvent = isMyEvent
+        self.isPreviewMode = isPreviewMode
+        self.previewData = previewData
 
-        let darkNavigationTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: .white,
-            disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
-            primaryTextColor: .white,
-            backgroundColor: .clear,
-            opaqueBackgroundColor: .clear,
-            enableBackgroundBlur: false,
-            separatorColor: .clear,
-            badgeBackgroundColor: .clear,
-            badgeStrokeColor: .clear,
-            badgeTextColor: .clear
-        )
-
-        let navigationBarData = NavigationBarPresentationData(theme: darkNavigationTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings))
-
-        super.init(
-            context: context,
-            navigationBarPresentationData: navigationBarData
-        )
-
-        updateNavigation()
+        super.init(context: context, navigationBarPresentationData: nil)
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -64,115 +65,220 @@ public final class EventDetailController: TelegramBaseController {
         self.getEventDisposable.dispose()
     }
 
-    private func updateNavigation() {
-        self.statusBar.statusBarStyle = .White
+    override public func loadDisplayNode() {
+        self.displayNode = EventDetailControllerNode(
+            context: self.context,
+            isMyEvent: self.isMyEvent ?? false,
+            isPreviewMode: self.isPreviewMode
+        )
+        
+        // Перехватываем действия из кастомного навбара
+        self.controllerNode.onBackTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
+        
+        self.controllerNode.onShareTapped = {[weak self] in
+            self?.sharePressed()
+        }
+        
+        self.controllerNode.onBookmarkTapped = {[weak self] in
+            self?.bookmarkPressed()
+        }
+        
+        self.controllerNode.onApplyTapped = {[weak self] in
+            self?.applyPressed()
+        }
+        
+        self.controllerNode.onGalleryItemTapped = { [weak self] fileUuid in
+            self?.openFullScreenGallery(for: fileUuid)
+        }
+        
+        self.controllerNode.onEditPreviewTapped = { [weak self] in
+            self?.navigationController?.popViewController(animated: true)
+        }
+        self.controllerNode.onPublishPreviewTapped = { [weak self] in
+            self?.onPublishConfirmed?()
+        }
 
-//        self.navigationController?.navigationBar.tintColor = .white
+        self.controllerNode.onEditEventTapped = { [weak self] in
+            self?.navigateToEditEvent()
+        }
+        
+        self.controllerNode.onDeleteTapped = { [weak self] in
+            self?.performDeleteEvent()
+        }
 
-        let likeLabel = UILabel()
-        likeLabel.text = "1K"
-        likeLabel.textColor = .white
-        likeLabel.font = .systemFont(ofSize: 17, weight: .bold)
+        self.controllerNode.onRetryTapped = { [weak self] in
+            guard let self = self else { return }
+            self.controllerNode.resetToLoading()
+            self.getEvent()
+        }
 
-        let likeImageView = UIImageView(image: DivoImage.heartActionIcon)
-        likeImageView.tintColor = .white
-
-        let customLikeView = UIView(frame: CGRect(x: 0, y: 0, width: 60, height: 30))
-        customLikeView.addSubview(likeImageView)
-        customLikeView.addSubview(likeLabel)
-
-        likeImageView.translatesAutoresizingMaskIntoConstraints = false
-        likeLabel.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            likeImageView.leadingAnchor.constraint(equalTo: customLikeView.leadingAnchor, constant: 0),
-            likeImageView.centerYAnchor.constraint(equalTo: customLikeView.centerYAnchor),
-            likeImageView.widthAnchor.constraint(equalToConstant: 25),
-            likeImageView.heightAnchor.constraint(equalToConstant: 25),
-
-            likeLabel.leadingAnchor.constraint(equalTo: likeImageView.trailingAnchor, constant: 5),
-            likeLabel.centerYAnchor.constraint(equalTo: customLikeView.centerYAnchor)
-        ])
-
-        let likeButtonImg = generateTintedImage(image: DivoImage.heartActionIcon, color: .white)
-        let shareButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Chat/Input/Accessory Panels/MessageSelectionAction"), color: .white)
-        let bookmarkButtonImg = generateTintedImage(image: UIImage(bundleImageName: "Instant View/Bookmark"), color: .white)
-
-        let likeButton = UIBarButtonItem(image: likeButtonImg, style: .plain, target: self, action: #selector(self.likePressed))
-
-        let shareButton = UIBarButtonItem(image: shareButtonImg, style: .plain, target: self, action: #selector(self.sharePressed))
-        let bookmarkButton =  UIBarButtonItem(image: bookmarkButtonImg, style: .plain, target: self, action: #selector(self.bookmarkPressed))
-
-//        self.navigationItem.leftBarButtonItem = backButton
-        self.navigationItem.rightBarButtonItems = [likeButton, shareButton, bookmarkButton]
+        self.displayNodeDidLoad()
+        
+        if isPreviewMode {
+            loadPreview()
+        } else {
+            getEvent()
+        }
     }
 
-    @objc private func backPressed() {
-        self.navigationController?.popViewController(animated: true)
+    override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
+        super.containerLayoutUpdated(layout, transition: transition)
+        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
     }
 
-    @objc private func likePressed() {
-        print("Like button pressed")
+    public func toggleSaving(active: Bool) {
+        self.controllerNode.toggleSaving(active: active)
+    }
+    
+    public func showSnackbar(message: String) {
+        self.controllerNode.showSnackbar(message: message, style: .error)
     }
 
-    @objc private func sharePressed() {
-        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/event/\(eventData.id)")!
+    private func loadPreview() {
+        guard let data = previewData else { return }
+        self.controllerNode.updateWithPreviewData(data)
+    }
+
+    private func getEvent() {
+        guard let eventId = eventId else { return }
+        Task {
+            do {
+                let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)"
+                )
+                guard let item = response.data else { return }
+                
+                // Парсим файлы галереи
+                if let files = item.files {
+                    let sortedFiles = files.sorted {
+                        guard let order1 = $0.order else { return false }
+                        guard let order2 = $1.order else { return true }
+                        return order1 < order2
+                    }
+                    // Фильтруем обложку (обычно order == 0) и конвертируем остальные фото в UserPhoto
+                    self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
+                        guard let uuid = file.fileUuid,
+                              let fileExtension = file.fileExtension,
+                              let fullUrl = file.fullUrl,
+                              let fileName = file.fileName
+                        else { return nil }
+                        
+                        let userFile = UserFile(
+                            fileName: fileName,
+                            fullUrl: fullUrl,
+                            fileExtension: fileExtension,
+                            fileUuid: uuid
+                        )
+                        return UserPhoto(
+                            id: abs(file.fileUuid.hashValue),
+                            photo: userFile,
+                            likesCount: 0,
+                            isLikedByUser: false,
+                            preview: nil
+                        )
+                    }
+                }
+                
+                await MainActor.run {
+                    self.eventData = item
+                    self.eventId = item.id
+                    self.controllerNode.updateEventData(item)
+                    self.controllerNode.updateGallery(self.currentGalleryPhotos) // Отдаем фото в Node
+                }
+            } catch {
+                divoLog("[DivoAPI] event/\(eventId) error: \(error)", level: .error)
+                await MainActor.run {
+                    self.controllerNode.markFailed(networkError: self.isNetworkError(error))
+                }
+            }
+        }
+    }
+
+    private func isNetworkError(_ error: Error) -> Bool {
+        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
+            return true
+        }
+        return false
+    }
+
+    // Переход на экран редактирования
+    private func navigateToEditEvent() {
+        guard let eventId = self.eventId else { return }
+        
+        let editEventController = CreateEventController(context: self.context, eventId: eventId)
+        
+        // Обновляем текущий экран после успешного редактирования и возврата
+        editEventController.onEventCreated = { [weak self] in
+            self?.getEvent()
+            self?.onEventModified?()
+        }
+        
+        self.push(editEventController)
+    }
+    
+    private func performDeleteEvent() {
+        guard let eventId = self.eventId else { return }
+        
+        Task { @MainActor in
+            do {
+                let _: DeleteEventResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)",
+                    method: "DELETE"
+                )
+                
+                self.onEventModified?()
+                self.navigationController?.popViewController(animated: true)
+                
+            } catch {
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToDelete
+                self.controllerNode.showSnackbar(
+                    message: userMsg,
+                    style: .error
+                )
+            }
+        }
+    }
+    
+    private func sharePressed() {
+        guard !isPreviewMode, let eventId = eventId else { return }
+        
+        let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/event/\(eventId)")!
         let shareItem = DivoShareItemSource(
             url: shareURL,
-            title: eventData.title,
-            subtitle: eventData.type,
+            title: eventData?.title ?? "",
+            subtitle: eventData?.type?.title ?? "",
             image: controllerNode.coverImage
         )
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
         self.present(activityVC, animated: true)
     }
 
-    @objc private func bookmarkPressed() {
-        print("Bookmark button pressed")
+    private func bookmarkPressed() {
+        // TODO DIVO: реализовать сохранение события в избранное (REST endpoint + состояние кнопки)
+        divoLog("Bookmark button pressed")
     }
 
-    override public func loadDisplayNode() {
-        self.displayNode = EventDetailControllerNode(context: self.context, presentationData: self.presentationData)
-        self.displayNodeDidLoad()
+    private func applyPressed() {
+        // TODO DIVO: реализовать подачу заявки на событие (REST endpoint + состояние кнопки)
+        divoLog("Apply button pressed")
     }
+    
+    // Открытие галереи на полный экран
+    private func openFullScreenGallery(for uuid: String) {
+        guard let initialIndex = self.currentGalleryPhotos.firstIndex(where: { $0.photo.fileUuid == uuid }) else { return }
+        
+        let galleryController = ProfileGalleryController(
+            context: self.context,
+            photos: self.currentGalleryPhotos,
+            initialIndex: initialIndex,
+            isVideoGallery: false,
+            isOwnProfile: false,
+            isLocalOnly: false
+        )
 
-    override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
-        super.containerLayoutUpdated(layout, transition: transition)
-
-        self.controllerNode.containerLayoutUpdated(layout, navigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
-    }
-
-    override public func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        getEvent()
-    }
-
-    private func getEvent() {
-        Task {
-            do {
-                let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
-                    path: "/event/\(eventData.id)"
-                )
-                guard let item = response.data else { return }
-                let dateString = item.date?.prefix(while: { $0 != "T" }).description ?? ""
-                let coverURL = item.files?.first?.fullUrl
-                let avatarURL = item.creator?.avatar?.fullUrl
-                let data = EventData(
-                    id: item.id,
-                    title: item.title ?? "",
-                    subtitle: item.description ?? "",
-                    profileName: "@" + (item.creator?.fullName ?? ""),
-                    timeRemaining: dateString,
-                    type: item.type?.title ?? "",
-                    coverPhotoURL: coverURL,
-                    profilePhotoURL: avatarURL
-                )
-                await MainActor.run {
-                    self.eventData = data
-                    self.controllerNode.updateEventData(data)
-                }
-            } catch {
-                print("❌ [DivoAPI] event/\(eventData.id) error: \(error)")
-            }
-        }
+        self.activeGalleryController = galleryController
+        self.push(galleryController)
     }
 }

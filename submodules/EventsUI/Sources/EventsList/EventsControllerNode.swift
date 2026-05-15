@@ -263,7 +263,7 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let selectedEvent = events[indexPath.item]
-        let detailController = EventDetailController(context: context, eventData: selectedEvent)
+        let detailController = EventDetailController(context: context, eventId: selectedEvent.id, isMyEvent: false)
 
         if let navigationController = controller?.navigationController {
             navigationController.pushViewController(detailController, animated: true)

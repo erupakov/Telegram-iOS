@@ -101,10 +101,11 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                 self.navigationController?.popViewController(animated: true)
                 
             } catch {
-                print("❌ Error saving social links: \(error)")
+                divoLog("Error saving social links: \(error)", level: .error)
                 self.editSocialLinksNode.toggleSaving(active: false)
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedLinksUpdated
                 self.editSocialLinksNode.showSnackbar(
-                    message: DivoStrings.failedLinksUpdated,
+                    message: userMsg,
                     style: .error
                 )
             }

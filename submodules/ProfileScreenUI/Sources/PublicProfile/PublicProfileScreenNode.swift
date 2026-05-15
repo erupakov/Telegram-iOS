@@ -11,28 +11,7 @@ import PresentationDataUtils
 import AccountContext
 import AppBundle
 import DivoUIKit
-
-public enum Role {
-    case model
-    case newFace
-    case agency
-
-    init(apiRole: String?) {
-        switch apiRole {
-        case "agency_employee": self = .agency
-        case "new_face":        self = .newFace
-        default:                self = .model
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .model: DivoStrings.roleModel
-        case .newFace: DivoStrings.roleNewFace
-        case .agency: DivoStrings.roleAgency
-        }
-    }
-}
+import DivoGallery
 
 // MARK: - Screen state types
 //
@@ -802,6 +781,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onAddWorkExperienceTapped: (() -> Void)?
     var onSimilarProfileTapped: ((SimilarProfileItem) -> Void)?
     var onModelAgencyTapped: ((ModelItem) -> Void)?
+    var onEventTapped: ((EventItem) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -3288,7 +3268,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         updateNavigationBarTitleVisibility()
     }
     
-    
     // MARK: - Internal
 
     // Вызывается при старте загрузки
@@ -4243,6 +4222,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
             controller.loadEvents()
         }
     }
+
+    func startLoadEventsList() {
+        self.eventsPhase = .loading
+
+        if let layout = self.containerLayout?.0 {
+            self.updateAllCollectionViewHeights(layout: layout)
+            if self.currentTab == .events {
+                self.updateCollectionsContainerHeight(animated: false)
+            }
+        }
+    }
     
     // Обновление галереи событий
     func updateEventsList(_ items: [EventItem]) {
@@ -4683,17 +4673,6 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
             }
             let item = eventGalleryItems[indexPath.item]
             cell.configure(with: item, context: self.context, isMyProfile: self.model.isMyProfile)
-            cell.onEditTapped = { [weak self] eventId in
-                if let eventId = eventId {
-                    self?.onEventButtonTapped?(eventId)
-                }
-            }
-
-            cell.onDeleteTapped = { [weak self] eventId in
-                if let eventId = eventId {
-                    self?.onEventDeleteButtonTapped?(eventId)
-                }
-            }
             return cell
         }
         return UICollectionViewCell()
@@ -4719,6 +4698,10 @@ extension PublicProfileScreenNode: UICollectionViewDelegate {
             guard !modelGalleryItems.isEmpty else { return }
             let user = modelGalleryItems[indexPath.item]
             onModelAgencyTapped?(user)
+        } else if collectionView == eventGalleryCollectionView {
+            guard !eventGalleryItems.isEmpty else { return }
+            let event = eventGalleryItems[indexPath.item]
+            onEventTapped?(event)
         }
     }
 
@@ -5087,20 +5070,5 @@ extension PublicProfileScreenNode: CurrentAgencyViewDelegate {
     func didTapSeeHistory() {
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.controller?.push(historyController)
-    }
-}
-
-extension UIColor {
-    func blend(with color: UIColor, alpha: CGFloat) -> UIColor {
-        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
-        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
-        self.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
-        color.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
-        return UIColor(
-            red: r1 + (r2 - r1) * alpha,
-            green: g1 + (g2 - g1) * alpha,
-            blue: b1 + (b2 - b1) * alpha,
-            alpha: a1 + (a2 - a1) * alpha
-        )
     }
 }

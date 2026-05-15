@@ -537,8 +537,9 @@ public class ModelsSearchController: ViewController {
                 self.currentFilters = oldFilters
                 self.searchNode.updateActiveFiltersCount(oldCount)
                 self.searchNode.showGridError()
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.feedSearchResultsLoadFailed
                 self.searchNode.showSnackbar(
-                    message: DivoStrings.feedSearchResultsLoadFailed,
+                    message: userMsg,
                     style: .error,
                     retryAction: { [weak self] in
                         self?.handleFiltersClear()
@@ -795,8 +796,9 @@ public class ModelsSearchController: ViewController {
             } catch {
                 if !Task.isCancelled {
                     self.searchNode.hideAutocompleteLoading()
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.feedSearchResultsLoadFailed
                     self.searchNode.showSnackbar(
-                        message: DivoStrings.feedSearchResultsLoadFailed,
+                        message: userMsg,
                         style: .error,
                         retryAction: { [weak self] in
                             guard let self else { return }
@@ -865,10 +867,11 @@ public class ModelsSearchController: ViewController {
 
                 } catch {
                     if !Task.isCancelled {
+                        let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.feedSearchResultsLoadFailed
                         if isFirst {
                             self.searchNode.showGridError()
                             self.searchNode.showSnackbar(
-                                message: DivoStrings.feedSearchResultsLoadFailed,
+                                message: userMsg,
                                 style: .error,
                                 retryAction: { [weak self] in
                                     guard let self else { return }
@@ -879,7 +882,7 @@ public class ModelsSearchController: ViewController {
                         } else {
                             self.searchNode.showPaginationError()
                             self.searchNode.showSnackbar(
-                                message: DivoStrings.feedSearchResultsLoadFailed,
+                                message: userMsg,
                                 style: .error,
                                 retryAction: { [weak self] in
                                     guard let self else { return }

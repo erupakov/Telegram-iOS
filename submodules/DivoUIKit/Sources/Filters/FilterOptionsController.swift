@@ -227,6 +227,7 @@ public final class FilterOptionsController: UIViewController {
             stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
+            stackView.bottomAnchor.constraint(lessThanOrEqualTo: scrollView.bottomAnchor),
         ])
         
         if isResetButton {
