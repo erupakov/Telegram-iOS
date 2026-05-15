@@ -4358,18 +4358,18 @@ final class PublicProfileScreenNode: ASDisplayNode {
         switch tab {
         case .photo:
             title = DivoStrings.addPhoto
-            icon = DivoImage.photoIcon
+            icon = DivoImage.addPhotoIcon
             isVisible = !galleryPhotos.isEmpty
             
         case .video:
             title = DivoStrings.addVideo
-            icon = DivoImage.videoIcon
+            icon = DivoImage.videoIconButton
             isVisible = !videoGalleryItems.isEmpty
             
         case .models:
             if modelRole == .agency {
                 title = DivoStrings.addModel
-                icon = DivoImage.associatedModels
+                icon = DivoImage.whitePlus
                 isVisible = !modelGalleryItems.isEmpty
             } else {
                 isVisible = false
@@ -4377,7 +4377,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             
         case .events:
             title = DivoStrings.createEvent
-            icon = DivoImage.eventsAgency
+            icon = DivoImage.whitePlus
             isVisible = !eventGalleryItems.isEmpty
             
         case .channels:
