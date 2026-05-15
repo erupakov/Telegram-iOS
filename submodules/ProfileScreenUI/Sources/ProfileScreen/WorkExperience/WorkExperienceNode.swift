@@ -92,9 +92,8 @@ final class WorkExperience: ASDisplayNode {
     private var isLoading = true
     private let shimmerCount = 4
     private var experienceCells:[Int: ExperienceView] = [:]
-    private var cachedLogoURLs: [Int: URL] = [:]
 
-    
+
     // MARK: - Init
     
     init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel) {
@@ -246,7 +245,6 @@ final class WorkExperience: ASDisplayNode {
         if let cell = experienceCells.removeValue(forKey: id) {
             cell.removeFromSuperview()
         }
-        cachedLogoURLs.removeValue(forKey: id)
         updateEmptyState()
         listBackgroundContainer.isHidden = rawItems.isEmpty
     }
@@ -258,27 +256,7 @@ final class WorkExperience: ASDisplayNode {
         renderList()
     }
 
-    func updateAgencyLogo(itemId: Int, url: URL?) {
-        if let url = url {
-            cachedLogoURLs[itemId] = url
-        }
-        guard let cell = experienceCells[itemId],
-              let item = rawItems.first(where: { $0.id == itemId }) else { return }
-        
-        let period = item.formattedPeriod
-        
-        let wItem = WorkExperienceItem(
-            id: item.id,
-            companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
-            period: period,
-            logoURL: url
-        )
-        
-        let showOptions = model.isMyProfile && hasStructuredData
-        cell.configure(with: wItem, showOptions: showOptions, loadImage: true)
-    }
-    
-    
+
     // MARK: - Rendering
     
     private func renderList() {
@@ -293,25 +271,19 @@ final class WorkExperience: ASDisplayNode {
             }
         } else {
             for (_, item) in rawItems.enumerated() {
-                var logoURL: URL? = nil
-                if let link = item.agencyAvatarLink, let url = URL(string: link) {
-                    logoURL = url
-                }
-
-                let period = item.formattedPeriod
+                let logoURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
 
                 let wItem = WorkExperienceItem(
                     id: item.id,
                     companyName: item.agencyDisplayName ?? item.agencyName ?? DivoStrings.unknownAgency,
-                    period: period,
+                    period: item.formattedPeriod,
                     logoURL: logoURL
                 )
 
                 let cell = ExperienceView()
 
                 let showOptions = model.isMyProfile && hasStructuredData
-                let hasLogo = logoURL != nil
-                let shouldLoadImmediately = hasLogo || (item.agencyId == nil)
+                let shouldLoadImmediately = logoURL != nil || item.agencyId == nil
                 cell.configure(with: wItem, showOptions: showOptions, loadImage: shouldLoadImmediately)
                 
                 if showOptions {

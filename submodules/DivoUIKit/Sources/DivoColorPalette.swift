@@ -23,8 +23,8 @@ public enum DivoColorPalette {
     public static let faceBannerMultipleBackground = UIColor(hexString: "#F3E7E1")!
     /// #C16B3E — приглушённый оранжевый текст плашки процента face search при совпадении < 89%.
     public static let matchPercentMuted = UIColor(hexString: "#C16B3E")!
-    /// #1EDD4E — зеденый цвет, напримр, для статуса онлайн
-    public static let green = UIColor(hexString: "#1EDD4E")!
+    /// #1EDD4E — зелёный индикатор online-статуса в шапке профиля.
+    public static let onlineIndicator = UIColor(hexString: "#1EDD4E")!
     
     // MARK: - Text (DIVO)
     public static let primaryText = UIColor(hexString: "#222222")!

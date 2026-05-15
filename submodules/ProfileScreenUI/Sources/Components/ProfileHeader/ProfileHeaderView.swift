@@ -84,7 +84,7 @@ class ProfileHeaderView: UIView {
 
     private let onlineStatusView: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.green
+        view.backgroundColor = DivoColorPalette.onlineIndicator
         view.layer.borderColor = DivoColorPalette.avatarStrokeQuiet.cgColor
         view.layer.borderWidth = 2
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -100,6 +100,10 @@ class ProfileHeaderView: UIView {
     }()
     
     private static let badgeHeight: CGFloat = 22
+    private static let avatarSize: CGFloat = 54
+    private static let ringInset: CGFloat = 10
+    private static let onlineDotSize: CGFloat = 12
+    private static let premiumIconSize: CGFloat = 20
 
     private var nameLabelHeightConstraint: NSLayoutConstraint!
 
@@ -151,11 +155,9 @@ class ProfileHeaderView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        
-        let avatarSize: CGFloat = 54
-        avatarImageView.layer.cornerRadius = avatarSize / 2
-        
-        onlineStatusView.layer.cornerRadius = 6
+
+        avatarImageView.layer.cornerRadius = Self.avatarSize / 2
+        onlineStatusView.layer.cornerRadius = Self.onlineDotSize / 2
     }
     
     private func setupViews() {
@@ -175,40 +177,38 @@ class ProfileHeaderView: UIView {
 
     
     private func setupConstraints() {
-        let avatarSize: CGFloat = 54
-        
         NSLayoutConstraint.activate([
             avatarImageView.leadingAnchor.constraint(equalTo: leadingAnchor),
             avatarImageView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: avatarSize),
-            avatarImageView.heightAnchor.constraint(equalToConstant: avatarSize),
-            
+            avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
+
             avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
             avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            
+
             ringView.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
             ringView.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            ringView.widthAnchor.constraint(equalToConstant: avatarSize + 10),
-            ringView.heightAnchor.constraint(equalToConstant: avatarSize + 10),
-            
+            ringView.widthAnchor.constraint(equalToConstant: Self.avatarSize + Self.ringInset),
+            ringView.heightAnchor.constraint(equalToConstant: Self.avatarSize + Self.ringInset),
+
             onlineStatusView.trailingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: -DivoDesignTokens.Spacing.xs),
             onlineStatusView.bottomAnchor.constraint(equalTo: ringView.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
-            onlineStatusView.widthAnchor.constraint(equalToConstant: 12),
-            onlineStatusView.heightAnchor.constraint(equalToConstant: 12),
-            
-            nameLabel.leadingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: 10),
+            onlineStatusView.widthAnchor.constraint(equalToConstant: Self.onlineDotSize),
+            onlineStatusView.heightAnchor.constraint(equalToConstant: Self.onlineDotSize),
+
+            nameLabel.leadingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: Self.ringInset),
             nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: premiumBadgeIcon.leadingAnchor, constant: -8),
             nameLabel.bottomAnchor.constraint(equalTo: roleContainer.topAnchor, constant: -DivoDesignTokens.Spacing.xs),
-            
+
             premiumBadgeIcon.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
             premiumBadgeIcon.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor),
             premiumBadgeIcon.bottomAnchor.constraint(equalTo: roleContainer.topAnchor, constant: -6),
-            premiumBadgeIcon.widthAnchor.constraint(equalToConstant: 20),
-            premiumBadgeIcon.heightAnchor.constraint(equalToConstant: 20),
-            
+            premiumBadgeIcon.widthAnchor.constraint(equalToConstant: Self.premiumIconSize),
+            premiumBadgeIcon.heightAnchor.constraint(equalToConstant: Self.premiumIconSize),
+
             roleContainer.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 5),
             roleContainer.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
-            roleContainer.heightAnchor.constraint(equalToConstant: 22),
+            roleContainer.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
             roleContainer.bottomAnchor.constraint(equalTo: bottomAnchor),
             
             roleLabel.leadingAnchor.constraint(equalTo: roleContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.s),

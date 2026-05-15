@@ -252,6 +252,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             
             let picker = PHPickerViewController(configuration: configuration)
             picker.delegate = self
+            picker.view.tintColor = DivoColorPalette.accent
             self.present(picker, animated: true)
         } else {
             let picker = UIImagePickerController()
@@ -310,6 +311,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
 
                 self.delegate?.didUpdateProfileData()
+                NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
                 self.navigationController?.popViewController(animated: true)
 
             } catch {
@@ -343,6 +345,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 )
 
                 self.delegate?.didUpdateProfileData()
+                NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
                 self.navigationController?.popViewController(animated: true)
 
             } catch {

@@ -191,18 +191,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private lazy var profileHeaderView = ProfileHeaderView()
     
     private lazy var profileHeaderShimmerView = ProfileHeaderShimmerView()
-    
-    var currentPhoto: UIImage? = nil {
-        didSet {
-            if let currentPhoto = self.currentPhoto {
-                profileHeaderView.changeAvatar(with: currentPhoto)
-            } else {
-                profileHeaderView.changeAvatar(with: nil)
-            }
-        }
-    }
 
-    
+
     // MARK: - Actions Section
     
     private lazy var counterActionsStack: UIStackView = {
@@ -3137,6 +3127,40 @@ final class PublicProfileScreenNode: ASDisplayNode {
             result + String(UnicodeScalar(127397 + scalar.value)!)
         }
     }
+
+    /// Собирает строку для маленького navBar-заголовка из непустых частей.
+    /// Разделитель между смысловыми группами — " • "; между названием города и флагом — " ".
+    private static func navbarInfo(rolePrefix: String, middle: String?, cityName: String?, countryCode: String?) -> String {
+        let flag = Self.flag(for: countryCode)
+        let location = [cityName, flag.isEmpty ? nil : flag]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return [rolePrefix, middle, location.isEmpty ? nil : location]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " • ")
+    }
+
+    /// Грузит аватар в шапку. Спиннер гарантированно гасится на всех путях:
+    /// nil-URL, ошибка конвертации, ошибка загрузки, успех.
+    private func loadHeaderAvatar(urlString: String?) {
+        guard
+            let urlString,
+            let avatarURL = CDNURLHelper.convertToCDNURL(urlString)
+        else {
+            self.profileHeaderView.toggleSpinner(active: false)
+            return
+        }
+
+        ImageLoader.shared.load(url: avatarURL) { [weak self] image in
+            guard let self else { return }
+            self.profileHeaderView.toggleSpinner(active: false)
+            if let image {
+                self.profileHeaderView.changeAvatar(with: image)
+            }
+        }
+    }
     
     // Первоначальная настройка титула NavigationBar
     private func setupNavigationBarTitle(name: String, info: String? = nil) {
@@ -3414,17 +3438,24 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.updateScreenBackgroundForCurrentTab()
 
         if self.modelRole == .agency {
-            let rolePrefix = self.modelRole.title + " • "
-            setupNavigationBarTitle(name: detail.agency?.title ?? DivoStrings.noName, info: "\(rolePrefix)\(detail.agency?.address?.city?.name ?? ""), \(Self.flag(for: detail.agency?.address?.city?.countryCode))")
-            
+            setupNavigationBarTitle(
+                name: detail.agency?.title ?? DivoStrings.noName,
+                info: Self.navbarInfo(
+                    rolePrefix: self.modelRole.title,
+                    middle: nil,
+                    cityName: detail.agency?.address?.city?.name,
+                    countryCode: detail.agency?.address?.city?.countryCode
+                )
+            )
+
             if let photoURLString = detail.agency?.background?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL)
             }
-            
+
             bio = (detail.agency?.description?.isEmpty == false)
             ? (detail.agency?.description ?? "")
             : Self.mockBiographyText
-            
+
             UIView.performWithoutAnimation {
                 profileInfoView.update(biography: bio)
                 profileInfoView.layoutIfNeeded()
@@ -3434,32 +3465,29 @@ final class PublicProfileScreenNode: ASDisplayNode {
             segmentedBar.configure(isAgency: true, isMyProfile: isMyProfile, animated: false)
             rebuildTabsPagerLayout()
 
-            if let avatarURLString = detail.agency?.photo?.fullUrl {
-                if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
-                    ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-                        if let image = image {
-                            self?.profileHeaderView.changeAvatar(with: image)
-                            self?.profileHeaderView.toggleSpinner(active: false)
-                        }
-                    }
-                }
-            }
+            loadHeaderAvatar(urlString: detail.agency?.photo?.fullUrl)
         } else {
             let age = detail.birthday.flatMap { calculateAge(from: $0) }
-            let agePrefix = age.map { DivoStrings.ageString($0) + " • " } ?? ""
-            let rolePrefix = self.modelRole.title + " • "
-            setupNavigationBarTitle(name: detail.fullName ?? DivoStrings.noName, info: "\(rolePrefix)\(agePrefix)\(detail.city?.name ?? ""), \(Self.flag(for: detail.city?.countryCode))")
-            
+            setupNavigationBarTitle(
+                name: detail.fullName ?? DivoStrings.noName,
+                info: Self.navbarInfo(
+                    rolePrefix: self.modelRole.title,
+                    middle: age.map { DivoStrings.ageString($0) },
+                    cityName: detail.city?.name,
+                    countryCode: detail.city?.countryCode
+                )
+            )
+
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL)
             }
-            
+
             bio = (detail.model?.description?.isEmpty == false)
             ? (detail.model?.description ?? "")
             :  nil
 
             appearance = buildAppearanceList(from: detail.model?.appearance, gender: detail.gender, age: age)
-            
+
             var experience: ExperienceNode? = nil
             if detail.model?.agency != nil {
                 let logoURLString = detail.model?.agency?.photo?.fullUrl
@@ -3483,16 +3511,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             segmentedBar.configure(isAgency: false, isMyProfile: isMyProfile, animated: false)
             rebuildTabsPagerLayout()
 
-            if let avatarURLString = detail.avatar?.fullUrl {
-                if let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
-                    ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-                        if let image = image {
-                            self?.profileHeaderView.changeAvatar(with: image)
-                            self?.profileHeaderView.toggleSpinner(active: false)
-                        }
-                    }
-                }
-            }
+            loadHeaderAvatar(urlString: detail.avatar?.fullUrl)
         }
 
         setupMoreMenu()

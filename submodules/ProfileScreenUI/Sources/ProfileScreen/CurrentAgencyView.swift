@@ -17,7 +17,10 @@ protocol CurrentAgencyViewDelegate: AnyObject {
 }
 
 final class CurrentAgencyView: UIView {
-    
+
+    private static let logoSize: CGFloat = 60
+    private static let emptyLogoSize: CGFloat = 32
+
     weak var delegate: CurrentAgencyViewDelegate?
     
     private let containerView: UIView = {
@@ -41,7 +44,7 @@ final class CurrentAgencyView: UIView {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.layer.cornerRadius = 30
+        iv.layer.cornerRadius = CurrentAgencyView.logoSize / 2
         iv.backgroundColor = DivoColorPalette.cardBackground
         iv.layer.borderWidth = 1
         iv.layer.borderColor = DivoColorPalette.borderWorkHistoryImage.cgColor
@@ -87,6 +90,7 @@ final class CurrentAgencyView: UIView {
     }()
 
     private var lastLogoURL: URL?
+    private var hasConfiguredLogo = false
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -129,14 +133,14 @@ final class CurrentAgencyView: UIView {
             
             logoImageView.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             logoImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            logoImageView.widthAnchor.constraint(equalToConstant: 60),
-            logoImageView.heightAnchor.constraint(equalToConstant: 60),
+            logoImageView.widthAnchor.constraint(equalToConstant: Self.logoSize),
+            logoImageView.heightAnchor.constraint(equalToConstant: Self.logoSize),
             logoImageView.bottomAnchor.constraint(equalTo: seeHistoryButton.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
-            
+
             logoEmptyImageView.centerXAnchor.constraint(equalTo: logoImageView.centerXAnchor),
             logoEmptyImageView.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
-            logoEmptyImageView.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
-            logoEmptyImageView.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
+            logoEmptyImageView.widthAnchor.constraint(equalToConstant: Self.emptyLogoSize),
+            logoEmptyImageView.heightAnchor.constraint(equalToConstant: Self.emptyLogoSize),
             
             textStack.leadingAnchor.constraint(equalTo: logoImageView.trailingAnchor, constant: 10),
             textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -158,33 +162,35 @@ final class CurrentAgencyView: UIView {
             self.layoutIfNeeded()
         }
         
+        if hasConfiguredLogo && lastLogoURL == logoURL { return }
+        hasConfiguredLogo = true
+        lastLogoURL = logoURL
+
         logoEmptyImageView.isHidden = true
         logoImageView.removeShimmerOverlay()
 
-        guard lastLogoURL != logoURL else {
-            return logoEmptyImageView.isHidden = false
-        }
-        lastLogoURL = logoURL
-
-        if let url = logoURL {
-            if let cached = ImageLoader.shared.cachedImage(for: url) {
-                logoImageView.image = cached
-                logoImageView.applyAvatarTopCropIfNeeded(image: cached)
-            } else {
-                logoImageView.addShimmerOverlay()
-                ImageLoader.shared.load(url: url) { [weak self] image in
-                    guard let self else { return }
-                    self.logoImageView.removeShimmerOverlay()
-                    if let image {
-                        self.logoImageView.image = image
-                        self.logoImageView.applyAvatarTopCropIfNeeded(image: image)
-                    } else {
-                        self.logoEmptyImageView.isHidden = false
-                    }
-                }
-            }
-        } else {
+        guard let url = logoURL else {
+            logoImageView.image = nil
             logoEmptyImageView.isHidden = false
+            return
+        }
+
+        if let cached = ImageLoader.shared.cachedImage(for: url) {
+            logoImageView.image = cached
+            logoImageView.applyAvatarTopCropIfNeeded(image: cached)
+            return
+        }
+
+        logoImageView.addShimmerOverlay()
+        ImageLoader.shared.load(url: url) { [weak self] image in
+            guard let self else { return }
+            self.logoImageView.removeShimmerOverlay()
+            if let image {
+                self.logoImageView.image = image
+                self.logoImageView.applyAvatarTopCropIfNeeded(image: image)
+            } else {
+                self.logoEmptyImageView.isHidden = false
+            }
         }
     }
 }
