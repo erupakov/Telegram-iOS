@@ -44,8 +44,12 @@ public final class FilterRowView: UIView {
 
         let chevron = UIImageView(image: DivoImage.searchChevronRight)
         chevron.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
+        chevron.contentMode = .scaleAspectFit
         chevron.setContentHuggingPriority(.required, for: .horizontal)
-        chevron.frame = CGRect(x: 0, y: 0, width: 20, height: 20)
+        chevron.setContentHuggingPriority(.required, for: .vertical)
+        chevron.setContentCompressionResistancePriority(.required, for: .horizontal)
+        chevron.setContentCompressionResistancePriority(.required, for: .vertical)
+        chevron.translatesAutoresizingMaskIntoConstraints = false
 
         let stack = UIStackView(arrangedSubviews:[titleLabel, UIView(), valueLabel, chevron])
         stack.axis = .horizontal
@@ -59,7 +63,9 @@ public final class FilterRowView: UIView {
             stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
-            heightAnchor.constraint(equalToConstant: 46)
+            heightAnchor.constraint(equalToConstant: 46),
+            chevron.widthAnchor.constraint(equalToConstant: 20),
+            chevron.heightAnchor.constraint(equalToConstant: 20)
         ])
 
         addPressState()

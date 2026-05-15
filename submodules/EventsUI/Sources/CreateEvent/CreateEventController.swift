@@ -26,8 +26,9 @@ protocol CreateEventDelegate: AnyObject {
 
 public class CreateEventController: ViewController, UINavigationControllerDelegate {
     private let context: AccountContext
-    private let eventId: Int?
-    private let isEditMode: Bool
+    private let mode: CreateEventMode
+
+    private var eventId: Int? { mode.eventId }
 
     private var createEventNode: CreateEventNode {
         return self.displayNode as! CreateEventNode
@@ -52,10 +53,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     
     internal var currentGalleryPhotos: [UserPhoto] = []
 
-    public init(context: AccountContext, eventId: Int? = nil) {
+    public init(context: AccountContext, mode: CreateEventMode = .create) {
         self.context = context
-        self.eventId = eventId
-        self.isEditMode = (eventId != nil)
+        self.mode = mode
 
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
 
@@ -146,8 +146,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 async let eventTypesTask = DivoAPIClient.shared.request(path: "/event/types", method: "POST", body: typesRequest) as AgencyListResponse
                 
                 let eventDetail: EventFullDetailData? = try await {
-                    if self.isEditMode, let eventId = self.eventId {
-                        self.createEventNode.configure(mode: .edit, eventId: eventId)
+                    if case .edit(let eventId) = self.mode {
+                        self.createEventNode.configure(mode: self.mode)
                         let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(path: "/event/\(eventId)", method: "GET")
                         return response.data
                     }
@@ -159,7 +159,11 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 self.createEventNode.configureAppearanceDictionaries(appearance.data)
                 self.createEventNode.configureGenderDictionaries(gender)
                 self.createEventNode.loadEventTypesComplete(eventTypes.data.items, totalCount: eventTypes.data.pagination.meta.totalCount, offset: 0)
-                
+
+                if !self.mode.isEdit {
+                    self.createEventNode.applyDefaultStep2Parameters(overrideExisting: true)
+                }
+
                 if let detail = eventDetail {
                     self.createEventNode.populate(with: detail)
                     self.createEventNode.markDataLoaded()
@@ -296,7 +300,13 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.createEventNode.showScreenLoading()
         Task { @MainActor in
             do {
-                let path = (self.isEditMode && self.eventId != nil) ? "/event/update/\(self.eventId!)" : "/event/create"
+                let path: String
+                switch self.mode {
+                case .create:
+                    path = "/event/create"
+                case .edit(let eventId):
+                    path = "/event/update/\(eventId)"
+                }
                 let response: CreateEventResponse = try await DivoAPIClient.shared.request(
                     path: path,
                     method: "POST",

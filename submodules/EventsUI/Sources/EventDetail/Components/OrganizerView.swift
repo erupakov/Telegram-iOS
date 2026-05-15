@@ -80,6 +80,11 @@ final class OrganizerView: UIView {
         textStack.spacing = DivoDesignTokens.Spacing.xs
         textStack.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(textStack)
+
+        // periodLabel пока никем не заполняется — прячем, чтобы стек не резервировал
+        // под него spacing и одиночное имя точно вставало по центру лого.
+        // Когда появится поле «период», достаточно снять isHidden и подать текст.
+        periodLabel.isHidden = true
         
         agencyNameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         
@@ -100,7 +105,10 @@ final class OrganizerView: UIView {
             logoImageView.heightAnchor.constraint(equalToConstant: 48),
             
             textStack.leadingAnchor.constraint(equalTo: logoImageView.trailingAnchor, constant: 10),
-            textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            // Центрируем стек текста относительно лого, а не всей карточки —
+            // иначе из-за заголовка «ОРГАНИЗАТОР» сверху единственная строка имени
+            // визуально смещается вверх и расходится с серединой логотипа.
+            textStack.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
             textStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
         ])
     }

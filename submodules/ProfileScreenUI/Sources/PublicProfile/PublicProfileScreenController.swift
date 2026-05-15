@@ -119,7 +119,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     
     private func navigateToEditEvent(eventId: Int) {
         // Открываем CreateEventController в режиме редактирования
-        let editEventController = CreateEventController(context: self.context, eventId: eventId)
+        let editEventController = CreateEventController(context: self.context, mode: .edit(eventId: eventId))
         
         // Обновляем список событий после успешного сохранения
         editEventController.onEventCreated = { [weak self] in
