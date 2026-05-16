@@ -1,0 +1,167 @@
+import Foundation
+
+/// Описывает один экран-«вопрос с вариантами»: top-level / industry door / sub-role picker / experience quiz.
+/// Все эти экраны Михаил вёрстает одним конструктором `OnboardingQuizViewController`.
+public struct OnboardingQuizDescriptor {
+    public struct Option {
+        public let id: String
+        public let titleKey: String
+        public let subtitleKey: String?
+        public let iconAssetName: String?
+
+        public init(id: String, titleKey: String, subtitleKey: String? = nil, iconAssetName: String? = nil) {
+            self.id = id
+            self.titleKey = titleKey
+            self.subtitleKey = subtitleKey
+            self.iconAssetName = iconAssetName
+        }
+    }
+
+    public let step: OnboardingRegistrationStep
+    public let titleKey: String
+    public let subtitleKey: String?
+    public let progressLabelKey: String?      // "Question 1 of 2" / nil
+    public let options: [Option]
+    public let primaryButtonKey: String       // обычно "onboarding.button.continue"
+    public let showsCloseButton: Bool         // только на самом первом экране
+
+    public init(
+        step: OnboardingRegistrationStep,
+        titleKey: String,
+        subtitleKey: String? = nil,
+        progressLabelKey: String? = nil,
+        options: [Option],
+        primaryButtonKey: String,
+        showsCloseButton: Bool = false
+    ) {
+        self.step = step
+        self.titleKey = titleKey
+        self.subtitleKey = subtitleKey
+        self.progressLabelKey = progressLabelKey
+        self.options = options
+        self.primaryButtonKey = primaryButtonKey
+        self.showsCloseButton = showsCloseButton
+    }
+}
+
+/// Каталог всех quiz-экранов Phase 3. Сборка происходит на основе `OnboardingRoleRegistry` —
+/// чтобы добавить роль в саб-пикер, достаточно указать ей `presentedIn` в registry.
+public struct OnboardingQuizCatalog {
+
+    private let registry: OnboardingRoleRegistry
+
+    public init(registry: OnboardingRoleRegistry) {
+        self.registry = registry
+    }
+
+    public func descriptor(for step: OnboardingRegistrationStep) -> OnboardingQuizDescriptor? {
+        switch step {
+
+        case .topLevelChoice:
+            return OnboardingQuizDescriptor(
+                step: step,
+                titleKey: "onboarding.quiz.topLevel.title",
+                subtitleKey: "onboarding.quiz.topLevel.subtitle",
+                progressLabelKey: nil,
+                options: [
+                    .init(id: OnboardingTopLevelCategory.getHired.rawValue,
+                          titleKey: "onboarding.quiz.topLevel.option.getHired.title",
+                          subtitleKey: "onboarding.quiz.topLevel.option.getHired.subtitle"),
+                    .init(id: OnboardingTopLevelCategory.lookingForTalent.rawValue,
+                          titleKey: "onboarding.quiz.topLevel.option.lookingForTalent.title",
+                          subtitleKey: "onboarding.quiz.topLevel.option.lookingForTalent.subtitle"),
+                    .init(id: OnboardingTopLevelCategory.hereToFollow.rawValue,
+                          titleKey: "onboarding.quiz.topLevel.option.hereToFollow.title",
+                          subtitleKey: "onboarding.quiz.topLevel.option.hereToFollow.subtitle"),
+                ],
+                primaryButtonKey: "onboarding.button.continue",
+                showsCloseButton: true
+            )
+
+        case .industryDoor:
+            return OnboardingQuizDescriptor(
+                step: step,
+                titleKey: "onboarding.quiz.industryDoor.title",
+                subtitleKey: "onboarding.quiz.industryDoor.subtitle",
+                progressLabelKey: "onboarding.quiz.progress.1of2",
+                options: [
+                    .init(id: OnboardingIndustryDoor.representCompany.rawValue,
+                          titleKey: "onboarding.quiz.industryDoor.option.representCompany.title",
+                          subtitleKey: "onboarding.quiz.industryDoor.option.representCompany.subtitle"),
+                    .init(id: OnboardingIndustryDoor.industryProfessional.rawValue,
+                          titleKey: "onboarding.quiz.industryDoor.option.industryProfessional.title",
+                          subtitleKey: "onboarding.quiz.industryDoor.option.industryProfessional.subtitle"),
+                ],
+                primaryButtonKey: "onboarding.button.continue"
+            )
+
+        case .talentSubRolePicker:
+            return descriptorForSubRolePicker(
+                step: step,
+                titleKey: "onboarding.quiz.talentPicker.title",
+                progressLabelKey: "onboarding.quiz.progress.1of2",
+                picker: .talent
+            )
+
+        case .industryProSubRolePicker:
+            return descriptorForSubRolePicker(
+                step: step,
+                titleKey: "onboarding.quiz.industryProPicker.title",
+                progressLabelKey: "onboarding.quiz.progress.2of2",
+                picker: .industryPro
+            )
+
+        case .companiesSubRolePicker:
+            return descriptorForSubRolePicker(
+                step: step,
+                titleKey: "onboarding.quiz.companiesPicker.title",
+                progressLabelKey: "onboarding.quiz.progress.2of2",
+                picker: .companies
+            )
+
+        case .talentExperienceQuiz:
+            return OnboardingQuizDescriptor(
+                step: step,
+                titleKey: "onboarding.quiz.experience.title",
+                subtitleKey: "onboarding.quiz.experience.subtitle",
+                progressLabelKey: "onboarding.quiz.progress.2of2",
+                options: [
+                    .init(id: "yes",
+                          titleKey: "onboarding.quiz.experience.option.yes.title",
+                          subtitleKey: "onboarding.quiz.experience.option.yes.subtitle"),
+                    .init(id: "no",
+                          titleKey: "onboarding.quiz.experience.option.no.title",
+                          subtitleKey: "onboarding.quiz.experience.option.no.subtitle"),
+                ],
+                primaryButtonKey: "onboarding.button.continue"
+            )
+
+        case .roleResult, .formStep, .submitting, .completed:
+            return nil
+        }
+    }
+
+    private func descriptorForSubRolePicker(
+        step: OnboardingRegistrationStep,
+        titleKey: String,
+        progressLabelKey: String,
+        picker: OnboardingSubRolePicker
+    ) -> OnboardingQuizDescriptor {
+        let options = registry.roles(presentedIn: picker).map { def in
+            OnboardingQuizDescriptor.Option(
+                id: def.id.rawValue,
+                titleKey: def.displayNameKey,
+                subtitleKey: def.pickerSubtitleKey,
+                iconAssetName: def.pickerIconAssetName
+            )
+        }
+        return OnboardingQuizDescriptor(
+            step: step,
+            titleKey: titleKey,
+            subtitleKey: nil,
+            progressLabelKey: progressLabelKey,
+            options: options,
+            primaryButtonKey: "onboarding.button.continue"
+        )
+    }
+}

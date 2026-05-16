@@ -88,7 +88,17 @@ final class DivoSettingsNode: ASDisplayNode {
     private let logOutStackContainer = UIView()
     private let logOutContainer = SettingsRowView(icon: DivoImage.settingsLogOut, title: DivoStrings.logOut, isLast: true)
 
+    // Debug-row под логаутом: запускает регистрационный онбординг минуя авторизацию.
+    // Виден только когда `DivoDebugFlags.showOnboardingEntry == true` (переключатель в Debug Menu).
+    private let onboardingEntryStackContainer = UIView()
+    private let onboardingEntryContainer = SettingsRowView(
+        icon: UIImage(systemName: "person.crop.rectangle.stack") ?? UIImage(),
+        title: DivoStrings.settingsDebugLaunchOnboarding,
+        isLast: true
+    )
+
     var onProfileTapped: (() -> Void)?
+    var onOnboardingEntryTapped: (() -> Void)?
     var onSetUsernameTapped: (() -> Void)?
     var onFillParametersTapped: (() -> Void)?
     var onQrTapped: (() -> Void)?
@@ -162,7 +172,7 @@ final class DivoSettingsNode: ASDisplayNode {
     private func setDimmedSectionsActive(_ dimmed: Bool) {
         let alpha: CGFloat = dimmed ? Layout.dimmedAlpha : 1.0
         let interactive = !dimmed
-        for view in [parametersUsernameStackContainer, savedMessagesStackContainer, mainSettingsStackContainer, logOutStackContainer] {
+        for view in [parametersUsernameStackContainer, savedMessagesStackContainer, mainSettingsStackContainer, logOutStackContainer, onboardingEntryStackContainer] {
             view.alpha = alpha
             view.isUserInteractionEnabled = interactive
         }
@@ -207,6 +217,7 @@ final class DivoSettingsNode: ASDisplayNode {
         setupSavedMessagesSection()
         setupMainSection()
         setupLogOutSection()
+        setupOnboardingEntrySection()
 
         let bottomSpacer = UIView()
         bottomSpacer.translatesAutoresizingMaskIntoConstraints = false
@@ -344,6 +355,41 @@ final class DivoSettingsNode: ASDisplayNode {
         ])
 
         contentViewStack.addArrangedSubview(logOutStackContainer)
+    }
+
+    private func setupOnboardingEntrySection() {
+        let stackContainer = UIStackView()
+        stackContainer.translatesAutoresizingMaskIntoConstraints = false
+        stackContainer.axis = .vertical
+        stackContainer.addArrangedSubview(onboardingEntryContainer)
+
+        let whiteContainer = makeCardContainer()
+        whiteContainer.addSubview(stackContainer)
+
+        onboardingEntryStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        onboardingEntryStackContainer.addSubview(whiteContainer)
+
+        NSLayoutConstraint.activate(cardLayoutConstraints(card: whiteContainer, stack: stackContainer, container: onboardingEntryStackContainer))
+
+        NSLayoutConstraint.activate([
+            onboardingEntryContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
+        ])
+
+        onboardingEntryContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(onboardingEntryTapped)))
+
+        contentViewStack.addArrangedSubview(onboardingEntryStackContainer)
+        applyOnboardingEntryVisibility()
+    }
+
+    /// Прячет/показывает debug-row онбординга в зависимости от текущего флага.
+    /// Зовётся при первичной сборке и из контроллера на смену `DivoDebugFlags.didChangeNotification`.
+    func applyOnboardingEntryVisibility() {
+        onboardingEntryStackContainer.isHidden = !DivoDebugFlags.showOnboardingEntry
+    }
+
+    @objc private func onboardingEntryTapped() {
+        guard screenPhase == .ready else { return }
+        onOnboardingEntryTapped?()
     }
 
     private func makeCardContainer() -> UIView {

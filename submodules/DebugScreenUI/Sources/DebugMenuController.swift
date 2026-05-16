@@ -154,6 +154,15 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     self?.tableView.reloadData()
                 }), action: {}),
             ]),
+            (header: "Onboarding", rows: [
+                Row(icon: "person.crop.rectangle.stack", title: "Show entry in Settings", subtitle: {
+                    DivoDebugFlags.showOnboardingEntry ? "On" : "Off"
+                }, accessory: .toggle(DivoDebugFlags.showOnboardingEntry, { [weak self] enabled in
+                    DivoDebugFlags.showOnboardingEntry = enabled
+                    self?.buildSections()
+                    self?.tableView.reloadData()
+                }), action: {}),
+            ]),
             (header: DivoStrings.debugNetwork, rows: [
                 Row(icon: "speedometer", title: DivoStrings.debugNetworkOverlay, subtitle: { "" }, accessory: .toggle(overlayEnabled, { [weak self] enabled in
                     UserDefaults.standard.set(enabled, forKey: "DivoNetworkOverlay.enabled")

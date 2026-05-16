@@ -9,6 +9,7 @@ import AppBundle
 import DivoCore
 import DivoUIKit
 import ProfileScreenUI
+import OnboardingUI
 
 public final class DivoSettingsController: TelegramBaseController {
 
@@ -51,6 +52,10 @@ public final class DivoSettingsController: TelegramBaseController {
         notificationObservers.append(center.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.tabBarItem.title = DivoStrings.tabSettings
         })
+        notificationObservers.append(center.addObserver(forName: DivoDebugFlags.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            // Debug-флаг прячет/показывает «Launch onboarding»-row под логаутом.
+            self?.controllerNode.applyOnboardingEntryVisibility()
+        })
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -87,7 +92,23 @@ public final class DivoSettingsController: TelegramBaseController {
             self?.handleSaveMeasuringSystem(with: measuring)
         }
 
+        self.controllerNode.onOnboardingEntryTapped = { [weak self] in
+            self?.launchOnboardingDebug()
+        }
+
         self.displayNodeDidLoad()
+    }
+
+    /// Запускает регистрационный онбординг модально, минуя авторизацию. Используется только из
+    /// debug-row под логаутом (виден если включён `DivoDebugFlags.showOnboardingEntry`).
+    /// `forceFresh: true` — каждый запуск с чистого состояния, чтобы не тащить за собой прогресс
+    /// прошлых экспериментов.
+    private func launchOnboardingDebug() {
+        let controller = OnboardingRegistrationEntry.makeController(forceFresh: true) { [weak self] _ in
+            self?.dismiss(animated: true)
+        }
+        controller.modalPresentationStyle = .fullScreen
+        present(controller, animated: true)
     }
 
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
