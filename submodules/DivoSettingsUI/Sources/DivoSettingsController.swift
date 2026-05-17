@@ -122,11 +122,7 @@ public final class DivoSettingsController: TelegramBaseController {
             onb.dismiss(animated: true)
         }
         onboardingHolder = controller
-        // pageSheet — а не fullScreen — чтобы во время отладки можно было свайпнуть онбординг
-        // вниз и быстро добраться до Debug Menu / Console Logs не теряя прогресс
-        // (state persists в UserDefaults на каждое изменение).
-        controller.modalPresentationStyle = .pageSheet
-        controller.isModalInPresentation = false
+        controller.modalPresentationStyle = .fullScreen
         present(controller, animated: true)
     }
 
