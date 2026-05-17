@@ -21,6 +21,8 @@
 
 Файлы — в `submodules/OnboardingUI/Sources/Registration/Screens/`. Меняй `setupUI()` и стилистику subview'ев. **Не трогай** API контроллеров (`delegate`, `configure(...)`, `valueSnapshot()`), state-машину, coordinator, FormEngine, Catalog, Submit — на них держится навигация. Подробнее в §2 ниже.
 
+> **Скоуп задачи — только вёрстка.** Интеграцию с реальным registration endpoint, контракт сабмита, маппинг ролей на бэк и работу с API делаю я. Submit-сервис сейчас замокан (`MockOnboardingSubmitService` пишет payload в Console Logs через `divoLog`) — этого достаточно, чтобы проверить, что форма заполнена и happy-path проходится. Не нужно дёргать `DivoAPIClient`, добавлять реальные сетевые запросы или править `OnboardingSubmitService.swift`.
+
 Дополнительно:
 - Привязать финальные фото-ассеты result-экранов в `DivoCore/DivoCoreImages.xcassets/` (имена в `OnboardingResultCatalog.swift`).
 - Подменить SF Symbol-иконки саб-ролей на финальные DIVO-иконки.

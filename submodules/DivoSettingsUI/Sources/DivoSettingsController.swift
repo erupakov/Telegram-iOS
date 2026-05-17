@@ -104,10 +104,29 @@ public final class DivoSettingsController: TelegramBaseController {
     /// `forceFresh: false` — продолжаем сохранённый прогресс, чтобы можно было закрыть онбординг,
     /// вернуться и продолжить заполнение. Сбросить прогресс — Debug Menu → Onboarding → Clear progress.
     private func launchOnboardingDebug() {
-        let controller = OnboardingRegistrationEntry.makeController(forceFresh: false) { [weak self] _ in
-            self?.dismiss(animated: true)
+        weak var onboardingHolder: UIViewController?
+        let controller = OnboardingRegistrationEntry.makeController(forceFresh: false) { _ in
+            // Закрываем сам онбординг — работает для обоих кейсов:
+            // - presented modal (как сейчас): `dismiss` идёт через presenting controller;
+            // - pushed: pop'аем к предыдущему контроллеру в стэке.
+            guard let onb = onboardingHolder else { return }
+            if onb.presentingViewController != nil {
+                onb.dismiss(animated: true)
+                return
+            }
+            if let nav = onb.navigationController,
+               let idx = nav.viewControllers.firstIndex(of: onb), idx > 0 {
+                nav.popToViewController(nav.viewControllers[idx - 1], animated: true)
+                return
+            }
+            onb.dismiss(animated: true)
         }
-        controller.modalPresentationStyle = .fullScreen
+        onboardingHolder = controller
+        // pageSheet — а не fullScreen — чтобы во время отладки можно было свайпнуть онбординг
+        // вниз и быстро добраться до Debug Menu / Console Logs не теряя прогресс
+        // (state persists в UserDefaults на каждое изменение).
+        controller.modalPresentationStyle = .pageSheet
+        controller.isModalInPresentation = false
         present(controller, animated: true)
     }
 
