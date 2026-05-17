@@ -642,8 +642,13 @@ public enum DivoStrings {
     // MARK: - Onboarding — Quiz (sub-role pickers + experience)
 
     public static var onboardingQuizTalentPickerTitle: String { L(en: "WHAT KIND OF TALENT ARE YOU?", ru: "КАКОГО ТИПА ВЫ ТАЛАНТ?", es: "¿QUÉ TIPO DE TALENTO ERES?", pt: "QUE TIPO DE TALENTO VOCÊ É?", zh: "您是哪种类型的人才？") }
+    public static var onboardingQuizTalentPickerSubtitle: String { L(en: "Be honest — this helps us show you the right opportunities", ru: "Будьте честны — это поможет нам показать подходящие возможности", es: "Sé honesto — esto nos ayuda a mostrarte las oportunidades adecuadas", pt: "Seja honesto — isso nos ajuda a mostrar as oportunidades certas", zh: "请如实回答 — 这有助于我们为您展示合适的机会") }
+    public static var onboardingQuizTalentPickerSectionTalents: String { L(en: "Talents", ru: "Таланты", es: "Talentos", pt: "Talentos", zh: "人才") }
+    public static var onboardingQuizTalentPickerSectionCreative: String { L(en: "Creative", ru: "Креативные", es: "Creativos", pt: "Criativos", zh: "创意") }
     public static var onboardingQuizIndustryProPickerTitle: String { L(en: "WHAT'S YOUR ROLE IN THE INDUSTRY?", ru: "ВАША РОЛЬ В ИНДУСТРИИ?", es: "¿CUÁL ES TU ROL EN LA INDUSTRIA?", pt: "QUAL É O SEU PAPEL NO MERCADO?", zh: "您在行业中的角色是什么？") }
+    public static var onboardingQuizIndustryProPickerSubtitle: String { L(en: "Choose the option that best describes what you do day-to-day", ru: "Выберите вариант, который лучше всего описывает вашу работу", es: "Elige la opción que mejor describa lo que haces a diario", pt: "Escolha a opção que melhor descreve o que você faz no dia a dia", zh: "选择最能描述您日常工作的选项") }
     public static var onboardingQuizCompaniesPickerTitle: String { L(en: "WHAT BEST DESCRIBES YOUR COMPANY?", ru: "ЧТО ЛУЧШЕ ВСЕГО ОПИСЫВАЕТ ВАШУ КОМПАНИЮ?", es: "¿QUÉ DESCRIBE MEJOR A TU EMPRESA?", pt: "O QUE MELHOR DESCREVE A SUA EMPRESA?", zh: "什么最能描述您的公司？") }
+    public static var onboardingQuizCompaniesPickerSubtitle: String { L(en: "Choose the option that's closest to what you do", ru: "Выберите вариант, ближайший к вашей деятельности", es: "Elige la opción más cercana a lo que haces", pt: "Escolha a opção mais próxima do que você faz", zh: "选择最接近您业务的选项") }
 
     public static var onboardingQuizExperienceTitle: String { L(en: "DO YOU HAVE PROFESSIONAL MODELLING EXPERIENCE AND AN AGENCY?", ru: "У ВАС ЕСТЬ ПРОФЕССИОНАЛЬНЫЙ ОПЫТ МОДЕЛИ И АГЕНТСТВО?", es: "¿TIENES EXPERIENCIA PROFESIONAL COMO MODELO Y UNA AGENCIA?", pt: "VOCÊ TEM EXPERIÊNCIA PROFISSIONAL COMO MODELO E UMA AGÊNCIA?", zh: "您是否拥有专业模特经验和经纪公司？") }
     public static var onboardingQuizExperienceSubtitle: String { L(en: "This helps us match you with the right castings from day one", ru: "Это поможет с первого дня подбирать вам правильные кастинги", es: "Esto nos ayuda a emparejarte con los castings correctos desde el primer día", pt: "Isso nos ajuda a combiná-lo com os castings certos desde o primeiro dia", zh: "这有助于我们从第一天起为您匹配合适的选角") }
@@ -769,12 +774,6 @@ public enum DivoStrings {
     public static var onboardingForm4AContactLastNamePlaceholder: String { L(en: "Contact last name", ru: "Фамилия контакта", es: "Apellido del contacto", pt: "Sobrenome do contato", zh: "联系人姓氏") }
     public static var onboardingForm4AContactRolePlaceholder: String { L(en: "Contact role / title", ru: "Должность контакта", es: "Cargo del contacto", pt: "Cargo do contato", zh: "联系人职位") }
     public static var onboardingForm4AStep4Title: String { L(en: "ADD YOUR LOGO OR PROFILE PHOTO", ru: "ДОБАВЬТЕ ЛОГОТИП ИЛИ ФОТО", es: "AÑADE TU LOGO O FOTO DE PERFIL", pt: "ADICIONE SEU LOGO OU FOTO DE PERFIL", zh: "添加您的徽标或头像") }
-    public static var onboardingForm4ACompanyTypeOptionModelingAgency: String { L(en: "Modeling agency", ru: "Модельное агентство", es: "Agencia de modelos", pt: "Agência de modelos", zh: "模特经纪公司") }
-    public static var onboardingForm4ACompanyTypeOptionFashionBrand: String { L(en: "Fashion brand", ru: "Fashion-бренд", es: "Marca de moda", pt: "Marca de moda", zh: "时尚品牌") }
-    public static var onboardingForm4ACompanyTypeOptionBeautyBrand: String { L(en: "Beauty brand", ru: "Beauty-бренд", es: "Marca de belleza", pt: "Marca de beleza", zh: "美妆品牌") }
-    public static var onboardingForm4ACompanyTypeOptionBrandOrBusiness: String { L(en: "Brand or business", ru: "Бренд или бизнес", es: "Marca o negocio", pt: "Marca ou empresa", zh: "品牌或企业") }
-    public static var onboardingForm4ACompanyTypeOptionEventAgency: String { L(en: "Event agency", ru: "Event-агентство", es: "Agencia de eventos", pt: "Agência de eventos", zh: "活动公司") }
-    public static var onboardingForm4ACompanyTypeOptionMagazineOrMedia: String { L(en: "Magazine or media", ru: "Журнал или медиа", es: "Revista o medio", pt: "Revista ou mídia", zh: "杂志或媒体") }
 
     // MARK: - Onboarding — Form 4.B Industry Professionals
 

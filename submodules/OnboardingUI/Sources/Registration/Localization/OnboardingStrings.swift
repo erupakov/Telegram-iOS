@@ -13,15 +13,14 @@ import DivoCore
 /// - При добавлении/переименовании ключа правка идёт в двух местах: catalog (один key)
 ///   и DivoStrings (один property). Никаких разбегов между каталогом и контроллерами.
 ///
-/// FIXME (PROJ-004): сейчас почти все ключи возвращают английский placeholder. Перед мержем
-/// в dev для каждого ключа нужно:
-///   1. Добавить property в `DivoStrings.swift` с `L(en:ru:es:pt:zh:)` в нужной MARK-секции.
-///   2. Заменить case ниже на `return DivoStrings.<newProperty>`.
+/// При добавлении нового ключа: дописываем property в `DivoStrings.swift` под MARK-секцией
+/// `// MARK: - Onboarding — …` (с 5 языками через `L(en:ru:es:pt:zh:)`) и case в `mappedFromDivoStrings(_:)`.
+/// Если case забыт — `resolve` вернёт сам key (например, `"onboarding.role.foo.name"`), что сразу
+/// видно в UI как сигнал «забыли смапить».
 public enum OnboardingStrings {
 
     public static func resolve(_ key: String) -> String {
-        if let mapped = mappedFromDivoStrings(key) { return mapped }
-        return placeholder(forKey: key) ?? key
+        return mappedFromDivoStrings(key) ?? key
     }
 
     /// 1) Сначала пытаемся отрезолвить через DivoStrings — это финальная локализация.
@@ -60,9 +59,14 @@ public enum OnboardingStrings {
         case "onboarding.quiz.industryDoor.option.industryProfessional.subtitle":    return DivoStrings.onboardingQuizIndustryDoorOptionIndustryProSubtitle
 
         // MARK: Quiz — sub-role pickers + experience
-        case "onboarding.quiz.talentPicker.title":           return DivoStrings.onboardingQuizTalentPickerTitle
-        case "onboarding.quiz.industryProPicker.title":      return DivoStrings.onboardingQuizIndustryProPickerTitle
-        case "onboarding.quiz.companiesPicker.title":        return DivoStrings.onboardingQuizCompaniesPickerTitle
+        case "onboarding.quiz.talentPicker.title":              return DivoStrings.onboardingQuizTalentPickerTitle
+        case "onboarding.quiz.talentPicker.subtitle":           return DivoStrings.onboardingQuizTalentPickerSubtitle
+        case "onboarding.quiz.talentPicker.section.talents":    return DivoStrings.onboardingQuizTalentPickerSectionTalents
+        case "onboarding.quiz.talentPicker.section.creative":   return DivoStrings.onboardingQuizTalentPickerSectionCreative
+        case "onboarding.quiz.industryProPicker.title":         return DivoStrings.onboardingQuizIndustryProPickerTitle
+        case "onboarding.quiz.industryProPicker.subtitle":      return DivoStrings.onboardingQuizIndustryProPickerSubtitle
+        case "onboarding.quiz.companiesPicker.title":           return DivoStrings.onboardingQuizCompaniesPickerTitle
+        case "onboarding.quiz.companiesPicker.subtitle":        return DivoStrings.onboardingQuizCompaniesPickerSubtitle
         case "onboarding.quiz.experience.title":             return DivoStrings.onboardingQuizExperienceTitle
         case "onboarding.quiz.experience.subtitle":          return DivoStrings.onboardingQuizExperienceSubtitle
         case "onboarding.quiz.experience.option.yes.title":      return DivoStrings.onboardingQuizExperienceOptionYesTitle
@@ -162,12 +166,6 @@ public enum OnboardingStrings {
         case "onboarding.form.4A.contactLastName.placeholder":           return DivoStrings.onboardingForm4AContactLastNamePlaceholder
         case "onboarding.form.4A.contactRole.placeholder":               return DivoStrings.onboardingForm4AContactRolePlaceholder
         case "onboarding.form.4A.step4.title":                           return DivoStrings.onboardingForm4AStep4Title
-        case "onboarding.form.4A.companyType.option.modelingAgency":     return DivoStrings.onboardingForm4ACompanyTypeOptionModelingAgency
-        case "onboarding.form.4A.companyType.option.fashionBrand":       return DivoStrings.onboardingForm4ACompanyTypeOptionFashionBrand
-        case "onboarding.form.4A.companyType.option.beautyBrand":        return DivoStrings.onboardingForm4ACompanyTypeOptionBeautyBrand
-        case "onboarding.form.4A.companyType.option.brandOrBusiness":    return DivoStrings.onboardingForm4ACompanyTypeOptionBrandOrBusiness
-        case "onboarding.form.4A.companyType.option.eventAgency":        return DivoStrings.onboardingForm4ACompanyTypeOptionEventAgency
-        case "onboarding.form.4A.companyType.option.magazineOrMedia":    return DivoStrings.onboardingForm4ACompanyTypeOptionMagazineOrMedia
 
         // MARK: Form 4.B
         case "onboarding.form.4B.title":            return DivoStrings.onboardingForm4BTitle
@@ -272,246 +270,4 @@ public enum OnboardingStrings {
         return DivoStrings.onboardingQuizProgress(question: q, of: total)
     }
 
-    /// 2) Если в DivoStrings ключ ещё не подвезли — берём английский placeholder.
-    /// Это даёт нам рабочий онбординг с понятными подписями ещё до полной локализации.
-    /// Placeholder'ы — НЕ финальный текст, дизайн/копирайтер ещё ничего не утвердил.
-    private static func placeholder(forKey key: String) -> String? {
-        return placeholders[key]
-    }
-
-    // MARK: - English placeholders
-
-    private static let placeholders: [String: String] = {
-        var p: [String: String] = [:]
-
-        // Кнопки
-        p["onboarding.button.continue"]     = "Continue"
-        p["onboarding.button.done"]         = "Done"
-        p["onboarding.button.skip"]         = "Skip for now"
-        p["onboarding.button.letsGo"]       = "Let's go"
-        p["onboarding.result.button.primary"]   = "Sounds right — let's go"
-        p["onboarding.result.button.secondary"] = "Choose a different role"
-
-        // Quiz — top-level
-        p["onboarding.quiz.topLevel.title"]    = "We'll set up your profile based on your answer. You can change this later."
-        p["onboarding.quiz.topLevel.subtitle"] = ""
-        p["onboarding.quiz.topLevel.option.getHired.title"]            = "I WANT TO GET HIRED"
-        p["onboarding.quiz.topLevel.option.getHired.subtitle"]         = "Model, performer, creative pro"
-        p["onboarding.quiz.topLevel.option.lookingForTalent.title"]    = "I'M LOOKING FOR TALENT"
-        p["onboarding.quiz.topLevel.option.lookingForTalent.subtitle"] = "Agency, brand, scout, booker"
-        p["onboarding.quiz.topLevel.option.hereToFollow.title"]        = "I'M HERE TO FOLLOW"
-        p["onboarding.quiz.topLevel.option.hereToFollow.subtitle"]     = "Fan of fashion and creators"
-
-        // Quiz — industry door
-        p["onboarding.quiz.industryDoor.title"]    = "HOW DO YOU WORK?"
-        p["onboarding.quiz.industryDoor.subtitle"] = "This helps us tag your right profile"
-        p["onboarding.quiz.industryDoor.option.representCompany.title"]         = "I REPRESENT A COMPANY"
-        p["onboarding.quiz.industryDoor.option.representCompany.subtitle"]      = "Agency, brand, media or business"
-        p["onboarding.quiz.industryDoor.option.industryProfessional.title"]     = "I'M AN INDUSTRY PRO"
-        p["onboarding.quiz.industryDoor.option.industryProfessional.subtitle"]  = "Scout, booker, casting director"
-
-        // Quiz — sub-role picker titles
-        p["onboarding.quiz.talentPicker.title"]      = "WHAT KIND OF TALENT ARE YOU?"
-        p["onboarding.quiz.industryProPicker.title"] = "WHAT'S YOUR ROLE IN THE INDUSTRY?"
-        p["onboarding.quiz.companiesPicker.title"]   = "WHAT BEST DESCRIBES YOUR COMPANY?"
-
-        // Quiz — experience (Model)
-        p["onboarding.quiz.experience.title"]    = "DO YOU HAVE PROFESSIONAL MODELLING EXPERIENCE AND AN AGENCY?"
-        p["onboarding.quiz.experience.subtitle"] = "This helps us match you with the right castings from day one"
-        p["onboarding.quiz.experience.option.yes.title"]    = "YES"
-        p["onboarding.quiz.experience.option.yes.subtitle"] = "I have a portfolio and I work with or have worked with an agency"
-        p["onboarding.quiz.experience.option.no.title"]     = "NO YET"
-        p["onboarding.quiz.experience.option.no.subtitle"]  = "I'm building my career and don't have an agency yet"
-
-        // Quiz — progress
-        p["onboarding.quiz.progress.1of2"] = "Question 1 of 2"
-        p["onboarding.quiz.progress.2of2"] = "Question 2 of 2"
-
-        // Roles — display names
-        p["onboarding.role.modelingAgency.name"]      = "Modeling agency"
-        p["onboarding.role.fashionBrand.name"]        = "Fashion brand"
-        p["onboarding.role.brandOrBusiness.name"]     = "Brand or business"
-        p["onboarding.role.beautyBrand.name"]         = "Beauty brand"
-        p["onboarding.role.eventAgency.name"]         = "Event agency"
-        p["onboarding.role.magazinePublication.name"] = "Magazine or media"
-        p["onboarding.role.scout.name"]            = "SCOUT"
-        p["onboarding.role.scout.subtitle"]        = "I find new faces, independently or for an agency"
-        p["onboarding.role.booker.name"]           = "BOOKER"
-        p["onboarding.role.booker.subtitle"]       = "I manage bookings and negotiations for models at an agency"
-        p["onboarding.role.castingDirector.name"]  = "CASTING DIRECTOR"
-        p["onboarding.role.castingDirector.subtitle"] = "I run castings for specific projects: shows, ads or film"
-        p["onboarding.role.talentManager.name"]    = "TALENT MANAGER"
-        p["onboarding.role.talentManager.subtitle"] = "I represent and manage individual talent on their career"
-        p["onboarding.role.photographer.name"]     = "PHOTOGRAPHER"
-        p["onboarding.role.stylist.name"]          = "STYLIST"
-        p["onboarding.role.makeupArtist.name"]     = "MAKEUP ARTIST"
-        p["onboarding.role.hairStylist.name"]      = "HAIR STYLIST"
-        p["onboarding.role.videographer.name"]     = "VIDEOGRAPHER"
-        p["onboarding.role.creativeDirector.name"] = "CREATIVE DIRECTOR"
-        p["onboarding.role.fashionDesigner.name"]  = "FASHION DESIGNER"
-        p["onboarding.role.studioLocation.name"]   = "STUDIO / LOCATION"
-        p["onboarding.role.model.name"]            = "MODEL"
-        p["onboarding.role.newTalent.name"]        = "NEW TALENT"
-        p["onboarding.role.actor.name"]            = "ACTOR OR ACTRESS"
-        p["onboarding.role.dancer.name"]           = "DANCER"
-        p["onboarding.role.singerPerformer.name"]  = "SINGER OR PERFORMER"
-        p["onboarding.role.fan.name"]              = "FAN"
-
-        // Result-экраны (заголовок + описание)
-        p["onboarding.result.modelVariant.title"]       = "YOU'RE A PROFESSIONAL MODEL"
-        p["onboarding.result.modelVariant.description"] = "Your profile will be built to showcase your portfolio and connect you directly with agencies and brands looking for experienced talent."
-        p["onboarding.result.newTalentVariant.title"]   = "YOU'RE A RISING TALENT"
-        p["onboarding.result.newTalentVariant.description"] = "Your profile will help you build raw potential, get casting, find TFP shoots with photographers and stylists."
-        p["onboarding.result.actor.title"]              = "YOU'RE AN ACTOR"
-        p["onboarding.result.actor.description"]        = "Our profile will connect you with brands and agencies looking for acting talent for campaigns, fashion films and live events."
-        p["onboarding.result.dancer.title"]             = "YOU'RE A DANCER"
-        p["onboarding.result.dancer.description"]       = "Your profile will pair your skills, campaigns and events looking for dance talent across all styles."
-        p["onboarding.result.singerPerformer.title"]    = "YOU'RE A PERFORMER"
-        p["onboarding.result.singerPerformer.description"] = "Your profile will connect you to fashion events, brand campaigns and creative projects looking for the performance talent."
-        p["onboarding.result.creativeProfessional.title"] = "YOU'RE A CREATIVE PROFESSIONAL"
-        p["onboarding.result.creativeProfessional.description"] = "Our profile will showcase your portfolio, let you post projects and connect with models, brands and agencies — on both sides of the market."
-        p["onboarding.result.companiesBrands.title"]    = "YOU'RE HERE TO FIND TALENT"
-        p["onboarding.result.companiesBrands.description"] = "Our profile will be set up to search, post castings and connect directly with models and creatives — whether you're a brand, agency, scout, or anyone else who works with talent."
-        p["onboarding.result.industryProfessional.title"] = "YOU'RE A TALENT INDUSTRY PROFESSIONAL"
-        p["onboarding.result.industryProfessional.description"] = "Talent database, advanced search tools and casting workflow — for the way professionals actually work."
-        p["onboarding.result.fan.title"]                = "YOU'RE A FASHION FAN"
-        p["onboarding.result.fan.description"]          = "You'll be able to follow your favourite models and creators, discover new talent and stay connected to the fashion world."
-
-        // Форма 4.A
-        p["onboarding.form.4A.title"]                 = "Companies & Brands"
-        p["onboarding.form.4A.step1.title"]           = "TELL US ABOUT YOUR COMPANY"
-        p["onboarding.form.4A.companyName.placeholder"] = "Company / Organisation name *"
-        p["onboarding.form.4A.companyType.placeholder"] = "Choose a type company"
-        p["onboarding.form.4A.companyType.option.modelingAgency"]   = "Modeling agency"
-        p["onboarding.form.4A.companyType.option.fashionBrand"]     = "Fashion brand"
-        p["onboarding.form.4A.companyType.option.beautyBrand"]      = "Beauty brand"
-        p["onboarding.form.4A.companyType.option.brandOrBusiness"]  = "Brand or business"
-        p["onboarding.form.4A.companyType.option.eventAgency"]      = "Event agency"
-        p["onboarding.form.4A.companyType.option.magazineOrMedia"]  = "Magazine or media"
-        p["onboarding.form.4A.step2.title"]           = "WHERE ARE YOU BASED?"
-        p["onboarding.form.4A.step3.title"]           = "VERIFICATION & CONTACT"
-        p["onboarding.form.4A.websiteUrl.placeholder"] = "Website URL"
-        p["onboarding.form.4A.websiteUrl.help"]        = "Helps verify your account"
-        p["onboarding.form.4A.contactFirstName.placeholder"] = "Contact first name"
-        p["onboarding.form.4A.contactLastName.placeholder"]  = "Contact last name"
-        p["onboarding.form.4A.contactRole.placeholder"]      = "Contact role / title"
-        p["onboarding.form.4A.step4.title"]           = "ADD YOUR LOGO OR PROFILE PHOTO"
-
-        // Форма 4.B
-        p["onboarding.form.4B.title"]            = "Industry Professionals"
-        p["onboarding.form.4B.step1.title"]      = "YOUR PROFESSIONAL IDENTITY"
-        p["onboarding.form.4B.role.placeholder"] = "Role"
-        p["onboarding.form.4B.step3.title"]      = "PROFESSIONAL LINKS"
-        p["onboarding.form.4B.agency.placeholder"] = "Agency / Organisation"
-        p["onboarding.form.4B.agency.help"]        = "Your agency will receive a confirmation request"
-
-        // Форма 4.C1
-        p["onboarding.form.4C1.title"]                       = "Creative Professionals — Individual"
-        p["onboarding.form.4C1.step1.title"]                 = "YOUR CREATIVE IDENTITY"
-        p["onboarding.form.4C1.specialisation.placeholder"]  = "Specialisation"
-        p["onboarding.form.4C1.step3.title"]                 = "ADD YOUR PORTFOLIO"
-        p["onboarding.form.4C1.step3.subtitle"]              = "Recommended — helps clients find your work faster"
-        p["onboarding.form.4C1.portfolio.help"]              = "Share a link to your Instagram, Behance, personal site or any portfolio"
-
-        // Форма 4.C2
-        p["onboarding.form.4C2.title"]                          = "Creative Professionals — Studio"
-        p["onboarding.form.4C2.step1.title"]                    = "YOUR STUDIO DETAILS"
-        p["onboarding.form.4C2.studioName.placeholder"]         = "Studio / space name *"
-        p["onboarding.form.4C2.step2.title"]                    = "CONTACT DETAILS"
-        p["onboarding.form.4C2.websiteOrInstagram.placeholder"] = "Website or Instagram"
-        p["onboarding.form.4C2.websiteOrInstagram.help"]        = "Light verification signal"
-        p["onboarding.form.4C2.contactName.placeholder"]        = "Contact name"
-        p["onboarding.form.4C2.contactName.help"]               = "Person managing bookings"
-        p["onboarding.form.4C2.contactPhoneOrEmail.placeholder"] = "Contact phone or email"
-        p["onboarding.form.4C2.contactPhoneOrEmail.help"]       = "For booking enquiries"
-        p["onboarding.form.4C2.step3.title"]                    = "SHOW YOUR MAIN SPACE"
-        p["onboarding.form.4C2.step3.subtitle"]                 = "Clients want to see what they're booking"
-
-        // Форма 4.D1
-        p["onboarding.form.4D1.title"]                     = "Talent — Model"
-        p["onboarding.form.4D1.step3.title"]               = "PROFESSIONAL LINKS"
-        p["onboarding.form.4D1.currentAgency.placeholder"] = "Current or last agency"
-        p["onboarding.form.4D1.currentAgency.help"]        = "Add your agency to get a verified badge"
-        p["onboarding.form.4D1.step4.title"]               = "SHOW THE WORLD WHO YOU ARE"
-        p["onboarding.form.4D1.step4.subtitle"]            = "Use a clear, front-facing photo. You can update this any time."
-
-        // Форма 4.D2
-        p["onboarding.form.4D2.title"]            = "Talent — New Talent"
-        p["onboarding.form.4D2.step3.title"]      = "PROFESSIONAL LINKS"
-        p["onboarding.form.4D2.step4.title"]      = "ADD YOUR PROFILE PHOTO"
-        p["onboarding.form.4D2.tfp.hint"]         = "Your first step: find a TFP shoot.\nTFP (Time For Portfolio) shoots are free collaborations with photographers. They'll build your portfolio fast. We'll show you how when you're in the app."
-
-        // Форма 4.D3 (заголовки шагов общие, специализация — ниже)
-        p["onboarding.form.4D3.title"]                       = "Talent — Actor / Dancer / Singer"
-        p["onboarding.form.4D3.step3.title"]                 = "PROFESSIONAL LINKS"
-        p["onboarding.form.4D3.specialisation.placeholder"]  = "Specialisation"
-        p["onboarding.form.4D3.showreelUrl.placeholder"]     = "Showreel / demo reel URL"
-        p["onboarding.form.4D3.instagramOrCasting.placeholder"] = "Instagram / casting profile URL"
-        // Actor specialisations
-        p["onboarding.form.4D3.actor.specialisation.film"]       = "Film"
-        p["onboarding.form.4D3.actor.specialisation.theatre"]    = "Theatre"
-        p["onboarding.form.4D3.actor.specialisation.commercial"] = "Commercial"
-        p["onboarding.form.4D3.actor.specialisation.dubbing"]    = "Dubbing"
-        p["onboarding.form.4D3.actor.specialisation.tv"]         = "TV"
-        p["onboarding.form.4D3.actor.specialisation.other"]      = "Other"
-        // Dancer specialisations
-        p["onboarding.form.4D3.dancer.specialisation.contemporary"] = "Contemporary"
-        p["onboarding.form.4D3.dancer.specialisation.ballet"]       = "Ballet"
-        p["onboarding.form.4D3.dancer.specialisation.hiphop"]       = "Hip-hop"
-        p["onboarding.form.4D3.dancer.specialisation.ballroom"]     = "Ballroom"
-        p["onboarding.form.4D3.dancer.specialisation.commercial"]   = "Commercial"
-        p["onboarding.form.4D3.dancer.specialisation.latin"]        = "Latin"
-        p["onboarding.form.4D3.dancer.specialisation.jazz"]         = "Jazz"
-        p["onboarding.form.4D3.dancer.specialisation.other"]        = "Other"
-        // Singer specialisations
-        p["onboarding.form.4D3.singer.specialisation.pop"]            = "Pop"
-        p["onboarding.form.4D3.singer.specialisation.rnb"]            = "R&B"
-        p["onboarding.form.4D3.singer.specialisation.jazz"]           = "Jazz"
-        p["onboarding.form.4D3.singer.specialisation.classical"]      = "Classical"
-        p["onboarding.form.4D3.singer.specialisation.musicalTheatre"] = "Musical Theatre"
-        p["onboarding.form.4D3.singer.specialisation.opera"]          = "Opera"
-        p["onboarding.form.4D3.singer.specialisation.other"]          = "Other"
-
-        // Форма 4.E
-        p["onboarding.form.4E.title"]            = "Fan Registration"
-        p["onboarding.form.4E.step1.title"]      = "TELL US ABOUT YOURSELF"
-        p["onboarding.form.4E.step2.title"]      = "ADD YOUR PROFILE PHOTO"
-        p["onboarding.form.4E.step2.subtitle"]   = "Use a clear photo of yourself. You can update this any time."
-
-        // Общие секции / поля
-        p["onboarding.form.section.identity.title"]        = "YOUR IDENTITY"
-        p["onboarding.form.section.personalDetails.title"] = "PERSONAL DETAILS"
-        p["onboarding.form.section.location.title"]        = "LOCATION"
-        p["onboarding.form.section.profilePhoto.title"]    = "ADD YOUR PROFILE PHOTO"
-        p["onboarding.form.section.profilePhoto.subtitle"] = "Use a clear photo of yourself. You can update this any time."
-
-        p["onboarding.form.field.firstName.placeholder"]            = "First name *"
-        p["onboarding.form.field.lastName.placeholder"]             = "Last name *"
-        p["onboarding.form.field.dateOfBirth.placeholder"]          = "Date of birth"
-        p["onboarding.form.field.gender.placeholder"]               = "Choose a gender"
-        p["onboarding.form.field.country.placeholder"]              = "Country"
-        p["onboarding.form.field.city.placeholder"]                 = "City"
-        p["onboarding.form.field.instagramHandle.placeholder"]      = "Instagram handle"
-        p["onboarding.form.field.instagramHandle.help"]             = "Helps you get discovered faster"
-        p["onboarding.form.field.instagramOrPortfolio.placeholder"] = "Instagram / Portfolio URL"
-        p["onboarding.form.field.profilePhoto.placeholder"]         = "Upload from library or take a photo"
-        p["onboarding.form.field.profilePhoto.help"]                = "Any file format supported"
-        p["onboarding.form.field.logoPhoto.placeholder"]            = "Upload logo or take a photo"
-        p["onboarding.form.field.logoPhoto.help"]                   = "Any file format supported"
-
-        // Gender
-        p["onboarding.form.gender.option.female"]        = "Female"
-        p["onboarding.form.gender.option.male"]          = "Male"
-        p["onboarding.form.gender.option.nonbinary"]     = "Non-binary"
-        p["onboarding.form.gender.option.preferNotToSay"] = "Prefer not to say"
-
-        // Form progress
-        for total in 2...4 {
-            for i in 1...total {
-                p["onboarding.form.progress.\(i)of\(total)"] = "Step \(i) of \(total)"
-            }
-        }
-
-        return p
-    }()
 }

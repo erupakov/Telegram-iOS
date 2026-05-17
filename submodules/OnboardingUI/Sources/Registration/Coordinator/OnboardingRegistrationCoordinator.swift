@@ -42,12 +42,15 @@ public final class OnboardingRegistrationCoordinator {
     public init(
         registry: OnboardingRoleRegistry = .default,
         resultCatalog: OnboardingResultCatalog = OnboardingResultCatalog(),
-        formCatalog: OnboardingFormCatalog = OnboardingFormCatalog(),
         store: OnboardingProgressStore = OnboardingProgressStore(),
         submitService: OnboardingSubmitService = MockOnboardingSubmitService(),
         forceFresh: Bool,
         onFinish: @escaping (Bool) -> Void
     ) {
+        // FormCatalog зависит от registry (берёт оттуда списки ролей для встроенных пикеров),
+        // поэтому конструируется здесь после установки registry, а не через default-параметр.
+        let formCatalog = OnboardingFormCatalog(registry: registry)
+
         self.registry = registry
         self.resultCatalog = resultCatalog
         self.formCatalog = formCatalog
@@ -60,14 +63,12 @@ public final class OnboardingRegistrationCoordinator {
         )
         self.onFinish = onFinish
 
-        if forceFresh {
-            store.clear()
-            self.state = OnboardingRegistrationState()
-        } else if let saved = store.load() {
-            self.state = saved
-        } else {
-            self.state = OnboardingRegistrationState()
-        }
+        self.state = Self.resolveStartState(
+            forceFresh: forceFresh,
+            store: store,
+            registry: registry,
+            formCatalog: formCatalog
+        )
 
         self.navigationController = UINavigationController()
         self.navigationController.setNavigationBarHidden(true, animated: false)
@@ -101,11 +102,19 @@ public final class OnboardingRegistrationCoordinator {
     private func goBack(animated: Bool = true) {
         guard let previous = stateMachine.previousStep(from: state) else {
             // Корень — закрываем онбординг как cancel.
+            divoLog("Onboarding back from top-level → cancelFromTopLevel", level: .info)
             cancelFromTopLevel()
             return
         }
         updateState { $0.currentStep = previous }
-        navigationController.popViewController(animated: animated)
+        if navigationController.viewControllers.count > 1 {
+            navigationController.popViewController(animated: animated)
+        } else {
+            // После persistence-restore стек содержит только текущий шаг — pop ничего бы не сделал
+            // и UI рассинхронился бы со state. Создаём controller предыдущего шага и заменяем root.
+            let vc = makeController(for: previous)
+            navigationController.setViewControllers([vc], animated: animated)
+        }
     }
 
     // MARK: - Push
@@ -191,7 +200,14 @@ extension OnboardingRegistrationCoordinator: OnboardingQuizViewController.Delega
         case .industryDoor:
             updateState { $0.industryDoor = OnboardingIndustryDoor(rawValue: optionId) }
         case .talentExperienceQuiz:
-            updateState { $0.hasModelingExperience = (optionId == "yes") }
+            // Выбор Yes/No yet одновременно фиксирует hasModelingExperience И селектит финальную
+            // роль (.model или .newTalent). Без обновления selectedRoleId submit-payload отправил бы
+            // .model даже когда юзер прошёл ветку «No yet» → 4.D2 — рассинхрон с фактической формой.
+            let hasExperience = (optionId == "yes")
+            updateState {
+                $0.hasModelingExperience = hasExperience
+                $0.selectedRoleId = hasExperience ? .model : .newTalent
+            }
         case .talentSubRolePicker, .industryProSubRolePicker, .companiesSubRolePicker:
             updateState { $0.selectedRoleId = OnboardingRoleID(optionId) }
         default:
@@ -206,10 +222,6 @@ extension OnboardingRegistrationCoordinator: OnboardingQuizViewController.Delega
 
     public func quizControllerDidTapBack(_ controller: OnboardingQuizViewController) {
         goBack()
-    }
-
-    public func quizControllerDidTapClose(_ controller: OnboardingQuizViewController) {
-        cancelFromTopLevel()
     }
 }
 
@@ -424,6 +436,56 @@ extension OnboardingRegistrationCoordinator: OnboardingSubmitViewController.Dele
 
     public func submitControllerDidFinish(_ controller: OnboardingSubmitViewController) {
         // No-op: onFinish уже вызван в submitControllerDidRequestStart.
+    }
+}
+
+// MARK: - Restore policy
+
+private extension OnboardingRegistrationCoordinator {
+    /// Решает с какого state стартовать coordinator на основе `forceFresh` и сохранённого state.
+    ///
+    /// Правила:
+    /// - `forceFresh: true` или нет сохранённого state → стартуем с чистого `.topLevelChoice`.
+    /// - Сохранён `.completed` → онбординг уже был завершён, не пытаемся продолжить; чистим и стартуем заново.
+    /// - Сохранён `.submitting` → submit был прерван (краш / kill приложения). Возвращаемся
+    ///   на ПОСЛЕДНИЙ шаг формы, сохраняя все введённые данные. Юзер видит свою форму,
+    ///   может тапнуть Continue → submit, или Back → проверить и поправить.
+    /// - Любой другой шаг → восстанавливаем как есть.
+    static func resolveStartState(
+        forceFresh: Bool,
+        store: OnboardingProgressStore,
+        registry: OnboardingRoleRegistry,
+        formCatalog: OnboardingFormCatalog
+    ) -> OnboardingRegistrationState {
+        if forceFresh {
+            store.clear()
+            return OnboardingRegistrationState()
+        }
+        guard var saved = store.load() else {
+            return OnboardingRegistrationState()
+        }
+        switch saved.currentStep {
+        case .completed:
+            divoLog("Onboarding restore: saved state was .completed → starting fresh", level: .info)
+            store.clear()
+            return OnboardingRegistrationState()
+        case .submitting:
+            // Откатываем на последний шаг формы, чтобы не терять введённые данные.
+            if let roleId = saved.selectedRoleId,
+               let def = registry.definition(for: roleId) {
+                let lastIndex = max(0, formCatalog.stepCount(for: def.formId) - 1)
+                saved.currentStep = .formStep(formId: def.formId, stepIndex: lastIndex)
+                store.save(saved)
+                divoLog("Onboarding restore: rewinding .submitting → last form step (\(def.formId.rawValue), \(lastIndex))", level: .info)
+                return saved
+            }
+            // Не нашли роль/форму — данные потеряны, стартуем с нуля.
+            divoLog("Onboarding restore: .submitting without selectedRoleId → starting fresh", level: .warning)
+            store.clear()
+            return OnboardingRegistrationState()
+        default:
+            return saved
+        }
     }
 }
 

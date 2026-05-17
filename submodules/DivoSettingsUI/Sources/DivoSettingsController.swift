@@ -101,10 +101,10 @@ public final class DivoSettingsController: TelegramBaseController {
 
     /// Запускает регистрационный онбординг модально, минуя авторизацию. Используется только из
     /// debug-row под логаутом (виден если включён `DivoDebugFlags.showOnboardingEntry`).
-    /// `forceFresh: true` — каждый запуск с чистого состояния, чтобы не тащить за собой прогресс
-    /// прошлых экспериментов.
+    /// `forceFresh: false` — продолжаем сохранённый прогресс, чтобы можно было закрыть онбординг,
+    /// вернуться и продолжить заполнение. Сбросить прогресс — Debug Menu → Onboarding → Clear progress.
     private func launchOnboardingDebug() {
-        let controller = OnboardingRegistrationEntry.makeController(forceFresh: true) { [weak self] _ in
+        let controller = OnboardingRegistrationEntry.makeController(forceFresh: false) { [weak self] _ in
             self?.dismiss(animated: true)
         }
         controller.modalPresentationStyle = .fullScreen

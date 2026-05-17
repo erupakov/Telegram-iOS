@@ -17,30 +17,45 @@ public struct OnboardingQuizDescriptor {
         }
     }
 
+    /// Группа опций под общим заголовком. Для пикеров без секций — одна `Section` с `titleKey == nil`.
+    /// Talent picker по дизайну имеет две секции — «TALENTS» и «CREATIVE» — заголовки берутся
+    /// из `OnboardingRoleDefinition.pickerSectionKey`.
+    public struct Section {
+        public let titleKey: String?
+        public let options: [Option]
+
+        public init(titleKey: String?, options: [Option]) {
+            self.titleKey = titleKey
+            self.options = options
+        }
+    }
+
     public let step: OnboardingRegistrationStep
     public let titleKey: String
     public let subtitleKey: String?
     public let progressLabelKey: String?      // "Question 1 of 2" / nil
-    public let options: [Option]
+    public let sections: [Section]
     public let primaryButtonKey: String       // обычно "onboarding.button.continue"
-    public let showsCloseButton: Bool         // только на самом первом экране
 
     public init(
         step: OnboardingRegistrationStep,
         titleKey: String,
         subtitleKey: String? = nil,
         progressLabelKey: String? = nil,
-        options: [Option],
-        primaryButtonKey: String,
-        showsCloseButton: Bool = false
+        sections: [Section],
+        primaryButtonKey: String
     ) {
         self.step = step
         self.titleKey = titleKey
         self.subtitleKey = subtitleKey
         self.progressLabelKey = progressLabelKey
-        self.options = options
+        self.sections = sections
         self.primaryButtonKey = primaryButtonKey
-        self.showsCloseButton = showsCloseButton
+    }
+
+    /// Плоский список опций по всем секциям, в порядке секций. Удобно для лукапа по `id`.
+    public var allOptions: [Option] {
+        return sections.flatMap { $0.options }
     }
 }
 
@@ -63,19 +78,22 @@ public struct OnboardingQuizCatalog {
                 titleKey: "onboarding.quiz.topLevel.title",
                 subtitleKey: "onboarding.quiz.topLevel.subtitle",
                 progressLabelKey: nil,
-                options: [
-                    .init(id: OnboardingTopLevelCategory.getHired.rawValue,
-                          titleKey: "onboarding.quiz.topLevel.option.getHired.title",
-                          subtitleKey: "onboarding.quiz.topLevel.option.getHired.subtitle"),
-                    .init(id: OnboardingTopLevelCategory.lookingForTalent.rawValue,
-                          titleKey: "onboarding.quiz.topLevel.option.lookingForTalent.title",
-                          subtitleKey: "onboarding.quiz.topLevel.option.lookingForTalent.subtitle"),
-                    .init(id: OnboardingTopLevelCategory.hereToFollow.rawValue,
-                          titleKey: "onboarding.quiz.topLevel.option.hereToFollow.title",
-                          subtitleKey: "onboarding.quiz.topLevel.option.hereToFollow.subtitle"),
+                sections: [
+                    .init(titleKey: nil, options: [
+                        .init(id: OnboardingTopLevelCategory.getHired.rawValue,
+                              titleKey: "onboarding.quiz.topLevel.option.getHired.title",
+                              subtitleKey: "onboarding.quiz.topLevel.option.getHired.subtitle"),
+                        .init(id: OnboardingTopLevelCategory.lookingForTalent.rawValue,
+                              titleKey: "onboarding.quiz.topLevel.option.lookingForTalent.title",
+                              subtitleKey: "onboarding.quiz.topLevel.option.lookingForTalent.subtitle"),
+                        .init(id: OnboardingTopLevelCategory.hereToFollow.rawValue,
+                              titleKey: "onboarding.quiz.topLevel.option.hereToFollow.title",
+                              subtitleKey: "onboarding.quiz.topLevel.option.hereToFollow.subtitle"),
+                    ]),
                 ],
-                primaryButtonKey: "onboarding.button.continue",
-                showsCloseButton: true
+                primaryButtonKey: "onboarding.button.continue"
+                // На первом шаге back через state-машину возвращает nil → coordinator делает
+                // cancelFromTopLevel() и закрывает онбординг. Отдельная кнопка close не нужна.
             )
 
         case .industryDoor:
@@ -84,13 +102,15 @@ public struct OnboardingQuizCatalog {
                 titleKey: "onboarding.quiz.industryDoor.title",
                 subtitleKey: "onboarding.quiz.industryDoor.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.1of2",
-                options: [
-                    .init(id: OnboardingIndustryDoor.representCompany.rawValue,
-                          titleKey: "onboarding.quiz.industryDoor.option.representCompany.title",
-                          subtitleKey: "onboarding.quiz.industryDoor.option.representCompany.subtitle"),
-                    .init(id: OnboardingIndustryDoor.industryProfessional.rawValue,
-                          titleKey: "onboarding.quiz.industryDoor.option.industryProfessional.title",
-                          subtitleKey: "onboarding.quiz.industryDoor.option.industryProfessional.subtitle"),
+                sections: [
+                    .init(titleKey: nil, options: [
+                        .init(id: OnboardingIndustryDoor.representCompany.rawValue,
+                              titleKey: "onboarding.quiz.industryDoor.option.representCompany.title",
+                              subtitleKey: "onboarding.quiz.industryDoor.option.representCompany.subtitle"),
+                        .init(id: OnboardingIndustryDoor.industryProfessional.rawValue,
+                              titleKey: "onboarding.quiz.industryDoor.option.industryProfessional.title",
+                              subtitleKey: "onboarding.quiz.industryDoor.option.industryProfessional.subtitle"),
+                    ]),
                 ],
                 primaryButtonKey: "onboarding.button.continue"
             )
@@ -99,6 +119,7 @@ public struct OnboardingQuizCatalog {
             return descriptorForSubRolePicker(
                 step: step,
                 titleKey: "onboarding.quiz.talentPicker.title",
+                subtitleKey: "onboarding.quiz.talentPicker.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.1of2",
                 picker: .talent
             )
@@ -107,6 +128,7 @@ public struct OnboardingQuizCatalog {
             return descriptorForSubRolePicker(
                 step: step,
                 titleKey: "onboarding.quiz.industryProPicker.title",
+                subtitleKey: "onboarding.quiz.industryProPicker.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.2of2",
                 picker: .industryPro
             )
@@ -115,6 +137,7 @@ public struct OnboardingQuizCatalog {
             return descriptorForSubRolePicker(
                 step: step,
                 titleKey: "onboarding.quiz.companiesPicker.title",
+                subtitleKey: "onboarding.quiz.companiesPicker.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.2of2",
                 picker: .companies
             )
@@ -125,13 +148,15 @@ public struct OnboardingQuizCatalog {
                 titleKey: "onboarding.quiz.experience.title",
                 subtitleKey: "onboarding.quiz.experience.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.2of2",
-                options: [
-                    .init(id: "yes",
-                          titleKey: "onboarding.quiz.experience.option.yes.title",
-                          subtitleKey: "onboarding.quiz.experience.option.yes.subtitle"),
-                    .init(id: "no",
-                          titleKey: "onboarding.quiz.experience.option.no.title",
-                          subtitleKey: "onboarding.quiz.experience.option.no.subtitle"),
+                sections: [
+                    .init(titleKey: nil, options: [
+                        .init(id: "yes",
+                              titleKey: "onboarding.quiz.experience.option.yes.title",
+                              subtitleKey: "onboarding.quiz.experience.option.yes.subtitle"),
+                        .init(id: "no",
+                              titleKey: "onboarding.quiz.experience.option.no.title",
+                              subtitleKey: "onboarding.quiz.experience.option.no.subtitle"),
+                    ]),
                 ],
                 primaryButtonKey: "onboarding.button.continue"
             )
@@ -141,26 +166,47 @@ public struct OnboardingQuizCatalog {
         }
     }
 
+    /// Сборка дескриптора для саб-пикера. Роли группируются в секции по `pickerSectionKey`:
+    /// первая встреченная секция идёт первой в выдаче. Это позволяет управлять секциями и порядком
+    /// прямо из массива `OnboardingRoleRegistry.defaultRoles` — без изменений каталога/контроллера.
     private func descriptorForSubRolePicker(
         step: OnboardingRegistrationStep,
         titleKey: String,
+        subtitleKey: String?,
         progressLabelKey: String,
         picker: OnboardingSubRolePicker
     ) -> OnboardingQuizDescriptor {
-        let options = registry.roles(presentedIn: picker).map { def in
-            OnboardingQuizDescriptor.Option(
-                id: def.id.rawValue,
-                titleKey: def.displayNameKey,
-                subtitleKey: def.pickerSubtitleKey,
-                iconAssetName: def.pickerIconAssetName
-            )
+        let roles = registry.roles(presentedIn: picker)
+
+        // Группируем, сохраняя порядок первого появления секции в массиве registry.
+        var sectionKeyOrder: [String?] = []
+        var rolesByKey: [String?: [OnboardingRoleDefinition]] = [:]
+        for role in roles {
+            let key = role.pickerSectionKey
+            if rolesByKey[key] == nil {
+                sectionKeyOrder.append(key)
+            }
+            rolesByKey[key, default: []].append(role)
         }
+
+        let sections: [OnboardingQuizDescriptor.Section] = sectionKeyOrder.map { key in
+            let options = (rolesByKey[key] ?? []).map { def in
+                OnboardingQuizDescriptor.Option(
+                    id: def.id.rawValue,
+                    titleKey: def.displayNameKey,
+                    subtitleKey: def.pickerSubtitleKey,
+                    iconAssetName: def.pickerIconAssetName
+                )
+            }
+            return OnboardingQuizDescriptor.Section(titleKey: key, options: options)
+        }
+
         return OnboardingQuizDescriptor(
             step: step,
             titleKey: titleKey,
-            subtitleKey: nil,
+            subtitleKey: subtitleKey,
             progressLabelKey: progressLabelKey,
-            options: options,
+            sections: sections,
             primaryButtonKey: "onboarding.button.continue"
         )
     }

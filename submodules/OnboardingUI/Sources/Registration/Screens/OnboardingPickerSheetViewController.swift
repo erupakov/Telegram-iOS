@@ -55,6 +55,8 @@ public final class OnboardingPickerSheetViewController: UIViewController, UITabl
         tableView.backgroundColor = .clear
         tableView.separatorInset = .zero
         tableView.separatorColor = DivoColorPalette.separatorLight
+        tableView.showsVerticalScrollIndicator = false
+        tableView.showsHorizontalScrollIndicator = false
 
         view.addSubview(titleLabel)
         view.addSubview(confirmButton)
@@ -107,6 +109,7 @@ private final class OnboardingPickerCell: UITableViewCell {
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .default, reuseIdentifier: reuseIdentifier)
         backgroundColor = .clear
+        selectionStyle = .none
 
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = Font.helveticaNeue(15)
@@ -134,5 +137,10 @@ private final class OnboardingPickerCell: UITableViewCell {
     func configure(option: FormPickerOption, isSelected: Bool) {
         titleLabel.text = OnboardingStrings.resolve(option.titleKey)
         checkmark.isHidden = !isSelected
+    }
+
+    override func setHighlighted(_ highlighted: Bool, animated: Bool) {
+        super.setHighlighted(highlighted, animated: animated)
+        applyDivoListHighlight(highlighted)
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import DivoCore
 
 /// Сохраняет/восстанавливает `OnboardingRegistrationState` между запусками приложения.
 ///
@@ -18,11 +19,16 @@ public final class OnboardingProgressStore {
     }
 
     public func load() -> OnboardingRegistrationState? {
-        guard let data = defaults.data(forKey: Self.key) else { return nil }
+        guard let data = defaults.data(forKey: Self.key) else {
+            divoLog("OnboardingProgressStore.load: no saved data", level: .debug)
+            return nil
+        }
         do {
-            return try JSONDecoder().decode(OnboardingRegistrationState.self, from: data)
+            let state = try JSONDecoder().decode(OnboardingRegistrationState.self, from: data)
+            divoLog("OnboardingProgressStore.load: restored at \(state.currentStep), \(state.formValues.values.reduce(0) { $0 + $1.count }) field values", level: .info)
+            return state
         } catch {
-            // Кривой формат после миграции — затираем и начинаем чисто.
+            divoLog("OnboardingProgressStore.load: decode failed (\(error)) — clearing", level: .warning)
             defaults.removeObject(forKey: Self.key)
             return nil
         }
@@ -33,12 +39,13 @@ public final class OnboardingProgressStore {
             let data = try JSONEncoder().encode(state)
             defaults.set(data, forKey: Self.key)
         } catch {
-            // Не критично — в худшем случае юзер пройдёт онбординг ещё раз.
+            divoLog("OnboardingProgressStore.save: encode failed — \(error)", level: .error)
         }
     }
 
     public func clear() {
         defaults.removeObject(forKey: Self.key)
+        divoLog("OnboardingProgressStore.clear: wiped saved progress", level: .info)
     }
 
     public var hasSavedProgress: Bool {

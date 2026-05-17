@@ -35,12 +35,15 @@ public final class OnboardingFormStepViewController: UIViewController {
     private let fieldsStack = UIStackView()
     private let scrollView = UIScrollView()
     private let contentView = UIView()
+    private let bottomFadeOverlay = OnboardingBottomFadeOverlay()
     private let primaryButton = DivoButton()
 
-    /// Bottom-привязка primary-кнопки к safe area. Меняется при подъёме/опускании клавиатуры,
-    /// чтобы Continue/Done всегда были видны над клавиатурой (см. `keyboardWillChangeFrame`).
+    /// Bottom-привязки primary-кнопки и fade-overlay. Меняются `DivoKeyboardHandler`'ом
+    /// при подъёме/опускании клавиатуры — в покое они равны `defaultButtonOffset` и 0
+    /// соответственно (см. инициализацию handler'а в `viewDidLoad`).
     private var primaryButtonBottomConstraint: NSLayoutConstraint?
-    private var keyboardObservers: [NSObjectProtocol] = []
+    private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
+    private var keyboardHandler: DivoKeyboardHandler?
 
     public init(step: FormStep, currentValues: [String: FormFieldValue]) {
         self.step = step
@@ -69,12 +72,31 @@ public final class OnboardingFormStepViewController: UIViewController {
         view.backgroundColor = DivoColorPalette.screenBackground
         setupUI()
         applyStep()
-        installKeyboardObservers()
+        // Стартовый нижний инсет — содержит кнопку и часть fade-overlay. То же, что
+        // `DivoKeyboardHandler.defaultScrollInset` — handler выставляет тот же `100` при keyboardWillHide.
+        scrollView.contentInset.bottom = Self.defaultScrollInset
+        scrollView.verticalScrollIndicatorInsets.bottom = Self.defaultScrollInset
 
         // Тап по контенту скрывает клавиатуру — стандартный паттерн для форм.
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
         scrollView.addGestureRecognizer(tap)
+
+        // Keyboard handling — стандартный DIVO-handler из DivoUIKit (тот же, что в EditProfile).
+        // Сам корректирует contentInset и положение primary-кнопки + fade-overlay.
+        if let buttonCns = primaryButtonBottomConstraint,
+           let overlayCns = bottomFadeOverlayBottomConstraint {
+            let handler = DivoKeyboardHandler(
+                scrollView: scrollView,
+                buttonConstraint: buttonCns,
+                overlayConstraint: overlayCns,
+                hostView: view,
+                defaultButtonOffset: Self.defaultButtonOffset,
+                defaultScrollInset: Self.defaultScrollInset
+            )
+            handler.subscribe()
+            keyboardHandler = handler
+        }
     }
 
     public override func viewWillDisappear(_ animated: Bool) {
@@ -85,7 +107,7 @@ public final class OnboardingFormStepViewController: UIViewController {
     }
 
     deinit {
-        keyboardObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        keyboardHandler?.unsubscribe()
     }
 
     private func setupUI() {
@@ -120,6 +142,8 @@ public final class OnboardingFormStepViewController: UIViewController {
         fieldsStack.alignment = .fill
 
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
 
         primaryButton.translatesAutoresizingMaskIntoConstraints = false
@@ -129,6 +153,10 @@ public final class OnboardingFormStepViewController: UIViewController {
         view.addSubview(skipButton)
         view.addSubview(progressLabel)
         view.addSubview(scrollView)
+        // bottomFadeOverlay поверх scrollView, под primaryButton — нижний контент уходит в плавный
+        // переход к фону экрана. `DivoKeyboardHandler` поднимает overlay над клавиатурой по
+        // `bottomFadeOverlayBottomConstraint`.
+        view.addSubview(bottomFadeOverlay)
         view.addSubview(primaryButton)
         scrollView.addSubview(contentView)
         contentView.addSubview(titleLabel)
@@ -151,7 +179,11 @@ public final class OnboardingFormStepViewController: UIViewController {
             scrollView.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: primaryButton.topAnchor, constant: -DivoDesignTokens.Spacing.m),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomFadeOverlay.heightAnchor.constraint(equalToConstant: OnboardingBottomFadeOverlay.defaultHeight),
 
             contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
             contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
@@ -177,68 +209,22 @@ public final class OnboardingFormStepViewController: UIViewController {
             primaryButton.heightAnchor.constraint(equalToConstant: 56),
         ])
 
-        let bottomCns = primaryButton.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
-        bottomCns.isActive = true
-        primaryButtonBottomConstraint = bottomCns
+        // Привязка primary-кнопки и fade-overlay к view.bottom — модифицируется
+        // `DivoKeyboardHandler`'ом по событиям клавиатуры. Константа в покое = `defaultButtonOffset`.
+        let buttonCns = primaryButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: Self.defaultButtonOffset)
+        buttonCns.isActive = true
+        primaryButtonBottomConstraint = buttonCns
+
+        let overlayCns = bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        overlayCns.isActive = true
+        bottomFadeOverlayBottomConstraint = overlayCns
     }
 
-    // MARK: - Keyboard avoidance
-
-    private func installKeyboardObservers() {
-        let center = NotificationCenter.default
-        keyboardObservers.append(center.addObserver(
-            forName: UIResponder.keyboardWillChangeFrameNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] note in
-            self?.handleKeyboardChange(note)
-        })
-        keyboardObservers.append(center.addObserver(
-            forName: UIResponder.keyboardWillHideNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] note in
-            self?.handleKeyboardHide(note)
-        })
-    }
-
-    private func handleKeyboardChange(_ note: Notification) {
-        guard let endFrame = (note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue)?.cgRectValue else { return }
-        // Конвертируем frame клавиатуры в координаты view контроллера, чтобы корректно посчитать
-        // высоту в случае split-view / iPad-сценариев.
-        let endFrameInView = view.convert(endFrame, from: nil)
-        let overlap = max(0, view.bounds.maxY - endFrameInView.minY)
-
-        let safeBottom = view.safeAreaInsets.bottom
-        // Опускаем primary button на величину overlap минус то, что уже компенсирует safe area —
-        // иначе после safe area и клавиатуры будет двойной отступ.
-        let bottomInset = max(0, overlap - safeBottom)
-
-        animateAlongsideKeyboard(note) {
-            self.primaryButtonBottomConstraint?.constant = -DivoDesignTokens.Spacing.m - bottomInset
-            // Подкладываем ScrollView нижний инсет, чтобы поле, выбранное под клавиатурой,
-            // можно было проскроллить наверх.
-            self.scrollView.contentInset.bottom = bottomInset + 56 + DivoDesignTokens.Spacing.m
-            self.scrollView.verticalScrollIndicatorInsets.bottom = self.scrollView.contentInset.bottom
-            self.view.layoutIfNeeded()
-        }
-    }
-
-    private func handleKeyboardHide(_ note: Notification) {
-        animateAlongsideKeyboard(note) {
-            self.primaryButtonBottomConstraint?.constant = -DivoDesignTokens.Spacing.m
-            self.scrollView.contentInset.bottom = 0
-            self.scrollView.verticalScrollIndicatorInsets.bottom = 0
-            self.view.layoutIfNeeded()
-        }
-    }
-
-    private func animateAlongsideKeyboard(_ note: Notification, animations: @escaping () -> Void) {
-        let duration = (note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double) ?? 0.25
-        let curveRaw = (note.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt) ?? UInt(UIView.AnimationCurve.easeInOut.rawValue)
-        let options = UIView.AnimationOptions(rawValue: curveRaw << 16)
-        UIView.animate(withDuration: duration, delay: 0, options: options, animations: animations)
-    }
+    /// Базовый offset primary-кнопки от низа view, когда клавиатура спрятана.
+    /// `-40` — то же значение, что в EditProfile (DIVO convention для нижних форм-кнопок).
+    private static let defaultButtonOffset: CGFloat = -40
+    /// Базовый нижний инсет scrollView без клавиатуры — содержит кнопку и часть fade-overlay.
+    private static let defaultScrollInset: CGFloat = 100
 
     @objc private func dismissKeyboard() {
         view.endEditing(true)
@@ -324,6 +310,28 @@ final class OnboardingFormFieldRow: UIView, UITextFieldDelegate {
         setupCommon()
         setupForKind()
         applyValue(value ?? .empty)
+
+        // Тап по всей строке: для text-полей фокусируем UITextField, для picker/date/photo
+        // вызываем onTapPickerOpen (тот же путь, что и у внутренней кнопки/area). Раньше
+        // tap-зона ограничивалась `pickerButton`/`textField`, мимо chevron'а / pad'ов клик в пустоту.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(rowTapped))
+        tap.cancelsTouchesInView = false
+        addGestureRecognizer(tap)
+
+        // Press-state — feedback нажатия на ячейку. UIButton управляет своим press-стейтом сам,
+        // поэтому делаем чтобы внутренние кнопки/area пропускали тач к row, а row отвечала на тач.
+        pickerButton.isUserInteractionEnabled = false
+        photoArea.isUserInteractionEnabled = false
+        addPressState(alpha: DivoDesignTokens.PressState.alpha, scale: DivoDesignTokens.PressState.scaleListRow)
+    }
+
+    @objc private func rowTapped() {
+        switch field.kind {
+        case .text, .multilineText, .email, .url, .phone, .city:
+            textField.becomeFirstResponder()
+        case .picker, .multiPicker, .country, .date, .photo:
+            onTapPickerOpen?()
+        }
     }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -378,7 +386,8 @@ final class OnboardingFormFieldRow: UIView, UITextFieldDelegate {
         pickerButton.titleLabel?.font = Font.regular(15)
         pickerButton.setTitleColor(DivoColorPalette.systemLabelPlaceholder, for: .normal)
         pickerButton.setTitle(field.placeholderKey.map { OnboardingStrings.resolve($0) }, for: .normal)
-        pickerButton.addTarget(self, action: #selector(pickerTapped), for: .touchUpInside)
+        // Тап обрабатывается на уровне row (`rowTapped`), сам button работает только как
+        // визуальный лейбл значения — отсюда `isUserInteractionEnabled = false` в init.
 
         let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
         chevron.translatesAutoresizingMaskIntoConstraints = false
@@ -409,7 +418,7 @@ final class OnboardingFormFieldRow: UIView, UITextFieldDelegate {
         photoArea.backgroundColor = DivoColorPalette.placeholderCardBackground
         photoArea.layer.cornerRadius = DivoDesignTokens.Radius.card
         photoArea.clipsToBounds = true
-        photoArea.addTarget(self, action: #selector(photoTapped), for: .touchUpInside)
+        // Тап обрабатывается на уровне row (`rowTapped`) — photoArea пропускает тач (см. init).
 
         photoPreview.translatesAutoresizingMaskIntoConstraints = false
         photoPreview.contentMode = .scaleAspectFill
@@ -504,18 +513,6 @@ final class OnboardingFormFieldRow: UIView, UITextFieldDelegate {
     @objc private func textChanged() {
         let value: FormFieldValue = (textField.text?.isEmpty ?? true) ? .empty : .string(textField.text ?? "")
         onValueChanged?(value)
-    }
-
-    @objc private func pickerTapped() {
-        onTapPickerOpen?()
-    }
-
-    @objc private func photoTapped() {
-        // Открытие выбора фото идёт через coordinator (тот же путь, что и picker-fields):
-        // у нас нет прямого доступа к UIViewController отсюда. Coordinator на этот сигнал
-        // зовёт `OnboardingPhotoPicker` и, при успехе, через `updateFieldValue(...)` подкрутит
-        // и значение в state, и preview в этой строке.
-        onTapPickerOpen?()
     }
 
     func textFieldDidEndEditing(_ textField: UITextField) {

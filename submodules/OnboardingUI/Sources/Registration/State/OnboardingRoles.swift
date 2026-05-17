@@ -159,6 +159,14 @@ public struct OnboardingRoleDefinition: Equatable {
     /// без пикера (Fan).
     public let presentedIn: OnboardingSubRolePicker?
 
+    /// Локализационный ключ заголовка секции внутри саб-пикера, под которой отображается роль.
+    /// `nil` — секционного заголовка нет (роль попадает в безымянную дефолтную секцию,
+    /// все роли без `pickerSectionKey` группируются в одну).
+    ///
+    /// Talent picker по дизайну делится на две секции: «TALENTS» (model/actor/dancer/singer)
+    /// и «CREATIVE» (photographer/.../studio). Остальные пикеры одна-секционные.
+    public let pickerSectionKey: String?
+
     /// Что предшествует result-экрану этой роли при back-навигации.
     public let discoveredFrom: OnboardingDiscoverySource
 
@@ -179,6 +187,7 @@ public struct OnboardingRoleDefinition: Equatable {
         pickerSubtitleKey: String? = nil,
         pickerIconAssetName: String? = nil,
         presentedIn: OnboardingSubRolePicker?,
+        pickerSectionKey: String? = nil,
         discoveredFrom: OnboardingDiscoverySource,
         resultId: OnboardingRoleResultID,
         formId: OnboardingFormID,
@@ -190,6 +199,7 @@ public struct OnboardingRoleDefinition: Equatable {
         self.pickerSubtitleKey = pickerSubtitleKey
         self.pickerIconAssetName = pickerIconAssetName
         self.presentedIn = presentedIn
+        self.pickerSectionKey = pickerSectionKey
         self.discoveredFrom = discoveredFrom
         self.resultId = resultId
         self.formId = formId
@@ -242,12 +252,13 @@ public final class OnboardingRoleRegistry {
 
 extension OnboardingRoleRegistry {
 
-    /// 25 ролей платформы DIVO по DIVO_Roles_v3_full.pdf, апрель 2026.
+    /// 25 ролей платформы DIVO по DIVO_Roles_v3_full.pdf, апрель 2026, отсортированы под порядок
+    /// в Figma. Этот же порядок становится порядком отображения в саб-пикерах (`registry.roles(presentedIn:)`
+    /// фильтрует, но порядка не меняет).
     ///
-    /// `presentedIn` отражает текущий ДИЗАЙН (а не PDF v3.0):
-    /// - Все Creative-роли C1–C7 показываются в `.talent` пикере вместе с Talent (так нарисовано).
-    /// - C8 Studio не показывается нигде (пропущена в дизайне); при подтверждении продуктом
-    ///   меняем `.presentedIn` на `.talent` или новый `.creative` пикер.
+    /// `pickerSectionKey` группирует роли по секциям внутри одного пикера. В talent-пикере по дизайну
+    /// две секции: «TALENTS» (D-роли) и «CREATIVE» (C-роли). В остальных пикерах — одна безымянная секция.
+    /// Порядок секций в выдаче catalog-а — порядок первого появления секции в этом массиве.
     ///
     /// `discoveredFrom` отражает обратную навигацию с result-экрана — куда возвращаемся
     /// при нажатии «Choose a different role» или системного Back.
@@ -341,83 +352,17 @@ extension OnboardingRoleRegistry {
             backendRoleRaw: "agency_employee"
         ),
 
-        // MARK: C — Creative Professionals → 3.3.C → 4.C1 (или 4.C2 для Studio)
-        OnboardingRoleDefinition(
-            id: .photographer, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.photographer.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "camera",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
-        ),
-        OnboardingRoleDefinition(
-            id: .stylist, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.stylist.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "tshirt",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
-        ),
-        OnboardingRoleDefinition(
-            id: .makeupArtist, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.makeupArtist.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "paintbrush",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
-        ),
-        OnboardingRoleDefinition(
-            id: .hairStylist, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.hairStylist.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "scissors",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
-        ),
-        OnboardingRoleDefinition(
-            id: .videographer, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.videographer.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "video",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
-        ),
-        OnboardingRoleDefinition(
-            id: .creativeDirector, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.creativeDirector.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "paintpalette",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
-        ),
-        OnboardingRoleDefinition(
-            id: .fashionDesigner, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.fashionDesigner.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "ruler",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
-        ),
-        OnboardingRoleDefinition(
-            id: .studioLocation, category: .creativeProfessionals,
-            displayNameKey: "onboarding.role.studioLocation.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "house",
-            // По дизайну роль недостижима: пикера для неё нет. presentedIn = nil — пока «отключена».
-            // Когда дизайн добавит пункт «Studio» в Creative-пикер — присваиваем `.talent` или новый `.creative`,
-            // и роль автоматически появится в списках, state-машине, валидаторе.
-            presentedIn: nil, discoveredFrom: .talentSubRolePicker,
-            resultId: .creativeProfessional, formId: .creativeStudio,
-            backendRoleRaw: "agency_employee"
-        ),
-
-        // MARK: D — Talent → 3.3.D variants → 4.D1 / 4.D2 / 4.D3
+        // MARK: D — Talent → 3.3.D variants → 4.D1 / 4.D2 / 4.D3 (секция «TALENTS» в Talent picker)
+        // D-блок объявлен перед C-блоком — это даёт нужный порядок секций в Talent picker'е.
         OnboardingRoleDefinition(
             id: .model, category: .talent,
             displayNameKey: "onboarding.role.model.name",
             pickerSubtitleKey: nil, pickerIconAssetName: "figure.stand",
             // Model в пикере есть, но result показывается после experience quiz, не сразу — поэтому
             // discoveredFrom = experienceQuiz (back с result ведёт в квиз, а не в пикер).
-            presentedIn: .talent, discoveredFrom: .experienceQuiz,
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
+            discoveredFrom: .experienceQuiz,
             resultId: .modelVariant, formId: .talentModel,
             backendRoleRaw: "model"
         ),
@@ -426,7 +371,9 @@ extension OnboardingRoleRegistry {
             displayNameKey: "onboarding.role.newTalent.name",
             // Прямой опции в пикере нет — попадается через квиз «нет опыта»; presentedIn = nil.
             pickerSubtitleKey: nil, pickerIconAssetName: nil,
-            presentedIn: nil, discoveredFrom: .experienceQuiz,
+            presentedIn: nil,
+            pickerSectionKey: nil,
+            discoveredFrom: .experienceQuiz,
             resultId: .newTalentVariant, formId: .talentNewTalent,
             backendRoleRaw: "new_face"
         ),
@@ -434,7 +381,9 @@ extension OnboardingRoleRegistry {
             id: .actor, category: .talent,
             displayNameKey: "onboarding.role.actor.name",
             pickerSubtitleKey: nil, pickerIconAssetName: "theatermasks",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
+            discoveredFrom: .talentSubRolePicker,
             resultId: .actor, formId: .talentActorDancerSinger,
             backendRoleRaw: "agency_employee"
         ),
@@ -442,7 +391,9 @@ extension OnboardingRoleRegistry {
             id: .dancer, category: .talent,
             displayNameKey: "onboarding.role.dancer.name",
             pickerSubtitleKey: nil, pickerIconAssetName: "figure.dance",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
+            discoveredFrom: .talentSubRolePicker,
             resultId: .dancer, formId: .talentActorDancerSinger,
             backendRoleRaw: "agency_employee"
         ),
@@ -450,8 +401,94 @@ extension OnboardingRoleRegistry {
             id: .singerPerformer, category: .talent,
             displayNameKey: "onboarding.role.singerPerformer.name",
             pickerSubtitleKey: nil, pickerIconAssetName: "music.microphone",
-            presentedIn: .talent, discoveredFrom: .talentSubRolePicker,
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
+            discoveredFrom: .talentSubRolePicker,
             resultId: .singerPerformer, formId: .talentActorDancerSinger,
+            backendRoleRaw: "agency_employee"
+        ),
+
+        // MARK: C — Creative Professionals → 3.3.C → 4.C1 (или 4.C2 для Studio) — секция «CREATIVE» в Talent picker
+        OnboardingRoleDefinition(
+            id: .photographer, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.photographer.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "camera",
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeIndividual,
+            backendRoleRaw: "agency_employee"
+        ),
+        OnboardingRoleDefinition(
+            id: .stylist, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.stylist.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "tshirt",
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeIndividual,
+            backendRoleRaw: "agency_employee"
+        ),
+        OnboardingRoleDefinition(
+            id: .makeupArtist, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.makeupArtist.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "paintbrush",
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeIndividual,
+            backendRoleRaw: "agency_employee"
+        ),
+        OnboardingRoleDefinition(
+            id: .hairStylist, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.hairStylist.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "scissors",
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeIndividual,
+            backendRoleRaw: "agency_employee"
+        ),
+        OnboardingRoleDefinition(
+            id: .videographer, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.videographer.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "video",
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeIndividual,
+            backendRoleRaw: "agency_employee"
+        ),
+        OnboardingRoleDefinition(
+            id: .creativeDirector, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.creativeDirector.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "paintpalette",
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeIndividual,
+            backendRoleRaw: "agency_employee"
+        ),
+        OnboardingRoleDefinition(
+            id: .fashionDesigner, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.fashionDesigner.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "ruler",
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeIndividual,
+            backendRoleRaw: "agency_employee"
+        ),
+        OnboardingRoleDefinition(
+            id: .studioLocation, category: .creativeProfessionals,
+            displayNameKey: "onboarding.role.studioLocation.name",
+            pickerSubtitleKey: nil, pickerIconAssetName: "house",
+            // Дизайнер подтвердил: Studio — 12-й (последний) пункт в Creative-секции Talent picker'а.
+            // Иконка в Figma спрятана за кнопкой Continue, исправят в следующей итерации.
+            presentedIn: .talent,
+            pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
+            discoveredFrom: .talentSubRolePicker,
+            resultId: .creativeProfessional, formId: .creativeStudio,
             backendRoleRaw: "agency_employee"
         ),
 

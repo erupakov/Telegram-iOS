@@ -376,6 +376,7 @@ final class DivoSettingsNode: ASDisplayNode {
         ])
 
         onboardingEntryContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(onboardingEntryTapped)))
+        onboardingEntryContainer.addPressState(alpha: DivoDesignTokens.PressState.alpha, scale: DivoDesignTokens.PressState.scaleListRow)
 
         contentViewStack.addArrangedSubview(onboardingEntryStackContainer)
         applyOnboardingEntryVisibility()

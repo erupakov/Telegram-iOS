@@ -4,8 +4,44 @@
 **Автор:** Марина Зайцева
 **Ветка:** `feature/PROJ-004-onboarding-skeleton`
 **Старт работ:** 18 мая 2026
-**Срок:** согласовывается отдельно
 **Дизайн:** `/Users/Surf/Documents/DIVO/онбординг/` (фреймы Figma)
+
+---
+
+## TL;DR — что делать
+
+Скелет онбординга (вся логика, навигация, формы, локализация) **готов** и работает на устройстве через debug-кнопку в Settings (Debug Menu → Onboarding → ON → Settings → «Launch onboarding (debug)»).
+
+**Твоя задача — перевёрстка визуала** 5 контроллеров под Figma:
+- `OnboardingQuizViewController` — все 6 quiz-экранов Phase 3 (top-level, industry door, sub-role pickers, experience quiz).
+- `OnboardingRoleResultViewController` — 9 result-экранов «YOU'RE A …».
+- `OnboardingFormStepViewController` — все 8 форм Phase 4 (4.A / 4.B / 4.C1 / 4.C2 / 4.D1 / 4.D2 / 4.D3 / 4.E).
+- `OnboardingPickerSheetViewController` — bottom-sheet single-select (Gender, Specialisation, Country).
+- `OnboardingSubmitViewController` — финальный loader / success / error.
+
+Файлы — в `submodules/OnboardingUI/Sources/Registration/Screens/`. Меняй `setupUI()` и стилистику subview'ев. **Не трогай** API контроллеров (`delegate`, `configure(...)`, `valueSnapshot()`), state-машину, coordinator, FormEngine, Catalog, Submit — на них держится навигация. Подробнее в §2 ниже.
+
+Дополнительно:
+- Привязать финальные фото-ассеты result-экранов в `DivoCore/DivoCoreImages.xcassets/` (имена в `OnboardingResultCatalog.swift`).
+- Подменить SF Symbol-иконки саб-ролей на финальные DIVO-иконки.
+- (Опционально, после 22 мая) CityPicker для `.city` поля — сейчас обычный text field.
+
+---
+
+## Поведение, которое нельзя сломать
+
+Эти эффекты уже работают на скелете. После твоей вёрстки они должны остаться — пройдись по чек-листу после каждого изменённого экрана.
+
+- **Continue / Done — disabled, пока шаг не валиден.**
+  - На quiz-экранах: пока не выбрана опция (`OnboardingQuizViewController.selectedOptionId != nil`).
+  - На формах: пока все обязательные поля не валидны (`FormValidator.isStepValid(step, values:)`), либо у шага `allowSkip == true` (тогда кнопка всегда активна).
+  - Логика инкапсулирована в `updatePrimaryEnabled()` — если меняешь setup кнопки, не сноси этот метод и его вызовы.
+- **Тап по всей ячейке, не только по радио/иконке.** Опция row — `UIControl`, ячейка поля формы — `UIView` с tap-gesture на всю площадь. Внутренние subview-кнопки и stack'и пропускают тач (`isUserInteractionEnabled = false`).
+- **Press-state.** Все тапабельные ячейки используют `addPressState(alpha: .alpha, scale: .scaleListRow)` — alpha 0.65 + scale 0.98 (стандартный DIVO-паттерн). Bottom-sheet picker'а — через `applyDivoListHighlight` в `setHighlighted(_:animated:)`. Не убирай эти вызовы при перевёрстке.
+- **Keyboard avoidance.** В FormStepVC primary-button поднимается вместе с клавиатурой, scrollView получает соответствующий `contentInset.bottom`. Базовый инсет (`idleBottomInset`) сохраняется и без клавиатуры — чтобы контент не пересекался с кнопкой.
+- **Bottom-fade overlay.** `OnboardingBottomFadeOverlay` сидит над scrollView, под primaryButton. Контент скроллится в плавный переход к фону. Если меняешь z-order — overlay должен оставаться между scrollView и кнопкой.
+- **Секции в talent picker.** Две секции `TALENTS` / `CREATIVE`, заголовки рендерятся `OnboardingQuizViewController.makeSectionHeaderLabel(...)`. Catalog отдаёт `descriptor.sections: [Section]`, не плоский список опций — обрабатывай обе формы (с/без `titleKey`).
+- **Локализация — через `OnboardingStrings.resolve("...")`.** Никаких хардкод-строк в UI. Если добавляешь новый ключ — property в `DivoStrings.swift` под MARK-секцией Onboarding + case в `OnboardingStrings.mappedFromDivoStrings(_:)`.
 
 ---
 

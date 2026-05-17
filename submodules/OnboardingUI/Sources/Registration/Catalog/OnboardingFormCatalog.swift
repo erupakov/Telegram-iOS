@@ -9,7 +9,11 @@ import Foundation
 /// case в `schema(for:state:)`. Контроллеры и валидация про это ничего не знают.
 public struct OnboardingFormCatalog {
 
-    public init() {}
+    private let registry: OnboardingRoleRegistry
+
+    public init(registry: OnboardingRoleRegistry) {
+        self.registry = registry
+    }
 
     public func schema(for id: OnboardingFormID, state: OnboardingRegistrationState) -> FormSchema {
         switch id {
@@ -77,14 +81,11 @@ private extension OnboardingFormCatalog {
 private extension OnboardingFormCatalog {
 
     func makeCompaniesAndBrands() -> FormSchema {
-        let companyTypeOptions: [FormPickerOption] = [
-            .init(id: "modeling_agency", titleKey: "onboarding.form.4A.companyType.option.modelingAgency"),
-            .init(id: "fashion_brand",   titleKey: "onboarding.form.4A.companyType.option.fashionBrand"),
-            .init(id: "beauty_brand",    titleKey: "onboarding.form.4A.companyType.option.beautyBrand"),
-            .init(id: "brand_business",  titleKey: "onboarding.form.4A.companyType.option.brandOrBusiness"),
-            .init(id: "event_agency",    titleKey: "onboarding.form.4A.companyType.option.eventAgency"),
-            .init(id: "magazine_media",  titleKey: "onboarding.form.4A.companyType.option.magazineOrMedia"),
-        ]
+        // Список типов компаний строится из registry: один источник истины и для саб-пикера
+        // Phase 3 (выбор «What best describes your company?»), и для поля Type на step 1 формы 4.A.
+        let companyTypeOptions: [FormPickerOption] = registry.roles(in: .companies).map { def in
+            FormPickerOption(id: def.id.rawValue, titleKey: def.displayNameKey)
+        }
         return FormSchema(
             id: .companiesAndBrands,
             internalTitleKey: "onboarding.form.4A.title",
@@ -158,12 +159,11 @@ private extension OnboardingFormCatalog {
 private extension OnboardingFormCatalog {
 
     func makeIndustryProfessionals() -> FormSchema {
-        let roleOptions: [FormPickerOption] = [
-            .init(id: OnboardingRoleID.scout.rawValue,           titleKey: "onboarding.role.scout.name"),
-            .init(id: OnboardingRoleID.booker.rawValue,          titleKey: "onboarding.role.booker.name"),
-            .init(id: OnboardingRoleID.castingDirector.rawValue, titleKey: "onboarding.role.castingDirector.name"),
-            .init(id: OnboardingRoleID.talentManager.rawValue,   titleKey: "onboarding.role.talentManager.name"),
-        ]
+        // Список ролей строится из registry — добавится новый Industry Pro в registry,
+        // он автоматически появится и в саб-пикере, и в поле Role на step 1 формы 4.B.
+        let roleOptions: [FormPickerOption] = registry.roles(in: .industryProfessionals).map { def in
+            FormPickerOption(id: def.id.rawValue, titleKey: def.displayNameKey)
+        }
         return FormSchema(
             id: .industryProfessionals,
             internalTitleKey: "onboarding.form.4B.title",
@@ -204,15 +204,13 @@ private extension OnboardingFormCatalog {
 private extension OnboardingFormCatalog {
 
     func makeCreativeIndividual() -> FormSchema {
-        let specialisationOptions: [FormPickerOption] = [
-            .init(id: OnboardingRoleID.photographer.rawValue,     titleKey: "onboarding.role.photographer.name"),
-            .init(id: OnboardingRoleID.stylist.rawValue,          titleKey: "onboarding.role.stylist.name"),
-            .init(id: OnboardingRoleID.makeupArtist.rawValue,     titleKey: "onboarding.role.makeupArtist.name"),
-            .init(id: OnboardingRoleID.hairStylist.rawValue,      titleKey: "onboarding.role.hairStylist.name"),
-            .init(id: OnboardingRoleID.videographer.rawValue,     titleKey: "onboarding.role.videographer.name"),
-            .init(id: OnboardingRoleID.creativeDirector.rawValue, titleKey: "onboarding.role.creativeDirector.name"),
-            .init(id: OnboardingRoleID.fashionDesigner.rawValue,  titleKey: "onboarding.role.fashionDesigner.name"),
-        ]
+        // Список специализаций — все Creative-роли из registry КРОМЕ Studio (у неё своя форма 4.C2).
+        // Добавится новый Creative-специалист (например, Set Designer) — автоматически появится здесь.
+        let specialisationOptions: [FormPickerOption] = registry.roles(in: .creativeProfessionals)
+            .filter { $0.id != .studioLocation }
+            .map { def in
+                FormPickerOption(id: def.id.rawValue, titleKey: def.displayNameKey)
+            }
         return FormSchema(
             id: .creativeIndividual,
             internalTitleKey: "onboarding.form.4C1.title",
