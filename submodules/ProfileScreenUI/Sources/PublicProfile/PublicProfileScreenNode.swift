@@ -3448,7 +3448,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 )
             )
 
-            if let photoURLString = detail.agency?.background?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL)
             }
 

@@ -404,7 +404,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 if let eng = engagement {
-                    self.controllerNode.updateEngagementStats(likes: eng.likes, views: eng.views, saves: eng.saves)
+                    self.controllerNode.updateEngagementStats(
+                        likes: eng.likes,
+                        views: eng.views,
+                        saves: eng.saves,
+                        isLiked: detail.isLikedByUser ?? false,
+                        isSaved: detail.isFollowed ?? false
+                    )
                 }
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
@@ -774,11 +780,22 @@ extension PublicProfileScreenController {
                 let items = response.data?.items ?? []
                 let models = items.compactMap { item -> ModelItem? in
                     guard let userId = item.userId else { return nil }
+                    let roleLabel: String
+                    switch item.role {
+                    case "model":
+                        roleLabel = DivoStrings.roleModel
+                    case "new_face":
+                        roleLabel = DivoStrings.roleNewFace
+                    case "agency_employee":
+                        roleLabel = DivoStrings.roleAgency
+                    default:
+                        roleLabel = DivoStrings.roleModel
+                    }
                     return ModelItem(
                         id: userId,
                         name: item.name ?? DivoStrings.noName,
-                        role: DivoStrings.roleModel,
-                        isPremium: false,
+                        role: roleLabel,
+                        isPremium: item.isPremium ?? false,
                         customAvatarURL: item.photo?.fullUrl
                     )
                 }
@@ -1407,26 +1424,14 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
 
                 self.debugLog("[DivoAPI] Background uploaded, uuid: \(fileUuid)")
 
-                if self.userRole == .agency {
-                    let request = UpdateDescriptionAgencyRequest(
-                        agencyId: self.userDetailModel?.agency?.id,
-                        background: UpdateDescriptionAgencyRequest.AvatarUuid(uuid: fileUuid)
-                    )
-                    let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
-                        path: "/agency/update",
-                        method: "POST",
-                        body: request
-                    )
-                } else {
-                    let request = UpdateBiographyPageRequest(
-                        photo: UpdateBiographyPageRequest.AvatarUuid(uuid: fileUuid)
-                    )
-                    let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
-                        path: "/user/update-profile",
-                        method: "POST",
-                        body: request
-                    )
-                }
+                let request = UpdateBiographyPageRequest(
+                    photo: UpdateBiographyPageRequest.AvatarUuid(uuid: fileUuid)
+                )
+                let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/update-profile",
+                    method: "POST",
+                    body: request
+                )
 
                 self.debugLog("[DivoAPI] Background updated successfully")
 
