@@ -1424,26 +1424,14 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
 
                 self.debugLog("[DivoAPI] Background uploaded, uuid: \(fileUuid)")
 
-                if self.userRole == .agency {
-                    let request = UpdateDescriptionAgencyRequest(
-                        agencyId: self.userDetailModel?.agency?.id,
-                        background: UpdateDescriptionAgencyRequest.AvatarUuid(uuid: fileUuid)
-                    )
-                    let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
-                        path: "/agency/update",
-                        method: "POST",
-                        body: request
-                    )
-                } else {
-                    let request = UpdateBiographyPageRequest(
-                        photo: UpdateBiographyPageRequest.AvatarUuid(uuid: fileUuid)
-                    )
-                    let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
-                        path: "/user/update-profile",
-                        method: "POST",
-                        body: request
-                    )
-                }
+                let request = UpdateBiographyPageRequest(
+                    photo: UpdateBiographyPageRequest.AvatarUuid(uuid: fileUuid)
+                )
+                let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/update-profile",
+                    method: "POST",
+                    body: request
+                )
 
                 self.debugLog("[DivoAPI] Background updated successfully")
 
