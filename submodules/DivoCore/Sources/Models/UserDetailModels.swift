@@ -438,6 +438,8 @@ public struct AgencyModelItem: Decodable {
     public let photo: UserFile?
     public let city: UserCity?
     public let userId: Int?
+    public let role: String?
+    public let isPremium: Bool?
 }
 
 public struct AgencyModelsPagination: Decodable {
