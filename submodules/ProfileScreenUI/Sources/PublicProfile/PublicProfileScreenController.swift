@@ -404,7 +404,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 if let eng = engagement {
-                    self.controllerNode.updateEngagementStats(likes: eng.likes, views: eng.views, saves: eng.saves)
+                    self.controllerNode.updateEngagementStats(
+                        likes: eng.likes,
+                        views: eng.views,
+                        saves: eng.saves,
+                        isLiked: detail.isLikedByUser ?? false,
+                        isSaved: detail.isFollowed ?? false
+                    )
                 }
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)

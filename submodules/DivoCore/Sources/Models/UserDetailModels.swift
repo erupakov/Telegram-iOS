@@ -30,6 +30,7 @@ public struct UserDetail: Decodable {
     public let statistic: UserStatistic?
     public let isFavorite: Bool?
     public let isFollowed: Bool?
+    public let isLikedByUser: Bool?
     public let userRatingStatus: String?
     public let userSocialNetworks: [UserSocialNetwork]?
 
@@ -39,7 +40,7 @@ public struct UserDetail: Decodable {
         case measuringSystem, pushNotifications, isRegistrationFinished
         case isPremium = "is_premium"
         case model, customer, agency, agencyEmployee
-        case statistic, isFavorite, isFollowed
+        case statistic, isFavorite, isFollowed, isLikedByUser
         case userRatingStatus, userSocialNetworks
     }
 }
