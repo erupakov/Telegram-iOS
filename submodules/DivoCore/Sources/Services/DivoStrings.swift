@@ -295,6 +295,7 @@ public enum DivoStrings {
     public static var dataStorage: String { L(en: "Data and Storage", ru: "Данные и хранилище", es: "Datos y almacenamiento", pt: "Dados e armazenamento", zh: "数据和存储") }
     public static var language: String { L(en: "Language", ru: "Язык", es: "Idioma", pt: "Idioma", zh: "语言") }
     public static var logOut: String { L(en: "Log out", ru: "Выйти", es: "Cerrar sesión", pt: "Sair", zh: "退出") }
+    public static var settingsDebugLaunchOnboarding: String { L(en: "Launch onboarding (debug)", ru: "Запустить онбординг (debug)", es: "Iniciar onboarding (debug)", pt: "Iniciar onboarding (debug)", zh: "启动入门引导（调试）") }
     public static var measuringSystem: String { L(en: "Measuring System", ru: "Система измерения", es: "Sistema de medición", pt: "Sistema de medição", zh: "测量系统") }
     public static var myParameters: String { L(en: "My Parameters", ru: "Мои параметры", es: "Mis parámetros", pt: "Meus parâmetros", zh: "我的参数") }
     public static var saveParameters: String { L(en: "Save parameters", ru: "Сохранить параметры", es: "Guardar parámetros", pt: "Salvar parâmetros", zh: "保存参数") }
@@ -610,6 +611,254 @@ public enum DivoStrings {
     public static var parametersAddModel: String { L(en: "Your parameters", ru: "Ваши параметры", es: "Sus parámetros", pt: "Os seus parâmetros", zh: "您的参数") }
     public static var emptyTitleAddModel: String { L(en: "There are no models\nfrom your agency yet.", ru: "Текущих моделей\nот вашего агентства пока нет.", es: "No hay modelos\nde su agencia todavía.", pt: "Ainda não há modelos\nda sua agência.", zh: "目前还没有\n贵机构的模特。") }
     public static var emptySubTitleAddModel: String { L(en: "Click the button below\nto add your model", ru: "Нажмите кнопку ниже,\nчтобы добавить модель", es: "Haz clic en el botón de abajo\npara añadir tu modelo", pt: "Clique no botão abaixo\npara adicionar seu modelo", zh: "点击下方按钮\n添加您的模特") }
+
+    // MARK: - Onboarding — Buttons
+
+    public static var onboardingButtonDone: String { L(en: "Done", ru: "Готово", es: "Listo", pt: "Concluído", zh: "完成") }
+    public static var onboardingButtonSkip: String { L(en: "Skip for now", ru: "Пропустить", es: "Omitir por ahora", pt: "Pular por agora", zh: "暂时跳过") }
+    public static var onboardingButtonLetsGo: String { L(en: "Let's go", ru: "Поехали", es: "¡Vamos!", pt: "Vamos lá", zh: "出发吧") }
+    public static var onboardingResultButtonPrimary: String { L(en: "Sounds right — let's go", ru: "Звучит правильно — поехали", es: "Suena bien, ¡vamos!", pt: "Faz sentido — vamos lá", zh: "听起来不错 — 出发吧") }
+    public static var onboardingResultButtonSecondary: String { L(en: "Choose a different role", ru: "Выбрать другую роль", es: "Elegir otro rol", pt: "Escolher outro papel", zh: "选择其他角色") }
+
+    // MARK: - Onboarding — Quiz (top-level)
+
+    public static var onboardingQuizTopLevelTitle: String { L(en: "We'll set up your profile based on your answer. You can change this later.", ru: "Мы настроим профиль по вашему ответу. Позже это можно изменить.", es: "Configuraremos tu perfil según tu respuesta. Puedes cambiarlo más adelante.", pt: "Vamos configurar seu perfil com base na sua resposta. Você pode mudar isso depois.", zh: "我们将根据您的答案设置个人资料。您可以稍后更改。") }
+    public static var onboardingQuizTopLevelOptionGetHiredTitle: String { L(en: "I WANT TO GET HIRED", ru: "ХОЧУ ПОЛУЧАТЬ ЗАКАЗЫ", es: "QUIERO QUE ME CONTRATEN", pt: "QUERO SER CONTRATADO", zh: "我想被雇用") }
+    public static var onboardingQuizTopLevelOptionGetHiredSubtitle: String { L(en: "Model, performer, creative pro", ru: "Модель, исполнитель, креатор", es: "Modelo, intérprete, profesional creativo", pt: "Modelo, performer, criativo", zh: "模特、表演者、创意专业人士") }
+    public static var onboardingQuizTopLevelOptionLookingForTalentTitle: String { L(en: "I'M LOOKING FOR TALENT", ru: "ИЩУ ТАЛАНТЫ", es: "ESTOY BUSCANDO TALENTO", pt: "ESTOU PROCURANDO TALENTOS", zh: "我在寻找人才") }
+    public static var onboardingQuizTopLevelOptionLookingForTalentSubtitle: String { L(en: "Agency, brand, scout, booker", ru: "Агентство, бренд, скаут, букер", es: "Agencia, marca, scout, booker", pt: "Agência, marca, scout, booker", zh: "经纪公司、品牌、星探、预订员") }
+    public static var onboardingQuizTopLevelOptionHereToFollowTitle: String { L(en: "I'M HERE TO FOLLOW", ru: "ХОЧУ СЛЕДИТЬ ЗА МОДОЙ", es: "VENGO A SEGUIR", pt: "ESTOU AQUI PARA ACOMPANHAR", zh: "我来关注") }
+    public static var onboardingQuizTopLevelOptionHereToFollowSubtitle: String { L(en: "Fan of fashion and creators", ru: "Поклонник моды и креаторов", es: "Fan de la moda y los creadores", pt: "Fã de moda e criadores", zh: "时尚和创作者的粉丝") }
+
+    // MARK: - Onboarding — Quiz (industry door)
+
+    public static var onboardingQuizIndustryDoorTitle: String { L(en: "HOW DO YOU WORK?", ru: "КАК ВЫ РАБОТАЕТЕ?", es: "¿CÓMO TRABAJAS?", pt: "COMO VOCÊ TRABALHA?", zh: "您如何工作？") }
+    public static var onboardingQuizIndustryDoorSubtitle: String { L(en: "This helps us tag your right profile", ru: "Это поможет настроить правильный профиль", es: "Esto nos ayuda a configurar tu perfil correcto", pt: "Isso nos ajuda a configurar o perfil certo", zh: "这有助于我们为您设置正确的资料") }
+    public static var onboardingQuizIndustryDoorOptionRepresentCompanyTitle: String { L(en: "I REPRESENT A COMPANY", ru: "Я ПРЕДСТАВЛЯЮ КОМПАНИЮ", es: "REPRESENTO A UNA EMPRESA", pt: "REPRESENTO UMA EMPRESA", zh: "我代表一家公司") }
+    public static var onboardingQuizIndustryDoorOptionRepresentCompanySubtitle: String { L(en: "Agency, brand, media or business", ru: "Агентство, бренд, медиа или бизнес", es: "Agencia, marca, medios o negocio", pt: "Agência, marca, mídia ou negócio", zh: "经纪公司、品牌、媒体或企业") }
+    public static var onboardingQuizIndustryDoorOptionIndustryProTitle: String { L(en: "I'M AN INDUSTRY PRO", ru: "Я ПРОФЕССИОНАЛ ИНДУСТРИИ", es: "SOY UN PROFESIONAL DE LA INDUSTRIA", pt: "SOU UM PROFISSIONAL DO MERCADO", zh: "我是行业专业人士") }
+    public static var onboardingQuizIndustryDoorOptionIndustryProSubtitle: String { L(en: "Scout, booker, casting director", ru: "Скаут, букер, кастинг-директор", es: "Scout, booker, director de casting", pt: "Scout, booker, diretor de elenco", zh: "星探、预订员、选角导演") }
+
+    // MARK: - Onboarding — Quiz (sub-role pickers + experience)
+
+    public static var onboardingQuizTalentPickerTitle: String { L(en: "WHAT KIND OF TALENT ARE YOU?", ru: "КАКОГО ТИПА ВЫ ТАЛАНТ?", es: "¿QUÉ TIPO DE TALENTO ERES?", pt: "QUE TIPO DE TALENTO VOCÊ É?", zh: "您是哪种类型的人才？") }
+    public static var onboardingQuizTalentPickerSubtitle: String { L(en: "Be honest — this helps us show you the right opportunities", ru: "Будьте честны — это поможет нам показать подходящие возможности", es: "Sé honesto — esto nos ayuda a mostrarte las oportunidades adecuadas", pt: "Seja honesto — isso nos ajuda a mostrar as oportunidades certas", zh: "请如实回答 — 这有助于我们为您展示合适的机会") }
+    public static var onboardingQuizTalentPickerSectionTalents: String { L(en: "Talents", ru: "Таланты", es: "Talentos", pt: "Talentos", zh: "人才") }
+    public static var onboardingQuizTalentPickerSectionCreative: String { L(en: "Creative", ru: "Креативные", es: "Creativos", pt: "Criativos", zh: "创意") }
+    public static var onboardingQuizIndustryProPickerTitle: String { L(en: "WHAT'S YOUR ROLE IN THE INDUSTRY?", ru: "ВАША РОЛЬ В ИНДУСТРИИ?", es: "¿CUÁL ES TU ROL EN LA INDUSTRIA?", pt: "QUAL É O SEU PAPEL NO MERCADO?", zh: "您在行业中的角色是什么？") }
+    public static var onboardingQuizIndustryProPickerSubtitle: String { L(en: "Choose the option that best describes what you do day-to-day", ru: "Выберите вариант, который лучше всего описывает вашу работу", es: "Elige la opción que mejor describa lo que haces a diario", pt: "Escolha a opção que melhor descreve o que você faz no dia a dia", zh: "选择最能描述您日常工作的选项") }
+    public static var onboardingQuizCompaniesPickerTitle: String { L(en: "WHAT BEST DESCRIBES YOUR COMPANY?", ru: "ЧТО ЛУЧШЕ ВСЕГО ОПИСЫВАЕТ ВАШУ КОМПАНИЮ?", es: "¿QUÉ DESCRIBE MEJOR A TU EMPRESA?", pt: "O QUE MELHOR DESCREVE A SUA EMPRESA?", zh: "什么最能描述您的公司？") }
+    public static var onboardingQuizCompaniesPickerSubtitle: String { L(en: "Choose the option that's closest to what you do", ru: "Выберите вариант, ближайший к вашей деятельности", es: "Elige la opción más cercana a lo que haces", pt: "Escolha a opção mais próxima do que você faz", zh: "选择最接近您业务的选项") }
+
+    public static var onboardingQuizExperienceTitle: String { L(en: "DO YOU HAVE PROFESSIONAL MODELLING EXPERIENCE AND AN AGENCY?", ru: "У ВАС ЕСТЬ ПРОФЕССИОНАЛЬНЫЙ ОПЫТ МОДЕЛИ И АГЕНТСТВО?", es: "¿TIENES EXPERIENCIA PROFESIONAL COMO MODELO Y UNA AGENCIA?", pt: "VOCÊ TEM EXPERIÊNCIA PROFISSIONAL COMO MODELO E UMA AGÊNCIA?", zh: "您是否拥有专业模特经验和经纪公司？") }
+    public static var onboardingQuizExperienceSubtitle: String { L(en: "This helps us match you with the right castings from day one", ru: "Это поможет с первого дня подбирать вам правильные кастинги", es: "Esto nos ayuda a emparejarte con los castings correctos desde el primer día", pt: "Isso nos ajuda a combiná-lo com os castings certos desde o primeiro dia", zh: "这有助于我们从第一天起为您匹配合适的选角") }
+    public static var onboardingQuizExperienceOptionYesTitle: String { L(en: "YES", ru: "ДА", es: "SÍ", pt: "SIM", zh: "是的") }
+    public static var onboardingQuizExperienceOptionYesSubtitle: String { L(en: "I have a portfolio and I work with or have worked with an agency", ru: "У меня есть портфолио, и я работаю или работал(а) с агентством", es: "Tengo un portafolio y trabajo o he trabajado con una agencia", pt: "Tenho portfólio e trabalho ou já trabalhei com uma agência", zh: "我有作品集，并且与经纪公司合作过或正在合作") }
+    public static var onboardingQuizExperienceOptionNoTitle: String { L(en: "NOT YET", ru: "ПОКА НЕТ", es: "AÚN NO", pt: "AINDA NÃO", zh: "还没有") }
+    public static var onboardingQuizExperienceOptionNoSubtitle: String { L(en: "I'm building my career and don't have an agency yet", ru: "Я строю карьеру и пока без агентства", es: "Estoy construyendo mi carrera y aún no tengo agencia", pt: "Estou construindo minha carreira e ainda não tenho agência", zh: "我正在建立自己的职业生涯，目前还没有经纪公司") }
+
+    public static func onboardingQuizProgress(question: Int, of total: Int) -> String {
+        return L(
+            en: "Question \(question) of \(total)",
+            ru: "Вопрос \(question) из \(total)",
+            es: "Pregunta \(question) de \(total)",
+            pt: "Pergunta \(question) de \(total)",
+            zh: "问题 \(question) / \(total)"
+        )
+    }
+
+    // MARK: - Onboarding — Roles
+
+    public static var onboardingRoleModelingAgency: String { L(en: "Modeling agency", ru: "Модельное агентство", es: "Agencia de modelos", pt: "Agência de modelos", zh: "模特经纪公司") }
+    public static var onboardingRoleFashionBrand: String { L(en: "Fashion brand", ru: "Fashion-бренд", es: "Marca de moda", pt: "Marca de moda", zh: "时尚品牌") }
+    public static var onboardingRoleBrandOrBusiness: String { L(en: "Brand or business", ru: "Бренд или бизнес", es: "Marca o negocio", pt: "Marca ou empresa", zh: "品牌或企业") }
+    public static var onboardingRoleBeautyBrand: String { L(en: "Beauty brand", ru: "Beauty-бренд", es: "Marca de belleza", pt: "Marca de beleza", zh: "美妆品牌") }
+    public static var onboardingRoleEventAgency: String { L(en: "Event agency", ru: "Event-агентство", es: "Agencia de eventos", pt: "Agência de eventos", zh: "活动公司") }
+    public static var onboardingRoleMagazineMedia: String { L(en: "Magazine or media", ru: "Журнал или медиа", es: "Revista o medio", pt: "Revista ou mídia", zh: "杂志或媒体") }
+
+    public static var onboardingRoleScout: String { L(en: "SCOUT", ru: "СКАУТ", es: "SCOUT", pt: "SCOUT", zh: "星探") }
+    public static var onboardingRoleScoutSubtitle: String { L(en: "I find new faces, independently or for an agency", ru: "Ищу новые лица — самостоятельно или для агентства", es: "Encuentro nuevas caras, de forma independiente o para una agencia", pt: "Encontro novos rostos, de forma independente ou para uma agência", zh: "我寻找新面孔，独立或为经纪公司") }
+    public static var onboardingRoleBooker: String { L(en: "BOOKER", ru: "БУКЕР", es: "BOOKER", pt: "BOOKER", zh: "预订员") }
+    public static var onboardingRoleBookerSubtitle: String { L(en: "I manage bookings and negotiations for models at an agency", ru: "Веду бронирования и переговоры для моделей агентства", es: "Gestiono reservas y negociaciones para modelos en una agencia", pt: "Gerencio reservas e negociações para modelos em uma agência", zh: "我为经纪公司的模特管理预订和谈判") }
+    public static var onboardingRoleCastingDirector: String { L(en: "CASTING DIRECTOR", ru: "КАСТИНГ-ДИРЕКТОР", es: "DIRECTOR DE CASTING", pt: "DIRETOR DE ELENCO", zh: "选角导演") }
+    public static var onboardingRoleCastingDirectorSubtitle: String { L(en: "I run castings for specific projects: shows, ads or film", ru: "Провожу кастинги под конкретные проекты: показы, рекламу или кино", es: "Dirijo castings para proyectos específicos: desfiles, anuncios o cine", pt: "Conduzo castings para projetos específicos: desfiles, anúncios ou cinema", zh: "我为特定项目进行选角：时装秀、广告或电影") }
+    public static var onboardingRoleTalentManager: String { L(en: "TALENT MANAGER", ru: "ТАЛАНТ-МЕНЕДЖЕР", es: "MÁNAGER DE TALENTO", pt: "GERENTE DE TALENTO", zh: "艺人经纪") }
+    public static var onboardingRoleTalentManagerSubtitle: String { L(en: "I represent and manage individual talent on their career", ru: "Представляю и сопровождаю карьеру конкретных талантов", es: "Represento y gestiono el talento individual y su carrera", pt: "Represento e gerencio talentos individuais em sua carreira", zh: "我代表并管理个人艺人的职业生涯") }
+
+    public static var onboardingRolePhotographer: String { L(en: "PHOTOGRAPHER", ru: "ФОТОГРАФ", es: "FOTÓGRAFO", pt: "FOTÓGRAFO", zh: "摄影师") }
+    public static var onboardingRoleStylist: String { L(en: "STYLIST", ru: "СТИЛИСТ", es: "ESTILISTA", pt: "ESTILISTA", zh: "造型师") }
+    public static var onboardingRoleMakeupArtist: String { L(en: "MAKEUP ARTIST", ru: "ВИЗАЖИСТ", es: "MAQUILLADOR", pt: "MAQUIADOR", zh: "化妆师") }
+    public static var onboardingRoleHairStylist: String { L(en: "HAIR STYLIST", ru: "ПАРИКМАХЕР-СТИЛИСТ", es: "ESTILISTA DE CABELLO", pt: "CABELEIREIRO", zh: "发型师") }
+    public static var onboardingRoleVideographer: String { L(en: "VIDEOGRAPHER", ru: "ВИДЕОГРАФ", es: "VIDEÓGRAFO", pt: "VIDEÓGRAFO", zh: "摄像师") }
+    public static var onboardingRoleCreativeDirector: String { L(en: "CREATIVE DIRECTOR", ru: "КРЕАТИВНЫЙ ДИРЕКТОР", es: "DIRECTOR CREATIVO", pt: "DIRETOR CRIATIVO", zh: "创意总监") }
+    public static var onboardingRoleFashionDesigner: String { L(en: "FASHION DESIGNER", ru: "ДИЗАЙНЕР ОДЕЖДЫ", es: "DISEÑADOR DE MODA", pt: "ESTILISTA DE MODA", zh: "时装设计师") }
+    public static var onboardingRoleStudioLocation: String { L(en: "STUDIO / LOCATION", ru: "СТУДИЯ / ЛОКАЦИЯ", es: "ESTUDIO / LOCACIÓN", pt: "ESTÚDIO / LOCAÇÃO", zh: "工作室 / 拍摄场地") }
+
+    public static var onboardingRoleModel: String { L(en: "MODEL", ru: "МОДЕЛЬ", es: "MODELO", pt: "MODELO", zh: "模特") }
+    public static var onboardingRoleNewTalent: String { L(en: "NEW TALENT", ru: "НОВЫЙ ТАЛАНТ", es: "NUEVO TALENTO", pt: "NOVO TALENTO", zh: "新人") }
+    public static var onboardingRoleActor: String { L(en: "ACTOR OR ACTRESS", ru: "АКТЁР ИЛИ АКТРИСА", es: "ACTOR O ACTRIZ", pt: "ATOR OU ATRIZ", zh: "演员") }
+    public static var onboardingRoleDancer: String { L(en: "DANCER", ru: "ТАНЦОР", es: "BAILARÍN", pt: "DANÇARINO", zh: "舞者") }
+    public static var onboardingRoleSingerPerformer: String { L(en: "SINGER OR PERFORMER", ru: "ПЕВЕЦ ИЛИ ИСПОЛНИТЕЛЬ", es: "CANTANTE O ARTISTA", pt: "CANTOR OU ARTISTA", zh: "歌手或表演者") }
+    public static var onboardingRoleFan: String { L(en: "FAN", ru: "ФАН", es: "FAN", pt: "FÃ", zh: "粉丝") }
+
+    // MARK: - Onboarding — Result screens (3.3.*)
+
+    public static var onboardingResultModelTitle: String { L(en: "YOU'RE A PROFESSIONAL MODEL", ru: "ВЫ — ПРОФЕССИОНАЛЬНАЯ МОДЕЛЬ", es: "ERES UNA MODELO PROFESIONAL", pt: "VOCÊ É UM MODELO PROFISSIONAL", zh: "您是一位专业模特") }
+    public static var onboardingResultModelDescription: String { L(en: "Your profile will be built to showcase your portfolio and connect you directly with agencies and brands looking for experienced talent.", ru: "Ваш профиль покажет портфолио и соединит напрямую с агентствами и брендами, которым нужны опытные таланты.", es: "Tu perfil mostrará tu portafolio y te conectará directamente con agencias y marcas que buscan talento experimentado.", pt: "Seu perfil exibirá seu portfólio e o conectará diretamente com agências e marcas em busca de talentos experientes.", zh: "您的个人资料将展示作品集，并直接与寻找经验丰富的人才的经纪公司和品牌联系。") }
+    public static var onboardingResultNewTalentTitle: String { L(en: "YOU'RE A RISING TALENT", ru: "ВЫ — НОВАЯ ЗВЕЗДА", es: "ERES UN TALENTO EMERGENTE", pt: "VOCÊ É UM TALENTO EM ASCENSÃO", zh: "您是冉冉升起的新星") }
+    public static var onboardingResultNewTalentDescription: String { L(en: "Your profile will help you build your portfolio, get cast, find TFP shoots with photographers and stylists.", ru: "Профиль поможет наработать портфолио, попасть в кастинги и найти TFP-съёмки с фотографами и стилистами.", es: "Tu perfil te ayudará a crear tu portafolio, conseguir castings y encontrar sesiones TFP con fotógrafos y estilistas.", pt: "Seu perfil ajudará a construir seu portfólio, conseguir castings e encontrar ensaios TFP com fotógrafos e estilistas.", zh: "您的个人资料将帮助您建立作品集、获得选角，并与摄影师和造型师寻找 TFP 拍摄。") }
+    public static var onboardingResultActorTitle: String { L(en: "YOU'RE AN ACTOR", ru: "ВЫ — АКТЁР", es: "ERES UN ACTOR", pt: "VOCÊ É UM ATOR", zh: "您是一位演员") }
+    public static var onboardingResultActorDescription: String { L(en: "Your profile will connect you with brands and agencies looking for acting talent for campaigns, fashion films and live events.", ru: "Профиль соединит с брендами и агентствами, которые ищут актёров для кампаний, fashion-фильмов и живых событий.", es: "Tu perfil te conectará con marcas y agencias que buscan talento actoral para campañas, fashion films y eventos en vivo.", pt: "Seu perfil o conectará com marcas e agências em busca de talentos atorais para campanhas, fashion films e eventos.", zh: "您的个人资料将让您与寻找演员的品牌和经纪公司建立联系，参与营销活动、时尚影片和现场活动。") }
+    public static var onboardingResultDancerTitle: String { L(en: "YOU'RE A DANCER", ru: "ВЫ — ТАНЦОР", es: "ERES UN BAILARÍN", pt: "VOCÊ É UM DANÇARINO", zh: "您是一位舞者") }
+    public static var onboardingResultDancerDescription: String { L(en: "Your profile will pair your skills with shows, campaigns and events looking for dance talent across all styles.", ru: "Профиль соединит ваши навыки с показами, кампаниями и мероприятиями, которым нужны танцоры любых направлений.", es: "Tu perfil unirá tus habilidades con desfiles, campañas y eventos que buscan talento de danza en todos los estilos.", pt: "Seu perfil unirá suas habilidades a desfiles, campanhas e eventos em busca de dançarinos de todos os estilos.", zh: "您的个人资料将把您的技能与寻找各种风格舞蹈人才的演出、活动和项目相结合。") }
+    public static var onboardingResultSingerTitle: String { L(en: "YOU'RE A PERFORMER", ru: "ВЫ — ИСПОЛНИТЕЛЬ", es: "ERES UN ARTISTA", pt: "VOCÊ É UM ARTISTA", zh: "您是一位表演者") }
+    public static var onboardingResultSingerDescription: String { L(en: "Your profile will connect you to fashion events, brand campaigns and creative projects looking for performance talent.", ru: "Профиль соединит с fashion-событиями, бренд-кампаниями и креативными проектами, которым нужны исполнители.", es: "Tu perfil te conectará con eventos de moda, campañas de marca y proyectos creativos que buscan talento performático.", pt: "Seu perfil o conectará com eventos de moda, campanhas de marcas e projetos criativos em busca de artistas.", zh: "您的个人资料将让您与寻找表演人才的时尚活动、品牌活动和创意项目建立联系。") }
+    public static var onboardingResultCreativeTitle: String { L(en: "YOU'RE A CREATIVE PROFESSIONAL", ru: "ВЫ — КРЕАТИВНЫЙ ПРОФЕССИОНАЛ", es: "ERES UN PROFESIONAL CREATIVO", pt: "VOCÊ É UM PROFISSIONAL CRIATIVO", zh: "您是一位创意专业人士") }
+    public static var onboardingResultCreativeDescription: String { L(en: "Your profile will showcase your portfolio, let you post projects and connect with models, brands and agencies — on both sides of the market.", ru: "Профиль покажет ваше портфолио, позволит публиковать проекты и соединит с моделями, брендами и агентствами — с обеих сторон рынка.", es: "Tu perfil mostrará tu portafolio, te permitirá publicar proyectos y conectarte con modelos, marcas y agencias en ambos lados del mercado.", pt: "Seu perfil exibirá seu portfólio, permitirá publicar projetos e conectar-se com modelos, marcas e agências — dos dois lados do mercado.", zh: "您的个人资料将展示作品集，让您发布项目，并与模特、品牌和经纪公司建立联系——市场的两端。") }
+    public static var onboardingResultCompaniesTitle: String { L(en: "YOU'RE HERE TO FIND TALENT", ru: "ВЫ — В ПОИСКЕ ТАЛАНТОВ", es: "ESTÁS AQUÍ PARA ENCONTRAR TALENTO", pt: "VOCÊ ESTÁ AQUI PARA ENCONTRAR TALENTOS", zh: "您来这里寻找人才") }
+    public static var onboardingResultCompaniesDescription: String { L(en: "Your profile will be set up to search, post castings and connect directly with models and creatives.", ru: "Профиль настроен на поиск, публикацию кастингов и прямой контакт с моделями и креаторами.", es: "Tu perfil estará configurado para buscar, publicar castings y conectarte directamente con modelos y creativos.", pt: "Seu perfil será configurado para buscar, publicar castings e conectar-se diretamente com modelos e criativos.", zh: "您的个人资料将设置为搜索、发布选角并直接与模特和创意人员建立联系。") }
+    public static var onboardingResultIndustryProTitle: String { L(en: "YOU'RE A TALENT INDUSTRY PROFESSIONAL", ru: "ВЫ — ПРОФЕССИОНАЛ ИНДУСТРИИ ТАЛАНТОВ", es: "ERES UN PROFESIONAL DE LA INDUSTRIA DEL TALENTO", pt: "VOCÊ É UM PROFISSIONAL DA INDÚSTRIA DE TALENTOS", zh: "您是人才行业专业人士") }
+    public static var onboardingResultIndustryProDescription: String { L(en: "Talent database, advanced search tools and casting workflow — for the way professionals actually work.", ru: "База талантов, продвинутый поиск и кастинг-воркфлоу — так, как реально работают профессионалы.", es: "Base de datos de talento, búsqueda avanzada y flujo de casting — como realmente trabajan los profesionales.", pt: "Base de talentos, busca avançada e fluxo de casting — como os profissionais realmente trabalham.", zh: "人才数据库、高级搜索工具和选角工作流程 — 专为专业人士实际工作方式而设。") }
+    public static var onboardingResultFanTitle: String { L(en: "YOU'RE A FASHION FAN", ru: "ВЫ — FASHION-ФАН", es: "ERES UN FAN DE LA MODA", pt: "VOCÊ É UM FÃ DA MODA", zh: "您是时尚粉丝") }
+    public static var onboardingResultFanDescription: String { L(en: "You'll be able to follow your favourite models and creators, discover new talent and stay connected to the fashion world.", ru: "Подписывайтесь на любимые модели и креаторов, открывайте новые таланты и оставайтесь в курсе мира моды.", es: "Podrás seguir a tus modelos y creadores favoritos, descubrir nuevos talentos y mantenerte conectado al mundo de la moda.", pt: "Você poderá acompanhar seus modelos e criadores favoritos, descobrir novos talentos e ficar conectado ao mundo da moda.", zh: "您可以关注您喜爱的模特和创作者，发现新人才，并与时尚世界保持联系。") }
+
+    // MARK: - Onboarding — Common sections / fields
+
+    public static var onboardingSectionIdentityTitle: String { L(en: "YOUR IDENTITY", ru: "ВАШИ ДАННЫЕ", es: "TU IDENTIDAD", pt: "SUA IDENTIDADE", zh: "您的身份") }
+    public static var onboardingSectionPersonalDetailsTitle: String { L(en: "PERSONAL DETAILS", ru: "ЛИЧНЫЕ ДАННЫЕ", es: "DATOS PERSONALES", pt: "DADOS PESSOAIS", zh: "个人信息") }
+    public static var onboardingSectionLocationTitle: String { L(en: "LOCATION", ru: "ЛОКАЦИЯ", es: "UBICACIÓN", pt: "LOCALIZAÇÃO", zh: "位置") }
+    public static var onboardingSectionProfilePhotoTitle: String { L(en: "ADD YOUR PROFILE PHOTO", ru: "ДОБАВЬТЕ ФОТО ПРОФИЛЯ", es: "AÑADE TU FOTO DE PERFIL", pt: "ADICIONE SUA FOTO DE PERFIL", zh: "添加您的头像") }
+    public static var onboardingSectionProfilePhotoSubtitle: String { L(en: "Use a clear photo of yourself. You can update this any time.", ru: "Загрузите чёткое фото себя. Его можно обновить в любой момент.", es: "Usa una foto clara de ti mismo. Puedes actualizarla en cualquier momento.", pt: "Use uma foto nítida sua. Você pode atualizá-la a qualquer momento.", zh: "请使用一张清晰的本人照片。您可以随时更新。") }
+
+    public static var onboardingFieldFirstNamePlaceholder: String { L(en: "First name *", ru: "Имя *", es: "Nombre *", pt: "Nome *", zh: "名字 *") }
+    public static var onboardingFieldLastNamePlaceholder: String { L(en: "Last name *", ru: "Фамилия *", es: "Apellido *", pt: "Sobrenome *", zh: "姓氏 *") }
+    public static var onboardingFieldDateOfBirthPlaceholder: String { L(en: "Date of birth", ru: "Дата рождения", es: "Fecha de nacimiento", pt: "Data de nascimento", zh: "出生日期") }
+    public static var onboardingFieldGenderPlaceholder: String { L(en: "Choose a gender", ru: "Выберите пол", es: "Elige un género", pt: "Escolha um gênero", zh: "选择性别") }
+    public static var onboardingFieldCountryPlaceholder: String { L(en: "Country", ru: "Страна", es: "País", pt: "País", zh: "国家") }
+    public static var onboardingFieldCityPlaceholder: String { L(en: "City", ru: "Город", es: "Ciudad", pt: "Cidade", zh: "城市") }
+    public static var onboardingFieldInstagramHandlePlaceholder: String { L(en: "Instagram handle", ru: "Инстаграм", es: "Usuario de Instagram", pt: "Usuário do Instagram", zh: "Instagram 账号") }
+    public static var onboardingFieldInstagramHandleHelp: String { L(en: "Helps you get discovered faster", ru: "Поможет быстрее быть замеченным", es: "Te ayuda a ser descubierto más rápido", pt: "Ajuda você a ser descoberto mais rápido", zh: "帮助您更快被发现") }
+    public static var onboardingFieldInstagramOrPortfolioPlaceholder: String { L(en: "Instagram / Portfolio URL", ru: "Инстаграм или URL портфолио", es: "Instagram / URL del portafolio", pt: "Instagram / URL do portfólio", zh: "Instagram / 作品集网址") }
+    public static var onboardingFieldProfilePhotoPlaceholder: String { L(en: "Upload from library or take a photo", ru: "Загрузите из библиотеки или сделайте фото", es: "Subir desde la biblioteca o tomar una foto", pt: "Carregar da biblioteca ou tirar uma foto", zh: "从图库上传或拍摄照片") }
+    public static var onboardingFieldProfilePhotoHelp: String { L(en: "Any file format supported", ru: "Поддерживается любой формат файла", es: "Se admite cualquier formato", pt: "Qualquer formato de arquivo suportado", zh: "支持任何文件格式") }
+    public static var onboardingFieldProfilePhotoSelected: String { L(en: "Photo selected", ru: "Фото выбрано", es: "Foto seleccionada", pt: "Foto selecionada", zh: "已选择照片") }
+    public static var onboardingFieldLogoPhotoPlaceholder: String { L(en: "Upload logo or take a photo", ru: "Загрузите логотип или сделайте фото", es: "Subir logo o tomar una foto", pt: "Carregar logo ou tirar uma foto", zh: "上传徽标或拍摄照片") }
+    public static var onboardingFieldLogoPhotoHelp: String { L(en: "Any file format supported", ru: "Поддерживается любой формат файла", es: "Se admite cualquier formato", pt: "Qualquer formato de arquivo suportado", zh: "支持任何文件格式") }
+
+    public static var onboardingGenderFemale: String { L(en: "Female", ru: "Женский", es: "Femenino", pt: "Feminino", zh: "女性") }
+    public static var onboardingGenderMale: String { L(en: "Male", ru: "Мужской", es: "Masculino", pt: "Masculino", zh: "男性") }
+    public static var onboardingGenderNonbinary: String { L(en: "Non-binary", ru: "Небинарный", es: "No binario", pt: "Não-binário", zh: "非二元性别") }
+    public static var onboardingGenderPreferNotToSay: String { L(en: "Prefer not to say", ru: "Предпочитаю не указывать", es: "Prefiero no decir", pt: "Prefiro não dizer", zh: "不愿透露") }
+
+    public static func onboardingFormProgress(step: Int, of total: Int) -> String {
+        return L(
+            en: "Step \(step) of \(total)",
+            ru: "Шаг \(step) из \(total)",
+            es: "Paso \(step) de \(total)",
+            pt: "Etapa \(step) de \(total)",
+            zh: "第 \(step) 步，共 \(total) 步"
+        )
+    }
+
+    // MARK: - Onboarding — Form 4.A Companies & Brands
+
+    public static var onboardingForm4ATitle: String { L(en: "Companies & Brands", ru: "Компании и бренды", es: "Empresas y marcas", pt: "Empresas e marcas", zh: "公司与品牌") }
+    public static var onboardingForm4AStep1Title: String { L(en: "TELL US ABOUT YOUR COMPANY", ru: "РАССКАЖИТЕ О КОМПАНИИ", es: "CUÉNTANOS SOBRE TU EMPRESA", pt: "FALE-NOS SOBRE SUA EMPRESA", zh: "请介绍您的公司") }
+    public static var onboardingForm4ACompanyNamePlaceholder: String { L(en: "Company / Organisation name *", ru: "Название компании / организации *", es: "Nombre de la empresa / organización *", pt: "Nome da empresa / organização *", zh: "公司 / 机构名称 *") }
+    public static var onboardingForm4ACompanyTypePlaceholder: String { L(en: "Choose a company type", ru: "Выберите тип компании", es: "Elige el tipo de empresa", pt: "Escolha o tipo de empresa", zh: "选择公司类型") }
+    public static var onboardingForm4AStep2Title: String { L(en: "WHERE ARE YOU BASED?", ru: "ГДЕ ВЫ НАХОДИТЕСЬ?", es: "¿DÓNDE ESTÁS UBICADO?", pt: "ONDE VOCÊ ESTÁ LOCALIZADO?", zh: "您位于何处？") }
+    public static var onboardingForm4AStep3Title: String { L(en: "VERIFICATION & CONTACT", ru: "ВЕРИФИКАЦИЯ И КОНТАКТ", es: "VERIFICACIÓN Y CONTACTO", pt: "VERIFICAÇÃO E CONTATO", zh: "验证与联系方式") }
+    public static var onboardingForm4AWebsiteUrlPlaceholder: String { L(en: "Website URL", ru: "URL сайта", es: "URL del sitio web", pt: "URL do site", zh: "网站网址") }
+    public static var onboardingForm4AWebsiteUrlHelp: String { L(en: "Helps verify your account", ru: "Поможет верифицировать аккаунт", es: "Ayuda a verificar tu cuenta", pt: "Ajuda a verificar sua conta", zh: "有助于验证您的账户") }
+    public static var onboardingForm4AContactFirstNamePlaceholder: String { L(en: "Contact first name", ru: "Имя контакта", es: "Nombre del contacto", pt: "Nome do contato", zh: "联系人名字") }
+    public static var onboardingForm4AContactLastNamePlaceholder: String { L(en: "Contact last name", ru: "Фамилия контакта", es: "Apellido del contacto", pt: "Sobrenome do contato", zh: "联系人姓氏") }
+    public static var onboardingForm4AContactRolePlaceholder: String { L(en: "Contact role / title", ru: "Должность контакта", es: "Cargo del contacto", pt: "Cargo do contato", zh: "联系人职位") }
+    public static var onboardingForm4AStep4Title: String { L(en: "ADD YOUR LOGO OR PROFILE PHOTO", ru: "ДОБАВЬТЕ ЛОГОТИП ИЛИ ФОТО", es: "AÑADE TU LOGO O FOTO DE PERFIL", pt: "ADICIONE SEU LOGO OU FOTO DE PERFIL", zh: "添加您的徽标或头像") }
+
+    // MARK: - Onboarding — Form 4.B Industry Professionals
+
+    public static var onboardingForm4BTitle: String { L(en: "Industry Professionals", ru: "Профессионалы индустрии", es: "Profesionales de la industria", pt: "Profissionais do mercado", zh: "行业专业人士") }
+    public static var onboardingForm4BStep1Title: String { L(en: "YOUR PROFESSIONAL IDENTITY", ru: "ВАШ ПРОФЕССИОНАЛЬНЫЙ ПРОФИЛЬ", es: "TU IDENTIDAD PROFESIONAL", pt: "SUA IDENTIDADE PROFISSIONAL", zh: "您的职业身份") }
+    public static var onboardingForm4BRolePlaceholder: String { L(en: "Role", ru: "Роль", es: "Rol", pt: "Função", zh: "角色") }
+    public static var onboardingForm4BStep3Title: String { L(en: "PROFESSIONAL LINKS", ru: "ПРОФЕССИОНАЛЬНЫЕ ССЫЛКИ", es: "ENLACES PROFESIONALES", pt: "LINKS PROFISSIONAIS", zh: "职业链接") }
+    public static var onboardingForm4BAgencyPlaceholder: String { L(en: "Agency / Organisation", ru: "Агентство / Организация", es: "Agencia / Organización", pt: "Agência / Organização", zh: "经纪公司 / 机构") }
+    public static var onboardingForm4BAgencyHelp: String { L(en: "Your agency will receive a confirmation request", ru: "Агентству придёт запрос на подтверждение", es: "Tu agencia recibirá una solicitud de confirmación", pt: "Sua agência receberá um pedido de confirmação", zh: "您的经纪公司将收到确认请求") }
+
+    // MARK: - Onboarding — Form 4.C1 Creative Individual
+
+    public static var onboardingForm4C1Title: String { L(en: "Creative Professionals — Individual", ru: "Creative-профессионалы — индивидуально", es: "Profesionales creativos — individual", pt: "Profissionais criativos — individual", zh: "创意专业人士 — 个人") }
+    public static var onboardingForm4C1Step1Title: String { L(en: "YOUR CREATIVE IDENTITY", ru: "ВАШ КРЕАТИВНЫЙ ПРОФИЛЬ", es: "TU IDENTIDAD CREATIVA", pt: "SUA IDENTIDADE CRIATIVA", zh: "您的创意身份") }
+    public static var onboardingForm4C1SpecialisationPlaceholder: String { L(en: "Specialisation", ru: "Специализация", es: "Especialización", pt: "Especialização", zh: "专长") }
+    public static var onboardingForm4C1Step3Title: String { L(en: "ADD YOUR PORTFOLIO", ru: "ДОБАВЬТЕ ПОРТФОЛИО", es: "AÑADE TU PORTAFOLIO", pt: "ADICIONE SEU PORTFÓLIO", zh: "添加您的作品集") }
+    public static var onboardingForm4C1Step3Subtitle: String { L(en: "Recommended — helps clients find your work faster", ru: "Рекомендуется — клиенты быстрее находят ваши работы", es: "Recomendado — ayuda a los clientes a encontrar tu trabajo más rápido", pt: "Recomendado — ajuda os clientes a encontrar seu trabalho mais rápido", zh: "推荐 — 帮助客户更快找到您的作品") }
+    public static var onboardingForm4C1PortfolioHelp: String { L(en: "Share a link to your Instagram, Behance, personal site or any portfolio", ru: "Поделитесь ссылкой на Инстаграм, Behance, личный сайт или любое портфолио", es: "Comparte un enlace a tu Instagram, Behance, sitio personal o cualquier portafolio", pt: "Compartilhe um link para seu Instagram, Behance, site pessoal ou qualquer portfólio", zh: "分享您的 Instagram、Behance、个人网站或任何作品集的链接") }
+
+    // MARK: - Onboarding — Form 4.C2 Creative Studio
+
+    public static var onboardingForm4C2Title: String { L(en: "Creative Professionals — Studio", ru: "Creative-профессионалы — студия", es: "Profesionales creativos — estudio", pt: "Profissionais criativos — estúdio", zh: "创意专业人士 — 工作室") }
+    public static var onboardingForm4C2Step1Title: String { L(en: "YOUR STUDIO DETAILS", ru: "ДАННЫЕ СТУДИИ", es: "DETALLES DE TU ESTUDIO", pt: "DADOS DO SEU ESTÚDIO", zh: "工作室详情") }
+    public static var onboardingForm4C2StudioNamePlaceholder: String { L(en: "Studio / space name *", ru: "Название студии / пространства *", es: "Nombre del estudio / espacio *", pt: "Nome do estúdio / espaço *", zh: "工作室 / 场地名称 *") }
+    public static var onboardingForm4C2Step2Title: String { L(en: "CONTACT DETAILS", ru: "КОНТАКТНЫЕ ДАННЫЕ", es: "DATOS DE CONTACTO", pt: "DADOS DE CONTATO", zh: "联系方式") }
+    public static var onboardingForm4C2WebsiteOrInstagramPlaceholder: String { L(en: "Website or Instagram", ru: "Сайт или Инстаграм", es: "Sitio web o Instagram", pt: "Site ou Instagram", zh: "网站或 Instagram") }
+    public static var onboardingForm4C2WebsiteOrInstagramHelp: String { L(en: "Light verification signal", ru: "Лёгкий сигнал верификации", es: "Señal de verificación ligera", pt: "Sinal leve de verificação", zh: "轻量级验证标识") }
+    public static var onboardingForm4C2ContactNamePlaceholder: String { L(en: "Contact name", ru: "Имя контакта", es: "Nombre de contacto", pt: "Nome do contato", zh: "联系人姓名") }
+    public static var onboardingForm4C2ContactNameHelp: String { L(en: "Person managing bookings", ru: "Кто отвечает за брони", es: "Persona que gestiona reservas", pt: "Pessoa que gerencia reservas", zh: "管理预订的负责人") }
+    public static var onboardingForm4C2ContactPhoneOrEmailPlaceholder: String { L(en: "Contact phone or email", ru: "Телефон или email", es: "Teléfono o email", pt: "Telefone ou email", zh: "联系电话或邮箱") }
+    public static var onboardingForm4C2ContactPhoneOrEmailHelp: String { L(en: "For booking enquiries", ru: "Для запросов на бронирование", es: "Para consultas de reservas", pt: "Para solicitações de reserva", zh: "用于预订咨询") }
+    public static var onboardingForm4C2Step3Title: String { L(en: "SHOW YOUR MAIN SPACE", ru: "ПОКАЖИТЕ ГЛАВНОЕ ПОМЕЩЕНИЕ", es: "MUESTRA TU ESPACIO PRINCIPAL", pt: "MOSTRE SEU ESPAÇO PRINCIPAL", zh: "展示您的主要场地") }
+    public static var onboardingForm4C2Step3Subtitle: String { L(en: "Clients want to see what they're booking", ru: "Клиенты хотят видеть, что бронируют", es: "Los clientes quieren ver lo que reservan", pt: "Os clientes querem ver o que estão reservando", zh: "客户希望看到他们预订的内容") }
+
+    // MARK: - Onboarding — Form 4.D1 Model
+
+    public static var onboardingForm4D1Title: String { L(en: "Talent — Model", ru: "Талант — модель", es: "Talento — modelo", pt: "Talento — modelo", zh: "人才 — 模特") }
+    public static var onboardingForm4D1Step3Title: String { L(en: "PROFESSIONAL LINKS", ru: "ПРОФЕССИОНАЛЬНЫЕ ССЫЛКИ", es: "ENLACES PROFESIONALES", pt: "LINKS PROFISSIONAIS", zh: "职业链接") }
+    public static var onboardingForm4D1CurrentAgencyPlaceholder: String { L(en: "Current or last agency", ru: "Текущее или последнее агентство", es: "Agencia actual o última", pt: "Agência atual ou última", zh: "现任或最近的经纪公司") }
+    public static var onboardingForm4D1CurrentAgencyHelp: String { L(en: "Add your agency to get a verified badge", ru: "Укажите агентство, чтобы получить значок верификации", es: "Añade tu agencia para obtener una insignia verificada", pt: "Adicione sua agência para ganhar um selo verificado", zh: "添加您的经纪公司以获得验证徽章") }
+    public static var onboardingForm4D1Step4Title: String { L(en: "SHOW THE WORLD WHO YOU ARE", ru: "ПОКАЖИТЕ МИРУ, КТО ВЫ", es: "MUESTRA AL MUNDO QUIÉN ERES", pt: "MOSTRE AO MUNDO QUEM VOCÊ É", zh: "向世界展示您是谁") }
+    public static var onboardingForm4D1Step4Subtitle: String { L(en: "Use a clear, front-facing photo. You can update this any time.", ru: "Используйте чёткое фото анфас. Его можно обновить в любой момент.", es: "Usa una foto clara de frente. Puedes actualizarla en cualquier momento.", pt: "Use uma foto nítida de frente. Você pode atualizá-la a qualquer momento.", zh: "请使用一张清晰的正面照片。您可以随时更新。") }
+
+    // MARK: - Onboarding — Form 4.D2 New Talent
+
+    public static var onboardingForm4D2Title: String { L(en: "Talent — New Talent", ru: "Талант — новый талант", es: "Talento — nuevo talento", pt: "Talento — novo talento", zh: "人才 — 新人") }
+    public static var onboardingForm4D2Step3Title: String { L(en: "PROFESSIONAL LINKS", ru: "ПРОФЕССИОНАЛЬНЫЕ ССЫЛКИ", es: "ENLACES PROFESIONALES", pt: "LINKS PROFISSIONAIS", zh: "职业链接") }
+    public static var onboardingForm4D2Step4Title: String { L(en: "ADD YOUR PROFILE PHOTO", ru: "ДОБАВЬТЕ ФОТО ПРОФИЛЯ", es: "AÑADE TU FOTO DE PERFIL", pt: "ADICIONE SUA FOTO DE PERFIL", zh: "添加您的头像") }
+    public static var onboardingForm4D2TfpHint: String { L(en: "Your first step: find a TFP shoot.\nTFP (Time For Portfolio) shoots are free collaborations with photographers. They'll build your portfolio fast. We'll show you how when you're in the app.", ru: "Первый шаг: найдите TFP-съёмку.\nTFP (Time For Portfolio) — бесплатное сотрудничество с фотографами. Это быстро соберёт ваше портфолио. Покажем как — внутри приложения.", es: "Tu primer paso: encuentra una sesión TFP.\nLas sesiones TFP (Time For Portfolio) son colaboraciones gratuitas con fotógrafos. Construirán tu portafolio rápidamente. Te mostraremos cómo dentro de la app.", pt: "Seu primeiro passo: encontre um ensaio TFP.\nEnsaios TFP (Time For Portfolio) são colaborações gratuitas com fotógrafos. Eles montarão seu portfólio rápido. Mostraremos como dentro do app.", zh: "第一步：找一次 TFP 拍摄。\nTFP（Time For Portfolio）是与摄影师的免费合作。它能快速建立您的作品集。我们将在应用内为您指引。") }
+
+    // MARK: - Onboarding — Form 4.D3 Actor / Dancer / Singer
+
+    public static var onboardingForm4D3Title: String { L(en: "Talent — Actor / Dancer / Singer", ru: "Талант — актёр / танцор / певец", es: "Talento — actor / bailarín / cantante", pt: "Talento — ator / dançarino / cantor", zh: "人才 — 演员 / 舞者 / 歌手") }
+    public static var onboardingForm4D3Step3Title: String { L(en: "PROFESSIONAL LINKS", ru: "ПРОФЕССИОНАЛЬНЫЕ ССЫЛКИ", es: "ENLACES PROFESIONALES", pt: "LINKS PROFISSIONAIS", zh: "职业链接") }
+    public static var onboardingForm4D3SpecialisationPlaceholder: String { L(en: "Specialisation", ru: "Специализация", es: "Especialización", pt: "Especialização", zh: "专长") }
+    public static var onboardingForm4D3ShowreelUrlPlaceholder: String { L(en: "Showreel / demo reel URL", ru: "URL шоурила / демо-рила", es: "URL de showreel / demo reel", pt: "URL do showreel / demo reel", zh: "演示视频网址") }
+    public static var onboardingForm4D3InstagramOrCastingPlaceholder: String { L(en: "Instagram / casting profile URL", ru: "Инстаграм / URL кастинг-профиля", es: "Instagram / URL del perfil de casting", pt: "Instagram / URL do perfil de casting", zh: "Instagram / 选角资料网址") }
+
+    public static var onboardingForm4D3ActorSpecFilm: String { L(en: "Film", ru: "Кино", es: "Cine", pt: "Cinema", zh: "电影") }
+    public static var onboardingForm4D3ActorSpecTheatre: String { L(en: "Theatre", ru: "Театр", es: "Teatro", pt: "Teatro", zh: "戏剧") }
+    public static var onboardingForm4D3ActorSpecCommercial: String { L(en: "Commercial", ru: "Реклама", es: "Comercial", pt: "Comercial", zh: "广告") }
+    public static var onboardingForm4D3ActorSpecDubbing: String { L(en: "Dubbing", ru: "Дубляж", es: "Doblaje", pt: "Dublagem", zh: "配音") }
+    public static var onboardingForm4D3ActorSpecTV: String { L(en: "TV", ru: "ТВ", es: "TV", pt: "TV", zh: "电视") }
+    public static var onboardingForm4D3SpecOther: String { L(en: "Other", ru: "Другое", es: "Otro", pt: "Outro", zh: "其他") }
+
+    public static var onboardingForm4D3DancerSpecContemporary: String { L(en: "Contemporary", ru: "Контемпорари", es: "Contemporáneo", pt: "Contemporâneo", zh: "现代舞") }
+    public static var onboardingForm4D3DancerSpecBallet: String { L(en: "Ballet", ru: "Балет", es: "Ballet", pt: "Balé", zh: "芭蕾舞") }
+    public static var onboardingForm4D3DancerSpecHipHop: String { L(en: "Hip-hop", ru: "Хип-хоп", es: "Hip-hop", pt: "Hip-hop", zh: "嘻哈") }
+    public static var onboardingForm4D3DancerSpecBallroom: String { L(en: "Ballroom", ru: "Бальные", es: "Salón", pt: "Salão", zh: "国标舞") }
+    public static var onboardingForm4D3DancerSpecLatin: String { L(en: "Latin", ru: "Латино", es: "Latino", pt: "Latina", zh: "拉丁") }
+    public static var onboardingForm4D3DancerSpecJazz: String { L(en: "Jazz", ru: "Джаз", es: "Jazz", pt: "Jazz", zh: "爵士") }
+
+    public static var onboardingForm4D3SingerSpecPop: String { L(en: "Pop", ru: "Поп", es: "Pop", pt: "Pop", zh: "流行") }
+    public static var onboardingForm4D3SingerSpecRnB: String { L(en: "R&B", ru: "R&B", es: "R&B", pt: "R&B", zh: "R&B") }
+    public static var onboardingForm4D3SingerSpecJazz: String { L(en: "Jazz", ru: "Джаз", es: "Jazz", pt: "Jazz", zh: "爵士") }
+    public static var onboardingForm4D3SingerSpecClassical: String { L(en: "Classical", ru: "Классика", es: "Clásica", pt: "Clássica", zh: "古典") }
+    public static var onboardingForm4D3SingerSpecMusicalTheatre: String { L(en: "Musical Theatre", ru: "Мюзикл", es: "Teatro musical", pt: "Teatro musical", zh: "音乐剧") }
+    public static var onboardingForm4D3SingerSpecOpera: String { L(en: "Opera", ru: "Опера", es: "Ópera", pt: "Ópera", zh: "歌剧") }
+
+    // MARK: - Onboarding — Form 4.E Fan
+
+    public static var onboardingForm4ETitle: String { L(en: "Fan Registration", ru: "Регистрация фана", es: "Registro de fan", pt: "Cadastro de fã", zh: "粉丝注册") }
+    public static var onboardingForm4EStep1Title: String { L(en: "TELL US ABOUT YOURSELF", ru: "РАССКАЖИТЕ О СЕБЕ", es: "CUÉNTANOS SOBRE TI", pt: "FALE-NOS SOBRE VOCÊ", zh: "请介绍您自己") }
+    public static var onboardingForm4EStep2Title: String { L(en: "ADD YOUR PROFILE PHOTO", ru: "ДОБАВЬТЕ ФОТО ПРОФИЛЯ", es: "AÑADE TU FOTO DE PERFIL", pt: "ADICIONE SUA FOTO DE PERFIL", zh: "添加您的头像") }
+    public static var onboardingForm4EStep2Subtitle: String { L(en: "Use a clear photo of yourself. You can update this any time.", ru: "Загрузите чёткое фото себя. Его можно обновить в любой момент.", es: "Usa una foto clara de ti mismo. Puedes actualizarla en cualquier momento.", pt: "Use uma foto nítida sua. Você pode atualizá-la a qualquer momento.", zh: "请使用一张清晰的本人照片。您可以随时更新。") }
 
     // MARK: - Debug Screen
 
