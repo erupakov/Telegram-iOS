@@ -4847,7 +4847,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                             }
                         },
                         openContextMenu: { item, sourceNode, rect, gesture in
-                            let link = "tg://settings/\(item.id)"
+                            let link = "dg://settings/\(item.id)"
                             let items: [ContextMenuItem] = [
                                 .action( ContextMenuActionItem(
                                     text: "Copy Link",

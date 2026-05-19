@@ -1299,7 +1299,7 @@ public func parseProxyUrl(sharedContext: SharedAccountContext, url: String) -> (
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "dg", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .proxy(host, port, username, password, secret) = internalUrl {
             return (host, port, username, password, secret)
         }
@@ -1320,7 +1320,7 @@ public func parseStickerPackUrl(sharedContext: SharedAccountContext, url: String
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "dg", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .stickerPack(name, _) = internalUrl {
             return name
         }
@@ -1341,7 +1341,7 @@ public func parseWallpaperUrl(sharedContext: SharedAccountContext, url: String) 
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "dg", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query), case let .wallpaper(wallpaper) = internalUrl {
             return wallpaper
         }
@@ -1362,7 +1362,7 @@ public func parseAdUrl(sharedContext: SharedAccountContext, context: AccountCont
             }
         }
     }
-    if let parsedUrl = URL(string: url), parsedUrl.scheme == "tg", let host = parsedUrl.host, let query = parsedUrl.query {
+    if let parsedUrl = URL(string: url), parsedUrl.scheme == "dg", let host = parsedUrl.host, let query = parsedUrl.query {
         if let internalUrl = parseInternalUrl(sharedContext: sharedContext, context: context, query: host + "?" + query), case .peer = internalUrl {
             return internalUrl
         }
