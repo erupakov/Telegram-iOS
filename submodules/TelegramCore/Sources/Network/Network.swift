@@ -559,7 +559,10 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             context.keychain = keychain
             var wrappedAdditionalSource: MTSignal?
             #if os(iOS)
-            if #available(iOS 10.0, *), !supplementary, arguments.isICloudEnabled {
+            // FIXME DIVO: emergency-datacenter CloudKit discovery отключён — backup discovery
+            // ниже всё равно выключен (DIVO-сервер имеет фиксированный IP), а этот блок только
+            // делал бесполезный сетевой запрос в наш собственный CKContainer
+            if #available(iOS 10.0, *), !supplementary, false && arguments.isICloudEnabled {
                 var cloudDataContextValue: CloudDataContext?
                 if let value = cloudDataContext.with({ $0 }) {
                     cloudDataContextValue = value

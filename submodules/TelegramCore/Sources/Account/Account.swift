@@ -366,7 +366,7 @@ public func accountWithId(accountManager: AccountManager<TelegramAccountManagerT
                         #if DEBUG
                         let initialDatacenterId: Int = 1
                         #else
-                        let initialDatacenterId: Int = 2
+                        let initialDatacenterId: Int = 1 // FIXME DIVO: единственный DC у нашего сервера — 1
                         #endif
                         
                         return initializedNetwork(accountId: id, arguments: networkArguments, supplementary: supplementary, datacenterId: initialDatacenterId, keychain: keychain, basePath: path, testingEnvironment: beginWithTestingEnvironment, languageCode: localizationSettings?.primaryComponent.languageCode, proxySettings: proxySettings, networkSettings: networkSettings, phoneNumber: nil, useRequestTimeoutTimers: useRequestTimeoutTimers, appConfiguration: appConfig)
