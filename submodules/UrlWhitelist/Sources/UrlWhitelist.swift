@@ -1,7 +1,7 @@
 import Foundation
 
 private let whitelistedHosts: Set<String> = Set([
-    "t.me",
+    "t.divo.global",
     "telegram.me",
     "telegra.ph",
     "telesco.pe",

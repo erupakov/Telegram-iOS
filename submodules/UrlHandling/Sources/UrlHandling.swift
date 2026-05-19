@@ -9,12 +9,12 @@ import TelegramUIPreferences
 import TelegramNotices
 import AccountContext
 
-private let baseTelegramMePaths = ["telegram.me", "t.me", "telegram.dog"]
+private let baseTelegramMePaths = ["telegram.me", "t.divo.global", "telegram.dog"]
 private let baseTelegraPhPaths = [
     "telegra.ph/",
     "te.legra.ph/",
     "graph.org/",
-    "t.me/iv?",
+    "t.divo.global/iv?",
     "telegram.org/blog/",
     "telegram.org/tour/"
 ]
@@ -218,7 +218,7 @@ public func parseInternalUrl(sharedContext: SharedAccountContext, context: Accou
                             }
                         }
                         if let _ = url {
-                            return .internalInstantView(url: "https://t.me/\(query)")
+                            return .internalInstantView(url: "https://t.divo.global/\(query)")
                         }
                     } else if peerName == "contact" {
                         var code: String?

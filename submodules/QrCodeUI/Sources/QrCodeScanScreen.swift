@@ -565,7 +565,7 @@ private final class QrCodeScanScreenNode: ViewControllerTracingNode, ASScrollVie
                 case .authTransfer:
                     filteredCodes = codes.filter { $0.message.hasPrefix("dg://") }
                 case .peer:
-                    filteredCodes = codes.filter { $0.message.hasPrefix("https://t.me/") || $0.message.hasPrefix("t.me/") }
+                    filteredCodes = codes.filter { $0.message.hasPrefix("https://t.divo.global/") || $0.message.hasPrefix("t.divo.global/") }
                 case .cryptoAddress:
                     filteredCodes = codes.filter { $0.message.hasPrefix("ton://") }
                 case .custom:
