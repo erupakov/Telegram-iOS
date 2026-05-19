@@ -2007,6 +2007,7 @@ final class CreateEventNode: ASDisplayNode {
             date: dateString,
             address: address,
             files: eventFiles,
+            isFree: !paidEventSwitch.isOn,
             cost: cost,
             isPublic: publicEventSwitch.isOn,
             ndaRequired: ndaSwitch.isOn,

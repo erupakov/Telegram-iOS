@@ -1505,6 +1505,9 @@ final class EventDetailControllerNode: ASDisplayNode {
             let genderTitles = gender.compactMap { $0.title }.joined(separator: ", ")
             items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
         }
+        if let age = attributes?.age {
+            items.append(.init(title: DivoStrings.ageYo, value: "\(age.from ?? 0)-\(age.to ?? 0)"))
+        }
         if let height = attributes?.height {
             items.append(.init(title: DivoStrings.heightCm, value: "\(height.from ?? 0)-\(height.to ?? 0)"))
         }
@@ -1639,7 +1642,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         setupNavigationBarTitle(name: newEventData.title ?? DivoStrings.noName)
         
-        eventCostTypeLabel.isHidden = newEventData.paymentType?.id == 2
+        var isFree: Bool = false
+        if newEventData.paymentType?.id == 2 {
+            eventCostTypeContainer.removeFromSuperview()
+            isFree = true
+        }
         eventCostTypeLabel.text = newEventData.cost
         
         let (data, time) = formatEventDateAndTime(dateString: newEventData.date)
@@ -1650,6 +1657,7 @@ final class EventDetailControllerNode: ASDisplayNode {
                 time: time,
                 countryFlag: Self.flag(for: newEventData.address?.city?.countryCode),
                 city: newEventData.address?.city?.name,
+                isFree: isFree,
                 cost: newEventData.cost
             )
         )
@@ -1689,7 +1697,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         eventTypeLabel.text = data.request.type
         setupNavigationBarTitle(name: DivoStrings.previewEvent.uppercased())
         
-        eventCostTypeContainer.isHidden = data.request.cost == nil
+        if let isFree = data.request.isFree, isFree {
+            eventCostTypeContainer.removeFromSuperview()
+        }
         eventCostTypeLabel.text = data.request.cost
         
         let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)
@@ -1700,6 +1710,7 @@ final class EventDetailControllerNode: ASDisplayNode {
                 time: tStr,
                 countryFlag: "🌍",
                 city: DivoStrings.tbd,
+                isFree: data.request.isFree,
                 cost: data.request.cost
             )
         )
@@ -1729,6 +1740,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         if let gender = data.request.gender {
             let genderTitles = gender.joined(separator: ", ")
             attrs.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+        }
+        if let age = data.request.age {
+            attrs.append(.init(title: DivoStrings.ageYo, value: "\(age.from)-\(age.to)"))
         }
         if let height = data.request.height {
             attrs.append(.init(title: DivoStrings.heightCm, value: "\(height.from)-\(height.to)"))

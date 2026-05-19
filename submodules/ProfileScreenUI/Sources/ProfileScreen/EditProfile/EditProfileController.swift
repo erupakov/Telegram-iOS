@@ -308,6 +308,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 let request = UpdateBiographyPageRequest(
                     fullName: rawData.fullName,
                     gender: rawData.gender,
+                    birthday: rawData.birthday,
                     model: rawData.model,
                     avatar: avatarUuid
                 )
