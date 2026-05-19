@@ -113,6 +113,7 @@ final class ExperienceView: UIView {
         
         titleLabel.text = item.companyName
         periodLabel.text = item.period
+        periodLabel.isHidden = item.period.isEmpty
         optionsButton.isHidden = !showOptions
         optionsButtonWidthConstraint?.isActive = false
         optionsButtonWidthConstraint?.constant = showOptions ? DivoDesignTokens.Spacing.l : 0
@@ -146,7 +147,7 @@ final class ExperienceView: UIView {
                 logoEmptyImageView.isHidden = false
             }
         } else {
-            logoImageView.addShimmerOverlay()
+            logoEmptyImageView.isHidden = false
         }
     }
     

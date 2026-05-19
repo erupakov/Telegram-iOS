@@ -18,6 +18,7 @@ swift_library(
         "//submodules/AccountContext:AccountContext",
         "//submodules/TelegramBaseController:TelegramBaseController",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/OnboardingUI:OnboardingUI",
     ],
     visibility = [
         "//visibility:public",

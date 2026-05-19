@@ -119,7 +119,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     
     private func navigateToEditEvent(eventId: Int) {
         // Открываем CreateEventController в режиме редактирования
-        let editEventController = CreateEventController(context: self.context, eventId: eventId)
+        let editEventController = CreateEventController(context: self.context, mode: .edit(eventId: eventId))
         
         // Обновляем список событий после успешного сохранения
         editEventController.onEventCreated = { [weak self] in
@@ -404,7 +404,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 if let eng = engagement {
-                    self.controllerNode.updateEngagementStats(likes: eng.likes, views: eng.views, saves: eng.saves)
+                    self.controllerNode.updateEngagementStats(
+                        likes: eng.likes,
+                        views: eng.views,
+                        saves: eng.saves,
+                        isLiked: detail.isLikedByUser ?? false,
+                        isSaved: detail.isFollowed ?? false
+                    )
                 }
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
@@ -774,11 +780,22 @@ extension PublicProfileScreenController {
                 let items = response.data?.items ?? []
                 let models = items.compactMap { item -> ModelItem? in
                     guard let userId = item.userId else { return nil }
+                    let roleLabel: String
+                    switch item.role {
+                    case "model":
+                        roleLabel = DivoStrings.roleModel
+                    case "new_face":
+                        roleLabel = DivoStrings.roleNewFace
+                    case "agency_employee":
+                        roleLabel = DivoStrings.roleAgency
+                    default:
+                        roleLabel = DivoStrings.roleModel
+                    }
                     return ModelItem(
                         id: userId,
                         name: item.name ?? DivoStrings.noName,
-                        role: DivoStrings.roleModel,
-                        isPremium: false,
+                        role: roleLabel,
+                        isPremium: item.isPremium ?? false,
                         customAvatarURL: item.photo?.fullUrl
                     )
                 }
@@ -807,16 +824,17 @@ extension PublicProfileScreenController {
                 )
 
                 let items = response.data.items
-                
+
                 if items.isEmpty {
                     await MainActor.run {
                         self.controllerNode.updateEventsList([])
                     }
                     return
                 }
-                
-                let detailedEvents = await fetchEventDetails(for: items.compactMap { $0.id })
-                let eventDataArray: [EventItem] = detailedEvents.map { item in
+
+                // EventListItem уже содержит все поля для карточки в списке
+                // (title/date/address/files), отдельный /event/{id} per item не нужен.
+                let eventDataArray: [EventItem] = items.map { item in
                     let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: item.date)
 
                     let city = item.address?.city?.name ?? DivoStrings.unknownCity
@@ -859,32 +877,6 @@ extension PublicProfileScreenController {
         }
     }
 
-    private func fetchEventDetails(for ids: [Int]) async -> [EventFullDetailData] {
-        return await withTaskGroup(of: EventFullDetailData?.self) { group in
-            for id in ids {
-                group.addTask {
-                    do {
-                        let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
-                            path: "/event/\(id)",
-                            method: "GET"
-                        )
-                        return response.data
-                    } catch {
-                        print("❌ [EVENT DETAIL] Error loading event \(id): \(error)")
-                        return nil
-                    }
-                }
-            }
-
-            var results: [EventFullDetailData] = []
-            for await detail in group {
-                if let validDetail = detail {
-                    results.append(validDetail)
-                }
-            }
-            return results
-        }
-    }
 
     private func deleteEvent(eventId: Int) {
         Task {
@@ -1432,26 +1424,14 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
 
                 self.debugLog("[DivoAPI] Background uploaded, uuid: \(fileUuid)")
 
-                if self.userRole == .agency {
-                    let request = UpdateDescriptionAgencyRequest(
-                        agencyId: self.userDetailModel?.agency?.id,
-                        background: UpdateDescriptionAgencyRequest.AvatarUuid(uuid: fileUuid)
-                    )
-                    let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
-                        path: "/agency/update",
-                        method: "POST",
-                        body: request
-                    )
-                } else {
-                    let request = UpdateBiographyPageRequest(
-                        photo: UpdateBiographyPageRequest.AvatarUuid(uuid: fileUuid)
-                    )
-                    let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
-                        path: "/user/update-profile",
-                        method: "POST",
-                        body: request
-                    )
-                }
+                let request = UpdateBiographyPageRequest(
+                    photo: UpdateBiographyPageRequest.AvatarUuid(uuid: fileUuid)
+                )
+                let _: UpdateBiographyPageResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/update-profile",
+                    method: "POST",
+                    body: request
+                )
 
                 self.debugLog("[DivoAPI] Background updated successfully")
 

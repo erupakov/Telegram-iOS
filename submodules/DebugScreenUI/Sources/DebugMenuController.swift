@@ -3,6 +3,7 @@ import Display
 import AsyncDisplayKit
 import TelegramCore
 import DivoCore
+import OnboardingUI
 import SwiftSignalKit
 import TelegramPresentationData
 import AccountContext
@@ -153,6 +154,20 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     self?.buildSections()
                     self?.tableView.reloadData()
                 }), action: {}),
+            ]),
+            (header: "Onboarding", rows: [
+                Row(icon: "person.crop.rectangle.stack", title: "Show entry in Settings", subtitle: {
+                    DivoDebugFlags.showOnboardingEntry ? "On" : "Off"
+                }, accessory: .toggle(DivoDebugFlags.showOnboardingEntry, { [weak self] enabled in
+                    DivoDebugFlags.showOnboardingEntry = enabled
+                    self?.buildSections()
+                    self?.tableView.reloadData()
+                }), action: {}),
+                Row(icon: "trash", title: "Clear progress", subtitle: {
+                    OnboardingProgressStore().hasSavedProgress ? "Has saved progress" : "Empty"
+                }, accessory: .chevron, action: { [weak self] in
+                    self?.clearOnboardingProgress()
+                }),
             ]),
             (header: DivoStrings.debugNetwork, rows: [
                 Row(icon: "speedometer", title: DivoStrings.debugNetworkOverlay, subtitle: { "" }, accessory: .toggle(overlayEnabled, { [weak self] enabled in
@@ -359,6 +374,25 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
             popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
         }
         
+        if let vc = self.closestViewController {
+            vc.present(alert, animated: true)
+        }
+    }
+
+    private func clearOnboardingProgress() {
+        let store = OnboardingProgressStore()
+        guard store.hasSavedProgress else { return }
+        let alert = UIAlertController(
+            title: "Clear onboarding progress",
+            message: "Saved registration state will be wiped. Next launch starts from the top-level screen.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.debugClear, style: .destructive) { [weak self] _ in
+            store.clear()
+            self?.buildSections()
+            self?.tableView.reloadData()
+        })
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
         if let vc = self.closestViewController {
             vc.present(alert, animated: true)
         }

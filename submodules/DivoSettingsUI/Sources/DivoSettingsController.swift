@@ -9,6 +9,7 @@ import AppBundle
 import DivoCore
 import DivoUIKit
 import ProfileScreenUI
+import OnboardingUI
 
 public final class DivoSettingsController: TelegramBaseController {
 
@@ -51,6 +52,10 @@ public final class DivoSettingsController: TelegramBaseController {
         notificationObservers.append(center.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.tabBarItem.title = DivoStrings.tabSettings
         })
+        notificationObservers.append(center.addObserver(forName: DivoDebugFlags.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            // Debug-флаг прячет/показывает «Launch onboarding»-row под логаутом.
+            self?.controllerNode.applyOnboardingEntryVisibility()
+        })
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -87,7 +92,38 @@ public final class DivoSettingsController: TelegramBaseController {
             self?.handleSaveMeasuringSystem(with: measuring)
         }
 
+        self.controllerNode.onOnboardingEntryTapped = { [weak self] in
+            self?.launchOnboardingDebug()
+        }
+
         self.displayNodeDidLoad()
+    }
+
+    /// Запускает регистрационный онбординг модально, минуя авторизацию. Используется только из
+    /// debug-row под логаутом (виден если включён `DivoDebugFlags.showOnboardingEntry`).
+    /// `forceFresh: false` — продолжаем сохранённый прогресс, чтобы можно было закрыть онбординг,
+    /// вернуться и продолжить заполнение. Сбросить прогресс — Debug Menu → Onboarding → Clear progress.
+    private func launchOnboardingDebug() {
+        weak var onboardingHolder: UIViewController?
+        let controller = OnboardingRegistrationEntry.makeController(forceFresh: false) { _ in
+            // Закрываем сам онбординг — работает для обоих кейсов:
+            // - presented modal (как сейчас): `dismiss` идёт через presenting controller;
+            // - pushed: pop'аем к предыдущему контроллеру в стэке.
+            guard let onb = onboardingHolder else { return }
+            if onb.presentingViewController != nil {
+                onb.dismiss(animated: true)
+                return
+            }
+            if let nav = onb.navigationController,
+               let idx = nav.viewControllers.firstIndex(of: onb), idx > 0 {
+                nav.popToViewController(nav.viewControllers[idx - 1], animated: true)
+                return
+            }
+            onb.dismiss(animated: true)
+        }
+        onboardingHolder = controller
+        controller.modalPresentationStyle = .fullScreen
+        present(controller, animated: true)
     }
 
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
