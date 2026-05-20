@@ -130,8 +130,20 @@ public final class OnboardingRegistrationCoordinator {
 
     private func makeController(for step: OnboardingRegistrationStep) -> UIViewController {
         switch step {
-        case .topLevelChoice,
-             .industryDoor,
+        case .topLevelChoice:
+            guard let descriptor = quizCatalog.descriptor(for: step) else {
+                return UIViewController()
+            }
+            let currentSelection = currentSelectionForQuiz(step: step)
+            let vc = OnboardingQuizViewController(
+                descriptor: descriptor,
+                currentSelection: currentSelection,
+                centerContentIfShort: true
+            )
+            vc.delegate = self
+            return vc
+            
+        case .industryDoor,
              .talentSubRolePicker,
              .industryProSubRolePicker,
              .companiesSubRolePicker,
@@ -140,7 +152,11 @@ public final class OnboardingRegistrationCoordinator {
                 return UIViewController()
             }
             let currentSelection = currentSelectionForQuiz(step: step)
-            let vc = OnboardingQuizViewController(descriptor: descriptor, currentSelection: currentSelection)
+            let vc = OnboardingQuizViewController(
+                descriptor: descriptor,
+                currentSelection: currentSelection,
+                centerContentIfShort: false
+            )
             vc.delegate = self
             return vc
 

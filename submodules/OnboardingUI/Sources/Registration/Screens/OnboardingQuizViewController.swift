@@ -28,22 +28,91 @@ public final class OnboardingQuizViewController: UIViewController {
 
     // MARK: - UI
 
-    private let backButton = UIButton(type: .system)
-    private let progressLabel = UILabel()
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
-    private let optionsStack = UIStackView()
-    private let scrollView = UIScrollView()
-    private let contentView = UIView()
+    private let navigationBar = DivoNavigationBar()
+    private let topFadeOverlay = OnboardingBottomFadeOverlay()
+
+    private let backgroundImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.image = DivoImage.splashScreen
+        return imageView
+    }()
+
+    private let progressLabel: UILabel = {
+        let progressLabel = UILabel()
+        progressLabel.translatesAutoresizingMaskIntoConstraints = false
+        progressLabel.font = Font.regular(14)
+        progressLabel.textColor = DivoColorPalette.primaryText
+        progressLabel.textAlignment = .center
+        return progressLabel
+    }()
+    
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(32)
+        label.textColor = DivoColorPalette.primaryText
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let subtitleLabel: UILabel = {
+        let subtitleLabel = UILabel()
+        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        subtitleLabel.font = Font.regular(16)
+        subtitleLabel.textColor = DivoColorPalette.primaryTextOnDark
+        subtitleLabel.numberOfLines = 0
+        return subtitleLabel
+    }()
+    
+    private let optionsStack: UIStackView = {
+        let optionsStack = UIStackView()
+        optionsStack.translatesAutoresizingMaskIntoConstraints = false
+        optionsStack.axis = .vertical
+        optionsStack.spacing = DivoDesignTokens.Spacing.s
+        optionsStack.alignment = .fill
+        return optionsStack
+    }()
+    
+    private let scrollView: UIScrollView = {
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.backgroundColor = .clear
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.alwaysBounceVertical = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.clipsToBounds = false
+        return scrollView
+    }()
+    
+    private let contentView: UIView = {
+        let contentView = UIView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        return contentView
+    }()
+    
     private let bottomFadeOverlay = OnboardingBottomFadeOverlay()
     private let continueButton = DivoButton()
+    
+    private let centerContentIfShort: Bool
 
     // MARK: - Init
 
-    public init(descriptor: OnboardingQuizDescriptor, currentSelection: String?) {
+    public init(descriptor: OnboardingQuizDescriptor, currentSelection: String?, centerContentIfShort: Bool = true) {
         self.descriptor = descriptor
         self.selectedOptionId = currentSelection
+        self.centerContentIfShort = centerContentIfShort
         super.init(nibName: nil, bundle: nil)
+
+        navigationBar.makeNavigationBar(
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
+            onBackTapped: {
+                [weak self] in self?.backTapped()
+            }
+        )
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
@@ -70,111 +139,127 @@ public final class OnboardingQuizViewController: UIViewController {
     // MARK: - UI
 
     private func setupUI() {
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.alwaysBounceVertical = true
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.showsHorizontalScrollIndicator = false
         contentView.translatesAutoresizingMaskIntoConstraints = false
-
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        backButton.tintColor = DivoColorPalette.primaryText
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-
-        progressLabel.translatesAutoresizingMaskIntoConstraints = false
-        progressLabel.font = Font.regular(13)
-        progressLabel.textColor = DivoColorPalette.secondaryText
-        progressLabel.textAlignment = .center
-
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = Font.helveticaNeue(24)
-        titleLabel.textColor = DivoColorPalette.primaryText
-        titleLabel.numberOfLines = 0
-
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLabel.font = Font.regular(14)
-        subtitleLabel.textColor = DivoColorPalette.secondaryText
-        subtitleLabel.numberOfLines = 0
-
-        optionsStack.translatesAutoresizingMaskIntoConstraints = false
-        optionsStack.axis = .vertical
-        optionsStack.spacing = DivoDesignTokens.Spacing.s
-        optionsStack.alignment = .fill
-
         continueButton.translatesAutoresizingMaskIntoConstraints = false
         continueButton.addTarget(self, action: #selector(continueTapped), for: .touchUpInside)
-
-        view.addSubview(backButton)
-        view.addSubview(progressLabel)
+        
+        view.addSubview(backgroundImageView)
         view.addSubview(scrollView)
-        // bottomFadeOverlay добавляется ПОСЛЕ scrollView и ДО кнопки — лежит над контентом,
-        // под кнопкой. Контент, скроллящийся вниз, плавно «уходит» в screenBackground.
         view.addSubview(bottomFadeOverlay)
         view.addSubview(continueButton)
+        
+        view.addSubview(topFadeOverlay)
+        view.addSubview(navigationBar)
+        view.addSubview(progressLabel)
+        
+        topFadeOverlay.transform = CGAffineTransform(rotationAngle: .pi)
+        
+        let topSpacer = UIView()
+        topSpacer.translatesAutoresizingMaskIntoConstraints = false
+        let bottomSpacer = UIView()
+        bottomSpacer.translatesAutoresizingMaskIntoConstraints = false
+        
+        scrollView.addSubview(topSpacer)
         scrollView.addSubview(contentView)
+        scrollView.addSubview(bottomSpacer)
+        
         contentView.addSubview(titleLabel)
         contentView.addSubview(subtitleLabel)
         contentView.addSubview(optionsStack)
-
-        // Контент скроллится на всю высоту экрана; нижний контент защищён contentInset.bottom,
-        // чтобы последняя опция не оказывалась под кнопкой даже когда скролл не нужен.
-        scrollView.contentInset.bottom = OnboardingBottomFadeOverlay.defaultHeight - 20
-        scrollView.verticalScrollIndicatorInsets.bottom = scrollView.contentInset.bottom
-
+        
         let safe = view.safeAreaLayoutGuide
+        
+        let spacerEqualityConstraint = topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor)
+        spacerEqualityConstraint.priority = .defaultLow
+        
+        let topCollapseConstraint = topSpacer.heightAnchor.constraint(equalToConstant: 120)
+        topCollapseConstraint.priority = .defaultHigh
+        
+        if centerContentIfShort {
+            spacerEqualityConstraint.isActive = true
+            topSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 100).isActive = true
+        } else {
+            topCollapseConstraint.isActive = true
+        }
+        
+        bottomSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
+        
         NSLayoutConstraint.activate([
-            backButton.topAnchor.constraint(equalTo: safe.topAnchor, constant: DivoDesignTokens.Spacing.s),
-            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            backButton.widthAnchor.constraint(equalToConstant: 44),
-            backButton.heightAnchor.constraint(equalToConstant: 44),
-
-            progressLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
+            topFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            topFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            topFadeOverlay.topAnchor.constraint(equalTo: view.topAnchor),
+            topFadeOverlay.heightAnchor.constraint(equalToConstant: 140),
+            
+            navigationBar.topAnchor.constraint(equalTo: safe.topAnchor),
+            navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            
+            backgroundImageView.topAnchor.constraint(equalTo: view.topAnchor),
+            backgroundImageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backgroundImageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            backgroundImageView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            progressLabel.centerYAnchor.constraint(equalTo: navigationBar.centerYAnchor),
             progressLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-
-            scrollView.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
+            
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
+            
             bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             bottomFadeOverlay.heightAnchor.constraint(equalToConstant: OnboardingBottomFadeOverlay.defaultHeight),
-
-            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            
+            scrollView.contentLayoutGuide.heightAnchor.constraint(greaterThanOrEqualTo: scrollView.frameLayoutGuide.heightAnchor),
+            
+            topSpacer.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            topSpacer.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            topSpacer.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            
+            contentView.topAnchor.constraint(equalTo: topSpacer.bottomAnchor),
             contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
             contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
-
+            
+            bottomSpacer.topAnchor.constraint(equalTo: contentView.bottomAnchor),
+            bottomSpacer.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            bottomSpacer.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            bottomSpacer.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            
             titleLabel.topAnchor.constraint(equalTo: contentView.topAnchor),
             titleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             titleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.xs),
+            
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
             subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             subtitleLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-
+            
             optionsStack.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.l),
             optionsStack.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             optionsStack.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            optionsStack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
-
+            optionsStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            
             continueButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             continueButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             continueButton.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
             continueButton.heightAnchor.constraint(equalToConstant: 56),
         ])
     }
-
+    
     private func applyDescriptor() {
         let progressKey = descriptor.progressLabelKey
         progressLabel.text = progressKey.map { OnboardingStrings.resolve($0) }
         progressLabel.isHidden = (progressKey == nil)
-
+        bottomFadeOverlay.isHidden = (progressKey == nil)
+        topFadeOverlay.isHidden = (progressKey == nil)
+        backgroundImageView.isHidden = (progressKey != nil)
+        
         titleLabel.text = OnboardingStrings.resolve(descriptor.titleKey)
 
         if let s = descriptor.subtitleKey, !OnboardingStrings.resolve(s).isEmpty {
+            subtitleLabel.textColor = descriptor.subtitleKey == "onboarding.quiz.topLevel.subtitle" ? DivoColorPalette.primaryTextOnDark : DivoColorPalette.primaryText.withAlphaComponent(0.8)
             subtitleLabel.text = OnboardingStrings.resolve(s)
             subtitleLabel.isHidden = false
         } else {
@@ -198,14 +283,20 @@ public final class OnboardingQuizViewController: UIViewController {
                 previousView = header
             }
             for option in section.options {
-                let row = OnboardingQuizOptionRow(option: option, isSelected: option.id == selectedOptionId)
+                guard let iconAssetName = option.iconAssetName else { continue }
+                let row = OnboardingQuizOptionRow(
+                    option: option,
+                    type: option.rowType ?? .big,
+                    icon: OnboardingImages.resolve(iconAssetName).withRenderingMode(.alwaysTemplate),
+                    isSelected: option.id == selectedOptionId
+                )
                 row.onTap = { [weak self] in
                     self?.selectOption(option.id)
                 }
                 optionsStack.addArrangedSubview(row)
                 // Уменьшенный отступ между заголовком секции и первой её опцией.
                 if let header = previousView as? UILabel {
-                    optionsStack.setCustomSpacing(DivoDesignTokens.Spacing.xs, after: header)
+                    optionsStack.setCustomSpacing(DivoDesignTokens.Spacing.s, after: header)
                 }
                 previousView = row
             }
@@ -220,8 +311,8 @@ public final class OnboardingQuizViewController: UIViewController {
     private func makeSectionHeaderLabel(titleKey: String) -> UILabel {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = Font.helveticaNeue(11)
-        label.textColor = DivoColorPalette.secondaryText
+        label.font = Font.helveticaNeue(12)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
         label.text = OnboardingStrings.resolve(titleKey).uppercased()
         return label
     }
@@ -239,87 +330,4 @@ public final class OnboardingQuizViewController: UIViewController {
 
     @objc private func backTapped() { delegate?.quizControllerDidTapBack(self) }
     @objc private func continueTapped() { delegate?.quizControllerDidTapContinue(self) }
-}
-
-// MARK: - Option row
-
-private final class OnboardingQuizOptionRow: UIControl {
-    let option: OnboardingQuizDescriptor.Option
-    var onTap: (() -> Void)?
-
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
-    private let radioView = UIImageView()
-    private let stack = UIStackView()
-
-    init(option: OnboardingQuizDescriptor.Option, isSelected: Bool) {
-        self.option = option
-        super.init(frame: .zero)
-        translatesAutoresizingMaskIntoConstraints = false
-        backgroundColor = DivoColorPalette.cardBackground
-        layer.cornerRadius = DivoDesignTokens.Radius.card
-        layer.borderWidth = isSelected ? 2 : 1
-        layer.borderColor = (isSelected ? DivoColorPalette.accent : DivoColorPalette.separatorLight).cgColor
-
-        radioView.translatesAutoresizingMaskIntoConstraints = false
-        radioView.contentMode = .scaleAspectFit
-        radioView.tintColor = DivoColorPalette.accent
-
-        titleLabel.font = Font.helveticaNeue(14)
-        titleLabel.textColor = DivoColorPalette.primaryText
-        titleLabel.numberOfLines = 0
-        titleLabel.text = OnboardingStrings.resolve(option.titleKey)
-
-        subtitleLabel.font = Font.regular(12)
-        subtitleLabel.textColor = DivoColorPalette.secondaryText
-        subtitleLabel.numberOfLines = 0
-        if let subtitleKey = option.subtitleKey {
-            subtitleLabel.text = OnboardingStrings.resolve(subtitleKey)
-            subtitleLabel.isHidden = false
-        } else {
-            subtitleLabel.isHidden = true
-        }
-
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.axis = .vertical
-        stack.spacing = 2
-        stack.addArrangedSubview(titleLabel)
-        stack.addArrangedSubview(subtitleLabel)
-        // Пропускаем тачи насквозь к UIControl-родителю — иначе UIStackView перехватывает
-        // hit-test и touchUpInside на row не срабатывает, кроме области radioView.
-        stack.isUserInteractionEnabled = false
-
-        addSubview(radioView)
-        addSubview(stack)
-
-        NSLayoutConstraint.activate([
-            radioView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            radioView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            radioView.widthAnchor.constraint(equalToConstant: 22),
-            radioView.heightAnchor.constraint(equalToConstant: 22),
-
-            stack.leadingAnchor.constraint(equalTo: radioView.trailingAnchor, constant: DivoDesignTokens.Spacing.m),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: DivoDesignTokens.Spacing.m),
-            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
-
-            heightAnchor.constraint(greaterThanOrEqualToConstant: 64),
-        ])
-
-        setSelected(isSelected)
-        addTarget(self, action: #selector(tap), for: .touchUpInside)
-        // Стандартный DIVO press-state: alpha 0.65 + лёгкий scale 0.98 для list-row.
-        addPressState(alpha: DivoDesignTokens.PressState.alpha, scale: DivoDesignTokens.PressState.scaleListRow)
-    }
-
-    required init?(coder: NSCoder) { fatalError() }
-
-    func setSelected(_ isSelected: Bool) {
-        let symbol = isSelected ? "largecircle.fill.circle" : "circle"
-        radioView.image = UIImage(systemName: symbol)
-        layer.borderWidth = isSelected ? 2 : 1
-        layer.borderColor = (isSelected ? DivoColorPalette.accent : DivoColorPalette.separatorLight).cgColor
-    }
-
-    @objc private func tap() { onTap?() }
 }
