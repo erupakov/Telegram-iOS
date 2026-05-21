@@ -8,6 +8,7 @@ import SwiftSignalKit
 import MtProtoKit
 import MessageUI
 import CoreTelephony
+import DivoCore
 import TelegramPresentationData
 import PresentationDataUtils
 import TextFormat
@@ -130,60 +131,12 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         self.view.backgroundColor = self.presentationData.theme.list.plainBackgroundColor
     }
     
-    private var isPresentingOnboarding = false
-
     // DIVO: исторический Telegram back-cover для multi-account flow. У нас splash отрисовывает
     // DivoSplashOverlayView в AppDelegate, поэтому здесь возвращаем прозрачный stub —
     // он остаётся в navigation stack для совместимости с upstream-кодом, но визуально не виден.
     private func splashController() -> ViewController {
         return ViewController(navigationBarPresentationData: nil)
     }
-
-    // Показывается поверх phone entry на cold start, если пользователь ещё не видел onboarding.
-    // Splash-эффект на старте обеспечивает DivoSplashOverlayView в AppDelegate.
-    private func presentOnboardingIfNeeded() {
-        guard !self.isPresentingOnboarding else { return }
-        guard !UserDefaults.standard.bool(forKey: OnboardingScreenController.hasSeenOnboardingKey) else { return }
-        guard self.otherAccountPhoneNumbers.1.isEmpty else { return }
-
-        self.isPresentingOnboarding = true
-
-        // Navigation stack пуст (мы держим phoneEntry отложенным), поэтому setViewControllers
-        // не сработает и context.isReady никогда не выпустит signal → app покажет .loading overlay.
-        // Сигналим ready вручную, чтобы лоадер не появлялся поверх onboarding.
-        if !self.didSetReady {
-            self.didSetReady = true
-            self._ready.set(.single(true))
-        }
-
-        let onboarding = OnboardingScreenController()
-        self.addChild(onboarding)
-        onboarding.view.frame = self.view.bounds
-        onboarding.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        onboarding.view.alpha = 0.0
-        self.view.addSubview(onboarding.view)
-        onboarding.didMove(toParent: self)
-
-        let fadeDuration: TimeInterval = 0.3
-        UIView.animate(withDuration: fadeDuration) {
-            onboarding.view.alpha = 1.0
-        }
-
-        onboarding.onFinish = { [weak onboarding, weak self] in
-            UIView.animate(withDuration: fadeDuration, animations: {
-                onboarding?.view.alpha = 0
-            }, completion: { _ in
-                onboarding?.willMove(toParent: nil)
-                onboarding?.view.removeFromSuperview()
-                onboarding?.removeFromParent()
-                guard let self else { return }
-                self.isPresentingOnboarding = false
-                let phoneEntry = self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "")
-                self.setViewControllers([phoneEntry], animated: false)
-            })
-        }
-    }
-
 
     private func phoneEntryController(countryCode: Int32, number: String) -> AuthorizationSequencePhoneEntryController {
         var currentController: AuthorizationSequencePhoneEntryController?
@@ -487,6 +440,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 }
             }
             controller.loginWithCode = { [weak self, weak controller] code in
+                divoLog("[Auth UI] loginWithCode — code entered (length=\(code.count))", level: .info)
                 if let strongSelf = self {
                     controller?.inProgress = true
                     
@@ -548,6 +502,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                             return (ApplicationSpecificNotice.forcedPasswordSetupKey(), entry)
                         })
                         |> deliverOnMainQueue).startStrict(next: { result in
+                            divoLog("[Auth UI] authorizeWithCode → \(result)", level: .info)
                             guard let strongSelf = self else {
                                 return
                             }
@@ -611,7 +566,8 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                             Queue.mainQueue().async {
                                 if let strongSelf = self, let controller = controller {
                                     controller.inProgress = false
-                                    
+                                    divoLog("[Auth UI] authorizeWithCode error case: \(error)", level: .error)
+
                                     if case .invalidCode = error {
                                         let text: String
                                         switch type {
@@ -1173,14 +1129,27 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
             }, typeOfRole: typeOfRole)
             
             controller.signUpWithName = { [weak self, weak controller] firstName, lastName, modelinfo, avatarData, avatarAsset, avatarAdjustments, announceSignUp in
-                // DIVO: bypass server sign-up, authorize locally
                 guard let strongSelf = self else { return }
+                let _ = modelinfo
+                let _ = avatarAsset
+                let _ = avatarAdjustments
                 controller?.inProgress = true
-                // Set flag synchronously BEFORE async AccountManager changes so AppDelegate
-                // sees authorizationCompleted=true and waits for context instead of immediate dismiss
-                strongSelf.authorizationCompleted()
-                strongSelf.actionDisposable.set((divoCompleteAuthorization(accountManager: strongSelf.sharedContext.accountManager, account: strongSelf.account)
-                |> deliverOnMainQueue).startStrict(completed: {
+                strongSelf.actionDisposable.set((signUpWithName(
+                    accountManager: strongSelf.sharedContext.accountManager,
+                    account: strongSelf.account,
+                    firstName: firstName,
+                    lastName: lastName,
+                    avatarData: avatarData,
+                    avatarVideo: nil,
+                    videoStartTimestamp: nil,
+                    disableJoinNotifications: !announceSignUp,
+                    forcedPasswordSetupNotice: { value in
+                        guard let entry = CodableEntry(ApplicationSpecificCounterNotice(value: value)) else { return nil }
+                        return (ApplicationSpecificNotice.forcedPasswordSetupKey(), entry)
+                    }
+                ) |> deliverOnMainQueue).startStrict(error: { _ in
+                    controller?.inProgress = false
+                }, completed: {
                     controller?.inProgress = false
                 }))
             }
@@ -1323,17 +1292,10 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         case let .state(state):
             switch state {
                 case .empty:
-                    let shouldShowOnboarding = self.otherAccountPhoneNumbers.1.isEmpty && !UserDefaults.standard.bool(forKey: OnboardingScreenController.hasSeenOnboardingKey)
-                    if shouldShowOnboarding {
-                        // Phone entry поставится только после onboarding'a — иначе его viewDidAppear
-                        // активирует input и поверх onboarding'a всплывает клавиатура.
-                        self.presentOnboardingIfNeeded()
-                    } else {
-                        let alreadyShowingPhoneEntry = self.viewControllers.last is AuthorizationSequencePhoneEntryController
-                        if !alreadyShowingPhoneEntry {
-                            let phoneEntry = self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "")
-                            self.setViewControllers([phoneEntry], animated: !self.viewControllers.isEmpty)
-                        }
+                    let alreadyShowingPhoneEntry = self.viewControllers.last is AuthorizationSequencePhoneEntryController
+                    if !alreadyShowingPhoneEntry {
+                        let phoneEntry = self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "")
+                        self.setViewControllers([phoneEntry], animated: !self.viewControllers.isEmpty)
                     }
                 case let .newScreen(typeOfRole):
                     var controllers: [ViewController] = []
@@ -1406,16 +1368,25 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     }
                     controllers.append(self.awaitingAccountResetController(protectedUntil: protectedUntil, number: number))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
-                case let .signUp(_, _, firstName, lastName, termsOfService, _):
-                    var controllers: [ViewController] = []
-                    var displayCancel = false
-                    if !self.otherAccountPhoneNumbers.1.isEmpty {
-                        controllers.append(self.splashController())
-                    } else {
-                        displayCancel = true
-                    }
-                    controllers.append(self.signUpController(firstName: firstName, lastName: lastName, termsOfService: termsOfService, displayCancel: displayCancel))
-                    self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
+                case let .signUp(_, _, firstName, lastName, _, _):
+                    // DIVO: по дизайну экрана ввода имени нет — автоматически регистрируем
+                    // с дефолтным firstName, чтобы сервер принял auth.signUp.
+                    // FIXME: когда Eugene реализует empty-Divo endpoint — поменять на нормальный flow.
+                    let effectiveFirstName = firstName.isEmpty ? "User" : firstName
+                    self.actionDisposable.set((signUpWithName(
+                        accountManager: self.sharedContext.accountManager,
+                        account: self.account,
+                        firstName: effectiveFirstName,
+                        lastName: lastName,
+                        avatarData: nil,
+                        avatarVideo: nil,
+                        videoStartTimestamp: nil,
+                        disableJoinNotifications: false,
+                        forcedPasswordSetupNotice: { value in
+                            guard let entry = CodableEntry(ApplicationSpecificCounterNotice(value: value)) else { return nil }
+                            return (ApplicationSpecificNotice.forcedPasswordSetupKey(), entry)
+                        }
+                    ) |> deliverOnMainQueue).startStrict())
                 case let .payment(number, codeHash, storeProduct, supportEmailAddress, supportEmailSubject, _):
                     var controllers: [ViewController] = []
                     if !self.otherAccountPhoneNumbers.1.isEmpty {

@@ -1,8 +1,8 @@
 telegram_bazel_path = "/opt/homebrew/bin/bazel"
 telegram_use_xcode_managed_codesigning = False
 telegram_bundle_id = "app.divo.fashion"
-telegram_api_id = "39101169"
-telegram_api_hash = "b6c7a591f80a14728012b35a6fb83955"
+telegram_api_id = "17349"
+telegram_api_hash = "344583e45741c457fe1862106095a5eb"
 telegram_team_id = "9DTLH63S7N"
 telegram_app_center_id = "0"
 telegram_is_internal_build = "false"

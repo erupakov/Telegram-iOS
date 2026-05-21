@@ -181,24 +181,6 @@ public class UnauthorizedAccount {
                         }
                     }).start()
 
-                case let .signUp(_, phoneNumber, phoneCodeHash, _, _, _):
-                    let _ = postbox.transaction({ [weak self] transaction in
-                        if let self {
-                            if let state = transaction.getState() as? UnauthorizedAccountState, case let .payment(_, _, _, _, _, syncContacts) = state.contents {
-                                let _ = beginSignUp(
-                                    account: self,
-                                    data: AuthorizationSignUpData(
-                                        number: phoneNumber,
-                                        codeHash: phoneCodeHash,
-                                        code: .phoneCode(""),
-                                        termsOfService: nil,
-                                        syncContacts: syncContacts
-                                    )
-                                ).start()
-                            }
-                        }
-                    }).start()
-    
                 }
             }
         }

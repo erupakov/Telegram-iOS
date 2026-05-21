@@ -248,10 +248,7 @@ func _internal_requestMessageActionUrlAuth(account: Account, subject: MessageAct
                 return .accepted(url: url)
             case let .urlAuthResultRequest(urlAuthResultRequestData):
                 let (apiFlags, bot, domain) = (urlAuthResultRequestData.flags, urlAuthResultRequestData.bot, urlAuthResultRequestData.domain)
-                var clientData: MessageActionUrlAuthResult.ClientData?
-                if let browser = urlAuthResultRequestData.browser, let platform = urlAuthResultRequestData.platform, let ip = urlAuthResultRequestData.ip, let region = urlAuthResultRequestData.region {
-                    clientData = MessageActionUrlAuthResult.ClientData(browser: browser, platform: platform, ip: ip, region: region)
-                }
+                let clientData: MessageActionUrlAuthResult.ClientData? = nil
                 var flags: MessageActionUrlAuthResult.Flags = []
                 if (apiFlags & (1 << 0)) != 0 {
                     flags.insert(.requestWriteAccess)

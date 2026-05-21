@@ -24,7 +24,10 @@ public final class DivoConsoleLogger {
     private let queue = DispatchQueue(label: "com.divo.consoleLogger")
     private let maxEntries = 200
 
-    private init() {}
+    private init() {
+        // Lazy-register shake gesture observer — открывает logs viewer на любом экране.
+        _ = DivoShakeGestureHandler.shared
+    }
 
     public func log(
         _ message: String,
@@ -70,7 +73,7 @@ public func divoLog(
     file: String = #file,
     line: Int = #line
 ) {
-    #if DEBUG
+    // FIXME DIVO: временно без #if DEBUG для диагностики MTProto на opt-сборке.
+    // Вернуть #if DEBUG после диагностики (см. ветку feature/PROJ-010-...).
     DivoConsoleLogger.shared.log(message, level: level, file: file, line: line)
-    #endif
 }
