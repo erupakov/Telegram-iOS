@@ -682,13 +682,13 @@ public enum DivoStrings {
     public static var onboardingRoleMagazineMedia: String { L(en: "Magazine or media", ru: "Журнал или медиа", es: "Revista o medio", pt: "Revista ou mídia", zh: "杂志或媒体") }
     public static var onboardingRoleMagazineMediaSubtitle: String { L(en: "I'm a publication, media outlet or digital editorial", ru: "Я издательство, медиаресурс или цифровая редакция", es: "Soy una publicación, medio de comunicación o editorial digital", pt: "Sou uma publicação, veículo de mídia ou editorial digital", zh: "我是出版物、媒体机构或数字编辑部") }
 
-    public static var onboardingRoleScout: String { L(en: "SCOUT", ru: "СКАУТ", es: "SCOUT", pt: "SCOUT", zh: "星探") }
+    public static var onboardingRoleScout: String { L(en: "Scout", ru: "Скаут", es: "Scout", pt: "Scout", zh: "星探") }
     public static var onboardingRoleScoutSubtitle: String { L(en: "I find new faces, independently or for an agency", ru: "Ищу новые лица — самостоятельно или для агентства", es: "Encuentro nuevas caras, de forma independiente o para una agencia", pt: "Encontro novos rostos, de forma independente ou para uma agência", zh: "我寻找新面孔，独立或为经纪公司") }
-    public static var onboardingRoleBooker: String { L(en: "BOOKER", ru: "БУКЕР", es: "BOOKER", pt: "BOOKER", zh: "预订员") }
+    public static var onboardingRoleBooker: String { L(en: "Booker", ru: "Букер", es: "Booker", pt: "Booker", zh: "经纪") }
     public static var onboardingRoleBookerSubtitle: String { L(en: "I manage bookings and negotiations for models at an agency", ru: "Веду бронирования и переговоры для моделей агентства", es: "Gestiono reservas y negociaciones para modelos en una agencia", pt: "Gerencio reservas e negociações para modelos em uma agência", zh: "我为经纪公司的模特管理预订和谈判") }
-    public static var onboardingRoleCastingDirector: String { L(en: "CASTING DIRECTOR", ru: "КАСТИНГ-ДИРЕКТОР", es: "DIRECTOR DE CASTING", pt: "DIRETOR DE ELENCO", zh: "选角导演") }
+    public static var onboardingRoleCastingDirector: String { L(en: "Casting Director", ru: "Кастинг-директор", es: "Director de casting", pt: "Diretor de elenco", zh: "选角导演") }
     public static var onboardingRoleCastingDirectorSubtitle: String { L(en: "I run castings for specific projects: shows, ads or film", ru: "Провожу кастинги под конкретные проекты: показы, рекламу или кино", es: "Dirijo castings para proyectos específicos: desfiles, anuncios o cine", pt: "Conduzo castings para projetos específicos: desfiles, anúncios ou cinema", zh: "我为特定项目进行选角：时装秀、广告或电影") }
-    public static var onboardingRoleTalentManager: String { L(en: "TALENT MANAGER", ru: "ТАЛАНТ-МЕНЕДЖЕР", es: "MÁNAGER DE TALENTO", pt: "GERENTE DE TALENTO", zh: "艺人经纪") }
+    public static var onboardingRoleTalentManager: String { L(en: "Talent Manager", ru: "Тalent-менеджер", es: "Director de talentos", pt: "Gerente de talentos", zh: "人才经理") }
     public static var onboardingRoleTalentManagerSubtitle: String { L(en: "I represent and manage individual talent on their career", ru: "Представляю и сопровождаю карьеру конкретных талантов", es: "Represento y gestiono el talento individual y su carrera", pt: "Represento e gerencio talentos individuais em sua carreira", zh: "我代表并管理个人艺人的职业生涯") }
 
     public static var onboardingRolePhotographer: String { L(en: "Photographer", ru: "Фотограф", es: "Fotógrafo", pt: "Fotógrafo", zh: "摄影师") }
@@ -738,7 +738,8 @@ public enum DivoStrings {
 
     public static var onboardingFieldFirstNamePlaceholder: String { L(en: "First name *", ru: "Имя *", es: "Nombre *", pt: "Nome *", zh: "名字 *") }
     public static var onboardingFieldLastNamePlaceholder: String { L(en: "Last name *", ru: "Фамилия *", es: "Apellido *", pt: "Sobrenome *", zh: "姓氏 *") }
-    public static var onboardingFieldDateOfBirthPlaceholder: String { L(en: "Date of birth", ru: "Дата рождения", es: "Fecha de nacimiento", pt: "Data de nascimento", zh: "出生日期") }
+    public static var onboardingFieldDateOfBirthTitle: String { L(en: "Date of birth", ru: "Дата рождения", es: "Fecha de nacimiento", pt: "Data de nascimento", zh: "出生日期") }
+    public static var onboardingFieldDateOfBirthPlaceholder: String { L(en: "Choose a date", ru: "Выберите дату", es: "Elige una fecha", pt: "Escolha uma data", zh: "选择日期") }
     public static var onboardingFieldGenderPlaceholder: String { L(en: "Choose a gender", ru: "Выберите пол", es: "Elige un género", pt: "Escolha um gênero", zh: "选择性别") }
     public static var onboardingFieldCountryPlaceholder: String { L(en: "Country", ru: "Страна", es: "País", pt: "País", zh: "国家") }
     public static var onboardingFieldCityPlaceholder: String { L(en: "City", ru: "Город", es: "Ciudad", pt: "Cidade", zh: "城市") }
@@ -771,6 +772,7 @@ public enum DivoStrings {
     public static var onboardingForm4ATitle: String { L(en: "Companies & Brands", ru: "Компании и бренды", es: "Empresas y marcas", pt: "Empresas e marcas", zh: "公司与品牌") }
     public static var onboardingForm4AStep1Title: String { L(en: "TELL US ABOUT YOUR COMPANY", ru: "РАССКАЖИТЕ О КОМПАНИИ", es: "CUÉNTANOS SOBRE TU EMPRESA", pt: "FALE-NOS SOBRE SUA EMPRESA", zh: "请介绍您的公司") }
     public static var onboardingForm4ACompanyNamePlaceholder: String { L(en: "Company / Organisation name *", ru: "Название компании / организации *", es: "Nombre de la empresa / organización *", pt: "Nome da empresa / organização *", zh: "公司 / 机构名称 *") }
+    public static var onboardingForm4ACompanyTypeTitle: String { L(en: "Type", ru: "Тип", es: "Tipo", pt: "Tipo", zh: "类型") }
     public static var onboardingForm4ACompanyTypePlaceholder: String { L(en: "Choose a company type", ru: "Выберите тип компании", es: "Elige el tipo de empresa", pt: "Escolha o tipo de empresa", zh: "选择公司类型") }
     public static var onboardingForm4AStep2Title: String { L(en: "WHERE ARE YOU BASED?", ru: "ГДЕ ВЫ НАХОДИТЕСЬ?", es: "¿DÓNDE ESTÁS UBICADO?", pt: "ONDE VOCÊ ESTÁ LOCALIZADO?", zh: "您位于何处？") }
     public static var onboardingForm4AStep3Title: String { L(en: "VERIFICATION & CONTACT", ru: "ВЕРИФИКАЦИЯ И КОНТАКТ", es: "VERIFICACIÓN Y CONTACTO", pt: "VERIFICAÇÃO E CONTATO", zh: "验证与联系方式") }
@@ -785,7 +787,8 @@ public enum DivoStrings {
 
     public static var onboardingForm4BTitle: String { L(en: "Industry Professionals", ru: "Профессионалы индустрии", es: "Profesionales de la industria", pt: "Profissionais do mercado", zh: "行业专业人士") }
     public static var onboardingForm4BStep1Title: String { L(en: "YOUR PROFESSIONAL IDENTITY", ru: "ВАШ ПРОФЕССИОНАЛЬНЫЙ ПРОФИЛЬ", es: "TU IDENTIDAD PROFESIONAL", pt: "SUA IDENTIDADE PROFISSIONAL", zh: "您的职业身份") }
-    public static var onboardingForm4BRolePlaceholder: String { L(en: "Role", ru: "Роль", es: "Rol", pt: "Função", zh: "角色") }
+    public static var onboardingForm4BRoleTitle: String { L(en: "Role", ru: "Роль", es: "Rol", pt: "Função", zh: "角色") }
+    public static var onboardingForm4BRolePlaceholder: String { L(en: "Choose a role", ru: "Выберите роль", es: "Elige un rol", pt: "Escolha uma função", zh: "选择一个角色") }
     public static var onboardingForm4BStep3Title: String { L(en: "PROFESSIONAL LINKS", ru: "ПРОФЕССИОНАЛЬНЫЕ ССЫЛКИ", es: "ENLACES PROFESIONALES", pt: "LINKS PROFISSIONAIS", zh: "职业链接") }
     public static var onboardingForm4BAgencyPlaceholder: String { L(en: "Agency / Organisation", ru: "Агентство / Организация", es: "Agencia / Organización", pt: "Agência / Organização", zh: "经纪公司 / 机构") }
     public static var onboardingForm4BAgencyHelp: String { L(en: "Your agency will receive a confirmation request", ru: "Агентству придёт запрос на подтверждение", es: "Tu agencia recibirá una solicitud de confirmación", pt: "Sua agência receberá um pedido de confirmação", zh: "您的经纪公司将收到确认请求") }
@@ -794,7 +797,8 @@ public enum DivoStrings {
 
     public static var onboardingForm4C1Title: String { L(en: "Creative Professionals — Individual", ru: "Creative-профессионалы — индивидуально", es: "Profesionales creativos — individual", pt: "Profissionais criativos — individual", zh: "创意专业人士 — 个人") }
     public static var onboardingForm4C1Step1Title: String { L(en: "YOUR CREATIVE IDENTITY", ru: "ВАШ КРЕАТИВНЫЙ ПРОФИЛЬ", es: "TU IDENTIDAD CREATIVA", pt: "SUA IDENTIDADE CRIATIVA", zh: "您的创意身份") }
-    public static var onboardingForm4C1SpecialisationPlaceholder: String { L(en: "Specialisation", ru: "Специализация", es: "Especialización", pt: "Especialização", zh: "专长") }
+    public static var onboardingForm4C1SpecialisationTitle: String { L(en: "Specialisation", ru: "Специализация", es: "Especialización", pt: "Especialização", zh: "专长") }
+    public static var onboardingForm4C1SpecialisationPlaceholder: String { L(en: "Choose a specialisation", ru: "Выберите специализацию", es: "Elige una especialización", pt: "Escolha uma especialização", zh: "选择专业方向") }
     public static var onboardingForm4C1Step3Title: String { L(en: "ADD YOUR PORTFOLIO", ru: "ДОБАВЬТЕ ПОРТФОЛИО", es: "AÑADE TU PORTAFOLIO", pt: "ADICIONE SEU PORTFÓLIO", zh: "添加您的作品集") }
     public static var onboardingForm4C1Step3Subtitle: String { L(en: "Recommended — helps clients find your work faster", ru: "Рекомендуется — клиенты быстрее находят ваши работы", es: "Recomendado — ayuda a los clientes a encontrar tu trabajo más rápido", pt: "Recomendado — ajuda os clientes a encontrar seu trabalho mais rápido", zh: "推荐 — 帮助客户更快找到您的作品") }
     public static var onboardingForm4C1PortfolioHelp: String { L(en: "Share a link to your Instagram, Behance, personal site or any portfolio", ru: "Поделитесь ссылкой на Инстаграм, Behance, личный сайт или любое портфолио", es: "Comparte un enlace a tu Instagram, Behance, sitio personal o cualquier portafolio", pt: "Compartilhe um link para seu Instagram, Behance, site pessoal ou qualquer portfólio", zh: "分享您的 Instagram、Behance、个人网站或任何作品集的链接") }
@@ -828,13 +832,15 @@ public enum DivoStrings {
     public static var onboardingForm4D2Title: String { L(en: "Talent — New Talent", ru: "Талант — новый талант", es: "Talento — nuevo talento", pt: "Talento — novo talento", zh: "人才 — 新人") }
     public static var onboardingForm4D2Step3Title: String { L(en: "PROFESSIONAL LINKS", ru: "ПРОФЕССИОНАЛЬНЫЕ ССЫЛКИ", es: "ENLACES PROFESIONALES", pt: "LINKS PROFISSIONAIS", zh: "职业链接") }
     public static var onboardingForm4D2Step4Title: String { L(en: "ADD YOUR PROFILE PHOTO", ru: "ДОБАВЬТЕ ФОТО ПРОФИЛЯ", es: "AÑADE TU FOTO DE PERFIL", pt: "ADICIONE SUA FOTO DE PERFIL", zh: "添加您的头像") }
-    public static var onboardingForm4D2TfpHint: String { L(en: "Your first step: find a TFP shoot.\nTFP (Time For Portfolio) shoots are free collaborations with photographers. They'll build your portfolio fast. We'll show you how when you're in the app.", ru: "Первый шаг: найдите TFP-съёмку.\nTFP (Time For Portfolio) — бесплатное сотрудничество с фотографами. Это быстро соберёт ваше портфолио. Покажем как — внутри приложения.", es: "Tu primer paso: encuentra una sesión TFP.\nLas sesiones TFP (Time For Portfolio) son colaboraciones gratuitas con fotógrafos. Construirán tu portafolio rápidamente. Te mostraremos cómo dentro de la app.", pt: "Seu primeiro passo: encontre um ensaio TFP.\nEnsaios TFP (Time For Portfolio) são colaborações gratuitas com fotógrafos. Eles montarão seu portfólio rápido. Mostraremos como dentro do app.", zh: "第一步：找一次 TFP 拍摄。\nTFP（Time For Portfolio）是与摄影师的免费合作。它能快速建立您的作品集。我们将在应用内为您指引。") }
+    public static var onboardingForm4D2TfpHintTitle: String { L(en: "Your first step: find a TFP shoot", ru: "Ваш первый шаг: найдите TFP-съёмку", es: "Tu primer paso: encuentra una sesión TFP", pt: "Seu primeiro passo: encontre um ensaio TFP", zh: "你的第一步：找到一次TFP拍摄") }
+    public static var onboardingForm4D2TfpHintSubtitle: String { L(en: "TFP (Time For Portfolio) shoots are free collaborations with photographers. They'll build your portfolio fast. We'll show you how when you're in the app", ru: "TFP-съёмки (Time For Portfolio) — это бесплатное сотрудничество с фотографами. Они быстро создадут ваше портфолио. Мы покажем вам как, когда вы войдёте в приложение", es: "Las sesiones TFP (Time For Portfolio) son colaboraciones gratuitas con fotógrafos. Construirán tu portafolio rápidamente. Te mostraremos cómo cuando estés en la app", pt: "Os ensaios TFP (Time For Portfolio) são colaborações gratuitas com fotógrafos. Eles construirão seu portfólio rapidamente. Mostraremos como quando você estiver no aplicativo", zh: "TFP（作品集时间）拍摄是与摄影师的免费合作。它们能快速建立你的作品集。当你进入应用后，我们会告诉你具体方法") }
 
     // MARK: - Onboarding — Form 4.D3 Actor / Dancer / Singer
 
     public static var onboardingForm4D3Title: String { L(en: "Talent — Actor / Dancer / Singer", ru: "Талант — актёр / танцор / певец", es: "Talento — actor / bailarín / cantante", pt: "Talento — ator / dançarino / cantor", zh: "人才 — 演员 / 舞者 / 歌手") }
     public static var onboardingForm4D3Step3Title: String { L(en: "PROFESSIONAL LINKS", ru: "ПРОФЕССИОНАЛЬНЫЕ ССЫЛКИ", es: "ENLACES PROFESIONALES", pt: "LINKS PROFISSIONAIS", zh: "职业链接") }
-    public static var onboardingForm4D3SpecialisationPlaceholder: String { L(en: "Specialisation", ru: "Специализация", es: "Especialización", pt: "Especialização", zh: "专长") }
+    public static var onboardingForm4D3SpecialisationTitle: String { L(en: "Specialisation", ru: "Специализация", es: "Especialización", pt: "Especialização", zh: "专长") }
+    public static var onboardingForm4D3SpecialisationPlaceholder: String { L(en: "Choose a specialisation", ru: "Выберите специализацию", es: "Elige una especialización", pt: "Escolha uma especialização", zh: "选择专业方向") }
     public static var onboardingForm4D3ShowreelUrlPlaceholder: String { L(en: "Showreel / demo reel URL", ru: "URL шоурила / демо-рила", es: "URL de showreel / demo reel", pt: "URL do showreel / demo reel", zh: "演示视频网址") }
     public static var onboardingForm4D3InstagramOrCastingPlaceholder: String { L(en: "Instagram / casting profile URL", ru: "Инстаграм / URL кастинг-профиля", es: "Instagram / URL del perfil de casting", pt: "Instagram / URL do perfil de casting", zh: "Instagram / 选角资料网址") }
 

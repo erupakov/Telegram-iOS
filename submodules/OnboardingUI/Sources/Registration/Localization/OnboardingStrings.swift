@@ -140,9 +140,12 @@ public enum OnboardingStrings {
         // MARK: Field placeholders
         case "onboarding.form.field.firstName.placeholder":            return DivoStrings.onboardingFieldFirstNamePlaceholder
         case "onboarding.form.field.lastName.placeholder":             return DivoStrings.onboardingFieldLastNamePlaceholder
+        case "onboarding.form.field.dateOfBirth.title":                return DivoStrings.onboardingFieldDateOfBirthTitle
         case "onboarding.form.field.dateOfBirth.placeholder":          return DivoStrings.onboardingFieldDateOfBirthPlaceholder
+        case "onboarding.form.field.gender.title":                     return DivoStrings.paramGender
         case "onboarding.form.field.gender.placeholder":               return DivoStrings.onboardingFieldGenderPlaceholder
-        case "onboarding.form.field.country.placeholder":              return DivoStrings.onboardingFieldCountryPlaceholder
+        case "onboarding.form.field.country.title":                    return DivoStrings.onboardingFieldCountryPlaceholder
+        case "onboarding.form.field.country.placeholder":              return DivoStrings.chooseCountry
         case "onboarding.form.field.city.placeholder":                 return DivoStrings.onboardingFieldCityPlaceholder
         case "onboarding.form.field.instagramHandle.placeholder":      return DivoStrings.onboardingFieldInstagramHandlePlaceholder
         case "onboarding.form.field.instagramHandle.help":             return DivoStrings.onboardingFieldInstagramHandleHelp
@@ -163,6 +166,7 @@ public enum OnboardingStrings {
         case "onboarding.form.4A.title":                                 return DivoStrings.onboardingForm4ATitle
         case "onboarding.form.4A.step1.title":                           return DivoStrings.onboardingForm4AStep1Title
         case "onboarding.form.4A.companyName.placeholder":               return DivoStrings.onboardingForm4ACompanyNamePlaceholder
+        case "onboarding.form.4A.companyType.title":                     return DivoStrings.onboardingForm4ACompanyTypeTitle
         case "onboarding.form.4A.companyType.placeholder":               return DivoStrings.onboardingForm4ACompanyTypePlaceholder
         case "onboarding.form.4A.step2.title":                           return DivoStrings.onboardingForm4AStep2Title
         case "onboarding.form.4A.step3.title":                           return DivoStrings.onboardingForm4AStep3Title
@@ -176,6 +180,7 @@ public enum OnboardingStrings {
         // MARK: Form 4.B
         case "onboarding.form.4B.title":            return DivoStrings.onboardingForm4BTitle
         case "onboarding.form.4B.step1.title":      return DivoStrings.onboardingForm4BStep1Title
+        case "onboarding.form.4B.role.title":       return DivoStrings.onboardingForm4BRoleTitle
         case "onboarding.form.4B.role.placeholder": return DivoStrings.onboardingForm4BRolePlaceholder
         case "onboarding.form.4B.step3.title":      return DivoStrings.onboardingForm4BStep3Title
         case "onboarding.form.4B.agency.placeholder": return DivoStrings.onboardingForm4BAgencyPlaceholder
@@ -184,6 +189,7 @@ public enum OnboardingStrings {
         // MARK: Form 4.C1
         case "onboarding.form.4C1.title":                       return DivoStrings.onboardingForm4C1Title
         case "onboarding.form.4C1.step1.title":                 return DivoStrings.onboardingForm4C1Step1Title
+        case "onboarding.form.4C1.specialisation.title":        return DivoStrings.onboardingForm4C1SpecialisationTitle
         case "onboarding.form.4C1.specialisation.placeholder":  return DivoStrings.onboardingForm4C1SpecialisationPlaceholder
         case "onboarding.form.4C1.step3.title":                 return DivoStrings.onboardingForm4C1Step3Title
         case "onboarding.form.4C1.step3.subtitle":              return DivoStrings.onboardingForm4C1Step3Subtitle
@@ -212,14 +218,16 @@ public enum OnboardingStrings {
         case "onboarding.form.4D1.step4.subtitle":            return DivoStrings.onboardingForm4D1Step4Subtitle
 
         // MARK: Form 4.D2
-        case "onboarding.form.4D2.title":       return DivoStrings.onboardingForm4D2Title
-        case "onboarding.form.4D2.step3.title": return DivoStrings.onboardingForm4D2Step3Title
-        case "onboarding.form.4D2.step4.title": return DivoStrings.onboardingForm4D2Step4Title
-        case "onboarding.form.4D2.tfp.hint":    return DivoStrings.onboardingForm4D2TfpHint
+        case "onboarding.form.4D2.title":             return DivoStrings.onboardingForm4D2Title
+        case "onboarding.form.4D2.step3.title":       return DivoStrings.onboardingForm4D2Step3Title
+        case "onboarding.form.4D2.step4.title":       return DivoStrings.onboardingForm4D2Step4Title
+        case "onboarding.form.4D2.tfp.hint.title":    return DivoStrings.onboardingForm4D2TfpHintTitle
+        case "onboarding.form.4D2.tfp.hint.subtitle": return DivoStrings.onboardingForm4D2TfpHintSubtitle
 
         // MARK: Form 4.D3
         case "onboarding.form.4D3.title":                          return DivoStrings.onboardingForm4D3Title
         case "onboarding.form.4D3.step3.title":                    return DivoStrings.onboardingForm4D3Step3Title
+        case "onboarding.form.4D3.specialisation.title":     return DivoStrings.onboardingForm4D3SpecialisationTitle
         case "onboarding.form.4D3.specialisation.placeholder":     return DivoStrings.onboardingForm4D3SpecialisationPlaceholder
         case "onboarding.form.4D3.showreelUrl.placeholder":        return DivoStrings.onboardingForm4D3ShowreelUrlPlaceholder
         case "onboarding.form.4D3.instagramOrCasting.placeholder": return DivoStrings.onboardingForm4D3InstagramOrCastingPlaceholder
