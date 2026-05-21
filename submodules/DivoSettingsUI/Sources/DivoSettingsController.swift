@@ -3,6 +3,7 @@ import Display
 import AsyncDisplayKit
 import SwiftSignalKit
 import AccountContext
+import TelegramCore
 import TelegramPresentationData
 import TelegramBaseController
 import AppBundle
@@ -96,7 +97,30 @@ public final class DivoSettingsController: TelegramBaseController {
             self?.launchOnboardingDebug()
         }
 
+        self.controllerNode.onLogOutTapped = { [weak self] in
+            self?.presentLogOutConfirmation()
+        }
+
         self.displayNodeDidLoad()
+    }
+
+    private func presentLogOutConfirmation() {
+        DivoAlertView.present(
+            title: DivoStrings.logOutConfirmation,
+            cancelTitle: DivoStrings.cancel,
+            actionTitle: DivoStrings.logOut,
+            actionHandler: { [weak self] in
+                self?.performLogOut()
+            }
+        )
+    }
+
+    private func performLogOut() {
+        let _ = logoutFromAccount(
+            id: context.account.id,
+            accountManager: context.sharedContext.accountManager,
+            alreadyLoggedOutRemotely: false
+        ).start()
     }
 
     /// Запускает регистрационный онбординг модально, минуя авторизацию. Используется только из
