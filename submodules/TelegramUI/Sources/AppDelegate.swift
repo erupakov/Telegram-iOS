@@ -1295,6 +1295,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     self.mainWindow.viewController = context.rootController
 
                     // DIVO: rootController готов — снимаем splash overlay (но не раньше min visible duration).
+                    // Перед fade-out выставляем splash-цвет на view контроллера, чтобы под исчезающим
+                    // overlay не мелькнул белый upstream-овский plainBackgroundColor до того, как
+                    // тёмный фон первой ноды отрисуется.
+                    context.rootController.view.backgroundColor = DivoColorPalette.splashBackground
                     let splashOverlay = self.splashOverlay
                     self.splashOverlay = nil
                     splashOverlay?.dismissWhenReady()
@@ -1384,6 +1388,9 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     // DIVO: auth context готов — снимаем splash. Для unauth-пользователя держим splash подольше
                     // (брендовый «первый запуск»), для повторных запусков с уже авторизованным аккаунтом он
                     // снимается короче — см. main path в .start { _ in mainWindow.viewController = ... }.
+                    // Splash-цвет на view ставим до dismiss, чтобы под gass-out overlay'ем не мелькнул
+                    // белый фон AuthorizationSequenceController до отрисовки тёмной PhoneEntry-ноды.
+                    context.rootController.view.backgroundColor = DivoColorPalette.splashBackground
                     let splashOverlay = self.splashOverlay
                     self.splashOverlay = nil
                     splashOverlay?.dismissWhenReady(minVisibleDuration: 2.0)
