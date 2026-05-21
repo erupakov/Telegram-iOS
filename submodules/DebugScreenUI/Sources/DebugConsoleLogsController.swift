@@ -25,7 +25,14 @@ public final class DebugConsoleLogsController: TelegramBaseController {
 
         let clearButton = UIBarButtonItem(title: DivoStrings.debugClear, style: .plain, target: self, action: #selector(clearLogs))
         clearButton.setTitleTextAttributes([.foregroundColor: DebugTheme.accent], for: .normal)
-        self.navigationItem.rightBarButtonItem = clearButton
+        let shareButton = UIBarButtonItem(
+            image: UIImage(systemName: "square.and.arrow.up"),
+            style: .plain,
+            target: self,
+            action: #selector(shareAllLogs)
+        )
+        shareButton.tintColor = DebugTheme.accent
+        self.navigationItem.rightBarButtonItems = [clearButton, shareButton]
     }
 
     required init(coder aDecoder: NSCoder) {
@@ -57,6 +64,23 @@ public final class DebugConsoleLogsController: TelegramBaseController {
     @objc private func clearLogs() {
         DivoConsoleLogger.shared.clear()
         (self.displayNode as? DebugConsoleLogsNode)?.reload()
+    }
+
+    @objc private func shareAllLogs() {
+        let entries = DivoConsoleLogger.shared.getEntries()
+        guard !entries.isEmpty else { return }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss.SSS"
+        let header = "Console Logs — \(entries.count) entries (latest first)\n\n"
+        let body = entries.map { entry in
+            "[\(formatter.string(from: entry.timestamp))] [\(entry.level.rawValue)] \(entry.file):\(entry.line)\n\(entry.message)"
+        }.joined(separator: "\n\n")
+        let text = header + body + "\n"
+        let ac = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        if let popover = ac.popoverPresentationController {
+            popover.barButtonItem = self.navigationItem.rightBarButtonItems?.last
+        }
+        self.view.window?.rootViewController?.present(ac, animated: true)
     }
 }
 

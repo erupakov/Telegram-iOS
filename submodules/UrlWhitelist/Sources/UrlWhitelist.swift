@@ -1,7 +1,7 @@
 import Foundation
 
 private let whitelistedHosts: Set<String> = Set([
-    "t.me",
+    "t.divo.global",
     "telegram.me",
     "telegra.ph",
     "telesco.pe",
@@ -86,7 +86,7 @@ public func parseUrl(url: String, wasConcealed: Bool) -> (string: String, concea
         concealed = false
     }
     
-    if url.hasPrefix("tg://premium_multigift") || url.hasPrefix("tg://premium_offer") {
+    if url.hasPrefix("dg://premium_multigift") || url.hasPrefix("dg://premium_offer") {
         concealed = false
     }
     

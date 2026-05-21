@@ -79,7 +79,7 @@ public func chatTextLinkEditController(
     )
     applyImpl = {
         let updatedLink = explicitUrl(inputState.value.string)
-        if !updatedLink.isEmpty && isValidUrl(updatedLink, validSchemes: ["http": true, "https": true, "tg": false, "ton": false, "tonsite": true]) {
+        if !updatedLink.isEmpty && isValidUrl(updatedLink, validSchemes: ["http": true, "https": true, "dg": false, "ton": false, "tonsite": true]) {
             dismissImpl?()
             apply(updatedLink)
         } else if inputState.value.string.isEmpty {

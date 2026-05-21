@@ -5,7 +5,7 @@ import Emoji
 
 private let whitelistedHosts: Set<String> = Set([
     "telegram.org",
-    "t.me",
+    "t.divo.global",
     "telegram.me",
     "telegra.ph",
     "telesco.pe",
@@ -277,7 +277,7 @@ public func generateTextEntities(_ text: String, enabledTypes: EnabledEntityType
                                 guard let url = result.url else {
                                     return
                                 }
-                                if url.scheme != "tg" {
+                                if url.scheme != "dg" {
                                     guard var host = url.host?.lowercased() else {
                                         return
                                     }

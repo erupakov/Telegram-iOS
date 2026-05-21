@@ -113,7 +113,7 @@ public func parseConfirmationCodeUrl(sharedContext: SharedAccountContext, url: U
             return code
         }
     }
-    if url.scheme == "tg" {
+    if url.scheme == "dg" {
         if let host = url.host, let query = url.query, let parsedUrl = parseInternalUrl(sharedContext: sharedContext, context: nil, query: host + "?" + query) {
             switch parsedUrl {
             case let .confirmationCode(code):
@@ -232,7 +232,7 @@ private func makeInternalUrlHandler(
 }
 
 private let internetSchemes: [String] = ["http", "https"]
-private let telegramMeHosts: [String] = ["t.me", "telegram.me", "telegram.dog"]
+private let telegramMeHosts: [String] = ["t.divo.global", "telegram.me", "telegram.dog"]
 
 private func handleInternetUrl(
     parsedUrl: URL,
@@ -362,7 +362,7 @@ private func appendQueryItems(to base: String, items: [URLQueryItem]) -> String 
 }
 
 private func makeTelegramUrl(_ path: String, queryItems: [URLQueryItem] = []) -> String {
-    return appendQueryItems(to: "https://t.me\(path)", items: queryItems)
+    return appendQueryItems(to: "https://t.divo.global\(path)", items: queryItems)
 }
 
 func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, url: String, forceExternal: Bool, presentationData: PresentationData, navigationController: NavigationController?, dismissInput: @escaping () -> Void) {
@@ -421,7 +421,7 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
     )
     
     let continueHandling: () -> Void = {
-        if let scheme = parsedUrl.scheme, (scheme == "tg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
+        if let scheme = parsedUrl.scheme, (scheme == "dg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
             if parsedUrl.host == "tonsite" {
                 if let value = URL(string: "tonsite:/" + parsedUrl.path) {
                     parsedUrl = value
@@ -429,7 +429,7 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
             }
         }
         
-        if let scheme = parsedUrl.scheme, (scheme == "tg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
+        if let scheme = parsedUrl.scheme, (scheme == "dg" || scheme == context.sharedContext.applicationBindings.appSpecificScheme) {
             var convertedUrl: String?
             let host = parsedUrl.host?.lowercased() ?? ""
             if let query = parsedUrl.query, let params = QueryParameters(query) {
