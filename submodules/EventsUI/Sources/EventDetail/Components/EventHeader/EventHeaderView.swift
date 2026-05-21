@@ -105,10 +105,9 @@ class EventHeaderView: UIView {
         guard let date = viewModel.date,
               let time = viewModel.time,
               let countryFlag = viewModel.countryFlag,
-              let city = viewModel.city,
-              let isFree = viewModel.isFree
+              let city = viewModel.city
         else { return }
-        if let cost = viewModel.cost, !isFree {
+        if let cost = viewModel.cost, viewModel.isFree != true {
             fullLocationString = "\(date) • \(time) • \(countryFlag) \(city) • $ \(cost)"
         } else {
             fullLocationString = "\(date) • \(time) • \(countryFlag) \(city)"

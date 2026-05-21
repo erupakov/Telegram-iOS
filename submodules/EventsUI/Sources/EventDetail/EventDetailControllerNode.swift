@@ -1501,43 +1501,77 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         var items: [AppearanceAttribute] = []
         
+        // Вспомогательная функция, которая собирает красивую строку без нулей
+        func rangeString(from: Any?, to: Any?) -> String? {
+            // Приводим к NSNumber. Это автоматом убирает лишние .0 (18.0 -> "18")
+            let fStr = (from as? NSNumber)?.stringValue
+            let tStr = (to as? NSNumber)?.stringValue
+            
+            if let f = fStr, let t = tStr {
+                // Если значения одинаковые (например 18 и 18), выводим просто "18"
+                return f == t ? f : "\(f)-\(t)"
+            }
+            // Если есть только одно значение, вернется оно. Если оба nil - вернется nil.
+            return fStr ?? tStr
+        }
+        
         if let gender = attributes?.gender {
             let genderTitles = gender.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+            if !genderTitles.isEmpty {
+                items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+            }
         }
-        if let age = attributes?.age {
-            items.append(.init(title: DivoStrings.ageYo, value: "\(age.from ?? 0)-\(age.to ?? 0)"))
+        
+        if let age = attributes?.age, let str = rangeString(from: age.from, to: age.to) {
+            items.append(.init(title: DivoStrings.ageYo, value: str))
         }
-        if let height = attributes?.height {
-            items.append(.init(title: DivoStrings.heightCm, value: "\(height.from ?? 0)-\(height.to ?? 0)"))
+        
+        if let height = attributes?.height, let str = rangeString(from: height.from, to: height.to) {
+            items.append(.init(title: DivoStrings.heightCm, value: str))
         }
-        if let weight = attributes?.weight {
-            items.append(.init(title: DivoStrings.weightKg, value: "\(weight.from ?? 0)-\(weight.to ?? 0)"))
+        
+        if let weight = attributes?.weight, let str = rangeString(from: weight.from, to: weight.to) {
+            items.append(.init(title: DivoStrings.weightKg, value: str))
         }
-        if let waist = attributes?.waist {
-            items.append(.init(title: DivoStrings.waistCm, value: "\(waist.from ?? 0)-\(waist.to ?? 0)"))
+        
+        if let waist = attributes?.waist, let str = rangeString(from: waist.from, to: waist.to) {
+            items.append(.init(title: DivoStrings.waistCm, value: str))
         }
-        if let hips = attributes?.hips {
-            items.append(.init(title: DivoStrings.hipsCm, value: "\(hips.from ?? 0)-\(hips.to ?? 0)"))
+        
+        if let hips = attributes?.hips, let str = rangeString(from: hips.from, to: hips.to) {
+            items.append(.init(title: DivoStrings.hipsCm, value: str))
         }
-        if let shoesSize = attributes?.shoesSize {
-            items.append(.init(title: DivoStrings.shoeSizeEU, value: "\(shoesSize.from ?? 0)-\(shoesSize.to ?? 0)"))
+        
+        if let shoesSize = attributes?.shoesSize, let str = rangeString(from: shoesSize.from, to: shoesSize.to) {
+            items.append(.init(title: DivoStrings.shoeSizeEU, value: str))
         }
+        
         if let hairColor = attributes?.hairColor {
             let hairColorTitles = hairColor.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.attrHairColor, value: hairColorTitles))
+            if !hairColorTitles.isEmpty {
+                items.append(.init(title: DivoStrings.attrHairColor, value: hairColorTitles))
+            }
         }
+        
         if let hairLength = attributes?.hairLength {
             let hairLengthTitles = hairLength.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.attrHairLength, value: hairLengthTitles))
+            if !hairLengthTitles.isEmpty {
+                items.append(.init(title: DivoStrings.attrHairLength, value: hairLengthTitles))
+            }
         }
+        
         if let eyeColor = attributes?.eyeColor {
             let eyeColorTitles = eyeColor.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.eyeColor, value: eyeColorTitles))
+            if !eyeColorTitles.isEmpty {
+                items.append(.init(title: DivoStrings.eyeColor, value: eyeColorTitles))
+            }
         }
+        
         if let skinColor = attributes?.skinColor {
             let skinColorTitles = skinColor.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
+            if !skinColorTitles.isEmpty {
+                items.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
+            }
         }
         
         return items
@@ -1642,11 +1676,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         setupNavigationBarTitle(name: newEventData.title ?? DivoStrings.noName)
         
-        var isFree: Bool = false
-        if newEventData.paymentType?.id == 2 {
-            eventCostTypeContainer.removeFromSuperview()
-            isFree = true
-        }
+        let isFree: Bool = newEventData.paymentType?.id == 2
+        eventCostTypeContainer.isHidden = newEventData.paymentType?.id == 2
         eventCostTypeLabel.text = newEventData.cost
         
         let (data, time) = formatEventDateAndTime(dateString: newEventData.date)

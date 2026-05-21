@@ -192,7 +192,7 @@ final class EditParametersNode: ASDisplayNode {
         }
         self.selectedGenderId = model?.gender?.id
         self.selectedGenderTitle = model?.gender?.title
-        self.selectedBirthdayTimestamp = parseBirthday(model?.birthday ?? "")
+        self.selectedBirthdayTimestamp = parseBirthday(model?.birthday)
 
         self.backgroundColor = DivoColorPalette.screenBackground
 
@@ -245,14 +245,14 @@ final class EditParametersNode: ASDisplayNode {
         )
     }
 
-    private func parseBirthday(_ birthdayString: String) -> Int32? {
+    private func parseBirthday(_ birthdayString: String?) -> Int32? {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        if let date = formatter.date(from: birthdayString) {
-            return Int32(date.timeIntervalSince1970)
-        }
-        return nil
+        guard let birthdayString = birthdayString,
+              let date = formatter.date(from: birthdayString)
+        else { return nil }
+        return Int32(date.timeIntervalSince1970)
     }
     
     private func getFormattedBirthdayForAPI() -> String? {
@@ -466,22 +466,31 @@ final class EditParametersNode: ASDisplayNode {
         appearanceEditItems = [
             AppearanceEditItem(
                 title: DivoStrings.ageYo,
-                getValues: { [weak self] in self?.selectedAge.map {["\($0)"] } ?? [] },
+                getValues: { [weak self] in self?.selectedAge.map { ["\($0)"] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     guard let self = self else { return }
                     self.view.endEditing(true)
                     
                     let todayStart = Calendar.current.startOfDay(for: Date())
-                    let maxTimestamp = Int32(todayStart.timeIntervalSince1970)
                     
-                    let defaultDate = Calendar.current.date(byAdding: .year, value: -18, to: todayStart) ?? todayStart
+                    // Минимальная дата: Сегодня минус 100 лет (максимальный возраст 100)
+                    let minDate = Calendar.current.date(byAdding: .year, value: -100, to: todayStart) ?? todayStart
+                    let minTimestamp = Int32(minDate.timeIntervalSince1970)
+                    
+                    // Максимальная дата: Сегодня минус 14 лет (минимальный возраст 14)
+                    let maxDate = Calendar.current.date(byAdding: .year, value: -14, to: todayStart) ?? todayStart
+                    let maxTimestamp = Int32(maxDate.timeIntervalSince1970)
+                    
+                    // По умолчанию предлагаем возраст 18 лет (или старше)
+                    let defaultDate = Calendar.current.date(byAdding: .year, value: -18, to: todayStart) ?? maxDate
                     let initialTs = self.selectedBirthdayTimestamp ?? Int32(defaultDate.timeIntervalSince1970)
                     
                     let controller = DivoDatePickerController(
                         mode: .date,
                         initialTimestamp: initialTs,
                         title: DivoStrings.ageYo,
+                        minimumTimestamp: minTimestamp,
                         maximumTimestamp: maxTimestamp
                     )
                     
