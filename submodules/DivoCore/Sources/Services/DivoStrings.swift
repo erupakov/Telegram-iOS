@@ -305,6 +305,20 @@ public enum DivoStrings {
     public static var metric: String { L(en: "Metric", ru: "Метрическая", es: "Métrico", pt: "Métrico", zh: "公制") }
     public static var imperial: String { L(en: "Imperial", ru: "Имперская", es: "Imperial", pt: "Imperial", zh: "英制") }
 
+    // MARK: - Auth Welcome
+
+    public static var authWelcomeTitle: String { L(en: "Welcome to DIVO", ru: "Добро пожаловать в DIVO", es: "Bienvenido a DIVO", pt: "Bem-vindo à DIVO", zh: "欢迎来到 DIVO") }
+    public static var authWelcomeSubtitle: String { L(en: "Sign in or create your account", ru: "Войдите или создайте аккаунт", es: "Inicia sesión o crea tu cuenta", pt: "Entre ou crie sua conta", zh: "登录或创建账户") }
+    public static var authContinueWithPhone: String { L(en: "Continue with phone number", ru: "Продолжить с номером телефона", es: "Continuar con número de teléfono", pt: "Continuar com número de telefone", zh: "使用手机号继续") }
+    public static var authSignInWithGoogle: String { L(en: "Sign In with Google", ru: "Войти через Google", es: "Iniciar sesión con Google", pt: "Entrar com Google", zh: "使用 Google 登录") }
+    public static var authSignInWithApple: String { L(en: "Sign In with Apple", ru: "Войти через Apple", es: "Iniciar sesión con Apple", pt: "Entrar com Apple", zh: "使用 Apple 登录") }
+    public static var authSeparatorOr: String { L(en: "or", ru: "или", es: "o", pt: "ou", zh: "或") }
+    public static var authTermsAndPrivacyPrefix: String { L(en: "By continuing you agree to our", ru: "Продолжая, вы соглашаетесь с", es: "Al continuar aceptas nuestros", pt: "Ao continuar você concorda com", zh: "继续即表示您同意我们的") }
+    public static var authTermsAndPrivacyConjunction: String { L(en: "and", ru: "и", es: "y", pt: "e", zh: "和") }
+    public static var authTermsOfService: String { L(en: "Terms of Service", ru: "Условиями использования", es: "Términos de servicio", pt: "Termos de Serviço", zh: "服务条款") }
+    public static var authPrivacyPolicy: String { L(en: "Privacy Policy", ru: "Политикой конфиденциальности", es: "Política de privacidad", pt: "Política de Privacidade", zh: "隐私政策") }
+    public static var authComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
+
     // MARK: - Common
 
     public static var ok: String { L(en: "OK", ru: "OK", es: "OK", pt: "OK", zh: "好的") }

@@ -1,8 +1,8 @@
 load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
 
 swift_library(
-    name = "DivoUIKit",
-    module_name = "DivoUIKit",
+    name = "DivoAuthUI",
+    module_name = "DivoAuthUI",
     srcs = glob([
         "Sources/**/*.swift",
     ]),
@@ -13,7 +13,7 @@ swift_library(
         "//submodules/AppBundle:AppBundle",
         "//submodules/Display:Display",
         "//submodules/DivoCore:DivoCore",
-        "//submodules/TelegramPresentationData:TelegramPresentationData",
+        "//submodules/DivoUIKit:DivoUIKit",
     ],
     visibility = [
         "//visibility:public",

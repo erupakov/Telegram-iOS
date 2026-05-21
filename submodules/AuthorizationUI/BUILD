@@ -51,6 +51,7 @@ swift_library(
         "//submodules/OnboardingUI:OnboardingUI",
         "//submodules/DivoCore:DivoCore",
         "//submodules/DivoUIKit:DivoUIKit",
+        "//submodules/DivoAuthUI:DivoAuthUI",
     ],
     visibility = [
         "//visibility:public",

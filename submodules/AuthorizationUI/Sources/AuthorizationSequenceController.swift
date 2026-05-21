@@ -9,6 +9,7 @@ import MtProtoKit
 import MessageUI
 import CoreTelephony
 import DivoCore
+import DivoAuthUI
 import TelegramPresentationData
 import PresentationDataUtils
 import TextFormat
@@ -138,6 +139,22 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         return ViewController(navigationBarPresentationData: nil)
     }
 
+    private func welcomeController() -> DivoAuthWelcomeController {
+        let controller = DivoAuthWelcomeController()
+        controller.onContinueWithPhone = { [weak self] in
+            guard let strongSelf = self else { return }
+            let phoneEntry = strongSelf.phoneEntryController(
+                countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(),
+                number: ""
+            )
+            strongSelf.pushViewController(phoneEntry, animated: true)
+        }
+        // Google/Apple — заглушки до интеграции Firebase Auth (P0.4 в плане Eugene'а)
+        // и empty-Divo endpoint (P1.5/1.6). Сейчас тап → snackbar «Coming soon»
+        // через дефолтное поведение DivoAuthWelcomeController.
+        return controller
+    }
+
     private func phoneEntryController(countryCode: Int32, number: String) -> AuthorizationSequencePhoneEntryController {
         var currentController: AuthorizationSequencePhoneEntryController?
         for c in self.viewControllers {
@@ -156,10 +173,16 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 guard let strongSelf = self else {
                     return
                 }
+                // DIVO: убираем клавиатуру до анимации pop — иначе Welcome
+                // отрисовывается с клавиатурой поверх, и она уезжает вниз отдельно.
+                strongSelf.view.endEditing(true)
                 if !strongSelf.otherAccountPhoneNumbers.1.isEmpty {
                     let _ = (strongSelf.sharedContext.accountManager.transaction { transaction -> Void in
                         transaction.removeAuth()
                     }).startStandalone()
+                } else if strongSelf.viewControllers.first is DivoAuthWelcomeController {
+                    // DIVO: back с phone entry → возврат на Welcome через pop стека.
+                    let _ = strongSelf.popViewController(animated: true)
                 } else {
                     let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: strongSelf.account.testingEnvironment, masterDatacenterId: strongSelf.account.masterDatacenterId, contents: .empty)).startStandalone()
                 }
@@ -1292,10 +1315,10 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         case let .state(state):
             switch state {
                 case .empty:
-                    let alreadyShowingPhoneEntry = self.viewControllers.last is AuthorizationSequencePhoneEntryController
-                    if !alreadyShowingPhoneEntry {
-                        let phoneEntry = self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "")
-                        self.setViewControllers([phoneEntry], animated: !self.viewControllers.isEmpty)
+                    let alreadyShowingWelcome = self.viewControllers.first is DivoAuthWelcomeController
+                    if !alreadyShowingWelcome {
+                        let welcome = self.welcomeController()
+                        self.setViewControllers([welcome], animated: !self.viewControllers.isEmpty)
                     }
                 case let .newScreen(typeOfRole):
                     var controllers: [ViewController] = []

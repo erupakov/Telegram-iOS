@@ -96,6 +96,7 @@ import GiftDemoScreen
 import ChatTextLinkEditUI
 import CocoonInfoScreen
 import GiftCraftScreen
+import DivoUIKit
 
 private final class AccountUserInterfaceInUseContext {
     let subscribers = Bag<(Bool) -> Void>()
@@ -354,6 +355,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         |> then(
             updatedPresentationData(accountManager: self.accountManager, applicationInForeground: self.applicationBindings.applicationInForeground, systemUserInterfaceStyle: mainWindow?.systemUserInterfaceStyle ?? .single(.light))
         )
+        |> map { $0.withDivoActionSheetAccent() }
         self._presentationData.set(presentationData)
         self._automaticMediaDownloadSettings.set(.single(initialPresentationDataAndSettings.automaticMediaDownloadSettings)
         |> then(accountManager.sharedData(keys: [SharedDataKeys.autodownloadSettings, ApplicationSpecificSharedDataKeys.automaticMediaDownloadSettings])

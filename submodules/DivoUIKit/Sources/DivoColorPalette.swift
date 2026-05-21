@@ -199,6 +199,16 @@ public enum DivoColorPalette {
     /// #990000 — верхний стоп градиента AvatarStrokeView.
     public static let avatarStrokeRedDeep = UIColor(hexString: "#990000")!
 
+    // MARK: - Auth
+    /// #0A0A0A — текст на OAuth-кнопках (Google / Apple) на Welcome.
+    public static let authOAuthButtonText = UIColor(red: 10.0/255.0, green: 10.0/255.0, blue: 10.0/255.0, alpha: 1.0)
+    /// #000000 — текст footer Terms / Privacy на Welcome.
+    public static let authTermsText = UIColor.black
+    /// #222222 α0.12 — линии «or»-разделителя на Welcome.
+    public static let authSeparatorLine = UIColor(hexString: "#222222")!.withAlphaComponent(31.0 / 255.0)
+    /// #222222CC (primaryText α0.8) — subtitle и текст разделителя «or» на Welcome.
+    public static let authMutedText = UIColor(hexString: "#222222")!.withAlphaComponent(0.8)
+
     // MARK: - Alert dialog
     /// #F9F9F9 — фон card DivoAlertView.
     public static let alertCardBackground = UIColor(hexString: "#F9F9F9")!
