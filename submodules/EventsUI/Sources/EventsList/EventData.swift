@@ -9,7 +9,7 @@ public struct EventData {
     let subtitle: String?
     let profileName: String?
     let timeRemaining: String?
-    let type: String
+    let type: String?
     let coverPhoto: TelegramMediaImage?
     let profilePhoto: TelegramMediaImage?
     let coverPhotoURL: String?
@@ -18,6 +18,11 @@ public struct EventData {
     let eventDateFormatted: String
     let cost: String?
     let countryFlag: String?
+    
+    let appliesCount: Int?
+    let maxAttendees: Int?
+    let paymentTypeId: Int?
+    let applicationDeadline: String?
 
     public init(
         id: Int = 0,
@@ -25,7 +30,7 @@ public struct EventData {
         subtitle: String? = nil,
         profileName: String? = nil,
         timeRemaining: String? = nil,
-        type: String = "",
+        type: String? = nil,
         coverPhoto: TelegramMediaImage? = nil,
         profilePhoto: TelegramMediaImage? = nil,
         coverPhotoURL: String? = nil,
@@ -33,7 +38,11 @@ public struct EventData {
         location: String = "",
         eventDateFormatted: String = "",
         cost: String? = nil,
-        countryFlag: String? = nil
+        countryFlag: String? = nil,
+        appliesCount: Int? = nil,
+        maxAttendees: Int? = nil,
+        paymentTypeId: Int? = nil,
+        applicationDeadline: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -49,6 +58,10 @@ public struct EventData {
         self.eventDateFormatted = eventDateFormatted
         self.cost = cost
         self.countryFlag = countryFlag
+        self.appliesCount = appliesCount
+        self.maxAttendees = maxAttendees
+        self.paymentTypeId = paymentTypeId
+        self.applicationDeadline = applicationDeadline
     }
 
     private static func mockDateFormatted(_ isoDate: String) -> String {

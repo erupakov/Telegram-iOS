@@ -167,12 +167,14 @@ public final class EventsController: TelegramBaseController {
             return
         }
         let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
+        
         let datePartFormatter: DateFormatter = {
             let f = DateFormatter()
             f.locale = divoLocale
             f.setLocalizedDateFormatFromTemplate("MMM d")
             return f
         }()
+        
         let timePartFormatter: DateFormatter = {
             let f = DateFormatter()
             f.locale = divoLocale
@@ -180,12 +182,41 @@ public final class EventsController: TelegramBaseController {
             f.dateStyle = .none
             return f
         }()
+        
         let isoFormatter: DateFormatter = {
             let f = DateFormatter()
             f.locale = Locale(identifier: "en_US_POSIX")
             f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
             return f
         }()
+        
+        func formatTimeRemaining(deadlineString: String?) -> String? {
+            guard let raw = deadlineString else { return nil }
+            let normalized = raw.replacingOccurrences(of: " ", with: "T")
+            
+            guard let deadlineDate = isoFormatter.date(from: normalized) else { return nil }
+            
+            let timeInterval = deadlineDate.timeIntervalSince(Date())
+            
+            if timeInterval <= 0 {
+                return nil
+            }
+            
+            if timeInterval > 86400 {
+                let formattedDate = datePartFormatter.string(from: deadlineDate)
+                return DivoStrings.deadlineData(formattedDate)
+            } else {
+                let hours = Int(timeInterval) / 3600
+                let minutes = (Int(timeInterval) % 3600) / 60
+                
+                if hours > 0 {
+                    return DivoStrings.deadlineDataTime("\(hours)h \(minutes)m")
+                } else {
+                    return DivoStrings.deadlineDataTime("\(minutes)m")
+                }
+            }
+        }
+        
         let eventDataArray: [EventData] = items.map { item in
             let dateString: String
             if let raw = item.date {
@@ -198,34 +229,38 @@ public final class EventsController: TelegramBaseController {
             } else {
                 dateString = ""
             }
-            let timeRemaining: String
-            if let raw = item.date, let date = isoFormatter.date(from: raw.replacingOccurrences(of: " ", with: "T")), date > Date() {
-                let f = DateComponentsFormatter()
-                f.unitsStyle = .abbreviated
-                f.allowedUnits = [.day, .hour, .minute]
-                f.calendar = Calendar.current
-                f.calendar?.locale = divoLocale
-                timeRemaining = f.string(from: Date(), to: date) ?? ""
-            } else {
-                timeRemaining = ""
-            }
+            
+            let timeRemainingStr = formatTimeRemaining(deadlineString: item.applicationDeadline)
+            
             let coverURL = item.files?.first?.fullUrl
             let avatarURL = item.creator?.avatar?.fullUrl
             let cityName = item.address?.city?.name ?? ""
             return EventData(
                 id: item.id,
-                title: item.title ?? "",
-                subtitle: item.type?.title ?? "",
-                profileName: "@" + (item.creator?.fullName ?? ""),
-                timeRemaining: timeRemaining,
-                type: item.type?.title ?? "",
+                title: item.title,
+                subtitle: item.type?.title,
+                profileName: item.creator?.fullName,
+                timeRemaining: timeRemainingStr,
+                type: item.type?.title,
                 coverPhotoURL: coverURL,
                 profilePhotoURL: avatarURL,
                 location: cityName,
-                eventDateFormatted: dateString
+                eventDateFormatted: dateString,
+                countryFlag: Self.flag(for: item.address?.city?.countryCode),
+                appliesCount: item.appliesCount,
+                maxAttendees: item.maxAttendees,
+                paymentTypeId: item.paymentType?.id,
+                applicationDeadline: item.applicationDeadline
             )
         }
         self.controllerNode.reloadEvents(events: eventDataArray)
+    }
+    
+    private static func flag(for countryCode: String?) -> String {
+        guard let code = countryCode, code.count == 2 else { return "" }
+        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
+            result + String(UnicodeScalar(127397 + scalar.value)!)
+        }
     }
 
     @objc private func searchPressed() {

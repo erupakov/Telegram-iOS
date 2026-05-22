@@ -37,6 +37,7 @@ public struct EventListItem: Decodable {
     public let type: EventFullIdTitle?
     public let isApplied: Bool?
     public let appliesCount: Int?
+    public let maxAttendees: Int?
     public let viewsCount: Int?
     public let userReachCount: Int?
     public let date: String?
@@ -50,6 +51,7 @@ public struct EventListItem: Decodable {
     public let modelAttributes: EventFullModelAttributes?
     public let creator: EventFullCreator?
     public let previsiousEventsFromSameOrigin: [EventSmallItem]?
+    public let applicationDeadline: String?
 }
 
 public struct EventSmallItem: Decodable {

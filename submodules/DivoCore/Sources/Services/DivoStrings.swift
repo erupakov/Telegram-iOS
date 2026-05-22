@@ -517,8 +517,10 @@ public enum DivoStrings {
     public static var eventName: String { L(en: "Event name *", ru: "Название события *", es: "Nombre del evento *", pt: "Nome do evento *", zh: "活动名称 *") }
     public static var addPhotoEvent: String { L(en: "Upload event photos", ru: "Загрузить фото события", es: "Subir fotos del evento", pt: "Carregar fotos do evento", zh: "上传活动照片") }
     public static var paidEvent: String { L(en: "Paid event", ru: "Платное мероприятие", es: "Evento de pago", pt: "Evento pago", zh: "付费活动") }
+    public static var paid: String { L(en: "Paid", ru: "Платно", es: "De pago", pt: "Pago", zh: "付费") }
     public static var previewEvent: String { L(en: "Preview", ru: "Предпросмотр", es: "Vista previa", pt: "Pré-visualização", zh: "预览") }
     public static func stepCreateEvent(_ currentStep: Int) -> String { L(en: "Step \(currentStep)/3", ru: "Шаг \(currentStep)/3", es: "Paso \(currentStep)/3", pt: "Passo \(currentStep)/3", zh: "步骤 \(currentStep)/3") }
+    public static func availableSeatsEvent(_ count: Int) -> String { L(en: "\(count) spots left", ru: "Осталось \(count) мест", es: "\(count) lugares disponibles", pt: "\(count) vagas restantes", zh: "剩余\(count)个名额") }
 
     // MARK: - Models Feed
 
@@ -986,6 +988,7 @@ public enum DivoStrings {
     public static var paramEyeColor: String { L(en: "Eye color", ru: "Цвет глаз", es: "Color de ojos", pt: "Cor dos olhos", zh: "眼色") }
     public static var paramSkinColor: String { L(en: "Skin color", ru: "Цвет кожи", es: "Color de piel", pt: "Cor da pele", zh: "肤色") }
     public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)") }
+    public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭") }
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
 
