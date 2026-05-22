@@ -167,6 +167,8 @@ final class EventCollectionViewCell: UICollectionViewCell {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+
+    private var availableSeatsBottomConstraint: NSLayoutConstraint!
     
     private let availableSeatsLabel: UILabel = {
         let label = UILabel()
@@ -223,6 +225,8 @@ final class EventCollectionViewCell: UICollectionViewCell {
         
         contentView.addSubview(availableSeatsContainer)
         availableSeatsContainer.addSubview(availableSeatsLabel)
+
+        availableSeatsBottomConstraint = availableSeatsContainer.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
 
         NSLayoutConstraint.activate([
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -284,9 +288,8 @@ final class EventCollectionViewCell: UICollectionViewCell {
             
             availableSeatsContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
             availableSeatsContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -10),
-            availableSeatsContainer.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -12),
-            availableSeatsContainer.bottomAnchor.constraint(equalTo: applyButton.topAnchor, constant: -14),
-                        
+            availableSeatsBottomConstraint,
+
             availableSeatsLabel.leadingAnchor.constraint(equalTo: availableSeatsContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.s),
             availableSeatsLabel.trailingAnchor.constraint(equalTo: availableSeatsContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
             availableSeatsLabel.bottomAnchor.constraint(equalTo: availableSeatsContainer.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
@@ -347,6 +350,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         }
         
         eventTypeLabel.text = event.type
+        eventTypeContainer.backgroundColor = EventTypeStyle.color(for: event.typeId)
         
         paidContainer.isHidden = event.paymentTypeId == 2
         
@@ -410,6 +414,11 @@ final class EventCollectionViewCell: UICollectionViewCell {
                 }
             })
         }
+        
+        applyButton.isHidden = event.isCurrentRoleAgency ?? false
+        availableSeatsBottomConstraint.constant = event.isCurrentRoleAgency == true ? -12 : -50
+        self.layoutIfNeeded()
+        self.setNeedsLayout()
     }
 }
 

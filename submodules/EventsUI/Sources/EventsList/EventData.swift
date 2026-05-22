@@ -10,6 +10,7 @@ public struct EventData {
     let profileName: String?
     let timeRemaining: String?
     let type: String?
+    let typeId: Int?
     let coverPhoto: TelegramMediaImage?
     let profilePhoto: TelegramMediaImage?
     let coverPhotoURL: String?
@@ -23,6 +24,8 @@ public struct EventData {
     let maxAttendees: Int?
     let paymentTypeId: Int?
     let applicationDeadline: String?
+    
+    let isCurrentRoleAgency: Bool?
 
     public init(
         id: Int = 0,
@@ -31,6 +34,7 @@ public struct EventData {
         profileName: String? = nil,
         timeRemaining: String? = nil,
         type: String? = nil,
+        typeId: Int? = nil,
         coverPhoto: TelegramMediaImage? = nil,
         profilePhoto: TelegramMediaImage? = nil,
         coverPhotoURL: String? = nil,
@@ -42,7 +46,8 @@ public struct EventData {
         appliesCount: Int? = nil,
         maxAttendees: Int? = nil,
         paymentTypeId: Int? = nil,
-        applicationDeadline: String? = nil
+        applicationDeadline: String? = nil,
+        isCurrentRoleAgency: Bool? = nil
     ) {
         self.id = id
         self.title = title
@@ -50,6 +55,7 @@ public struct EventData {
         self.profileName = profileName
         self.timeRemaining = timeRemaining
         self.type = type
+        self.typeId = typeId
         self.coverPhoto = coverPhoto
         self.profilePhoto = profilePhoto
         self.coverPhotoURL = coverPhotoURL
@@ -62,6 +68,7 @@ public struct EventData {
         self.maxAttendees = maxAttendees
         self.paymentTypeId = paymentTypeId
         self.applicationDeadline = applicationDeadline
+        self.isCurrentRoleAgency = isCurrentRoleAgency
     }
 
     private static func mockDateFormatted(_ isoDate: String) -> String {

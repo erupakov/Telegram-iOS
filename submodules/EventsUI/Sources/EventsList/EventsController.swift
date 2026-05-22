@@ -242,6 +242,7 @@ public final class EventsController: TelegramBaseController {
                 profileName: item.creator?.fullName,
                 timeRemaining: timeRemainingStr,
                 type: item.type?.title,
+                typeId: item.type?.id,
                 coverPhotoURL: coverURL,
                 profilePhotoURL: avatarURL,
                 location: cityName,
@@ -250,7 +251,8 @@ public final class EventsController: TelegramBaseController {
                 appliesCount: item.appliesCount,
                 maxAttendees: item.maxAttendees,
                 paymentTypeId: item.paymentType?.id,
-                applicationDeadline: item.applicationDeadline
+                applicationDeadline: item.applicationDeadline,
+                isCurrentRoleAgency: self.isAgency
             )
         }
         self.controllerNode.reloadEvents(events: eventDataArray)
