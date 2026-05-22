@@ -199,6 +199,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 guard let self else {
                     return
                 }
+                divoLog("[Auth UI] loginWithNumber — Continue tapped, phone=\(number), syncContacts=\(syncContacts). Дальше уходит запрос sendCode на MTProto.", level: .info)
                 controller?.inProgress = true
                 
                 let disableAuthTokens = self.sharedContext.immediateExperimentalUISettings.disableReloginTokens
