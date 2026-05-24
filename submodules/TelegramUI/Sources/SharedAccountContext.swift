@@ -336,7 +336,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             self.contactDataManager = nil
         }
         
-        self._currentPresentationData = Atomic(value: initialPresentationDataAndSettings.presentationData)
+        self._currentPresentationData = Atomic(value: initialPresentationDataAndSettings.presentationData.withDivoActionSheetAccent())
         self.currentAutomaticMediaDownloadSettings = initialPresentationDataAndSettings.automaticMediaDownloadSettings
         self.currentAutodownloadSettings = Atomic(value: initialPresentationDataAndSettings.autodownloadSettings)
         self.currentMediaInputSettings = Atomic(value: initialPresentationDataAndSettings.mediaInputSettings)
@@ -351,11 +351,11 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             self.energyUsageSettings = self.currentAutomaticMediaDownloadSettings.energyUsageSettings
         }
         
-        let presentationData: Signal<PresentationData, NoError> = .single(initialPresentationDataAndSettings.presentationData)
+        let presentationData: Signal<PresentationData, NoError> = .single(initialPresentationDataAndSettings.presentationData.withDivoActionSheetAccent())
         |> then(
             updatedPresentationData(accountManager: self.accountManager, applicationInForeground: self.applicationBindings.applicationInForeground, systemUserInterfaceStyle: mainWindow?.systemUserInterfaceStyle ?? .single(.light))
+            |> map { $0.withDivoActionSheetAccent() }
         )
-        |> map { $0.withDivoActionSheetAccent() }
         self._presentationData.set(presentationData)
         self._automaticMediaDownloadSettings.set(.single(initialPresentationDataAndSettings.automaticMediaDownloadSettings)
         |> then(accountManager.sharedData(keys: [SharedDataKeys.autodownloadSettings, ApplicationSpecificSharedDataKeys.automaticMediaDownloadSettings])
