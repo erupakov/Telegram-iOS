@@ -80,10 +80,17 @@ final class EventsControllerNode: ASDisplayNode {
         return spinner
     }()
     
+    private var errorView: UIView?
+    private var errorIconCenterYConstraint: NSLayoutConstraint?
+    private var errorRetryBottomConstraint: NSLayoutConstraint?
+    
     var onTabSelected: ((Int) -> Void)?
     var loadMore: (() -> Void)?
     var createEvent: (() -> Void)?
     var applyForEvent: ((Int, EventCollectionViewCell) -> Void)?
+    
+    var onRetry: (() -> Void)?
+    var onPaginationRetry: (() -> Void)?
     
     public var isLoading: Bool = true {
         didSet {
@@ -105,12 +112,14 @@ final class EventsControllerNode: ASDisplayNode {
         }
     }
     
+    // Управление полноэкранным состоянием ошибки по аналогии с фидом моделей
     public var showNetworkError: Bool = false {
         didSet {
-            if showNetworkError {
-                self.showError(DivoStrings.feedLoadErrorSubtitle)
+            if showNetworkError && events.isEmpty {
+                removeShimmer()
+                showErrorState()
             } else {
-                self.view.viewWithTag(999)?.removeFromSuperview()
+                hideErrorState()
             }
         }
     }
@@ -294,32 +303,117 @@ final class EventsControllerNode: ASDisplayNode {
         }
     }
     
-    public func showError(_ message: String) {
-        self.isLoading = false
-        removeShimmer()
-        collectionView.isHidden = true
-        searchFadeOverlay.isHidden = true
-        
-        self.view.viewWithTag(999)?.removeFromSuperview()
-        
-        let textView = UITextView()
-        textView.text = message
-        textView.textColor = .darkGray
-        textView.font = .systemFont(ofSize: 13)
-        textView.textAlignment = .left
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.backgroundColor = .clear
-        textView.tag = 999
-        textView.translatesAutoresizingMaskIntoConstraints = false
-        self.view.addSubview(textView)
-        let navH = containerLayout?.1 ?? 100
+    // MARK: - Error State (Перенесено из ModelsFeedNode)
+    
+    private func showErrorState() {
+        guard errorView == nil else { return }
+
+        let container = UIView()
+        container.backgroundColor = DivoColorPalette.screenBackground
+
+        let iconView = UIImageView(image: DivoImage.faceSearchError)
+        iconView.contentMode = .scaleAspectFit
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(iconView)
+
+        let titleLabel = UILabel()
+        titleLabel.text = DivoStrings.feedEventLoadErrorTitle.uppercased()
+        titleLabel.font = Font.helveticaNeue(26)
+        titleLabel.textColor = DivoColorPalette.primaryText
+        titleLabel.textAlignment = .center
+        titleLabel.numberOfLines = 0
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+
+        let subtitleLabel = UILabel()
+        subtitleLabel.text = DivoStrings.feedEventLoadErrorSubtitle
+        subtitleLabel.font = Font.medium(16)
+        subtitleLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        subtitleLabel.textAlignment = .center
+        subtitleLabel.numberOfLines = 0
+        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(subtitleLabel)
+
+        let retryButton = DivoButton()
+        retryButton.makeDivoButton(title: DivoStrings.retry)
+        retryButton.addTarget(self, action: #selector(errorRetryTapped), for: .touchUpInside)
+        retryButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(retryButton)
+
+        let iconCenterY = iconView.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -60)
+        let retryBottom = retryButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
+
         NSLayoutConstraint.activate([
-            textView.topAnchor.constraint(equalTo: self.view.topAnchor, constant: navH + 10),
-            textView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            textView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            textView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -10)
+            iconView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            iconCenterY,
+
+            titleLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 14),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
+            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            retryButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            retryButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            retryButton.heightAnchor.constraint(equalToConstant: 56),
+            retryBottom
         ])
+
+        errorIconCenterYConstraint = iconCenterY
+        errorRetryBottomConstraint = retryBottom
+
+        self.view.addSubview(container)
+        errorView = container
+
+        layoutErrorState()
+
+        container.alpha = 0
+        UIView.animate(withDuration: 0.3) { container.alpha = 1 }
+    }
+
+    private func hideErrorState() {
+        guard let error = errorView else { return }
+        errorView = nil
+        errorIconCenterYConstraint = nil
+        errorRetryBottomConstraint = nil
+        UIView.animate(withDuration: 0.2, animations: {
+            error.alpha = 0
+        }, completion: { _ in
+            error.removeFromSuperview()
+        })
+    }
+
+    private func layoutErrorState() {
+        guard let error = errorView,
+              let (layout, navigationBarHeight) = containerLayout else { return }
+        let showTabs = self.isAgency
+        let currentTabsHeight = showTabs ? self.tabsHeight : 0.0
+        let topOffset = navigationBarHeight + currentTabsHeight
+        let bottomInset = layout.intrinsicInsets.bottom
+        error.frame = CGRect(x: 0, y: topOffset, width: layout.size.width, height: layout.size.height - topOffset)
+
+        errorIconCenterYConstraint?.constant = -(bottomInset / 2) - 60
+        errorRetryBottomConstraint?.constant = -bottomInset - 24
+    }
+
+    @objc private func errorRetryTapped() {
+        onRetry?()
+    }
+
+    // Показ системного снэкбара при ошибке пагинации
+    func showPaginationError() {
+        isPaginating = false
+        showSnackbar(
+            message: DivoStrings.feedPaginationError,
+            style: .error,
+            retryAction: { [weak self] in
+                self?.hideSnackbar(animated: true)
+                self?.onPaginationRetry?()
+            },
+            persistent: true
+        )
     }
     
     // MARK: - Empty State
@@ -505,6 +599,8 @@ final class EventsControllerNode: ASDisplayNode {
         if let emptyView = emptyStateView {
             emptyView.frame = CGRect(x: 0, y: navigationBarHeight + currentTabsHeight, width: layout.size.width, height: layout.size.height - navigationBarHeight - currentTabsHeight)
         }
+        
+        layoutErrorState()
         
         if isLoading && shimmerViews.isEmpty {
             showShimmer(topOffset: navigationBarHeight + currentTabsHeight + 16, width: layout.size.width)

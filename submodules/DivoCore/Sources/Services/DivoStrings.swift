@@ -982,7 +982,9 @@ public enum DivoStrings {
     public static var eventsMy: String { L(en: "My Events", ru: "Мои события", es: "Mis eventos", pt: "Meus eventos", zh: "我的活动") }
     public static var eventsAll: String { L(en: "All Events", ru: "Все события", es: "Todos los eventos", pt: "Todos os eventos", zh: "所有活动") }
     public static var failedApplyEvent: String { L(en: "Failed to record event", ru: "Не удалось записать событие", es: "Error al registrar el evento", pt: "Falha ao registrar o evento", zh: "记录事件失败") }
-
+    public static var feedEventLoadErrorTitle: String { L(en: "Couldn't load events", ru: "Не удалось загрузить события", es: "No se pudieron cargar los eventos", pt: "Não foi possível carregar os eventos", zh: "无法加载活动") }
+    public static var feedEventLoadErrorSubtitle: String { L(en: "Something went wrong on our end.\nCheck your connection and try again.", ru: "Что-то пошло не так с нашей стороны.\nПроверьте соединение и попробуйте снова.", es: "Algo salió mal de nuestro lado.\nVerifica tu conexión e inténtalo de nuevo.", pt: "Algo deu errado da nossa parte.\nVerifique sua conexão e tente novamente.", zh: "我们的端出了问题。\n请检查连接后重试。") }
+    
     // MARK: - Event Parameter Titles
 
     public static var paramGender: String { L(en: "Gender", ru: "Пол", es: "Género", pt: "Gênero", zh: "性别") }

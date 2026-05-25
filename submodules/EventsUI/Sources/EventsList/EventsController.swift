@@ -44,7 +44,7 @@ public final class EventsController: TelegramBaseController {
     private var agencyId: Int?
     private var didLoadEvents: Bool = false
     
-    // Структура хранения состояния вкладок (добавлено сохранение скролла scrollOffset)
+    // Структура хранения состояния вкладок с поддержкой ошибок пагинации
     private struct TabState {
         var events: [EventData] = []
         var offset: Int = 0
@@ -52,6 +52,7 @@ public final class EventsController: TelegramBaseController {
         var hasMore: Bool = true
         var isLoaded: Bool = false
         var scrollOffset: CGPoint = .zero
+        var hasPaginationError: Bool = false // Флаг для отслеживания ошибок пагинации
     }
 
     private var tabStates: [TabState] = [TabState(), TabState()]
@@ -128,25 +129,36 @@ public final class EventsController: TelegramBaseController {
         }
     }
 
+    // Доработанный метод получения роли с полноценным Error handling
     private func fetchUserRole() {
-        Task {
+        self.controllerNode.isLoading = true
+        self.controllerNode.showNetworkError = false
+        
+        Task { [weak self] in
             do {
                 let response: UserDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/user/info",
                     method: "GET"
                 )
                 let role = response.data.role ?? ""
-                self.isAgency = role == "agency" || role == "agency_employee"
-                self.agencyId = response.data.id
+                
                 await MainActor.run {
+                    guard let self else { return }
                     let wasAgency = self.isAgency
+                    self.isAgency = role == "agency" || role == "agency_employee"
+                    self.agencyId = response.data.id
                     if wasAgency != self.isAgency {
                         self.updateNavigation()
                     }
-                    self.loadEventsList(tabIndex: selectedTabIndex, reset: true)
+                    self.loadEventsList(tabIndex: self.selectedTabIndex, reset: true)
                 }
             } catch {
                 print("⚠️ fetchUserRole failed: \(error)")
+                await MainActor.run {
+                    guard let self else { return }
+                    self.controllerNode.isLoading = false
+                    self.controllerNode.showNetworkError = true // Переводим экран в полноэкранную ошибку
+                }
             }
         }
     }
@@ -167,6 +179,20 @@ public final class EventsController: TelegramBaseController {
         self.controllerNode.applyForEvent = { [weak self] eventId, cell in
             self?.applyForEvent(eventId: eventId, cell: cell)
         }
+        
+        // Связываем действие повторения запроса при полноэкранной ошибке
+        self.controllerNode.onRetry = { [weak self] in
+            guard let self = self else { return }
+            self.controllerNode.showNetworkError = false
+            self.fetchUserRole() // Начинаем заново с получения роли
+        }
+        
+        // Связываем действие повторения запроса при ошибке пагинации (через снэкбар)
+        self.controllerNode.onPaginationRetry = { [weak self] in
+            guard let self = self else { return }
+            self.tabStates[self.selectedTabIndex].hasPaginationError = false
+            self.loadNextPage()
+        }
 
         self.controllerNode.updateIsAgency(self.isAgency)
         self._ready.set(.single(true))
@@ -178,7 +204,10 @@ public final class EventsController: TelegramBaseController {
         tabStates[selectedTabIndex].scrollOffset = self.controllerNode.collectionViewContentOffset()
         
         selectedTabIndex = index
+        tabStates[index].hasPaginationError = false
         let state = tabStates[index]
+        controllerNode.updateEvents(state.events)
+        controllerNode.hideSnackbar(animated: false)
         
         if !state.isLoaded {
             controllerNode.isLoading = true
@@ -195,7 +224,8 @@ public final class EventsController: TelegramBaseController {
     private func loadNextPage() {
         let index = selectedTabIndex
         let state = tabStates[index]
-        guard !state.isLoading, state.hasMore else { return }
+        // Прерываем подгрузку, если уже есть активная ошибка пагинации
+        guard !state.isLoading, state.hasMore, !state.hasPaginationError else { return }
         loadEventsList(tabIndex: index, reset: false)
     }
 
@@ -217,7 +247,7 @@ public final class EventsController: TelegramBaseController {
             if reset {
                 controllerNode.isLoading = true
                 controllerNode.isPaginating = false
-            } else {
+            } else if !tabStates[tabIndex].events.isEmpty {
                 controllerNode.isPaginating = true
             }
         }
@@ -225,33 +255,37 @@ public final class EventsController: TelegramBaseController {
         if reset {
             tabStates[tabIndex].offset = 0
             tabStates[tabIndex].hasMore = true
+            tabStates[tabIndex].hasPaginationError = false
         }
 
         let offset = tabStates[tabIndex].offset
         let limit = eventsPageSize
 
-        Task {
+        Task { [weak self] in
             do {
-                let body = requestBody(tabIndex: tabIndex, offset: offset, limit: limit)
+                let body = self?.requestBody(tabIndex: tabIndex, offset: offset, limit: limit)
                 
                 let response: EventListResponse = try await DivoAPIClient.shared.request(
                     path: "/event/list",
                     method: "POST",
                     body: body
                 )
-                let eventDataArray = self.mapEvents(response.data.items)
+                let eventDataArray = self?.mapEvents(response.data.items) ?? []
                 
                 await MainActor.run {
+                    guard let self else { return }
                     self.controllerNode.updateIsAgency(self.isAgency)
                     if reset {
                         self.tabStates[tabIndex].events = eventDataArray
                     } else {
                         self.tabStates[tabIndex].events.append(contentsOf: eventDataArray)
                     }
-                    self.tabStates[tabIndex].offset = offset + eventDataArray.count
-                    self.tabStates[tabIndex].hasMore = eventDataArray.count >= limit
+                    let totalReceived = response.data.items.count
+                    self.tabStates[tabIndex].offset = offset + totalReceived
+                    self.tabStates[tabIndex].hasMore = totalReceived >= limit
                     self.tabStates[tabIndex].isLoading = false
                     self.tabStates[tabIndex].isLoaded = true
+                    self.tabStates[tabIndex].hasPaginationError = false
                     self.didLoadEvents = true
 
                     if tabIndex == self.selectedTabIndex {
@@ -269,12 +303,18 @@ public final class EventsController: TelegramBaseController {
             } catch {
                 print("[DivoAPI] event/list error (tab \(tabIndex)): \(error)")
                 await MainActor.run {
+                    guard let self else { return }
                     self.tabStates[tabIndex].isLoading = false
+                    if !reset {
+                        self.tabStates[tabIndex].hasPaginationError = true
+                    }
                     if tabIndex == self.selectedTabIndex {
                         self.controllerNode.isLoading = false
                         self.controllerNode.isPaginating = false
                         if reset {
                             self.controllerNode.showNetworkError = true
+                        } else {
+                            self.controllerNode.showPaginationError() // Снэкбар пагинации
                         }
                     }
                 }
