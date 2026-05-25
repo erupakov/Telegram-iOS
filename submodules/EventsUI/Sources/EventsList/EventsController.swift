@@ -23,7 +23,6 @@ public final class EventsController: TelegramBaseController {
 
     private let _ready = Promise<Bool>(false)
     override public var ready: Promise<Bool> {
-//        getEvents()
         return self._ready
     }
 
@@ -42,8 +41,22 @@ public final class EventsController: TelegramBaseController {
     private let clearDisposable = MetaDisposable()
 
     private var isAgency: Bool = false
+    private var agencyId: Int?
     private var didLoadEvents: Bool = false
-    private var cachedItems: [EventListItem] = []
+    
+    // Структура хранения состояния вкладок (добавлено сохранение скролла scrollOffset)
+    private struct TabState {
+        var events: [EventData] = []
+        var offset: Int = 0
+        var isLoading: Bool = false
+        var hasMore: Bool = true
+        var isLoaded: Bool = false
+        var scrollOffset: CGPoint = .zero
+    }
+
+    private var tabStates: [TabState] = [TabState(), TabState()]
+    private var selectedTabIndex: Int = 0
+    private let eventsPageSize = 30
 
     public init(context: AccountContext) {
         self.context = context
@@ -71,12 +84,14 @@ public final class EventsController: TelegramBaseController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.fetchUserRole()
-            self?.getEvents()
+            guard let self = self else { return }
+            self.tabStates = [TabState(), TabState()]
+            self.fetchUserRole()
         }
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.tabBarItem.title = DivoStrings.tabEvents
-            self?.renderCachedItems()
+            self?.tabStates = [TabState(), TabState()]
+            self?.loadEventsList(tabIndex: self?.selectedTabIndex ?? 0, reset: true)
         }
     }
 
@@ -110,7 +125,6 @@ public final class EventsController: TelegramBaseController {
         super.viewWillAppear(animated)
         if !didLoadEvents {
             fetchUserRole()
-            getEvents()
         }
     }
 
@@ -122,50 +136,149 @@ public final class EventsController: TelegramBaseController {
                     method: "GET"
                 )
                 let role = response.data.role ?? ""
+                self.isAgency = role == "agency" || role == "agency_employee"
+                self.agencyId = response.data.id
                 await MainActor.run {
                     let wasAgency = self.isAgency
-                    self.isAgency = role == "agency" || role == "agency_employee"
                     if wasAgency != self.isAgency {
                         self.updateNavigation()
                     }
+                    self.loadEventsList(tabIndex: selectedTabIndex, reset: true)
                 }
             } catch {
-                divoLog("fetchUserRole failed: \(error)", level: .error)
+                print("⚠️ fetchUserRole failed: \(error)")
             }
         }
     }
 
-    private func getEvents() {
-        self.controllerNode.beginLoading()
-        let body = EventListRequest(offset: 0, limit: 30, creatorId: nil)
+    override public func loadDisplayNode() {
+        self.displayNode = EventsControllerNode(controller: self, context: self.context, presentationData: self.presentationData)
+        self.displayNodeDidLoad()
+
+        self.controllerNode.loadMore = { [weak self] in
+            self?.loadNextPage()
+        }
+        self.controllerNode.onTabSelected = { [weak self] index in
+            self?.switchToTab(index)
+        }
+
+        self.controllerNode.updateIsAgency(self.isAgency)
+        self._ready.set(.single(true))
+    }
+
+    private func switchToTab(_ index: Int) {
+        guard index != selectedTabIndex else { return }
+        
+        tabStates[selectedTabIndex].scrollOffset = self.controllerNode.collectionViewContentOffset()
+        
+        selectedTabIndex = index
+        let state = tabStates[index]
+        
+        if !state.isLoaded {
+            controllerNode.isLoading = true
+            loadEventsList(tabIndex: index, reset: true)
+        } else {
+            controllerNode.updateEvents(state.events, scrollOffset: state.scrollOffset)
+            controllerNode.showNetworkError = false
+            controllerNode.isPaginating = false
+            controllerNode.isLoading = state.isLoading
+            controllerNode.showEmptyStateIfNeeded()
+        }
+    }
+
+    private func loadNextPage() {
+        let index = selectedTabIndex
+        let state = tabStates[index]
+        guard !state.isLoading, state.hasMore else { return }
+        loadEventsList(tabIndex: index, reset: false)
+    }
+
+    // Формирование EventListRequest с фильтрацией по creatorId для таба "Мои"
+    private func requestBody(tabIndex: Int, offset: Int, limit: Int) -> EventListRequest {
+        if self.isAgency, tabIndex == 0 {
+            return EventListRequest(offset: offset, limit: limit, creatorId: self.agencyId)
+        } else {
+            return EventListRequest(offset: offset, limit: limit, creatorId: nil)
+        }
+    }
+
+    private func loadEventsList(tabIndex: Int, reset: Bool) {
+        guard !tabStates[tabIndex].isLoading else { return }
+        tabStates[tabIndex].isLoading = true
+
+        let isCurrentTab = tabIndex == selectedTabIndex
+        if isCurrentTab {
+            if reset {
+                controllerNode.isLoading = true
+                controllerNode.isPaginating = false
+            } else {
+                controllerNode.isPaginating = true
+            }
+        }
+
+        if reset {
+            tabStates[tabIndex].offset = 0
+            tabStates[tabIndex].hasMore = true
+        }
+
+        let offset = tabStates[tabIndex].offset
+        let limit = eventsPageSize
+
         Task {
             do {
+                let body = requestBody(tabIndex: tabIndex, offset: offset, limit: limit)
+                
                 let response: EventListResponse = try await DivoAPIClient.shared.request(
                     path: "/event/list",
                     method: "POST",
                     body: body
                 )
+                let eventDataArray = self.mapEvents(response.data.items)
+                
                 await MainActor.run {
-                    self.cachedItems = response.data.items
+                    self.controllerNode.updateIsAgency(self.isAgency)
+                    if reset {
+                        self.tabStates[tabIndex].events = eventDataArray
+                    } else {
+                        self.tabStates[tabIndex].events.append(contentsOf: eventDataArray)
+                    }
+                    self.tabStates[tabIndex].offset = offset + eventDataArray.count
+                    self.tabStates[tabIndex].hasMore = eventDataArray.count >= limit
+                    self.tabStates[tabIndex].isLoading = false
+                    self.tabStates[tabIndex].isLoaded = true
                     self.didLoadEvents = true
-                    self.renderCachedItems()
+
+                    if tabIndex == self.selectedTabIndex {
+                        if reset {
+                            self.controllerNode.updateEvents(self.tabStates[tabIndex].events, scrollOffset: .zero)
+                        } else {
+                            self.controllerNode.appendEvents(eventDataArray)
+                        }
+                        self.controllerNode.isLoading = false
+                        self.controllerNode.isPaginating = false
+                        self.controllerNode.showNetworkError = false
+                        self.controllerNode.showEmptyStateIfNeeded()
+                    }
                 }
-                return
-            } catch {}
-            await MainActor.run {
-                self.cachedItems = []
-                self.didLoadEvents = true
-                self.renderCachedItems()
+            } catch {
+                print("[DivoAPI] event/list error (tab \(tabIndex)): \(error)")
+                await MainActor.run {
+                    self.tabStates[tabIndex].isLoading = false
+                    if tabIndex == self.selectedTabIndex {
+                        self.controllerNode.isLoading = false
+                        self.controllerNode.isPaginating = false
+                        if reset {
+                            self.controllerNode.showNetworkError = true
+                        }
+                    }
+                }
             }
         }
     }
-
-    private func renderCachedItems() {
-        let items = self.cachedItems
-        guard !items.isEmpty else {
-            self.controllerNode.reloadEvents(events: [])
-            return
-        }
+    
+    // Вспомогательный маппер объектов API в EventData
+    private func mapEvents(_ items: [EventListItem]) -> [EventData] {
+        guard !items.isEmpty else { return [] }
         let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
         
         let datePartFormatter: DateFormatter = {
@@ -217,7 +330,7 @@ public final class EventsController: TelegramBaseController {
             }
         }
         
-        let eventDataArray: [EventData] = items.map { item in
+        return items.map { item in
             let dateString: String
             if let raw = item.date {
                 let normalized = raw.replacingOccurrences(of: " ", with: "T")
@@ -255,7 +368,6 @@ public final class EventsController: TelegramBaseController {
                 isCurrentRoleAgency: self.isAgency
             )
         }
-        self.controllerNode.reloadEvents(events: eventDataArray)
     }
     
     private static func flag(for countryCode: String?) -> String {
@@ -290,23 +402,7 @@ public final class EventsController: TelegramBaseController {
             NotificationCenter.default.removeObserver(observer)
         }
     }
-
-    override public func loadDisplayNode() {
-        self.displayNode = EventsControllerNode(controller: self, context: self.context, presentationData: self.presentationData)
-        self.displayNodeDidLoad()
-
-
-//        self._ready.set(combineLatest(queue: .mainQueue(),
-////            self.contactsNode.contactListNode.ready,
-////            self.contactsNode.storiesReady.get()
-//        )
-//        |> filter { a, b in
-//            return a && b
-//        }
-//        |> take(1)
-//        |> map { _ -> Bool in true })
-    }
-
+    
     override public func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
 
@@ -316,6 +412,6 @@ public final class EventsController: TelegramBaseController {
 
 extension EventsController: CreateEventDelegate {
     func didCreateEvent() {
-        self.getEvents()
+        self.loadEventsList(tabIndex: self.selectedTabIndex, reset: true)
     }
 }
