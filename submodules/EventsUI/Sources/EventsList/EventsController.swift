@@ -164,6 +164,9 @@ public final class EventsController: TelegramBaseController {
         self.controllerNode.createEvent = { [weak self] in
             self?.addPressed()
         }
+        self.controllerNode.applyForEvent = { [weak self] eventId, cell in
+            self?.applyForEvent(eventId: eventId, cell: cell)
+        }
 
         self.controllerNode.updateIsAgency(self.isAgency)
         self._ready.set(.single(true))
@@ -368,8 +371,39 @@ public final class EventsController: TelegramBaseController {
                 maxAttendees: item.maxAttendees,
                 paymentTypeId: item.paymentType?.id,
                 applicationDeadline: item.applicationDeadline,
-                isCurrentRoleAgency: self.isAgency
+                isCurrentRoleAgency: self.isAgency,
+                isApplied: item.isApplied
             )
+        }
+    }
+
+    // Логика отклика на эвент
+    private func applyForEvent(eventId: Int, cell: EventCollectionViewCell) {
+        cell.setApplyButtonLoading(true)
+        
+        let body = ApplyEventRequest(eventId: eventId)
+        
+        Task {
+            do {
+                let _: ApplyEventResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/apply",
+                    method: "POST",
+                    body: body
+                )
+                
+                await MainActor.run {
+                    if cell.currentEventId == eventId {
+                        cell.setApplyButtonLoading(false, true)
+                    }
+                }
+            } catch {
+                print("⚠️ applyForEvent failed: \(error)")
+                await MainActor.run {
+                    if cell.currentEventId == eventId {
+                        cell.setApplyButtonLoading(false)
+                    }
+                }
+            }
         }
     }
     

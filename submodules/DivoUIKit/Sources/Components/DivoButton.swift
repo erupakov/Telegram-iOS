@@ -5,7 +5,7 @@ public final class DivoButton: UIButton {
 
     // MARK: - Design tokens
 
-    private static let buttonFont = Font.helveticaNeue(20)
+    private var buttonFont = Font.helveticaNeue(20)
     private static let kern: CGFloat = 18 * 0.005 // 0.5 %
     private static let buttonHeight: CGFloat = 56
     private static let compactButtonHeight: CGFloat = 40
@@ -51,8 +51,9 @@ public final class DivoButton: UIButton {
     // MARK: - Configuration
     
     public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil, divoButtonStyle: DivoButtonStyle = .primary) {
-        normalTitle = title
-        loadingTitle = loading
+        self.normalTitle = title
+        self.loadingTitle = loading
+        self.buttonFont = buttonFont
 
         applyNormalTitle(buttonFont: buttonFont)
         applyDisabledTitle(buttonFont: buttonFont)
@@ -65,6 +66,7 @@ public final class DivoButton: UIButton {
     public func makeDivoButton(
         title: String,
         leadingIcon: UIImage,
+        iconSize: CGSize? = nil,
         loading: String? = nil,
         buttonFont: UIFont = Font.helveticaNeue(20),
         radius: CGFloat? = nil,
@@ -77,15 +79,22 @@ public final class DivoButton: UIButton {
         } else {
             makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius)
         }
+        
+        let processedIcon: UIImage
+        if let iconSize = iconSize {
+            processedIcon = resizedImage(leadingIcon, to: iconSize)
+        } else {
+            processedIcon = leadingIcon
+        }
 
-        let templated = leadingIcon.withRenderingMode(.alwaysTemplate)
+        let templated = processedIcon.withRenderingMode(.alwaysTemplate)
         setImage(templated, for: .normal)
         setImage(templated, for: .highlighted)
         tintColor = DivoColorPalette.primaryTextOnDark
         let gap = DivoDesignTokens.Spacing.xs
         imageEdgeInsets = UIEdgeInsets(top: 0, left: -gap, bottom: 0, right: gap)
         titleEdgeInsets = UIEdgeInsets(top: 0, left: gap, bottom: 0, right: -gap)
-                
+        
         addDivoPressState(.primary)
     }
     
@@ -95,10 +104,6 @@ public final class DivoButton: UIButton {
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = Self.cornerRadius
-
-        // Если текст не помещается — обрезаем с конца. Главное слово
-        // обычно идёт первым («Publish event» → «Publish ev…»).
-        titleLabel?.lineBreakMode = .byTruncatingTail
 
         contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right:  DivoDesignTokens.Spacing.m)
 
@@ -142,11 +147,19 @@ public final class DivoButton: UIButton {
     private func savingAttributedString() -> NSAttributedString {
         guard let loadingTitle = loadingTitle else { return NSAttributedString() }
         let attr: [NSAttributedString.Key: Any] = [
-            .font: Self.buttonFont,
+            .font: self.buttonFont,
             .kern: Self.kern,
             .foregroundColor: DivoColorPalette.primaryTextOnDark,
         ]
         return NSAttributedString(string: loadingTitle, attributes: attr)
+    }
+    
+    // Метод для высокопроизводительного ресайза картинок
+    private func resizedImage(_ image: UIImage, to size: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
     }
 
     // MARK: - Highlight suppression

@@ -319,6 +319,8 @@ public enum DivoStrings {
     public static var error: String { L(en: "Error", ru: "Ошибка", es: "Error", pt: "Erro", zh: "错误") }
     public static var search: String { L(en: "Search", ru: "Поиск", es: "Buscar", pt: "Buscar", zh: "搜索") }
     public static var apply: String { L(en: "Apply", ru: "Подать заявку", es: "Aplicar", pt: "Aplicar", zh: "申请") }
+    public static var applied: String { L(en: "Applied", ru: "Применено", es: "Aplicado", pt: "Aplicado", zh: "已应用") }
+    public static var applying: String { L(en: "Applying...", ru: "Применение...", es: "Aplicando...", pt: "Aplicando...", zh: "应用中...") }
     public static var applyNow: String { L(en: "Apply now", ru: "Подать заявку сейчас", es: "Aplicar ahora", pt: "Candidatar-se agora", zh: "立即申请") }
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...") }
@@ -979,6 +981,7 @@ public enum DivoStrings {
     
     public static var eventsMy: String { L(en: "My Events", ru: "Мои события", es: "Mis eventos", pt: "Meus eventos", zh: "我的活动") }
     public static var eventsAll: String { L(en: "All Events", ru: "Все события", es: "Todos los eventos", pt: "Todos os eventos", zh: "所有活动") }
+    public static var failedApplyEvent: String { L(en: "Failed to record event", ru: "Не удалось записать событие", es: "Error al registrar el evento", pt: "Falha ao registrar o evento", zh: "记录事件失败") }
 
     // MARK: - Event Parameter Titles
 

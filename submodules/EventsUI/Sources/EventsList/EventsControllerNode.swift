@@ -83,6 +83,7 @@ final class EventsControllerNode: ASDisplayNode {
     var onTabSelected: ((Int) -> Void)?
     var loadMore: (() -> Void)?
     var createEvent: (() -> Void)?
+    var applyForEvent: ((Int, EventCollectionViewCell) -> Void)?
     
     public var isLoading: Bool = true {
         didSet {
@@ -513,6 +514,30 @@ final class EventsControllerNode: ASDisplayNode {
     @objc private func createEventTapped() {
         self.createEvent?()
     }
+
+    
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: DivoDesignTokens.Spacing.m,
+            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
+    }
 }
 
 extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
@@ -521,6 +546,7 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        // Безопасная проверка выхода за пределы массива на случай рассинхронизации во время переключения
         guard indexPath.item < events.count else {
             return collectionView.dequeueReusableCell(withReuseIdentifier: "EventCollectionViewCell", for: indexPath)
         }
@@ -529,6 +555,13 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
         }
         let event = events[indexPath.item]
         cell.configure(with: event, context: context)
+        
+        // Связываем действие тапа на кнопку Apply с замыканием узла
+        cell.onApply = { [weak self, weak cell] in
+            guard let self = self, let cell = cell else { return }
+            self.applyForEvent?(event.id, cell)
+        }
+        
         return cell
     }
     

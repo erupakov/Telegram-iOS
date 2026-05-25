@@ -18,6 +18,8 @@ final class EventCollectionViewCell: UICollectionViewCell {
     
     private let blurMaskLayer = CAGradientLayer()
 
+    private(set) var currentEventId: Int?
+
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
@@ -180,12 +182,14 @@ final class EventCollectionViewCell: UICollectionViewCell {
         return label
     }()
 
+    var onApply: (() -> Void)?
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
         
-        applyButton.makeDivoButton(title: DivoStrings.apply, buttonFont: Font.helveticaNeue(12), radius: 12)
-//        applyButton.addTarget(self, action: #selector(dashedUploadTapped), for: .touchUpInside)
+        applyButton.makeDivoButton(title: DivoStrings.apply, loading: DivoStrings.applying, buttonFont: Font.helveticaNeue(12), radius: 12)
+        applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
     }
 
     required init?(coder: NSCoder) {
@@ -335,10 +339,35 @@ final class EventCollectionViewCell: UICollectionViewCell {
         imageView.image = nil
         profileImageView.cancelImageLoad()
         profileImageView.image = nil
+        
+        currentEventId = nil
+        onApply = nil
+        setApplyButtonLoading(false)
+    }
+
+    @objc private func applyButtonTapped() {
+        self.onApply?()
+    }
+    
+    // Включение/выключение режима лоадера на кнопке
+    public func setApplyButtonLoading(_ isLoading: Bool, _ isApplied: Bool = false) {
+        applyButton.setSaving(isLoading, in: self)
+        if isApplied {
+            applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)
+        }
     }
 
     func configure(with event: EventData, context: AccountContext) {
-        applyButton.setTitle(DivoStrings.apply, for: .normal)
+        self.currentEventId = event.id
+        
+        if event.isApplied == true {
+            applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)
+            applyButton.isUserInteractionEnabled = false
+        } else {
+            applyButton.makeDivoButton(title: DivoStrings.apply, buttonFont: Font.helveticaNeue(12), radius: 12)
+            applyButton.isUserInteractionEnabled = true
+        }
+
         profileNameLabel.text = event.profileName
         titleLabel.text = event.title
         
