@@ -1246,6 +1246,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1445536993] = { return Api.UrlAuthResult.parse_urlAuthResultDefault($0) }
     dict[855293722] = { return Api.UrlAuthResult.parse_urlAuthResultRequest($0) }
     dict[829899656] = { return Api.User.parse_user($0) }
+    // DIVO: teamgram-сервер на layer 201 отдаёт User с constructor 0x020b1422 (34280482).
+    // Структура полей и битовые флаги идентичны 0x31774388 (829899656, layer 217+),
+    // поэтому достаточно alias'а на тот же parse_user. См. teamgram-proto class_name_registers.go.
+    dict[34280482] = { return Api.User.parse_user($0) }
     dict[-271849932] = { return Api.UserProfile.parse_userProfile($0) }
     dict[-742634630] = { return Api.User.parse_userEmpty($0) }
     dict[-1607745218] = { return Api.UserFull.parse_userFull($0) }
