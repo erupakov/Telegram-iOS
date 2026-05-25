@@ -337,7 +337,7 @@ final class EventsControllerNode: ASDisplayNode {
         container.addSubview(iconImageView)
         
         let titleLabel = UILabel()
-        titleLabel.text = DivoStrings.noUpcomingEventsTitle
+        titleLabel.text = DivoStrings.noUpcomingEventsTitle.uppercased()
         titleLabel.font = Font.helveticaNeue(26)
         titleLabel.textColor = DivoColorPalette.primaryText
         titleLabel.textAlignment = .center
@@ -346,7 +346,7 @@ final class EventsControllerNode: ASDisplayNode {
         container.addSubview(titleLabel)
         
         let subtitleLabel = UILabel()
-        subtitleLabel.text = DivoStrings.noUpcomingEventsSubtitle
+        subtitleLabel.text = self.isAgency ? DivoStrings.noUpcomingEventsAgencySubtitle : DivoStrings.noUpcomingEventsSubtitle
         subtitleLabel.font = Font.medium(16)
         subtitleLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         subtitleLabel.textAlignment = .center

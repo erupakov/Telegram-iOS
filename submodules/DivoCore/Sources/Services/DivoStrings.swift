@@ -240,6 +240,7 @@ public enum DivoStrings {
     public static var noEventsYet: String { L(en: "No events yet", ru: "Событий пока нет", es: "Sin eventos aún", pt: "Sem eventos ainda", zh: "暂无活动") }
     public static var noUpcomingEventsTitle: String { L(en: "There are no upcoming events at the moment.", ru: "На данный момент предстоящих событий нет.", es: "No hay eventos próximos en este momento.", pt: "Não há eventos futuros no momento.", zh: "目前暂无即将举行的活动.") }
     public static var noUpcomingEventsSubtitle: String { L(en: "Check back later.", ru: "Загляните позже.", es: "Vuelve a consultar más tarde.", pt: "Volte mais tarde.", zh: "请稍后再来查看.") }
+    public static var noUpcomingEventsAgencySubtitle: String { L(en: "Check back later or create a new one.", ru: "Загляните позже или создайте новое.", es: "Vuelve a consultar más tarde o crea uno nuevo.", pt: "Volte mais tarde ou crie um novo.", zh: "请稍后再来查看或创建一个新的.") }
     public static var addChannel: String { L(en: "Add channel", ru: "Добавить канал", es: "Agregar canal", pt: "Adicionar canal", zh: "添加频道") }
     public static var addModel: String { L(en: "Add model", ru: "Добавить модель", es: "Agregar modelo", pt: "Adicionar modelo", zh: "添加模特") }
     public static var addEvent: String { L(en: "Add event", ru: "Добавить событие", es: "Agregar evento", pt: "Adicionar evento", zh: "添加活动") }
