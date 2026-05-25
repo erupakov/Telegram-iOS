@@ -82,6 +82,7 @@ final class EventsControllerNode: ASDisplayNode {
     
     var onTabSelected: ((Int) -> Void)?
     var loadMore: (() -> Void)?
+    var createEvent: (() -> Void)?
     
     public var isLoading: Bool = true {
         didSet {
@@ -352,6 +353,12 @@ final class EventsControllerNode: ASDisplayNode {
         subtitleLabel.numberOfLines = 0
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(subtitleLabel)
+
+        let createButton = DivoButton()
+        createButton.translatesAutoresizingMaskIntoConstraints = false
+        createButton.makeDivoButton(title: DivoStrings.createEvent)
+        createButton.addTarget(self, action: #selector(createEventTapped), for: .touchUpInside)
+        container.addSubview(createButton)
         
         NSLayoutConstraint.activate([
             
@@ -369,8 +376,14 @@ final class EventsControllerNode: ASDisplayNode {
             subtitleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
             subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
+
+            createButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -100),
+            createButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            createButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            createButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
         ])
-        
+        createButton.isHidden = !self.isAgency
+
         self.view.addSubview(container)
         emptyStateView = container
         
@@ -495,6 +508,10 @@ final class EventsControllerNode: ASDisplayNode {
         if isLoading && shimmerViews.isEmpty {
             showShimmer(topOffset: navigationBarHeight + currentTabsHeight + 16, width: layout.size.width)
         }
+    }
+
+    @objc private func createEventTapped() {
+        self.createEvent?()
     }
 }
 

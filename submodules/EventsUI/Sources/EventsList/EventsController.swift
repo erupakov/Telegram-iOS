@@ -161,6 +161,9 @@ public final class EventsController: TelegramBaseController {
         self.controllerNode.onTabSelected = { [weak self] index in
             self?.switchToTab(index)
         }
+        self.controllerNode.createEvent = { [weak self] in
+            self?.addPressed()
+        }
 
         self.controllerNode.updateIsAgency(self.isAgency)
         self._ready.set(.single(true))
