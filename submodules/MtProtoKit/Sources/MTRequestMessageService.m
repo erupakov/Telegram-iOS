@@ -131,7 +131,9 @@
             if (MTLogEnabled()) {
                 MTLog(@"[MTRequestMessageService#%" PRIxPTR " add request %@]", (intptr_t)self, request.metadata);
             }
-            
+            // DIVO: лог в обычный NSLog, чтобы видеть в Console.app даже когда MTLog выключен.
+            NSLog(@"[DIVO MTProto] addRequest queued — metadata=%@", request.metadata);
+
             [_requests addObject:request];
             [mtProto requestTransportTransaction];
         }
@@ -637,6 +639,11 @@
             MTOutgoingMessage *outgoingMessage = [[MTOutgoingMessage alloc] initWithData:decoratedRequestData metadata:request.metadata additionalDebugDescription:decoratedDebugDescription shortMetadata:request.shortMetadata messageId:messageId messageSeqNo:messageSeqNo];
             outgoingMessage.needsQuickAck = request.acknowledgementReceived != nil;
             outgoingMessage.hasHighPriority = request.hasHighPriority;
+            // DIVO: лог в Console.app — фиксируем момент, когда запрос упаковали в outgoing
+            // и он реально идёт в TCP (через requestTransportTransaction). Если этой записи нет
+            // после addRequest queued — запрос завис в очереди до отправки.
+            NSLog(@"[DIVO MTProto] outgoing prepared — metadata=%@, messageId=%lld, dataLen=%lu",
+                  request.metadata, messageId, (unsigned long)decoratedRequestData.length);
             
             id unresolvedDependencyOnRequestInternalId = autoreleasingUnresolvedDependencyOnRequestInternalId;
             if (unresolvedDependencyOnRequestInternalId != nil)
@@ -807,7 +814,23 @@
                         rpcResult = request.responseParser(unwrappedData);
                         if (rpcResult == nil)
                         {
-                            rpcError = [[MTRpcError alloc] initWithErrorCode:444 errorDescription:@"🚫TL_PARSING_ERROR"];
+                            // DIVO: расширенный лог для диагностики TL_PARSING_ERROR — пишем
+                            // hex первых ~64 байт ответа сервера + constructor ID (первые 4 байта),
+                            // чтобы понять, что именно парсер не понял.
+                            uint32_t constructorId = 0;
+                            if (unwrappedData.length >= 4) {
+                                [unwrappedData getBytes:&constructorId length:4];
+                            }
+                            NSUInteger hexLength = MIN(unwrappedData.length, (NSUInteger)64);
+                            NSMutableString *hexDump = [NSMutableString stringWithCapacity:hexLength * 2];
+                            const uint8_t *bytes = (const uint8_t *)unwrappedData.bytes;
+                            for (NSUInteger i = 0; i < hexLength; i++) {
+                                [hexDump appendFormat:@"%02x", bytes[i]];
+                            }
+                            NSLog(@"[DIVO MTProto] TL_PARSING_ERROR — totalBytes=%lu, constructorId=0x%08x, hex(first %lu bytes)=%@",
+                                  (unsigned long)unwrappedData.length, constructorId, (unsigned long)hexLength, hexDump);
+
+                            rpcError = [[MTRpcError alloc] initWithErrorCode:444 errorDescription:[NSString stringWithFormat:@"🚫TL_PARSING_ERROR constructor=0x%08x len=%lu hex=%@", constructorId, (unsigned long)unwrappedData.length, hexDump]];
                             [_context performBatchUpdates:^{
                                 MTDatacenterAuthInfo *authInfo = [_context authInfoForDatacenterWithId:mtProto.datacenterId selector:authInfoSelector];
                                 
