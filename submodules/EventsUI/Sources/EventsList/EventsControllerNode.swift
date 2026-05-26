@@ -29,10 +29,12 @@ final class EventsControllerNode: ASDisplayNode {
     private var events: [EventData] = []
     
     private var shimmerViews: [ShimmerView] = []
-    private var emptyStateView: UIView?
+    private var emptyStateView: DivoEmptyStateView?
     
     private var isAgency: Bool = false
     private var userId: Int? = nil
+
+    private var localeChangeObserver: NSObjectProtocol?
 
     private let navBackgroundView: UIView = {
         let v = UIView()
@@ -43,7 +45,7 @@ final class EventsControllerNode: ASDisplayNode {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(34)
-        label.textColor = .black
+        label.textColor = DivoColorPalette.primaryText
         return label
     }()
     
@@ -74,11 +76,33 @@ final class EventsControllerNode: ASDisplayNode {
         return view
     }()
     
-    // Спиннер пагинации внизу страницы
-    private let footerSpinner: DivoSegmentedSpinner = {
-        let spinner = DivoSegmentedSpinner()
-        spinner.isHidden = true
-        return spinner
+    // MARK: - Grid layout tokens
+    // Используются и для шиммеров, и для реального layout коллекции —
+    // должны совпадать побитово, иначе размер шиммера не совпадёт с ячейкой.
+    private static let gridHorizontalInset: CGFloat = DivoDesignTokens.Spacing.m  // 16
+    private static let gridInterspacing: CGFloat = 10                             // design choice, между s(8) и m(16)
+    private static let gridAspectRatio: CGFloat = 1.35
+    private static let gridColumns: CGFloat = 2.0
+    private static let gridCellCornerRadius: CGFloat = DivoDesignTokens.Radius.m  // 12
+    private static let shimmerCellCount = 6
+
+    // Спиннер пагинации — встроен в collectionView.contentInset.bottom и
+    // позиционируется под последней ячейкой (повторяет шаблон ModelsFeedNode).
+    private static let paginationSpinnerHeight: CGFloat = 60
+
+    private let paginationSpinnerView: UIView = {
+        let container = UIView()
+        container.isHidden = true
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.color = DivoColorPalette.primaryText
+        spinner.startAnimating()
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(spinner)
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        return container
     }()
     
     private var errorView: UIView?
@@ -92,37 +116,55 @@ final class EventsControllerNode: ASDisplayNode {
     
     var onRetry: (() -> Void)?
     var onPaginationRetry: (() -> Void)?
-    
-    public var isLoading: Bool = true {
+
+    /// Фаза экрана: loading / content / empty / failed.
+    /// Меняется единственным сеттером — `applyState()` атомарно расставляет
+    /// видимости и шиммеры. Никаких partial updates из сетевых колбэков.
+    public enum ContentPhase: Equatable {
+        case loading
+        case content
+        case empty
+        case failed(networkError: Bool)
+    }
+
+    public var phase: ContentPhase = .loading {
         didSet {
-            if isLoading {
-                self.beginLoading()
-            }
+            if oldValue != phase { applyState() }
         }
     }
-    
+
+    /// Пагинация — ортогональна `phase`: спиннер встраивается в `contentInset.bottom`
+    /// коллекции и располагается под последней ячейкой.
     public var isPaginating: Bool = false {
         didSet {
+            guard oldValue != isPaginating else { return }
             if isPaginating {
-                self.footerSpinner.startAnimating()
-                self.footerSpinner.isHidden = false
+                collectionView.contentInset.bottom = Self.paginationSpinnerHeight
+                paginationSpinnerView.isHidden = false
+                updatePaginationSpinnerFrame()
             } else {
-                self.footerSpinner.stopAnimating()
-                self.footerSpinner.isHidden = true
+                collectionView.contentInset.bottom = 0
+                paginationSpinnerView.isHidden = true
             }
         }
     }
-    
-    // Управление полноэкранным состоянием ошибки по аналогии с фидом моделей
-    public var showNetworkError: Bool = false {
-        didSet {
-            if showNetworkError && events.isEmpty {
-                removeShimmer()
-                showErrorState()
-            } else {
-                hideErrorState()
-            }
+
+    private func updatePaginationSpinnerFrame() {
+        let width = collectionView.bounds.width
+        let lastIndex = events.count - 1
+        let y: CGFloat
+        if lastIndex >= 0,
+           let attrs = collectionView.layoutAttributesForItem(at: IndexPath(item: lastIndex, section: 0)) {
+            y = attrs.frame.maxY
+        } else {
+            y = collectionView.contentSize.height
         }
+        paginationSpinnerView.frame = CGRect(
+            x: 0,
+            y: y,
+            width: width,
+            height: Self.paginationSpinnerHeight
+        )
     }
     
     init(controller: ViewController, context: AccountContext, presentationData: PresentationData) {
@@ -152,7 +194,7 @@ final class EventsControllerNode: ASDisplayNode {
         self.view.addSubview(self.navBackgroundView)
         self.navBackgroundView.addSubview(self.titleLabel)
         self.view.addSubview(self.tabsContainerView)
-        self.view.addSubview(self.footerSpinner)
+        self.collectionView.addSubview(self.paginationSpinnerView)
         
         // Segmented control tabs
         tabsContainerView.addSubview(segmentedControl)
@@ -169,7 +211,7 @@ final class EventsControllerNode: ASDisplayNode {
         self.didSetReady = true
         self._ready.set(true)
         
-        NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+        self.localeChangeObserver = NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             self.titleLabel.text = DivoStrings.navEvents
             self.segmentedControl.updateTitles(self.tabTitles)
@@ -178,13 +220,20 @@ final class EventsControllerNode: ASDisplayNode {
             }
         }
     }
+
+    deinit {
+        if let observer = self.localeChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
     
     public func updateIsAgency(_ isAgency: Bool) {
-        if self.isAgency != isAgency {
-            self.isAgency = isAgency
-            if let (layout, navigationBarHeight) = self.containerLayout {
-                self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
-            }
+        self.isAgency = isAgency
+        // Безусловно переразложить layout: даже если значение совпало, на момент
+        // первого присвоения (из loadDisplayNode) containerLayout мог быть nil,
+        // и сегмент агентства не отрисовался бы.
+        if let (layout, navigationBarHeight) = self.containerLayout {
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
         }
     }
 
@@ -196,92 +245,102 @@ final class EventsControllerNode: ASDisplayNode {
     public func collectionViewContentOffset() -> CGPoint {
         return self.collectionView.contentOffset
     }
-    
-    // Обновление списка событий с безопасным восстановлением скролла
-    public func updateEvents(_ events: [EventData], scrollOffset: CGPoint = .zero) {
+
+    // MARK: - Data API
+
+    /// Полная замена списка событий. Фазу выставляет caller отдельно (`phase = .content / .empty`).
+    public func setEvents(_ events: [EventData], scrollOffset: CGPoint = .zero) {
         self.events = events
-        self.isLoading = false
-        removeShimmer()
-        
-        if let (layout, navigationBarHeight) = containerLayout {
-            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
-        }
-        
         self.collectionView.reloadData()
         self.collectionView.layoutIfNeeded()
-        
+
         let maxOffsetY = max(0, self.collectionView.contentSize.height - self.collectionView.bounds.height)
         let targetY = min(scrollOffset.y, maxOffsetY)
         self.collectionView.setContentOffset(CGPoint(x: scrollOffset.x, y: targetY), animated: false)
-        
-        if events.isEmpty {
-            collectionView.isHidden = true
-            searchFadeOverlay.isHidden = true
-            showEmptyState()
-        } else {
-            collectionView.isHidden = false
-            searchFadeOverlay.isHidden = false
-            hideEmptyState()
-        }
     }
-    
-    // Безопасное добавление новой страницы (пагинация)
+
+    /// Пагинация — добавление новой страницы без перезагрузки коллекции.
     public func appendEvents(_ events: [EventData]) {
+        guard !events.isEmpty else { return }
         let start = self.events.count
         self.events.append(contentsOf: events)
-        self.isLoading = false
-        removeShimmer()
-        
-        if let (layout, navigationBarHeight) = containerLayout {
-            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
+
+        // Если коллекция не на экране — performBatchUpdates с insertItems рискует
+        // вызвать internal inconsistency (нет layout pass). Делаем reloadData.
+        guard collectionView.window != nil else {
+            collectionView.reloadData()
+            updatePaginationSpinnerFrame()
+            return
         }
-        
-        if self.events.isEmpty {
+
+        let indexPaths = (0..<events.count).map { IndexPath(item: start + $0, section: 0) }
+        self.collectionView.performBatchUpdates({
+            self.collectionView.insertItems(at: indexPaths)
+        }, completion: { [weak self] _ in
+            self?.updatePaginationSpinnerFrame()
+        })
+    }
+
+    // MARK: - State machine
+
+    private func applyState() {
+        switch phase {
+        case .loading:
             collectionView.isHidden = true
             searchFadeOverlay.isHidden = true
-            showEmptyState()
-            self.collectionView.reloadData()
-        } else {
+            hideEmptyState()
+            hideErrorState()
+            if let (layout, navigationBarHeight) = containerLayout {
+                let currentTabsHeight = self.isAgency ? self.tabsHeight : 0.0
+                showShimmer(topOffset: navigationBarHeight + currentTabsHeight + 16, width: layout.size.width)
+            }
+        case .content:
             collectionView.isHidden = false
             searchFadeOverlay.isHidden = false
             hideEmptyState()
-            
-            let indexPaths = (0..<events.count).map { IndexPath(item: start + $0, section: 0) }
-            self.collectionView.performBatchUpdates({
-                self.collectionView.insertItems(at: indexPaths)
-            }, completion: nil)
-        }
-    }
-    
-    public func showEmptyStateIfNeeded() {
-        if self.events.isEmpty && !self.isLoading {
+            hideErrorState()
+            removeShimmer()
+        case .empty:
+            collectionView.isHidden = true
+            searchFadeOverlay.isHidden = true
+            hideErrorState()
+            removeShimmer()
             showEmptyState()
-        } else {
+        case .failed:
+            collectionView.isHidden = true
+            searchFadeOverlay.isHidden = true
             hideEmptyState()
+            removeShimmer()
+            showErrorState()
         }
     }
-    
+
+    // MARK: - Shimmer
+
     func showShimmer(topOffset: CGFloat, width: CGFloat) {
         removeShimmer()
         collectionView.isHidden = true
         searchFadeOverlay.isHidden = true
-        
+
         guard width > 0 else { return }
-        let spacing: CGFloat = 16
-        
-        let itemWidth = floor((width - spacing * 2 - 10) / 2.0)
-        let itemHeight = floor(itemWidth * 1.35)
-        
-        for i in 0..<6 {
+
+        let spacing = Self.gridHorizontalInset
+        let gap = Self.gridInterspacing
+        let columns = Self.gridColumns
+
+        let itemWidth = floor((width - spacing * 2 - gap) / columns)
+        let itemHeight = floor(itemWidth * Self.gridAspectRatio)
+
+        for i in 0..<Self.shimmerCellCount {
             let shimmer = ShimmerView()
-            shimmer.layer.cornerRadius = 12
+            shimmer.layer.cornerRadius = Self.gridCellCornerRadius
             shimmer.layer.masksToBounds = true
-            let col = i % 2
-            let row = i / 2
-            
-            let x: CGFloat = spacing + CGFloat(col) * (itemWidth + 10)
-            let y: CGFloat = topOffset + CGFloat(row) * (itemHeight + 10)
-            
+            let col = i % Int(columns)
+            let row = i / Int(columns)
+
+            let x: CGFloat = spacing + CGFloat(col) * (itemWidth + gap)
+            let y: CGFloat = topOffset + CGFloat(row) * (itemHeight + gap)
+
             shimmer.frame = CGRect(x: x, y: y, width: itemWidth, height: itemHeight)
             self.view.addSubview(shimmer)
             shimmer.startShimmer()
@@ -297,19 +356,9 @@ final class EventsControllerNode: ASDisplayNode {
         shimmerViews.removeAll()
     }
     
-    private func beginLoading() {
-        self.collectionView.isHidden = true
-        self.searchFadeOverlay.isHidden = true
-        hideEmptyState()
-        removeShimmer()
-        
-        if let (layout, navigationBarHeight) = containerLayout {
-            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
-        }
-    }
-    
-    // MARK: - Error State (Перенесено из ModelsFeedNode)
-    
+    // MARK: - Error State (вёрстка повторяет ModelsFeedNode — единый стиль fullscreen
+    // error для DIVO-лент. Кандидат на вынос в общий DivoErrorStateView в DivoUIKit-эпике).
+
     private func showErrorState() {
         guard errorView == nil else { return }
 
@@ -323,7 +372,7 @@ final class EventsControllerNode: ASDisplayNode {
 
         let titleLabel = UILabel()
         titleLabel.text = DivoStrings.feedEventLoadErrorTitle.uppercased()
-        titleLabel.font = Font.helveticaNeue(26)
+        titleLabel.font = UIFont(name: "HelveticaNeue-CondensedBold", size: 20) ?? Font.bold(20)
         titleLabel.textColor = DivoColorPalette.primaryText
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 0
@@ -332,15 +381,20 @@ final class EventsControllerNode: ASDisplayNode {
 
         let subtitleLabel = UILabel()
         subtitleLabel.text = DivoStrings.feedEventLoadErrorSubtitle
-        subtitleLabel.font = Font.medium(16)
+        subtitleLabel.font = Font.regular(14)
         subtitleLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         subtitleLabel.textAlignment = .center
         subtitleLabel.numberOfLines = 0
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(subtitleLabel)
 
-        let retryButton = DivoButton()
-        retryButton.makeDivoButton(title: DivoStrings.retry)
+        let retryButton = UIButton(type: .custom)
+        retryButton.setTitle(DivoStrings.retry, for: .normal)
+        retryButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
+        retryButton.titleLabel?.font = Font.helveticaNeue(20)
+        retryButton.backgroundColor = DivoColorPalette.accent
+        retryButton.layer.cornerRadius = 28
+        retryButton.addDivoPressState(.primary)
         retryButton.addTarget(self, action: #selector(errorRetryTapped), for: .touchUpInside)
         retryButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(retryButton)
@@ -352,16 +406,16 @@ final class EventsControllerNode: ASDisplayNode {
             iconView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             iconCenterY,
 
-            titleLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 14),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            titleLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 16),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
 
             subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
-            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
+            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
 
-            retryButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            retryButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            retryButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 32),
+            retryButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -32),
             retryButton.heightAnchor.constraint(equalToConstant: 56),
             retryBottom
         ])
@@ -393,6 +447,8 @@ final class EventsControllerNode: ASDisplayNode {
     private func layoutErrorState() {
         guard let error = errorView,
               let (layout, navigationBarHeight) = containerLayout else { return }
+        // Сегмент-control (`Мои/Все`) для агентства остаётся видимым над error state —
+        // вычитаем его высоту из доступного места под error view, как в ModelsFeedNode.
         let showTabs = self.isAgency
         let currentTabsHeight = showTabs ? self.tabsHeight : 0.0
         let topOffset = navigationBarHeight + currentTabsHeight
@@ -422,97 +478,31 @@ final class EventsControllerNode: ASDisplayNode {
     }
     
     // MARK: - Empty State
-    
+
     private func showEmptyState() {
         guard emptyStateView == nil else { return }
-        
-        let container = UIView()
-        container.backgroundColor = DivoColorPalette.screenBackground
-        container.alpha = 0
-                
-        let iconImageView = UIImageView()
-        iconImageView.image = DivoImage.emptyEvents
-        iconImageView.contentMode = .scaleAspectFit
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(iconImageView)
-        
-        let titleLabel = UILabel()
-        titleLabel.text = DivoStrings.noUpcomingEventsTitle.uppercased()
-        titleLabel.font = Font.helveticaNeue(26)
-        titleLabel.textColor = DivoColorPalette.primaryText
-        titleLabel.textAlignment = .center
-        titleLabel.numberOfLines = 0
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
-        
-        let subtitleLabel = UILabel()
-        subtitleLabel.text = self.isAgency ? DivoStrings.noUpcomingEventsAgencySubtitle : DivoStrings.noUpcomingEventsSubtitle
-        subtitleLabel.font = Font.medium(16)
-        subtitleLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
-        subtitleLabel.textAlignment = .center
-        subtitleLabel.numberOfLines = 0
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(subtitleLabel)
 
-        let createButton = DivoButton()
-        createButton.translatesAutoresizingMaskIntoConstraints = false
-        createButton.makeDivoButton(title: DivoStrings.createEvent)
-        createButton.addTarget(self, action: #selector(createEventTapped), for: .touchUpInside)
-        container.addSubview(createButton)
-        
-        NSLayoutConstraint.activate([
-            
-            iconImageView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            iconImageView.centerYAnchor.constraint(equalTo: container.centerYAnchor, constant: -68),
-            iconImageView.widthAnchor.constraint(equalToConstant: 68),
-            iconImageView.heightAnchor.constraint(equalToConstant: 68),
-            
-            titleLabel.topAnchor.constraint(equalTo: iconImageView.bottomAnchor, constant: 14),
-            titleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
-            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
-            
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.s),
-            subtitleLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            subtitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
-            subtitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl),
+        let view = DivoEmptyStateView()
+        view.backgroundColor = DivoColorPalette.screenBackground
+        view.configure(.init(
+            style: .largeIcon(icon: DivoImage.emptyEvents),
+            title: DivoStrings.noUpcomingEventsTitle,
+            subtitle: self.isAgency ? DivoStrings.noUpcomingEventsAgencySubtitle : DivoStrings.noUpcomingEventsSubtitle,
+            ctaTitle: self.isAgency ? DivoStrings.createEvent : nil,
+            onCTATapped: { [weak self] in self?.createEvent?() }
+        ))
 
-            createButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -100),
-            createButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            createButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            createButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-        ])
-        createButton.isHidden = !self.isAgency
+        self.view.addSubview(view)
+        emptyStateView = view
 
-        self.view.addSubview(container)
-        emptyStateView = container
-        
         if let (layout, navigationBarHeight) = containerLayout {
-            let showTabs = self.isAgency
-            let currentTabsHeight = showTabs ? self.tabsHeight : 0.0
-            container.frame = CGRect(x: 0, y: navigationBarHeight + currentTabsHeight, width: layout.size.width, height: layout.size.height - navigationBarHeight - currentTabsHeight)
+            let currentTabsHeight = self.isAgency ? self.tabsHeight : 0.0
+            view.frame = CGRect(x: 0, y: navigationBarHeight + currentTabsHeight, width: layout.size.width, height: layout.size.height - navigationBarHeight - currentTabsHeight)
         }
-        
-        iconImageView.transform = CGAffineTransform(scaleX: 0.6, y: 0.6)
-        titleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        subtitleLabel.transform = CGAffineTransform(translationX: 0, y: 15)
-        titleLabel.alpha = 0
-        subtitleLabel.alpha = 0
-        
-        UIView.animate(withDuration: 0.4, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5, options: []) {
-            container.alpha = 1
-            iconImageView.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.1, options: [.curveEaseOut]) {
-            titleLabel.alpha = 1
-            titleLabel.transform = .identity
-        }
-        UIView.animate(withDuration: 0.35, delay: 0.15, options: [.curveEaseOut]) {
-            subtitleLabel.alpha = 1
-            subtitleLabel.transform = .identity
-        }
+
+        view.animateAppearance()
     }
-    
+
     private func hideEmptyState() {
         guard let empty = emptyStateView else { return }
         emptyStateView = nil
@@ -567,17 +557,18 @@ final class EventsControllerNode: ASDisplayNode {
         let titleH: CGFloat = ceil(titleLabel.frame.height) + 6
         titleLabel.frame = CGRect(x: titleX, y: titleY - 4, width: ceil(titleLabel.frame.width), height: titleH)
         
-        let spacing: CGFloat = 16
-        let itemWidth = floor((layout.size.width - safeAreaInsets.left - safeAreaInsets.right - spacing * 2 - 10) / 2.0)
-        let itemHeight = floor(itemWidth * 1.35)
-        
+        let spacing = Self.gridHorizontalInset
+        let gap = Self.gridInterspacing
+        let itemWidth = floor((layout.size.width - safeAreaInsets.left - safeAreaInsets.right - spacing * 2 - gap) / Self.gridColumns)
+        let itemHeight = floor(itemWidth * Self.gridAspectRatio)
+
         if let flowLayout = self.collectionView.collectionViewLayout as? UICollectionViewFlowLayout {
             flowLayout.itemSize = CGSize(width: itemWidth, height: itemHeight)
-            flowLayout.minimumInteritemSpacing = 10
-            flowLayout.minimumLineSpacing = 10
-            
+            flowLayout.minimumInteritemSpacing = gap
+            flowLayout.minimumLineSpacing = gap
+
             flowLayout.sectionInset = UIEdgeInsets(
-                top: navigationBarHeight + currentTabsHeight + 16,
+                top: navigationBarHeight + currentTabsHeight + spacing,
                 left: safeAreaInsets.left + spacing,
                 bottom: insets.bottom + spacing,
                 right: safeAreaInsets.right + spacing
@@ -585,15 +576,11 @@ final class EventsControllerNode: ASDisplayNode {
         }
         
         self.collectionView.frame = CGRect(origin: .zero, size: layout.size)
-        
-        // Позиционируем спиннер пагинации по центру внизу
-        self.footerSpinner.frame = CGRect(
-            x: (layout.size.width - 32.0) / 2.0,
-            y: layout.size.height - insets.bottom - 48.0,
-            width: 32.0,
-            height: 32.0
-        )
-        
+
+        if isPaginating {
+            updatePaginationSpinnerFrame()
+        }
+
         self.searchFadeOverlay.frame = CGRect(
             x: 0,
             y: navigationBarHeight + currentTabsHeight,
@@ -607,16 +594,11 @@ final class EventsControllerNode: ASDisplayNode {
         
         layoutErrorState()
         
-        if isLoading && shimmerViews.isEmpty {
+        if phase == .loading && shimmerViews.isEmpty {
             showShimmer(topOffset: navigationBarHeight + currentTabsHeight + 16, width: layout.size.width)
         }
     }
 
-    @objc private func createEventTapped() {
-        self.createEvent?()
-    }
-
-    
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style
@@ -624,12 +606,15 @@ final class EventsControllerNode: ASDisplayNode {
     private let snackbar = DivoSnackbar()
 
     func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        // safeAreaLayoutGuide самой node.view не учитывает overlay-таббар Telegram —
+        // считаем inset через containerLayout.intrinsicInsets.bottom (включает таббар) + 16,
+        // как в ModelsFeedNode.
+        let bottomInset = (containerLayout?.0.intrinsicInsets.bottom ?? 0) + 16
         snackbar.show(
             in: self.view,
             message: message,
             style: style,
-            bottomInset: DivoDesignTokens.Spacing.m,
-            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            bottomInset: bottomInset,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
             persistent: persistent

@@ -22,7 +22,7 @@ final class EventListCell: UICollectionViewCell {
     
     private static let avatarSize: CGFloat = 52
     
-    var openAddModel: (() -> Void)?
+    var onApply: ((Int) -> Void)?
     private var currentEventId: Int?
 
     private let avatarImageView: UIImageView = {
@@ -105,15 +105,17 @@ final class EventListCell: UICollectionViewCell {
     }
 
     @objc private func applyButtonTapped() {
-        openAddModel?()
+        guard let eventId = currentEventId else { return }
+        onApply?(eventId)
     }
-    
+
     override func prepareForReuse() {
         super.prepareForReuse()
         avatarImageView.cancelImageLoad()
         avatarImageView.image = nil
         currentEventId = nil
         applyButton.isHidden = true
+        onApply = nil
 
         nameLabelTrailingWithButton?.isActive = false
         nameLabelTrailingWithoutButton?.isActive = false

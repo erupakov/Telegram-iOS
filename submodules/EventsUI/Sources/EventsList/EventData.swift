@@ -24,7 +24,7 @@ public struct EventData {
     let maxAttendees: Int?
     let paymentTypeId: Int?
     let applicationDeadline: String?
-    let isApplied: Bool?
+    var isApplied: Bool?
     
     let isCurrentRoleAgency: Bool?
     let creatorId: Int?

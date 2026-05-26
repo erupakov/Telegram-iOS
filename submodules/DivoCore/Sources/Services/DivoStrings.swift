@@ -319,8 +319,8 @@ public enum DivoStrings {
     public static var error: String { L(en: "Error", ru: "Ошибка", es: "Error", pt: "Erro", zh: "错误") }
     public static var search: String { L(en: "Search", ru: "Поиск", es: "Buscar", pt: "Buscar", zh: "搜索") }
     public static var apply: String { L(en: "Apply", ru: "Подать заявку", es: "Aplicar", pt: "Aplicar", zh: "申请") }
-    public static var applied: String { L(en: "Applied", ru: "Применено", es: "Aplicado", pt: "Aplicado", zh: "已应用") }
-    public static var applying: String { L(en: "Applying...", ru: "Применение...", es: "Aplicando...", pt: "Aplicando...", zh: "应用中...") }
+    public static var applied: String { L(en: "Applied", ru: "Заявка подана", es: "Solicitado", pt: "Inscrito", zh: "已申请") }
+    public static var applying: String { L(en: "Sending...", ru: "Отправляем...", es: "Enviando...", pt: "Enviando...", zh: "申请中...") }
     public static var applyNow: String { L(en: "Apply now", ru: "Подать заявку сейчас", es: "Aplicar ahora", pt: "Candidatar-se agora", zh: "立即申请") }
     public static var viewApplications: String { L(en: "View applications", ru: "Посмотреть заявки", es: "Ver solicitudes", pt: "Ver inscrições", zh: "查看申请") }
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
@@ -995,7 +995,7 @@ public enum DivoStrings {
     
     public static var eventsMy: String { L(en: "My Events", ru: "Мои события", es: "Mis eventos", pt: "Meus eventos", zh: "我的活动") }
     public static var eventsAll: String { L(en: "All Events", ru: "Все события", es: "Todos los eventos", pt: "Todos os eventos", zh: "所有活动") }
-    public static var failedApplyEvent: String { L(en: "Failed to record event", ru: "Не удалось записать событие", es: "Error al registrar el evento", pt: "Falha ao registrar o evento", zh: "记录事件失败") }
+    public static var failedApplyEvent: String { L(en: "Failed to send application", ru: "Не удалось подать заявку", es: "No se pudo enviar la solicitud", pt: "Não foi possível enviar a inscrição", zh: "申请提交失败") }
     public static var feedEventLoadErrorTitle: String { L(en: "Couldn't load events", ru: "Не удалось загрузить события", es: "No se pudieron cargar los eventos", pt: "Não foi possível carregar os eventos", zh: "无法加载活动") }
     public static var feedEventLoadErrorSubtitle: String { L(en: "Something went wrong on our end.\nCheck your connection and try again.", ru: "Что-то пошло не так с нашей стороны.\nПроверьте соединение и попробуйте снова.", es: "Algo salió mal de nuestro lado.\nVerifica tu conexión e inténtalo de nuevo.", pt: "Algo deu errado da nossa parte.\nVerifique sua conexão e tente novamente.", zh: "我们的端出了问题。\n请检查连接后重试。") }
     

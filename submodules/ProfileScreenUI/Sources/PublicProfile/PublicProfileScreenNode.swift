@@ -4692,6 +4692,9 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
             }
             let item = eventGalleryItems[indexPath.item]
             cell.configure(with: item, context: self.context, isMyProfile: self.model.isMyProfile)
+            cell.onApply = { [weak self] eventId in
+                self?.onEventButtonTapped?(eventId)
+            }
             return cell
         }
         return UICollectionViewCell()

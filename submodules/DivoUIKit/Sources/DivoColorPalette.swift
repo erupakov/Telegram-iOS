@@ -205,6 +205,23 @@ public enum DivoColorPalette {
     public static let bronzeGradientMid = UIColor(hexString: "#A46B4C")!
     public static let bronzeGradientDark = UIColor(hexString: "#89503B")!
     public static let bronzeGradientDeep = UIColor(hexString: "#823F36")!
+
+    // MARK: - Event type badges
+
+    public static let eventTypeCasting          = UIColor(hexString: "#185FA5")!
+    public static let eventTypeParty            = UIColor(rgb: 0x9D2AEE)
+    public static let eventTypePhotoshoot       = UIColor(rgb: 0xEE2A7B)
+    public static let eventTypePromo            = UIColor(rgb: 0xEE7A2A)
+    public static let eventTypeVideoShoot       = UIColor(rgb: 0xE53935)
+    public static let eventTypeEvent            = UIColor(hexString: "#BD47CD")!
+    public static let eventTypeShow             = UIColor(hexString: "#534AB7")!
+    public static let eventTypeExhibition       = UIColor(hexString: "#0F6E56")!
+    public static let eventTypeHairCut          = UIColor(rgb: 0xF50057)
+    public static let eventTypeActorAnimator    = UIColor(rgb: 0x00ACC1)
+    public static let eventTypeDancers          = UIColor(rgb: 0xFFB300)
+    public static let eventTypeBodyArt          = UIColor(rgb: 0x00897B)
+    public static let eventTypeHostess          = UIColor(rgb: 0x3949AB)
+    public static let eventTypeForeignContracts = UIColor(rgb: 0x1E88E5)
 }
 
 public enum EventTypeStyle: Int {
@@ -225,28 +242,28 @@ public enum EventTypeStyle: Int {
 
     public var color: UIColor {
         switch self {
-        case .casting:          return UIColor(hexString: "#185FA5")! // Синий (как на дизайне)
-        case .party:            return UIColor(rgb: 0x9D2AEE) // Фиолетовый
-        case .photoshoot:       return UIColor(rgb: 0xEE2A7B) // Розовый
-        case .promo:            return UIColor(rgb: 0xEE7A2A) // Оранжевый
-        case .videoShoot:       return UIColor(rgb: 0xE53935) // Красный
-        case .event:            return UIColor(hexString: "#BD47CD")! // Голубой
-        case .show:             return UIColor(hexString: "#534AB7")! // Зеленый
-        case .exhibition:       return UIColor(hexString: "#0F6E56")! // Темно-фиолетовый
-        case .hairCut:          return UIColor(rgb: 0xF50057) // Малиновый
-        case .actorAnimator:    return UIColor(rgb: 0x00ACC1) // Сине-зеленый
-        case .dancers:          return UIColor(rgb: 0xFFB300) // Желто-оранжевый
-        case .bodyArt:          return UIColor(rgb: 0x00897B) // Бирюзовый
-        case .hostess:          return UIColor(rgb: 0x3949AB) // Приглушенный синий (как на дизайне)
-        case .foreignContracts: return UIColor(rgb: 0x1E88E5) // Глубокий синий
+        case .casting:          return DivoColorPalette.eventTypeCasting
+        case .party:            return DivoColorPalette.eventTypeParty
+        case .photoshoot:       return DivoColorPalette.eventTypePhotoshoot
+        case .promo:            return DivoColorPalette.eventTypePromo
+        case .videoShoot:       return DivoColorPalette.eventTypeVideoShoot
+        case .event:            return DivoColorPalette.eventTypeEvent
+        case .show:             return DivoColorPalette.eventTypeShow
+        case .exhibition:       return DivoColorPalette.eventTypeExhibition
+        case .hairCut:          return DivoColorPalette.eventTypeHairCut
+        case .actorAnimator:    return DivoColorPalette.eventTypeActorAnimator
+        case .dancers:          return DivoColorPalette.eventTypeDancers
+        case .bodyArt:          return DivoColorPalette.eventTypeBodyArt
+        case .hostess:          return DivoColorPalette.eventTypeHostess
+        case .foreignContracts: return DivoColorPalette.eventTypeForeignContracts
         }
     }
-    
-    /// Метод для безопасного извлечения цвета.
-    /// Если id неизвестен (или nil), вернется дефолтный DivoColorPalette.roleBadgeBlue
+
+    /// Безопасное извлечение цвета по `id`.
+    /// Если id неизвестен (или `nil`), возвращается дефолтный `DivoColorPalette.roleBadgeBlue`.
     public static func color(for id: Int?) -> UIColor {
         guard let id = id, let style = EventTypeStyle(rawValue: id) else {
-            return DivoColorPalette.roleBadgeBlue // Дефолтный цвет
+            return DivoColorPalette.roleBadgeBlue
         }
         return style.color
     }

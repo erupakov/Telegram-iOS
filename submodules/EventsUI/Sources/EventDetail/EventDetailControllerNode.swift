@@ -671,36 +671,39 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventCostTypeShimmerContainer.startShimmering()
             eventTypeLabelShimmerContainer.stopShimmering()
             eventTypeLabelShimmerContainer.startShimmering()
-        }
-        if !eventDeadlineShimmerContainer.isHidden && !applyButtonShimmer.isHidden {
-            eventDeadlineShimmerContainer.stopShimmering()
-            eventDeadlineShimmerContainer.startShimmering()
-            applyButtonShimmer.stopShimmering()
-            eventDeadlineShimmerContainer.startShimmering()
-            applyButtonShimmer.startShimmering()
-        }
-        if !organizerShimmerView.isHidden{
-            organizerShimmerView.stopShimmering()
-            organizerShimmerView.startShimmering()
-        }
-        if !currentAppliedShimmerView.isHidden && !allAppliedShimmerView.isHidden {
-            currentAppliedShimmerView.stopShimmering()
-            currentAppliedShimmerView.startShimmering()
-            allAppliedShimmerView.stopShimmering()
-            currentAppliedShimmerView.startShimmering()
-            allAppliedShimmerView.startShimmering()
-        }
-        if !descriptionShimmerView.isHidden {
-            descriptionShimmerView.stopShimmering()
-            descriptionShimmerView.startShimmering()
-        }
-        if !requirementsShimmerContainer.isHidden {
-            requirementsShimmerView.stopShimmering()
-            requirementsShimmerView.startShimmering()
-        }
-        if !parametersShimmerView.isHidden {
-            parametersShimmerView.stopShimmering()
-            parametersShimmerView.startShimmering()
+
+            if !eventDeadlineShimmerContainer.isHidden {
+                eventDeadlineShimmerContainer.stopShimmering()
+                eventDeadlineShimmerContainer.startShimmering()
+            }
+            if !applyButtonShimmer.isHidden {
+                applyButtonShimmer.stopShimmering()
+                applyButtonShimmer.startShimmering()
+            }
+            if !organizerShimmerView.isHidden {
+                organizerShimmerView.stopShimmering()
+                organizerShimmerView.startShimmering()
+            }
+            if !currentAppliedShimmerView.isHidden {
+                currentAppliedShimmerView.stopShimmering()
+                currentAppliedShimmerView.startShimmering()
+            }
+            if !allAppliedShimmerView.isHidden {
+                allAppliedShimmerView.stopShimmering()
+                allAppliedShimmerView.startShimmering()
+            }
+            if !descriptionShimmerView.isHidden {
+                descriptionShimmerView.stopShimmering()
+                descriptionShimmerView.startShimmering()
+            }
+            if !requirementsShimmerContainer.isHidden {
+                requirementsShimmerView.stopShimmering()
+                requirementsShimmerView.startShimmering()
+            }
+            if !parametersShimmerView.isHidden {
+                parametersShimmerView.stopShimmering()
+                parametersShimmerView.startShimmering()
+            }
         }
     }
 
@@ -1676,7 +1679,9 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
     
     func updateEventData(_ newEventData: EventFullDetailData) {
-        self.phase = .content
+        // ВАЖНО: phase = .content выставляется в конце метода, после заполнения всех
+        // полей. Иначе applyPhase → stopShimmers скрывает шиммеры до того как текст,
+        // кнопки и контейнеры заполнены — пользователь видит пустые placeholder'ы.
         self.eventData = newEventData
 
         setImage(urlString: newEventData.files?.first?.fullUrl, for: backgroundImageView)
@@ -1702,20 +1707,23 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
+        // updateEventData может прийти повторно (ретрай, refresh) — сбрасываем
+        // ранее навешанные targets, иначе один тап стрельнёт несколько действий.
+        applyButton.removeTarget(self, action: nil, for: .touchUpInside)
+        applyButton.isUserInteractionEnabled = true
+
         if self.isMyEvent {
             applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.addTarget(self, action: #selector(viewApplicationsTapped), for: .touchUpInside)
+        } else if newEventData.isApplied == true {
+            applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.isUserInteractionEnabled = false
         } else {
             applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
         }
         
-        if newEventData.isApplied ?? true {
-            applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
-            applyButton.isUserInteractionEnabled = false
-        }
-        
-        if let deadlineText = formatTimeRemaining(deadlineString: newEventData.applicationDeadline) {
+        if let deadlineText = EventDateFormatter.timeRemaining(deadline: newEventData.applicationDeadline) {
             eventDeadlineLabel.text = deadlineText
             eventDeadlineContainer.isHidden = false
         } else {
@@ -1738,60 +1746,16 @@ final class EventDetailControllerNode: ASDisplayNode {
         likesView.setValue("1.2K")
         viewsView.setValue("2.4K")
         savesView.setValue("300")
-        
-        stopShimmers()
+
+        // Все поля заполнены — теперь атомарно переключаем фазу: applyPhase().content
+        // спрячет шиммеры и покажет контент-контейнеры одним кадром, без промежутка.
+        self.phase = .content
         activateTitleVisibility()
     }
     
-    private func formatTimeRemaining(deadlineString: String?) -> String? {
-        guard let raw = deadlineString else { return nil }
-        let normalized = raw.replacingOccurrences(of: " ", with: "T")
-        
-        let isoFormatter = DateFormatter()
-        isoFormatter.locale = Locale(identifier: "en_US_POSIX")
-        isoFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-        
-        // Пробуем распарсить формат с секундами или без них
-        var deadlineDate = isoFormatter.date(from: normalized)
-        if deadlineDate == nil {
-            isoFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
-            deadlineDate = isoFormatter.date(from: normalized)
-        }
-        
-        guard let date = deadlineDate else { return nil }
-        
-        let timeInterval = date.timeIntervalSince(Date())
-        
-        // Если дедлайн уже прошел
-        if timeInterval <= 0 {
-            return nil
-        }
-        
-        let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
-        
-        // Если до дедлайна больше 24 часов (86400 секунд)
-        if timeInterval > 86400 {
-            let datePartFormatter = DateFormatter()
-            datePartFormatter.locale = divoLocale
-            datePartFormatter.setLocalizedDateFormatFromTemplate("MMM d")
-            let formattedDate = datePartFormatter.string(from: date)
-            return DivoStrings.deadlineData(formattedDate)
-        } else {
-            // Если до дедлайна меньше 24 часов
-            let hours = Int(timeInterval) / 3600
-            let minutes = (Int(timeInterval) % 3600) / 60
-            
-            if hours > 0 {
-                return DivoStrings.deadlineDataTime("\(hours)h \(minutes)m")
-            } else {
-                return DivoStrings.deadlineDataTime("\(minutes)m")
-            }
-        }
-    }
-    
     func updateWithPreviewData(_ data: EventPreviewData) {
-        self.phase = .content
-        
+        // phase = .content в конце метода, чтобы шиммеры не сменились пустыми
+        // плейсхолдерами до фактического заполнения полей.
         if let cover = data.coverImage {
             backgroundImageView.image = cover
         } else {
@@ -1817,7 +1781,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
-        if let deadlineText = formatTimeRemaining(deadlineString: data.request.applicationDeadline) {
+        if let deadlineText = EventDateFormatter.timeRemaining(deadline: data.request.applicationDeadline) {
             eventDeadlineLabel.text = deadlineText
             eventDeadlineContainer.isHidden = false
         } else {
@@ -1887,9 +1851,10 @@ final class EventDetailControllerNode: ASDisplayNode {
         likesView.setValue("1K")
         viewsView.setValue("1K")
         savesView.setValue("1K")
-        
+
         updateGallery(data.gallery)
-        
+
+        self.phase = .content
         activateTitleVisibility()
     }
     

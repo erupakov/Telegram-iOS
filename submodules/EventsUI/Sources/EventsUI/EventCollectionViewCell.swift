@@ -7,10 +7,7 @@ import DivoCore
 import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
 import AccountContext
-import AppBundle
 
 final class EventCollectionViewCell: UICollectionViewCell {
 
@@ -196,6 +193,15 @@ final class EventCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // Лёгкий press-feedback по образу SearchResultGridCell: scale до 0.96 на нажатии.
+    override var isHighlighted: Bool {
+        didSet {
+            UIView.animate(withDuration: isHighlighted ? 0.25 : 0.4, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
+                self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.96, y: 0.96) : .identity
+            })
+        }
+    }
+
     private func setupViews() {
         contentView.layer.cornerRadius = DivoDesignTokens.Spacing.m
         contentView.layer.masksToBounds = true
@@ -339,7 +345,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         imageView.image = nil
         profileImageView.cancelImageLoad()
         profileImageView.image = nil
-        
+
         currentEventId = nil
         onApply = nil
         setApplyButtonLoading(false)
@@ -348,9 +354,9 @@ final class EventCollectionViewCell: UICollectionViewCell {
     @objc private func applyButtonTapped() {
         self.onApply?()
     }
-    
-    // Включение/выключение режима лоадера на кнопке
-    public func setApplyButtonLoading(_ isLoading: Bool, _ isApplied: Bool = false) {
+
+    // Включение/выключение режима лоадера на кнопке.
+    public func setApplyButtonLoading(_ isLoading: Bool, isApplied: Bool = false) {
         applyButton.setSaving(isLoading, in: self)
         if isApplied {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)

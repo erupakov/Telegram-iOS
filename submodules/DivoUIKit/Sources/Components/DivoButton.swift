@@ -55,10 +55,18 @@ public final class DivoButton: UIButton {
         self.loadingTitle = loading
         self.buttonFont = buttonFont
 
+        // Сбрасываем иконку, если кнопку ранее настраивали через icon-вариант.
+        // Иначе при переходе applied → apply (или любом обратном переключении)
+        // иконка с прошлого состояния визуально остаётся.
+        setImage(nil, for: .normal)
+        setImage(nil, for: .highlighted)
+        imageEdgeInsets = .zero
+        titleEdgeInsets = .zero
+
         applyNormalTitle(buttonFont: buttonFont)
         applyDisabledTitle(buttonFont: buttonFont)
         addDivoPressState(divoButtonStyle)
-        
+
         guard let radius = radius else { return }
         layer.cornerRadius = radius
     }
