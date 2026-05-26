@@ -49,8 +49,21 @@ public final class FilterOptionsController: UIViewController {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
         view.layer.cornerRadius = DivoDesignTokens.Radius.pill
-        view.layer.applyDivoShadow()
         view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private let searchFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        view.translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.cgColor,
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+            ]
+            gradient.locations = [0, 0.45]
+        }
         return view
     }()
 
@@ -131,8 +144,8 @@ public final class FilterOptionsController: UIViewController {
         view.backgroundColor = DivoColorPalette.screenBackground
 
         setupCustomNavBar()
-        setupSearchField()
         setupScrollView()
+        setupSearchField()
         setupConstraints()
 
         searchTextField.delegate = self
@@ -171,6 +184,7 @@ public final class FilterOptionsController: UIViewController {
             view.addSubview(searchFieldContainer)
             searchFieldContainer.addSubview(searchIcon)
             searchFieldContainer.addSubview(searchTextField)
+            view.addSubview(searchFadeOverlay)
         }
     }
 
@@ -214,12 +228,19 @@ public final class FilterOptionsController: UIViewController {
                 searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
                 searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -14),
                 searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
-                searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor)
+                searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor),
+                
+                searchFadeOverlay.topAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor),
+                searchFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                searchFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                searchFadeOverlay.heightAnchor.constraint(equalToConstant: 60),
             ])
+            
+            scrollView.contentInset.top = DivoDesignTokens.Spacing.m
         }
         
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: showSearch ? searchFieldContainer.bottomAnchor : navigationBar.bottomAnchor, constant: showSearch ? 10.0 : 20.0),
+            scrollView.topAnchor.constraint(equalTo: showSearch ? searchFieldContainer.bottomAnchor : navigationBar.bottomAnchor, constant: showSearch ? 0.0 : 20.0),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -232,7 +253,7 @@ public final class FilterOptionsController: UIViewController {
         
         if isResetButton {
             NSLayoutConstraint.activate([
-                deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: 32),
+                deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
                 deleteButton.leadingAnchor.constraint(equalTo: stackView.leadingAnchor),
                 deleteButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor),
                 deleteButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),

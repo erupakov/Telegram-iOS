@@ -15,7 +15,6 @@ public final class OnboardingRoleResultViewController: UIViewController {
     public protocol Delegate: AnyObject {
         func roleResultControllerDidConfirm(_ controller: OnboardingRoleResultViewController)
         func roleResultControllerDidRequestRestart(_ controller: OnboardingRoleResultViewController)
-        func roleResultControllerDidTapBack(_ controller: OnboardingRoleResultViewController)
     }
 
     public weak var delegate: Delegate?
@@ -24,12 +23,28 @@ public final class OnboardingRoleResultViewController: UIViewController {
 
     private let imageView = UIImageView()
     private let gradientOverlay = CAGradientLayer()
-    private let titleLabel = UILabel()
-    private let descriptionLabel = UILabel()
-    private let primaryButton = DivoButton()
-    private let secondaryButton = UIButton(type: .system)
-    private let backButton = UIButton(type: .system)
 
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(32)
+        label.textColor = DivoColorPalette.primaryTextOnDark
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private let descriptionLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(16)
+        label.textColor = DivoColorPalette.primaryTextOnDark
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private let primaryButton = DivoButton()
+    private let secondaryButton = DivoButton()
+    
     private var presentation: OnboardingResultPresentation
 
     // MARK: - Init
@@ -80,33 +95,13 @@ public final class OnboardingRoleResultViewController: UIViewController {
         gradientOverlay.locations = [0.4, 0.75, 1.0]
         imageView.layer.addSublayer(gradientOverlay)
 
-        backButton.translatesAutoresizingMaskIntoConstraints = false
-        backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        backButton.tintColor = DivoColorPalette.primaryTextOnDark
-        backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
-
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = Font.helveticaNeue(28)
-        titleLabel.textColor = DivoColorPalette.primaryTextOnDark
-        titleLabel.numberOfLines = 0
-
-        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
-        descriptionLabel.font = Font.regular(14)
-        descriptionLabel.textColor = DivoColorPalette.textOnDarkSecondary
-        descriptionLabel.numberOfLines = 0
-
         primaryButton.translatesAutoresizingMaskIntoConstraints = false
         primaryButton.addTarget(self, action: #selector(primaryTapped), for: .touchUpInside)
 
         secondaryButton.translatesAutoresizingMaskIntoConstraints = false
-        secondaryButton.titleLabel?.font = Font.helveticaNeue(16)
-        secondaryButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
-        secondaryButton.backgroundColor = DivoColorPalette.bannerBackgroundDark
-        secondaryButton.layer.cornerRadius = DivoDesignTokens.Radius.pill
         secondaryButton.addTarget(self, action: #selector(secondaryTapped), for: .touchUpInside)
 
         view.addSubview(imageView)
-        view.addSubview(backButton)
         view.addSubview(titleLabel)
         view.addSubview(descriptionLabel)
         view.addSubview(primaryButton)
@@ -117,46 +112,39 @@ public final class OnboardingRoleResultViewController: UIViewController {
             imageView.topAnchor.constraint(equalTo: view.topAnchor),
             imageView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             imageView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: view.centerYAnchor, constant: 80),
+            imageView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            backButton.topAnchor.constraint(equalTo: safe.topAnchor, constant: DivoDesignTokens.Spacing.s),
-            backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            backButton.widthAnchor.constraint(equalToConstant: 44),
-            backButton.heightAnchor.constraint(equalToConstant: 44),
-
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.l),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.l),
-            titleLabel.bottomAnchor.constraint(equalTo: descriptionLabel.topAnchor, constant: -DivoDesignTokens.Spacing.s),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            titleLabel.bottomAnchor.constraint(equalTo: descriptionLabel.topAnchor, constant: -12),
 
             descriptionLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             descriptionLabel.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            descriptionLabel.bottomAnchor.constraint(equalTo: primaryButton.topAnchor, constant: -DivoDesignTokens.Spacing.l),
+            descriptionLabel.bottomAnchor.constraint(equalTo: primaryButton.topAnchor, constant: -DivoDesignTokens.Spacing.xl),
 
             primaryButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             primaryButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             primaryButton.heightAnchor.constraint(equalToConstant: 56),
-            primaryButton.bottomAnchor.constraint(equalTo: secondaryButton.topAnchor, constant: -DivoDesignTokens.Spacing.s),
+            primaryButton.bottomAnchor.constraint(equalTo: secondaryButton.topAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             secondaryButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             secondaryButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             secondaryButton.heightAnchor.constraint(equalToConstant: 56),
-            secondaryButton.bottomAnchor.constraint(equalTo: safe.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            secondaryButton.bottomAnchor.constraint(equalTo: safe.bottomAnchor),
         ])
     }
 
     private func applyPresentation() {
-        titleLabel.text = OnboardingStrings.resolve(presentation.titleKey)
+        titleLabel.text = OnboardingStrings.resolve(presentation.titleKey).uppercased()
         descriptionLabel.text = OnboardingStrings.resolve(presentation.descriptionKey)
         primaryButton.makeDivoButton(title: OnboardingStrings.resolve(presentation.primaryButtonKey))
-        secondaryButton.setTitle(OnboardingStrings.resolve(presentation.secondaryButtonKey), for: .normal)
-
-        // Михаил подключает финальный ассет через DivoImage. До тех пор — заглушка.
-        imageView.image = UIImage(named: presentation.imageAssetName)
+        secondaryButton.makeDivoButton(title: OnboardingStrings.resolve(presentation.secondaryButtonKey), divoButtonStyle: .secondary)
+        secondaryButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
+        imageView.image = OnboardingImages.resolve(presentation.imageAssetName)
     }
 
     // MARK: - Actions
 
     @objc private func primaryTapped()   { delegate?.roleResultControllerDidConfirm(self) }
     @objc private func secondaryTapped() { delegate?.roleResultControllerDidRequestRestart(self) }
-    @objc private func backTapped()      { delegate?.roleResultControllerDidTapBack(self) }
 }

@@ -8,12 +8,14 @@ public struct OnboardingQuizDescriptor {
         public let titleKey: String
         public let subtitleKey: String?
         public let iconAssetName: String?
+        public let rowType: OnboardingQuizOptionTypeRow?
 
-        public init(id: String, titleKey: String, subtitleKey: String? = nil, iconAssetName: String? = nil) {
+        public init(id: String, titleKey: String, subtitleKey: String? = nil, iconAssetName: String? = nil, rowType: OnboardingQuizOptionTypeRow? = .big) {
             self.id = id
             self.titleKey = titleKey
             self.subtitleKey = subtitleKey
             self.iconAssetName = iconAssetName
+            self.rowType = rowType
         }
     }
 
@@ -31,19 +33,23 @@ public struct OnboardingQuizDescriptor {
     }
 
     public let step: OnboardingRegistrationStep
-    public let titleKey: String
+    public let titleKey: String?
     public let subtitleKey: String?
     public let progressLabelKey: String?      // "Question 1 of 2" / nil
     public let sections: [Section]
     public let primaryButtonKey: String       // обычно "onboarding.button.continue"
+    /// `true` — subtitle и navigation отрисовываются поверх тёмной фотографии (top-level экран).
+    /// Управляет цветом subtitle и видимостью фонового изображения.
+    public let isOverlayOnDark: Bool
 
     public init(
         step: OnboardingRegistrationStep,
-        titleKey: String,
+        titleKey: String?,
         subtitleKey: String? = nil,
         progressLabelKey: String? = nil,
         sections: [Section],
-        primaryButtonKey: String
+        primaryButtonKey: String,
+        isOverlayOnDark: Bool = false
     ) {
         self.step = step
         self.titleKey = titleKey
@@ -51,6 +57,7 @@ public struct OnboardingQuizDescriptor {
         self.progressLabelKey = progressLabelKey
         self.sections = sections
         self.primaryButtonKey = primaryButtonKey
+        self.isOverlayOnDark = isOverlayOnDark
     }
 
     /// Плоский список опций по всем секциям, в порядке секций. Удобно для лукапа по `id`.
@@ -75,23 +82,30 @@ public struct OnboardingQuizCatalog {
         case .topLevelChoice:
             return OnboardingQuizDescriptor(
                 step: step,
-                titleKey: "onboarding.quiz.topLevel.title",
+                titleKey: nil,
                 subtitleKey: "onboarding.quiz.topLevel.subtitle",
                 progressLabelKey: nil,
                 sections: [
                     .init(titleKey: nil, options: [
                         .init(id: OnboardingTopLevelCategory.getHired.rawValue,
                               titleKey: "onboarding.quiz.topLevel.option.getHired.title",
-                              subtitleKey: "onboarding.quiz.topLevel.option.getHired.subtitle"),
+                              subtitleKey: "onboarding.quiz.topLevel.option.getHired.subtitle",
+                              iconAssetName: "onboarding.quiz.topLevel.option.circle",
+                              rowType: .big),
                         .init(id: OnboardingTopLevelCategory.lookingForTalent.rawValue,
                               titleKey: "onboarding.quiz.topLevel.option.lookingForTalent.title",
-                              subtitleKey: "onboarding.quiz.topLevel.option.lookingForTalent.subtitle"),
+                              subtitleKey: "onboarding.quiz.topLevel.option.lookingForTalent.subtitle",
+                              iconAssetName: "onboarding.quiz.topLevel.option.circle",
+                              rowType: .big),
                         .init(id: OnboardingTopLevelCategory.hereToFollow.rawValue,
                               titleKey: "onboarding.quiz.topLevel.option.hereToFollow.title",
-                              subtitleKey: "onboarding.quiz.topLevel.option.hereToFollow.subtitle"),
+                              subtitleKey: "onboarding.quiz.topLevel.option.hereToFollow.subtitle",
+                              iconAssetName: "onboarding.quiz.topLevel.option.circle",
+                              rowType: .big),
                     ]),
                 ],
-                primaryButtonKey: "onboarding.button.continue"
+                primaryButtonKey: "onboarding.button.continue",
+                isOverlayOnDark: true
                 // На первом шаге back через state-машину возвращает nil → coordinator делает
                 // cancelFromTopLevel() и закрывает онбординг. Отдельная кнопка close не нужна.
             )
@@ -106,10 +120,14 @@ public struct OnboardingQuizCatalog {
                     .init(titleKey: nil, options: [
                         .init(id: OnboardingIndustryDoor.representCompany.rawValue,
                               titleKey: "onboarding.quiz.industryDoor.option.representCompany.title",
-                              subtitleKey: "onboarding.quiz.industryDoor.option.representCompany.subtitle"),
+                              subtitleKey: "onboarding.quiz.industryDoor.option.representCompany.subtitle",
+                              iconAssetName: "onboarding.quiz.topLevel.option.circle",
+                              rowType: .medium),
                         .init(id: OnboardingIndustryDoor.industryProfessional.rawValue,
                               titleKey: "onboarding.quiz.industryDoor.option.industryProfessional.title",
-                              subtitleKey: "onboarding.quiz.industryDoor.option.industryProfessional.subtitle"),
+                              subtitleKey: "onboarding.quiz.industryDoor.option.industryProfessional.subtitle",
+                              iconAssetName: "onboarding.quiz.topLevel.option.circle",
+                              rowType: .medium),
                     ]),
                 ],
                 primaryButtonKey: "onboarding.button.continue"
@@ -121,7 +139,8 @@ public struct OnboardingQuizCatalog {
                 titleKey: "onboarding.quiz.talentPicker.title",
                 subtitleKey: "onboarding.quiz.talentPicker.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.1of2",
-                picker: .talent
+                picker: .talent,
+                rowType: .small
             )
 
         case .industryProSubRolePicker:
@@ -130,7 +149,8 @@ public struct OnboardingQuizCatalog {
                 titleKey: "onboarding.quiz.industryProPicker.title",
                 subtitleKey: "onboarding.quiz.industryProPicker.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.2of2",
-                picker: .industryPro
+                picker: .industryPro,
+                rowType: .medium
             )
 
         case .companiesSubRolePicker:
@@ -139,7 +159,8 @@ public struct OnboardingQuizCatalog {
                 titleKey: "onboarding.quiz.companiesPicker.title",
                 subtitleKey: "onboarding.quiz.companiesPicker.subtitle",
                 progressLabelKey: "onboarding.quiz.progress.2of2",
-                picker: .companies
+                picker: .companies,
+                rowType: .medium
             )
 
         case .talentExperienceQuiz:
@@ -152,10 +173,14 @@ public struct OnboardingQuizCatalog {
                     .init(titleKey: nil, options: [
                         .init(id: "yes",
                               titleKey: "onboarding.quiz.experience.option.yes.title",
-                              subtitleKey: "onboarding.quiz.experience.option.yes.subtitle"),
+                              subtitleKey: "onboarding.quiz.experience.option.yes.subtitle",
+                              iconAssetName: "onboarding.quiz.topLevel.option.circle",
+                              rowType: .medium),
                         .init(id: "no",
                               titleKey: "onboarding.quiz.experience.option.no.title",
-                              subtitleKey: "onboarding.quiz.experience.option.no.subtitle"),
+                              subtitleKey: "onboarding.quiz.experience.option.no.subtitle",
+                              iconAssetName: "onboarding.quiz.topLevel.option.circle",
+                              rowType: .medium),
                     ]),
                 ],
                 primaryButtonKey: "onboarding.button.continue"
@@ -174,7 +199,8 @@ public struct OnboardingQuizCatalog {
         titleKey: String,
         subtitleKey: String?,
         progressLabelKey: String,
-        picker: OnboardingSubRolePicker
+        picker: OnboardingSubRolePicker,
+        rowType: OnboardingQuizOptionTypeRow
     ) -> OnboardingQuizDescriptor {
         let roles = registry.roles(presentedIn: picker)
 
@@ -195,7 +221,8 @@ public struct OnboardingQuizCatalog {
                     id: def.id.rawValue,
                     titleKey: def.displayNameKey,
                     subtitleKey: def.pickerSubtitleKey,
-                    iconAssetName: def.pickerIconAssetName
+                    iconAssetName: def.pickerIconAssetName,
+                    rowType: rowType
                 )
             }
             return OnboardingQuizDescriptor.Section(titleKey: key, options: options)

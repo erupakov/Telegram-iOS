@@ -26,6 +26,7 @@ public enum DivoImage {
     public static var checkbox: UIImage { load("DivoCheckbox") }
     public static var checkboxSelected: UIImage { load("DivoCheckboxSelected") }
     public static var chevronDown: UIImage { load("DivoChevronDown") }
+    public static var circle: UIImage { load("DivoCircle") }
     public static var contactEditAction: UIImage { load("DivoContactEditAction") }
     public static var crownPremium: UIImage { load("DivoCrownPremium") }
     public static var defWork: UIImage { load("DivoDefWork") }
@@ -47,12 +48,34 @@ public enum DivoImage {
     public static var iconEvents: UIImage { load("DivoIconEvents") }
     public static var iconModels: UIImage { load("DivoIconModels") }
     public static var instaIcon: UIImage { load("DivoInstaIcon") }
+    public static var largecircleFillCircle: UIImage { load("DivoLargecircleFillCircle") }
     public static var link: UIImage { load("DivoLink") }
     public static var logo: UIImage { load("DivoLogo") }
     public static var moreActionIcon: UIImage { load("DivoMoreActionIcon") }
     public static var moreActionIconBlack: UIImage { load("DivoMoreActionIconBlack") }
     public static var moreIcon: UIImage { load("DivoMoreIcon") }
     public static var onboardingFirst: UIImage { load("DivoOnboardingFirst") }
+    public static var onboardingResultsActor: UIImage { load("DivoOnboardingResultsActor") }
+    public static var onboardingResultsCreativeProfessional: UIImage { load("DivoOnboardingResultsCreativeProfessional") }
+    public static var onboardingResultsDancer: UIImage { load("DivoOnboardingResultsDancer") }
+    public static var onboardingResultsFashionFan: UIImage { load("DivoOnboardingResultsFashionFan") }
+    public static var onboardingResultsFindTalent: UIImage { load("DivoOnboardingResultsFindTalent") }
+    public static var onboardingResultsModel: UIImage { load("DivoOnboardingResultsModel") }
+    public static var onboardingResultsPerformer: UIImage { load("DivoOnboardingResultsPerformer") }
+    public static var onboardingResultsTalent: UIImage { load("DivoOnboardingResultsTalent") }
+    public static var onboardingResultsTalentIndustryProfessional: UIImage { load("DivoOnboardingResultsTalentIndustryProfessional") }
+    public static var onboardingRoleActorActress: UIImage { load("DivoOnboardingRoleActorActress") }
+    public static var onboardingRoleCreativeDirector: UIImage { load("DivoOnboardingRoleCreativeDirector") }
+    public static var onboardingRoleDancer: UIImage { load("DivoOnboardingRoleDancer") }
+    public static var onboardingRoleFashionDesigner: UIImage { load("DivoOnboardingRoleFashionDesigner") }
+    public static var onboardingRoleHairStylist: UIImage { load("DivoOnboardingRoleHairStylist") }
+    public static var onboardingRoleMakeupArtist: UIImage { load("DivoOnboardingRoleMakeupArtist") }
+    public static var onboardingRoleModel: UIImage { load("DivoOnboardingRoleModel") }
+    public static var onboardingRolePhotographer: UIImage { load("DivoOnboardingRolePhotographer") }
+    public static var onboardingRoleSingerPerformer: UIImage { load("DivoOnboardingRoleSingerPerformer") }
+    public static var onboardingRoleStudioLocation: UIImage { load("DivoOnboardingRoleStudioLocation") }
+    public static var onboardingRoleStylist: UIImage { load("DivoOnboardingRoleStylist") }
+    public static var onboardingRoleVideographer: UIImage { load("DivoOnboardingRoleVideographer") }
     public static var onboardingSecond: UIImage { load("DivoOnboardingSecond") }
     public static var onboardingThird: UIImage { load("DivoOnboardingThird") }
     public static var paid: UIImage { load("DivoPaid") }
@@ -117,6 +140,7 @@ public enum DivoImage {
     public static var storyAvatarStub8: UIImage { load("DivoStoryAvatarStub8") }
     public static var tikTokIcon: UIImage { load("DivoTikTokIcon") }
     public static var timeIcon: UIImage { load("DivoTimeIcon") }
+    public static var uploadPhoto: UIImage { load("DivoUploadPhoto") }
     public static var videoIcon: UIImage { load("DivoVideoIcon") }
     public static var videoIconButton: UIImage { load("DivoVideoIconButton") }
     public static var webIcon: UIImage { load("DivoWebIcon") }
