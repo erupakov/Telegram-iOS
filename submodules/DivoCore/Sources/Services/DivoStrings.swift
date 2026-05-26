@@ -383,6 +383,7 @@ public enum DivoStrings {
     public static var gender: String { L(en: "Gender", ru: "Пол", es: "Género", pt: "Gênero", zh: "性别") }
     public static var selectGender: String { L(en: "Select a Gender", ru: "Выберите пол", es: "Seleccione un género", pt: "Selecione um gênero", zh: "选择性别") }
     public static var ageYo: String { L(en: "Age (y.o)", ru: "Возраст (лет)", es: "Edad (años)", pt: "Idade (anos)", zh: "年龄（岁）") }
+    public static var dateOfBirth: String { L(en: "Date of birth", ru: "Дата рождения", es: "Fecha de nacimiento", pt: "Data de nascimento", zh: "出生日期") }
     public static var heightCm: String { L(en: "Height (cm)", ru: "Рост (см)", es: "Altura (cm)", pt: "Altura (cm)", zh: "身高（厘米）") }
     public static var weightKg: String { L(en: "Weight (kg)", ru: "Вес (кг)", es: "Peso (kg)", pt: "Peso (kg)", zh: "体重（公斤）") }
     public static var waistCm: String { L(en: "Waist (cm)", ru: "Талия (см)", es: "Cintura (cm)", pt: "Cintura (cm)", zh: "腰围（厘米）") }

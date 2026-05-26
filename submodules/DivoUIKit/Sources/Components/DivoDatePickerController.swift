@@ -92,15 +92,15 @@ public final class DivoDatePickerController: UIViewController {
             }
         }
 
-        if let minTs = minimumTimestamp, minTs > 0 {
+        if let minTs = minimumTimestamp {
             datePicker.minimumDate = Date(timeIntervalSince1970: TimeInterval(minTs))
         }
         
-        if let maxTs = maximumTimestamp, maxTs > 0 {
+        if let maxTs = maximumTimestamp {
             datePicker.maximumDate = Date(timeIntervalSince1970: TimeInterval(maxTs))
         }
         
-        if let ts = initialTimestamp, ts > 0 {
+        if let ts = initialTimestamp {
             datePicker.date = Date(timeIntervalSince1970: TimeInterval(ts))
         }
         

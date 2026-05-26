@@ -16,6 +16,7 @@ struct EventViewModel {
     let time: String?
     let countryFlag: String?
     let city: String?
+    let isFree: Bool?
     let cost: String?
     
     init(
@@ -24,6 +25,7 @@ struct EventViewModel {
         time: String?,
         countryFlag: String?,
         city: String?,
+        isFree: Bool?,
         cost: String?
     ) {
         self.name = name
@@ -31,10 +33,10 @@ struct EventViewModel {
         self.time = time
         self.countryFlag = countryFlag
         self.city = city
+        self.isFree = isFree
         self.cost = cost
     }
 }
-
 
 class EventHeaderView: UIView {
     
@@ -105,7 +107,7 @@ class EventHeaderView: UIView {
               let countryFlag = viewModel.countryFlag,
               let city = viewModel.city
         else { return }
-        if let cost = viewModel.cost {
+        if let cost = viewModel.cost, viewModel.isFree != true {
             fullLocationString = "\(date) • \(time) • \(countryFlag) \(city) • $ \(cost)"
         } else {
             fullLocationString = "\(date) • \(time) • \(countryFlag) \(city)"
