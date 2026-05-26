@@ -48,6 +48,8 @@
     return self;
 }
 
+// DIVO: серверный конфиг содержит KeyFingerprint=12240908862933197005 (0xa9e071c1771060cd).
+// sha1(publicKey) даёт другое значение — handshake падает. Шлём захардкоженный.
 - (uint64_t)fingerprintWithEncryptionProvider:(id<EncryptionProvider>)encryptionProvider {
     if (_overrideFingerprint != 0) {
         return _overrideFingerprint;
@@ -62,9 +64,19 @@ static NSArray<MTDatacenterAuthPublicKey *> *defaultPublicKeys(bool isProduction
     static NSArray<MTDatacenterAuthPublicKey *> *productionPublicKeys = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        // [DIVO] DIVO server RSA public key with hardcoded fingerprint (same as Android)
-        MTDatacenterAuthPublicKey *divoKey = [[MTDatacenterAuthPublicKey alloc]
-             initWithPublicKey:@"-----BEGIN RSA PUBLIC KEY-----\n"
+        testingPublicKeys = @[
+            [[MTDatacenterAuthPublicKey alloc] initWithPublicKey:@"-----BEGIN RSA PUBLIC KEY-----\n"
+             "MIIBCgKCAQEAvKLEOWTzt9Hn3/9Kdp/RdHcEhzmd8xXeLSpHIIzaXTLJDw8BhJy1\n"
+             "jR/iqeG8Je5yrtVabqMSkA6ltIpgylH///FojMsX1BHu4EPYOXQgB0qOi6kr08iX\n"
+             "ZIH9/iOPQOWDsL+Lt8gDG0xBy+sPe/2ZHdzKMjX6O9B4sOsxjFrk5qDoWDrioJor\n"
+             "AJ7eFAfPpOBf2w73ohXudSrJE0lbQ8pCWNpMY8cB9i8r+WBitcvouLDAvmtnTX7a\n"
+             "khoDzmKgpJBYliAY4qA73v7u5UIepE8QgV0jCOhxJCPubP8dg+/PlLLVKyxU5Cdi\n"
+             "QtZj2EMy4s9xlNKzX8XezE0MHEa6bQpnFwIDAQAB\n"
+             "-----END RSA PUBLIC KEY-----"]
+        ];
+
+        productionPublicKeys = @[
+            [[MTDatacenterAuthPublicKey alloc] initWithPublicKey:@"-----BEGIN RSA PUBLIC KEY-----\n"
              "MIIBCgKCAQEAvKLEOWTzt9Hn3/9Kdp/RdHcEhzmd8xXeLSpHIIzaXTLJDw8BhJy1\n"
              "jR/iqeG8Je5yrtVabqMSkA6ltIpgylH///FojMsX1BHu4EPYOXQgB0qOi6kr08iX\n"
              "ZIH9/iOPQOWDsL+Lt8gDG0xBy+sPe/2ZHdzKMjX6O9B4sOsxjFrk5qDoWDrioJor\n"
@@ -72,30 +84,7 @@ static NSArray<MTDatacenterAuthPublicKey *> *defaultPublicKeys(bool isProduction
              "khoDzmKgpJBYliAY4qA73v7u5UIepE8QgV0jCOhxJCPubP8dg+/PlLLVKyxU5Cdi\n"
              "QtZj2EMy4s9xlNKzX8XezE0MHEa6bQpnFwIDAQAB\n"
              "-----END RSA PUBLIC KEY-----"
-             fingerprint:0xa9e071c1771060cdULL];
-
-        testingPublicKeys = @[
-            divoKey,
-            [[MTDatacenterAuthPublicKey alloc] initWithPublicKey:@"-----BEGIN RSA PUBLIC KEY-----\n"
-             "MIIBCgKCAQEAyMEdY1aR+sCR3ZSJrtztKTKqigvO/vBfqACJLZtS7QMgCGXJ6XIR\n"
-             "yy7mx66W0/sOFa7/1mAZtEoIokDP3ShoqF4fVNb6XeqgQfaUHd8wJpDWHcR2OFwv\n"
-             "plUUI1PLTktZ9uW2WE23b+ixNwJjJGwBDJPQEQFBE+vfmH0JP503wr5INS1poWg/\n"
-             "j25sIWeYPHYeOrFp/eXaqhISP6G+q2IeTaWTXpwZj4LzXq5YOpk4bYEQ6mvRq7D1\n"
-             "aHWfYmlEGepfaYR8Q0YqvvhYtMte3ITnuSJs171+GDqpdKcSwHnd6FudwGO4pcCO\n"
-             "j4WcDuXc2CTHgH8gFTNhp/Y8/SpDOhvn9QIDAQAB\n"
-             "-----END RSA PUBLIC KEY-----"]
-        ];
-
-        productionPublicKeys = @[
-            divoKey,
-            [[MTDatacenterAuthPublicKey alloc] initWithPublicKey:@"-----BEGIN RSA PUBLIC KEY-----\n"
-             "MIIBCgKCAQEA6LszBcC1LGzyr992NzE0ieY+BSaOW622Aa9Bd4ZHLl+TuFQ4lo4g\n"
-             "5nKaMBwK/BIb9xUfg0Q29/2mgIR6Zr9krM7HjuIcCzFvDtr+L0GQjae9H0pRB2OO\n"
-             "62cECs5HKhT5DZ98K33vmWiLowc621dQuwKWSQKjWf50XYFw42h21P2KXUGyp2y/\n"
-             "+aEyZ+uVgLLQbRA1dEjSDZ2iGRy12Mk5gpYc397aYp438fsJoHIgJ2lgMv5h7WY9\n"
-             "t6N/byY9Nw9p21Og3AoXSL2q/2IJ1WRUhebgAdGVMlV1fkuOQoEzR7EdpqtQD9Cs\n"
-             "5+bfo3Nhmcyvk5ftB0WkJ9z6bNZ7yxrP8wIDAQAB\n"
-             "-----END RSA PUBLIC KEY-----"]
+             fingerprint:0xa9e071c1771060cdULL]
         ];
     });
     if (isProduction) {
@@ -109,6 +98,7 @@ static MTDatacenterAuthPublicKey *selectPublicKey(id<EncryptionProvider> encrypt
     for (NSNumber *nFingerprint in fingerprints) {
         for (MTDatacenterAuthPublicKey *key in publicKeys) {
             uint64_t keyFingerprint = [key fingerprintWithEncryptionProvider:encryptionProvider];
+            
             if ([nFingerprint unsignedLongLongValue] == keyFingerprint) {
                 return key;
             }
@@ -446,11 +436,11 @@ static NSData *encryptRSAModernPadding(id<EncryptionProvider> encryptionProvider
         if ([_nonce isEqualToData:resPqMessage.nonce])
         {
             MTDatacenterAuthPublicKey *publicKey = selectPublicKey(_encryptionProvider, resPqMessage.serverPublicKeyFingerprints, _publicKeys);
-
+            
             if (publicKey == nil && mtProto.cdn && resPqMessage.serverPublicKeyFingerprints.count == 1 && _publicKeys.count == 1) {
                 publicKey = _publicKeys[0];
             }
-
+            
             if (publicKey == nil)
             {
                 if (MTLogEnabled()) {

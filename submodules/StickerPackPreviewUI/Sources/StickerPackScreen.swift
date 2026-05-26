@@ -1075,18 +1075,18 @@ private final class StickerPackContainer: ASDisplayNode {
                     links += "\n"
                 }
                 if info.id.namespace == Namespaces.ItemCollection.CloudEmojiPacks {
-                    links += "https://t.me/addemoji/\(info.shortName)"
+                    links += "https://t.divo.global/addemoji/\(info.shortName)"
                 } else {
-                    links += "https://t.me/addstickers/\(info.shortName)"
+                    links += "https://t.divo.global/addstickers/\(info.shortName)"
                 }
             }
             text = links
             shareSubject = .text(text)
         } else if let (info, _, _) = self.currentStickerPack {
             if info.id.namespace == Namespaces.ItemCollection.CloudEmojiPacks {
-                text = "https://t.me/addemoji/\(info.shortName)"
+                text = "https://t.divo.global/addemoji/\(info.shortName)"
             } else {
-                text = "https://t.me/addstickers/\(info.shortName)"
+                text = "https://t.divo.global/addstickers/\(info.shortName)"
             }
             shareSubject = .url(text)
         } else {

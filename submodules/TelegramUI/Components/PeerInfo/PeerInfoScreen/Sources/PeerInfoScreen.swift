@@ -2425,7 +2425,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 }
             }
             if !found {
-                self.openUrl(url: "https://t.me/nft/\(slug)", concealed: false, external: false)
+                self.openUrl(url: "https://t.divo.global/nft/\(slug)", concealed: false, external: false)
             }
         }
         
@@ -3654,7 +3654,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                 return
             }
             if case let .user(peer) = peer, let username = peer.addressName {
-                strongSelf.openShareLink(url: "https://t.me/\(username)")
+                strongSelf.openShareLink(url: "https://t.divo.global/\(username)")
             }
         })
     }
@@ -4847,7 +4847,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
                             }
                         },
                         openContextMenu: { item, sourceNode, rect, gesture in
-                            let link = "tg://settings/\(item.id)"
+                            let link = "dg://settings/\(item.id)"
                             let items: [ContextMenuItem] = [
                                 .action( ContextMenuActionItem(
                                     text: "Copy Link",
