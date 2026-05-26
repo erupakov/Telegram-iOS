@@ -176,7 +176,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         
         self.controllerNode.selectCountryCode = { [weak self] in
             if let strongSelf = self {
-                let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, glass: true)
+                let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, glass: true, light: true)
                 controller.completeWithCountryCode = { code, name, _ in
                     if let strongSelf = self, let currentData = strongSelf.currentData {
                         strongSelf.updateData(countryCode: Int32(code), countryName: name, number: currentData.2)
@@ -191,6 +191,10 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         }
         self.controllerNode.checkPhone = { [weak self] in
             self?.nextPressed()
+        }
+        // DIVO: круглая back-кнопка нарисована в ноде; системный (синий) nav-bar скрыт.
+        self.controllerNode.backPressed = { [weak self] in
+            self?.back()
         }
         
         if let account = self.account {
@@ -330,7 +334,10 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
     private var animatingIn = false
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
+
+        // DIVO: прячем системный nav-bar (синяя back/Next) — back рисует DivoNavigationBar в ноде.
+        self.navigationBar?.isHidden = true
+
         if self.shouldAnimateIn {
             self.animatingIn = true
             if let (buttonFrame, buttonTitle, animationSnapshot, textSnapshot) = self.transitionInArguments {

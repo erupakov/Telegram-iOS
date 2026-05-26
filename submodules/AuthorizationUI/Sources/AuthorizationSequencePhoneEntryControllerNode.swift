@@ -22,120 +22,110 @@ import Markdown
 private final class PhoneAndCountryNode: ASDisplayNode {
     let strings: PresentationStrings
     let theme: PresentationTheme
-    
+
+    // DIVO: единое белое поле-пилюля — флаг + код страны + шеврон-пикер | номер.
+    // Код страны выбирается ТОЛЬКО через шторку (тап по левому сегменту), вручную не редактируется.
+    let fieldBackground: ASDisplayNode
+    let flagNode: ImmediateTextNode
+    let chevronNode: ASImageNode
     let countryButton: ASButtonNode
-    let countryButtonArrow: ASImageNode
-    let phoneBackground: ASImageNode
+    let separatorLine: ASDisplayNode
     let phoneInputNode: PhoneInputNode
-    
+
     var selectCountryCode: (() -> Void)?
     var checkPhone: (() -> Void)?
     var hasNumberUpdated: ((Bool) -> Void)?
     var keyPressed: ((Int) -> Void)?
-    
+
     var preferredCountryIdForCode: [String: String] = [:]
-    
+
     var hasCountry = false
-    
+
+    private static let fieldFont = DivoFont.helveticaNeueRegular(16.0)
+    private static var placeholderColor: UIColor { DivoColorPalette.primaryText.withAlphaComponent(0x66 / 255.0) }
+
     init(strings: PresentationStrings, theme: PresentationTheme) {
         self.strings = strings
         self.theme = theme
-        
-        let inset: CGFloat = 24.0
-        
-        let countryButtonBackground = generateImage(CGSize(width: 136.0, height: 67.0), rotatedContext: { size, context in
-            let arrowSize: CGFloat = 10.0
-            let lineWidth = UIScreenPixel
+
+        self.fieldBackground = ASDisplayNode()
+        self.fieldBackground.backgroundColor = DivoColorPalette.cardBackground
+        self.fieldBackground.cornerRadius = 16.0
+
+        self.flagNode = ImmediateTextNode()
+        self.flagNode.displaysAsynchronously = false
+        self.flagNode.maximumNumberOfLines = 1
+
+        self.chevronNode = ASImageNode()
+        self.chevronNode.displaysAsynchronously = false
+        self.chevronNode.isLayerBacked = true
+        // Дизайн: ресурс 16×16, глиф-«v» 8×4 по центру.
+        self.chevronNode.image = generateImage(CGSize(width: 16.0, height: 16.0), rotatedContext: { size, context in
             context.clear(CGRect(origin: CGPoint(), size: size))
-            context.setStrokeColor(theme.list.itemPlainSeparatorColor.cgColor)
-            context.setLineWidth(lineWidth)
-            context.move(to: CGPoint(x: inset, y: lineWidth / 2.0))
-            context.addLine(to: CGPoint(x: size.width - inset, y: lineWidth / 2.0))
+            context.setStrokeColor(DivoColorPalette.primaryText.cgColor)
+            context.setLineWidth(1.5)
+            context.setLineCap(.round)
+            context.setLineJoin(.round)
+            let midX = size.width / 2.0
+            let topY = size.height / 2.0 - 2.0
+            let bottomY = size.height / 2.0 + 2.0
+            context.move(to: CGPoint(x: midX - 4.0, y: topY))
+            context.addLine(to: CGPoint(x: midX, y: bottomY))
+            context.addLine(to: CGPoint(x: midX + 4.0, y: topY))
             context.strokePath()
-            
-            context.move(to: CGPoint(x: size.width - inset, y: size.height - arrowSize - lineWidth / 2.0))
-            context.addLine(to: CGPoint(x: 69.0, y: size.height - arrowSize - lineWidth / 2.0))
-            context.addLine(to: CGPoint(x: 69.0 - arrowSize, y: size.height - lineWidth / 2.0))
-            context.addLine(to: CGPoint(x: 69.0 - arrowSize - arrowSize, y: size.height - arrowSize - lineWidth / 2.0))
-            context.addLine(to: CGPoint(x: inset, y: size.height - arrowSize - lineWidth / 2.0))
-            context.strokePath()
-        })?.stretchableImage(withLeftCapWidth: 69, topCapHeight: 1)
-        
-        let countryButtonHighlightedBackground = generateImage(CGSize(width: 70.0, height: 67.0), rotatedContext: { size, context in
-            let arrowSize: CGFloat = 10.0
-            context.clear(CGRect(origin: CGPoint(), size: size))
-            context.setFillColor(DivoColorPalette.overlayHighlight.cgColor)
-            context.fill(CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: size.height - arrowSize)))
-            context.move(to: CGPoint(x: size.width, y: size.height - arrowSize))
-            context.addLine(to: CGPoint(x: size.width - 1.0, y: size.height - arrowSize))
-            context.addLine(to: CGPoint(x: size.width - 1.0 - arrowSize, y: size.height))
-            context.addLine(to: CGPoint(x: size.width - 1.0 - arrowSize - arrowSize, y: size.height - arrowSize))
-            context.closePath()
-            context.fillPath()
-        })?.stretchableImage(withLeftCapWidth: 69, topCapHeight: 2)
-        
-        let phoneInputBackground = generateImage(CGSize(width: 96.0, height: 57.0), rotatedContext: { size, context in
-            let lineWidth = UIScreenPixel
-            context.clear(CGRect(origin: CGPoint(), size: size))
-            context.setStrokeColor(theme.list.itemPlainSeparatorColor.cgColor)
-            context.setLineWidth(lineWidth)
-            context.move(to: CGPoint(x: inset, y: size.height - lineWidth / 2.0))
-            context.addLine(to: CGPoint(x: size.width, y: size.height - lineWidth / 2.0))
-            context.strokePath()
-            context.move(to: CGPoint(x: size.width - 2.0 + lineWidth / 2.0, y: size.height - 9.0))
-            context.addLine(to: CGPoint(x: size.width - 2.0 + lineWidth / 2.0, y: 8.0))
-            context.strokePath()
-        })?.stretchableImage(withLeftCapWidth: 95, topCapHeight: 2)
-        
+        })
+
         self.countryButton = ASButtonNode()
         self.countryButton.displaysAsynchronously = false
-        self.countryButton.setBackgroundImage(countryButtonBackground, for: [])
-        self.countryButton.titleNode.maximumNumberOfLines = 1
-        self.countryButton.titleNode.truncationMode = .byTruncatingTail
-        self.countryButton.setBackgroundImage(countryButtonHighlightedBackground, for: .highlighted)
-        
-        self.countryButtonArrow = ASImageNode()
-        self.countryButtonArrow.image = generateTintedImage(image: UIImage(bundleImageName: "Item List/DisclosureArrow"), color: theme.list.disclosureArrowColor)
-        
-        self.phoneBackground = ASImageNode()
-        self.phoneBackground.image = phoneInputBackground
-        self.phoneBackground.displaysAsynchronously = false
-        self.phoneBackground.displayWithoutProcessing = true
-        self.phoneBackground.isLayerBacked = true
-        
+
+        self.separatorLine = ASDisplayNode()
+        self.separatorLine.backgroundColor = DivoColorPalette.authSeparatorLine
+        self.separatorLine.isLayerBacked = true
+
         self.phoneInputNode = PhoneInputNode()
-        
+
         super.init()
-        
-        self.addSubnode(self.phoneBackground)
-        self.addSubnode(self.countryButton)
-        self.countryButton.addSubnode(self.countryButtonArrow)
+
+        self.addSubnode(self.fieldBackground)
+        self.addSubnode(self.flagNode)
+        self.addSubnode(self.chevronNode)
+        self.addSubnode(self.separatorLine)
         self.addSubnode(self.phoneInputNode)
-        
+        self.addSubnode(self.countryButton)
+
         self.phoneInputNode.countryCodeField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
         self.phoneInputNode.numberField.textField.keyboardAppearance = theme.rootController.keyboardColor.keyboardAppearance
-        self.phoneInputNode.countryCodeField.textField.textColor = .white
-        self.phoneInputNode.numberField.textField.textColor = .white
-        self.phoneInputNode.countryCodeField.textField.tintColor = theme.list.itemAccentColor
-        self.phoneInputNode.numberField.textField.tintColor = theme.list.itemAccentColor
+        // Номер, код и маска-плейсхолдер должны иметь идентичный шрифт+kern, иначе серый
+        // остаток маски (рисуется отдельной ImmediateTextNode поверх поля) уезжает относительно ввода.
+        // PhoneInputNode.updatePlaceholder() форсит kern 1.6 на маске — повторяем его на полях.
+        let fieldTextAttributes: [NSAttributedString.Key: Any] = [
+            .font: PhoneAndCountryNode.fieldFont,
+            .kern: 1.6,
+            .foregroundColor: DivoColorPalette.primaryText
+        ]
+        self.phoneInputNode.countryCodeField.textField.defaultTextAttributes = fieldTextAttributes
+        self.phoneInputNode.numberField.textField.defaultTextAttributes = fieldTextAttributes
+        self.phoneInputNode.countryCodeField.textField.textColor = DivoColorPalette.primaryText
+        self.phoneInputNode.numberField.textField.textColor = DivoColorPalette.primaryText
+        self.phoneInputNode.countryCodeField.textField.tintColor = DivoColorPalette.accent
+        self.phoneInputNode.numberField.textField.tintColor = DivoColorPalette.accent
         self.phoneInputNode.countryCodeField.accessibilityHint = strings.Login_VoiceOver_PhoneCountryCode
         self.phoneInputNode.numberField.accessibilityHint = strings.Login_VoiceOver_PhoneNumber
-        
-        self.phoneInputNode.countryCodeField.textField.tintColor = theme.list.itemAccentColor
-        self.phoneInputNode.numberField.textField.tintColor = theme.list.itemAccentColor
-        
+
+        // Код страны меняется только через шторку — текстовое поле кода не редактируется напрямую.
+        self.phoneInputNode.countryCodeField.textField.isUserInteractionEnabled = false
+
         self.phoneInputNode.countryCodeField.textField.disableAutomaticKeyboardHandling = [.forward]
         self.phoneInputNode.numberField.textField.disableAutomaticKeyboardHandling = [.forward]
-        
-        self.countryButton.contentEdgeInsets = UIEdgeInsets(top: 0.0, left: 24.0 + 16.0, bottom: 10.0, right: 0.0)
-        self.countryButton.contentHorizontalAlignment = .left
-        
+
+        self.countryButton.accessibilityLabel = strings.Login_SelectCountry
+        self.countryButton.accessibilityTraits = [.button]
         self.countryButton.addTarget(self, action: #selector(self.countryPressed), forControlEvents: .touchUpInside)
-        
+
         self.phoneInputNode.numberTextUpdated = { [weak self] number in
             if let strongSelf = self {
                 let _ = strongSelf.processNumberChange(number: strongSelf.phoneInputNode.number)
-                
+
                 let isServiceNumber = strongSelf.phoneInputNode.number.hasPrefix("+999")
                 if strongSelf.hasCountry || isServiceNumber {
                     strongSelf.hasNumberUpdated?(!strongSelf.phoneInputNode.codeAndNumber.2.isEmpty || isServiceNumber)
@@ -144,48 +134,34 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                 }
             }
         }
-        
+
         self.phoneInputNode.countryCodeUpdated = { [weak self] code, name in
             if let strongSelf = self {
                 if let name = name {
                     strongSelf.preferredCountryIdForCode[code] = name
                 }
-                
+
                 if strongSelf.processNumberChange(number: strongSelf.phoneInputNode.number) {
-                } else if let code = Int(code), let name = name, let countryName = countryCodeAndIdToName[CountryCodeAndId(code: code, id: name)] {
-                    let flagString = emojiFlagForISOCountryCode(name)
-                    var localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(name, strings: strongSelf.strings) ?? countryName
-                    if name == "FT" {
-                        localizedName = strongSelf.strings.Login_AnonymousNumbers
-                    }
-                    strongSelf.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: DivoColorPalette.primaryTextOnDark, for: [])
+                } else if let code = Int(code), let name = name, let _ = countryCodeAndIdToName[CountryCodeAndId(code: code, id: name)] {
+                    strongSelf.setFlag(isoCode: name)
                     strongSelf.hasCountry = true
-                    
                     if strongSelf.phoneInputNode.mask == nil {
-                        strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: theme.list.itemPlaceholderTextColor)
+                        strongSelf.setDefaultPlaceholder()
                     }
-                } else if let code = Int(code), let (countryId, countryName) = countryCodeToIdAndName[code] {
-                    let flagString = emojiFlagForISOCountryCode(countryId)
-                    var localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(countryId, strings: strongSelf.strings) ?? countryName
-                    if countryId == "FT" {
-                        localizedName = strongSelf.strings.Login_AnonymousNumbers
-                    }
-                    strongSelf.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: DivoColorPalette.primaryTextOnDark, for: [])
+                } else if let code = Int(code), let (countryId, _) = countryCodeToIdAndName[code] {
+                    strongSelf.setFlag(isoCode: countryId)
                     strongSelf.hasCountry = true
-                    
                     if strongSelf.phoneInputNode.mask == nil {
-                        strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: theme.list.itemPlaceholderTextColor)
+                        strongSelf.setDefaultPlaceholder()
                     }
                 } else {
                     strongSelf.hasCountry = false
-                    strongSelf.countryButton.setTitle(strings.Login_SelectCountry, with: Font.regular(20.0), with: theme.list.itemPlaceholderTextColor, for: [])
+                    strongSelf.flagNode.attributedText = nil
                     strongSelf.phoneInputNode.mask = nil
-                    strongSelf.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: theme.list.itemPlaceholderTextColor)
+                    strongSelf.setDefaultPlaceholder()
+                    strongSelf.setNeedsLayout()
                 }
-                
-                strongSelf.countryButton.accessibilityLabel = strongSelf.countryButton.attributedTitle(for: .normal)?.string ?? ""
-                strongSelf.countryButton.accessibilityTraits = [.button]
-                
+
                 if strongSelf.hasCountry {
                     strongSelf.hasNumberUpdated?(!strongSelf.phoneInputNode.codeAndNumber.2.isEmpty)
                 } else {
@@ -193,7 +169,7 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                 }
             }
         }
-        
+
         self.phoneInputNode.customFormatter = { number in
             if let (_, code) = AuthorizationSequenceCountrySelectionController.lookupCountryIdByNumber(number, preferredCountries: [:]) {
                 return code.code
@@ -201,68 +177,97 @@ private final class PhoneAndCountryNode: ASDisplayNode {
                 return nil
             }
         }
-        
+
         self.phoneInputNode.number = "+1"
         self.phoneInputNode.returnAction = { [weak self] in
             self?.checkPhone?()
         }
-        
+
         self.phoneInputNode.keyPressed = { [weak self] num in
             self?.keyPressed?(num)
         }
     }
-    
+
+    private func setFlag(isoCode: String) {
+        let flagString = emojiFlagForISOCountryCode(isoCode)
+        self.flagNode.attributedText = NSAttributedString(string: flagString, font: Font.regular(22.0), textColor: DivoColorPalette.primaryText)
+        self.setNeedsLayout()
+    }
+
+    private func setDefaultPlaceholder() {
+        self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: "000 000 0000", font: PhoneAndCountryNode.fieldFont, textColor: PhoneAndCountryNode.placeholderColor)
+    }
+
     func processNumberChange(number: String) -> Bool {
         if let (country, _) = AuthorizationSequenceCountrySelectionController.lookupCountryIdByNumber(number, preferredCountries: self.preferredCountryIdForCode) {
-            let flagString = emojiFlagForISOCountryCode(country.id)
-            var localizedName: String = AuthorizationSequenceCountrySelectionController.lookupCountryNameById(country.id, strings: self.strings) ?? country.name
-            if country.id == "FT" {
-                localizedName = self.strings.Login_AnonymousNumbers
-            }
-            self.countryButton.setTitle("\(flagString) \(localizedName)", with: Font.regular(20.0), with: .white, for: [])
+            self.setFlag(isoCode: country.id)
             self.hasCountry = true
-            
-            let maskFont = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])
-            if let mask = AuthorizationSequenceCountrySelectionController.lookupPatternByNumber(number, preferredCountries: self.preferredCountryIdForCode).flatMap({ NSAttributedString(string: $0, font: maskFont, textColor: self.theme.list.itemPlaceholderTextColor) }) {
+
+            if let mask = AuthorizationSequenceCountrySelectionController.lookupPatternByNumber(number, preferredCountries: self.preferredCountryIdForCode).flatMap({ NSAttributedString(string: $0, font: PhoneAndCountryNode.fieldFont, textColor: PhoneAndCountryNode.placeholderColor) }) {
                 self.phoneInputNode.numberField.textField.attributedPlaceholder = nil
                 self.phoneInputNode.mask = mask
             } else {
                 self.phoneInputNode.mask = nil
-                self.phoneInputNode.numberField.textField.attributedPlaceholder = NSAttributedString(string: strings.Login_PhonePlaceholder, font: Font.regular(20.0), textColor: self.theme.list.itemPlaceholderTextColor)
+                self.setDefaultPlaceholder()
             }
             return true
         } else {
             return false
         }
     }
-    
+
     @objc func countryPressed() {
         self.selectCountryCode?()
     }
-    
+
     override func layout() {
         super.layout()
-        
+
         let size = self.bounds.size
-        let inset: CGFloat = 24.0
-        
-        self.countryButton.frame = CGRect(origin: CGPoint(), size: CGSize(width: size.width, height: 67.0))
-        self.phoneBackground.frame = CGRect(origin: CGPoint(x: 0.0, y: size.height - 57.0), size: CGSize(width: size.width - inset, height: 57.0))
-        
-        if let image = self.countryButtonArrow.image {
-            self.countryButtonArrow.frame = CGRect(origin: CGPoint(x: size.width - image.size.width - 24.0 - 3.0, y: 16.0 + UIScreenPixel), size: image.size)
-        }
-        
-        let countryCodeFrame = CGRect(origin: CGPoint(x: 18.0, y: size.height - 58.0), size: CGSize(width: 71.0, height: 57.0))
-        let numberFrame = CGRect(origin: CGPoint(x: 107.0, y: size.height - 58.0), size: CGSize(width: size.width - 96.0 - 8.0 - 24.0, height: 57.0))
-        let placeholderFrame = numberFrame.offsetBy(dx: 0.0, dy: 17.0 - UIScreenPixel)
-        
-        let phoneInputFrame = countryCodeFrame.union(numberFrame)
-        
+        self.fieldBackground.frame = CGRect(origin: CGPoint(), size: size)
+
+        let leftPad: CGFloat = 18.0
+        let flagWidth: CGFloat = 26.0
+        let chevronWidth: CGFloat = 16.0
+
+        let flagSize = self.flagNode.updateLayout(CGSize(width: flagWidth, height: size.height))
+        self.flagNode.frame = CGRect(origin: CGPoint(x: leftPad, y: floor((size.height - flagSize.height) / 2.0)), size: CGSize(width: flagWidth, height: flagSize.height))
+
+        // Ширина кода — по фактическому тексту (+1 … +994), чтобы 4-значные коды влезали и шеврон жался к коду.
+        let codeFont = PhoneAndCountryNode.fieldFont
+        let codeText = self.phoneInputNode.countryCodeField.textField.text ?? "+000"
+        var codeTextWidth = (codeText as NSString).size(withAttributes: [.font: codeFont]).width
+        codeTextWidth += CGFloat(max(0, codeText.count - 1)) * 1.6 // kern 1.6 между символами
+        let codeWidth = max(24.0, ceil(codeTextWidth) + 4.0)
+
+        let codeX = leftPad + flagWidth + 4.0
+        let codeFrame = CGRect(x: codeX, y: 0.0, width: codeWidth, height: size.height)
+
+        let chevronX = codeX + codeWidth + 2.0
+        let chevronSize = self.chevronNode.image?.size ?? CGSize(width: chevronWidth, height: chevronWidth)
+        self.chevronNode.frame = CGRect(origin: CGPoint(x: chevronX, y: floor((size.height - chevronSize.height) / 2.0)), size: chevronSize)
+
+        let separatorX = chevronX + chevronWidth + 10.0
+        self.separatorLine.frame = CGRect(x: separatorX, y: 14.0, width: UIScreenPixel * 2.0, height: max(0.0, size.height - 28.0))
+
+        // Тап по всему левому сегменту (флаг + код + шеврон) открывает шторку выбора страны.
+        self.countryButton.frame = CGRect(x: 0.0, y: 0.0, width: separatorX, height: size.height)
+
+        let numberX = separatorX + 12.0
+        let numberFrame = CGRect(x: numberX, y: 0.0, width: max(0.0, size.width - numberX - 16.0), height: size.height)
+
+        let phoneInputFrame = codeFrame.union(numberFrame)
         self.phoneInputNode.frame = phoneInputFrame
-        self.phoneInputNode.countryCodeField.frame = countryCodeFrame.offsetBy(dx: -phoneInputFrame.minX, dy: -phoneInputFrame.minY)
+        self.phoneInputNode.countryCodeField.frame = codeFrame.offsetBy(dx: -phoneInputFrame.minX, dy: -phoneInputFrame.minY)
         self.phoneInputNode.numberField.frame = numberFrame.offsetBy(dx: -phoneInputFrame.minX, dy: -phoneInputFrame.minY)
-        self.phoneInputNode.placeholderNode.frame = placeholderFrame.offsetBy(dx: -phoneInputFrame.minX, dy: -phoneInputFrame.minY)
+
+        // Маска-плейсхолдер (ImmediateTextNode) рисует от верха фрейма; UITextField центрирует текст по
+        // высоте font.lineHeight — выравниваем верх плейсхолдера по той же формуле, чтобы уровни совпали.
+        let placeholderLineHeight = codeFont.lineHeight
+        let placeholderSize = self.phoneInputNode.placeholderNode.updateLayout(CGSize(width: numberFrame.width, height: size.height))
+        let placeholderRelX = numberFrame.minX - phoneInputFrame.minX
+        let placeholderRelY = floor((size.height - placeholderLineHeight) / 2.0) - phoneInputFrame.minY
+        self.phoneInputNode.placeholderNode.frame = CGRect(x: placeholderRelX, y: placeholderRelY, width: numberFrame.width, height: max(placeholderSize.height, placeholderLineHeight))
     }
 }
 
@@ -304,234 +309,6 @@ private final class ContactSyncNode: ASDisplayNode {
     }
 }
 
-private final class EulaCheckboxNode: ASDisplayNode {
-    public let checkboxNode: SwitchNode
-    private let textNode: ImmediateTextNode
-    private let tapNode: AccessibilityAreaNode
-    
-    var valueUpdated: ((Bool) -> Void)?
-    
-    private let theme: PresentationTheme
-    
-    var isChecked: Bool {
-        get {
-            return checkboxNode.isOn
-        }
-        set {
-            checkboxNode.setOn(newValue, animated: false)
-            updateSwitchAppearance(isOn: newValue)
-        }
-    }
-    
-    init(theme: PresentationTheme, strings: PresentationStrings) {
-        self.theme = theme
-        
-        self.checkboxNode = SwitchNode()
-        
-        self.textNode = ImmediateTextNode()
-        self.textNode.maximumNumberOfLines = 0
-        self.textNode.attributedText = NSAttributedString(
-            string: DivoStrings.loginEulaAgreement,
-            font: Font.regular(13.0),
-            textColor: .white
-        )
-        
-        self.tapNode = AccessibilityAreaNode()
-        self.tapNode.accessibilityTraits = [.button]
-        self.tapNode.accessibilityLabel = DivoStrings.loginEulaAgreement
-        
-        super.init()
-        
-        self.addSubnode(self.checkboxNode)
-        self.addSubnode(self.textNode)
-        self.addSubnode(self.tapNode)
-        
-        self.checkboxNode.valueUpdated = { [weak self] value in
-            guard let self else { return }
-            self.valueUpdated?(value)
-            self.updateSwitchAppearance(isOn: value)
-        }
-        
-        self.tapNode.activate = { [weak self] in
-            guard let self else { return false }
-            self.isChecked.toggle()
-            self.valueUpdated?(self.isChecked)
-            return true
-        }
-    }
-    
-    override func didLoad() {
-        super.didLoad()
-        self.updateSwitchAppearance(isOn: self.isChecked)
-    }
-    
-    func updateLayout(width: CGFloat) -> CGSize {
-        let checkboxSize = CGSize(width: 51.0, height: 31.0)
-        let inset: CGFloat = 24.0
-        let spacing: CGFloat = 8.0
-        
-        let textSize = self.textNode.updateLayout(CGSize(width: width - checkboxSize.width - spacing - inset * 2.0, height: .greatestFiniteMagnitude))
-        
-        let height = max(checkboxSize.height, textSize.height)
-        
-        self.checkboxNode.frame = CGRect(origin: CGPoint(x: inset, y: floor((height - checkboxSize.height) / 2.0)), size: checkboxSize)
-        self.textNode.frame = CGRect(origin: CGPoint(x: inset + checkboxSize.width + spacing, y: floor((height - textSize.height) / 2.0)), size: textSize)
-        self.tapNode.frame = CGRect(origin: CGPoint(), size: CGSize(width: width, height: height))
-        
-        return CGSize(width: width, height: height)
-    }
-    
-    private func updateSwitchAppearance(isOn: Bool) {
-        guard self.checkboxNode.isNodeLoaded else { return }
-        let uiSwitch = self.checkboxNode.view as! UISwitch
-        
-        if isOn {
-            uiSwitch.onTintColor = DivoColorPalette.accentCopperDeep
-            uiSwitch.thumbTintColor = .white
-            uiSwitch.backgroundColor = .clear
-        } else {
-            let inactiveColor = DivoColorPalette.switchOffBackground
-            uiSwitch.tintColor = inactiveColor
-            uiSwitch.backgroundColor = inactiveColor
-            uiSwitch.layer.cornerRadius = 16
-            uiSwitch.clipsToBounds = true
-            uiSwitch.thumbTintColor = .white
-        }
-    }
-}
-
-private final class SeparatorWithTextNode: ASDisplayNode {
-    private let theme: PresentationTheme
-    private let textNode: ImmediateTextNode
-    private let leftLineNode: ASDisplayNode
-    private let rightLineNode: ASDisplayNode
-    
-    init(theme: PresentationTheme, strings: PresentationStrings) {
-        self.theme = theme
-        
-        self.textNode = ImmediateTextNode()
-        self.textNode.attributedText = NSAttributedString(
-            string: "or continue with",
-            font: Font.bold(11.0),
-            textColor: DivoColorPalette.overlayDarkMediumLine
-        )
-        
-        self.leftLineNode = ASDisplayNode()
-        self.leftLineNode.backgroundColor = DivoColorPalette.overlayDarkMediumLine
-        
-        self.rightLineNode = ASDisplayNode()
-        self.rightLineNode.backgroundColor = DivoColorPalette.overlayDarkMediumLine
-        
-        super.init()
-        
-        self.addSubnode(self.textNode)
-        self.addSubnode(self.leftLineNode)
-        self.addSubnode(self.rightLineNode)
-    }
-    
-    func updateLayout(width: CGFloat) -> CGSize {
-        let textPadding: CGFloat = 8.0
-        
-        let textSize = self.textNode.updateLayout(CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
-        
-        let lineHeight = UIScreenPixel
-        let lineLength = floor((width - textSize.width - textPadding * 2.0) / 2.0)
-        
-        self.textNode.frame = CGRect(x: floor((width - textSize.width) / 2.0), y: 0.0, width: textSize.width, height: textSize.height)
-        
-        self.leftLineNode.frame = CGRect(x: 0.0, y: floor(textSize.height / 2.0) - lineHeight / 2.0, width: lineLength, height: lineHeight)
-        self.rightLineNode.frame = CGRect(x: width - lineLength, y: floor(textSize.height / 2.0) - lineHeight / 2.0, width: lineLength, height: lineHeight)
-        
-        return CGSize(width: width, height: textSize.height)
-    }
-}
-
-private final class AuthButtonNode: ASControlNode { // ButtonWithIconNode
-    private let textNode: ASTextNode
-    private let iconNode: ASImageNode
-    private let spacing: CGFloat
-    private let imageSize: CGSize
-    
-    init(title: String, icon: UIImage?, theme: PresentationTheme, spacing: CGFloat, imageSize: CGSize) {
-        self.spacing = spacing
-        self.imageSize = imageSize
-        
-        self.textNode = ASTextNode()
-        self.textNode.attributedText = Font.helveticaNeue(title, 17)
-        
-        self.iconNode = ASImageNode()
-        self.iconNode.image = icon
-        self.iconNode.contentMode = .scaleAspectFit
-        
-        super.init()
-        
-        self.backgroundColor = theme.list.itemBlocksBackgroundColor
-        self.cornerRadius = 12.0
-        self.layer.borderColor = DivoColorPalette.overlayDarkFieldBorderSoft.cgColor
-        self.layer.borderWidth = 1
-        
-        self.addSubnode(self.iconNode)
-        self.addSubnode(self.textNode)
-    }
-    
-    override func layout() {
-        super.layout()
-        
-        let textSize = self.textNode.measure(self.bounds.size)
-        
-        let contentWidth = self.imageSize.width + self.spacing + textSize.width
-        let contentOriginX = (self.bounds.width - contentWidth) / 2.0
-        
-        self.iconNode.frame = CGRect(x: contentOriginX,
-                                     y: (self.bounds.height - self.imageSize.height) / 2.0,
-                                     width: self.imageSize.width,
-                                     height: self.imageSize.height)
-        
-        self.textNode.frame = CGRect(x: contentOriginX + self.imageSize.width + self.spacing,
-                                     y: (self.bounds.height - textSize.height) / 2.0,
-                                     width: textSize.width,
-                                     height: textSize.height)
-    }
-}
-
-private final class AuthButtonsNode: ASDisplayNode {
-    private let theme: PresentationTheme
-    private let strings: PresentationStrings
-    
-    let googleButton: AuthButtonNode
-    let appleButton: AuthButtonNode
-    
-    init(theme: PresentationTheme, strings: PresentationStrings) {
-        self.theme = theme
-        self.strings = strings
-        let imageSize: CGSize = CGSize(width: 24, height: 24)
-        
-        let googleLogo = UIImage(bundleImageName: "Settings/GoogleIcon")
-        self.googleButton = AuthButtonNode(title: "Google", icon: googleLogo, theme: theme, spacing: 10, imageSize: imageSize)
-        self.googleButton.backgroundColor = DivoColorPalette.overlayDarkFieldBorderSoft
-        
-        let appleLogo = UIImage(named: "Settings/AppleIcon")
-        self.appleButton = AuthButtonNode(title: "Apple", icon: appleLogo, theme: theme, spacing: 10, imageSize: imageSize)
-        self.appleButton.backgroundColor = DivoColorPalette.overlayDarkFieldBorderSoft
-        
-        super.init()
-        
-        self.addSubnode(self.googleButton)
-        self.addSubnode(self.appleButton)
-    }
-    
-    func updateLayout(width: CGFloat) -> CGSize {
-        let buttonHeight: CGFloat = 50.0
-        let buttonWidth = (width - 16.0) / 2.0
-        
-        self.googleButton.frame = CGRect(x: 0, y: 0, width: buttonWidth, height: buttonHeight)
-        self.appleButton.frame = CGRect(x: buttonWidth + 16.0, y: 0, width: buttonWidth, height: buttonHeight)
-        
-        return CGSize(width: width, height: buttonHeight)
-    }
-}
-
-
 final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     private let sharedContext: SharedAccountContext
     private var account: UnauthorizedAccount?
@@ -546,10 +323,11 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     private let phoneAndCountryNode: PhoneAndCountryNode
     private let contactSyncNode: ContactSyncNode
     private let proceedNode: SolidRoundedButtonNode
-    private let eulaCheckboxNode: EulaCheckboxNode
-    private let separatorNode: SeparatorWithTextNode
-    private let authButtonsNode: AuthButtonsNode
-    
+
+    // DIVO: круглая back-кнопка как на экранах модели/события (Sign in 1/2).
+    private let divoNavigationBar = DivoNavigationBar()
+    var backPressed: (() -> Void)?
+
     private var qrNode: ASImageNode?
     private let exportTokenDisposable = MetaDisposable()
     private let tokenEventsDisposable = MetaDisposable()
@@ -558,7 +336,41 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     var retryPasskey: (() -> Void)?
     
     private let debugAction: () -> Void
-    
+
+    // DIVO: заголовок «YOUR PHONE» — HelveticaNeue 77 Bold Condensed 32, LS 0.5, uppercase, #222222.
+    static func titleAttributedString(_ text: String) -> NSAttributedString {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        return NSAttributedString(string: text.uppercased(), attributes: [
+            .font: Font.helveticaNeue(32.0),
+            .foregroundColor: DivoColorPalette.primaryText,
+            .kern: 0.5,
+            .paragraphStyle: paragraphStyle
+        ])
+    }
+
+    // DIVO: SolidRoundedButtonNode перерисовывает заголовок системным шрифтом при смене isEnabled
+    // (updateColors). Переприменяем HelveticaNeue Condensed Bold поверх — иначе шрифт «едет» при вводе.
+    private func updateProceedTitle() {
+        guard let divoFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 20.0) else { return }
+        self.proceedNode.titleNode.attributedText = NSAttributedString(string: self.strings.Login_Continue, attributes: [
+            .font: divoFont,
+            .foregroundColor: self.proceedNode.isEnabled ? DivoColorPalette.primaryTextOnDark : DivoColorPalette.disabledText,
+            .kern: 20.0 * 0.005
+        ])
+        // titleNode — ImmediateTextNode: смена attributedText не перерисовывается без updateLayout.
+        // SolidRoundedButtonNode.updateColors уже отрисовал системный semibold — переизмеряем и
+        // центрируем заново, иначе наш condensed-шрифт не применяется визуально.
+        let buttonSize = self.proceedNode.bounds.size
+        if buttonSize.width > 0.0 {
+            let titleSize = self.proceedNode.titleNode.updateLayout(buttonSize)
+            self.proceedNode.titleNode.frame = CGRect(
+                origin: CGPoint(x: floorToScreenPixels((buttonSize.width - titleSize.width) / 2.0), y: floorToScreenPixels((buttonSize.height - titleSize.height) / 2.0)),
+                size: titleSize
+            )
+        }
+    }
+
     var currentNumber: String {
         return self.phoneAndCountryNode.phoneInputNode.number
     }
@@ -628,7 +440,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = true
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = Font.helveticaNeue((account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle).uppercased(), 34)
+        self.titleNode.attributedText = AuthorizationSequencePhoneEntryControllerNode.titleAttributedString(account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle)
         
         self.titleActivateAreaNode = AccessibilityAreaNode()
         self.titleActivateAreaNode.accessibilityTraits = .staticText
@@ -649,46 +461,39 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         )
         
         self.contactSyncNode = ContactSyncNode(theme: theme, strings: strings)
-        self.eulaCheckboxNode = EulaCheckboxNode(theme: theme, strings: strings)
-        self.eulaCheckboxNode.isHidden = false
-        self.eulaCheckboxNode.alpha = 1.0
         self.phoneAndCountryNode = PhoneAndCountryNode(strings: strings, theme: theme)
         
         let customButtonTheme = SolidRoundedButtonTheme(
-            backgroundColor: DivoColorPalette.accentCopperDeep,
-            foregroundColor: .white,
-            disabledBackgroundColor: DivoColorPalette.accentCopperDeep,
-            disabledForegroundColor: .white
+            backgroundColor: DivoColorPalette.accent,
+            foregroundColor: DivoColorPalette.primaryTextOnDark,
+            disabledBackgroundColor: DivoColorPalette.buttonDisabledBackground,
+            disabledForegroundColor: DivoColorPalette.disabledText
         )
-        
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: customButtonTheme, glass: false, font: .bold, fontSize: 20.0, height: 50.0, cornerRadius: 11.0)
+
+        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: customButtonTheme, glass: false, font: .bold, fontSize: 20.0, height: 50.0, cornerRadius: 25.0)
         
         self.proceedNode.progressType = .embedded
         self.proceedNode.isEnabled = false
-        
-        self.separatorNode = SeparatorWithTextNode(theme: theme, strings: strings)
-        self.authButtonsNode = AuthButtonsNode(theme: theme, strings: strings)
-        
+
         super.init()
         
         self.setViewBlock({
             return UITracingLayerView()
         })
         
-        self.backgroundColor = DivoColorPalette.darkBackground
-        
+        self.backgroundColor = DivoColorPalette.screenBackground
+
         self.addSubnode(self.titleNode)
-        self.addSubnode(self.noticeNode)
         self.addSubnode(self.titleActivateAreaNode)
-        self.addSubnode(self.noticeActivateAreaNode)
         self.addSubnode(self.phoneAndCountryNode)
-        self.addSubnode(self.contactSyncNode)
-        self.addSubnode(self.eulaCheckboxNode)
         self.addSubnode(self.proceedNode)
-        self.addSubnode(self.separatorNode)
-        self.addSubnode(self.authButtonsNode)
-        
+
+        // DIVO: Google/Apple, EULA-чекбокс, разделитель «or» и notice-текст живут на разводном
+        // экране (DivoAuthWelcomeController) — на «YOUR PHONE» (Sign in 1/2) их нет.
+        // contactSyncNode оставлен скрытым: его switch читает signUp (syncContacts);
+        // noticeNode скрыт, но завязан на splash-анимацию willAnimateIn/animateIn.
         self.contactSyncNode.isHidden = true
+        self.noticeNode.isHidden = true
         
         self.noticeNode.highlightAttributeAction = { attributes in
             if let _ = attributes[NSAttributedString.Key(rawValue: "URL")] {
@@ -715,12 +520,9 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         }
         self.phoneAndCountryNode.hasNumberUpdated = { [weak self] hasNumber in
             self?.proceedNode.isEnabled = hasNumber
+            self?.updateProceedTitle()
         }
-        
-        self.eulaCheckboxNode.valueUpdated = { [weak self] isChecked in
-            self?.proceedNode.isEnabled = isChecked && !(self?.phoneAndCountryNode.phoneInputNode.codeAndNumber.2.isEmpty ?? true)
-        }
-        
+
         if let account = account {
             self.tokenEventsDisposable.set((account.updateLoginTokenEvents
                                             |> deliverOnMainQueue).startStrict(next: { [weak self] _ in
@@ -740,7 +542,18 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     
     override func didLoad() {
         super.didLoad()
-        
+
+        self.divoNavigationBar.makeNavigationBar(
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
+            onBackTapped: { [weak self] in self?.backPressed?() }
+        )
+        self.view.addSubview(self.divoNavigationBar)
+        NSLayoutConstraint.activate([
+            self.divoNavigationBar.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            self.divoNavigationBar.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            self.divoNavigationBar.topAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor)
+        ])
+
         self.titleNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugTap(_:))))
 #if DEBUG && false
         self.noticeNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.debugQrTap(_:))))
@@ -834,16 +647,16 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         
         var insets = layout.insets(options: [])
         insets.top = layout.statusBarHeight ?? 20.0
-        
-        let additionalBottomInset: CGFloat = layout.size.width > 320.0 ? 80.0 : 10.0
 
-        self.titleNode.attributedText = Font.helveticaNeue((self.account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle).uppercased(), 34)
-        
+        self.titleNode.attributedText = AuthorizationSequencePhoneEntryControllerNode.titleAttributedString(self.account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle)
+
         self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
-        
+
         let inset: CGFloat = 24.0
         let maximumWidth: CGFloat = min(430.0, layout.size.width)
-        
+        let fieldWidth = maximumWidth - inset * 2.0
+        let fieldX = floorToScreenPixels((layout.size.width - fieldWidth) / 2.0)
+
         let titleSize = self.titleNode.measure(CGSize(width: maximumWidth, height: CGFloat.greatestFiniteMagnitude))
         let titleOriginY: CGFloat = insets.top + (layout.statusBarHeight ?? 20.0) + 10.0
         let titleFrame = CGRect(
@@ -851,66 +664,21 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
             size: titleSize
         )
         transition.updateFrame(node: self.titleNode, frame: titleFrame)
-        
-        let noticeSize = self.noticeNode.updateLayout(CGSize(width: maximumWidth - 48.0, height: CGFloat.greatestFiniteMagnitude))
-        let noticeSpacing: CGFloat = 8.0
-        let noticeOriginY = titleFrame.maxY + noticeSpacing
-        let noticeFrame = CGRect(
-            origin: CGPoint(x: floorToScreenPixels((layout.size.width - noticeSize.width) / 2.0), y: noticeOriginY),
-            size: noticeSize
-        )
-        transition.updateFrame(node: self.noticeNode, frame: noticeFrame)
-        
-        if let divoFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 20.0) {
-            self.proceedNode.titleNode.attributedText = NSAttributedString(string: self.strings.Login_Continue, attributes: [
-                .font: divoFont,
-                .foregroundColor: UIColor.white,
-                .kern: 20.0 * 0.005
-            ])
-        }
-        let proceedHeight = self.proceedNode.updateLayout(width: maximumWidth - inset * 2.0, transition: transition)
-        let proceedSize = CGSize(width: maximumWidth - inset * 2.0, height: proceedHeight)
-        
-        let separatorSize = self.separatorNode.updateLayout(width: maximumWidth - inset * 2.0)
-        let authButtonsSize = self.authButtonsNode.updateLayout(width: maximumWidth - inset * 2.0)
-        
-        var items: [AuthorizationLayoutItem] = [
-            AuthorizationLayoutItem(node: self.phoneAndCountryNode, size: CGSize(width: maximumWidth, height: 115.0), spacingBefore: AuthorizationLayoutItemSpacing(weight: 30.0, maxValue: 30.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0))
-        ]
-        
-        if layout.size.width > 320.0 {
-            //            items.insert(AuthorizationLayoutItem(node: self.animationNode, size: animationSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 10.0, maxValue: 10.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)), at: 0)
-            self.proceedNode.isHidden = false
-            //            self.animationNode.isHidden = false
-            //            self.animationNode.visibility = true
-        } else {
-            insets.top = navigationBarHeight
-            self.proceedNode.isHidden = true
-            //            self.animationNode.isHidden = true
-            //            self.managedAnimationNode.isHidden = true
-        }
-        
-        let contactSyncSize = self.contactSyncNode.updateLayout(width: maximumWidth)
-        if self.hasOtherAccounts {
-            self.contactSyncNode.isHidden = false
-            items.append(AuthorizationLayoutItem(node: self.contactSyncNode, size: contactSyncSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 14.0, maxValue: 14.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        } else {
-            self.contactSyncNode.isHidden = true
-        }
-        
-        let eulaSize = self.eulaCheckboxNode.updateLayout(width: maximumWidth)
-        items.append(AuthorizationLayoutItem(node: self.eulaCheckboxNode, size: eulaSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 14.0, maxValue: 14.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        
-        items.append(AuthorizationLayoutItem(node: self.proceedNode, size: proceedSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 12.0, maxValue: 12.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        
-        items.append(AuthorizationLayoutItem(node: self.separatorNode, size: separatorSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 20.0, maxValue: 20.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        items.append(AuthorizationLayoutItem(node: self.authButtonsNode, size: authButtonsSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 12.0, maxValue: 12.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
-        
-        let _ = layoutAuthorizationItems(bounds: CGRect(origin: CGPoint(x: 0.0, y: insets.top), size: CGSize(width: layout.size.width, height: layout.size.height - insets.top - insets.bottom - additionalBottomInset)), items: items, transition: transition, failIfDoesNotFit: false)
-        
-        self.titleActivateAreaNode.frame = self.titleNode.frame
-        self.noticeActivateAreaNode.accessibilityLabel = self.noticeNode.attributedText?.string ?? ""
-        self.noticeActivateAreaNode.frame = self.noticeNode.frame
+        self.titleActivateAreaNode.frame = titleFrame
+
+        // Поле телефона — 32px под заголовком (Sign in 1/2).
+        let phoneFieldHeight: CGFloat = 57.0
+        let phoneFrame = CGRect(x: fieldX, y: titleFrame.maxY + 32.0, width: fieldWidth, height: phoneFieldHeight)
+        transition.updateFrame(node: self.phoneAndCountryNode, frame: phoneFrame)
+
+        // Continue — 20px под полем. Frame ставим ДО updateProceedTitle, чтобы bounds кнопки был
+        // известен (titleNode переизмеряется относительно bounds для condensed-шрифта).
+        let proceedHeight = self.proceedNode.updateLayout(width: fieldWidth, transition: transition)
+        let proceedFrame = CGRect(x: fieldX, y: phoneFrame.maxY + 20.0, width: fieldWidth, height: proceedHeight)
+        transition.updateFrame(node: self.proceedNode, frame: proceedFrame)
+        // HelveticaNeue Condensed Bold, цвет по состоянию (disabled-фон #E4E4E4 рисует сам SolidRoundedButtonNode).
+        self.updateProceedTitle()
+        self.proceedNode.isHidden = false
     }
     
     func activateInput() {
