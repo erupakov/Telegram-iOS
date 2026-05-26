@@ -15,7 +15,6 @@ public final class OnboardingRoleResultViewController: UIViewController {
     public protocol Delegate: AnyObject {
         func roleResultControllerDidConfirm(_ controller: OnboardingRoleResultViewController)
         func roleResultControllerDidRequestRestart(_ controller: OnboardingRoleResultViewController)
-        func roleResultControllerDidTapBack(_ controller: OnboardingRoleResultViewController)
     }
 
     public weak var delegate: Delegate?
@@ -24,7 +23,7 @@ public final class OnboardingRoleResultViewController: UIViewController {
 
     private let imageView = UIImageView()
     private let gradientOverlay = CAGradientLayer()
-    
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(32)
@@ -148,5 +147,4 @@ public final class OnboardingRoleResultViewController: UIViewController {
 
     @objc private func primaryTapped()   { delegate?.roleResultControllerDidConfirm(self) }
     @objc private func secondaryTapped() { delegate?.roleResultControllerDidRequestRestart(self) }
-    @objc private func backTapped()      { delegate?.roleResultControllerDidTapBack(self) }
 }

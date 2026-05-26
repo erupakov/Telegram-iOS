@@ -90,14 +90,14 @@ public final class OnboardingFormStepViewController: UIViewController {
         return bottomTitleLabel
     }()
     
-    private let bottomSubitleLabel: UILabel = {
-        let bottomSubitleLabel = UILabel()
-        bottomSubitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        bottomSubitleLabel.font = Font.regular(16)
-        bottomSubitleLabel.textColor = DivoColorPalette.primaryText
-        bottomSubitleLabel.textAlignment = .left
-        bottomSubitleLabel.numberOfLines = 0
-        return bottomSubitleLabel
+    private let bottomSubtitleLabel: UILabel = {
+        let bottomSubtitleLabel = UILabel()
+        bottomSubtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        bottomSubtitleLabel.font = Font.regular(16)
+        bottomSubtitleLabel.textColor = DivoColorPalette.primaryText
+        bottomSubtitleLabel.textAlignment = .left
+        bottomSubtitleLabel.numberOfLines = 0
+        return bottomSubtitleLabel
     }()
     
     private let bottomFadeOverlay = OnboardingBottomFadeOverlay()
@@ -109,6 +109,11 @@ public final class OnboardingFormStepViewController: UIViewController {
     private var primaryButtonBottomConstraint: NSLayoutConstraint?
     private var bottomFadeOverlayBottomConstraint: NSLayoutConstraint?
     private var keyboardHandler: DivoKeyboardHandler?
+
+    /// Минимальная высота top-spacer'а — пересчитывается из navBar.bottom + 12 в `viewDidLayoutSubviews`.
+    private var topSpacerHeightConstraint: NSLayoutConstraint?
+    /// Высота top-fade overlay — заканчивается за 4pt до title, чтобы не перекрывать его.
+    private var topFadeOverlayHeightConstraint: NSLayoutConstraint?
 
     public init(step: FormStep, currentValues: [String: FormFieldValue]) {
         self.step = step
@@ -176,6 +181,26 @@ public final class OnboardingFormStepViewController: UIViewController {
         view.endEditing(true)
     }
 
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let navBarBottom = navigationBar.frame.maxY
+        let targetSpacer = navBarBottom + 12
+        let targetOverlay = navBarBottom + 8
+
+        var needsLayout = false
+        if topSpacerHeightConstraint?.constant != targetSpacer {
+            topSpacerHeightConstraint?.constant = targetSpacer
+            needsLayout = true
+        }
+        if topFadeOverlayHeightConstraint?.constant != targetOverlay {
+            topFadeOverlayHeightConstraint?.constant = targetOverlay
+            needsLayout = true
+        }
+        if needsLayout {
+            view.layoutIfNeeded()
+        }
+    }
+
     deinit {
         keyboardHandler?.unsubscribe()
     }
@@ -209,21 +234,25 @@ public final class OnboardingFormStepViewController: UIViewController {
         contentView.addSubview(subtitleLabel)
         contentView.addSubview(fieldsStack)
         contentView.addSubview(bottomTitleLabel)
-        contentView.addSubview(bottomSubitleLabel)
+        contentView.addSubview(bottomSubtitleLabel)
 
         let safe = view.safeAreaLayoutGuide
         
         let topCollapseConstraint = topSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 120)
         topCollapseConstraint.priority = .defaultHigh
         topCollapseConstraint.isActive = true
-        
+        topSpacerHeightConstraint = topCollapseConstraint
+
         bottomSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 20).isActive = true
-        
+
+        let topFadeOverlayHeight = topFadeOverlay.heightAnchor.constraint(equalToConstant: 140)
+        topFadeOverlayHeightConstraint = topFadeOverlayHeight
+
         NSLayoutConstraint.activate([
             topFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             topFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topFadeOverlay.topAnchor.constraint(equalTo: view.topAnchor),
-            topFadeOverlay.heightAnchor.constraint(equalToConstant: 140),
+            topFadeOverlayHeight,
             
             navigationBar.topAnchor.constraint(equalTo: safe.topAnchor),
             navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -268,17 +297,15 @@ public final class OnboardingFormStepViewController: UIViewController {
             fieldsStack.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
             fieldsStack.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             fieldsStack.trailingAnchor.constraint(equalTo: titleLabel.trailingAnchor),
-            
-//            fieldsStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.l),
-            
+
             bottomTitleLabel.topAnchor.constraint(equalTo: fieldsStack.bottomAnchor, constant: DivoDesignTokens.Spacing.l),
             bottomTitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             bottomTitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
-            bottomSubitleLabel.topAnchor.constraint(equalTo: bottomTitleLabel.bottomAnchor, constant: 6),
-            bottomSubitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            bottomSubitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            bottomSubitleLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.l),
+            bottomSubtitleLabel.topAnchor.constraint(equalTo: bottomTitleLabel.bottomAnchor, constant: 6),
+            bottomSubtitleLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            bottomSubtitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            bottomSubtitleLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -DivoDesignTokens.Spacing.l),
 
             primaryButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             primaryButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -311,12 +338,12 @@ public final class OnboardingFormStepViewController: UIViewController {
         }
         if let bottomTitle = step.bottomTitle, let bottomSubitle = step.bottomSubtitle {
             bottomTitleLabel.text = OnboardingStrings.resolve(bottomTitle)
-            bottomSubitleLabel.text = OnboardingStrings.resolve(bottomSubitle)
+            bottomSubtitleLabel.text = OnboardingStrings.resolve(bottomSubitle)
             bottomTitleLabel.isHidden = false
-            bottomSubitleLabel.isHidden = false
+            bottomSubtitleLabel.isHidden = false
         } else {
             bottomTitleLabel.isHidden = true
-            bottomSubitleLabel.isHidden = true
+            bottomSubtitleLabel.isHidden = true
         }
         if let progress = step.stepProgressKey {
             progressLabel.text = OnboardingStrings.resolve(progress)
@@ -331,20 +358,22 @@ public final class OnboardingFormStepViewController: UIViewController {
         fieldRows.removeAll()
         
         var groupedFields: [FormField] = []
-        
+
         // Вспомогательная функция, которая превращает накопленные поля в единую карточку
-        func flushGroupedFields(titleStep: String) {
-            if titleStep == "onboarding.form.4A.step3.title" {
+        // (если шаг помечен `groupedRendering: true`) или рендерит их как обычные строки.
+        func flushGroupedFields() {
+            guard !groupedFields.isEmpty else { return }
+            if step.groupedRendering {
                 let groupContainer = UIView()
                 groupContainer.backgroundColor = DivoColorPalette.cardBackground
                 groupContainer.layer.cornerRadius = DivoDesignTokens.Radius.pill
                 groupContainer.translatesAutoresizingMaskIntoConstraints = false
-                
+
                 let groupStack = UIStackView()
                 groupStack.axis = .vertical
                 groupStack.spacing = 0
                 groupStack.translatesAutoresizingMaskIntoConstraints = false
-                
+
                 groupContainer.addSubview(groupStack)
                 NSLayoutConstraint.activate([
                     groupStack.topAnchor.constraint(equalTo: groupContainer.topAnchor),
@@ -352,14 +381,14 @@ public final class OnboardingFormStepViewController: UIViewController {
                     groupStack.leadingAnchor.constraint(equalTo: groupContainer.leadingAnchor),
                     groupStack.trailingAnchor.constraint(equalTo: groupContainer.trailingAnchor)
                 ])
-                
+
                 for (index, field) in groupedFields.enumerated() {
                     let isFirst = index == 0
                     let isLast = index == groupedFields.count - 1
-                    
+
                     let row = createRow(for: field, isGrouped: true, isFirst: isFirst, isLast: isLast)
                     groupStack.addArrangedSubview(row.wrapper)
-                    
+
                     if !isLast {
                         let separator = UIView()
                         separator.backgroundColor = DivoColorPalette.separatorLight
@@ -367,7 +396,7 @@ public final class OnboardingFormStepViewController: UIViewController {
                         let separatorWrapper = UIView()
                         separatorWrapper.translatesAutoresizingMaskIntoConstraints = false
                         separatorWrapper.addSubview(separator)
-                        
+
                         NSLayoutConstraint.activate([
                             separatorWrapper.heightAnchor.constraint(equalToConstant: 1),
                             separator.leadingAnchor.constraint(equalTo: separatorWrapper.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -379,7 +408,7 @@ public final class OnboardingFormStepViewController: UIViewController {
                     }
                 }
                 fieldsStack.addArrangedSubview(groupContainer)
-            } else if !groupedFields.isEmpty {
+            } else {
                 for field in groupedFields {
                     let row = createRow(for: field, isGrouped: false, isFirst: true, isLast: true)
                     fieldsStack.addArrangedSubview(row.wrapper)
@@ -387,26 +416,26 @@ public final class OnboardingFormStepViewController: UIViewController {
             }
             groupedFields.removeAll()
         }
-        
+
         for field in step.fields {
             let isTextKind: Bool
             switch field.kind {
             case .text, .email, .url, .phone, .city: isTextKind = true
             default: isTextKind = false
             }
-            
+
             if isTextKind && field.helpTextKey == nil {
                 groupedFields.append(field)
             } else {
-                flushGroupedFields(titleStep: step.titleKey)
+                flushGroupedFields()
                 let row = createRow(for: field, isGrouped: false, isFirst: true, isLast: true)
                 fieldsStack.addArrangedSubview(row.wrapper)
             }
         }
-        
-        flushGroupedFields(titleStep: step.titleKey)
-        updatePrimaryEnabled()    
-            
+
+        flushGroupedFields()
+        updatePrimaryEnabled()
+
         setupTextFieldsChain()
     }
     
@@ -474,16 +503,10 @@ public final class OnboardingFormStepViewController: UIViewController {
         }
         
         fieldRows[field.key] = row
-        
+
         let wrapper = UIView()
         wrapper.translatesAutoresizingMaskIntoConstraints = false
-        
-        if isGrouped {
-            row.layer.borderWidth = 0
-            row.layer.cornerRadius = 0
-            row.backgroundColor = .clear
-        }
-        
+
         wrapper.addSubview(row)
         NSLayoutConstraint.activate([
             row.topAnchor.constraint(equalTo: wrapper.topAnchor),

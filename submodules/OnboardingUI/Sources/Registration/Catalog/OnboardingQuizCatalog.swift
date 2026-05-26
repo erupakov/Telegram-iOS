@@ -33,19 +33,23 @@ public struct OnboardingQuizDescriptor {
     }
 
     public let step: OnboardingRegistrationStep
-    public let titleKey: String
+    public let titleKey: String?
     public let subtitleKey: String?
     public let progressLabelKey: String?      // "Question 1 of 2" / nil
     public let sections: [Section]
     public let primaryButtonKey: String       // обычно "onboarding.button.continue"
+    /// `true` — subtitle и navigation отрисовываются поверх тёмной фотографии (top-level экран).
+    /// Управляет цветом subtitle и видимостью фонового изображения.
+    public let isOverlayOnDark: Bool
 
     public init(
         step: OnboardingRegistrationStep,
-        titleKey: String,
+        titleKey: String?,
         subtitleKey: String? = nil,
         progressLabelKey: String? = nil,
         sections: [Section],
-        primaryButtonKey: String
+        primaryButtonKey: String,
+        isOverlayOnDark: Bool = false
     ) {
         self.step = step
         self.titleKey = titleKey
@@ -53,6 +57,7 @@ public struct OnboardingQuizDescriptor {
         self.progressLabelKey = progressLabelKey
         self.sections = sections
         self.primaryButtonKey = primaryButtonKey
+        self.isOverlayOnDark = isOverlayOnDark
     }
 
     /// Плоский список опций по всем секциям, в порядке секций. Удобно для лукапа по `id`.
@@ -77,7 +82,7 @@ public struct OnboardingQuizCatalog {
         case .topLevelChoice:
             return OnboardingQuizDescriptor(
                 step: step,
-                titleKey: "onboarding.quiz.topLevel.title",
+                titleKey: nil,
                 subtitleKey: "onboarding.quiz.topLevel.subtitle",
                 progressLabelKey: nil,
                 sections: [
@@ -99,7 +104,8 @@ public struct OnboardingQuizCatalog {
                               rowType: .big),
                     ]),
                 ],
-                primaryButtonKey: "onboarding.button.continue"
+                primaryButtonKey: "onboarding.button.continue",
+                isOverlayOnDark: true
                 // На первом шаге back через state-машину возвращает nil → coordinator делает
                 // cancelFromTopLevel() и закрывает онбординг. Отдельная кнопка close не нужна.
             )

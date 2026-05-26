@@ -36,6 +36,9 @@ public struct FormStep {
     public let bottomTitle: String?
     /// Опциональный подзаголовок под нижним title.
     public let bottomSubtitle: String?
+    /// `true` — текстовые поля шага объединяются в единую карточку с разделителями
+    /// (например, 4.A step3 — verification & contact). `false` — каждое поле отдельной строкой.
+    public let groupedRendering: Bool
 
     public init(
         titleKey: String,
@@ -45,7 +48,8 @@ public struct FormStep {
         primaryButtonKey: String,
         allowSkip: Bool = false,
         bottomTitle: String? = nil,
-        bottomSubtitle: String? = nil
+        bottomSubtitle: String? = nil,
+        groupedRendering: Bool = false
     ) {
         self.titleKey = titleKey
         self.subtitleKey = subtitleKey
@@ -55,6 +59,7 @@ public struct FormStep {
         self.allowSkip = allowSkip
         self.bottomTitle = bottomTitle
         self.bottomSubtitle = bottomSubtitle
+        self.groupedRendering = groupedRendering
     }
 }
 

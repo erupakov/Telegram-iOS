@@ -50,37 +50,49 @@ public final class OnboardingPhotoPicker: NSObject, PHPickerViewControllerDelega
     // MARK: - PHPickerViewControllerDelegate
 
     public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        divoLog("PHPicker didFinishPicking: results.count=\(results.count)", level: .info)
         picker.dismiss(animated: true)
-        defer { objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
 
         guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else {
+            divoLog("PHPicker: no image provider in results — treat as cancel", level: .info)
             completion?(.failure(PickerError.nothingPicked))
             completion = nil
+            objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             return
         }
 
+        // ВАЖНО: associated object (retain self'а на picker'е) освобождаем только ПОСЛЕ
+        // того как loadObject callback завершится — иначе self deinit'ится до того,
+        // как мы успеем дёрнуть completion с path'ом.
         provider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
-            guard let self = self else { return }
             DispatchQueue.main.async {
-                if let error = error {
-                    divoLog("Onboarding photo pick failed: \(error)", level: .error)
-                    self.completion?(.failure(error))
+                guard let self = self else {
+                    divoLog("PHPicker loadObject callback: self already nil", level: .error)
+                    objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                    return
+                }
+                defer {
                     self.completion = nil
+                    objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                }
+                if let error = error {
+                    divoLog("PHPicker loadObject failed: \(error)", level: .error)
+                    self.completion?(.failure(error))
                     return
                 }
                 guard let image = object as? UIImage else {
+                    divoLog("PHPicker loadObject: object is not UIImage (object=\(String(describing: object)))", level: .error)
                     self.completion?(.failure(PickerError.failedToLoadImage))
-                    self.completion = nil
                     return
                 }
                 do {
                     let path = try self.writeTempFile(image)
+                    divoLog("PHPicker loadObject: image saved to \(path)", level: .info)
                     self.completion?(.success(path))
                 } catch {
-                    divoLog("Onboarding photo write failed: \(error)", level: .error)
+                    divoLog("PHPicker writeTempFile failed: \(error)", level: .error)
                     self.completion?(.failure(error))
                 }
-                self.completion = nil
             }
         }
     }

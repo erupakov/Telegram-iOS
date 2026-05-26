@@ -11,9 +11,31 @@ import DivoUIKit
 public struct OnboardingFormCatalog {
 
     private let registry: OnboardingRoleRegistry
+    /// Список стран резолвится один раз при создании catalog'а — `CountryHelper.getAllCountries()`
+    /// итерирует ~250 ISO-кодов с локализацией, повторять на каждую форму не имеет смысла.
+    fileprivate let countryOptions: [FormPickerOption]
 
     public init(registry: OnboardingRoleRegistry) {
         self.registry = registry
+        self.countryOptions = CountryHelper.getAllCountries().map {
+            FormPickerOption(id: $0.id, titleKey: $0.title)
+        }
+    }
+
+    // MARK: - Date of birth bounds
+
+    /// Минимальный возраст для регистрации — 14 лет (зеркалит логику профиля).
+    private static let minAgeYears: Int = 14
+    /// Максимальный возраст для регистрации — 100 лет.
+    private static let maxAgeYears: Int = 100
+
+    /// Самая ранняя допустимая дата рождения (100 лет назад от сегодня).
+    fileprivate var dateOfBirthMin: Date {
+        return Calendar.current.date(byAdding: .year, value: -Self.maxAgeYears, to: Date()) ?? Date()
+    }
+    /// Самая поздняя допустимая дата рождения (14 лет назад от сегодня).
+    fileprivate var dateOfBirthMax: Date {
+        return Calendar.current.date(byAdding: .year, value: -Self.minAgeYears, to: Date()) ?? Date()
     }
 
     public func schema(for id: OnboardingFormID, state: OnboardingRegistrationState) -> FormSchema {
@@ -88,9 +110,6 @@ private extension OnboardingFormCatalog {
         let companyTypeOptions: [FormPickerOption] = registry.roles(in: .companies).map { def in
             FormPickerOption(id: def.id.rawValue, titleKey: def.displayNameKey)
         }
-        let countryOptions = CountryHelper.getAllCountries().map {
-            FormPickerOption(id: $0.id, titleKey: $0.title)
-        }
         return FormSchema(
             id: .companiesAndBrands,
             internalTitleKey: "onboarding.form.4A.title",
@@ -148,7 +167,8 @@ private extension OnboardingFormCatalog {
                               kind: .text(minLength: 1, maxLength: 60),
                               placeholder: "onboarding.form.4A.contactRole.placeholder"),
                     ],
-                    primaryButtonKey: "onboarding.button.continue"
+                    primaryButtonKey: "onboarding.button.continue",
+                    groupedRendering: true
                 ),
                 FormStep(
                     titleKey: "onboarding.form.4A.step4.title",
@@ -270,9 +290,6 @@ private extension OnboardingFormCatalog {
 private extension OnboardingFormCatalog {
 
     func makeCreativeStudio() -> FormSchema {
-        let countryOptions = CountryHelper.getAllCountries().map {
-            FormPickerOption(id: $0.id, titleKey: $0.title)
-        }
         return FormSchema(
             id: .creativeStudio,
             internalTitleKey: "onboarding.form.4C2.title",
@@ -425,9 +442,6 @@ private extension OnboardingFormCatalog {
 
     func makeTalentActorDancerSinger(state: OnboardingRegistrationState) -> FormSchema {
         let specialisationOptions = specialisationOptionsForActorDancerSinger(roleId: state.selectedRoleId)
-        let countryOptions = CountryHelper.getAllCountries().map {
-            FormPickerOption(id: $0.id, titleKey: $0.title)
-        }
         return FormSchema(
             id: .talentActorDancerSinger,
             internalTitleKey: "onboarding.form.4D3.title",
@@ -518,9 +532,6 @@ private extension OnboardingFormCatalog {
 private extension OnboardingFormCatalog {
 
     func makeFan() -> FormSchema {
-        let countryOptions = CountryHelper.getAllCountries().map {
-            FormPickerOption(id: $0.id, titleKey: $0.title)
-        }
         return FormSchema(
             id: .fan,
             internalTitleKey: "onboarding.form.4E.title",
@@ -532,7 +543,7 @@ private extension OnboardingFormCatalog {
                         field("firstName",   kind: .text(minLength: 1, maxLength: 60), placeholder: "onboarding.form.field.firstName.placeholder", required: true),
                         field("lastName",    kind: .text(minLength: 1, maxLength: 60), placeholder: "onboarding.form.field.lastName.placeholder",  required: true),
                         field("dateOfBirth", 
-                              kind: .date(min: nil, max: Date()),  
+                              kind: .date(min: dateOfBirthMin, max: dateOfBirthMax),  
                               title: "onboarding.form.field.dateOfBirth.title",     
                               placeholder: "onboarding.form.field.dateOfBirth.placeholder", 
                               required: true),
@@ -575,7 +586,7 @@ private extension OnboardingFormCatalog {
                 field("firstName",   kind: .text(minLength: 1, maxLength: 60), placeholder: "onboarding.form.field.firstName.placeholder", required: true),
                 field("lastName",    kind: .text(minLength: 1, maxLength: 60), placeholder: "onboarding.form.field.lastName.placeholder",  required: true),
                 field("dateOfBirth", 
-                      kind: .date(min: nil, max: Date()),  
+                      kind: .date(min: dateOfBirthMin, max: dateOfBirthMax),  
                       title: "onboarding.form.field.dateOfBirth.title",      
                       placeholder: "onboarding.form.field.dateOfBirth.placeholder", 
                       required: true),
@@ -591,11 +602,8 @@ private extension OnboardingFormCatalog {
 
     /// «PERSONAL DETAILS» — общий шаг для 4.B / 4.C1.
     func personalDetailsStep(progressKey: String, includeCity: Bool) -> FormStep {
-        let countryOptions = CountryHelper.getAllCountries().map {
-            FormPickerOption(id: $0.id, titleKey: $0.title)
-        }
         var fields: [FormField] = [
-            field("dateOfBirth", kind: .date(min: nil, max: Date()),      title: "onboarding.form.field.dateOfBirth.title", placeholder: "onboarding.form.field.dateOfBirth.placeholder", required: true),
+            field("dateOfBirth", kind: .date(min: dateOfBirthMin, max: dateOfBirthMax),      title: "onboarding.form.field.dateOfBirth.title", placeholder: "onboarding.form.field.dateOfBirth.placeholder", required: true),
             field("gender",      kind: .picker(options: genderOptions),   title: "onboarding.form.field.gender.title",      placeholder: "onboarding.form.field.gender.placeholder",      required: true),
             field("country",     kind: .country(options: countryOptions), title: "onboarding.form.field.country.title",     placeholder: "onboarding.form.field.country.placeholder",     required: true),
         ]
@@ -612,9 +620,6 @@ private extension OnboardingFormCatalog {
 
     /// «LOCATION» — только country + city.
     func locationStep(progressKey: String, titleKey: String) -> FormStep {
-        let countryOptions = CountryHelper.getAllCountries().map {
-            FormPickerOption(id: $0.id, titleKey: $0.title)
-        }
         return FormStep(
             titleKey: titleKey,
             stepProgressKey: progressKey,

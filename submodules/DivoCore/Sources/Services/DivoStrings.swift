@@ -622,7 +622,7 @@ public enum DivoStrings {
 
     // MARK: - Onboarding — Quiz (top-level)
 
-    public static var onboardingQuizTopLevelTitle: String { L(en: "We'll set up your profile based on your answer.\nYou can change this later.", ru: "Мы настроим ваш профиль на основе вашего ответа.\nВы сможете изменить это позже.", es: "Configuraremos tu perfil según tu respuesta.\nPuedes cambiar esto más tarde.", pt: "Configuraremos seu perfil com base na sua resposta.\nVocê pode alterar isso depois.", zh: "我们将根据您的回答设置您的个人资料。\n您可以稍后更改此设置。") }
+    public static var onboardingQuizTopLevelSubtitle: String { L(en: "We'll set up your profile based on your answer.\nYou can change this later.", ru: "Мы настроим ваш профиль на основе вашего ответа.\nВы сможете изменить это позже.", es: "Configuraremos tu perfil según tu respuesta.\nPuedes cambiar esto más tarde.", pt: "Configuraremos seu perfil com base na sua resposta.\nVocê pode alterar isso depois.", zh: "我们将根据您的回答设置您的个人资料。\n您可以稍后更改此设置。") }
     public static var onboardingQuizTopLevelOptionGetHiredTitle: String { L(en: "I WANT TO GET HIRED", ru: "ХОЧУ ПОЛУЧАТЬ ЗАКАЗЫ", es: "QUIERO QUE ME CONTRATEN", pt: "QUERO SER CONTRATADO", zh: "我想被雇用") }
     public static var onboardingQuizTopLevelOptionGetHiredSubtitle: String { L(en: "Model, performer, creative pro", ru: "Модель, исполнитель, креатор", es: "Modelo, intérprete, profesional creativo", pt: "Modelo, performer, criativo", zh: "模特、表演者、创意专业人士") }
     public static var onboardingQuizTopLevelOptionLookingForTalentTitle: String { L(en: "I'M LOOKING FOR TALENT", ru: "ИЩУ ТАЛАНТЫ", es: "ESTOY BUSCANDO TALENTO", pt: "ESTOU PROCURANDO TALENTOS", zh: "我在寻找人才") }
@@ -741,7 +741,7 @@ public enum DivoStrings {
     public static var onboardingFieldDateOfBirthTitle: String { L(en: "Date of birth", ru: "Дата рождения", es: "Fecha de nacimiento", pt: "Data de nascimento", zh: "出生日期") }
     public static var onboardingFieldDateOfBirthPlaceholder: String { L(en: "Choose a date", ru: "Выберите дату", es: "Elige una fecha", pt: "Escolha uma data", zh: "选择日期") }
     public static var onboardingFieldGenderPlaceholder: String { L(en: "Choose a gender", ru: "Выберите пол", es: "Elige un género", pt: "Escolha um gênero", zh: "选择性别") }
-    public static var onboardingFieldCountryPlaceholder: String { L(en: "Country", ru: "Страна", es: "País", pt: "País", zh: "国家") }
+    public static var onboardingFieldCountryTitle: String { L(en: "Country", ru: "Страна", es: "País", pt: "País", zh: "国家") }
     public static var onboardingFieldCityPlaceholder: String { L(en: "City", ru: "Город", es: "Ciudad", pt: "Cidade", zh: "城市") }
     public static var onboardingFieldInstagramHandlePlaceholder: String { L(en: "Instagram handle", ru: "Инстаграм", es: "Usuario de Instagram", pt: "Usuário do Instagram", zh: "Instagram 账号") }
     public static var onboardingFieldInstagramHandleHelp: String { L(en: "Helps you get discovered faster", ru: "Поможет быстрее быть замеченным", es: "Te ayuda a ser descubierto más rápido", pt: "Ajuda você a ser descoberto mais rápido", zh: "帮助您更快被发现") }

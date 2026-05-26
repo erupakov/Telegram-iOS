@@ -38,10 +38,8 @@ final class OnboardingFormFieldRow: UIView {
     private var helpLabelTopConstraint: NSLayoutConstraint!
     
     var textField: DivoTextField
-    
-    private var pickerRow = FilterRowView(title: DivoStrings.onboardingForm4ACompanyTypeTitle)
-    private var pickerRowItems: [AgencyItem] = []
-    private var pickerRowId: String?
+
+    private lazy var pickerRow = FilterRowView(title: OnboardingStrings.resolve(field.titleKey ?? ""))
     private var pickerRowTitle: String?
     
     private let photoArea = DashedBorderControl()
@@ -59,7 +57,7 @@ final class OnboardingFormFieldRow: UIView {
     private let photoPreview: UIImageView = {
         let photoPreview = UIImageView()
         photoPreview.translatesAutoresizingMaskIntoConstraints = false
-        photoPreview.contentMode = .scaleAspectFill
+        photoPreview.contentMode = .scaleAspectFit
         photoPreview.clipsToBounds = true
         photoPreview.isHidden = true
         return photoPreview
@@ -81,7 +79,7 @@ final class OnboardingFormFieldRow: UIView {
         
         self.textField = DivoTextField(title: "", prefix: "")
         self.textField.textField.attributedPlaceholder = NSAttributedString(
-            string: field.placeholderKey.map { OnboardingStrings.resolve($0) }!,
+            string: field.placeholderKey.map(OnboardingStrings.resolve) ?? "",
             font: Font.regular(16),
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
@@ -161,11 +159,11 @@ final class OnboardingFormFieldRow: UIView {
     }
     
     private func updateDropdownsUI() {
-        pickerRow.setItems(pickerRowTitle.map { [$0] } ?? [], emptyTitle: OnboardingStrings.resolve(self.field.placeholderKey ?? ""))
+        let emptyKey = field.placeholderKey ?? field.titleKey ?? ""
+        pickerRow.setItems(pickerRowTitle.map { [$0] } ?? [], emptyTitle: OnboardingStrings.resolve(emptyKey))
     }
 
     private func installPickerButton() {
-        pickerRow = FilterRowView(title: OnboardingStrings.resolve(self.field.titleKey ?? ""))
         pickerRow.translatesAutoresizingMaskIntoConstraints = false
         
         addSubview(pickerRow)
@@ -265,13 +263,24 @@ final class OnboardingFormFieldRow: UIView {
 
         case .photo:
             if case .asset(let path) = value, !path.isEmpty {
-                if let image = UIImage(contentsOfFile: path) {
+                let image = UIImage(contentsOfFile: path)
+                divoLog("applyValue.photo[\(field.key)]: path=\(path), imageLoaded=\(image != nil), photoPreview.bounds=\(photoPreview.bounds)", level: .info)
+                if let image = image {
                     photoPreview.image = image
                     photoPreview.isHidden = false
-                    
+
                     emptyIconPhoto.isHidden = true
                     photoLabel.isHidden = true
                     helpLabel.isHidden = true
+
+                    // Когда фото загружено — убираем пунктирную обводку и серый card-фон,
+                    // чтобы фото отображалось чисто.
+                    photoArea.isBordered = false
+
+                    // После выбора фото view может быть ещё не layout'нут (dismiss-анимация picker'а
+                    // только завершилась). Форсируем layout, чтобы photoPreview получил bounds и отрисовался.
+                    setNeedsLayout()
+                    layoutIfNeeded()
                 } else {
                     // Не смогли подгрузить — оставляем placeholder, но обновляем подпись.
                     photoLabel.text = OnboardingStrings.resolve("onboarding.form.field.profilePhoto.selected")
@@ -279,6 +288,7 @@ final class OnboardingFormFieldRow: UIView {
                     emptyIconPhoto.isHidden = false
                     helpLabel.isHidden = false
                     photoPreview.isHidden = true
+                    photoArea.isBordered = true
                 }
             } else {
                 // Пустое значение — сбрасываем обратно к placeholder.
@@ -288,6 +298,7 @@ final class OnboardingFormFieldRow: UIView {
                 photoLabel.isHidden = false
                 emptyIconPhoto.isHidden = false
                 helpLabel.isHidden = false
+                photoArea.isBordered = true
             }
         }
     }

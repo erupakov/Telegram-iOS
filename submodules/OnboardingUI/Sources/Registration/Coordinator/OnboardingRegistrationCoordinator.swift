@@ -110,10 +110,14 @@ public final class OnboardingRegistrationCoordinator {
         if navigationController.viewControllers.count > 1 {
             navigationController.popViewController(animated: animated)
         } else {
-            // После persistence-restore стек содержит только текущий шаг — pop ничего бы не сделал
-            // и UI рассинхронился бы со state. Создаём controller предыдущего шага и заменяем root.
-            let vc = makeController(for: previous)
-            navigationController.setViewControllers([vc], animated: animated)
+            // После persistence-restore стек содержит только текущий шаг.
+            // Вставляем предыдущий controller в стек без анимации, затем делаем
+            // popViewController — это даёт правильную pop-анимацию (slide вправо),
+            // а не push (которая возникала бы при `setViewControllers([prev], animated:)`).
+            let prev = makeController(for: previous)
+            let restoredStack = [prev] + navigationController.viewControllers
+            navigationController.setViewControllers(restoredStack, animated: false)
+            navigationController.popViewController(animated: animated)
         }
     }
 
@@ -255,10 +259,6 @@ extension OnboardingRegistrationCoordinator: OnboardingRoleResultViewController.
         updateState { $0.restartPhase3() }
         navigationController.setViewControllers([makeController(for: .topLevelChoice)], animated: true)
     }
-
-    public func roleResultControllerDidTapBack(_ controller: OnboardingRoleResultViewController) {
-        goBack()
-    }
 }
 
 // MARK: - OnboardingFormStepViewController.Delegate
@@ -342,20 +342,12 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         sheet.onSave = { [weak self, weak controller] selectedItems in
             guard let self = self,
                   let formId = self.formIdFromCurrentStepOptional() else { return }
-            
-            let value: FormFieldValue
-            
-            if selectedItems.isEmpty {
-                value = .empty
-            } else if selectedItems.count == 1 {
-                value = .option(selectedItems[0].id)
-            } else {
-                let ids = selectedItems.map { $0.id }
-                value = .options(ids)
-            }
-            
+
+            // FilterOptionsController в single-select режиме возвращает 0 или 1 элемент.
+            let value: FormFieldValue = selectedItems.first.map { .option($0.id) } ?? .empty
+
             self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
-            
+
             if let formController = controller as? OnboardingFormStepViewController {
                 formController.updateFieldValue(value, forKey: fieldKey)
             }
@@ -403,11 +395,20 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
             return d
         }()
         
-        let initialTimestamp = Int32((currentDate ?? Date()).timeIntervalSince1970)
-        
-        let minimumTimestamp = min.map { Int32($0.timeIntervalSince1970) }
+        // Default-дата — верхняя граница диапазона (например, для возраста 14-100 лет это 14 лет назад).
+        // Если currentDate уже выходит за [min; max] — clamp'им, чтобы picker не открылся вне диапазона.
         let defaultMax = Calendar.current.startOfDay(for: Date())
-        let maximumTimestamp = max.map { Int32($0.timeIntervalSince1970) } ?? Int32(defaultMax.timeIntervalSince1970)
+        let effectiveMax = max ?? defaultMax
+        let candidate = currentDate ?? effectiveMax
+        let clamped: Date = {
+            if let min = min, candidate < min { return min }
+            if candidate > effectiveMax { return effectiveMax }
+            return candidate
+        }()
+        let initialTimestamp = Int32(clamped.timeIntervalSince1970)
+
+        let minimumTimestamp = min.map { Int32($0.timeIntervalSince1970) }
+        let maximumTimestamp = Int32(effectiveMax.timeIntervalSince1970)
         
         let sheet = DivoDatePickerController(
             mode: .date,
@@ -459,6 +460,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
                   let formId = self.formIdFromCurrentStepOptional() else { return }
             switch result {
             case .success(let path):
+                divoLog("Photo picker success for \(fieldKey): path=\(path), fileExists=\(FileManager.default.fileExists(atPath: path))", level: .info)
                 let value: FormFieldValue = .asset(path)
                 self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
                 if let formController = controller as? OnboardingFormStepViewController {

@@ -41,8 +41,7 @@ public enum OnboardingStrings {
         case "onboarding.result.button.secondary":    return DivoStrings.onboardingResultButtonSecondary
 
         // MARK: Quiz — top-level
-        case "onboarding.quiz.topLevel.title":                                   return ""
-        case "onboarding.quiz.topLevel.subtitle":                                return DivoStrings.onboardingQuizTopLevelTitle
+        case "onboarding.quiz.topLevel.subtitle":                                return DivoStrings.onboardingQuizTopLevelSubtitle
         case "onboarding.quiz.topLevel.option.getHired.title":                   return DivoStrings.onboardingQuizTopLevelOptionGetHiredTitle
         case "onboarding.quiz.topLevel.option.getHired.subtitle":                return DivoStrings.onboardingQuizTopLevelOptionGetHiredSubtitle
         case "onboarding.quiz.topLevel.option.lookingForTalent.title":           return DivoStrings.onboardingQuizTopLevelOptionLookingForTalentTitle
@@ -144,7 +143,7 @@ public enum OnboardingStrings {
         case "onboarding.form.field.dateOfBirth.placeholder":          return DivoStrings.onboardingFieldDateOfBirthPlaceholder
         case "onboarding.form.field.gender.title":                     return DivoStrings.paramGender
         case "onboarding.form.field.gender.placeholder":               return DivoStrings.onboardingFieldGenderPlaceholder
-        case "onboarding.form.field.country.title":                    return DivoStrings.onboardingFieldCountryPlaceholder
+        case "onboarding.form.field.country.title":                    return DivoStrings.onboardingFieldCountryTitle
         case "onboarding.form.field.country.placeholder":              return DivoStrings.chooseCountry
         case "onboarding.form.field.city.placeholder":                 return DivoStrings.onboardingFieldCityPlaceholder
         case "onboarding.form.field.instagramHandle.placeholder":      return DivoStrings.onboardingFieldInstagramHandlePlaceholder

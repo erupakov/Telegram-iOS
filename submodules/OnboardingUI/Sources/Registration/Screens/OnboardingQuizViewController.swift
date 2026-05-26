@@ -96,8 +96,16 @@ public final class OnboardingQuizViewController: UIViewController {
     
     private let bottomFadeOverlay = OnboardingBottomFadeOverlay()
     private let continueButton = DivoButton()
-    
+
     private let centerContentIfShort: Bool
+
+    /// Высота top-spacer'а внутри scrollView. Динамически подстраивается под navBar.bottom + 12
+    /// в `viewDidLayoutSubviews`, чтобы между navBar и title всегда было одинаковое расстояние
+    /// на устройствах с разной safe area.
+    private var topSpacerHeightConstraint: NSLayoutConstraint?
+    /// Высота top-fade overlay. Подстраивается так, чтобы overlay заканчивался до title
+    /// (не перекрывая его в default-state без скролла).
+    private var topFadeOverlayHeightConstraint: NSLayoutConstraint?
 
     // MARK: - Init
 
@@ -134,6 +142,27 @@ public final class OnboardingQuizViewController: UIViewController {
         view.backgroundColor = DivoColorPalette.screenBackground
         setupUI()
         applyDescriptor()
+    }
+
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let navBarBottom = navigationBar.frame.maxY
+        // Между navBar и title — 12pt; topFadeOverlay заканчивается за 4pt до title.
+        let targetSpacer = navBarBottom + 12
+        let targetOverlay = navBarBottom + 8
+
+        var needsLayout = false
+        if !centerContentIfShort, topSpacerHeightConstraint?.constant != targetSpacer {
+            topSpacerHeightConstraint?.constant = targetSpacer
+            needsLayout = true
+        }
+        if topFadeOverlayHeightConstraint?.constant != targetOverlay {
+            topFadeOverlayHeightConstraint?.constant = targetOverlay
+            needsLayout = true
+        }
+        if needsLayout {
+            view.layoutIfNeeded()
+        }
     }
 
     // MARK: - UI
@@ -174,7 +203,8 @@ public final class OnboardingQuizViewController: UIViewController {
         
         let topCollapseConstraint = topSpacer.heightAnchor.constraint(equalToConstant: 120)
         topCollapseConstraint.priority = .defaultHigh
-        
+        topSpacerHeightConstraint = topCollapseConstraint
+
         if centerContentIfShort {
             spacerEqualityConstraint.isActive = true
             topSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 100).isActive = true
@@ -184,11 +214,14 @@ public final class OnboardingQuizViewController: UIViewController {
         
         bottomSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
         
+        let topFadeOverlayHeight = topFadeOverlay.heightAnchor.constraint(equalToConstant: 140)
+        topFadeOverlayHeightConstraint = topFadeOverlayHeight
+
         NSLayoutConstraint.activate([
             topFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             topFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             topFadeOverlay.topAnchor.constraint(equalTo: view.topAnchor),
-            topFadeOverlay.heightAnchor.constraint(equalToConstant: 140),
+            topFadeOverlayHeight,
             
             navigationBar.topAnchor.constraint(equalTo: safe.topAnchor),
             navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -256,10 +289,17 @@ public final class OnboardingQuizViewController: UIViewController {
         topFadeOverlay.isHidden = (progressKey == nil)
         backgroundImageView.isHidden = (progressKey != nil)
         
-        titleLabel.text = OnboardingStrings.resolve(descriptor.titleKey)
+        if let titleKey = descriptor.titleKey {
+            titleLabel.text = OnboardingStrings.resolve(titleKey)
+            titleLabel.isHidden = false
+        } else {
+            titleLabel.isHidden = true
+        }
 
         if let s = descriptor.subtitleKey, !OnboardingStrings.resolve(s).isEmpty {
-            subtitleLabel.textColor = descriptor.subtitleKey == "onboarding.quiz.topLevel.subtitle" ? DivoColorPalette.primaryTextOnDark : DivoColorPalette.primaryText.withAlphaComponent(0.8)
+            subtitleLabel.textColor = descriptor.isOverlayOnDark
+                ? DivoColorPalette.primaryTextOnDark
+                : DivoColorPalette.primaryText.withAlphaComponent(0.8)
             subtitleLabel.text = OnboardingStrings.resolve(s)
             subtitleLabel.isHidden = false
         } else {
