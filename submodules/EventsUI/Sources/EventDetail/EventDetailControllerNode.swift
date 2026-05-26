@@ -22,6 +22,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     var onShareTapped: (() -> Void)?
     var onBookmarkTapped: (() -> Void)?
     var onApplyTapped: (() -> Void)?
+    var onViewApplicationsTapped: (() -> Void)?
     var onGalleryItemTapped: ((String) -> Void)?
 
     var coverImage: UIImage? {
@@ -670,22 +671,39 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventCostTypeShimmerContainer.startShimmering()
             eventTypeLabelShimmerContainer.stopShimmering()
             eventTypeLabelShimmerContainer.startShimmering()
-            eventDeadlineShimmerContainer.stopShimmering()
-            eventDeadlineShimmerContainer.startShimmering()
-            applyButtonShimmer.stopShimmering()
-            applyButtonShimmer.startShimmering()
-            organizerShimmerView.stopShimmering()
-            organizerShimmerView.startShimmering()
-            currentAppliedShimmerView.stopShimmering()
-            currentAppliedShimmerView.startShimmering()
-            allAppliedShimmerView.stopShimmering()
-            allAppliedShimmerView.startShimmering()
-            descriptionShimmerView.stopShimmering()
-            descriptionShimmerView.startShimmering()
-            requirementsShimmerView.stopShimmering()
-            requirementsShimmerView.startShimmering()
-            parametersShimmerView.stopShimmering()
-            parametersShimmerView.startShimmering()
+
+            if !eventDeadlineShimmerContainer.isHidden {
+                eventDeadlineShimmerContainer.stopShimmering()
+                eventDeadlineShimmerContainer.startShimmering()
+            }
+            if !applyButtonShimmer.isHidden {
+                applyButtonShimmer.stopShimmering()
+                applyButtonShimmer.startShimmering()
+            }
+            if !organizerShimmerView.isHidden {
+                organizerShimmerView.stopShimmering()
+                organizerShimmerView.startShimmering()
+            }
+            if !currentAppliedShimmerView.isHidden {
+                currentAppliedShimmerView.stopShimmering()
+                currentAppliedShimmerView.startShimmering()
+            }
+            if !allAppliedShimmerView.isHidden {
+                allAppliedShimmerView.stopShimmering()
+                allAppliedShimmerView.startShimmering()
+            }
+            if !descriptionShimmerView.isHidden {
+                descriptionShimmerView.stopShimmering()
+                descriptionShimmerView.startShimmering()
+            }
+            if !requirementsShimmerContainer.isHidden {
+                requirementsShimmerView.stopShimmering()
+                requirementsShimmerView.startShimmering()
+            }
+            if !parametersShimmerView.isHidden {
+                parametersShimmerView.stopShimmering()
+                parametersShimmerView.startShimmering()
+            }
         }
     }
 
@@ -781,16 +799,12 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     private func setupBackgroundAndScroll() {
         self.view.addSubview(backgroundImageView)
-
-        // Cover-image — шапка экрана фиксированной высоты. Раньше backgroundImageView
-        // занимал весь экран и .scaleAspectFill обрезал картинку до середины горизонтальной
-        // полосы (вьюпорт узкий и высокий). Теперь ограничиваем высоту, чтобы aspect ratio
-        // области показа был близок к ratio самой картинки.
+        
         NSLayoutConstraint.activate([
             backgroundImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
             backgroundImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             backgroundImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            backgroundImageView.heightAnchor.constraint(equalToConstant: 360),
+            backgroundImageView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
         ])
         
         self.view.addSubview(scrollView)
@@ -1006,7 +1020,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         infoStack.addArrangedSubview(profileHeaderView)
         
         profileHeaderShimmerView.translatesAutoresizingMaskIntoConstraints = false
-        infoStack.addSubview(profileHeaderShimmerView)
+        infoStack.addArrangedSubview(profileHeaderShimmerView)
         
         NSLayoutConstraint.activate([
             infoStack.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor),
@@ -1016,8 +1030,6 @@ final class EventDetailControllerNode: ASDisplayNode {
             
             profileHeaderShimmerView.leadingAnchor.constraint(equalTo: infoStack.leadingAnchor),
             profileHeaderShimmerView.trailingAnchor.constraint(equalTo: infoStack.trailingAnchor),
-            profileHeaderShimmerView.topAnchor.constraint(equalTo: infoStack.topAnchor),
-            profileHeaderShimmerView.bottomAnchor.constraint(equalTo: infoStack.bottomAnchor),
         ])
         
         contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderWrapper)
@@ -1414,7 +1426,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             counterActionsStack.isHidden = false
             
             eventCostTypeShimmerContainer.isHidden = true
-            eventCostTypeContainer.isHidden = false
+            eventCostTypeContainer.isHidden = self.eventData?.paymentType?.id == 2
             
             eventTypeLabelShimmerContainer.isHidden = true
             eventTypeLabelContainer.isHidden = false
@@ -1521,31 +1533,31 @@ final class EventDetailControllerNode: ASDisplayNode {
                 items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
             }
         }
-        
         if let age = attributes?.age, let str = rangeString(from: age.from, to: age.to) {
             items.append(.init(title: DivoStrings.ageYo, value: str))
         }
-        
+
         if let height = attributes?.height, let str = rangeString(from: height.from, to: height.to) {
             items.append(.init(title: DivoStrings.heightCm, value: str))
         }
-        
+
         if let weight = attributes?.weight, let str = rangeString(from: weight.from, to: weight.to) {
             items.append(.init(title: DivoStrings.weightKg, value: str))
         }
-        
+
         if let waist = attributes?.waist, let str = rangeString(from: waist.from, to: waist.to) {
             items.append(.init(title: DivoStrings.waistCm, value: str))
         }
-        
+
         if let hips = attributes?.hips, let str = rangeString(from: hips.from, to: hips.to) {
             items.append(.init(title: DivoStrings.hipsCm, value: str))
         }
-        
+
         if let shoesSize = attributes?.shoesSize, let str = rangeString(from: shoesSize.from, to: shoesSize.to) {
             items.append(.init(title: DivoStrings.shoeSizeEU, value: str))
         }
-        
+
+
         if let hairColor = attributes?.hairColor {
             let hairColorTitles = hairColor.compactMap { $0.title }.joined(separator: ", ")
             if !hairColorTitles.isEmpty {
@@ -1667,7 +1679,9 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
     
     func updateEventData(_ newEventData: EventFullDetailData) {
-        self.phase = .content
+        // ВАЖНО: phase = .content выставляется в конце метода, после заполнения всех
+        // полей. Иначе applyPhase → stopShimmers скрывает шиммеры до того как текст,
+        // кнопки и контейнеры заполнены — пользователь видит пустые placeholder'ы.
         self.eventData = newEventData
 
         setImage(urlString: newEventData.files?.first?.fullUrl, for: backgroundImageView)
@@ -1693,8 +1707,28 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
-        let (_, deadlineTime) = formatEventDateAndTime(dateString: newEventData.applicationDeadline)
-        eventDeadlineLabel.text = DivoStrings.deadlineData(deadlineTime)
+        // updateEventData может прийти повторно (ретрай, refresh) — сбрасываем
+        // ранее навешанные targets, иначе один тап стрельнёт несколько действий.
+        applyButton.removeTarget(self, action: nil, for: .touchUpInside)
+        applyButton.isUserInteractionEnabled = true
+
+        if self.isMyEvent {
+            applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.addTarget(self, action: #selector(viewApplicationsTapped), for: .touchUpInside)
+        } else if newEventData.isApplied == true {
+            applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.isUserInteractionEnabled = false
+        } else {
+            applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
+        }
+        
+        if let deadlineText = EventDateFormatter.timeRemaining(deadline: newEventData.applicationDeadline) {
+            eventDeadlineLabel.text = deadlineText
+            eventDeadlineContainer.isHidden = false
+        } else {
+            eventDeadlineContainer.isHidden = true
+        }
         
         currentAppliedLabel.text = DivoStrings.currentApplied(newEventData.appliesCount ?? 0)
         allAppliedLabel.text = DivoStrings.allApplied(newEventData.maxAttendees ?? 0)
@@ -1713,12 +1747,15 @@ final class EventDetailControllerNode: ASDisplayNode {
         viewsView.setValue("2.4K")
         savesView.setValue("300")
 
+        // Все поля заполнены — теперь атомарно переключаем фазу: applyPhase().content
+        // спрячет шиммеры и покажет контент-контейнеры одним кадром, без промежутка.
+        self.phase = .content
         activateTitleVisibility()
     }
-
+    
     func updateWithPreviewData(_ data: EventPreviewData) {
-        self.phase = .content
-        
+        // phase = .content в конце метода, чтобы шиммеры не сменились пустыми
+        // плейсхолдерами до фактического заполнения полей.
         if let cover = data.coverImage {
             backgroundImageView.image = cover
         } else {
@@ -1744,21 +1781,19 @@ final class EventDetailControllerNode: ASDisplayNode {
             )
         )
         
-        let (cStr, _) = formatEventDateAndTime(dateString: data.request.applicationDeadline)
-        eventDeadlineLabel.text = DivoStrings.deadlineData(cStr)
-        // Дедлайн — информационная пилюля, не интерактивная. В preview явно
-        // блокируем тапы, чтобы не было press-feedback'а на нажатие.
-        eventDeadlineContainer.isUserInteractionEnabled = false
-
-        // applyButton в preview оставляем визуально активной (как будет на боевом),
-        // но без интерактивности — нечего «подать заявку» на ещё не опубликованное событие.
+        if let deadlineText = EventDateFormatter.timeRemaining(deadline: data.request.applicationDeadline) {
+            eventDeadlineLabel.text = deadlineText
+            eventDeadlineContainer.isHidden = false
+        } else {
+            eventDeadlineContainer.isHidden = true
+        }
+        
         applyButton.makeDivoButton(title: DivoStrings.applyPreviewOnly, buttonFont: Font.helveticaNeue(14), radius: 18)
-        applyButton.isUserInteractionEnabled = false
+        applyButton.isEnabled = false
         
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
-        // TODO DIVO: подтянуть handle/avatar текущего пользователя из контекста вместо плейсхолдера
         organizerView.configure(name: DivoStrings.you, logoURL: nil)
         
         descriptionView.update(biography: data.request.description)
@@ -1816,9 +1851,10 @@ final class EventDetailControllerNode: ASDisplayNode {
         likesView.setValue("1K")
         viewsView.setValue("1K")
         savesView.setValue("1K")
-        
+
         updateGallery(data.gallery)
-        
+
+        self.phase = .content
         activateTitleVisibility()
     }
     
@@ -1857,6 +1893,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     @objc private func shareTapped() { onShareTapped?() }
     @objc private func bookmarkTapped() { onBookmarkTapped?() }
     @objc private func applyTapped() { onApplyTapped?() }
+    @objc private func viewApplicationsTapped() { onViewApplicationsTapped?() }
     
     @objc private func likesViewDidTap() {}
     @objc private func viewsViewDidTap() {}

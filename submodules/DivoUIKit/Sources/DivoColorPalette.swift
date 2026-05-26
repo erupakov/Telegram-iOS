@@ -205,4 +205,66 @@ public enum DivoColorPalette {
     public static let bronzeGradientMid = UIColor(hexString: "#A46B4C")!
     public static let bronzeGradientDark = UIColor(hexString: "#89503B")!
     public static let bronzeGradientDeep = UIColor(hexString: "#823F36")!
+
+    // MARK: - Event type badges
+
+    public static let eventTypeCasting          = UIColor(hexString: "#185FA5")!
+    public static let eventTypeParty            = UIColor(rgb: 0x9D2AEE)
+    public static let eventTypePhotoshoot       = UIColor(rgb: 0xEE2A7B)
+    public static let eventTypePromo            = UIColor(rgb: 0xEE7A2A)
+    public static let eventTypeVideoShoot       = UIColor(rgb: 0xE53935)
+    public static let eventTypeEvent            = UIColor(hexString: "#BD47CD")!
+    public static let eventTypeShow             = UIColor(hexString: "#534AB7")!
+    public static let eventTypeExhibition       = UIColor(hexString: "#0F6E56")!
+    public static let eventTypeHairCut          = UIColor(rgb: 0xF50057)
+    public static let eventTypeActorAnimator    = UIColor(rgb: 0x00ACC1)
+    public static let eventTypeDancers          = UIColor(rgb: 0xFFB300)
+    public static let eventTypeBodyArt          = UIColor(rgb: 0x00897B)
+    public static let eventTypeHostess          = UIColor(rgb: 0x3949AB)
+    public static let eventTypeForeignContracts = UIColor(rgb: 0x1E88E5)
+}
+
+public enum EventTypeStyle: Int {
+    case casting = 1
+    case party = 2
+    case photoshoot = 3
+    case promo = 4
+    case videoShoot = 278
+    case event = 279
+    case show = 280
+    case exhibition = 281
+    case hairCut = 282
+    case actorAnimator = 283
+    case dancers = 284
+    case bodyArt = 285
+    case hostess = 286
+    case foreignContracts = 287
+
+    public var color: UIColor {
+        switch self {
+        case .casting:          return DivoColorPalette.eventTypeCasting
+        case .party:            return DivoColorPalette.eventTypeParty
+        case .photoshoot:       return DivoColorPalette.eventTypePhotoshoot
+        case .promo:            return DivoColorPalette.eventTypePromo
+        case .videoShoot:       return DivoColorPalette.eventTypeVideoShoot
+        case .event:            return DivoColorPalette.eventTypeEvent
+        case .show:             return DivoColorPalette.eventTypeShow
+        case .exhibition:       return DivoColorPalette.eventTypeExhibition
+        case .hairCut:          return DivoColorPalette.eventTypeHairCut
+        case .actorAnimator:    return DivoColorPalette.eventTypeActorAnimator
+        case .dancers:          return DivoColorPalette.eventTypeDancers
+        case .bodyArt:          return DivoColorPalette.eventTypeBodyArt
+        case .hostess:          return DivoColorPalette.eventTypeHostess
+        case .foreignContracts: return DivoColorPalette.eventTypeForeignContracts
+        }
+    }
+
+    /// Безопасное извлечение цвета по `id`.
+    /// Если id неизвестен (или `nil`), возвращается дефолтный `DivoColorPalette.roleBadgeBlue`.
+    public static func color(for id: Int?) -> UIColor {
+        guard let id = id, let style = EventTypeStyle(rawValue: id) else {
+            return DivoColorPalette.roleBadgeBlue
+        }
+        return style.color
+    }
 }

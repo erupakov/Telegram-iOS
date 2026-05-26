@@ -238,7 +238,9 @@ public enum DivoStrings {
     public static var noChannelsYet: String { L(en: "No channels yet", ru: "Каналов пока нет", es: "Sin canales aún", pt: "Sem canais ainda", zh: "暂无频道") }
     public static var noModelsYet: String { L(en: "No models yet", ru: "Моделей пока нет", es: "Sin modelos aún", pt: "Sem modelos ainda", zh: "暂无模特") }
     public static var noEventsYet: String { L(en: "No events yet", ru: "Событий пока нет", es: "Sin eventos aún", pt: "Sem eventos ainda", zh: "暂无活动") }
-    public static var noUpcomingEventsSubtitle: String { L(en: "There are no upcoming events at the moment", ru: "На данный момент ближайших событий нет", es: "No hay eventos próximos en este momento", pt: "Não há eventos próximos no momento", zh: "目前没有即将举行的活动") }
+    public static var noUpcomingEventsTitle: String { L(en: "There are no upcoming events at the moment.", ru: "На данный момент предстоящих событий нет.", es: "No hay eventos próximos en este momento.", pt: "Não há eventos futuros no momento.", zh: "目前暂无即将举行的活动.") }
+    public static var noUpcomingEventsSubtitle: String { L(en: "Check back later.", ru: "Загляните позже.", es: "Vuelve a consultar más tarde.", pt: "Volte mais tarde.", zh: "请稍后再来查看.") }
+    public static var noUpcomingEventsAgencySubtitle: String { L(en: "Check back later or create a new one.", ru: "Загляните позже или создайте новое.", es: "Vuelve a consultar más tarde o crea uno nuevo.", pt: "Volte mais tarde ou crie um novo.", zh: "请稍后再来查看或创建一个新的.") }
     public static var addChannel: String { L(en: "Add channel", ru: "Добавить канал", es: "Agregar canal", pt: "Adicionar canal", zh: "添加频道") }
     public static var addModel: String { L(en: "Add model", ru: "Добавить модель", es: "Agregar modelo", pt: "Adicionar modelo", zh: "添加模特") }
     public static var addEvent: String { L(en: "Add event", ru: "Добавить событие", es: "Agregar evento", pt: "Adicionar evento", zh: "添加活动") }
@@ -317,7 +319,10 @@ public enum DivoStrings {
     public static var error: String { L(en: "Error", ru: "Ошибка", es: "Error", pt: "Erro", zh: "错误") }
     public static var search: String { L(en: "Search", ru: "Поиск", es: "Buscar", pt: "Buscar", zh: "搜索") }
     public static var apply: String { L(en: "Apply", ru: "Подать заявку", es: "Aplicar", pt: "Aplicar", zh: "申请") }
+    public static var applied: String { L(en: "Applied", ru: "Заявка подана", es: "Solicitado", pt: "Inscrito", zh: "已申请") }
+    public static var applying: String { L(en: "Sending...", ru: "Отправляем...", es: "Enviando...", pt: "Enviando...", zh: "申请中...") }
     public static var applyNow: String { L(en: "Apply now", ru: "Подать заявку сейчас", es: "Aplicar ahora", pt: "Candidatar-se agora", zh: "立即申请") }
+    public static var viewApplications: String { L(en: "View applications", ru: "Посмотреть заявки", es: "Ver solicitudes", pt: "Ver inscrições", zh: "查看申请") }
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...") }
     public static var continueButton: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }
@@ -518,8 +523,10 @@ public enum DivoStrings {
     public static var eventName: String { L(en: "Event name *", ru: "Название события *", es: "Nombre del evento *", pt: "Nome do evento *", zh: "活动名称 *") }
     public static var addPhotoEvent: String { L(en: "Upload event photos", ru: "Загрузить фото события", es: "Subir fotos del evento", pt: "Carregar fotos do evento", zh: "上传活动照片") }
     public static var paidEvent: String { L(en: "Paid event", ru: "Платное мероприятие", es: "Evento de pago", pt: "Evento pago", zh: "付费活动") }
+    public static var paid: String { L(en: "Paid", ru: "Платно", es: "De pago", pt: "Pago", zh: "付费") }
     public static var previewEvent: String { L(en: "Preview", ru: "Предпросмотр", es: "Vista previa", pt: "Pré-visualização", zh: "预览") }
     public static func stepCreateEvent(_ currentStep: Int) -> String { L(en: "Step \(currentStep)/3", ru: "Шаг \(currentStep)/3", es: "Paso \(currentStep)/3", pt: "Passo \(currentStep)/3", zh: "步骤 \(currentStep)/3") }
+    public static func availableSeatsEvent(_ count: Int) -> String { L(en: "\(count) spots left", ru: "Осталось \(count) мест", es: "\(count) lugares disponibles", pt: "\(count) vagas restantes", zh: "剩余\(count)个名额") }
 
     // MARK: - Models Feed
 
@@ -984,6 +991,14 @@ public enum DivoStrings {
     public static var chooseEvent: String { L(en: "Choose an event", ru: "Выберите событие", es: "Elige un evento", pt: "Escolha um evento", zh: "选择一个活动") }
     public static var you: String { L(en: "@you", ru: "@вы", es: "@tú", pt: "@você", zh: "@你") }
 
+    // MARK: - Feed Events
+    
+    public static var eventsMy: String { L(en: "My Events", ru: "Мои события", es: "Mis eventos", pt: "Meus eventos", zh: "我的活动") }
+    public static var eventsAll: String { L(en: "All Events", ru: "Все события", es: "Todos los eventos", pt: "Todos os eventos", zh: "所有活动") }
+    public static var failedApplyEvent: String { L(en: "Failed to send application", ru: "Не удалось подать заявку", es: "No se pudo enviar la solicitud", pt: "Não foi possível enviar a inscrição", zh: "申请提交失败") }
+    public static var feedEventLoadErrorTitle: String { L(en: "Couldn't load events", ru: "Не удалось загрузить события", es: "No se pudieron cargar los eventos", pt: "Não foi possível carregar os eventos", zh: "无法加载活动") }
+    public static var feedEventLoadErrorSubtitle: String { L(en: "Something went wrong on our end.\nCheck your connection and try again.", ru: "Что-то пошло не так с нашей стороны.\nПроверьте соединение и попробуйте снова.", es: "Algo salió mal de nuestro lado.\nVerifica tu conexión e inténtalo de nuevo.", pt: "Algo deu errado da nossa parte.\nVerifique sua conexão e tente novamente.", zh: "我们的端出了问题。\n请检查连接后重试。") }
+    
     // MARK: - Event Parameter Titles
 
     public static var paramGender: String { L(en: "Gender", ru: "Пол", es: "Género", pt: "Gênero", zh: "性别") }
@@ -999,6 +1014,7 @@ public enum DivoStrings {
     public static var paramEyeColor: String { L(en: "Eye color", ru: "Цвет глаз", es: "Color de ojos", pt: "Cor dos olhos", zh: "眼色") }
     public static var paramSkinColor: String { L(en: "Skin color", ru: "Цвет кожи", es: "Color de piel", pt: "Cor da pele", zh: "肤色") }
     public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)") }
+    public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭") }
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
 

@@ -22,7 +22,7 @@ final class EventListCell: UICollectionViewCell {
     
     private static let avatarSize: CGFloat = 52
     
-    var openAddModel: (() -> Void)?
+    var onApply: ((Int) -> Void)?
     private var currentEventId: Int?
 
     private let avatarImageView: UIImageView = {
@@ -53,6 +53,12 @@ final class EventListCell: UICollectionViewCell {
 
     private let applyButton = DivoButton()
 
+    private var nameLabelTrailingWithButton: NSLayoutConstraint?
+    private var nameLabelTrailingWithoutButton: NSLayoutConstraint?
+
+    private var infoLabelTrailingWithButton: NSLayoutConstraint?
+    private var infoLabelTrailingWithoutButton: NSLayoutConstraint?
+
     private var applyButtonWidthConstraint: NSLayoutConstraint?
 
     override init(frame: CGRect) {
@@ -72,6 +78,14 @@ final class EventListCell: UICollectionViewCell {
         contentView.addSubview(infoLabel)
         contentView.addSubview(applyButton)
 
+        applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
+
+        nameLabelTrailingWithButton = nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: applyButton.leadingAnchor, constant: -10)
+        nameLabelTrailingWithoutButton = nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
+        
+        infoLabelTrailingWithButton = infoLabel.trailingAnchor.constraint(lessThanOrEqualTo: applyButton.leadingAnchor, constant: -10)
+        infoLabelTrailingWithoutButton = infoLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
+
         NSLayoutConstraint.activate([
             avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -80,11 +94,9 @@ final class EventListCell: UICollectionViewCell {
             
             nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
             nameLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),
-            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: applyButton.leadingAnchor, constant: -10),
             
             infoLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
             infoLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
-            infoLabel.trailingAnchor.constraint(lessThanOrEqualTo: applyButton.leadingAnchor, constant: -10),
             
             applyButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             applyButton.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -93,15 +105,22 @@ final class EventListCell: UICollectionViewCell {
     }
 
     @objc private func applyButtonTapped() {
-        openAddModel?()
+        guard let eventId = currentEventId else { return }
+        onApply?(eventId)
     }
-    
+
     override func prepareForReuse() {
         super.prepareForReuse()
         avatarImageView.cancelImageLoad()
         avatarImageView.image = nil
         currentEventId = nil
         applyButton.isHidden = true
+        onApply = nil
+
+        nameLabelTrailingWithButton?.isActive = false
+        nameLabelTrailingWithoutButton?.isActive = false
+        infoLabelTrailingWithButton?.isActive = false
+        infoLabelTrailingWithoutButton?.isActive = false
     }
     
     func configure(with item: EventItem, context: AccountContext, isMyProfile: Bool) {
@@ -121,9 +140,21 @@ final class EventListCell: UICollectionViewCell {
         
         if isMyProfile {
             applyButton.isHidden = true
+            
+            nameLabelTrailingWithButton?.isActive = false
+            infoLabelTrailingWithButton?.isActive = false
+            
+            nameLabelTrailingWithoutButton?.isActive = true
+            infoLabelTrailingWithoutButton?.isActive = true
         } else {
             applyButton.isHidden = false
             applyButton.makeDivoButton(title: DivoStrings.apply, buttonFont: Font.helveticaNeue(14), radius: 18)
+            
+            nameLabelTrailingWithoutButton?.isActive = false
+            infoLabelTrailingWithoutButton?.isActive = false
+            
+            nameLabelTrailingWithButton?.isActive = true
+            infoLabelTrailingWithButton?.isActive = true
         }
     }
 }

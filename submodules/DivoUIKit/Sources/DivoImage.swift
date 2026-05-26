@@ -32,6 +32,7 @@ public enum DivoImage {
     public static var defWork: UIImage { load("DivoDefWork") }
     public static var emptyAppearanceProfile: UIImage { load("DivoEmptyAppearanceProfile") }
     public static var emptyBioProfile: UIImage { load("DivoEmptyBioProfile") }
+    public static var emptyEvents: UIImage { load("DivoEmptyEvents") }
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
     public static var emptyModelsAgency: UIImage { load("DivoEmptyModelsAgency") }
     public static var emptyWorkProfile: UIImage { load("DivoEmptyWorkProfile") }
@@ -141,6 +142,7 @@ public enum DivoImage {
     public static var tikTokIcon: UIImage { load("DivoTikTokIcon") }
     public static var timeIcon: UIImage { load("DivoTimeIcon") }
     public static var uploadPhoto: UIImage { load("DivoUploadPhoto") }
+    public static var verified: UIImage { load("DivoVerified") }
     public static var videoIcon: UIImage { load("DivoVideoIcon") }
     public static var videoIconButton: UIImage { load("DivoVideoIconButton") }
     public static var webIcon: UIImage { load("DivoWebIcon") }

@@ -509,6 +509,18 @@ public enum DivoAPIError: Error, LocalizedError {
         let parts = [decoded.message, detail].compactMap { $0 }.filter { !$0.isEmpty }
         return parts.isEmpty ? nil : parts.joined(separator: "\n")
     }
+
+    /// `true`, если ошибка относится к отсутствию интернет-соединения.
+    public var isNetwork: Bool {
+        if case .noInternetConnection = self { return true }
+        return false
+    }
+}
+
+/// Проверка «нет интернета» для произвольной `Error` — для catch-блоков,
+/// которые не приводят ошибку к `DivoAPIError` явно.
+public func isNetworkError(_ error: Error) -> Bool {
+    (error as? DivoAPIError)?.isNetwork == true
 }
 
 private struct ServerValidationError: Decodable {

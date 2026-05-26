@@ -45,6 +45,12 @@
 
 Цель: минимизировать merge-конфликты при обновлении Telegram upstream.
 
+### Upstream-файлы (приоритет 0)
+
+- [ ] **Файлы Telegram-форка не изменяются без явной необходимости.** Это `Telegram/`, `submodules/TelegramUI`, `submodules/AuthorizationUI`, `submodules/SettingsUI`, `submodules/TelegramCore` (вне папки `Sources/TelegramEngine/Divo/`), `third-party/` и любые другие не-DIVO модули.
+- [ ] Если правка в upstream-файле всё-таки нужна — она вынесена отдельным коммитом, отмечена в PR description с обоснованием, и ограничена минимально необходимым diff'ом. Цель — нулевые конфликты при `git pull upstream master`.
+- [ ] Быстрая проверка перед ревью: `git diff --name-only <base>...HEAD` — список не должен содержать файлов вне DIVO-модулей (`submodules/DivoCore`, `submodules/DivoUIKit`, `submodules/ProfileScreenUI`, `submodules/EventsUI`, `submodules/ModelsFeedUI`, `submodules/OnboardingUI` и т.п.).
+
 ### Ресурсы
 
 - [ ] Все DIVO-ассеты лежат в `DivoCore/DivoCoreImages.xcassets/`, а не в `TelegramUI/Images.xcassets` или других Telegram-каталогах.
@@ -185,8 +191,8 @@
 
 ## Как проводить ревью
 
-1. **`git diff --stat`** — оценить масштаб, убедиться что нет изменений в Telegram-модулях.
-2. **`git diff --name-only`** — проверить, что DIVO-файлы лежат в DIVO-каталогах.
+1. **`git diff --stat <base>...HEAD`** — оценить масштаб.
+2. **`git diff --name-only <base>...HEAD`** — проверить, что (а) DIVO-файлы лежат в DIVO-каталогах и (б) нет правок в upstream-файлах Telegram-форка (см. секцию 3, «Upstream-файлы»).
 3. **grep по diff на hardcoded строки** — `"[A-Z]` в UI-коде без `DivoStrings`.
 4. **grep по diff на hardcoded цвета** — `.white`, `.black`, `UIColor(red:` в DIVO-файлах.
 5. **Пройти по секциям 1-6 этого документа.** Для экранов с несколькими стейтами (loading/content/empty/failed) — отдельно проверить секцию 6 (state-машина).
