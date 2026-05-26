@@ -41,7 +41,7 @@ public final class EventsController: TelegramBaseController {
     private let clearDisposable = MetaDisposable()
 
     private var isAgency: Bool = false
-    private var agencyId: Int?
+    private var userId: Int?
     private var didLoadEvents: Bool = false
     
     // Структура хранения состояния вкладок с поддержкой ошибок пагинации
@@ -146,7 +146,7 @@ public final class EventsController: TelegramBaseController {
                     guard let self else { return }
                     let wasAgency = self.isAgency
                     self.isAgency = role == "agency" || role == "agency_employee"
-                    self.agencyId = response.data.id
+                    self.userId = response.data.id
                     if wasAgency != self.isAgency {
                         self.updateNavigation()
                     }
@@ -232,7 +232,7 @@ public final class EventsController: TelegramBaseController {
     // Формирование EventListRequest с фильтрацией по creatorId для таба "Мои"
     private func requestBody(tabIndex: Int, offset: Int, limit: Int) -> EventListRequest {
         if self.isAgency, tabIndex == 0 {
-            return EventListRequest(offset: offset, limit: limit, creatorId: self.agencyId)
+            return EventListRequest(offset: offset, limit: limit, creatorId: self.userId)
         } else {
             return EventListRequest(offset: offset, limit: limit, creatorId: nil)
         }
@@ -274,6 +274,7 @@ public final class EventsController: TelegramBaseController {
                 
                 await MainActor.run {
                     guard let self else { return }
+                    self.controllerNode.setUserId(self.userId)
                     self.controllerNode.updateIsAgency(self.isAgency)
                     if reset {
                         self.tabStates[tabIndex].events = eventDataArray
@@ -412,7 +413,8 @@ public final class EventsController: TelegramBaseController {
                 paymentTypeId: item.paymentType?.id,
                 applicationDeadline: item.applicationDeadline,
                 isCurrentRoleAgency: self.isAgency,
-                isApplied: item.isApplied
+                isApplied: item.isApplied,
+                creatorId: item.creator?.id
             )
         }
     }

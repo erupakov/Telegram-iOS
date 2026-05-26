@@ -32,7 +32,8 @@ final class EventsControllerNode: ASDisplayNode {
     private var emptyStateView: UIView?
     
     private var isAgency: Bool = false
-    
+    private var userId: Int? = nil
+
     private let navBackgroundView: UIView = {
         let v = UIView()
         v.backgroundColor = DivoColorPalette.screenBackground
@@ -185,6 +186,10 @@ final class EventsControllerNode: ASDisplayNode {
                 self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
             }
         }
+    }
+
+    public func setUserId(_ userId: Int?) {
+        self.userId = userId
     }
     
     // Получение текущего скролла коллекции для сохранения в контроллере
@@ -664,7 +669,7 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard indexPath.item < events.count else { return }
         let selectedEvent = events[indexPath.item]
-        let detailController = EventDetailController(context: context, eventId: selectedEvent.id, isMyEvent: false)
+        let detailController = EventDetailController(context: context, eventId: selectedEvent.id, isMyEvent: self.userId == selectedEvent.creatorId)
         
         if let navigationController = controller?.navigationController {
             navigationController.pushViewController(detailController, animated: true)

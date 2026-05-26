@@ -27,6 +27,7 @@ public struct EventData {
     let isApplied: Bool?
     
     let isCurrentRoleAgency: Bool?
+    let creatorId: Int?
 
     public init(
         id: Int = 0,
@@ -49,7 +50,8 @@ public struct EventData {
         paymentTypeId: Int? = nil,
         applicationDeadline: String? = nil,
         isCurrentRoleAgency: Bool? = nil,
-        isApplied: Bool? = nil
+        isApplied: Bool? = nil,
+        creatorId: Int? = nil
     ) {
         self.id = id
         self.title = title
@@ -72,6 +74,7 @@ public struct EventData {
         self.applicationDeadline = applicationDeadline
         self.isCurrentRoleAgency = isCurrentRoleAgency
         self.isApplied = isApplied
+        self.creatorId = creatorId
     }
 
     private static func mockDateFormatted(_ isoDate: String) -> String {

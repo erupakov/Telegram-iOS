@@ -16,6 +16,7 @@ struct EventViewModel {
     let time: String?
     let countryFlag: String?
     let city: String?
+    let isFree: Bool?
     let cost: String?
     
     init(
@@ -24,6 +25,7 @@ struct EventViewModel {
         time: String?,
         countryFlag: String?,
         city: String?,
+        isFree: Bool?,
         cost: String?
     ) {
         self.name = name
@@ -31,10 +33,10 @@ struct EventViewModel {
         self.time = time
         self.countryFlag = countryFlag
         self.city = city
+        self.isFree = isFree
         self.cost = cost
     }
 }
-
 
 class EventHeaderView: UIView {
     
@@ -45,8 +47,6 @@ class EventHeaderView: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
-    private var nameLabelHeightConstraint: NSLayoutConstraint!
 
     private let infoLabel: UILabel = {
         let label = UILabel()
@@ -76,10 +76,10 @@ class EventHeaderView: UIView {
     }
     
     private func setupConstraints() {
-        nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-
         NSLayoutConstraint.activate([
+            nameLabel.topAnchor.constraint(equalTo: topAnchor),
             nameLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            nameLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
 
             infoLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 6),
             infoLabel.leadingAnchor.constraint(equalTo: leadingAnchor),

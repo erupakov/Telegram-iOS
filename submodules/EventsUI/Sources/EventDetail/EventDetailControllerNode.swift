@@ -22,6 +22,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     var onShareTapped: (() -> Void)?
     var onBookmarkTapped: (() -> Void)?
     var onApplyTapped: (() -> Void)?
+    var onViewApplicationsTapped: (() -> Void)?
     var onGalleryItemTapped: ((String) -> Void)?
 
     var coverImage: UIImage? {
@@ -670,20 +671,34 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventCostTypeShimmerContainer.startShimmering()
             eventTypeLabelShimmerContainer.stopShimmering()
             eventTypeLabelShimmerContainer.startShimmering()
+        }
+        if !eventDeadlineShimmerContainer.isHidden && !applyButtonShimmer.isHidden {
             eventDeadlineShimmerContainer.stopShimmering()
             eventDeadlineShimmerContainer.startShimmering()
             applyButtonShimmer.stopShimmering()
+            eventDeadlineShimmerContainer.startShimmering()
             applyButtonShimmer.startShimmering()
+        }
+        if !organizerShimmerView.isHidden{
             organizerShimmerView.stopShimmering()
             organizerShimmerView.startShimmering()
+        }
+        if !currentAppliedShimmerView.isHidden && !allAppliedShimmerView.isHidden {
             currentAppliedShimmerView.stopShimmering()
             currentAppliedShimmerView.startShimmering()
             allAppliedShimmerView.stopShimmering()
+            currentAppliedShimmerView.startShimmering()
             allAppliedShimmerView.startShimmering()
+        }
+        if !descriptionShimmerView.isHidden {
             descriptionShimmerView.stopShimmering()
             descriptionShimmerView.startShimmering()
+        }
+        if !requirementsShimmerContainer.isHidden {
             requirementsShimmerView.stopShimmering()
             requirementsShimmerView.startShimmering()
+        }
+        if !parametersShimmerView.isHidden {
             parametersShimmerView.stopShimmering()
             parametersShimmerView.startShimmering()
         }
@@ -781,16 +796,12 @@ final class EventDetailControllerNode: ASDisplayNode {
 
     private func setupBackgroundAndScroll() {
         self.view.addSubview(backgroundImageView)
-
-        // Cover-image — шапка экрана фиксированной высоты. Раньше backgroundImageView
-        // занимал весь экран и .scaleAspectFill обрезал картинку до середины горизонтальной
-        // полосы (вьюпорт узкий и высокий). Теперь ограничиваем высоту, чтобы aspect ratio
-        // области показа был близок к ratio самой картинки.
+        
         NSLayoutConstraint.activate([
             backgroundImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
             backgroundImageView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             backgroundImageView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            backgroundImageView.heightAnchor.constraint(equalToConstant: 360),
+            backgroundImageView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
         ])
         
         self.view.addSubview(scrollView)
@@ -1006,7 +1017,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         infoStack.addArrangedSubview(profileHeaderView)
         
         profileHeaderShimmerView.translatesAutoresizingMaskIntoConstraints = false
-        infoStack.addSubview(profileHeaderShimmerView)
+        infoStack.addArrangedSubview(profileHeaderShimmerView)
         
         NSLayoutConstraint.activate([
             infoStack.topAnchor.constraint(equalTo: profileHeaderWrapper.topAnchor),
@@ -1016,8 +1027,6 @@ final class EventDetailControllerNode: ASDisplayNode {
             
             profileHeaderShimmerView.leadingAnchor.constraint(equalTo: infoStack.leadingAnchor),
             profileHeaderShimmerView.trailingAnchor.constraint(equalTo: infoStack.trailingAnchor),
-            profileHeaderShimmerView.topAnchor.constraint(equalTo: infoStack.topAnchor),
-            profileHeaderShimmerView.bottomAnchor.constraint(equalTo: infoStack.bottomAnchor),
         ])
         
         contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderWrapper)
@@ -1414,7 +1423,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             counterActionsStack.isHidden = false
             
             eventCostTypeShimmerContainer.isHidden = true
-            eventCostTypeContainer.isHidden = false
+            eventCostTypeContainer.isHidden = self.eventData?.paymentType?.id == 2
             
             eventTypeLabelShimmerContainer.isHidden = true
             eventTypeLabelContainer.isHidden = false
@@ -1501,40 +1510,70 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         var items: [AppearanceAttribute] = []
         
+        // Вспомогательная функция, которая собирает красивую строку без нулей
+        func rangeString(from: Any?, to: Any?) -> String? {
+            // Приводим к NSNumber. Это автоматом убирает лишние .0 (18.0 -> "18")
+            let fStr = (from as? NSNumber)?.stringValue
+            let tStr = (to as? NSNumber)?.stringValue
+            
+            if let f = fStr, let t = tStr {
+                // Если значения одинаковые (например 18 и 18), выводим просто "18"
+                return f == t ? f : "\(f)-\(t)"
+            }
+            // Если есть только одно значение, вернется оно. Если оба nil - вернется nil.
+            return fStr ?? tStr
+        }
+        
         if let gender = attributes?.gender {
             let genderTitles = gender.compactMap { $0.title }.joined(separator: ", ")
             items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
         }
-        if let height = attributes?.height {
-            items.append(.init(title: DivoStrings.heightCm, value: "\(height.from ?? 0)-\(height.to ?? 0)"))
+        if let height = attributes?.height, let str = rangeString(from: height.from, to: height.to) {
+            items.append(.init(title: DivoStrings.heightCm, value: str))
         }
-        if let weight = attributes?.weight {
-            items.append(.init(title: DivoStrings.weightKg, value: "\(weight.from ?? 0)-\(weight.to ?? 0)"))
+        
+        if let weight = attributes?.weight, let str = rangeString(from: weight.from, to: weight.to) {
+            items.append(.init(title: DivoStrings.weightKg, value: str))
         }
-        if let waist = attributes?.waist {
-            items.append(.init(title: DivoStrings.waistCm, value: "\(waist.from ?? 0)-\(waist.to ?? 0)"))
+        
+        if let waist = attributes?.waist, let str = rangeString(from: waist.from, to: waist.to) {
+            items.append(.init(title: DivoStrings.waistCm, value: str))
         }
-        if let hips = attributes?.hips {
-            items.append(.init(title: DivoStrings.hipsCm, value: "\(hips.from ?? 0)-\(hips.to ?? 0)"))
+        
+        if let hips = attributes?.hips, let str = rangeString(from: hips.from, to: hips.to) {
+            items.append(.init(title: DivoStrings.hipsCm, value: str))
         }
-        if let shoesSize = attributes?.shoesSize {
-            items.append(.init(title: DivoStrings.shoeSizeEU, value: "\(shoesSize.from ?? 0)-\(shoesSize.to ?? 0)"))
+        
+        if let shoesSize = attributes?.shoesSize, let str = rangeString(from: shoesSize.from, to: shoesSize.to) {
+            items.append(.init(title: DivoStrings.shoeSizeEU, value: str))
         }
+        
         if let hairColor = attributes?.hairColor {
             let hairColorTitles = hairColor.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.attrHairColor, value: hairColorTitles))
+            if !hairColorTitles.isEmpty {
+                items.append(.init(title: DivoStrings.attrHairColor, value: hairColorTitles))
+            }
         }
+        
         if let hairLength = attributes?.hairLength {
             let hairLengthTitles = hairLength.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.attrHairLength, value: hairLengthTitles))
+            if !hairLengthTitles.isEmpty {
+                items.append(.init(title: DivoStrings.attrHairLength, value: hairLengthTitles))
+            }
         }
+        
         if let eyeColor = attributes?.eyeColor {
             let eyeColorTitles = eyeColor.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.eyeColor, value: eyeColorTitles))
+            if !eyeColorTitles.isEmpty {
+                items.append(.init(title: DivoStrings.eyeColor, value: eyeColorTitles))
+            }
         }
+        
         if let skinColor = attributes?.skinColor {
             let skinColorTitles = skinColor.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
+            if !skinColorTitles.isEmpty {
+                items.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
+            }
         }
         
         return items
@@ -1639,7 +1678,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         setupNavigationBarTitle(name: newEventData.title ?? DivoStrings.noName)
         
-        eventCostTypeLabel.isHidden = newEventData.paymentType?.id == 2
+        let isFree: Bool = newEventData.paymentType?.id == 2
+        eventCostTypeContainer.isHidden = newEventData.paymentType?.id == 2
         eventCostTypeLabel.text = newEventData.cost
         
         let (data, time) = formatEventDateAndTime(dateString: newEventData.date)
@@ -1650,12 +1690,30 @@ final class EventDetailControllerNode: ASDisplayNode {
                 time: time,
                 countryFlag: Self.flag(for: newEventData.address?.city?.countryCode),
                 city: newEventData.address?.city?.name,
+                isFree: isFree,
                 cost: newEventData.cost
             )
         )
         
-        let (_, deadlineTime) = formatEventDateAndTime(dateString: newEventData.applicationDeadline)
-        eventDeadlineLabel.text = DivoStrings.deadlineData(deadlineTime)
+        if self.isMyEvent {
+            applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.addTarget(self, action: #selector(viewApplicationsTapped), for: .touchUpInside)
+        } else {
+            applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
+        }
+        
+        if newEventData.isApplied ?? true {
+            applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.isUserInteractionEnabled = false
+        }
+        
+        if let deadlineText = formatTimeRemaining(deadlineString: newEventData.applicationDeadline) {
+            eventDeadlineLabel.text = deadlineText
+            eventDeadlineContainer.isHidden = false
+        } else {
+            eventDeadlineContainer.isHidden = true
+        }
         
         currentAppliedLabel.text = DivoStrings.currentApplied(newEventData.appliesCount ?? 0)
         allAppliedLabel.text = DivoStrings.allApplied(newEventData.maxAttendees ?? 0)
@@ -1673,10 +1731,57 @@ final class EventDetailControllerNode: ASDisplayNode {
         likesView.setValue("1.2K")
         viewsView.setValue("2.4K")
         savesView.setValue("300")
-
+        
+        stopShimmers()
         activateTitleVisibility()
     }
-
+    
+    private func formatTimeRemaining(deadlineString: String?) -> String? {
+        guard let raw = deadlineString else { return nil }
+        let normalized = raw.replacingOccurrences(of: " ", with: "T")
+        
+        let isoFormatter = DateFormatter()
+        isoFormatter.locale = Locale(identifier: "en_US_POSIX")
+        isoFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        
+        // Пробуем распарсить формат с секундами или без них
+        var deadlineDate = isoFormatter.date(from: normalized)
+        if deadlineDate == nil {
+            isoFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm"
+            deadlineDate = isoFormatter.date(from: normalized)
+        }
+        
+        guard let date = deadlineDate else { return nil }
+        
+        let timeInterval = date.timeIntervalSince(Date())
+        
+        // Если дедлайн уже прошел
+        if timeInterval <= 0 {
+            return nil
+        }
+        
+        let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
+        
+        // Если до дедлайна больше 24 часов (86400 секунд)
+        if timeInterval > 86400 {
+            let datePartFormatter = DateFormatter()
+            datePartFormatter.locale = divoLocale
+            datePartFormatter.setLocalizedDateFormatFromTemplate("MMM d")
+            let formattedDate = datePartFormatter.string(from: date)
+            return DivoStrings.deadlineData(formattedDate)
+        } else {
+            // Если до дедлайна меньше 24 часов
+            let hours = Int(timeInterval) / 3600
+            let minutes = (Int(timeInterval) % 3600) / 60
+            
+            if hours > 0 {
+                return DivoStrings.deadlineDataTime("\(hours)h \(minutes)m")
+            } else {
+                return DivoStrings.deadlineDataTime("\(minutes)m")
+            }
+        }
+    }
+    
     func updateWithPreviewData(_ data: EventPreviewData) {
         self.phase = .content
         
@@ -1689,7 +1794,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         eventTypeLabel.text = data.request.type
         setupNavigationBarTitle(name: DivoStrings.previewEvent.uppercased())
         
-        eventCostTypeContainer.isHidden = data.request.cost == nil
+        if let isFree = data.request.isFree, isFree {
+            eventCostTypeContainer.removeFromSuperview()
+        }
         eventCostTypeLabel.text = data.request.cost
         
         let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)
@@ -1700,25 +1807,24 @@ final class EventDetailControllerNode: ASDisplayNode {
                 time: tStr,
                 countryFlag: "🌍",
                 city: DivoStrings.tbd,
+                isFree: data.request.isFree,
                 cost: data.request.cost
             )
         )
         
-        let (cStr, _) = formatEventDateAndTime(dateString: data.request.applicationDeadline)
-        eventDeadlineLabel.text = DivoStrings.deadlineData(cStr)
-        // Дедлайн — информационная пилюля, не интерактивная. В preview явно
-        // блокируем тапы, чтобы не было press-feedback'а на нажатие.
-        eventDeadlineContainer.isUserInteractionEnabled = false
-
-        // applyButton в preview оставляем визуально активной (как будет на боевом),
-        // но без интерактивности — нечего «подать заявку» на ещё не опубликованное событие.
+        if let deadlineText = formatTimeRemaining(deadlineString: data.request.applicationDeadline) {
+            eventDeadlineLabel.text = deadlineText
+            eventDeadlineContainer.isHidden = false
+        } else {
+            eventDeadlineContainer.isHidden = true
+        }
+        
         applyButton.makeDivoButton(title: DivoStrings.applyPreviewOnly, buttonFont: Font.helveticaNeue(14), radius: 18)
-        applyButton.isUserInteractionEnabled = false
+        applyButton.isEnabled = false
         
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
-        // TODO DIVO: подтянуть handle/avatar текущего пользователя из контекста вместо плейсхолдера
         organizerView.configure(name: DivoStrings.you, logoURL: nil)
         
         descriptionView.update(biography: data.request.description)
@@ -1729,6 +1835,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         if let gender = data.request.gender {
             let genderTitles = gender.joined(separator: ", ")
             attrs.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+        }
+        if let age = data.request.age {
+            attrs.append(.init(title: DivoStrings.ageYo, value: "\(age.from)-\(age.to)"))
         }
         if let height = data.request.height {
             attrs.append(.init(title: DivoStrings.heightCm, value: "\(height.from)-\(height.to)"))
@@ -1814,6 +1923,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     @objc private func shareTapped() { onShareTapped?() }
     @objc private func bookmarkTapped() { onBookmarkTapped?() }
     @objc private func applyTapped() { onApplyTapped?() }
+    @objc private func viewApplicationsTapped() { onViewApplicationsTapped?() }
     
     @objc private func likesViewDidTap() {}
     @objc private func viewsViewDidTap() {}

@@ -322,6 +322,7 @@ public enum DivoStrings {
     public static var applied: String { L(en: "Applied", ru: "Применено", es: "Aplicado", pt: "Aplicado", zh: "已应用") }
     public static var applying: String { L(en: "Applying...", ru: "Применение...", es: "Aplicando...", pt: "Aplicando...", zh: "应用中...") }
     public static var applyNow: String { L(en: "Apply now", ru: "Подать заявку сейчас", es: "Aplicar ahora", pt: "Candidatar-se agora", zh: "立即申请") }
+    public static var viewApplications: String { L(en: "View applications", ru: "Посмотреть заявки", es: "Ver solicitudes", pt: "Ver inscrições", zh: "查看申请") }
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...") }
     public static var continueButton: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }

@@ -242,6 +242,7 @@ public struct CreateEventPreview: Codable {
     public let address: EventAddressRequest
     public let files: [EventFileRequest]
 
+    public let isFree: Bool?
     public let cost: String?
     public let isPublic: Bool?
     public let ndaRequired: Bool?
@@ -270,6 +271,7 @@ public struct CreateEventPreview: Codable {
         date: String,
         address: EventAddressRequest,
         files: [EventFileRequest],
+        isFree: Bool?,
         cost: String?,
         isPublic: Bool?,
         ndaRequired: Bool?,
@@ -296,6 +298,7 @@ public struct CreateEventPreview: Codable {
         self.date = date
         self.address = address
         self.files = files
+        self.isFree = isFree
         self.cost = cost
         self.isPublic = isPublic
         self.ndaRequired = ndaRequired
