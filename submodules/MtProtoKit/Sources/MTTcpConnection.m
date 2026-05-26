@@ -845,8 +845,11 @@ struct ctr_state {
             }
         }
         
-        // DIVO: always use intermediate format (plain, no obfuscation)
-        _useIntermediateFormat = true;
+        if (_mtpSecret != nil) {
+            if ([_mtpSecret isKindOfClass:[MTProxySecretType1 class]] || [_mtpSecret isKindOfClass:[MTProxySecretType2 class]]) {
+                _useIntermediateFormat = true;
+            }
+        }
         
         _resolveDisposable = [[MTMetaDisposable alloc] init];
         
@@ -993,8 +996,7 @@ struct ctr_state {
                     }
                     
                     __autoreleasing NSError *error = nil;
-                    BOOL connected = [strongSelf->_socket connectToHost:connectionData.ip onPort:connectionData.port viaInterface:strongSelf->_interface withTimeout:12 error:&error];
-                    if (!connected || error != nil) {
+                    if (![strongSelf->_socket connectToHost:connectionData.ip onPort:connectionData.port viaInterface:strongSelf->_interface withTimeout:12 error:&error] || error != nil) {
                         [strongSelf closeAndNotifyWithError:true];
                     } else if (strongSelf->_socksIp == nil) {
                         if (strongSelf->_mtpIp != nil && [strongSelf->_mtpSecret isKindOfClass:[MTProxySecretType2 class]]) {
@@ -1103,10 +1105,13 @@ struct ctr_state {
                     
                     if (_useIntermediateFormat) {
                         int32_t length = (int32_t)data.length;
-
-                        // DIVO: plain intermediate — no padding (server uses plain intermediate, not padded)
-                        paddingSize = 0;
-
+                        
+                        paddingSize = arc4random_uniform(16);
+                        if (paddingSize != 0) {
+                            arc4random_buf(padding, paddingSize);
+                        }
+                        length += (int32_t)paddingSize;
+                        
                         if (dataToSend.requestQuickAck) {
                             length |= 0x80000000;
                         }
@@ -1138,14 +1143,107 @@ struct ctr_state {
                     
                     completeDataLength += packetData.length;
                     
-                    // DIVO: plain intermediate transport (no obfuscated2)
                     if (!_addedControlHeader) {
                         _addedControlHeader = true;
-                        // Send 0xeeeeeeee magic for intermediate transport
-                        uint32_t intermediateHeader = 0xeeeeeeee;
-                        [completeData appendBytes:&intermediateHeader length:4];
+                        for (int retryCount = 0; retryCount < 10; retryCount++) {
+                            uint8_t controlBytes[64];
+                            arc4random_buf(controlBytes, 64);
+                            
+                            int32_t controlVersion;
+                            if (_useIntermediateFormat) {
+                                controlVersion = 0xdddddddd;
+                            } else {
+                                controlVersion = 0xefefefef;
+                            }
+                            
+                            memcpy(controlBytes + 56, &controlVersion, 4);
+                            int16_t datacenterTag = (int16_t)_datacenterTag;
+                            memcpy(controlBytes + 60, &datacenterTag, 2);
+                            
+                            uint8_t controlBytesReversed[64];
+                            for (int i = 0; i < 64; i++) {
+                                controlBytesReversed[i] = controlBytes[64 - 1 - i];
+                            }
+                            
+                            NSData *aesKey = [[NSData alloc] initWithBytes:controlBytes + 8 length:32];
+                            NSData *aesIv = [[NSData alloc] initWithBytes:controlBytes + 8 + 32 length:16];
+                            
+                            NSData *incomingAesKey = [[NSData alloc] initWithBytes:controlBytesReversed + 8 length:32];
+                            NSData *incomingAesIv = [[NSData alloc] initWithBytes:controlBytesReversed + 8 + 32 length:16];
+                            
+                            NSData *effectiveSecret = nil;
+                            if (_mtpSecret != nil) {
+                                effectiveSecret = _mtpSecret.secret;
+                            }
+                            if (effectiveSecret.length != 16 && effectiveSecret.length != 17) {
+                                effectiveSecret = nil;
+                            }
+                            
+                            if (effectiveSecret) {
+                                NSMutableData *aesKeyData = [[NSMutableData alloc] init];
+                                [aesKeyData appendData:aesKey];
+                                if (effectiveSecret.length == 16) {
+                                    [aesKeyData appendData:effectiveSecret];
+                                } else if (effectiveSecret.length == 17) {
+                                    [aesKeyData appendData:[effectiveSecret subdataWithRange:NSMakeRange(1, effectiveSecret.length - 1)]];
+                                }
+                                NSData *aesKeyHash = MTSha256(aesKeyData);
+                                aesKey = [aesKeyHash subdataWithRange:NSMakeRange(0, 32)];
+                                
+                                NSMutableData *incomingAesKeyData = [[NSMutableData alloc] init];
+                                [incomingAesKeyData appendData:incomingAesKey];
+                                if (effectiveSecret.length == 16) {
+                                    [incomingAesKeyData appendData:effectiveSecret];
+                                } else if (effectiveSecret.length == 17) {
+                                    [incomingAesKeyData appendData:[effectiveSecret subdataWithRange:NSMakeRange(1, effectiveSecret.length - 1)]];
+                                }
+                                NSData *incomingAesKeyHash = MTSha256(incomingAesKeyData);
+                                incomingAesKey = [incomingAesKeyHash subdataWithRange:NSMakeRange(0, 32)];
+                            }
+                            
+                            MTAesCtr *outgoingAesCtr = [[MTAesCtr alloc] initWithKey:aesKey.bytes keyLength:32 iv:aesIv.bytes decrypt:false];
+                            MTAesCtr *incomingAesCtr = [[MTAesCtr alloc] initWithKey:incomingAesKey.bytes keyLength:32 iv:incomingAesIv.bytes decrypt:false];
+                            
+                            uint8_t encryptedControlBytes[64];
+                            [outgoingAesCtr encryptIn:controlBytes out:encryptedControlBytes len:64];
+                            
+                            uint32_t intHeader = 0;
+                            memcpy(&intHeader, encryptedControlBytes, 4);
+                            
+                            if (effectiveSecret) {
+                                if (retryCount == 9) {
+                                    assert(false);
+                                } else {
+                                    if (intHeader == 0x44414548 ||
+                                        intHeader == 0x54534f50 ||
+                                        intHeader == 0x20544547 ||
+                                        intHeader == 0x4954504f ||
+                                        intHeader == 0xdddddddd ||
+                                        intHeader == 0xeeeeeeee ||
+                                        intHeader == 0x02010316) {
+                                        continue;
+                                    }
+                                }
+                            }
+                            
+                            NSMutableData *outData = [[NSMutableData alloc] initWithLength:64 + packetData.length];
+                            memcpy(outData.mutableBytes, controlBytes, 56);
+                            memcpy(outData.mutableBytes + 56, encryptedControlBytes + 56, 8);
+                            
+                            [outgoingAesCtr encryptIn:packetData.bytes out:outData.mutableBytes + 64 len:packetData.length];
+                            
+                            _incomingAesCtr = incomingAesCtr;
+                            _outgoingAesCtr = outgoingAesCtr;
+                            [completeData appendData:outData];
+                            
+                            break;
+                        }
+                    } else {
+                        NSMutableData *encryptedData = [[NSMutableData alloc] initWithLength:packetData.length];
+                        [_outgoingAesCtr encryptIn:packetData.bytes out:encryptedData.mutableBytes len:packetData.length];
+                        
+                        [completeData appendData:encryptedData];
                     }
-                    [completeData appendData:packetData];
                     
                     if ([_mtpSecret isKindOfClass:[MTProxySecretType2 class]]) {
                         NSMutableData *partitionedCompleteData = [[NSMutableData alloc] init];
@@ -1643,9 +1741,11 @@ struct ctr_state {
 
 - (void)processReceivedData:(NSData *)rawData tag:(int)tag networkType:(int32_t)networkType {
     _lastNetworkType = networkType;
-
-    // DIVO: plain transport, no AES-CTR decryption
-    NSData *data = rawData;
+    
+    NSMutableData *decryptedData = [[NSMutableData alloc] initWithLength:rawData.length];
+    [_incomingAesCtr encryptIn:rawData.bytes out:decryptedData.mutableBytes len:rawData.length];
+    
+    NSData *data = decryptedData;
     
     if (tag == MTTcpReadTagPacketShortLength) {
 #ifdef DEBUG

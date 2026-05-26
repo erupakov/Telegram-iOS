@@ -53,7 +53,7 @@ extension TelegramUser {
     convenience init(user: Api.User) {
         switch user {
         case let .user(userData):
-            let (flags, accessHash, firstName, lastName, username, phone, photo, _, _, restrictionReason, botInlinePlaceholder, _, emojiStatus, flags2, usernames, _, color, profileColor, subscriberCount, verificationIconFileId, _, _, _, id) = (userData.flags, userData.accessHash, userData.firstName, userData.lastName, userData.username, userData.phone, userData.photo, userData.status, userData.botInfoVersion, userData.restrictionReason, userData.botInlinePlaceholder, userData.langCode, userData.emojiStatus, userData.flags2, userData.usernames, userData.storiesMaxId, userData.color, userData.profileColor, userData.botActiveUsers, userData.botVerificationIcon, userData.sendPaidMessagesStars, userData.physicalParams, userData.socialLinks, userData.id)
+            let (flags, accessHash, firstName, lastName, username, phone, photo, _, _, restrictionReason, botInlinePlaceholder, _, emojiStatus, flags2, usernames, _, color, profileColor, subscriberCount, verificationIconFileId, _, id) = (userData.flags, userData.accessHash, userData.firstName, userData.lastName, userData.username, userData.phone, userData.photo, userData.status, userData.botInfoVersion, userData.restrictionReason, userData.botInlinePlaceholder, userData.langCode, userData.emojiStatus, userData.flags2, userData.usernames, userData.storiesMaxId, userData.color, userData.profileColor, userData.botActiveUsers, userData.botVerificationIcon, userData.sendPaidMessagesStars, userData.id)
             let representations: [TelegramMediaImageRepresentation] = photo.flatMap(parsedTelegramProfilePhoto) ?? []
             
             let isMin = (flags & (1 << 20)) != 0
@@ -183,7 +183,7 @@ extension TelegramUser {
     static func merge(_ lhs: TelegramUser?, rhs: Api.User) -> TelegramUser? {
         switch rhs {
             case let .user(userData):
-                let (flags, rhsAccessHash, _, _, _, _, photo, _, _, restrictionReason, botInlinePlaceholder, _, emojiStatus, _, _, _, color, profileColor, subscriberCount, _, _, _, _, _) = (userData.flags, userData.accessHash, userData.firstName, userData.lastName, userData.username, userData.phone, userData.photo, userData.status, userData.botInfoVersion, userData.restrictionReason, userData.botInlinePlaceholder, userData.langCode, userData.emojiStatus, userData.flags2, userData.usernames, userData.storiesMaxId, userData.color, userData.profileColor, userData.botActiveUsers, userData.botVerificationIcon, userData.sendPaidMessagesStars, userData.physicalParams, userData.socialLinks, userData.id)
+                let (flags, rhsAccessHash, _, _, _, _, photo, _, _, restrictionReason, botInlinePlaceholder, _, emojiStatus, _, _, _, color, profileColor, subscriberCount, _, _, _) = (userData.flags, userData.accessHash, userData.firstName, userData.lastName, userData.username, userData.phone, userData.photo, userData.status, userData.botInfoVersion, userData.restrictionReason, userData.botInlinePlaceholder, userData.langCode, userData.emojiStatus, userData.flags2, userData.usernames, userData.storiesMaxId, userData.color, userData.profileColor, userData.botActiveUsers, userData.botVerificationIcon, userData.sendPaidMessagesStars, userData.id)
                 let isMin = (flags & (1 << 20)) != 0
                 if !isMin {
                     return TelegramUser(user: rhs)

@@ -533,9 +533,6 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                     1: ["18.185.234.86"],
                     2: ["18.185.234.86"],
                     3: ["18.185.234.86"]
-                    // 1: ["149.154.175.10"],
-                    // 2: ["149.154.167.40"],
-                    // 3: ["149.154.175.117"]
                 ]
             } else {
                 seedAddressList = [
@@ -544,11 +541,6 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
                     3: ["18.185.234.86"],
                     4: ["18.185.234.86"],
                     5: ["18.185.234.86"]
-                    // 1: ["149.154.175.50", "2001:b28:f23d:f001::a"],
-                    // 2: ["149.154.167.50", "95.161.76.100", "2001:67c:4e8:f002::a"],
-                    // 3: ["149.154.175.100", "2001:b28:f23d:f003::a"],
-                    // 4: ["149.154.167.91", "2001:67c:4e8:f004::a"],
-                    // 5: ["149.154.171.5", "2001:b28:f23f:f005::a"]
                 ]
             }
             
@@ -557,36 +549,11 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             }
             
             context.keychain = keychain
-            var wrappedAdditionalSource: MTSignal?
-            #if os(iOS)
-            if #available(iOS 10.0, *), !supplementary, arguments.isICloudEnabled {
-                var cloudDataContextValue: CloudDataContext?
-                if let value = cloudDataContext.with({ $0 }) {
-                    cloudDataContextValue = value
-                } else {
-                    cloudDataContextValue = makeCloudDataContext(encryptionProvider: arguments.encryptionProvider)
-                    let _ = cloudDataContext.swap(cloudDataContextValue)
-                }
-                
-                if let cloudDataContext = cloudDataContextValue {
-                    wrappedAdditionalSource = MTSignal(generator: { subscriber in
-                        let disposable = cloudDataContext.get(phoneNumber: .single(phoneNumber)).start(next: { value in
-                            subscriber?.putNext(value)
-                        }, completed: {
-                            subscriber?.putCompletion()
-                        })
-                        return MTBlockDisposable(block: {
-                            disposable.dispose()
-                        })
-                    })
-                }
-            }
-            #endif
-            _ = wrappedAdditionalSource
+            // DIVO: CloudKit emergency-datacenter discovery и backup address discovery отключены —
+            // у DIVO-сервера фиксированный IP (см. seedAddressList выше), внешний discovery
+            // только перезаписал бы наши адреса.
 
             if !supplementary {
-                // FIXME DIVO: отключён backup discovery, чтобы не перезаписывались адреса DIVO-сервера
-                // context.setDiscoverBackupAddressListSignal(MTBackupAddressSignals.fetchBackupIps(testingEnvironment, currentContext: context, additionalSource: wrappedAdditionalSource, phoneNumber: phoneNumber, mainDatacenterId: datacenterId))
                 let externalRequestVerificationStream = arguments.externalRequestVerificationStream
                 context.setExternalRequestVerification({ nonce in
                     return MTSignal(generator: { subscriber in
@@ -898,22 +865,38 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
         }
         
         let _contextProxyId = self._contextProxyId
-        let networkHelper = NetworkHelper(requestPublicKeys: { _ in
-            // [DIVO] Hardcoded DIVO server RSA public key, fingerprint: 0xa9e071c1771060cd
-            let divoPublicKey = "-----BEGIN RSA PUBLIC KEY-----\n" +
-                "MIIBCgKCAQEAvKLEOWTzt9Hn3/9Kdp/RdHcEhzmd8xXeLSpHIIzaXTLJDw8BhJy1\n" +
-                "jR/iqeG8Je5yrtVabqMSkA6ltIpgylH///FojMsX1BHu4EPYOXQgB0qOi6kr08iX\n" +
-                "ZIH9/iOPQOWDsL+Lt8gDG0xBy+sPe/2ZHdzKMjX6O9B4sOsxjFrk5qDoWDrioJor\n" +
-                "AJ7eFAfPpOBf2w73ohXudSrJE0lbQ8pCWNpMY8cB9i8r+WBitcvouLDAvmtnTX7a\n" +
-                "khoDzmKgpJBYliAY4qA73v7u5UIepE8QgV0jCOhxJCPubP8dg+/PlLLVKyxU5Cdi\n" +
-                "QtZj2EMy4s9xlNKzX8XezE0MHEa6bQpnFwIDAQAB\n" +
-                "-----END RSA PUBLIC KEY-----"
-            let array = NSMutableArray()
-            let dict = NSMutableDictionary()
-            dict["key"] = divoPublicKey
-            dict["fingerprint"] = MTRsaFingerprint(encryptionProvider, divoPublicKey)
-            array.add(dict)
-            return .single(array)
+        let networkHelper = NetworkHelper(requestPublicKeys: { [weak self] id in
+            if let strongSelf = self {
+                return strongSelf.request(Api.functions.help.getCdnConfig())
+                |> map(Optional.init)
+                |> `catch` { _ -> Signal<Api.CdnConfig?, NoError> in
+                    return .single(nil)
+                }
+                |> map { result -> NSArray in
+                    let array = NSMutableArray()
+                    if let result = result {
+                        switch result {
+                        case let .cdnConfig(cdnConfigData):
+                            let publicKeys = cdnConfigData.publicKeys
+                            for key in publicKeys {
+                                switch key {
+                                case let .cdnPublicKey(cdnPublicKeyData):
+                                    let (dcId, publicKey) = (cdnPublicKeyData.dcId, cdnPublicKeyData.publicKey)
+                                    if id == Int(dcId) {
+                                        let dict = NSMutableDictionary()
+                                        dict["key"] = publicKey
+                                        dict["fingerprint"] = MTRsaFingerprint(encryptionProvider, publicKey)
+                                        array.add(dict)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return array
+                }
+            } else {
+                return .never()
+            }
         }, isContextNetworkAccessAllowed: { [weak self] in
             if let strongSelf = self {
                 return strongSelf.shouldKeepConnection.get() |> distinctUntilChanged
@@ -922,10 +905,9 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             }
         }, contextProxyIdUpdated: { value in
             _contextProxyId.set(value)
-        }, contextLoggedOutUpdated: {
+        }, contextLoggedOutUpdated: { [weak self] in
             Logger.shared.log("Network", "contextLoggedOut")
-            // DIVO: suppress auto-logout
-            // self?.loggedOut?()
+            self?.loggedOut?()
         })
         self.networkHelper = networkHelper
         context.add(networkHelper)
@@ -993,8 +975,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     
     public func requestMessageServiceAuthorizationRequired(_ requestMessageService: MTRequestMessageService!) {
         Logger.shared.log("Network", "requestMessageServiceAuthorizationRequired")
-        // DIVO: suppress auto-logout while server-side auth.signUp is not yet implemented
-        // self.loggedOut?()
+        self.loggedOut?()
     }
     
     func download(datacenterId: Int, isMedia: Bool, isCdn: Bool = false, tag: MediaResourceFetchTag?) -> Signal<Download, NoError> {

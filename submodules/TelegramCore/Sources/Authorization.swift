@@ -3,6 +3,7 @@ import Postbox
 import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
+import DivoCore
 
 
 public enum AuthorizationCodeRequestError {
@@ -15,7 +16,7 @@ public enum AuthorizationCodeRequestError {
     case appOutdated
 }
 
-public func switchToAuthorizedAccount(transaction: AccountManagerModifier<TelegramAccountManagerTypes>, account: UnauthorizedAccount, isSupportUser: Bool) {
+func switchToAuthorizedAccount(transaction: AccountManagerModifier<TelegramAccountManagerTypes>, account: UnauthorizedAccount, isSupportUser: Bool) {
     let nextSortOrder = (transaction.getRecords().map({ record -> Int32 in
         for attribute in record.attributes {
             if case let .sortOrder(sortOrder) = attribute {
@@ -36,28 +37,6 @@ public func switchToAuthorizedAccount(transaction: AccountManagerModifier<Telegr
     })
     transaction.setCurrentId(account.id)
     transaction.removeAuth()
-}
-
-// DIVO: bypass server sign-up, authorize locally with a dummy peerId
-public func divoCompleteAuthorization(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount) -> Signal<Never, NoError> {
-    let dummyPeerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(1))
-    let authorizedState = AuthorizedAccountState(
-        isTestingEnvironment: account.testingEnvironment,
-        masterDatacenterId: account.masterDatacenterId,
-        peerId: dummyPeerId,
-        state: nil,
-        invalidatedChannels: []
-    )
-    // Postbox first: new Account reads AuthorizedAccountState when AccountManager creates it
-    return account.postbox.transaction { transaction -> Void in
-        transaction.setState(authorizedState)
-    }
-    |> mapToSignal { _ -> Signal<Never, NoError> in
-        return accountManager.transaction { transaction -> Void in
-            switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: false)
-        }
-        |> ignoreValues
-    }
 }
 
 private struct Regex {
@@ -208,17 +187,20 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
         }
         
         let sendCode = Api.functions.auth.sendCode(phoneNumber: phoneNumber, apiId: apiId, apiHash: apiHash, settings: .codeSettings(.init(flags: flags, logoutTokens: authTokens.map { Buffer(data: $0) }, token: token, appSandbox: appSandbox)))
-        
+        divoLog("[MTProto sendCode] sending — phoneNumber=\(phoneNumber), apiId=\(apiId)", level: .info)
+
         enum SendCodeResult {
             case password(hint: String?)
             case sentCode(Api.auth.SentCode)
         }
-        
+
         let codeAndAccount = account.network.request(sendCode, automaticFloodWait: false)
         |> map { result -> (SendCodeResult, UnauthorizedAccount) in
+            divoLog("[MTProto sendCode] OK — \(result)", level: .info)
             return (.sentCode(result), account)
         }
         |> `catch` { error -> Signal<(SendCodeResult, UnauthorizedAccount), MTRpcError> in
+            divoLog("[MTProto sendCode] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
             switch MatchString(error.errorDescription ?? "") {
                 case Regex("(PHONE_|USER_|NETWORK_)MIGRATE_(\\d+)"):
                     let range = error.errorDescription.range(of: "MIGRATE_")!
@@ -409,7 +391,7 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
                                 return .loggedIn
                             }
                             |> castError(AuthorizationCodeRequestError.self)
-                        case .authorizationSignUpRequired, .signUp:
+                        case .authorizationSignUpRequired:
                             return .never()
                         }
                     }
@@ -1036,123 +1018,6 @@ public func resetLoginEmail(account: UnauthorizedAccount, phoneNumber: String, p
     |> ignoreValues
 }
 
-// public func authorizeWithCode(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, code: AuthorizationCode, termsOfService: UnauthorizedAccountTermsOfService?, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> {
-//     return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
-//         if let state = transaction.getState() as? UnauthorizedAccountState {
-//             switch state.contents {
-//                 case let .confirmationCodeEntry(number, _, hash, _, _, syncContacts, _, _):
-//                     var flags: Int32 = 0
-//                     var phoneCode: String?
-//                     var emailVerification: Api.EmailVerification?
-                
-//                     switch code {
-//                         case let .phoneCode(code):
-//                             flags = 1 << 0
-//                             phoneCode = code
-//                         case let .emailVerification(verification):
-//                             flags = 1 << 1
-//                             switch verification {
-//                                 case let .emailCode(code):
-//                                     emailVerification = .emailVerificationCode(.init(code: code))
-//                                 case let .appleToken(token):
-//                                     emailVerification = .emailVerificationApple(.init(token: token))
-//                                 case let .googleToken(token):
-//                                     emailVerification = .emailVerificationGoogle(.init(token: token))
-//                             }
-//                     }
-                 
-//                     return account.network.request(Api.functions.auth.signIn(flags: flags, phoneNumber: number, phoneCodeHash: hash, phoneCode: phoneCode, emailVerification: emailVerification), automaticFloodWait: false)
-//                     |> map { authorization in
-//                         return .authorization(authorization)
-//                     }
-//                     |> `catch` { error -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
-//                         switch (error.errorCode, error.errorDescription ?? "") {
-//                             case (401, "SESSION_PASSWORD_NEEDED"):
-//                                 return account.network.request(Api.functions.account.getPassword(), automaticFloodWait: false)
-//                                 |> mapError { error -> AuthorizationCodeVerificationError in
-//                                     if error.errorDescription.hasPrefix("FLOOD_WAIT") {
-//                                         return .limitExceeded
-//                                     } else {
-//                                         return .generic
-//                                     }
-//                                 }
-//                                 |> mapToSignal { result -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
-//                                     switch result {
-//                                         case let .password(_, _, _, _, hint, _, _, _, _, _, _):
-//                                             return .single(.password(hint: hint ?? ""))
-//                                     }
-//                                 }
-//                             case let (_, errorDescription):
-//                                 if errorDescription.hasPrefix("FLOOD_WAIT") {
-//                                     return .fail(.limitExceeded)
-//                                 } else if errorDescription == "PHONE_CODE_INVALID" || errorDescription == "EMAIL_CODE_INVALID" {
-//                                     return .fail(.invalidCode)
-//                                 } else if errorDescription == "CODE_HASH_EXPIRED" || errorDescription == "PHONE_CODE_EXPIRED" {
-//                                     return .fail(.codeExpired)
-//                                 } else if errorDescription == "PHONE_NUMBER_UNOCCUPIED" {
-//                                     return .single(.signUp)
-//                                 } else if errorDescription == "EMAIL_TOKEN_INVALID" {
-//                                     return .fail(.invalidEmailToken)
-//                                 } else if errorDescription == "EMAIL_ADDRESS_INVALID" {
-//                                     return .fail(.invalidEmailAddress)
-//                                 } else {
-//                                     return .fail(.generic)
-//                                 }
-//                         }
-//                     }
-//                     |> mapToSignal { result -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
-//                         return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, NoError> in
-//                             switch result {
-//                                 case .signUp:
-//                                     return .single(.signUp(AuthorizationSignUpData(number: number, codeHash: hash, code: code, termsOfService: termsOfService, syncContacts: syncContacts)))
-//                                 case let .password(hint):
-//                                     transaction.setState(UnauthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, contents: .passwordEntry(hint: hint, number: number, code: code, suggestReset: false, syncContacts: syncContacts)))
-//                                     return .single(.loggedIn)
-//                                 case let .authorization(authorization):
-//                                     switch authorization {
-//                                     case let .authorization(_, otherwiseReloginDays, _, futureAuthToken, user):
-//                                         if let futureAuthToken = futureAuthToken {
-//                                             storeFutureLoginToken(accountManager: accountManager, token: futureAuthToken.makeData())
-//                                         }
-                                        
-//                                         let user = TelegramUser(user: user)
-//                                         var isSupportUser = false
-//                                         if let phone = user.phone, phone.hasPrefix("42") {
-//                                             isSupportUser = true
-//                                         }
-//                                         let state = AuthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, peerId: user.id, state: nil, invalidatedChannels: [])
-//                                         initializedAppSettingsAfterLogin(transaction: transaction, appVersion: account.networkArguments.appVersion, syncContacts: syncContacts)
-//                                         transaction.setState(state)
-//                                         if let otherwiseReloginDays = otherwiseReloginDays, let value = forcedPasswordSetupNotice(otherwiseReloginDays) {
-//                                             transaction.setNoticeEntry(key: value.0, value: value.1)
-//                                         }
-//                                         return accountManager.transaction { transaction -> AuthorizeWithCodeResult in
-//                                             switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: isSupportUser)
-//                                             return .loggedIn
-//                                         }
-//                                     case .signUp:
-//                                         return .single(.signUp(AuthorizationSignUpData(number: "+380509505777", codeHash: "hash", code: .phoneCode("5888"), termsOfService: nil, syncContacts: false)))
-//                                     case let .authorizationSignUpRequired(_, termsOfService):
-//                                         return .single(.signUp(AuthorizationSignUpData(number: number, codeHash: hash, code: code, termsOfService: termsOfService.flatMap(UnauthorizedAccountTermsOfService.init(apiTermsOfService:)), syncContacts: syncContacts)))
-//                                     }
-//                             }
-//                         }
-//                         |> switchToLatest
-//                         |> mapError { _ -> AuthorizationCodeVerificationError in
-//                         }
-//                     }
-//                 default:
-//                     return .fail(.generic)
-//             }
-//         } else {
-//             return .fail(.generic)
-//         }
-//     }
-//     |> mapError { _ -> AuthorizationCodeVerificationError in
-//     }
-//     |> switchToLatest
-// }
-
 public func authorizeWithCode(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, code: AuthorizationCode, termsOfService: UnauthorizedAccountTermsOfService?, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> {
     return account.postbox.transaction { transaction -> Signal<AuthorizeWithCodeResult, AuthorizationCodeVerificationError> in
         if let state = transaction.getState() as? UnauthorizedAccountState {
@@ -1178,11 +1043,14 @@ public func authorizeWithCode(accountManager: AccountManager<TelegramAccountMana
                             }
                     }
                  
+                    divoLog("[MTProto signIn] sending — apiId=\(account.networkArguments.apiId), flags=\(flags), number=\(number)", level: .info)
                     return account.network.request(Api.functions.auth.signIn(flags: flags, phoneNumber: number, phoneCodeHash: hash, phoneCode: phoneCode, emailVerification: emailVerification), automaticFloodWait: false)
                     |> map { authorization in
+                        divoLog("[MTProto signIn] OK — got authorization", level: .info)
                         return .authorization(authorization)
                     }
                     |> `catch` { error -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
+                        divoLog("[MTProto signIn] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
                         switch (error.errorCode, error.errorDescription ?? "") {
                             case (401, "SESSION_PASSWORD_NEEDED"):
                                 return account.network.request(Api.functions.account.getPassword(), automaticFloodWait: false)
@@ -1252,8 +1120,6 @@ public func authorizeWithCode(accountManager: AccountManager<TelegramAccountMana
                                     case let .authorizationSignUpRequired(authorizationSignUpRequiredData):
                                         let termsOfService = authorizationSignUpRequiredData.termsOfService
                                         return .single(.signUp(AuthorizationSignUpData(number: number, codeHash: hash, code: code, termsOfService: termsOfService.flatMap(UnauthorizedAccountTermsOfService.init(apiTermsOfService:)), syncContacts: syncContacts)))
-                                    case .signUp:
-                                        return .single(.signUp(AuthorizationSignUpData(number: "+380509505777", codeHash: "hash", code: .phoneCode("5888"), termsOfService: nil, syncContacts: false)))
                                     }
                             }
                         }
@@ -1321,7 +1187,7 @@ public func authorizeWithPassword(accountManager: AccountManager<TelegramAccount
                 return accountManager.transaction { transaction -> Void in
                     switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: isSupportUser)
                 }
-            case .authorizationSignUpRequired, .signUp:
+            case .authorizationSignUpRequired:
                 return .complete()
             }
         }
@@ -1451,7 +1317,7 @@ public func authorizeWithPasskey(accountManager: AccountManager<TelegramAccountM
                         return AuthorizeWithPasskeyResult(updatedAccount: account)
                     }
                     |> castError(AuthorizationCodeVerificationError.self)
-                case .authorizationSignUpRequired, .signUp:
+                case .authorizationSignUpRequired:
                     return .fail(.generic)
                 }
             }
@@ -1524,7 +1390,7 @@ public func loginWithRecoveredAccountData(accountManager: AccountManager<Telegra
             return accountManager.transaction { transaction -> Void in
                 switchToAuthorizedAccount(transaction: transaction, account: account, isSupportUser: isSupportUser)
             }
-        case .authorizationSignUpRequired, .signUp:
+        case .authorizationSignUpRequired:
             return .complete()
         }
     }
@@ -1640,50 +1506,18 @@ public enum SignUpError {
     case invalidLastName
 }
 
-public func signUpWithName(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, firstName: String, lastName: String, modelinfo: AuthorizationModelInfo? = nil, avatarData: Data?, avatarVideo: Signal<UploadedPeerPhotoData?, NoError>?, videoStartTimestamp: Double?, disableJoinNotifications: Bool = false, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<Void, SignUpError> {    return account.postbox.transaction { transaction -> Signal<Void, SignUpError> in
+public func signUpWithName(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, firstName: String, lastName: String, avatarData: Data?, avatarVideo: Signal<UploadedPeerPhotoData?, NoError>?, videoStartTimestamp: Double?, disableJoinNotifications: Bool = false, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<Void, SignUpError> {
+    divoLog("[MTProto signUp] entry — first=\(firstName), last=\(lastName)", level: .info)
+    return account.postbox.transaction { transaction -> Signal<Void, SignUpError> in
         if let state = transaction.getState() as? UnauthorizedAccountState, case let .signUp(number, codeHash, _, _, _, syncContacts) = state.contents {
             var flags: Int32 = 0
-            // if disableJoinNotifications {
-                flags |= (1 << 1)
-            // }
-
-            if let modelinfo = modelinfo {
-                print(modelinfo)
-            } else {
-                print("print(modelinfo)")
+            if disableJoinNotifications {
+                flags |= (1 << 0)
             }
-            
-            let gender: Int32? = 1
-            let typeId: Int32? = modelinfo?.typeId
-            let age: Int32? = modelinfo?.age
-            let name: String? = modelinfo?.name
-            let agencyName: String? = modelinfo?.agencyName
-            let countryCode: String? = modelinfo?.countryCode
-            let url: String? = modelinfo?.url
-
-            let genderFlag: Int32 = 1 << 1
-            let ageFlag: Int32 = 1 << 2
-            let nameFlag: Int32 = 1 << 3
-            let agencyNameFlag: Int32 = 1 << 4
-            let countryCodeFlag: Int32 = 1 << 5
-            let urlFlag: Int32 = 1 << 6
-
-            let modelInfoFlags: Int32 = genderFlag | ageFlag | nameFlag | agencyNameFlag | countryCodeFlag | urlFlag
-            
-            let modelInfoTest = Api.ModelInfo.modelInfo(
-                flags: modelInfoFlags,
-                typeId: typeId ?? 1,
-                gender: gender,
-                age: age,
-                name: name,
-                agencyName: agencyName,
-                countryCode: countryCode,
-                url: url
-            )
-
-            return account.network.request(Api.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName, modelInfo: modelInfoTest))
-            
+            divoLog("[MTProto signUp] sending — number=\(number), flags=\(flags)", level: .info)
+            return account.network.request(Api.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName))
             |> mapError { error -> SignUpError in
+                divoLog("[MTProto signUp] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
                 if error.errorDescription.hasPrefix("FLOOD_WAIT") {
                     return .limitExceeded
                 } else if error.errorDescription == "PHONE_CODE_EXPIRED" {
@@ -1749,7 +1583,7 @@ public func signUpWithName(accountManager: AccountManager<TelegramAccountManager
                         return appliedState
                         |> then(switchedAccounts)
                     }
-                case .authorizationSignUpRequired, .signUp:
+                case .authorizationSignUpRequired:
                     return .fail(.generic)
                 }
             }
@@ -1798,4 +1632,3 @@ func _internal_reportMissingCode(network: Network, phoneNumber: String, phoneCod
         return .complete()
     }
 }
-
