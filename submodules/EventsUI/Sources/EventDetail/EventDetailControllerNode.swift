@@ -1728,9 +1728,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         eventTypeLabel.text = data.request.type
         setupNavigationBarTitle(name: DivoStrings.previewEvent.uppercased())
         
-        if let isFree = data.request.isFree, isFree {
-            eventCostTypeContainer.removeFromSuperview()
-        }
+        eventCostTypeContainer.isHidden = (data.request.isFree == true)
         eventCostTypeLabel.text = data.request.cost
         
         let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)

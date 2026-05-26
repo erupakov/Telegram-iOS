@@ -489,7 +489,7 @@ final class EditParametersNode: ASDisplayNode {
                     let controller = DivoDatePickerController(
                         mode: .date,
                         initialTimestamp: initialTs,
-                        title: DivoStrings.ageYo,
+                        title: DivoStrings.dateOfBirth,
                         minimumTimestamp: minTimestamp,
                         maximumTimestamp: maxTimestamp
                     )
