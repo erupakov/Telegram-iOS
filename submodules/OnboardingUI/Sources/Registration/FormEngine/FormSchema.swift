@@ -32,6 +32,13 @@ public struct FormStep {
     public let primaryButtonKey: String
     /// Показывать ли «Skip for now» справа в шапке (4.E step 2).
     public let allowSkip: Bool
+    /// Опциональный нижним заголовок title.
+    public let bottomTitle: String?
+    /// Опциональный подзаголовок под нижним title.
+    public let bottomSubtitle: String?
+    /// `true` — текстовые поля шага объединяются в единую карточку с разделителями
+    /// (например, 4.A step3 — verification & contact). `false` — каждое поле отдельной строкой.
+    public let groupedRendering: Bool
 
     public init(
         titleKey: String,
@@ -39,7 +46,10 @@ public struct FormStep {
         stepProgressKey: String? = nil,
         fields: [FormField],
         primaryButtonKey: String,
-        allowSkip: Bool = false
+        allowSkip: Bool = false,
+        bottomTitle: String? = nil,
+        bottomSubtitle: String? = nil,
+        groupedRendering: Bool = false
     ) {
         self.titleKey = titleKey
         self.subtitleKey = subtitleKey
@@ -47,6 +57,9 @@ public struct FormStep {
         self.fields = fields
         self.primaryButtonKey = primaryButtonKey
         self.allowSkip = allowSkip
+        self.bottomTitle = bottomTitle
+        self.bottomSubtitle = bottomSubtitle
+        self.groupedRendering = groupedRendering
     }
 }
 
@@ -55,6 +68,8 @@ public struct FormField {
     /// и под этим же ключом значение попадает в submit-payload.
     public let key: String
     public let kind: FormFieldKind
+    /// Локализационный ключ title'а
+    public let titleKey: String?
     /// Локализационный ключ placeholder'а (например, "First name *").
     public let placeholderKey: String?
     /// Подсказка под полем (например, "Helps verify your account").
@@ -64,12 +79,14 @@ public struct FormField {
     public init(
         key: String,
         kind: FormFieldKind,
+        titleKey: String? = nil,
         placeholderKey: String? = nil,
         helpTextKey: String? = nil,
         isRequired: Bool = false
     ) {
         self.key = key
         self.kind = kind
+        self.titleKey = titleKey
         self.placeholderKey = placeholderKey
         self.helpTextKey = helpTextKey
         self.isRequired = isRequired

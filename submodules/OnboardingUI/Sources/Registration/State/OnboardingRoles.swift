@@ -268,7 +268,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .modelingAgency, category: .companies,
             displayNameKey: "onboarding.role.modelingAgency.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "building.2",
+            pickerSubtitleKey: "onboarding.role.modelingAgency.name.subtitle", pickerIconAssetName: "building.2",
             presentedIn: .companies, discoveredFrom: .companiesSubRolePicker,
             resultId: .companiesBrands, formId: .companiesAndBrands,
             backendRoleRaw: "agency_employee"
@@ -276,7 +276,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .fashionBrand, category: .companies,
             displayNameKey: "onboarding.role.fashionBrand.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "bag",
+            pickerSubtitleKey: "onboarding.role.fashionBrand.name.subtitle", pickerIconAssetName: "bag",
             presentedIn: .companies, discoveredFrom: .companiesSubRolePicker,
             resultId: .companiesBrands, formId: .companiesAndBrands,
             backendRoleRaw: "agency_employee"
@@ -284,7 +284,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .beautyBrand, category: .companies,
             displayNameKey: "onboarding.role.beautyBrand.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "sparkles",
+            pickerSubtitleKey: "onboarding.role.beautyBrand.name.subtitle", pickerIconAssetName: "sparkles",
             presentedIn: .companies, discoveredFrom: .companiesSubRolePicker,
             resultId: .companiesBrands, formId: .companiesAndBrands,
             backendRoleRaw: "agency_employee"
@@ -292,7 +292,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .brandOrBusiness, category: .companies,
             displayNameKey: "onboarding.role.brandOrBusiness.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "briefcase",
+            pickerSubtitleKey: "onboarding.role.brandOrBusiness.name.subtitle", pickerIconAssetName: "briefcase",
             presentedIn: .companies, discoveredFrom: .companiesSubRolePicker,
             resultId: .companiesBrands, formId: .companiesAndBrands,
             backendRoleRaw: "agency_employee"
@@ -300,7 +300,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .eventAgency, category: .companies,
             displayNameKey: "onboarding.role.eventAgency.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "ticket",
+            pickerSubtitleKey: "onboarding.role.eventAgency.name.subtitle", pickerIconAssetName: "ticket",
             presentedIn: .companies, discoveredFrom: .companiesSubRolePicker,
             resultId: .companiesBrands, formId: .companiesAndBrands,
             backendRoleRaw: "agency_employee"
@@ -308,7 +308,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .magazinePublication, category: .companies,
             displayNameKey: "onboarding.role.magazinePublication.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "newspaper",
+            pickerSubtitleKey: "onboarding.role.magazinePublication.name.subtitle", pickerIconAssetName: "newspaper",
             presentedIn: .companies, discoveredFrom: .companiesSubRolePicker,
             resultId: .companiesBrands, formId: .companiesAndBrands,
             backendRoleRaw: "agency_employee"
@@ -319,7 +319,7 @@ extension OnboardingRoleRegistry {
             id: .scout, category: .industryProfessionals,
             displayNameKey: "onboarding.role.scout.name",
             pickerSubtitleKey: "onboarding.role.scout.subtitle",
-            pickerIconAssetName: "eye",
+            pickerIconAssetName: "onboarding.quiz.topLevel.option.circle",
             presentedIn: .industryPro, discoveredFrom: .industryProSubRolePicker,
             resultId: .industryProfessional, formId: .industryProfessionals,
             backendRoleRaw: "agency_employee"
@@ -328,7 +328,7 @@ extension OnboardingRoleRegistry {
             id: .booker, category: .industryProfessionals,
             displayNameKey: "onboarding.role.booker.name",
             pickerSubtitleKey: "onboarding.role.booker.subtitle",
-            pickerIconAssetName: "calendar",
+            pickerIconAssetName: "onboarding.quiz.topLevel.option.circle",
             presentedIn: .industryPro, discoveredFrom: .industryProSubRolePicker,
             resultId: .industryProfessional, formId: .industryProfessionals,
             backendRoleRaw: "agency_employee"
@@ -337,7 +337,7 @@ extension OnboardingRoleRegistry {
             id: .castingDirector, category: .industryProfessionals,
             displayNameKey: "onboarding.role.castingDirector.name",
             pickerSubtitleKey: "onboarding.role.castingDirector.subtitle",
-            pickerIconAssetName: "clapperboard",
+            pickerIconAssetName: "onboarding.quiz.topLevel.option.circle",
             presentedIn: .industryPro, discoveredFrom: .industryProSubRolePicker,
             resultId: .industryProfessional, formId: .industryProfessionals,
             backendRoleRaw: "agency_employee"
@@ -346,7 +346,7 @@ extension OnboardingRoleRegistry {
             id: .talentManager, category: .industryProfessionals,
             displayNameKey: "onboarding.role.talentManager.name",
             pickerSubtitleKey: "onboarding.role.talentManager.subtitle",
-            pickerIconAssetName: "person.text.rectangle",
+            pickerIconAssetName: "onboarding.quiz.topLevel.option.circle",
             presentedIn: .industryPro, discoveredFrom: .industryProSubRolePicker,
             resultId: .industryProfessional, formId: .industryProfessionals,
             backendRoleRaw: "agency_employee"
@@ -357,7 +357,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .model, category: .talent,
             displayNameKey: "onboarding.role.model.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "figure.stand",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.model.name",
             // Model в пикере есть, но result показывается после experience quiz, не сразу — поэтому
             // discoveredFrom = experienceQuiz (back с result ведёт в квиз, а не в пикер).
             presentedIn: .talent,
@@ -380,7 +380,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .actor, category: .talent,
             displayNameKey: "onboarding.role.actor.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "theatermasks",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.actor.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
             discoveredFrom: .talentSubRolePicker,
@@ -390,7 +390,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .dancer, category: .talent,
             displayNameKey: "onboarding.role.dancer.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "figure.dance",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.dancer.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
             discoveredFrom: .talentSubRolePicker,
@@ -400,7 +400,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .singerPerformer, category: .talent,
             displayNameKey: "onboarding.role.singerPerformer.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "music.microphone",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.singerPerformer.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
             discoveredFrom: .talentSubRolePicker,
@@ -412,7 +412,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .photographer, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.photographer.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "camera",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.photographer.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
@@ -422,7 +422,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .stylist, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.stylist.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "tshirt",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.stylist.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
@@ -432,7 +432,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .makeupArtist, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.makeupArtist.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "paintbrush",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.makeupArtist.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
@@ -442,7 +442,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .hairStylist, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.hairStylist.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "scissors",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.hairStylist.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
@@ -452,7 +452,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .videographer, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.videographer.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "video",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.videographer.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
@@ -462,7 +462,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .creativeDirector, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.creativeDirector.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "paintpalette",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.creativeDirector.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
@@ -472,7 +472,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .fashionDesigner, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.fashionDesigner.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "ruler",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.fashionDesigner.name",
             presentedIn: .talent,
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
@@ -482,7 +482,7 @@ extension OnboardingRoleRegistry {
         OnboardingRoleDefinition(
             id: .studioLocation, category: .creativeProfessionals,
             displayNameKey: "onboarding.role.studioLocation.name",
-            pickerSubtitleKey: nil, pickerIconAssetName: "house",
+            pickerSubtitleKey: nil, pickerIconAssetName: "onboarding.role.studioLocation.name",
             // Дизайнер подтвердил: Studio — 12-й (последний) пункт в Creative-секции Talent picker'а.
             // Иконка в Figma спрятана за кнопкой Continue, исправят в следующей итерации.
             presentedIn: .talent,

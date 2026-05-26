@@ -59,55 +59,55 @@ public struct OnboardingResultCatalog {
             id: .modelVariant,
             titleKey: "onboarding.result.modelVariant.title",
             descriptionKey: "onboarding.result.modelVariant.description",
-            imageAssetName: "onboarding_result_model"
+            imageAssetName: "onboarding.result.image.model"
         ),
         OnboardingResultPresentation(
             id: .newTalentVariant,
             titleKey: "onboarding.result.newTalentVariant.title",
             descriptionKey: "onboarding.result.newTalentVariant.description",
-            imageAssetName: "onboarding_result_new_talent"
+            imageAssetName: "onboarding.result.image.talent"
         ),
         OnboardingResultPresentation(
             id: .actor,
             titleKey: "onboarding.result.actor.title",
             descriptionKey: "onboarding.result.actor.description",
-            imageAssetName: "onboarding_result_actor"
+            imageAssetName: "onboarding.result.image.actor"
         ),
         OnboardingResultPresentation(
             id: .dancer,
             titleKey: "onboarding.result.dancer.title",
             descriptionKey: "onboarding.result.dancer.description",
-            imageAssetName: "onboarding_result_dancer"
+            imageAssetName: "onboarding.result.image.dancer"
         ),
         OnboardingResultPresentation(
             id: .singerPerformer,
             titleKey: "onboarding.result.singerPerformer.title",
             descriptionKey: "onboarding.result.singerPerformer.description",
-            imageAssetName: "onboarding_result_singer"
+            imageAssetName: "onboarding.result.image.performer"
         ),
         OnboardingResultPresentation(
             id: .creativeProfessional,
             titleKey: "onboarding.result.creativeProfessional.title",
             descriptionKey: "onboarding.result.creativeProfessional.description",
-            imageAssetName: "onboarding_result_creative"
+            imageAssetName: "onboarding.result.image.creative.professional"
         ),
         OnboardingResultPresentation(
             id: .companiesBrands,
             titleKey: "onboarding.result.companiesBrands.title",
             descriptionKey: "onboarding.result.companiesBrands.description",
-            imageAssetName: "onboarding_result_companies"
+            imageAssetName: "onboarding.result.image.find.talent"
         ),
         OnboardingResultPresentation(
             id: .industryProfessional,
             titleKey: "onboarding.result.industryProfessional.title",
             descriptionKey: "onboarding.result.industryProfessional.description",
-            imageAssetName: "onboarding_result_industry"
+            imageAssetName: "onboarding.result.image.talent.industry.professional"
         ),
         OnboardingResultPresentation(
             id: .fan,
             titleKey: "onboarding.result.fan.title",
             descriptionKey: "onboarding.result.fan.description",
-            imageAssetName: "onboarding_result_fan"
+            imageAssetName: "onboarding.result.image.fashion.fan"
         ),
     ]
 }

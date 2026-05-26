@@ -10,6 +10,8 @@ public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
     public var onReturn: (() -> Void)?
     public var onBeginEditing: (() -> Void)?
 
+    public var isGrouped: Bool = false
+
     public var textField: UITextField {
         get { fieldNode.textField }
     }
@@ -169,14 +171,17 @@ public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
     }
     
     public func textFieldDidBeginEditing(_ textField: UITextField) {
-        fieldNode.borderWidth = 1.0
-        fieldNode.borderColor = DivoColorPalette.accent.cgColor
-        
+        if !isGrouped {
+            fieldNode.borderWidth = 1.0
+            fieldNode.borderColor = DivoColorPalette.accent.cgColor
+        }
         onBeginEditing?()
     }
     
     public func textFieldDidEndEditing(_ textField: UITextField) {
-        fieldNode.borderWidth = 0.0
+        if !isGrouped {
+            fieldNode.borderWidth = 0.0
+        }
     }
 
     public func textFieldShouldReturn(_ textField: UITextField) -> Bool {

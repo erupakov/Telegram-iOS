@@ -1526,28 +1526,35 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         if let gender = attributes?.gender {
             let genderTitles = gender.compactMap { $0.title }.joined(separator: ", ")
-            items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+            if !genderTitles.isEmpty {
+                items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+            }
         }
+        if let age = attributes?.age, let str = rangeString(from: age.from, to: age.to) {
+            items.append(.init(title: DivoStrings.ageYo, value: str))
+        }
+
         if let height = attributes?.height, let str = rangeString(from: height.from, to: height.to) {
             items.append(.init(title: DivoStrings.heightCm, value: str))
         }
-        
+
         if let weight = attributes?.weight, let str = rangeString(from: weight.from, to: weight.to) {
             items.append(.init(title: DivoStrings.weightKg, value: str))
         }
-        
+
         if let waist = attributes?.waist, let str = rangeString(from: waist.from, to: waist.to) {
             items.append(.init(title: DivoStrings.waistCm, value: str))
         }
-        
+
         if let hips = attributes?.hips, let str = rangeString(from: hips.from, to: hips.to) {
             items.append(.init(title: DivoStrings.hipsCm, value: str))
         }
-        
+
         if let shoesSize = attributes?.shoesSize, let str = rangeString(from: shoesSize.from, to: shoesSize.to) {
             items.append(.init(title: DivoStrings.shoeSizeEU, value: str))
         }
-        
+
+
         if let hairColor = attributes?.hairColor {
             let hairColorTitles = hairColor.compactMap { $0.title }.joined(separator: ", ")
             if !hairColorTitles.isEmpty {
@@ -1794,9 +1801,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         eventTypeLabel.text = data.request.type
         setupNavigationBarTitle(name: DivoStrings.previewEvent.uppercased())
         
-        if let isFree = data.request.isFree, isFree {
-            eventCostTypeContainer.removeFromSuperview()
-        }
+        eventCostTypeContainer.isHidden = (data.request.isFree == true)
         eventCostTypeLabel.text = data.request.cost
         
         let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)
