@@ -76,7 +76,7 @@ public final class DivoButton: UIButton {
         applyNormalTitle(buttonFont: buttonFont)
         applyDisabledTitle(buttonFont: buttonFont)
         addDivoPressState(divoButtonStyle)
-        
+
         guard let radius = radius else { return }
         layer.cornerRadius = radius
     }

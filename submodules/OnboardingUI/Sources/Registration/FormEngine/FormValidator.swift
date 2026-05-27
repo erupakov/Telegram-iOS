@@ -46,9 +46,18 @@ public enum FormValidator {
                 issues.append(.malformedEmail(fieldKey: field.key))
             }
 
-        case .url:
-            if case .string(let s) = value, !isProbablyValidURL(s) {
-                issues.append(.malformedURL(fieldKey: field.key))
+        case .url(let scheme):
+            if case .string(let s) = value {
+                let isValid: Bool
+                switch scheme {
+                case .instagram:
+                    isValid = isValidInstagramHandle(s)
+                case .anyHttp, .anyLink:
+                    isValid = isProbablyValidURL(s)
+                }
+                if !isValid {
+                    issues.append(.malformedURL(fieldKey: field.key))
+                }
             }
 
         case .phone:
@@ -102,9 +111,15 @@ public enum FormValidator {
     }
 
     private static func isProbablyValidURL(_ s: String) -> Bool {
-        if s.hasPrefix("@") { return s.count > 1 }                      // Instagram-handle
         guard let url = URL(string: s) else { return false }
         return url.scheme != nil || s.contains(".")                     // допускаем "instagram.com/x" без https
+    }
+
+    /// Instagram-handle: на клиенте проверяем только non-empty. Точный формат
+    /// (alphanumeric, длина, доступность handle) — забота бэка, иначе UI отвергает
+    /// валидные ввода типа `@user.name`, кириллицу, имена с дефисами и т.п.
+    private static func isValidInstagramHandle(_ s: String) -> Bool {
+        return !s.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private static func isProbablyValidPhone(_ s: String) -> Bool {

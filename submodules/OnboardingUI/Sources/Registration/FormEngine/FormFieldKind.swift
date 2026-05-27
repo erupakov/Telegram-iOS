@@ -23,7 +23,7 @@ public enum FormFieldKind {
     case multiPicker(options: [FormPickerOption], minSelections: Int = 0, maxSelections: Int? = nil)
 
     /// Спецпикер списка стран. UI отрисует флаг + название.
-    case country
+    case country(options: [FormPickerOption])
 
     /// Город. По плану — 22 мая Михаил заменит на CityPickerField; пока обычное text-поле.
     /// Расположение между Country и остальными полями диктуется FormSchema.

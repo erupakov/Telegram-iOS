@@ -239,6 +239,7 @@ public struct UpdateMeasuringSystemRequest: Encodable {
 public struct UpdateBiographyPageRequest: Encodable {
     public let fullName: String?
     public let gender: String?
+    public let birthday: String?
     public let model: ModelData?
     public let avatar: AvatarUuid?
     public let photo: AvatarUuid?
@@ -257,9 +258,10 @@ public struct UpdateBiographyPageRequest: Encodable {
         }
     }
 
-    public init(fullName: String? = nil, gender: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
+    public init(fullName: String? = nil, gender: String? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
         self.fullName = fullName
         self.gender = gender
+        self.birthday = birthday
         self.model = model
         self.avatar = avatar
         self.photo = photo

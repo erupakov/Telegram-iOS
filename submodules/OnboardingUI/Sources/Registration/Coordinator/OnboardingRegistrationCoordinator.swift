@@ -110,10 +110,14 @@ public final class OnboardingRegistrationCoordinator {
         if navigationController.viewControllers.count > 1 {
             navigationController.popViewController(animated: animated)
         } else {
-            // После persistence-restore стек содержит только текущий шаг — pop ничего бы не сделал
-            // и UI рассинхронился бы со state. Создаём controller предыдущего шага и заменяем root.
-            let vc = makeController(for: previous)
-            navigationController.setViewControllers([vc], animated: animated)
+            // После persistence-restore стек содержит только текущий шаг.
+            // Вставляем предыдущий controller в стек без анимации, затем делаем
+            // popViewController — это даёт правильную pop-анимацию (slide вправо),
+            // а не push (которая возникала бы при `setViewControllers([prev], animated:)`).
+            let prev = makeController(for: previous)
+            let restoredStack = [prev] + navigationController.viewControllers
+            navigationController.setViewControllers(restoredStack, animated: false)
+            navigationController.popViewController(animated: animated)
         }
     }
 
@@ -130,8 +134,20 @@ public final class OnboardingRegistrationCoordinator {
 
     private func makeController(for step: OnboardingRegistrationStep) -> UIViewController {
         switch step {
-        case .topLevelChoice,
-             .industryDoor,
+        case .topLevelChoice:
+            guard let descriptor = quizCatalog.descriptor(for: step) else {
+                return UIViewController()
+            }
+            let currentSelection = currentSelectionForQuiz(step: step)
+            let vc = OnboardingQuizViewController(
+                descriptor: descriptor,
+                currentSelection: currentSelection,
+                centerContentIfShort: true
+            )
+            vc.delegate = self
+            return vc
+            
+        case .industryDoor,
              .talentSubRolePicker,
              .industryProSubRolePicker,
              .companiesSubRolePicker,
@@ -140,7 +156,11 @@ public final class OnboardingRegistrationCoordinator {
                 return UIViewController()
             }
             let currentSelection = currentSelectionForQuiz(step: step)
-            let vc = OnboardingQuizViewController(descriptor: descriptor, currentSelection: currentSelection)
+            let vc = OnboardingQuizViewController(
+                descriptor: descriptor,
+                currentSelection: currentSelection,
+                centerContentIfShort: false
+            )
             vc.delegate = self
             return vc
 
@@ -239,10 +259,6 @@ extension OnboardingRegistrationCoordinator: OnboardingRoleResultViewController.
         updateState { $0.restartPhase3() }
         navigationController.setViewControllers([makeController(for: .topLevelChoice)], animated: true)
     }
-
-    public func roleResultControllerDidTapBack(_ controller: OnboardingRoleResultViewController) {
-        goBack()
-    }
 }
 
 // MARK: - OnboardingFormStepViewController.Delegate
@@ -262,17 +278,11 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
 
         switch field.kind {
         case .picker(let options):
-            presentPickerSheet(controller: controller, fieldKey: fieldKey, titleKey: field.placeholderKey ?? "onboarding.button.continue", options: options)
+            presentPickerSheet(controller: controller, fieldKey: fieldKey, titleKey: field.titleKey ?? "onboarding.button.continue", options: options)
         case .multiPicker(let options, _, _):
             presentPickerSheet(controller: controller, fieldKey: fieldKey, titleKey: field.placeholderKey ?? "onboarding.button.continue", options: options)
-        case .country:
-            // FIXME (PROJ-004): подключить настоящий список стран. Пока — placeholder с 3 опциями.
-            let placeholderOptions: [FormPickerOption] = [
-                .init(id: "US", titleKey: "United States"),
-                .init(id: "GB", titleKey: "United Kingdom"),
-                .init(id: "FR", titleKey: "France"),
-            ]
-            presentPickerSheet(controller: controller, fieldKey: fieldKey, titleKey: field.placeholderKey ?? "onboarding.form.field.country.placeholder", options: placeholderOptions)
+        case .country(let options):
+            presentPickerSheet(controller: controller, showSearch: true, fieldKey: fieldKey, titleKey: field.titleKey ?? "onboarding.form.field.country.placeholder", options: options)
         case .date(let minDate, let maxDate, let presentation):
             presentDateSheet(
                 controller: controller,
@@ -305,7 +315,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         go(to: next)
     }
 
-    private func presentPickerSheet(controller: UIViewController, fieldKey: String, titleKey: String, options: [FormPickerOption]) {
+    private func presentPickerSheet(controller: UIViewController, showSearch: Bool = false, fieldKey: String, titleKey: String, options: [FormPickerOption]) {
         // Гасим клавиатуру перед показом sheet — иначе bottom-sheet наезжает на её рамку
         // и теряется анимация перехода.
         controller.view.endEditing(true)
@@ -315,25 +325,45 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
                   case .option(let id) = value else { return nil }
             return id
         }()
-        let sheet = OnboardingPickerSheetViewController(
-            titleKey: titleKey,
+
+        let options = options.map { FilterOptionItem(id: String($0.id), title: OnboardingStrings.resolve($0.titleKey)) }
+        let selectedIds = currentSelectedId != nil ? [String(currentSelectedId!)] : []
+        
+        let sheet = FilterOptionsController(
+            title: OnboardingStrings.resolve(titleKey),
             options: options,
-            selectedId: currentSelectedId,
-            onSelect: { [weak self, weak controller] selectedId in
-                guard let self = self,
-                      let formId = self.formIdFromCurrentStepOptional() else { return }
-                let value: FormFieldValue = selectedId.map { .option($0) } ?? .empty
-                self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
-                if let formController = controller as? OnboardingFormStepViewController {
-                    formController.updateFieldValue(value, forKey: fieldKey)
-                }
-            }
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: showSearch,
+            isOpenPresent: true,
+            isResetButton: false,
         )
-        if #available(iOS 15.0, *), let pres = sheet.sheetPresentationController {
-            pres.detents = [.medium(), .large()]
-            pres.prefersGrabberVisible = true
+        
+        sheet.onSave = { [weak self, weak controller] selectedItems in
+            guard let self = self,
+                  let formId = self.formIdFromCurrentStepOptional() else { return }
+
+            // FilterOptionsController в single-select режиме возвращает 0 или 1 элемент.
+            let value: FormFieldValue = selectedItems.first.map { .option($0.id) } ?? .empty
+
+            self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
+
+            if let formController = controller as? OnboardingFormStepViewController {
+                formController.updateFieldValue(value, forKey: fieldKey)
+            }
         }
-        controller.present(sheet, animated: true)
+        
+        let nav = UINavigationController(rootViewController: sheet)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        
+        controller.present(nav, animated: true)
     }
 
     private func formIdFromCurrentStep() -> OnboardingFormID {
@@ -357,33 +387,62 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         presentation: FormFieldKind.DatePresentation
     ) {
         controller.view.endEditing(true)
+        
         let currentDate: Date? = {
             guard let formId = formIdFromCurrentStepOptional(),
                   let value = state.value(forForm: formId, fieldKey: fieldKey),
                   case .date(let d) = value else { return nil }
             return d
         }()
-        let sheet = OnboardingDateSheetViewController(
-            titleKey: titleKey,
-            selectedDate: currentDate,
-            min: min,
-            max: max,
-            presentation: presentation,
-            onSelect: { [weak self, weak controller] date in
-                guard let self = self,
-                      let formId = self.formIdFromCurrentStepOptional() else { return }
-                let value: FormFieldValue = date.map { .date($0) } ?? .empty
-                self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
-                if let formController = controller as? OnboardingFormStepViewController {
-                    formController.updateFieldValue(value, forKey: fieldKey)
-                }
-            }
+        
+        // Default-дата — верхняя граница диапазона (например, для возраста 14-100 лет это 14 лет назад).
+        // Если currentDate уже выходит за [min; max] — clamp'им, чтобы picker не открылся вне диапазона.
+        let defaultMax = Calendar.current.startOfDay(for: Date())
+        let effectiveMax = max ?? defaultMax
+        let candidate = currentDate ?? effectiveMax
+        let clamped: Date = {
+            if let min = min, candidate < min { return min }
+            if candidate > effectiveMax { return effectiveMax }
+            return candidate
+        }()
+        let initialTimestamp = Int32(clamped.timeIntervalSince1970)
+
+        let minimumTimestamp = min.map { Int32($0.timeIntervalSince1970) }
+        let maximumTimestamp = Int32(effectiveMax.timeIntervalSince1970)
+        
+        let sheet = DivoDatePickerController(
+            mode: .date,
+            initialTimestamp: initialTimestamp,
+            title: OnboardingStrings.resolve(titleKey),
+            minimumTimestamp: minimumTimestamp,
+            maximumTimestamp: maximumTimestamp
         )
-        if #available(iOS 15.0, *), let pres = sheet.sheetPresentationController {
-            pres.detents = [.medium()]
-            pres.prefersGrabberVisible = true
+        
+        sheet.onSave = { [weak self, weak controller] timestamp in
+            guard let self = self,
+                  let formId = self.formIdFromCurrentStepOptional() else { return }
+            
+            let selectedDate = Date(timeIntervalSince1970: TimeInterval(timestamp))
+            
+            let value: FormFieldValue = .date(selectedDate)
+            
+            self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
+            if let formController = controller as? OnboardingFormStepViewController {
+                formController.updateFieldValue(value, forKey: fieldKey)
+            }
         }
-        controller.present(sheet, animated: true)
+        
+        let nav = UINavigationController(rootViewController: sheet)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        
+        controller.present(nav, animated: true)
     }
 
     /// `OnboardingPhotoPicker` удерживается через `objc_setAssociatedObject` на presented контроллере,
@@ -401,6 +460,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
                   let formId = self.formIdFromCurrentStepOptional() else { return }
             switch result {
             case .success(let path):
+                divoLog("Photo picker success for \(fieldKey): path=\(path), fileExists=\(FileManager.default.fileExists(atPath: path))", level: .info)
                 let value: FormFieldValue = .asset(path)
                 self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
                 if let formController = controller as? OnboardingFormStepViewController {

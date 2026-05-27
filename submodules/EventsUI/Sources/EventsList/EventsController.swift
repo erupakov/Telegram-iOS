@@ -36,6 +36,7 @@ public final class EventsController: TelegramBaseController {
 
     private var isEmpty: Bool?
     private var tokenChangeObserver: NSObjectProtocol?
+    private var localeChangeObserver: NSObjectProtocol?
 
     private let createActionDisposable = MetaDisposable()
     private let clearDisposable = MetaDisposable()
@@ -43,6 +44,18 @@ public final class EventsController: TelegramBaseController {
     private var isAgency: Bool = false
     private var userId: Int?
     private var didLoadEvents: Bool = false
+
+    // Локальный кэш роли — чтобы при cold-start без сети мы знали, показывать ли
+    // сегмент «Мои/Все» (агентство) на error state, а не ждали /user/info.
+    private static func isAgencyCacheKey(for context: AccountContext) -> String {
+        return "divo.events.isAgencyCache.\(context.account.peerId.toInt64())"
+    }
+    private static func cachedIsAgency(for context: AccountContext) -> Bool {
+        return UserDefaults.standard.bool(forKey: isAgencyCacheKey(for: context))
+    }
+    private static func setCachedIsAgency(_ value: Bool, for context: AccountContext) {
+        UserDefaults.standard.set(value, forKey: isAgencyCacheKey(for: context))
+    }
     
     // Структура хранения состояния вкладок с поддержкой ошибок пагинации
     private struct TabState {
@@ -62,8 +75,11 @@ public final class EventsController: TelegramBaseController {
     public init(context: AccountContext) {
         self.context = context
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
+        // Применяем последнюю известную роль до первого ответа /user/info —
+        // чтобы при ошибке сети сегмент агентства всё равно отрисовался.
+        self.isAgency = Self.cachedIsAgency(for: context)
 
-        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
+        let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: DivoColorPalette.primaryText, disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor, primaryTextColor: DivoColorPalette.primaryTextOnDark, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
         let icon: UIImage = DivoImage.iconEvents
@@ -89,7 +105,7 @@ public final class EventsController: TelegramBaseController {
             self.tabStates = [TabState(), TabState()]
             self.fetchUserRole()
         }
-        NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+        self.localeChangeObserver = NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.tabBarItem.title = DivoStrings.tabEvents
             self?.tabStates = [TabState(), TabState()]
             self?.loadEventsList(tabIndex: self?.selectedTabIndex ?? 0, reset: true)
@@ -131,9 +147,8 @@ public final class EventsController: TelegramBaseController {
 
     // Доработанный метод получения роли с полноценным Error handling
     private func fetchUserRole() {
-        self.controllerNode.isLoading = true
-        self.controllerNode.showNetworkError = false
-        
+        self.controllerNode.phase = .loading
+
         Task { [weak self] in
             do {
                 let response: UserDetailResponse = try await DivoAPIClient.shared.request(
@@ -141,23 +156,23 @@ public final class EventsController: TelegramBaseController {
                     method: "GET"
                 )
                 let role = response.data.role ?? ""
-                
+
                 await MainActor.run {
                     guard let self else { return }
                     let wasAgency = self.isAgency
                     self.isAgency = role == "agency" || role == "agency_employee"
                     self.userId = response.data.id
+                    Self.setCachedIsAgency(self.isAgency, for: self.context)
                     if wasAgency != self.isAgency {
                         self.updateNavigation()
                     }
                     self.loadEventsList(tabIndex: self.selectedTabIndex, reset: true)
                 }
             } catch {
-                print("⚠️ fetchUserRole failed: \(error)")
+                divoLog("user/info failed: \(error)", level: .error)
                 await MainActor.run {
                     guard let self else { return }
-                    self.controllerNode.isLoading = false
-                    self.controllerNode.showNetworkError = true // Переводим экран в полноэкранную ошибку
+                    self.controllerNode.phase = .failed(networkError: isNetworkError(error))
                 }
             }
         }
@@ -182,9 +197,7 @@ public final class EventsController: TelegramBaseController {
         
         // Связываем действие повторения запроса при полноэкранной ошибке
         self.controllerNode.onRetry = { [weak self] in
-            guard let self = self else { return }
-            self.controllerNode.showNetworkError = false
-            self.fetchUserRole() // Начинаем заново с получения роли
+            self?.fetchUserRole()
         }
         
         // Связываем действие повторения запроса при ошибке пагинации (через снэкбар)
@@ -200,24 +213,22 @@ public final class EventsController: TelegramBaseController {
 
     private func switchToTab(_ index: Int) {
         guard index != selectedTabIndex else { return }
-        
+
         tabStates[selectedTabIndex].scrollOffset = self.controllerNode.collectionViewContentOffset()
-        
+
         selectedTabIndex = index
         tabStates[index].hasPaginationError = false
         let state = tabStates[index]
-        controllerNode.updateEvents(state.events)
         controllerNode.hideSnackbar(animated: false)
-        
+        controllerNode.isPaginating = false
+
         if !state.isLoaded {
-            controllerNode.isLoading = true
+            controllerNode.setEvents([])
+            controllerNode.phase = .loading
             loadEventsList(tabIndex: index, reset: true)
         } else {
-            controllerNode.updateEvents(state.events, scrollOffset: state.scrollOffset)
-            controllerNode.showNetworkError = false
-            controllerNode.isPaginating = false
-            controllerNode.isLoading = state.isLoading
-            controllerNode.showEmptyStateIfNeeded()
+            controllerNode.setEvents(state.events, scrollOffset: state.scrollOffset)
+            controllerNode.phase = state.events.isEmpty ? .empty : .content
         }
     }
 
@@ -245,7 +256,7 @@ public final class EventsController: TelegramBaseController {
         let isCurrentTab = tabIndex == selectedTabIndex
         if isCurrentTab {
             if reset {
-                controllerNode.isLoading = true
+                controllerNode.phase = .loading
                 controllerNode.isPaginating = false
             } else if !tabStates[tabIndex].events.isEmpty {
                 controllerNode.isPaginating = true
@@ -291,18 +302,16 @@ public final class EventsController: TelegramBaseController {
 
                     if tabIndex == self.selectedTabIndex {
                         if reset {
-                            self.controllerNode.updateEvents(self.tabStates[tabIndex].events, scrollOffset: .zero)
+                            self.controllerNode.setEvents(self.tabStates[tabIndex].events, scrollOffset: .zero)
                         } else {
                             self.controllerNode.appendEvents(eventDataArray)
                         }
-                        self.controllerNode.isLoading = false
                         self.controllerNode.isPaginating = false
-                        self.controllerNode.showNetworkError = false
-                        self.controllerNode.showEmptyStateIfNeeded()
+                        self.controllerNode.phase = self.tabStates[tabIndex].events.isEmpty ? .empty : .content
                     }
                 }
             } catch {
-                print("[DivoAPI] event/list error (tab \(tabIndex)): \(error)")
+                divoLog("event/list failed (tab \(tabIndex)): \(error)", level: .error)
                 await MainActor.run {
                     guard let self else { return }
                     self.tabStates[tabIndex].isLoading = false
@@ -310,12 +319,12 @@ public final class EventsController: TelegramBaseController {
                         self.tabStates[tabIndex].hasPaginationError = true
                     }
                     if tabIndex == self.selectedTabIndex {
-                        self.controllerNode.isLoading = false
                         self.controllerNode.isPaginating = false
                         if reset {
-                            self.controllerNode.showNetworkError = true
+                            self.controllerNode.phase = .failed(networkError: isNetworkError(error))
                         } else {
-                            self.controllerNode.showPaginationError() // Снэкбар пагинации
+                            // Пагинация — phase оставляем .content, кидаем снекбар поверх.
+                            self.controllerNode.showPaginationError()
                         }
                     }
                 }
@@ -327,14 +336,14 @@ public final class EventsController: TelegramBaseController {
     private func mapEvents(_ items: [EventListItem]) -> [EventData] {
         guard !items.isEmpty else { return [] }
         let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
-        
+
         let datePartFormatter: DateFormatter = {
             let f = DateFormatter()
             f.locale = divoLocale
             f.setLocalizedDateFormatFromTemplate("MMM d")
             return f
         }()
-        
+
         let timePartFormatter: DateFormatter = {
             let f = DateFormatter()
             f.locale = divoLocale
@@ -342,41 +351,14 @@ public final class EventsController: TelegramBaseController {
             f.dateStyle = .none
             return f
         }()
-        
+
         let isoFormatter: DateFormatter = {
             let f = DateFormatter()
             f.locale = Locale(identifier: "en_US_POSIX")
             f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
             return f
         }()
-        
-        func formatTimeRemaining(deadlineString: String?) -> String? {
-            guard let raw = deadlineString else { return nil }
-            let normalized = raw.replacingOccurrences(of: " ", with: "T")
-            
-            guard let deadlineDate = isoFormatter.date(from: normalized) else { return nil }
-            
-            let timeInterval = deadlineDate.timeIntervalSince(Date())
-            
-            if timeInterval <= 0 {
-                return nil
-            }
-            
-            if timeInterval > 86400 {
-                let formattedDate = datePartFormatter.string(from: deadlineDate)
-                return DivoStrings.deadlineData(formattedDate)
-            } else {
-                let hours = Int(timeInterval) / 3600
-                let minutes = (Int(timeInterval) % 3600) / 60
-                
-                if hours > 0 {
-                    return DivoStrings.deadlineDataTime("\(hours)h \(minutes)m")
-                } else {
-                    return DivoStrings.deadlineDataTime("\(minutes)m")
-                }
-            }
-        }
-        
+
         return items.map { item in
             let dateString: String
             if let raw = item.date {
@@ -390,7 +372,7 @@ public final class EventsController: TelegramBaseController {
                 dateString = ""
             }
             
-            let timeRemainingStr = formatTimeRemaining(deadlineString: item.applicationDeadline)
+            let timeRemainingStr = EventDateFormatter.timeRemaining(deadline: item.applicationDeadline)
             
             let coverURL = item.files?.first?.fullUrl
             let avatarURL = item.creator?.avatar?.fullUrl
@@ -422,35 +404,50 @@ public final class EventsController: TelegramBaseController {
     // Логика отклика на эвент
     private func applyForEvent(eventId: Int, cell: EventCollectionViewCell) {
         cell.setApplyButtonLoading(true)
-        
+        // НЕ скрываем активный снэкбар тут — иначе apply-tap затрёт persistent
+        // pagination-error snackbar. Свой ошибочный снэкбар покажется ниже.
+
         let body = ApplyEventRequest(eventId: eventId)
-        
-        Task {
+
+        Task { [weak self, weak cell] in
             do {
                 let _: ApplyEventResponse = try await DivoAPIClient.shared.request(
                     path: "/event/apply",
                     method: "POST",
                     body: body
                 )
-                
+
                 await MainActor.run {
-                    if cell.currentEventId == eventId {
-                        cell.setApplyButtonLoading(false, true)
+                    guard let self else { return }
+                    // Обновляем модель текущего таба, чтобы при переиспользовании
+                    // ячейки состояние "Applied" не откатилось.
+                    if let idx = self.tabStates[self.selectedTabIndex].events.firstIndex(where: { $0.id == eventId }) {
+                        self.tabStates[self.selectedTabIndex].events[idx].isApplied = true
+                    }
+                    if let cell, cell.currentEventId == eventId {
+                        cell.setApplyButtonLoading(false, isApplied: true)
                     }
                 }
             } catch {
-                print("⚠️ applyForEvent failed: \(error)")
+                divoLog("event/apply failed (id=\(eventId)): \(error)", level: .error)
                 await MainActor.run {
-                    if cell.currentEventId == eventId {
+                    guard let self else { return }
+                    if let cell, cell.currentEventId == eventId {
                         cell.setApplyButtonLoading(false)
                     }
+                    // Серверное сообщение (4xx body) через userFacingMessage,
+                    // fallback на generic. localizedDescription не используем — он не локализован.
+                    // Это инфо-ошибка: без Retry и не persistent — снэкбар сам исчезнет.
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedApplyEvent
+                    self.controllerNode.showSnackbar(message: userMsg, style: .error)
                 }
             }
         }
     }
     
     private static func flag(for countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2 else { return "" }
+        guard let code = countryCode, code.count == 2,
+              code.allSatisfy({ $0.isASCII && $0.isLetter }) else { return "" }
         return code.uppercased().unicodeScalars.reduce("") { result, scalar in
             result + String(UnicodeScalar(127397 + scalar.value)!)
         }
@@ -478,6 +475,9 @@ public final class EventsController: TelegramBaseController {
         self.clearDisposable.dispose()
         self.supportPeerDisposable.dispose()
         if let observer = self.tokenChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = self.localeChangeObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }

@@ -7,10 +7,7 @@ import DivoCore
 import DivoUIKit
 import SwiftSignalKit
 import TelegramPresentationData
-import ItemListUI
-import PresentationDataUtils
 import AccountContext
-import AppBundle
 
 final class EventCollectionViewCell: UICollectionViewCell {
 
@@ -195,6 +192,15 @@ final class EventCollectionViewCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // Лёгкий press-feedback по образу SearchResultGridCell: scale до 0.96 на нажатии.
+    override var isHighlighted: Bool {
+        didSet {
+            UIView.animate(withDuration: isHighlighted ? 0.25 : 0.4, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
+                self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.96, y: 0.96) : .identity
+            })
+        }
+    }
+
     private func setupViews() {
         contentView.layer.cornerRadius = DivoDesignTokens.Spacing.m
         contentView.layer.masksToBounds = true
@@ -338,7 +344,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         imageView.image = nil
         profileImageView.cancelImageLoad()
         profileImageView.image = nil
-        
+
         currentEventId = nil
         onApply = nil
         setApplyButtonLoading(false)
@@ -347,9 +353,9 @@ final class EventCollectionViewCell: UICollectionViewCell {
     @objc private func applyButtonTapped() {
         self.onApply?()
     }
-    
-    // Включение/выключение режима лоадера на кнопке
-    public func setApplyButtonLoading(_ isLoading: Bool, _ isApplied: Bool = false) {
+
+    // Включение/выключение режима лоадера на кнопке.
+    public func setApplyButtonLoading(_ isLoading: Bool, isApplied: Bool = false) {
         applyButton.setSaving(isLoading, in: self)
         if isApplied {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)
@@ -480,34 +486,6 @@ class ImageGalleryCell: UICollectionViewCell {
 
     func configure(with image: UIImage?) {
         imageView.image = image
-    }
-}
-
-class GradientView: UIView {
-
-    enum GradientDirection {
-        case vertical
-        case horizontal
-    }
-
-    private var gradientLayer: CAGradientLayer {
-        return self.layer as! CAGradientLayer
-    }
-
-    override static var layerClass: AnyClass {
-        return CAGradientLayer.self
-    }
-
-    func configure(colors: [UIColor], direction: GradientDirection) {
-        gradientLayer.colors = colors.map { $0.cgColor }
-        switch direction {
-        case .vertical:
-            gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
-            gradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
-        case .horizontal:
-            gradientLayer.startPoint = CGPoint(x: 0.0, y: 0.5)
-            gradientLayer.endPoint = CGPoint(x: 1.0, y: 0.5)
-        }
     }
 }
 
