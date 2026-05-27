@@ -1,3 +1,5 @@
+import Foundation
+
 public enum Api {
     public enum account {}
     public enum auth {}
@@ -201,6 +203,9 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-566281095] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsRecent($0) }
     dict[106343499] = { return Api.ChannelParticipantsFilter.parse_channelParticipantsSearch($0) }
     dict[473084188] = { return Api.Chat.parse_channel($0) }
+    // DIVO: teamgram layer 200/201 channel#7482147e — другой constructor и Int32 stories_max_id.
+    // Парсер — ApiTeamgramLayer200.swift.
+    dict[1954681982] = { return Api.Chat.parse_channel_teamgram_layer200($0) }
     dict[399807445] = { return Api.Chat.parse_channelForbidden($0) }
     dict[1103884886] = { return Api.Chat.parse_chat($0) }
     dict[693512293] = { return Api.Chat.parse_chatEmpty($0) }
@@ -209,6 +214,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-219353309] = { return Api.ChatAdminWithInvites.parse_chatAdminWithInvites($0) }
     dict[-1626209256] = { return Api.ChatBannedRights.parse_chatBannedRights($0) }
     dict[-455036259] = { return Api.ChatFull.parse_channelFull($0) }
+    // DIVO: teamgram layer 200/201 channelFull#52d6806b — 45 полей без sendPaidMessagesStars/mainTab.
+    dict[1389789291] = { return Api.ChatFull.parse_channelFull_teamgram_layer201($0) }
     dict[640893467] = { return Api.ChatFull.parse_chatFull($0) }
     dict[1553807106] = { return Api.ChatInvite.parse_chatInvite($0) }
     dict[1516793212] = { return Api.ChatInvite.parse_chatInviteAlready($0) }
@@ -581,6 +588,11 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1665888023] = { return Api.Message.parse_message($0) }
     dict[-1868117372] = { return Api.Message.parse_messageEmpty($0) }
     dict[2055212554] = { return Api.Message.parse_messageService($0) }
+    // DIVO: teamgram-сервер на layer 200/201 шлёт message и messageService с другими constructor ID.
+    // Структуры полей те же что в нашей текущей схеме (плюс несколько новых полей которых ещё не
+    // существовало — они заполняются nil в адаптерах). Реализация — ApiTeamgramLayer200.swift.
+    dict[-356721331] = { return Api.Message.parse_message_teamgram_layer200($0) }
+    dict[-741178048] = { return Api.Message.parse_messageService_teamgram_layer200($0) }
     dict[-872240531] = { return Api.MessageAction.parse_messageActionBoostApply($0) }
     dict[-988359047] = { return Api.MessageAction.parse_messageActionBotAllowed($0) }
     dict[-511160261] = { return Api.MessageAction.parse_messageActionChangeCreator($0) }
@@ -1199,6 +1211,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-78886548] = { return Api.Update.parse_updateReadFeaturedEmojiStickers($0) }
     dict[1461528386] = { return Api.Update.parse_updateReadFeaturedStickers($0) }
     dict[-1635468135] = { return Api.Update.parse_updateReadHistoryInbox($0) }
+    // DIVO: teamgram layer 201 updateReadHistoryInbox#9c974fdf — без topMsgId.
+    dict[-1667805217] = { return Api.Update.parse_updateReadHistoryInbox_teamgram_layer201($0) }
     dict[791617983] = { return Api.Update.parse_updateReadHistoryOutbox($0) }
     dict[-131960447] = { return Api.Update.parse_updateReadMessagesContents($0) }
     dict[2008081266] = { return Api.Update.parse_updateReadMonoForumInbox($0) }
@@ -1233,6 +1247,17 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[88680979] = { return Api.Update.parse_updateUserPhone($0) }
     dict[-440534818] = { return Api.Update.parse_updateUserStatus($0) }
     dict[706199388] = { return Api.Update.parse_updateUserTyping($0) }
+    // DIVO: teamgram layer 200 updateUserTyping#c01e857f — без flags и topMsgId.
+    // (Гипотеза что этот парсер ломал тап — опровергнута. Виновник был iOS contacts
+    // permission который блокировал UI thread / touch events на новой signIn сессии.)
+    dict[-1071741569] = { return Api.Update.parse_updateUserTyping_teamgram_layer201($0) }
+    // DIVO: teamgram-сервер на layer 201 шлёт старые конструкторы этих Update (без savedPeerId и пр.).
+    // Layout взят из teamgram-proto Encode (@201). См. ApiTeamgramLayer200.swift.
+    dict[457829485] = { return Api.Update.parse_updateDraftMessage_teamgram_layer201($0) }
+    dict[-513517117] = { return Api.Update.parse_updateDialogUnreadMark_teamgram_layer201($0) }
+    dict[-366410403] = { return Api.Update.parse_updateChannelReadMessagesContents_teamgram_layer201($0) }
+    dict[1578843320] = { return Api.Update.parse_updateMessageReactions_teamgram_layer201($0) }
+    dict[-1747565759] = { return Api.Update.parse_updateGroupCall_teamgram_layer201($0) }
     dict[2139689491] = { return Api.Update.parse_updateWebPage($0) }
     dict[361936797] = { return Api.Update.parse_updateWebViewResultSent($0) }
     dict[2027216577] = { return Api.Updates.parse_updateShort($0) }
@@ -1253,6 +1278,8 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-271849932] = { return Api.UserProfile.parse_userProfile($0) }
     dict[-742634630] = { return Api.User.parse_userEmpty($0) }
     dict[-1607745218] = { return Api.UserFull.parse_userFull($0) }
+    // DIVO: teamgram layer 201 userFull#99e78045 — 33 поля без последних 6 (starsRating и т.д.).
+    dict[-1712881595] = { return Api.UserFull.parse_userFull_teamgram_layer201($0) }
     dict[-2100168954] = { return Api.UserProfilePhoto.parse_userProfilePhoto($0) }
     dict[1326562017] = { return Api.UserProfilePhoto.parse_userProfilePhotoEmpty($0) }
     dict[164646985] = { return Api.UserStatus.parse_userStatusEmpty($0) }
@@ -1464,6 +1491,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1228606141] = { return Api.messages.MessageViews.parse_messageViews($0) }
     dict[-948520370] = { return Api.messages.Messages.parse_channelMessages($0) }
     dict[494135274] = { return Api.messages.Messages.parse_messages($0) }
+    // DIVO: teamgram layer 200 messages.messages#8c718e87 — без topics.
+    dict[-1938715001] = { return Api.messages.Messages.parse_messages_teamgram_layer200($0) }
+    // DIVO: getHistory для чата с историей шлёт messagesSlice@201 (3a54685e, без topics/searchFlood).
+    dict[978610270] = { return Api.messages.Messages.parse_messagesSlice_teamgram_layer201($0) }
     dict[1951620897] = { return Api.messages.Messages.parse_messagesNotModified($0) }
     dict[1595959062] = { return Api.messages.Messages.parse_messagesSlice($0) }
     dict[-83926371] = { return Api.messages.MyStickers.parse_myStickers($0) }
@@ -1691,6 +1722,15 @@ public extension Api {
                     if let item = Api.parse(reader, signature: signature) as? T {
                         array.append(item)
                     } else {
+                        // DIVO: на debug-экран как Android-алерт "can't parse magic <hex> in <type>".
+                        // Постим с ФОНОВОЙ очереди (не parse-thread, не main) — прошлый откат был из-за
+                        // синхронного поста + DivoConsoleLogger.queue.sync, блокировавшего main. Тут этого нет.
+                        let divoSig = String(UInt32(bitPattern: signature), radix: 16)
+                        let divoType = "\(elementType)"
+                        let divoIdx = "\(i)/\(count)"
+                        DispatchQueue.global(qos: .utility).async {
+                            NotificationCenter.default.post(name: Notification.Name("DivoMTProtoLog"), object: nil, userInfo: ["message": "[MTProto] can't parse magic 0x\(divoSig) in \(divoType) [\(divoIdx)]"])
+                        }
                         return nil
                     }
                 }

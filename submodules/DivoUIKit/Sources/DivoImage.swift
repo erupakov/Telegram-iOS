@@ -38,6 +38,7 @@ public enum DivoImage {
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
     public static var emptyModelsAgency: UIImage { load("DivoEmptyModelsAgency") }
     public static var emptyWorkProfile: UIImage { load("DivoEmptyWorkProfile") }
+    public static var errorCircle: UIImage { load("DivoErrorCircle") }
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
     public static var faceScanBlack: UIImage { load("DivoFaceScanBlack") }

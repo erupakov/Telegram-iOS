@@ -131,9 +131,6 @@
             if (MTLogEnabled()) {
                 MTLog(@"[MTRequestMessageService#%" PRIxPTR " add request %@]", (intptr_t)self, request.metadata);
             }
-            // DIVO: лог в обычный NSLog, чтобы видеть в Console.app даже когда MTLog выключен.
-            NSLog(@"[DIVO MTProto] addRequest queued — metadata=%@", request.metadata);
-
             [_requests addObject:request];
             [mtProto requestTransportTransaction];
         }
@@ -639,11 +636,12 @@
             MTOutgoingMessage *outgoingMessage = [[MTOutgoingMessage alloc] initWithData:decoratedRequestData metadata:request.metadata additionalDebugDescription:decoratedDebugDescription shortMetadata:request.shortMetadata messageId:messageId messageSeqNo:messageSeqNo];
             outgoingMessage.needsQuickAck = request.acknowledgementReceived != nil;
             outgoingMessage.hasHighPriority = request.hasHighPriority;
-            // DIVO: лог в Console.app — фиксируем момент, когда запрос упаковали в outgoing
-            // и он реально идёт в TCP (через requestTransportTransaction). Если этой записи нет
-            // после addRequest queued — запрос завис в очереди до отправки.
-            NSLog(@"[DIVO MTProto] outgoing prepared — metadata=%@, messageId=%lld, dataLen=%lu",
-                  request.metadata, messageId, (unsigned long)decoratedRequestData.length);
+            // DIVO: момент упаковки запроса в outgoing (реально идёт в TCP) — на debug-экран.
+            // Если есть "→ <RPC>", но нет потом "OK/ERROR ← <RPC>" — ответ не пришёл (завис/сервер молчит).
+            NSString *divoOut = [NSString stringWithFormat:@"[MTProto] → %@", request.metadata];
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoOut}];
+            });
             
             id unresolvedDependencyOnRequestInternalId = autoreleasingUnresolvedDependencyOnRequestInternalId;
             if (unresolvedDependencyOnRequestInternalId != nil)
@@ -827,8 +825,12 @@
                             for (NSUInteger i = 0; i < hexLength; i++) {
                                 [hexDump appendFormat:@"%02x", bytes[i]];
                             }
-                            NSLog(@"[DIVO MTProto] TL_PARSING_ERROR — totalBytes=%lu, constructorId=0x%08x, hex(first %lu bytes)=%@",
-                                  (unsigned long)unwrappedData.length, constructorId, (unsigned long)hexLength, hexDump);
+                            // DIVO: на debug-экран (как Android "can't parse magic"). Фоновая очередь, НЕ main —
+                            // прошлый откат был из-за main-thread блокировки, тут её нет. NSLog убран.
+                            NSString *divoParse = [NSString stringWithFormat:@"[MTProto] can't parse magic 0x%08x (len=%lu) ← %@ | hex=%@", constructorId, (unsigned long)unwrappedData.length, request.metadata, hexDump];
+                            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoParse}];
+                            });
 
                             rpcError = [[MTRpcError alloc] initWithErrorCode:444 errorDescription:[NSString stringWithFormat:@"🚫TL_PARSING_ERROR constructor=0x%08x len=%lu hex=%@", constructorId, (unsigned long)unwrappedData.length, hexDump]];
                             [_context performBatchUpdates:^{
@@ -843,6 +845,23 @@
                         }
                     }
                     
+                    // DIVO: исход ответа — на debug-экран через NotificationCenter (не NSLog, его не выгрузить).
+                    // Текст серверной ошибки виден как в Android. Постим с фоновой очереди (НЕ main),
+                    // чтобы не повторить main-thread блокировку, из-за которой откатывали прошлый раз.
+                    // code 444 = наш TL_PARSING_ERROR — логируется отдельно ниже.
+                    {
+                        NSString *divoOutcome = nil;
+                        if (rpcResult != nil) {
+                            divoOutcome = [NSString stringWithFormat:@"[MTProto] OK ← %@", request.metadata];
+                        } else if (rpcError != nil && rpcError.errorCode != 444) {
+                            divoOutcome = [NSString stringWithFormat:@"[MTProto] RPC ERROR ← %@ | code=%d desc=%@", request.metadata, (int)rpcError.errorCode, rpcError.errorDescription];
+                        }
+                        if (divoOutcome != nil) {
+                            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoOutcome}];
+                            });
+                        }
+                    }
                     if (rpcResult != nil) {
                         if (MTLogEnabled()) {
                             MTLog(@"[MTRequestMessageService#%p response for %" PRId64 " is %@]", self, request.requestContext.messageId, rpcResult);

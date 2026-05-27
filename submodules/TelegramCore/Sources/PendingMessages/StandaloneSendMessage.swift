@@ -341,6 +341,7 @@ private func sendUploadedMessageContent(
             var replyTodoItemId: Int32?
             var scheduleTime: Int32?
             var scheduleRepeatPeriod: Int32?
+            _ = scheduleRepeatPeriod // DIVO: на layer 201 не отправляется
             var videoTimestamp: Int32?
             var sendAsPeerId: PeerId?
             var bubbleUpEmojiOrStickersets = false
@@ -459,7 +460,8 @@ private func sendUploadedMessageContent(
                         flags |= 1 << 22
                     }
                 
-                    sendMessageRequest = network.requestWithAdditionalInfo(Api.functions.messages.sendMessage(flags: flags, peer: inputPeer, replyTo: replyTo, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost), info: .acknowledgement, tag: dependencyTag)
+                    // DIVO: sendMessage под layer 201 (см. ApiTeamgramLayer200.swift).
+                    sendMessageRequest = network.requestWithAdditionalInfo(Api.functions.messages.sendMessage_teamgram_layer201(flags: flags, peer: inputPeer, replyTo: replyTo, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars), info: .acknowledgement, tag: dependencyTag)
                 case let .media(inputMedia, text):
                     if bubbleUpEmojiOrStickersets {
                         flags |= Int32(1 << 15)
@@ -491,7 +493,7 @@ private func sendUploadedMessageContent(
                         flags |= 1 << 22
                     }
                     
-                    sendMessageRequest = network.request(Api.functions.messages.sendMedia(flags: flags, peer: inputPeer, replyTo: replyTo, media: inputMedia, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost), tag: dependencyTag)
+                    sendMessageRequest = network.request(Api.functions.messages.sendMedia_teamgram_layer201(flags: flags, peer: inputPeer, replyTo: replyTo, media: inputMedia, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars), tag: dependencyTag)
                     |> map(NetworkRequestResult.result)
                 case let .forward(sourceInfo):
                     if topMsgId != nil {
@@ -499,7 +501,7 @@ private func sendUploadedMessageContent(
                     }
                 
                     if let forwardSourceInfoAttribute = forwardSourceInfoAttribute, let sourcePeer = transaction.getPeer(forwardSourceInfoAttribute.messageId.peerId), let sourceInputPeer = apiInputPeer(sourcePeer) {
-                        sendMessageRequest = network.request(Api.functions.messages.forwardMessages(flags: flags, fromPeer: sourceInputPeer, id: [sourceInfo.messageId.id], randomId: [uniqueId], toPeer: inputPeer, topMsgId: topMsgId, replyTo: nil, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, videoTimestamp: videoTimestamp, allowPaidStars: allowPaidStars, suggestedPost: nil), tag: dependencyTag)
+                        sendMessageRequest = network.request(Api.functions.messages.forwardMessages_teamgram_layer201(flags: flags, fromPeer: sourceInputPeer, id: [sourceInfo.messageId.id], randomId: [uniqueId], toPeer: inputPeer, topMsgId: topMsgId, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: nil, videoTimestamp: videoTimestamp, allowPaidStars: allowPaidStars), tag: dependencyTag)
                         |> map(NetworkRequestResult.result)
                     } else {
                         sendMessageRequest = .fail(MTRpcError(errorCode: 400, errorDescription: "internal"))
@@ -640,6 +642,7 @@ private func sendMessageContent(account: Account, peerId: PeerId, attributes: [M
             var replyToStoryId: StoryId?
             var scheduleTime: Int32?
             var scheduleRepeatPeriod: Int32?
+            _ = scheduleRepeatPeriod // DIVO: на layer 201 не отправляется
             var sendAsPeerId: PeerId?
             var allowPaidStars: Int64?
             var suggestedPost: Api.SuggestedPost?
@@ -711,7 +714,8 @@ private func sendMessageContent(account: Account, peerId: PeerId, attributes: [M
                         replyTo = .inputReplyToMessage(.init(flags: flags, replyToMsgId: threadId, topMsgId: threadId, replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil, monoforumPeerId: nil, todoItemId: nil))
                     }
 
-                    sendMessageRequest = account.network.request(Api.functions.messages.sendMessage(flags: flags, peer: inputPeer, replyTo: replyTo, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars, suggestedPost: nil))
+                    // DIVO: sendMessage под layer 201 (см. ApiTeamgramLayer200.swift).
+                    sendMessageRequest = account.network.request(Api.functions.messages.sendMessage_teamgram_layer201(flags: flags, peer: inputPeer, replyTo: replyTo, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars))
                     |> `catch` { _ -> Signal<Api.Updates, NoError> in
                         return .complete()
                     }
@@ -736,7 +740,7 @@ private func sendMessageContent(account: Account, peerId: PeerId, attributes: [M
                         flags |= 1 << 22
                     }
                 
-                    sendMessageRequest = account.network.request(Api.functions.messages.sendMedia(flags: flags, peer: inputPeer, replyTo: replyTo, media: inputMedia, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost))
+                    sendMessageRequest = account.network.request(Api.functions.messages.sendMedia_teamgram_layer201(flags: flags, peer: inputPeer, replyTo: replyTo, media: inputMedia, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: nil, effect: nil, allowPaidStars: allowPaidStars))
                     |> `catch` { _ -> Signal<Api.Updates, NoError> in
                         return .complete()
                     }
