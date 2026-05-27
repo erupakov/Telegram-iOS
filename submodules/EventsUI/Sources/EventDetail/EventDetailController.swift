@@ -153,14 +153,14 @@ public final class EventDetailController: TelegramBaseController {
                     title: DivoStrings.withdrawSheetTitle,
                     subtitle: DivoStrings.withdrawSheetSubtitle
                 ),
-                ActionSheetButtonItem(title: DivoStrings.keepApplication, color: .destructive) { [weak self, weak actionSheet] in
+                ActionSheetButtonItem(title: DivoStrings.keepApplication, color: .destructive) { [weak actionSheet] in
                     actionSheet?.dismissAnimated()
-                    self?.withdrawApplication()
                 }
             ]),
             ActionSheetItemGroup(items: [
-                ActionSheetButtonItem(title: DivoStrings.withdrawConfirm, color: .accent, font: .bold) { [weak actionSheet] in
+                ActionSheetButtonItem(title: DivoStrings.withdrawConfirm, color: .accent, font: .bold) { [weak self, weak actionSheet] in
                     actionSheet?.dismissAnimated()
+                    self?.withdrawApplication()
                 }
             ])
         ])
