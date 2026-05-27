@@ -205,6 +205,9 @@ public enum DivoColorPalette {
     public static let bronzeGradientMid = UIColor(hexString: "#A46B4C")!
     public static let bronzeGradientDark = UIColor(hexString: "#89503B")!
     public static let bronzeGradientDeep = UIColor(hexString: "#823F36")!
+
+    public static let applyBorder = UIColor(hexString: "#E8520A")!
+    public static let warningApply = UIColor(hexString: "#DF1C41")!
 }
 
 public enum EventTypeStyle: Int {

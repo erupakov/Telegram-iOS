@@ -42,6 +42,7 @@ public enum DivoImage {
     public static var faceSearchError: UIImage { load("DivoFaceSearchError") }
     public static var faceSearchInfo: UIImage { load("DivoFaceSearchInfo") }
     public static var genderIcon: UIImage { load("DivoGenderIcon") }
+    public static var greenCheckmark: UIImage { load("DivoGreenCheckmark") }
     public static var group: UIImage { load("DivoGroup") }
     public static var heartActionIcon: UIImage { load("DivoHeartActionIcon") }
     public static var heightIcon: UIImage { load("DivoHeightIcon") }
@@ -121,6 +122,7 @@ public enum DivoImage {
     public static var verified: UIImage { load("DivoVerified") }
     public static var videoIcon: UIImage { load("DivoVideoIcon") }
     public static var videoIconButton: UIImage { load("DivoVideoIconButton") }
+    public static var warning: UIImage { load("DivoWarning") }
     public static var webIcon: UIImage { load("DivoWebIcon") }
     public static var whitePlus: UIImage { load("DivoWhitePlus") }
     public static var youtubeIcon: UIImage { load("DivoYoutubeIcon") }

@@ -24,6 +24,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     var onApplyTapped: (() -> Void)?
     var onViewApplicationsTapped: (() -> Void)?
     var onGalleryItemTapped: ((String) -> Void)?
+    var onWithdrawTapped: (() -> Void)?
 
     var coverImage: UIImage? {
         return backgroundImageView.image
@@ -600,6 +601,27 @@ final class EventDetailControllerNode: ASDisplayNode {
     
     private lazy var bottomSpacerHeightConstraint: NSLayoutConstraint = bottomSpacer.heightAnchor.constraint(equalToConstant: 0)
     
+    private let appliedStatusViewContainer: UIView = {
+        let appliedStatusViewContainer = UIView()
+        appliedStatusViewContainer.translatesAutoresizingMaskIntoConstraints = false
+        return appliedStatusViewContainer
+    }()
+    
+    private let appliedStatusView: EventAppliedStatusView = {
+        let view = EventAppliedStatusView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+    
+    private let appliedStatusShimmerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = DivoDesignTokens.Radius.l
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+
     
     // MARK: - Init
     
@@ -679,6 +701,12 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventDeadlineShimmerContainer.startShimmering()
             applyButtonShimmer.startShimmering()
         }
+
+        if !appliedStatusShimmerView.isHidden{
+            appliedStatusShimmerView.stopShimmering()
+            appliedStatusShimmerView.startShimmering()
+        }
+
         if !organizerShimmerView.isHidden{
             organizerShimmerView.stopShimmering()
             organizerShimmerView.startShimmering()
@@ -1088,6 +1116,38 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
     
     private func setupAllAppliedContainer() {
+        
+        let spacerView = UIView()
+        spacerView.translatesAutoresizingMaskIntoConstraints = false
+        contentViewStack.addArrangedSubview(spacerView)
+        NSLayoutConstraint.activate([
+            spacerView.heightAnchor.constraint(equalToConstant: 20)
+        ])
+        contentViewStack.setCustomSpacing(0, after: spacerView)
+        
+        contentViewStack.addArrangedSubview(appliedStatusViewContainer)
+        appliedStatusViewContainer.addSubview(appliedStatusView)
+        appliedStatusViewContainer.addSubview(appliedStatusShimmerView)
+        
+        NSLayoutConstraint.activate([
+            appliedStatusViewContainer.heightAnchor.constraint(equalToConstant: 48),
+            
+            appliedStatusView.topAnchor.constraint(equalTo: appliedStatusViewContainer.topAnchor),
+            appliedStatusView.leadingAnchor.constraint(equalTo: appliedStatusViewContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            appliedStatusView.trailingAnchor.constraint(equalTo: appliedStatusViewContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            appliedStatusView.bottomAnchor.constraint(equalTo: appliedStatusViewContainer.bottomAnchor),
+            
+            appliedStatusShimmerView.leadingAnchor.constraint(equalTo: appliedStatusViewContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            appliedStatusShimmerView.topAnchor.constraint(equalTo: appliedStatusViewContainer.topAnchor),
+            appliedStatusShimmerView.trailingAnchor.constraint(equalTo: appliedStatusViewContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            appliedStatusShimmerView.bottomAnchor.constraint(equalTo: appliedStatusViewContainer.bottomAnchor),
+            appliedStatusShimmerView.heightAnchor.constraint(equalToConstant: 48)
+        ])
+        
+        appliedStatusView.onWithdrawTapped = { [weak self] in
+            self?.onWithdrawTapped?()
+        }
+        
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.spacing = 6
@@ -1125,7 +1185,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             allAppliedLabel.centerXAnchor.constraint(equalTo: allAppliedContainer.centerXAnchor),
             allAppliedLabel.bottomAnchor.constraint(equalTo: allAppliedContainer.bottomAnchor, constant: -14),
             
-            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
             stack.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -1135,7 +1195,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         ])
         
         NSLayoutConstraint.activate([
-            whiteSheetBackground.topAnchor.constraint(equalTo: container.topAnchor),
+            whiteSheetBackground.topAnchor.constraint(equalTo: spacerView.topAnchor),
             whiteSheetBackground.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             whiteSheetBackground.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             whiteSheetBackground.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: 1000)
@@ -1385,6 +1445,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         applyButtonShimmer.isHidden = false
         applyButton.isHidden = true
+
+        appliedStatusShimmerView.isHidden = false
+        appliedStatusView.isHidden = true
         
         organizerShimmerView.isHidden = false
         organizerView.isHidden = true
@@ -1437,6 +1500,9 @@ final class EventDetailControllerNode: ASDisplayNode {
             
             applyButtonShimmer.isHidden = true
             applyButton.isHidden = false
+
+            appliedStatusShimmerView.isHidden = true
+            appliedStatusView.isHidden = false
             
             organizerShimmerView.isHidden = true
             organizerView.isHidden = false
@@ -1523,10 +1589,28 @@ final class EventDetailControllerNode: ASDisplayNode {
             // Если есть только одно значение, вернется оно. Если оба nil - вернется nil.
             return fStr ?? tStr
         }
+
+        if let roles = attributes?.role {
+            let roleOptions: [FilterOptionItem] = [
+                FilterOptionItem(id: "model", title: DivoStrings.debugModel),
+                FilterOptionItem(id: "new_face", title: DivoStrings.debugNewTalent)
+            ]
+            
+            let rolesTitles = roles.compactMap { roleId in
+                roleOptions.first(where: { $0.id == roleId })?.title
+            }.joined(separator: ", ")
+            
+            if !rolesTitles.isEmpty {
+                items.append(.init(title: DivoStrings.debugRole, value: rolesTitles))
+            }
+        }
         
         if let gender = attributes?.gender {
             let genderTitles = gender.compactMap { $0.title }.joined(separator: ", ")
             items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+        }
+        if let age = attributes?.age, let str = rangeString(from: age.from, to: age.to) {
+            items.append(.init(title: DivoStrings.ageYo, value: str))
         }
         if let height = attributes?.height, let str = rangeString(from: height.from, to: height.to) {
             items.append(.init(title: DivoStrings.heightCm, value: str))
@@ -1703,9 +1787,26 @@ final class EventDetailControllerNode: ASDisplayNode {
             applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
         }
         
-        if newEventData.isApplied ?? true {
-            applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
-            applyButton.isUserInteractionEnabled = false
+        let isApplied = newEventData.isApplied ?? false
+        
+        if self.isMyEvent {
+            applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.addTarget(self, action: #selector(viewApplicationsTapped), for: .touchUpInside)
+            appliedStatusViewContainer.isHidden = true
+        } else {
+            if isApplied {
+                applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
+                applyButton.isUserInteractionEnabled = false
+                
+                let dateText = self.formatAppliedDate(newEventData.date)  //newEventData.appliedAt ??
+                appliedStatusView.configure(appliedDateText: dateText)
+                appliedStatusViewContainer.isHidden = false
+            } else {
+                applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
+                applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
+                applyButton.isUserInteractionEnabled = true
+                appliedStatusViewContainer.isHidden = true
+            }
         }
         
         if let deadlineText = formatTimeRemaining(deadlineString: newEventData.applicationDeadline) {
@@ -1832,6 +1933,20 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         // Параметры
         var attrs: [AppearanceAttribute] = []
+        if let roles = data.request.role {
+            let roleOptions: [FilterOptionItem] = [
+                FilterOptionItem(id: "model", title: DivoStrings.debugModel),
+                FilterOptionItem(id: "new_face", title: DivoStrings.debugNewTalent)
+            ]
+            
+            let rolesTitles = roles.compactMap { roleId in
+                roleOptions.first(where: { $0.id == roleId })?.title
+            }.joined(separator: ", ")
+            
+            if !rolesTitles.isEmpty {
+                attrs.append(.init(title: DivoStrings.debugRole, value: rolesTitles))
+            }
+        }
         if let gender = data.request.gender {
             let genderTitles = gender.joined(separator: ", ")
             attrs.append(.init(title: DivoStrings.attrGender, value: genderTitles))
@@ -1886,6 +2001,30 @@ final class EventDetailControllerNode: ASDisplayNode {
         updateGallery(data.gallery)
         
         activateTitleVisibility()
+    }
+
+    private func formatAppliedDate(_ dateString: String?) -> String {
+        guard let dateString = dateString else {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: DivoStrings.current.rawValue)
+            formatter.dateFormat = "MMMM d"
+            return formatter.string(from: Date())
+        }
+        let serverFormatter = DateFormatter()
+        serverFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        serverFormatter.locale = Locale(identifier: "en_US_POSIX")
+        
+        guard let date = serverFormatter.date(from: dateString) else { return dateString }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: DivoStrings.current.rawValue)
+        formatter.dateFormat = "MMMM d"
+        return formatter.string(from: date)
+    }
+    
+    // Метод управления загрузкой отзыва
+    func toggleWithdrawLoading(active: Bool) {
+        appliedStatusView.setWithdrawLoading(active)
     }
     
     func updateGallery(_ photos: [UserPhoto]) {

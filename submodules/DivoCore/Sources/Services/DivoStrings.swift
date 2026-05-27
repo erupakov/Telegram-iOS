@@ -494,6 +494,7 @@ public enum DivoStrings {
     public static var views: String { L(en: "views", ru: "просмотров", es: "vistas", pt: "visualizações", zh: "浏览") }
     public static var online: String { L(en: "Online", ru: "В сети", es: "En línea", pt: "Online", zh: "在线") }
     public static var organizer: String { L(en: "Organizer", ru: "Организатор", es: "Organizador", pt: "Organizador", zh: "组织者") }
+    public static var shareWithOrganiser: String { L(en: "We'll share with the organiser", ru: "Мы сообщим организатору", es: "Lo compartiremos con el organizador", pt: "Iremos partilhar com o organizador", zh: "我们将与组织者共享") }
     public static var about: String { L(en: "About", ru: "О событии", es: "Acerca de", pt: "Sobre", zh: "关于") }
     public static var height: String { L(en: "Height", ru: "Рост", es: "Altura", pt: "Altura", zh: "身高") }
     public static var age: String { L(en: "Age", ru: "Возраст", es: "Edad", pt: "Idade", zh: "年龄") }
@@ -977,6 +978,18 @@ public enum DivoStrings {
     public static var errorCreateUpdateEvent: String { L(en: "Couldn't post event", ru: "Не удалось опубликовать событие", es: "No se pudo publicar el evento", pt: "Não foi possível publicar o evento", zh: "无法发布活动") }
     public static var chooseEvent: String { L(en: "Choose an event", ru: "Выберите событие", es: "Elige un evento", pt: "Escolha um evento", zh: "选择一个活动") }
     public static var you: String { L(en: "@you", ru: "@вы", es: "@tú", pt: "@você", zh: "@你") }
+    public static var withdrawApplication: String { L(en: "Withdraw application", ru: "Отозвать заявку", es: "Retirar solicitud", pt: "Retirar inscrição", zh: "撤销申请") }
+    public static func youAppliedOn(_ data: String) -> String { L(en: "You applied on \(data)", ru: "Вы подали заявку \(data)", es: "Solicitaste el \(data)", pt: "Você se inscreveu em \(data)", zh: "您于 \(data) 提交申请") }
+    public static var withdrawSheetTitle: String { L(en: "Withdraw your application?", ru: "Отозвать вашу заявку?", es: "¿Retirar tu solicitud?", pt: "Retirar sua inscrição?", zh: "撤销您的申请？") }
+    public static var withdrawSheetSubtitle: String { L(en: "The organiser will be notified. You won't be able to reapply to this event.", ru: "Организатор будет уведомлен. Вы не сможете подать заявку на это событие снова.", es: "Se notificará al organizador. No podrás volver a solicitarlo para este evento.", pt: "O organizador será notificado. Você não poderá se inscrever novamente neste evento.", zh: "组织者将收到通知。您将无法重新申请此活动。") }
+    public static var keepApplication: String { L(en: "Keep application", ru: "Оставить заявку", es: "Mantener solicitud", pt: "Manter inscrição", zh: "保留申请") }
+    public static var withdrawConfirm: String { L(en: "Yes, withdraw", ru: "Да, отозвать", es: "Sí, retirar", pt: "Sim, retirar", zh: "是的，撤销") }
+    public static var submitApplication: String { L(en: "Submit application", ru: "Отправить заявку", es: "Enviar solicitud", pt: "Enviar candidatura", zh: "提交申请") }
+    public static var parametersApplying: String { L(en: "Parameters for Applying", ru: "Параметры для подачи", es: "Parámetros para solicitar", pt: "Parâmetros para candidatura", zh: "申请参数") }
+    public static var fewParametersDont: String { L(en: "Some parameters don't match. Apply anyway?", ru: "Некоторые параметры не совпадают. Всё равно отправить?", es: "Algunos parámetros no coinciden. ¿Solicitar de todos modos?", pt: "Alguns parâmetros não correspondem. Candidatar-se assim mesmo?", zh: "部分参数不匹配。仍然提交申请？") }
+    public static func oneParameterDont(_ parameter: String) -> String { L(en: "Your \(parameter) doesn't match. Apply anyway?", ru: "Ваш параметр «\(parameter)» не совпадает. Всё равно отправить?", es: "Tu \(parameter) no coincide. ¿Solicitar de todos modos?", pt: "Seu/sua \(parameter) não corresponde. Candidatar-se assim mesmo?", zh: "您的\(parameter)不匹配。仍然提交申请？") }
+    public static var allParametersSuccess: String { L(en: "All parameters are suitable for this event!", ru: "Все параметры подходят для этого события!", es: "¡Todos los parámetros son adecuados para este evento!", pt: "Todos os parâmetros são adequados para este evento!", zh: "所有参数均适用于此活动！") }
+    public static var submit: String { L(en: "Submit", ru: "Отправить", es: "Enviar", pt: "Enviar", zh: "提交") }
 
     // MARK: - Feed Events
     

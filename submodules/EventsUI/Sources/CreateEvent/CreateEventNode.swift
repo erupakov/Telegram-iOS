@@ -280,8 +280,7 @@ final class CreateEventNode: ASDisplayNode {
     var roleOptions: [FilterOptionItem] = [
         FilterOptionItem(id: "all", title: DivoStrings.feedSearchAllRoles),
         FilterOptionItem(id: "model", title: DivoStrings.debugModel),
-        FilterOptionItem(id: "new_face", title: DivoStrings.debugNewTalent),
-        FilterOptionItem(id: "agency_employee", title: DivoStrings.debugAgency)
+        FilterOptionItem(id: "new_face", title: DivoStrings.debugNewTalent)
     ]
 
     /// Универсальный разворот выбора multi-select filter'а под отправку на бэк.

@@ -2,22 +2,22 @@ import UIKit
 import Display
 import AsyncDisplayKit
 
-final class DivoActionSheetHeaderItem: ActionSheetItem {
+public final class DivoActionSheetHeaderItem: ActionSheetItem {
     let title: String
     let subtitle: String
 
-    init(title: String, subtitle: String) {
+    public init(title: String, subtitle: String) {
         self.title = title
         self.subtitle = subtitle
     }
 
-    func node(theme: ActionSheetControllerTheme) -> ActionSheetItemNode {
+    public func node(theme: ActionSheetControllerTheme) -> ActionSheetItemNode {
         let node = DivoActionSheetHeaderNode(theme: theme)
         node.setItem(self)
         return node
     }
 
-    func updateNode(_ node: ActionSheetItemNode) {
+    public func updateNode(_ node: ActionSheetItemNode) {
         guard let node = node as? DivoActionSheetHeaderNode else { return }
         node.setItem(self)
         node.requestLayoutUpdate()
