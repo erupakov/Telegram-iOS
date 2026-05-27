@@ -319,6 +319,15 @@ public enum DivoStrings {
     public static var authPrivacyPolicy: String { L(en: "Privacy Policy", ru: "Политикой конфиденциальности", es: "Política de privacidad", pt: "Política de Privacidade", zh: "隐私政策") }
     public static var authComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
 
+    // MARK: - OTP / Code entry
+    /// Подзаголовок экрана ввода кода. %@ — номер телефона (выделяется жирным в UI).
+    public static var otpCodeSentToFormat: String { L(en: "We sent a 6-digit code to %@", ru: "Мы отправили 6-значный код на %@", es: "Enviamos un código de 6 dígitos a %@", pt: "Enviamos um código de 6 dígitos para %@", zh: "我们已向 %@ 发送6位验证码") }
+    public static var otpIncorrectCode: String { L(en: "Incorrect code. Try again.", ru: "Неверный код. Попробуйте ещё раз.", es: "Código incorrecto. Inténtalo de nuevo.", pt: "Código incorreto. Tente novamente.", zh: "验证码错误，请重试。") }
+    public static var otpCodeExpired: String { L(en: "Code Expired", ru: "Срок действия кода истёк", es: "Código caducado", pt: "Código expirado", zh: "验证码已过期") }
+    /// Текст таймера повторной отправки. %@ — оставшееся время в формате m:ss.
+    public static var otpResendInFormat: String { L(en: "Resend in %@", ru: "Повторная отправка через %@", es: "Reenviar en %@", pt: "Reenviar em %@", zh: "%@后重新发送") }
+    public static var otpResendCode: String { L(en: "Resend Code", ru: "Отправить код повторно", es: "Reenviar código", pt: "Reenviar código", zh: "重新发送验证码") }
+
     // MARK: - Common
 
     public static var ok: String { L(en: "OK", ru: "OK", es: "OK", pt: "OK", zh: "好的") }

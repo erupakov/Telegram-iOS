@@ -604,7 +604,8 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                                             text = strongSelf.presentationData.strings.Login_WrongPhraseError
                                             controller.selectIncorrectPart()
                                         default:
-                                            text = strongSelf.presentationData.strings.Login_WrongCodeError
+                                            // DIVO: точная копия дизайна OTP «Incorrect code. Try again.»
+                                            text = DivoStrings.otpIncorrectCode
                                         }
                                         controller.animateError(text: text)
                                     } else {
@@ -616,11 +617,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                                                 text = strongSelf.presentationData.strings.Login_CodeFloodError
                                             case .invalidCode:
                                                 resetCode = true
-                                                text = strongSelf.presentationData.strings.Login_InvalidCodeError
+                                                text = DivoStrings.otpIncorrectCode
                                             case .generic:
                                                 text = strongSelf.presentationData.strings.Login_UnknownError
                                             case .codeExpired:
-                                                text = strongSelf.presentationData.strings.Login_CodeExpired
+                                                text = DivoStrings.otpCodeExpired
                                                 let account = strongSelf.account
                                                 let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, contents: .empty)).startStandalone()
                                             case .invalidEmailToken:
