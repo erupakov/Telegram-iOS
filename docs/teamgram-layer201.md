@@ -26,11 +26,18 @@ TL-определений — официальная схема **core.telegram.
 dict[<201-id>] = { return Api.<Type>.parse_<name>_teamgram_layer201($0) }
 ```
 а сам парсер (под 201-layout) — в `submodules/TelegramApi/Sources/ApiTeamgramLayer200.swift`.
-Если layout совпал с 222 — достаточно alias на существующий `parse_*` (как `user#020b1422`).
+Alias на существующий `parse_*` достаточен **только** если 201 — строгий префикс 222 и ни один
+общий бит не переинтерпретирован (пример: `storyItem#79b26a24` — 222 лишь дописал `albums`@flags.19,
+который 201-сервер не выставляет). **Осторожно:** совпадение constructor-имени ≠ совпадение layout.
+Контрпример — `user#020b1422`: на flags2.5 у 201 `stories_max_id:int`, а у 222 `RecentStory`
+(объект), общий бит с РАЗНЫМ типом → alias на `parse_user` ломал парсинг на любом юзере со сторис
+(красный «!», бесконечный getDifference). Нужен был отдельный `parse_user_teamgram_layer201`.
 
 Покрыто: `message`, `messageService`, `channel`, `channelFull`, `userFull`, `messages.messages`,
-`messages.messagesSlice`, ряд `Update`-конструкторов и контейнеры `messages.dialogs`/`updates.*`
-(многие совпадают с 222 и работают без правок — потому список чатов/история парсятся).
+`messages.messagesSlice`, `user` (свой парсер — flags2.5 `stories_max_id:int`≠222),
+`storyItem` (alias — префикс 222), ряд `Update`-конструкторов и контейнеры
+`messages.dialogs`/`updates.*` (многие совпадают с 222 и работают без правок — потому список
+чатов/история парсятся).
 
 ### 2. Отправка методов (encode) — энкодеры write-методов
 Бóльшая ловушка: форк **кодирует** методы 222-конструктором, а сервер на 201 их не понимает
@@ -41,11 +48,24 @@ dict[<201-id>] = { return Api.<Type>.parse_<name>_teamgram_layer201($0) }
 `TelegramCore` свапаются на обёртку (лишние 222-параметры выкидываются).
 
 Сделано (ядро): `sendMessage`, `sendMedia`, `editMessage`, `forwardMessages`, `saveDraft`.
+Также (другие namespace): `contacts.addContact` (222 `d9ba2e54`+note → 201 `e8f463d0`),
+`stories.sendStory` (222 `737fc2ec`+albums → 201 `e4e6694b`).
 
 **Осталось (вторичный батч, 10 методов `messages.*`, дрейфанули, но реже используются):**
 `readReactions`, `getUnreadReactions`, `markDialogUnread`, `getDialogUnreadMarks`,
 `getSavedHistory`, `getSavedDialogs`, `deleteSavedHistory`, `getSponsoredMessages`,
 `setChatTheme`, `unpinAllMessages`. Делать по тому же шаблону — по мере необходимости.
+
+### 3. Дрейф типа ВОЗВРАТА метода (отдельный случай)
+Бывает, что request-конструктор форк шлёт нормально и сервер отвечает, но **тип ответа** между
+201 и 222 разный. Симптом в логе: `can't parse magic 0x<сырое-значение> in <Type> [i/N]` — парсер
+пытается читать элементы вектора как boxed-объекты, а сервер прислал сырые скаляры.
+Пример: `stories.getPeerMaxIDs` — на 222 возвращает `Vector<RecentStory>` (boxed), на 201 —
+`Vector<int>` (constructor запроса `535983c3`, ответ — сырые int). Форк (222, запрос `78499170`)
+давится: `can't parse magic 0x712a292d in RecentStory`. Фикс — обёртка `*_teamgram_layer201` в
+`ApiTeamgramLayer200.swift` с тем же request-buffer, но своим `DeserializeFunctionResponse`,
+читающим 201-тип и при необходимости заворачивающим в форк-тип (int → `RecentStory(maxId:)`).
+Свап вызова в `TelegramCore` (`AccountViewTracker`). Сделано: `stories.getPeerMaxIDs`.
 
 ## Поведенческая адаптация (не парсер, но нужна)
 `submodules/TelegramUI/Sources/ApplicationContext.swift` — `deviceContactPhoneNumbers` отдаёт
@@ -75,6 +95,7 @@ dict[<201-id>] = { return Api.<Type>.parse_<name>_teamgram_layer201($0) }
 |---|---|---|
 | Список/история пустые, в логе `can't parse magic 0x<hex> in <type>` | сервер прислал 201-конструктор, нет парсера | по hex найти предикат в `teamgram-proto/mtproto/class_name_registers.go`; взять layout с core.telegram.org/schema; добавить `parse_*_teamgram_layer201` + alias в `Api0` |
 | Действие (отправка/правка/…) «висит», в `bff/access.log` метода НЕТ | клиент шлёт 222-конструктор, сервер дропнул | сверить constructor метода @201 vs @222 (`class_name_registers.go`); написать `*_teamgram_layer201` encode-обёртку + свапнуть вызовы |
+| `can't parse magic 0x<сырое> in <Type> [i/N]` (парс вектора) | дрейф ТИПА ВОЗВРАТА: сервер шлёт `Vector<скаляр>`, форк ждёт `Vector<boxed>` | обёртка `*_teamgram_layer201` с тем же request, но своим `DeserializeFunctionResponse` под 201-тип (см. раздел «Две стороны → 3») |
 | `RPC ERROR … code=500 unknown service` | teamgram не реализует сервис | второстепенно (attach-menu, gifts и т.п.); к Eugene или игнор |
 | Фича/кнопка пропала, код стоковый | поведение зависит от данных сервера (appConfig/подписки) | проверить соответствующий RPC в `[MTProto]`-логе: `OK` + поля нет → серверная сторона; `can't parse magic` → наш парсер. Пример: «+» сторис гейтится `storyPostingAvailable` ← `help.getAppConfig` (`stories_posting`) |
 
@@ -85,9 +106,26 @@ dict[<201-id>] = { return Api.<Type>.parse_<name>_teamgram_layer201($0) }
 
 ### Серверные логи (FTP, UTC; MSK = UTC+3)
 `curl -s -u '$FTP_USER:$FTP_PASS' 'ftp://$FTP_HOST/<path>'`
-- `bff/access.log` — высокоуровневые RPC (`sendMessage`, `getHistory`, …): дошёл ли метод.
-- `msg/access.log`, `msg/error.log` — message-сервис (readHistory и т.п.).
-- `gnetway/access.log` — транспорт/handshake.
+- `bff/access.log` — высокоуровневые RPC (`sendMessage`, `getHistory`, `getDifference`, …): дошёл ли метод.
+  Большой (10+ МБ) и по FTP часто рвётся по таймауту — тянуть **хвост по диапазону**: получить размер
+  из листинга `bff/`, затем `curl --range $((SIZE-1200000))- …`.
+- `msg/access.log` — message-сервис (sendMessage/sendMedia доходят сюда; `updates.getState` — НЕ здесь).
+- `gnetway/access.log`, `session.log` — транспорт/handshake/сессии.
+- Полезный фильтр: `getDifference - reply` → `updates_difference` (ещё синкается) vs `updates_differenceEmpty` (синк встал).
+
+## Наблюдения сессии 2026-05-27 (для следующего окна)
+- **user@201 подтверждён по серверу:** до фикса getDifference долбил `updates_difference` каждые ~5с
+  (pts не двигался из-за `stories_max_id`), после — досходится до `differenceEmpty`. Цикл снят.
+- **Навбарное «Updating…»** зажигается от `stateManager.isUpdating` (difference) ИЛИ MTProto
+  `connectionStatus == .updating` (`Account.swift:1297-1325`) — сторис-синк сюда НЕ входит.
+  Если «Updating…» висит при рабочих чатах и getDifference=`differenceEmpty` — подозревать
+  застрявший транспортный `connectionStatus` (teamgram не сигналит «сессия догналась»); копать
+  gnetway/session + где `connectionStatus` флипается в `.online`. На момент сессии — НЕ дорешено.
+- **Auth: пропадает шаг ввода кода — это НЕ баг.** После `auth.logOut` клиент хранит logout-token;
+  следующий `auth.sendCode` подкладывает его, сервер отвечает `auth.sentCodeSuccess` (быстрый
+  ре-логин без кода). Форк это обрабатывает штатно (`Authorization.swift:369` → `.loggedIn`).
+  Чтобы вернуть шаг кода — чистая установка/вход без сохранённого токена.
+- **Сторис — критическая фича DIVO** (не «не делаем»). Постинг чинится `sendStory`+`storyItem`+`getPeerMaxIDs`.
 
 ## Диагностика — временная
 Мост `[MTProto]` и вьюер логов — **снять перед PR** (ломает изоляцию DIVO: см. `DivoConsoleLogger`,

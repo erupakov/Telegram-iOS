@@ -1067,6 +1067,11 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[-1826262950] = { return Api.StoryAlbum.parse_storyAlbum($0) }
     dict[-1205411504] = { return Api.StoryFwdHeader.parse_storyFwdHeader($0) }
     dict[-302947087] = { return Api.StoryItem.parse_storyItem($0) }
+    // DIVO: teamgram layer 201 storyItem#79b26a24 (2041735716). 201 — строгий префикс 222
+    // (edf164f1): отличается только полем albums на flags.19, которого 201-сервер НЕ выставляет.
+    // Биты 0-18 совпадают, ни один не переинтерпретируется → безопасно на тот же parse_storyItem.
+    // (В отличие от user@201, где общий бит flags2.5 имел другой тип — там нужен был свой парсер.)
+    dict[2041735716] = { return Api.StoryItem.parse_storyItem($0) }
     dict[1374088783] = { return Api.StoryItem.parse_storyItemDeleted($0) }
     dict[-5388013] = { return Api.StoryItem.parse_storyItemSkipped($0) }
     dict[1620104917] = { return Api.StoryReaction.parse_storyReaction($0) }
@@ -1272,9 +1277,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[855293722] = { return Api.UrlAuthResult.parse_urlAuthResultRequest($0) }
     dict[829899656] = { return Api.User.parse_user($0) }
     // DIVO: teamgram-сервер на layer 201 отдаёт User с constructor 0x020b1422 (34280482).
-    // Структура полей и битовые флаги идентичны 0x31774388 (829899656, layer 217+),
-    // поэтому достаточно alias'а на тот же parse_user. См. teamgram-proto class_name_registers.go.
-    dict[34280482] = { return Api.User.parse_user($0) }
+    // НЕ идентичен 0x31774388 (222): на flags2.5 stories_max_id — int (201) vs RecentStory (222).
+    // parse_user читает там RecentStory → на юзерах со сторис буфер съезжает и Updates не парсится.
+    // 201-парсер читает int и отбрасывает. См. teamgram-proto codec_schema.tl.pb.go (TLUser.Encode).
+    dict[34280482] = { return Api.User.parse_user_teamgram_layer201($0) }
     dict[-271849932] = { return Api.UserProfile.parse_userProfile($0) }
     dict[-742634630] = { return Api.User.parse_userEmpty($0) }
     dict[-1607745218] = { return Api.UserFull.parse_userFull($0) }

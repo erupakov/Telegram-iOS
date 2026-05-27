@@ -864,6 +864,139 @@ public extension Api.UserFull {
     }
 }
 
+public extension Api.User {
+    // user#020b1422 (layer 201). Отличие от 222-конструктора 31774388 ровно одно: поле
+    // stories_max_id на flags2.5 — на 201 это простой int, на 222 это объект RecentStory.
+    // Форк-parse_user читает там RecentStory (сигнатура+тело) → на любом юзере СО сторис
+    // (flags2.5 выставлен, напр. модель с stories_max_id) буфер съезжает и весь Updates не
+    // парсится → sendMessage/getDifference-ответ = nil. Здесь читаем int и отбрасываем
+    // (сторис в DIVO не используются), storiesMaxId = nil. Остальные поля идентичны 222.
+    static func parse_user_teamgram_layer201(_ reader: BufferReader) -> Api.User? {
+        var _1: Int32?
+        _1 = reader.readInt32()
+        var _2: Int32?
+        _2 = reader.readInt32()
+        var _3: Int64?
+        _3 = reader.readInt64()
+        var _4: Int64?
+        if Int(_1!) & Int(1 << 0) != 0 {
+            _4 = reader.readInt64()
+        }
+        var _5: String?
+        if Int(_1!) & Int(1 << 1) != 0 {
+            _5 = parseString(reader)
+        }
+        var _6: String?
+        if Int(_1!) & Int(1 << 2) != 0 {
+            _6 = parseString(reader)
+        }
+        var _7: String?
+        if Int(_1!) & Int(1 << 3) != 0 {
+            _7 = parseString(reader)
+        }
+        var _8: String?
+        if Int(_1!) & Int(1 << 4) != 0 {
+            _8 = parseString(reader)
+        }
+        var _9: Api.UserProfilePhoto?
+        if Int(_1!) & Int(1 << 5) != 0 {
+            if let signature = reader.readInt32() {
+                _9 = Api.parse(reader, signature: signature) as? Api.UserProfilePhoto
+            }
+        }
+        var _10: Api.UserStatus?
+        if Int(_1!) & Int(1 << 6) != 0 {
+            if let signature = reader.readInt32() {
+                _10 = Api.parse(reader, signature: signature) as? Api.UserStatus
+            }
+        }
+        var _11: Int32?
+        if Int(_1!) & Int(1 << 14) != 0 {
+            _11 = reader.readInt32()
+        }
+        var _12: [Api.RestrictionReason]?
+        if Int(_1!) & Int(1 << 18) != 0 {
+            if let _ = reader.readInt32() {
+                _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+            }
+        }
+        var _13: String?
+        if Int(_1!) & Int(1 << 19) != 0 {
+            _13 = parseString(reader)
+        }
+        var _14: String?
+        if Int(_1!) & Int(1 << 22) != 0 {
+            _14 = parseString(reader)
+        }
+        var _15: Api.EmojiStatus?
+        if Int(_1!) & Int(1 << 30) != 0 {
+            if let signature = reader.readInt32() {
+                _15 = Api.parse(reader, signature: signature) as? Api.EmojiStatus
+            }
+        }
+        var _16: [Api.Username]?
+        if Int(_2!) & Int(1 << 0) != 0 {
+            if let _ = reader.readInt32() {
+                _16 = Api.parseVector(reader, elementSignature: 0, elementType: Api.Username.self)
+            }
+        }
+        // flags2.5: на 201 это int (stories_max_id) — читаем и отбрасываем (на 222 здесь RecentStory).
+        if Int(_2!) & Int(1 << 5) != 0 {
+            _ = reader.readInt32()
+        }
+        var _18: Api.PeerColor?
+        if Int(_2!) & Int(1 << 8) != 0 {
+            if let signature = reader.readInt32() {
+                _18 = Api.parse(reader, signature: signature) as? Api.PeerColor
+            }
+        }
+        var _19: Api.PeerColor?
+        if Int(_2!) & Int(1 << 9) != 0 {
+            if let signature = reader.readInt32() {
+                _19 = Api.parse(reader, signature: signature) as? Api.PeerColor
+            }
+        }
+        var _20: Int32?
+        if Int(_2!) & Int(1 << 12) != 0 {
+            _20 = reader.readInt32()
+        }
+        var _21: Int64?
+        if Int(_2!) & Int(1 << 14) != 0 {
+            _21 = reader.readInt64()
+        }
+        var _22: Int64?
+        if Int(_2!) & Int(1 << 15) != 0 {
+            _22 = reader.readInt64()
+        }
+        let _c1 = _1 != nil
+        let _c2 = _2 != nil
+        let _c3 = _3 != nil
+        let _c4 = (Int(_1!) & Int(1 << 0) == 0) || _4 != nil
+        let _c5 = (Int(_1!) & Int(1 << 1) == 0) || _5 != nil
+        let _c6 = (Int(_1!) & Int(1 << 2) == 0) || _6 != nil
+        let _c7 = (Int(_1!) & Int(1 << 3) == 0) || _7 != nil
+        let _c8 = (Int(_1!) & Int(1 << 4) == 0) || _8 != nil
+        let _c9 = (Int(_1!) & Int(1 << 5) == 0) || _9 != nil
+        let _c10 = (Int(_1!) & Int(1 << 6) == 0) || _10 != nil
+        let _c11 = (Int(_1!) & Int(1 << 14) == 0) || _11 != nil
+        let _c12 = (Int(_1!) & Int(1 << 18) == 0) || _12 != nil
+        let _c13 = (Int(_1!) & Int(1 << 19) == 0) || _13 != nil
+        let _c14 = (Int(_1!) & Int(1 << 22) == 0) || _14 != nil
+        let _c15 = (Int(_1!) & Int(1 << 30) == 0) || _15 != nil
+        let _c16 = (Int(_2!) & Int(1 << 0) == 0) || _16 != nil
+        let _c18 = (Int(_2!) & Int(1 << 8) == 0) || _18 != nil
+        let _c19 = (Int(_2!) & Int(1 << 9) == 0) || _19 != nil
+        let _c20 = (Int(_2!) & Int(1 << 12) == 0) || _20 != nil
+        let _c21 = (Int(_2!) & Int(1 << 14) == 0) || _21 != nil
+        let _c22 = (Int(_2!) & Int(1 << 15) == 0) || _22 != nil
+        if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 && _c15 && _c16 && _c18 && _c19 && _c20 && _c21 && _c22 {
+            return Api.User.user(Api.User.Cons_user(flags: _1!, flags2: _2!, id: _3!, accessHash: _4, firstName: _5, lastName: _6, username: _7, phone: _8, photo: _9, status: _10, botInfoVersion: _11, restrictionReason: _12, botInlinePlaceholder: _13, langCode: _14, emojiStatus: _15, usernames: _16, storiesMaxId: nil, color: _18, profileColor: _19, botActiveUsers: _20, botVerificationIcon: _21, sendPaidMessagesStars: _22))
+        } else {
+            return nil
+        }
+    }
+}
+
 public extension Api.functions.messages {
     // messages.sendMessage#fbf2340a (layer 201) — DIVO encode-фикс.
     // Форк кодирует sendMessage новым 222-конструктором 545cd15a с полями suggested_post (flags.22)
@@ -1083,6 +1216,113 @@ public extension Api.functions.messages {
             var result: Api.Bool?
             if let signature = reader.readInt32() {
                 result = Api.parse(reader, signature: signature) as? Api.Bool
+            }
+            return result
+        })
+    }
+}
+
+public extension Api.functions.contacts {
+    // Форк кодирует addContact 222-конструктором d9ba2e54 с полем note (flags.1?TextWithEntities),
+    // которого на layer 201 нет → teamgram-сервер не декодирует метод и молча дропает (контакт не
+    // добавляется на сервере, локально клиент оптимистично пишет «добавлен»). Кодируем под 201:
+    // constructor e8f463d0, сбрасываем бит note (flags.1), поле note не пишем. Бит 0
+    // (add_phone_privacy_exception) и остальные поля идентичны 222.
+    static func addContact_teamgram_layer201(flags: Int32, id: Api.InputUser, firstName: String, lastName: String, phone: String, note: Api.TextWithEntities?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Updates>) {
+        let buffer = Buffer()
+        buffer.appendInt32(-386636848)
+        let flags201 = flags & ~(Int32(1) << 1)
+        serializeInt32(flags201, buffer: buffer, boxed: false)
+        id.serialize(buffer, true)
+        serializeString(firstName, buffer: buffer, boxed: false)
+        serializeString(lastName, buffer: buffer, boxed: false)
+        serializeString(phone, buffer: buffer, boxed: false)
+        return (FunctionDescription(name: "contacts.addContact(teamgram_layer201)", parameters: [("flags", String(describing: flags201)), ("id", String(describing: id)), ("firstName", String(describing: firstName)), ("lastName", String(describing: lastName)), ("phone", String(describing: phone))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.Updates? in
+            let reader = BufferReader(buffer)
+            var result: Api.Updates?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.Updates
+            }
+            return result
+        })
+    }
+}
+
+public extension Api.functions.stories {
+    // Форк кодирует sendStory 222-конструктором 737fc2ec с полем albums (flags.8?Vector<int>),
+    // которого на layer 201 нет → teamgram-сервер не декодирует метод и молча дропает (постинг
+    // сторис не доходит, клиент висит на «Uploading…»). Кодируем под 201: constructor e4e6694b,
+    // сбрасываем бит 8, albums не пишем. Поля и биты 0-7 идентичны 222
+    // (caption.0/entities.1/pinned.2/period.3/noforwards.4/mediaAreas.5/fwdFrom.6/fwdModified.7).
+    static func sendStory_teamgram_layer201(flags: Int32, peer: Api.InputPeer, media: Api.InputMedia, mediaAreas: [Api.MediaArea]?, caption: String?, entities: [Api.MessageEntity]?, privacyRules: [Api.InputPrivacyRule], randomId: Int64, period: Int32?, fwdFromId: Api.InputPeer?, fwdFromStory: Int32?, albums: [Int32]?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Updates>) {
+        let buffer = Buffer()
+        buffer.appendInt32(-454661813)
+        let flags201 = flags & ~(Int32(1) << 8)
+        serializeInt32(flags201, buffer: buffer, boxed: false)
+        peer.serialize(buffer, true)
+        media.serialize(buffer, true)
+        if Int(flags201) & Int(1 << 5) != 0 {
+            buffer.appendInt32(481674261)
+            buffer.appendInt32(Int32(mediaAreas!.count))
+            for item in mediaAreas! {
+                item.serialize(buffer, true)
+            }
+        }
+        if Int(flags201) & Int(1 << 0) != 0 {
+            serializeString(caption!, buffer: buffer, boxed: false)
+        }
+        if Int(flags201) & Int(1 << 1) != 0 {
+            buffer.appendInt32(481674261)
+            buffer.appendInt32(Int32(entities!.count))
+            for item in entities! {
+                item.serialize(buffer, true)
+            }
+        }
+        buffer.appendInt32(481674261)
+        buffer.appendInt32(Int32(privacyRules.count))
+        for item in privacyRules {
+            item.serialize(buffer, true)
+        }
+        serializeInt64(randomId, buffer: buffer, boxed: false)
+        if Int(flags201) & Int(1 << 3) != 0 {
+            serializeInt32(period!, buffer: buffer, boxed: false)
+        }
+        if Int(flags201) & Int(1 << 6) != 0 {
+            fwdFromId!.serialize(buffer, true)
+        }
+        if Int(flags201) & Int(1 << 6) != 0 {
+            serializeInt32(fwdFromStory!, buffer: buffer, boxed: false)
+        }
+        return (FunctionDescription(name: "stories.sendStory(teamgram_layer201)", parameters: [("flags", String(describing: flags201)), ("peer", String(describing: peer)), ("media", String(describing: media)), ("randomId", String(describing: randomId))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.Updates? in
+            let reader = BufferReader(buffer)
+            var result: Api.Updates?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.Updates
+            }
+            return result
+        })
+    }
+
+    // На layer 201 stories.getPeerMaxIDs возвращает Vector<int> (constructor 535983c3), а форк (222,
+    // 78499170) ждёт Vector<RecentStory> и парсит элементы как boxed-объекты → давится на сыром int
+    // («can't parse magic 0x… in RecentStory»). Из-за этого не синкаются peer story max-id (бейджи
+    // сторис-стрипа / «My Story»). Запрос идентичен (сервер на 201-сессии всё равно отдаёт Vector<int>),
+    // ответ читаем как [Int32] и заворачиваем в RecentStory(maxId:) — caller (AccountViewTracker) берёт maxId.
+    static func getPeerMaxIDs_teamgram_layer201(id: [Api.InputPeer]) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<[Api.RecentStory]>) {
+        let buffer = Buffer()
+        buffer.appendInt32(2018087280)
+        buffer.appendInt32(481674261)
+        buffer.appendInt32(Int32(id.count))
+        for item in id {
+            item.serialize(buffer, true)
+        }
+        return (FunctionDescription(name: "stories.getPeerMaxIDs(teamgram_layer201)", parameters: [("id", String(describing: id))]), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> [Api.RecentStory]? in
+            let reader = BufferReader(buffer)
+            var result: [Api.RecentStory]?
+            if let _ = reader.readInt32() {
+                result = Api.parseVector(reader, elementSignature: -1471112230, elementType: Int32.self)?.map { maxId in
+                    Api.RecentStory.recentStory(Api.RecentStory.Cons_recentStory(flags: 1 << 1, maxId: maxId))
+                }
             }
             return result
         })
