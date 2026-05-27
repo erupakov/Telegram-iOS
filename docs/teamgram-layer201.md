@@ -105,7 +105,7 @@ Alias на существующий `parse_*` достаточен **тольк�
 201-обёртка. (Из 240 messages-методов дрейфануло 15; ядро из 5 сделано.)
 
 ### Серверные логи (FTP, UTC; MSK = UTC+3)
-`curl -s -u '$FTP_USER:$FTP_PASS' 'ftp://$FTP_HOST/<path>'`
+Креды FTP — из секретов (в репо не хранятся): `curl -s -u "$FTP_USER:$FTP_PASS" 'ftp://$FTP_HOST/<path>'`
 - `bff/access.log` — высокоуровневые RPC (`sendMessage`, `getHistory`, `getDifference`, …): дошёл ли метод.
   Большой (10+ МБ) и по FTP часто рвётся по таймауту — тянуть **хвост по диапазону**: получить размер
   из листинга `bff/`, затем `curl --range $((SIZE-1200000))- …`.
