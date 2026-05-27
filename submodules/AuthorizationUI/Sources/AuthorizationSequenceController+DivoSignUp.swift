@@ -1,14 +1,55 @@
 import Foundation
+import UIKit
 import Display
+import AsyncDisplayKit
 import Postbox
 import TelegramCore
 import SwiftSignalKit
 import DivoCore
+import DivoUIKit
 import TelegramPresentationData
 import AccountContext
 import AlertUI
 import PresentationDataUtils
 import TelegramNotices
+
+// DIVO: лоадинг-экран на время auto-signUp (signUpWithName летит на сервер).
+// Апстрим в этот момент держит видимый signUp-экран с прогрессом на кнопке; мы экран ввода имени
+// убрали, поэтому вместо пустого splash-stub показываем светлый экран со спиннером — иначе у нового
+// юзера несколько секунд висит пустой серый/белый экран перед таббаром.
+private final class DivoSignUpLoadingController: ViewController {
+    private var activityIndicator: UIActivityIndicatorView?
+
+    init() {
+        super.init(navigationBarPresentationData: nil)
+    }
+
+    required init(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func loadDisplayNode() {
+        self.displayNode = ASDisplayNode()
+        self.displayNode.backgroundColor = DivoColorPalette.screenBackground
+
+        let indicator = UIActivityIndicatorView(style: .medium)
+        indicator.color = DivoColorPalette.primaryText
+        indicator.startAnimating()
+        self.displayNode.view.addSubview(indicator)
+        self.activityIndicator = indicator
+
+        self.displayNodeDidLoad()
+    }
+
+    override func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
+        super.containerLayoutUpdated(layout, transition: transition)
+        if let indicator = self.activityIndicator {
+            indicator.sizeToFit()
+            let size = indicator.bounds.size
+            indicator.frame = CGRect(origin: CGPoint(x: floor((layout.size.width - size.width) / 2.0), y: floor((layout.size.height - size.height) / 2.0)), size: size)
+        }
+    }
+}
 
 // DIVO: auto-signUp flow без экрана ввода имени.
 //
@@ -20,13 +61,13 @@ import TelegramNotices
 // в AuthorizationSequenceController.swift остаётся только однострочный вызов в case .signUp.
 extension AuthorizationSequenceController {
     func divoHandleAutoSignUp(firstName: String, lastName: String) {
-        // Пушим splashController в стек, чтобы DivoSplashOverlayView получил сигнал ready
-        // и dismiss'ился — иначе юзер видит зависший splash, пока signUp летит на сервер.
+        // Лоадинг-экран (светлый + спиннер) на время signUp. Он же сигналит ready стартовому
+        // DivoSplashOverlayView (cold-start в signUp), и не оставляет пустого экрана в обычном флоу.
         var controllers: [ViewController] = []
         if !self.otherAccountPhoneNumbers.1.isEmpty {
             controllers.append(self.splashController())
         }
-        controllers.append(self.splashController())
+        controllers.append(DivoSignUpLoadingController())
         self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
 
         let effectiveFirstName = firstName.isEmpty ? "User" : firstName

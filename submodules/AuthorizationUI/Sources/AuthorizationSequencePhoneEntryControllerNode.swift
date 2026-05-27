@@ -112,9 +112,8 @@ private final class PhoneAndCountryNode: ASDisplayNode {
         self.phoneInputNode.countryCodeField.accessibilityHint = strings.Login_VoiceOver_PhoneCountryCode
         self.phoneInputNode.numberField.accessibilityHint = strings.Login_VoiceOver_PhoneNumber
 
-        // Код страны меняется только через шторку — текстовое поле кода не редактируется напрямую.
-        self.phoneInputNode.countryCodeField.textField.isUserInteractionEnabled = false
-
+        // Код страны можно ввести вручную (PhoneInputNode.countryCodeUpdated валидирует: определяет
+        // страну/флаг/маску, при невалидном — сбрасывает) ИЛИ выбрать через шторку (тап по шеврону).
         self.phoneInputNode.countryCodeField.textField.disableAutomaticKeyboardHandling = [.forward]
         self.phoneInputNode.numberField.textField.disableAutomaticKeyboardHandling = [.forward]
 
@@ -250,8 +249,10 @@ private final class PhoneAndCountryNode: ASDisplayNode {
         let separatorX = chevronX + chevronWidth + 10.0
         self.separatorLine.frame = CGRect(x: separatorX, y: 14.0, width: UIScreenPixel * 2.0, height: max(0.0, size.height - 28.0))
 
-        // Тап по всему левому сегменту (флаг + код + шеврон) открывает шторку выбора страны.
-        self.countryButton.frame = CGRect(x: 0.0, y: 0.0, width: separatorX, height: size.height)
+        // Пикер страны — тап по шеврону (зона шеврон + отступ до сепаратора). Поле кода слева
+        // остаётся редактируемым (ручной ввод), поэтому кнопку НЕ кладём поверх него.
+        let pickerTapX = chevronX - 6.0
+        self.countryButton.frame = CGRect(x: pickerTapX, y: 0.0, width: max(0.0, separatorX - pickerTapX), height: size.height)
 
         let numberX = separatorX + 12.0
         let numberFrame = CGRect(x: numberX, y: 0.0, width: max(0.0, size.width - numberX - 16.0), height: size.height)
@@ -266,7 +267,8 @@ private final class PhoneAndCountryNode: ASDisplayNode {
         let placeholderLineHeight = codeFont.lineHeight
         let placeholderSize = self.phoneInputNode.placeholderNode.updateLayout(CGSize(width: numberFrame.width, height: size.height))
         let placeholderRelX = numberFrame.minX - phoneInputFrame.minX
-        let placeholderRelY = floor((size.height - placeholderLineHeight) / 2.0) - phoneInputFrame.minY
+        // +0.5pt вниз: ImmediateTextNode рисует чуть выше центра UITextField — компенсируем рассинхрон (~1-1.5px @3x).
+        let placeholderRelY = floor((size.height - placeholderLineHeight) / 2.0) - phoneInputFrame.minY + 0.5
         self.phoneInputNode.placeholderNode.frame = CGRect(x: placeholderRelX, y: placeholderRelY, width: numberFrame.width, height: max(placeholderSize.height, placeholderLineHeight))
     }
 }

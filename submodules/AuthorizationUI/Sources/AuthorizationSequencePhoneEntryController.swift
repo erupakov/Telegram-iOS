@@ -176,7 +176,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         
         self.controllerNode.selectCountryCode = { [weak self] in
             if let strongSelf = self {
-                let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, glass: true, light: true)
+                let controller = AuthorizationSequenceCountrySelectionController(strings: strongSelf.presentationData.strings, theme: strongSelf.presentationData.theme, glass: true)
                 controller.completeWithCountryCode = { code, name, _ in
                     if let strongSelf = self, let currentData = strongSelf.currentData {
                         strongSelf.updateData(countryCode: Int32(code), countryName: name, number: currentData.2)

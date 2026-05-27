@@ -214,7 +214,6 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
     private let strings: PresentationStrings
     private let displayCodes: Bool
     private let glass: Bool
-    private let light: Bool
     private let needsSubtitle: Bool
 
     private let tableView: UITableView
@@ -233,12 +232,11 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
 
     private var validLayout: ContainerViewLayout?
 
-    init(theme: PresentationTheme, strings: PresentationStrings, displayCodes: Bool, glass: Bool, light: Bool = false, itemSelected: @escaping (((String, String), String, Int)) -> Void) {
+    init(theme: PresentationTheme, strings: PresentationStrings, displayCodes: Bool, glass: Bool, itemSelected: @escaping (((String, String), String, Int)) -> Void) {
         self.theme = theme
         self.strings = strings
         self.displayCodes = displayCodes
         self.glass = glass
-        self.light = light
         self.itemSelected = itemSelected
 
         self.needsSubtitle = strings.baseLanguageCode != "en"
@@ -282,7 +280,7 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
         })
 
         if glass {
-            let glassBackground = light ? DivoColorPalette.screenBackground : DivoColorPalette.darkBackground
+            let glassBackground = DivoColorPalette.screenBackground
             self.backgroundColor = glassBackground
             self.tableView.backgroundColor = glassBackground
             self.searchTableView.backgroundColor = glassBackground
@@ -303,7 +301,7 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
         self.tableView.delegate = self
         self.tableView.dataSource = self
 
-        self.tableView.sectionIndexColor = light ? DivoColorPalette.primaryText : DivoColorPalette.sectionIndex
+        self.tableView.sectionIndexColor = DivoColorPalette.primaryText
         self.tableView.sectionIndexBackgroundColor = .clear
 
         self.searchTableView.delegate = self
@@ -440,8 +438,8 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
     }
 
     func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
-        (view as? UITableViewHeaderFooterView)?.tintColor = self.light ? DivoColorPalette.screenBackground : self.theme.chatList.sectionHeaderFillColor
-        (view as? UITableViewHeaderFooterView)?.textLabel?.textColor = self.light ? DivoColorPalette.secondaryText : self.theme.chatList.sectionHeaderTextColor
+        (view as? UITableViewHeaderFooterView)?.tintColor = DivoColorPalette.screenBackground
+        (view as? UITableViewHeaderFooterView)?.textLabel?.textColor = DivoColorPalette.secondaryText
     }
     
     func sectionIndexTitles(for tableView: UITableView) -> [String]? {
@@ -497,8 +495,8 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
 
         cell.textLabel?.text = countryName
         cell.detailTextLabel?.text = originalCountryName
-        let primaryColor = self.light ? DivoColorPalette.primaryText : DivoColorPalette.primaryTextOnDark
-        let secondaryColor = self.light ? DivoColorPalette.secondaryText : DivoColorPalette.primaryTextOnDark
+        let primaryColor = DivoColorPalette.primaryText
+        let secondaryColor = DivoColorPalette.secondaryText
         if self.displayCodes, let label = cell.accessoryView as? UILabel {
             label.text = code
             label.sizeToFit()
@@ -506,7 +504,7 @@ final class AuthorizationSequenceCountrySelectionControllerNode: ASDisplayNode, 
         }
         cell.textLabel?.textColor = primaryColor
         cell.detailTextLabel?.textColor = secondaryColor
-        cell.backgroundColor = self.light ? DivoColorPalette.cardBackground : DivoColorPalette.overlayCell
+        cell.backgroundColor = DivoColorPalette.cardBackground
         cell.selectedBackgroundView?.backgroundColor = self.theme.list.itemHighlightedBackgroundColor
         return cell
     }
