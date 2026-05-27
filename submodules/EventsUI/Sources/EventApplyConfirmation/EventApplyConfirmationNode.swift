@@ -33,12 +33,14 @@ final class EventApplyConfirmationNode: ASDisplayNode {
     var onBackTapped: (() -> Void)?
     var onCancelTapped: (() -> Void)?
     var onSubmitTapped: (() -> Void)?
+    var onRetryTapped: (() -> Void)?
 
     // MARK: - Load phase
     enum ApplyPhase: Equatable {
         case loading
         case confirmation(matches: [ParameterMatch], hasMismatch: Bool)
         case success(deadlineText: String)
+        case failed(networkError: Bool)
     }
 
     private var phase: ApplyPhase = .loading {
@@ -47,6 +49,14 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         }
     }
 
+    // Вью ошибки загрузки
+    private let errorView: ProfileTabErrorView = {
+        let view = ProfileTabErrorView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
     // MARK: - UI Elements
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -54,6 +64,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         scrollView.backgroundColor = .clear
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.showsVerticalScrollIndicator = false
+        scrollView.bounces = false
         return scrollView
     }()
 
@@ -115,6 +126,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         label.textAlignment = .center
         label.text = DivoStrings.submitApplication.uppercased()
         label.translatesAutoresizingMaskIntoConstraints = false
+        label.isHidden = true
         return label
     }()
 
@@ -182,6 +194,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
     private let bottomButtonsContainer: UIView = {
         let bottomButtonsContainer = UIView()
         bottomButtonsContainer.translatesAutoresizingMaskIntoConstraints = false
+        bottomButtonsContainer.isHidden = true
         return bottomButtonsContainer
     }()
     
@@ -273,6 +286,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
 
         setupConstraints()
+        setupErrorView() // Встраиваем вью ошибок
     }
     
     private func setupProfileHeader() {
@@ -437,6 +451,18 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         ])
     }
     
+    private func setupErrorView() {
+        self.view.addSubview(errorView)
+        NSLayoutConstraint.activate([
+            errorView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            errorView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            errorView.topAnchor.constraint(equalTo: self.view.topAnchor),
+            errorView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
+        ])
+        // Кнопка назад и кастомный навбар должны остаться на переднем плане
+        self.view.bringSubviewToFront(customNavBar)
+    }
+    
     private func formatEventDateAndTime(dateString: String?) -> (date: String, time: String) {
         guard let dateString = dateString else {
             return (DivoStrings.tbd, DivoStrings.tbd)
@@ -495,6 +521,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             scrollView.isHidden = true
             bottomButtonsContainer.isHidden = true
             successContainer.isHidden = true
+            errorView.isHidden = true
             
             profileShimmerView.isHidden = false
             profileHeader.isHidden = true
@@ -505,11 +532,15 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             parametersShimmerView.isHidden = false
             parametersView.isHidden = true
             
+            navTitleLabel.isHidden = true
+            bottomButtonsContainer.isHidden = true
+            
             profileShimmerView.startAnimation()
             userProfileShimmer.startAnimation()
             parametersShimmerView.startAnimation()
             
         case .confirmation:
+            errorView.isHidden = true
             UIView.animate(withDuration: 0.3) {
                 self.scrollView.isHidden = false
                 self.bottomButtonsContainer.isHidden = false
@@ -524,6 +555,9 @@ final class EventApplyConfirmationNode: ASDisplayNode {
                 
                 self.parametersShimmerView.isHidden = true
                 self.parametersView.isHidden = false
+                
+                self.navTitleLabel.isHidden = false
+                self.bottomButtonsContainer.isHidden = false
             }
             profileShimmerView.stopAnimation()
             userProfileShimmer.stopAnimation()
@@ -532,6 +566,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         case .success(let deadlineText):
             scrollView.isHidden = true
             bottomButtonsContainer.isHidden = true
+            errorView.isHidden = true
             
             // Format success subtitle safely with the deadline date
             successSubtitleLabel.text = "Your application has been sent. The organiser will review it by \(deadlineText)."
@@ -541,6 +576,26 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             profileShimmerView.stopAnimation()
             userProfileShimmer.stopAnimation()
             parametersShimmerView.stopAnimation()
+            
+        case .failed(let networkError):
+            // Прячем абсолютно все секции и контент
+            scrollView.isHidden = true
+            bottomButtonsContainer.isHidden = true
+            successContainer.isHidden = true
+            
+            profileShimmerView.stopAnimation()
+            profileShimmerView.isHidden = true
+            userProfileShimmer.stopAnimation()
+            userProfileShimmer.isHidden = true
+            parametersShimmerView.stopAnimation()
+            parametersShimmerView.isHidden = true
+            
+            errorView.configure(
+                title: networkError ? DivoStrings.profileTabErrorNetworkTitle : DivoStrings.eventDetailErrorTitle,
+                subtitle: DivoStrings.profileTabErrorSubtitle,
+                onRetry: { [weak self] in self?.onRetryTapped?() }
+            )
+            errorView.isHidden = false
         }
     }
 
@@ -624,6 +679,13 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         submitButton.setSaving(active, in: self.view)
     }
     
+    func markFailed(networkError: Bool) {
+        self.phase = .failed(networkError: networkError)
+    }
+
+    func resetToLoading() {
+        self.phase = .loading
+    }
     
     // MARK: - Actions
     

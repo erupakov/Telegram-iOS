@@ -73,7 +73,7 @@ class ProfileApplyShimmerView: UIView {
             titlePlaceholder.heightAnchor.constraint(equalToConstant: 20),
             titlePlaceholder.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width / 2),
             
-            profilePlaceholder.heightAnchor.constraint(equalToConstant: 82),
+            profilePlaceholder.heightAnchor.constraint(equalToConstant: 70),
             profilePlaceholder.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width - DivoDesignTokens.Spacing.xl),
         ])
     }

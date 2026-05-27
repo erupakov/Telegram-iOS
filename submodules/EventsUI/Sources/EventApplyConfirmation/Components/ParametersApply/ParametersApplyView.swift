@@ -85,7 +85,7 @@ class ParametersApplyView: UIView {
     func configure(matches: [ParameterMatch], hasMismatch: Bool, isMultipleMismatches: Bool, singleMismatch: ParameterMatch?) {
         rowsStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
-        for (index, match) in matches.enumerated() {
+        for (_, match) in matches.enumerated() {
             let rowContainer = UIView()
             rowContainer.translatesAutoresizingMaskIntoConstraints = false
             
@@ -134,19 +134,17 @@ class ParametersApplyView: UIView {
             ])
             
             // Тонкая разделительная линия между ячейками
-            if index < matches.count - 1 {
-                let separator = UIView()
-                separator.backgroundColor = DivoColorPalette.primaryText.withAlphaComponent(0.12)
-                separator.translatesAutoresizingMaskIntoConstraints = false
-                rowContainer.addSubview(separator)
-                
-                NSLayoutConstraint.activate([
-                    separator.leadingAnchor.constraint(equalTo: rowContainer.leadingAnchor),
-                    separator.trailingAnchor.constraint(equalTo: rowContainer.trailingAnchor),
-                    separator.bottomAnchor.constraint(equalTo: rowContainer.bottomAnchor),
-                    separator.heightAnchor.constraint(equalToConstant: 1)
-                ])
-            }
+            let separator = UIView()
+            separator.backgroundColor = DivoColorPalette.primaryText.withAlphaComponent(0.12)
+            separator.translatesAutoresizingMaskIntoConstraints = false
+            rowContainer.addSubview(separator)
+            
+            NSLayoutConstraint.activate([
+                separator.leadingAnchor.constraint(equalTo: rowContainer.leadingAnchor),
+                separator.trailingAnchor.constraint(equalTo: rowContainer.trailingAnchor),
+                separator.bottomAnchor.constraint(equalTo: rowContainer.bottomAnchor),
+                separator.heightAnchor.constraint(equalToConstant: 1)
+            ])
             
             rowsStackView.addArrangedSubview(rowContainer)
         }

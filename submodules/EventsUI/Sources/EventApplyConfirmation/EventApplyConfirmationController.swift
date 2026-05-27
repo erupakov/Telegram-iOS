@@ -58,6 +58,12 @@ public final class EventApplyConfirmationController: TelegramBaseController {
         self.controllerNode.onSubmitTapped = { [weak self] in
             self?.performSubmitApplication()
         }
+        
+        self.controllerNode.onRetryTapped = { [weak self] in
+            guard let self = self else { return }
+            self.controllerNode.resetToLoading()
+            self.fetchUserAndCompare()
+        }
 
         self.displayNodeDidLoad()
         
@@ -72,18 +78,18 @@ public final class EventApplyConfirmationController: TelegramBaseController {
     private func fetchUserAndCompare() {
         Task {
             do {
+                // Получаем профиль текущего авторизованного пользователя (модели)
                 let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/user/info",
                     method: "GET"
                 )
                 
-                let userData = userResponse.data
-                
-                let (matches, hasMismatch, isMultiple, single) = self.compareParameters(user: userData, event: self.eventData)
+                // Проводим сверку параметров
+                let (matches, hasMismatch, isMultiple, single) = self.compareParameters(user: userResponse.data, event: self.eventData)
                 
                 await MainActor.run {
                     self.controllerNode.update(
-                        user: userData,
+                        user: userResponse.data,
                         event: self.eventData,
                         matches: matches,
                         hasMismatch: hasMismatch,
@@ -93,13 +99,13 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                 }
             } catch {
                 print("⚠️ fetchUserAndCompare failed: \(error)")
-                // await MainActor.run {
-                //     self.navigationController?.popViewController(animated: true)
-                // }
+                await MainActor.run {
+                    self.controllerNode.markFailed(networkError: self.isNetworkError(error))
+                }
             }
         }
     }
-    
+
     // Алгоритм сопоставления параметров модели и требований события
     private func compareParameters(user: UserDetail, event: EventFullDetailData) -> (
         matches: [ParameterMatch],
@@ -367,5 +373,12 @@ public final class EventApplyConfirmationController: TelegramBaseController {
         formatter.locale = Locale(identifier: DivoStrings.current.rawValue)
         formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
+    }
+
+    private func isNetworkError(_ error: Error) -> Bool {
+        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
+            return true
+        }
+        return false
     }
 }
