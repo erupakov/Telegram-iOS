@@ -98,7 +98,6 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                     )
                 }
             } catch {
-                print("⚠️ fetchUserAndCompare failed: \(error)")
                 await MainActor.run {
                     self.controllerNode.markFailed(networkError: self.isNetworkError(error))
                 }
@@ -353,9 +352,12 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                     self.onApplySuccess?()
                 }
             } catch {
-                print("⚠️ Application submission failed: \(error)")
                 await MainActor.run {
                     self.controllerNode.toggleSubmitLoading(active: false)
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.sendApplyRequestFail,
+                        style: .error
+                    )
                 }
             }
         }

@@ -1003,6 +1003,8 @@ public enum DivoStrings {
     public static func oneParameterDont(_ parameter: String) -> String { L(en: "Your \(parameter) doesn't match. Apply anyway?", ru: "Ваш параметр «\(parameter)» не совпадает. Всё равно отправить?", es: "Tu \(parameter) no coincide. ¿Solicitar de todos modos?", pt: "Seu/sua \(parameter) não corresponde. Candidatar-se assim mesmo?", zh: "您的\(parameter)不匹配。仍然提交申请？") }
     public static var allParametersSuccess: String { L(en: "All parameters are suitable for this event!", ru: "Все параметры подходят для этого события!", es: "¡Todos los parámetros son adecuados para este evento!", pt: "Todos os parâmetros são adequados para este evento!", zh: "所有参数均适用于此活动！") }
     public static var submit: String { L(en: "Submit", ru: "Отправить", es: "Enviar", pt: "Enviar", zh: "提交") }
+    public static var sending: String { L(en: "Sending...", ru: "Отправка...", es: "Enviando...", pt: "A enviar...", zh: "发送中...") }
+    public static var sendApplyRequestFail: String { L(en: "Couldn't send a request for an event", ru: "Не удалось отправить запрос на участие в событии", es: "No se pudo enviar la solicitud para el evento", pt: "Não foi possível enviar o pedido para o evento", zh: "无法发送活动请求") }
 
     // MARK: - Feed Events
     

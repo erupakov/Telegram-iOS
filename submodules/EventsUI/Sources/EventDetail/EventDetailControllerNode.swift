@@ -1794,6 +1794,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         // ранее навешанные targets, иначе один тап стрельнёт несколько действий.
         applyButton.removeTarget(self, action: nil, for: .touchUpInside)
         applyButton.isUserInteractionEnabled = true
+        appliedStatusViewContainer.isHidden = true
 
         if self.isMyEvent {
             applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
@@ -1801,31 +1802,12 @@ final class EventDetailControllerNode: ASDisplayNode {
         } else if newEventData.isApplied == true {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.isUserInteractionEnabled = false
+            let dateText = self.formatAppliedDate(newEventData.date)  //newEventData.appliedAt ??
+            appliedStatusView.configure(appliedDateText: dateText)
+            appliedStatusViewContainer.isHidden = false
         } else {
             applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
-        }
-        
-        let isApplied = newEventData.isApplied ?? false
-        
-        if self.isMyEvent {
-            applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
-            applyButton.addTarget(self, action: #selector(viewApplicationsTapped), for: .touchUpInside)
-            appliedStatusViewContainer.isHidden = true
-        } else {
-            if isApplied {
-                applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
-                applyButton.isUserInteractionEnabled = false
-                
-                let dateText = self.formatAppliedDate(newEventData.date)  //newEventData.appliedAt ??
-                appliedStatusView.configure(appliedDateText: dateText)
-                appliedStatusViewContainer.isHidden = false
-            } else {
-                applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
-                applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
-                applyButton.isUserInteractionEnabled = true
-                appliedStatusViewContainer.isHidden = true
-            }
         }
         
         if let deadlineText = EventDateFormatter.timeRemaining(deadline: newEventData.applicationDeadline) {

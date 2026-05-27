@@ -64,7 +64,6 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         scrollView.backgroundColor = .clear
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.showsVerticalScrollIndicator = false
-        scrollView.bounces = false
         return scrollView
     }()
 
@@ -112,9 +111,13 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         let button = UIButton(type: .custom)
         let image = DivoImage.searchChevronLeft
         button.setImage(image, for: .normal)
+        button.setImage(image, for: .highlighted)
         button.tintColor = DivoColorPalette.cardBackground
         button.backgroundColor = DivoColorPalette.statPillBackground
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
+        button.layer.masksToBounds = true
+        button.layer.borderWidth = 0.5
+        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -282,11 +285,10 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         setupBottomActionsBar()
         setupParametersChecklist()
 
+        setupErrorView()
         setupNavBar()
-        closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
 
         setupConstraints()
-        setupErrorView() // Встраиваем вью ошибок
     }
     
     private func setupProfileHeader() {
@@ -353,7 +355,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         
         cancelButton.makeDivoButton(title: DivoStrings.cancel, buttonFont: Font.helveticaNeue(18), radius: 28, divoButtonStyle: .secondary)
         cancelButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
-        submitButton.makeDivoButton(title: DivoStrings.submit, buttonFont: Font.helveticaNeue(18), radius: 28)
+        submitButton.makeDivoButton(title: DivoStrings.submit, loading: DivoStrings.sending, buttonFont: Font.helveticaNeue(18), radius: 28)
         
         let actionsStack = UIStackView(arrangedSubviews: [cancelButton, submitButton])
         actionsStack.axis = .horizontal
@@ -410,6 +412,10 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         customNavBar.addSubview(closeButton)
         customNavBar.addSubview(navTitleLabel)
         
+        addPillBlur(to: closeButton)
+        closeButton.addTarget(self, action: #selector(closeButtonTapped), for: .touchUpInside)
+        closeButton.addDivoPressState(.pill)
+        
         NSLayoutConstraint.activate([
             customNavBar.topAnchor.constraint(equalTo: self.view.topAnchor),
             customNavBar.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
@@ -459,8 +465,6 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             errorView.topAnchor.constraint(equalTo: self.view.topAnchor),
             errorView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
         ])
-        // Кнопка назад и кастомный навбар должны остаться на переднем плане
-        self.view.bringSubviewToFront(customNavBar)
     }
     
     private func formatEventDateAndTime(dateString: String?) -> (date: String, time: String) {
@@ -518,7 +522,9 @@ final class EventApplyConfirmationNode: ASDisplayNode {
     private func applyPhase() {
         switch phase {
         case .loading:
-            scrollView.isHidden = true
+            scrollView.isHidden = false
+            scrollView.isScrollEnabled = false
+            
             bottomButtonsContainer.isHidden = true
             successContainer.isHidden = true
             errorView.isHidden = true
@@ -534,6 +540,8 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             
             navTitleLabel.isHidden = true
             bottomButtonsContainer.isHidden = true
+            
+            blurredHeaderImageView.isHidden = false
             
             profileShimmerView.startAnimation()
             userProfileShimmer.startAnimation()
@@ -590,6 +598,8 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             parametersShimmerView.stopAnimation()
             parametersShimmerView.isHidden = true
             
+            blurredHeaderImageView.isHidden = true
+            
             errorView.configure(
                 title: networkError ? DivoStrings.profileTabErrorNetworkTitle : DivoStrings.eventDetailErrorTitle,
                 subtitle: DivoStrings.profileTabErrorSubtitle,
@@ -598,12 +608,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             errorView.isHidden = false
         }
     }
-
-    private func buildParametersList(matches: [ParameterMatch]) {
-        // Логика чек-листа полностью инкапсулирована в ParametersApplyView.
-        // Этот приватный метод в EventApplyConfirmationNode больше не используется.
-    }
-    
+        
     private func applyGradientBlurMask() {
         let blurBounds = blurredHeaderImageView.bounds
         guard blurBounds.height > 0 else { return }
@@ -623,6 +628,22 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         maskLayer.locations = [0.0, 0.45, 0.80, 1.0] as [NSNumber]
         
         blurredHeaderImageView.layer.mask = maskLayer
+    }
+
+    private func addPillBlur(to view: UIView) {
+        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        blur.isUserInteractionEnabled = false
+        view.insertSubview(blur, at: 0)
+        NSLayoutConstraint.activate([
+            blur.topAnchor.constraint(equalTo: view.topAnchor),
+            blur.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            blur.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+        if let button = view as? UIButton, let imageView = button.imageView {
+            button.bringSubviewToFront(imageView)
+        }
     }
 
 
@@ -692,4 +713,28 @@ final class EventApplyConfirmationNode: ASDisplayNode {
     @objc private func closeButtonTapped() { onBackTapped?() }
     @objc private func cancelButtonTapped() { onCancelTapped?() }
     @objc private func submitButtonTapped() { onSubmitTapped?() }
+
+
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: DivoDesignTokens.Spacing.m,
+            bottomAnchor: bottomButtonsContainer.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
+    }
 }

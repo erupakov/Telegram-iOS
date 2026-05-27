@@ -188,7 +188,6 @@ public final class EventDetailController: TelegramBaseController {
                     self.onEventModified?()
                 }
             } catch {
-                print("⚠️ withdrawApplication failed: \(error)")
                 await MainActor.run {
                     self.controllerNode.toggleWithdrawLoading(active: false)
                 }
