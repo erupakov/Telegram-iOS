@@ -50,7 +50,7 @@ public final class DivoButton: UIButton {
 
     // MARK: - Configuration
     
-    public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil, divoButtonStyle: DivoButtonStyle = .primary) {
+    public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil, divoButtonStyle: DivoButtonStyle = .primary, needUpdateImage: Bool = true) {
         self.normalTitle = title
         self.loadingTitle = loading
         self.buttonFont = buttonFont
@@ -58,10 +58,15 @@ public final class DivoButton: UIButton {
         // Сбрасываем иконку, если кнопку ранее настраивали через icon-вариант.
         // Иначе при переходе applied → apply (или любом обратном переключении)
         // иконка с прошлого состояния визуально остаётся.
-        setImage(nil, for: .normal)
-        setImage(nil, for: .highlighted)
-        imageEdgeInsets = .zero
-        titleEdgeInsets = .zero
+        // needUpdateImage=false — когда вызывающий сам ставит картинку сразу после
+        // (icon-вариант): без этого setImage/инсеты дёргаются лишний раз на каждом
+        // переконфиге кнопки в layout-проходе → инвалидация layout → шторм/зависание.
+        if needUpdateImage {
+            setImage(nil, for: .normal)
+            setImage(nil, for: .highlighted)
+            imageEdgeInsets = .zero
+            titleEdgeInsets = .zero
+        }
 
         applyNormalTitle(buttonFont: buttonFont)
         applyDisabledTitle(buttonFont: buttonFont)
@@ -81,11 +86,11 @@ public final class DivoButton: UIButton {
         compact: Bool = false
     ) {
         if compact {
-            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius ?? Self.compactButtonHeight / 2)
+            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius ?? Self.compactButtonHeight / 2, needUpdateImage: false)
             heightConstraint?.constant = Self.compactButtonHeight
             contentEdgeInsets = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 24)
         } else {
-            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius)
+            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius, needUpdateImage: false)
         }
         
         let processedIcon: UIImage
@@ -112,6 +117,11 @@ public final class DivoButton: UIButton {
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = Self.cornerRadius
+
+        // Если текст не помещается — обрезаем с конца. Главное слово
+        // обычно идёт первым («Publish event» → «Publish ev…»).
+        // (Случайно удалено в 1e01fbf9ad — возвращено для однострочной обрезки.)
+        titleLabel?.lineBreakMode = .byTruncatingTail
 
         contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right:  DivoDesignTokens.Spacing.m)
 
