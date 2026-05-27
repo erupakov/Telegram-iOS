@@ -27,6 +27,14 @@ public final class DivoConsoleLogger {
     private init() {
         // Lazy-register shake gesture observer — открывает logs viewer на любом экране.
         _ = DivoShakeGestureHandler.shared
+        // DIVO: мост MTProto-диагностики на debug-экран. TelegramApi/MtProtoKit не могут
+        // импортить DivoCore (цикл зависимостей), поэтому они постят "DivoMTProtoLog" через
+        // NotificationCenter, а мы кладём это в логи — как Android-алерт "can't parse magic".
+        NotificationCenter.default.addObserver(forName: Notification.Name("DivoMTProtoLog"), object: nil, queue: nil) { [weak self] note in
+            if let msg = note.userInfo?["message"] as? String {
+                self?.log(msg, level: .error, file: "MTProto", line: 0)
+            }
+        }
     }
 
     public func log(

@@ -991,6 +991,7 @@ public final class PendingMessageManager {
                 var replyTodoItemId: Int32?
                 var scheduleTime: Int32?
                 var scheduleRepeatPeriod: Int32?
+                _ = scheduleRepeatPeriod // DIVO: на layer 201 не отправляется
                 var videoTimestamp: Int32?
                 var sendAsPeerId: PeerId?
                 var quickReply: OutgoingQuickReplyMessageAttribute?
@@ -1117,6 +1118,7 @@ public final class PendingMessageManager {
                     }
                     
                     var replyTo: Api.InputReplyTo?
+                    _ = replyTo // DIVO: forwardMessages на layer 201 без reply_to
                     if let monoforumPeerId {
                         replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                         flags |= 1 << 22
@@ -1133,7 +1135,7 @@ public final class PendingMessageManager {
                     } else if let inputSourcePeerId = forwardPeerIds.first, let inputSourcePeer = transaction.getPeer(inputSourcePeerId).flatMap(apiInputPeer) {
                         let dependencyTag = PendingMessageRequestDependencyTag(messageId: messages[0].0.id)
 
-                        sendMessageRequest = network.request(Api.functions.messages.forwardMessages(flags: flags, fromPeer: inputSourcePeer, id: forwardIds.map { $0.0.id }, randomId: forwardIds.map { $0.1 }, toPeer: inputPeer, topMsgId: topMsgId, replyTo: replyTo, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: nil, videoTimestamp: videoTimestamp, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost), tag: dependencyTag)
+                        sendMessageRequest = network.request(Api.functions.messages.forwardMessages_teamgram_layer201(flags: flags, fromPeer: inputSourcePeer, id: forwardIds.map { $0.0.id }, randomId: forwardIds.map { $0.1 }, toPeer: inputPeer, topMsgId: topMsgId, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, videoTimestamp: videoTimestamp, allowPaidStars: allowPaidStars), tag: dependencyTag)
                     } else {
                         assertionFailure()
                         sendMessageRequest = .fail(MTRpcError(errorCode: 400, errorDescription: "Invalid forward source"))
@@ -1497,6 +1499,7 @@ public final class PendingMessageManager {
                 var replyTodoItemId: Int32?
                 var scheduleTime: Int32?
                 var scheduleRepeatPeriod: Int32?
+                _ = scheduleRepeatPeriod // DIVO: на layer 201 не отправляется
                 var videoTimestamp: Int32?
                 var sendAsPeerId: PeerId?
                 var bubbleUpEmojiOrStickersets = false
@@ -1687,7 +1690,8 @@ public final class PendingMessageManager {
                             flags |= 1 << 22
                         }
                     
-                        sendMessageRequest = network.requestWithAdditionalInfo(Api.functions.messages.sendMessage(flags: flags, peer: inputPeer, replyTo: replyTo, message: message.text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: messageEffectId, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost), info: .acknowledgement, tag: dependencyTag)
+                        // DIVO: кодируем sendMessage под layer 201 (teamgram-сервер не понимает 222-конструктор). См. ApiTeamgramLayer200.swift.
+                        sendMessageRequest = network.requestWithAdditionalInfo(Api.functions.messages.sendMessage_teamgram_layer201(flags: flags, peer: inputPeer, replyTo: replyTo, message: message.text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: messageEffectId, allowPaidStars: allowPaidStars), info: .acknowledgement, tag: dependencyTag)
                     case let .media(inputMedia, text):
                         if bubbleUpEmojiOrStickersets {
                             flags |= Int32(1 << 15)
@@ -1786,7 +1790,7 @@ public final class PendingMessageManager {
                             flags |= 1 << 22
                         }
                     
-                        sendMessageRequest = network.request(Api.functions.messages.sendMedia(flags: flags, peer: inputPeer, replyTo: replyTo, media: inputMedia, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: messageEffectId, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost), tag: dependencyTag)
+                        sendMessageRequest = network.request(Api.functions.messages.sendMedia_teamgram_layer201(flags: flags, peer: inputPeer, replyTo: replyTo, media: inputMedia, message: text, randomId: uniqueId, replyMarkup: nil, entities: messageEntities, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: messageEffectId, allowPaidStars: allowPaidStars), tag: dependencyTag)
                         |> map(NetworkRequestResult.result)
                     case let .forward(sourceInfo):
                         var topMsgId: Int32?
@@ -1821,6 +1825,7 @@ public final class PendingMessageManager {
                         }
                     
                         var replyTo: Api.InputReplyTo?
+                        _ = replyTo // DIVO: forwardMessages на layer 201 без reply_to
                         if let monoforumPeerId {
                             replyTo = .inputReplyToMonoForum(.init(monoforumPeerId: monoforumPeerId))
                             flags |= 1 << 22
@@ -1831,7 +1836,7 @@ public final class PendingMessageManager {
                         }
                     
                         if let forwardSourceInfoAttribute = forwardSourceInfoAttribute, let sourcePeer = transaction.getPeer(forwardSourceInfoAttribute.messageId.peerId), let sourceInputPeer = apiInputPeer(sourcePeer) {
-                            sendMessageRequest = network.request(Api.functions.messages.forwardMessages(flags: flags, fromPeer: sourceInputPeer, id: [sourceInfo.messageId.id], randomId: [uniqueId], toPeer: inputPeer, topMsgId: topMsgId, replyTo: replyTo, scheduleDate: scheduleTime, scheduleRepeatPeriod: scheduleRepeatPeriod, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, effect: nil, videoTimestamp: videoTimestamp, allowPaidStars: allowPaidStars, suggestedPost: suggestedPost), tag: dependencyTag)
+                            sendMessageRequest = network.request(Api.functions.messages.forwardMessages_teamgram_layer201(flags: flags, fromPeer: sourceInputPeer, id: [sourceInfo.messageId.id], randomId: [uniqueId], toPeer: inputPeer, topMsgId: topMsgId, scheduleDate: scheduleTime, sendAs: sendAsInputPeer, quickReplyShortcut: quickReplyShortcut, videoTimestamp: videoTimestamp, allowPaidStars: allowPaidStars), tag: dependencyTag)
                             |> map(NetworkRequestResult.result)
                         } else {
                             sendMessageRequest = .fail(MTRpcError(errorCode: 400, errorDescription: "internal"))

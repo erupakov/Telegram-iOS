@@ -768,10 +768,16 @@ final class AuthorizedApplicationContext {
             }
         }
         self.context.account.importableContacts.set(optionalImportableContacts)
-        self.context.sharedContext.deviceContactPhoneNumbers.set(optionalImportableContacts
-        |> map { contacts in
-            return Set(contacts.keys.map { cleanPhoneNumber($0.rawValue) })
-        })
+        // DIVO: эмитим пустое множество СРАЗУ, реальные контакты — потом. Иначе при не-определённом
+        // доступе к контактам contactDataManager.importable() не эмитит первое значение, и от него
+        // зависит chatHistoryNode combineLatest (deviceContactsNumbers) → открытие чата висит.
+        self.context.sharedContext.deviceContactPhoneNumbers.set(
+            Signal<Set<String>, NoError>.single(Set())
+            |> then(optionalImportableContacts
+            |> map { contacts in
+                return Set(contacts.keys.map { cleanPhoneNumber($0.rawValue) })
+            })
+        )
         
         let previousTheme = Atomic<PresentationTheme?>(value: nil)
         self.presentationDataDisposable = (context.sharedContext.presentationData

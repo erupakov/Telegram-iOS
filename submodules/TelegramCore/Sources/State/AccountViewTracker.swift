@@ -1446,7 +1446,7 @@ public final class AccountViewTracker {
                                 slice.append(inputPeers[i])
                             }
                             startIndex += batchCount
-                            requests.append(account.network.request(Api.functions.stories.getPeerMaxIDs(id: slice.map(\.1)))
+                            requests.append(account.network.request(Api.functions.stories.getPeerMaxIDs_teamgram_layer201(id: slice.map(\.1)))
                             |> `catch` { _ -> Signal<[Api.RecentStory], NoError> in
                                 return .single([])
                             }

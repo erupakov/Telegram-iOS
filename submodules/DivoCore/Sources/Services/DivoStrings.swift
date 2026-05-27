@@ -297,12 +297,36 @@ public enum DivoStrings {
     public static var dataStorage: String { L(en: "Data and Storage", ru: "Данные и хранилище", es: "Datos y almacenamiento", pt: "Dados e armazenamento", zh: "数据和存储") }
     public static var language: String { L(en: "Language", ru: "Язык", es: "Idioma", pt: "Idioma", zh: "语言") }
     public static var logOut: String { L(en: "Log out", ru: "Выйти", es: "Cerrar sesión", pt: "Sair", zh: "退出") }
+    public static var logOutConfirmation: String { L(en: "Are you sure you want to log out?", ru: "Вы уверены, что хотите выйти?", es: "¿Estás seguro de que quieres cerrar sesión?", pt: "Tem certeza que deseja sair?", zh: "确定要退出登录吗？") }
     public static var settingsDebugLaunchOnboarding: String { L(en: "Launch onboarding (debug)", ru: "Запустить онбординг (debug)", es: "Iniciar onboarding (debug)", pt: "Iniciar onboarding (debug)", zh: "启动入门引导（调试）") }
     public static var measuringSystem: String { L(en: "Measuring System", ru: "Система измерения", es: "Sistema de medición", pt: "Sistema de medição", zh: "测量系统") }
     public static var myParameters: String { L(en: "My Parameters", ru: "Мои параметры", es: "Mis parámetros", pt: "Meus parâmetros", zh: "我的参数") }
     public static var saveParameters: String { L(en: "Save parameters", ru: "Сохранить параметры", es: "Guardar parámetros", pt: "Salvar parâmetros", zh: "保存参数") }
     public static var metric: String { L(en: "Metric", ru: "Метрическая", es: "Métrico", pt: "Métrico", zh: "公制") }
     public static var imperial: String { L(en: "Imperial", ru: "Имперская", es: "Imperial", pt: "Imperial", zh: "英制") }
+
+    // MARK: - Auth Welcome
+
+    public static var authWelcomeTitle: String { L(en: "Welcome to DIVO", ru: "Добро пожаловать в DIVO", es: "Bienvenido a DIVO", pt: "Bem-vindo à DIVO", zh: "欢迎来到 DIVO") }
+    public static var authWelcomeSubtitle: String { L(en: "Sign in or create your account", ru: "Войдите или создайте аккаунт", es: "Inicia sesión o crea tu cuenta", pt: "Entre ou crie sua conta", zh: "登录或创建账户") }
+    public static var authContinueWithPhone: String { L(en: "Continue with phone number", ru: "Продолжить с номером телефона", es: "Continuar con número de teléfono", pt: "Continuar com número de telefone", zh: "使用手机号继续") }
+    public static var authSignInWithGoogle: String { L(en: "Sign In with Google", ru: "Войти через Google", es: "Iniciar sesión con Google", pt: "Entrar com Google", zh: "使用 Google 登录") }
+    public static var authSignInWithApple: String { L(en: "Sign In with Apple", ru: "Войти через Apple", es: "Iniciar sesión con Apple", pt: "Entrar com Apple", zh: "使用 Apple 登录") }
+    public static var authSeparatorOr: String { L(en: "or", ru: "или", es: "o", pt: "ou", zh: "或") }
+    public static var authTermsAndPrivacyPrefix: String { L(en: "By continuing you agree to our", ru: "Продолжая, вы соглашаетесь с", es: "Al continuar aceptas nuestros", pt: "Ao continuar você concorda com", zh: "继续即表示您同意我们的") }
+    public static var authTermsAndPrivacyConjunction: String { L(en: "and", ru: "и", es: "y", pt: "e", zh: "和") }
+    public static var authTermsOfService: String { L(en: "Terms of Service", ru: "Условиями использования", es: "Términos de servicio", pt: "Termos de Serviço", zh: "服务条款") }
+    public static var authPrivacyPolicy: String { L(en: "Privacy Policy", ru: "Политикой конфиденциальности", es: "Política de privacidad", pt: "Política de Privacidade", zh: "隐私政策") }
+    public static var authComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
+
+    // MARK: - OTP / Code entry
+    /// Подзаголовок экрана ввода кода. %@ — номер телефона (выделяется жирным в UI).
+    public static var otpCodeSentToFormat: String { L(en: "We sent a 6-digit code to %@", ru: "Мы отправили 6-значный код на %@", es: "Enviamos un código de 6 dígitos a %@", pt: "Enviamos um código de 6 dígitos para %@", zh: "我们已向 %@ 发送6位验证码") }
+    public static var otpIncorrectCode: String { L(en: "Incorrect code. Try again.", ru: "Неверный код. Попробуйте ещё раз.", es: "Código incorrecto. Inténtalo de nuevo.", pt: "Código incorreto. Tente novamente.", zh: "验证码错误，请重试。") }
+    public static var otpCodeExpired: String { L(en: "Code Expired", ru: "Срок действия кода истёк", es: "Código caducado", pt: "Código expirado", zh: "验证码已过期") }
+    /// Текст таймера повторной отправки. %@ — оставшееся время в формате m:ss.
+    public static var otpResendInFormat: String { L(en: "Resend in %@", ru: "Повторная отправка через %@", es: "Reenviar en %@", pt: "Reenviar em %@", zh: "%@后重新发送") }
+    public static var otpResendCode: String { L(en: "Resend Code", ru: "Отправить код повторно", es: "Reenviar código", pt: "Reenviar código", zh: "重新发送验证码") }
 
     // MARK: - Common
 

@@ -162,7 +162,9 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
             guard let self else {
                 return
             }
-            self.loadAndPresentPasskey(force: true)
+            // FIXME DIVO: passkey-логин отключён — teamgram-сервер на layer 201 не знает auth.initPasskeyLogin (он появился в 215+), любой запрос проваливается с ошибкой 444.
+            // self.loadAndPresentPasskey(force: true)
+            _ = self
         }
         
         if let (code, name, number) = self.currentData {
@@ -190,6 +192,10 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         self.controllerNode.checkPhone = { [weak self] in
             self?.nextPressed()
         }
+        // DIVO: круглая back-кнопка нарисована в ноде; системный (синий) nav-bar скрыт.
+        self.controllerNode.backPressed = { [weak self] in
+            self?.back()
+        }
         
         if let account = self.account {
             loadServerCountryCodes(accountManager: sharedContext.accountManager, engine: TelegramEngineUnauthorized(account: account), completion: { [weak self] in
@@ -201,9 +207,10 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
             self.controllerNode.updateCountryCode()
         }
         
-        self.loadAndPresentPasskey(force: false)
+        // FIXME DIVO: passkey-логин отключён — teamgram-сервер на layer 201 не знает auth.initPasskeyLogin (он появился в 215+), любой запрос проваливается с ошибкой 444.
+        // self.loadAndPresentPasskey(force: false)
     }
-    
+
     private func loadAndPresentPasskey(force: Bool) {
         if #available(iOS 16.0, *) {
             Task { @MainActor [weak self] in
@@ -327,7 +334,10 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
     private var animatingIn = false
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
+
+        // DIVO: прячем системный nav-bar (синяя back/Next) — back рисует DivoNavigationBar в ноде.
+        self.navigationBar?.isHidden = true
+
         if self.shouldAnimateIn {
             self.animatingIn = true
             if let (buttonFrame, buttonTitle, animationSnapshot, textSnapshot) = self.transitionInArguments {

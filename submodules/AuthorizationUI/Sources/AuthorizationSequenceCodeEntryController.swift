@@ -138,7 +138,12 @@ public final class AuthorizationSequenceCodeEntryController: ViewController {
         self.controllerNode.present = { [weak self] c, a in
             self?.present(c, in: .window(.root), with: a)
         }
-        
+
+        // DIVO: круглая back-кнопка в ноде → та же логика отмены, что у скрытого системного бара.
+        self.controllerNode.backPressed = { [weak self] in
+            self?.navigationBar?.backPressed()
+        }
+
         if let (number, email, codeType, nextType, timeout, previousCodeType, isPrevious) = self.data {
             var appleSignInAllowed = false
             if case let .email(_, _, _, _, appleSignInAllowedValue, _) = codeType {
@@ -148,9 +153,15 @@ public final class AuthorizationSequenceCodeEntryController: ViewController {
         }
     }
     
+    override public func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // DIVO: прячем системный (синий) nav-bar — back рисует DivoNavigationBar в ноде.
+        self.navigationBar?.isHidden = true
+    }
+
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
+
         if let navigationController = self.navigationController as? NavigationController, let layout = self.validLayout {
             addTemporaryKeyboardSnapshotView(navigationController: navigationController, layout: layout)
         }

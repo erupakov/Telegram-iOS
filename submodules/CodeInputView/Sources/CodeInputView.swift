@@ -12,14 +12,20 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
         public var succeedBorder: UInt32
         public var failedBorder: UInt32
         public var foreground: UInt32
+        public var background: UInt32
+        public var cornerRadius: CGFloat
+        public var boxSize: CGFloat
         public var isDark: Bool
-        
+
         public init(
             inactiveBorder: UInt32,
             activeBorder: UInt32,
             succeedBorder: UInt32,
             failedBorder: UInt32,
             foreground: UInt32,
+            background: UInt32 = 0,
+            cornerRadius: CGFloat = 4.0,
+            boxSize: CGFloat = 0,
             isDark: Bool
         ) {
             self.inactiveBorder = inactiveBorder
@@ -27,6 +33,9 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
             self.succeedBorder = succeedBorder
             self.failedBorder = failedBorder
             self.foreground = foreground
+            self.background = background
+            self.cornerRadius = cornerRadius
+            self.boxSize = boxSize
             self.isDark = isDark
         }
     }
@@ -36,7 +45,8 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
         private let textNode: ImmediateTextNode
         
         private var borderColorValue: UInt32?
-        
+        private var cornerRadiusValue: CGFloat = 4.0
+
         private var text: String = ""
         
         override init() {
@@ -44,10 +54,11 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
             self.textNode = ImmediateTextNode()
             
             super.init()
-            
-            self.addSubnode(self.textNode)
+
+            // Фон/рамка бокса — ПОД текстом, иначе непрозрачная заливка перекрывает введённые цифры.
             self.view.addSubview(self.backgroundView)
-            
+            self.addSubnode(self.textNode)
+
             self.clipsToBounds = true
         }
         
@@ -61,6 +72,15 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
             self.textNode.layer.anchorPoint = CGPoint(x: 0.5, y: 1.0)
         }
         
+        func update(fill: UInt32, cornerRadius: CGFloat) {
+            self.cornerRadiusValue = cornerRadius
+            self.backgroundView.backgroundColor = UIColor(argb: fill)
+            self.backgroundView.layer.cornerRadius = cornerRadius
+            if #available(iOS 13.0, *) {
+                self.backgroundView.layer.cornerCurve = .continuous
+            }
+        }
+
         func update(borderColor: UInt32, isHighlighted: Bool) {
             if self.borderColorValue != borderColor {
                 self.borderColorValue = borderColor
@@ -94,7 +114,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
                 }
             }
             
-            self.backgroundView.layer.cornerRadius = 4//size.height == 28.0 ? 12.0 : 15.0
+            self.backgroundView.layer.cornerRadius = self.cornerRadiusValue
             if #available(iOS 13.0, *) {
                 self.backgroundView.layer.cornerCurve = .continuous
             }
@@ -276,7 +296,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
             
             let fontSize: CGFloat
             if self.prefix.isEmpty {
-                let height: CGFloat = self.compact ? 44.0 : 51.0
+                let height: CGFloat = theme.boxSize > 0.0 ? theme.boxSize : (self.compact ? 44.0 : 51.0)
                 fontSize = floor(13.0 * height / 28.0)
             } else {
                 let height: CGFloat = 28.0
@@ -292,6 +312,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
                 borderColor = self.focusIndex == i ? theme.activeBorder : theme.inactiveBorder
             }
             
+            itemView.update(fill: theme.background, cornerRadius: theme.cornerRadius)
             itemView.update(borderColor: borderColor, isHighlighted: self.focusIndex == i)
             let itemText: String
             if i < self.textValue.count {
@@ -321,7 +342,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
         let fontSize: CGFloat
         let height: CGFloat
         if prefix.isEmpty {
-            height = compact ? 44.0 : 51.0
+            height = theme.boxSize > 0.0 ? theme.boxSize : (compact ? 44.0 : 51.0)
             fontSize = floor(13.0 * height / 28.0)
         } else {
             height = 28.0
@@ -336,7 +357,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
         let prefixSize = self.prefixLabel.updateLayout(CGSize(width: width, height: 100.0))
         let prefixSpacing: CGFloat = prefix.isEmpty ? 0.0 : 8.0
         
-        let itemSize = CGSize(width: floor(24.0 * height / 28.0), height: height)
+        let itemSize = CGSize(width: (theme.boxSize > 0.0 && prefix.isEmpty) ? theme.boxSize : floor(24.0 * height / 28.0), height: height)
         let itemSpacing: CGFloat = prefix.isEmpty ? 15.0 : 5.0
         let itemsWidth: CGFloat = itemSize.width * CGFloat(count) + itemSpacing * CGFloat(count - 1)
         
@@ -364,6 +385,7 @@ public final class CodeInputView: ASDisplayNode, UITextFieldDelegate {
                 borderColor = self.focusIndex == i ? theme.activeBorder : theme.inactiveBorder
             }
             
+            itemView.update(fill: theme.background, cornerRadius: theme.cornerRadius)
             itemView.update(borderColor: borderColor, isHighlighted: self.focusIndex == i)
             let itemText: String
             if i < self.textValue.count {

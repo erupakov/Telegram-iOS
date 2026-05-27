@@ -102,6 +102,7 @@ final class DivoSettingsNode: ASDisplayNode {
     var onSetUsernameTapped: (() -> Void)?
     var onFillParametersTapped: (() -> Void)?
     var onQrTapped: (() -> Void)?
+    var onLogOutTapped: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
     var saveMeasuringSystem: ((String?) -> Void)?
 
@@ -354,7 +355,13 @@ final class DivoSettingsNode: ASDisplayNode {
             logOutContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
         ])
 
+        logOutContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(logOutTapped)))
+
         contentViewStack.addArrangedSubview(logOutStackContainer)
+    }
+
+    @objc private func logOutTapped() {
+        onLogOutTapped?()
     }
 
     private func setupOnboardingEntrySection() {

@@ -9,6 +9,7 @@ import MtProtoKit
 import MessageUI
 import CoreTelephony
 import DivoCore
+import DivoAuthUI
 import TelegramPresentationData
 import PresentationDataUtils
 import TextFormat
@@ -39,17 +40,20 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         return NavigationBarTheme(overallDarkAppearance: theme.overallDarkAppearance, buttonColor: .white, disabledButtonColor: theme.intro.disabledTextColor, primaryTextColor: theme.intro.primaryTextColor, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: theme.rootController.navigationBar.badgeBackgroundColor, badgeStrokeColor: theme.rootController.navigationBar.badgeStrokeColor, badgeTextColor: theme.rootController.navigationBar.badgeTextColor, edgeEffectColor: .clear)
     }
     
-    private let sharedContext: SharedAccountContext
-    private var account: UnauthorizedAccount
-    private let otherAccountPhoneNumbers: ((String, AccountRecordId, Bool)?, [(String, AccountRecordId, Bool)])
+    // DIVO: видимость расширена до internal, чтобы +DivoSignUp extension мог
+    // обрабатывать auto-signUp flow в отдельном файле (см. AuthorizationSequenceController+DivoSignUp.swift).
+    internal let sharedContext: SharedAccountContext
+    internal var account: UnauthorizedAccount
+    internal let otherAccountPhoneNumbers: ((String, AccountRecordId, Bool)?, [(String, AccountRecordId, Bool)])
     private let apiId: Int32
     private let apiHash: String
     public var presentationData: PresentationData
     private let openUrl: (String) -> Void
     private let authorizationCompleted: () -> Void
-    
+
     private var stateDisposable: Disposable?
-    private let actionDisposable = MetaDisposable()
+    // DIVO: internal для +DivoSignUp.
+    internal let actionDisposable = MetaDisposable()
     private var applicationStateDisposable: Disposable?
     
     private var didPlayPresentationAnimation = false
@@ -60,7 +64,8 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     }
     private var didSetReady = false
     
-    fileprivate var engine: TelegramEngineUnauthorized {
+    // DIVO: internal вместо fileprivate, чтобы +DivoSignUp extension мог дёргать setState.
+    internal var engine: TelegramEngineUnauthorized {
         return TelegramEngineUnauthorized(account: self.account)
     }
     
@@ -134,8 +139,25 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     // DIVO: исторический Telegram back-cover для multi-account flow. У нас splash отрисовывает
     // DivoSplashOverlayView в AppDelegate, поэтому здесь возвращаем прозрачный stub —
     // он остаётся в navigation stack для совместимости с upstream-кодом, но визуально не виден.
-    private func splashController() -> ViewController {
+    // Видимость internal — чтобы +DivoSignUp extension мог пушить его в стек.
+    internal func splashController() -> ViewController {
         return ViewController(navigationBarPresentationData: nil)
+    }
+
+    private func welcomeController() -> DivoAuthWelcomeController {
+        let controller = DivoAuthWelcomeController()
+        controller.onContinueWithPhone = { [weak self] in
+            guard let strongSelf = self else { return }
+            let phoneEntry = strongSelf.phoneEntryController(
+                countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(),
+                number: ""
+            )
+            strongSelf.pushViewController(phoneEntry, animated: true)
+        }
+        // Google/Apple — заглушки до интеграции Firebase Auth (P0.4 в плане Eugene'а)
+        // и empty-Divo endpoint (P1.5/1.6). Сейчас тап → snackbar «Coming soon»
+        // через дефолтное поведение DivoAuthWelcomeController.
+        return controller
     }
 
     private func phoneEntryController(countryCode: Int32, number: String) -> AuthorizationSequencePhoneEntryController {
@@ -156,10 +178,16 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 guard let strongSelf = self else {
                     return
                 }
+                // DIVO: убираем клавиатуру до анимации pop — иначе Welcome
+                // отрисовывается с клавиатурой поверх, и она уезжает вниз отдельно.
+                strongSelf.view.endEditing(true)
                 if !strongSelf.otherAccountPhoneNumbers.1.isEmpty {
                     let _ = (strongSelf.sharedContext.accountManager.transaction { transaction -> Void in
                         transaction.removeAuth()
                     }).startStandalone()
+                } else if strongSelf.viewControllers.first is DivoAuthWelcomeController {
+                    // DIVO: back с phone entry → возврат на Welcome через pop стека.
+                    let _ = strongSelf.popViewController(animated: true)
                 } else {
                     let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: strongSelf.account.testingEnvironment, masterDatacenterId: strongSelf.account.masterDatacenterId, contents: .empty)).startStandalone()
                 }
@@ -176,6 +204,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 guard let self else {
                     return
                 }
+                divoLog("[Auth UI] loginWithNumber — Continue tapped, phone=\(number), syncContacts=\(syncContacts). Дальше уходит запрос sendCode на MTProto.", level: .info)
                 controller?.inProgress = true
                 
                 let disableAuthTokens = self.sharedContext.immediateExperimentalUISettings.disableReloginTokens
@@ -575,7 +604,8 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                                             text = strongSelf.presentationData.strings.Login_WrongPhraseError
                                             controller.selectIncorrectPart()
                                         default:
-                                            text = strongSelf.presentationData.strings.Login_WrongCodeError
+                                            // DIVO: точная копия дизайна OTP «Incorrect code. Try again.»
+                                            text = DivoStrings.otpIncorrectCode
                                         }
                                         controller.animateError(text: text)
                                     } else {
@@ -587,11 +617,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                                                 text = strongSelf.presentationData.strings.Login_CodeFloodError
                                             case .invalidCode:
                                                 resetCode = true
-                                                text = strongSelf.presentationData.strings.Login_InvalidCodeError
+                                                text = DivoStrings.otpIncorrectCode
                                             case .generic:
                                                 text = strongSelf.presentationData.strings.Login_UnknownError
                                             case .codeExpired:
-                                                text = strongSelf.presentationData.strings.Login_CodeExpired
+                                                text = DivoStrings.otpCodeExpired
                                                 let account = strongSelf.account
                                                 let _ = strongSelf.engine.auth.setState(state: UnauthorizedAccountState(isTestingEnvironment: account.testingEnvironment, masterDatacenterId: account.masterDatacenterId, contents: .empty)).startStandalone()
                                             case .invalidEmailToken:
@@ -1292,10 +1322,10 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         case let .state(state):
             switch state {
                 case .empty:
-                    let alreadyShowingPhoneEntry = self.viewControllers.last is AuthorizationSequencePhoneEntryController
-                    if !alreadyShowingPhoneEntry {
-                        let phoneEntry = self.phoneEntryController(countryCode: AuthorizationSequenceCountrySelectionController.defaultCountryCode(), number: "")
-                        self.setViewControllers([phoneEntry], animated: !self.viewControllers.isEmpty)
+                    let alreadyShowingWelcome = self.viewControllers.first is DivoAuthWelcomeController
+                    if !alreadyShowingWelcome {
+                        let welcome = self.welcomeController()
+                        self.setViewControllers([welcome], animated: !self.viewControllers.isEmpty)
                     }
                 case let .newScreen(typeOfRole):
                     var controllers: [ViewController] = []
@@ -1369,24 +1399,9 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     controllers.append(self.awaitingAccountResetController(protectedUntil: protectedUntil, number: number))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                 case let .signUp(_, _, firstName, lastName, _, _):
-                    // DIVO: по дизайну экрана ввода имени нет — автоматически регистрируем
-                    // с дефолтным firstName, чтобы сервер принял auth.signUp.
-                    // FIXME: когда Eugene реализует empty-Divo endpoint — поменять на нормальный flow.
-                    let effectiveFirstName = firstName.isEmpty ? "User" : firstName
-                    self.actionDisposable.set((signUpWithName(
-                        accountManager: self.sharedContext.accountManager,
-                        account: self.account,
-                        firstName: effectiveFirstName,
-                        lastName: lastName,
-                        avatarData: nil,
-                        avatarVideo: nil,
-                        videoStartTimestamp: nil,
-                        disableJoinNotifications: false,
-                        forcedPasswordSetupNotice: { value in
-                            guard let entry = CodableEntry(ApplicationSpecificCounterNotice(value: value)) else { return nil }
-                            return (ApplicationSpecificNotice.forcedPasswordSetupKey(), entry)
-                        }
-                    ) |> deliverOnMainQueue).startStrict())
+                    // DIVO: auto-signUp без экрана ввода имени.
+                    // Полная логика — в AuthorizationSequenceController+DivoSignUp.swift.
+                    self.divoHandleAutoSignUp(firstName: firstName, lastName: lastName)
                 case let .payment(number, codeHash, storeProduct, supportEmailAddress, supportEmailSubject, _):
                     var controllers: [ViewController] = []
                     if !self.otherAccountPhoneNumbers.1.isEmpty {
