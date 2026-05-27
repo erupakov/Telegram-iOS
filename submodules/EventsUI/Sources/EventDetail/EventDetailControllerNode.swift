@@ -1828,8 +1828,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             }
         }
         
-        if let deadlineText = formatTimeRemaining(deadlineString: newEventData.applicationDeadline) {
-
+        if let deadlineText = EventDateFormatter.timeRemaining(deadline: newEventData.applicationDeadline) {
             eventDeadlineLabel.text = deadlineText
             eventDeadlineContainer.isHidden = false
         } else {
