@@ -228,8 +228,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
     }()
 
     private let successCheckmarkView: UIImageView = {
-        let iv = UIImageView(image: UIImage(systemName: "checkmark.circle.fill"))
-        iv.tintColor = .systemGreen
+        let iv = UIImageView(image: DivoImage.successApply)
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -237,8 +236,8 @@ final class EventApplyConfirmationNode: ASDisplayNode {
 
     private let successTitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "YOU'RE IN!"
-        label.font = Font.helveticaNeue(28)
+        label.text = DivoStrings.eventApplyTitle.uppercased()
+        label.font = Font.helveticaNeue(26)
         label.textColor = DivoColorPalette.primaryText
         label.textAlignment = .center
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -247,7 +246,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
 
     private let successSubtitleLabel: UILabel = {
         let label = UILabel()
-        label.font = Font.regular(15)
+        label.font = Font.medium(16)
         label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
         label.textAlignment = .center
         label.numberOfLines = 0
@@ -255,9 +254,9 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         return label
     }()
 
-    private let successCloseButton = DivoButton()
 
     // MARK: - Init
+
     init(context: AccountContext) {
         self.context = context
         super.init()
@@ -286,6 +285,8 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         setupParametersChecklist()
 
         setupErrorView()
+        setupSeccessView()
+
         setupNavBar()
 
         setupConstraints()
@@ -437,6 +438,37 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         ])
     }
 
+    private func setupSeccessView() {
+        self.view.addSubview(successContainer)
+                
+        successContainer.addSubview(successCheckmarkView)
+        successContainer.addSubview(successTitleLabel)
+        successContainer.addSubview(successSubtitleLabel)
+        
+        NSLayoutConstraint.activate([
+            // Настройка констрейнтов для экрана успеха
+            successContainer.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            successContainer.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            successContainer.topAnchor.constraint(equalTo: self.view.topAnchor),
+            successContainer.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+            
+            successCheckmarkView.centerXAnchor.constraint(equalTo: successContainer.centerXAnchor),
+            successCheckmarkView.centerYAnchor.constraint(equalTo: successContainer.centerYAnchor, constant: -60),
+            successCheckmarkView.widthAnchor.constraint(equalToConstant: 68),
+            successCheckmarkView.heightAnchor.constraint(equalToConstant: 68),
+            
+            successTitleLabel.topAnchor.constraint(equalTo: successCheckmarkView.bottomAnchor, constant: 14),
+            successTitleLabel.centerXAnchor.constraint(equalTo: successContainer.centerXAnchor),
+            successTitleLabel.leadingAnchor.constraint(equalTo: successContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            successTitleLabel.trailingAnchor.constraint(equalTo: successContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            
+            successSubtitleLabel.topAnchor.constraint(equalTo: successTitleLabel.bottomAnchor, constant: 6),
+            successSubtitleLabel.centerXAnchor.constraint(equalTo: successContainer.centerXAnchor),
+            successSubtitleLabel.leadingAnchor.constraint(equalTo: successContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            successSubtitleLabel.trailingAnchor.constraint(equalTo: successContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+        ])
+    }
+
     private func setupConstraints() {
         NSLayoutConstraint.activate([
             backgroundImageView.topAnchor.constraint(equalTo: self.view.topAnchor),
@@ -543,6 +575,12 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             
             blurredHeaderImageView.isHidden = false
             
+            // Сброс иконки навбара в дефолтное состояние (шеврона)
+            closeButton.setImage(DivoImage.searchChevronLeft, for: .normal)
+            closeButton.backgroundColor = DivoColorPalette.statPillBackground
+            closeButton.layer.borderWidth = 0.5
+            navTitleLabel.textColor = DivoColorPalette.cardBackground
+
             profileShimmerView.startAnimation()
             userProfileShimmer.startAnimation()
             parametersShimmerView.startAnimation()
@@ -567,6 +605,12 @@ final class EventApplyConfirmationNode: ASDisplayNode {
                 self.navTitleLabel.isHidden = false
                 self.bottomButtonsContainer.isHidden = false
             }
+            // Сброс иконки навбара в дефолтное состояние (шеврона)
+            closeButton.setImage(DivoImage.searchChevronLeft, for: .normal)
+            closeButton.backgroundColor = DivoColorPalette.statPillBackground
+            closeButton.layer.borderWidth = 0.5
+            navTitleLabel.textColor = DivoColorPalette.cardBackground
+
             profileShimmerView.stopAnimation()
             userProfileShimmer.stopAnimation()
             parametersShimmerView.stopAnimation()
@@ -575,11 +619,28 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             scrollView.isHidden = true
             bottomButtonsContainer.isHidden = true
             errorView.isHidden = true
+
+            closeButton.subviews.forEach { subview in
+                if subview is UIVisualEffectView {
+                    subview.isHidden = true
+                }
+            }
+
+            closeButton.backgroundColor = DivoColorPalette.cardBackground
+            closeButton.layer.cornerRadius = DivoDesignTokens.Radius.pill
+            let image = DivoImage.searchCloseIcon
+            closeButton.setImage(image, for: .normal)
+            closeButton.setImage(image, for: .highlighted)
+            closeButton.tintColor = DivoColorPalette.primaryText
+            closeButton.layer.applyDivoShadow()
             
-            // Format success subtitle safely with the deadline date
-            successSubtitleLabel.text = "Your application has been sent. The organiser will review it by \(deadlineText)."
+            navTitleLabel.textColor = DivoColorPalette.primaryText
+            navTitleLabel.isHidden = false
+            
+            successSubtitleLabel.text = DivoStrings.eventApplySubtitle(deadlineText)
             
             successContainer.isHidden = false
+            blurredHeaderImageView.isHidden = true
             
             profileShimmerView.stopAnimation()
             userProfileShimmer.stopAnimation()

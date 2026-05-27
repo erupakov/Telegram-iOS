@@ -1005,6 +1005,8 @@ public enum DivoStrings {
     public static var submit: String { L(en: "Submit", ru: "Отправить", es: "Enviar", pt: "Enviar", zh: "提交") }
     public static var sending: String { L(en: "Sending...", ru: "Отправка...", es: "Enviando...", pt: "A enviar...", zh: "发送中...") }
     public static var sendApplyRequestFail: String { L(en: "Couldn't send a request for an event", ru: "Не удалось отправить запрос на участие в событии", es: "No se pudo enviar la solicitud para el evento", pt: "Não foi possível enviar o pedido para o evento", zh: "无法发送活动请求") }
+    public static var eventApplyTitle: String { L(en: "You're in!", ru: "Вы участвуете!", es: "¡Estás dentro!", pt: "Está confirmado!", zh: "您已加入！") }
+    public static func eventApplySubtitle(_ date: String) -> String { L(en: "Your application has been sent. The organiser will review it by \(date).", ru: "Ваша заявка отправлена. Организатор рассмотрит её до \(date).", es: "Su solicitud ha sido enviada. El organizador la revisará antes del \(date).", pt: "A sua candidatura foi enviada. O organizador irá analisá-la até \(date).", zh: "您的申请已发送。组织者将在\(date)前进行审核。") }
 
     // MARK: - Feed Events
     

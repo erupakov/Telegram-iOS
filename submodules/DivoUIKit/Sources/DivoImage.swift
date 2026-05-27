@@ -140,6 +140,7 @@ public enum DivoImage {
     public static var storyAvatarStub6: UIImage { load("DivoStoryAvatarStub6") }
     public static var storyAvatarStub7: UIImage { load("DivoStoryAvatarStub7") }
     public static var storyAvatarStub8: UIImage { load("DivoStoryAvatarStub8") }
+    public static var successApply: UIImage { load("DivoSuccessApply") }
     public static var tikTokIcon: UIImage { load("DivoTikTokIcon") }
     public static var timeIcon: UIImage { load("DivoTimeIcon") }
     public static var uploadPhoto: UIImage { load("DivoUploadPhoto") }
