@@ -55,6 +55,14 @@ final class ApplicationsListNode: ASDisplayNode {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+        
+    private let countLabelShimmer: UIView = {
+        let view = UIView()
+        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.layer.cornerRadius = 10
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
 
     private let countLabel: UILabel = {
         let label = UILabel()
@@ -115,17 +123,16 @@ final class ApplicationsListNode: ASDisplayNode {
         super.init()
         self.backgroundColor = DivoColorPalette.screenBackground
         setupUI()
-        showShimmers()
     }
 
     private func setupUI() {
         self.view.addSubview(navigationBar)
         self.view.addSubview(collectionView)
         self.view.addSubview(searchFadeOverlay)
-        self.view.addSubview(emptyView)
         self.view.addSubview(metaHeaderContainer)
         
         metaHeaderContainer.addSubview(countLabel)
+        metaHeaderContainer.addSubview(countLabelShimmer)
 
         navigationBar.makeNavigationBar(
             title: DivoStrings.applicationsList.uppercased(),
@@ -150,19 +157,31 @@ final class ApplicationsListNode: ASDisplayNode {
 
             countLabel.leadingAnchor.constraint(equalTo: metaHeaderContainer.leadingAnchor),
             countLabel.centerYAnchor.constraint(equalTo: metaHeaderContainer.centerYAnchor),
+            
+            countLabelShimmer.leadingAnchor.constraint(equalTo: metaHeaderContainer.leadingAnchor),
+            countLabelShimmer.centerYAnchor.constraint(equalTo: metaHeaderContainer.centerYAnchor),
+            countLabelShimmer.heightAnchor.constraint(equalToConstant: 20),
+            countLabelShimmer.widthAnchor.constraint(equalToConstant: 70),
 
             collectionView.topAnchor.constraint(equalTo: metaHeaderContainer.bottomAnchor),
             collectionView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-
-            emptyView.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 20),
-            emptyView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
-            emptyView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
-            emptyView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
         ])
 
+        setupEmptyView()
         setupErrorView()
+    }
+    
+    private func setupEmptyView() {
+        self.view.addSubview(emptyView)
+        NSLayoutConstraint.activate([
+            emptyView.topAnchor.constraint(equalTo: self.view.topAnchor),
+            emptyView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            emptyView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            emptyView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+        ])
+        self.view.bringSubviewToFront(navigationBar)
     }
 
     private func setupErrorView() {
@@ -181,22 +200,36 @@ final class ApplicationsListNode: ASDisplayNode {
         if let (layout, navigationBarHeight) = self.containerLayout {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
         }
+        
+        if !countLabelShimmer.isHidden {
+            countLabelShimmer.stopShimmering()
+            countLabelShimmer.startShimmering()
+        }
     }
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
         self.savedNavBarHeight = navigationBarHeight
         self.layoutIfNeeded()
+        
+        // Показываем и перерисовываем шиммеры только когда они нужны и еще не созданы в текущей сессии разметки
+        if phase == .loading && shimmerViews.isEmpty {
+            showShimmers()
+        }
     }
 
     private func applyState() {
         switch phase {
         case .loading:
             collectionView.isHidden = true
-            metaHeaderContainer.isHidden = true
+            metaHeaderContainer.isHidden = false
             emptyView.isHidden = true
             errorView.isHidden = true
-            showShimmers()
+            
+            // Если размеры экрана уже известны, запускаем шиммеры
+            if containerLayout != nil {
+                showShimmers()
+            }
             
         case .content:
             collectionView.isHidden = false
@@ -212,11 +245,13 @@ final class ApplicationsListNode: ASDisplayNode {
             errorView.isHidden = true
             hideShimmers()
             
+            // ИСПРАВЛЕНО: Используем гарантированно рабочую системную картинку эвентов/заявок
             emptyView.configure(.init(
                 style: .largeIcon(icon: DivoImage.emptyApplications),
                 title: DivoStrings.noApplicationsYet,
                 subtitle: ""
             ))
+            emptyView.animateAppearance()
             
         case .failed(let networkError):
             collectionView.isHidden = true
@@ -225,7 +260,7 @@ final class ApplicationsListNode: ASDisplayNode {
             hideShimmers()
             
             errorView.configure(
-                title: networkError ? DivoStrings.profileTabErrorNetworkTitle : DivoStrings.eventDetailErrorTitle,
+                title: networkError ? DivoStrings.profileTabErrorNetworkTitle : DivoStrings.eventApplicationsListErrorTitle,
                 subtitle: DivoStrings.profileTabErrorSubtitle,
                 onRetry: { [weak self] in self?.onRetry?() }
             )
@@ -235,13 +270,13 @@ final class ApplicationsListNode: ASDisplayNode {
 
     private func showShimmers() {
         hideShimmers()
-        let startY = savedNavBarHeight + 32 + 18 + 20 + 10 // отступ под навбаром и сегментом
+        
+        // Рассчитываем точную координату верха списка ячеек
+        let startY = savedNavBarHeight + DivoDesignTokens.Spacing.l + 20
         let rowHeight: CGFloat = 72
         
-        for i in 0..<6 {
-            let rowShimmer = UIView()
-            rowShimmer.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
-            rowShimmer.layer.cornerRadius = 16
+        for i in 0..<10 { // Создаем ровно 10 штук для покрытия экранов Pro Max моделей
+            let rowShimmer = ApplicationsListCellShimmerView()
             rowShimmer.translatesAutoresizingMaskIntoConstraints = false
             
             self.view.addSubview(rowShimmer)
@@ -249,20 +284,28 @@ final class ApplicationsListNode: ASDisplayNode {
             
             NSLayoutConstraint.activate([
                 rowShimmer.topAnchor.constraint(equalTo: self.view.topAnchor, constant: startY + CGFloat(i) * rowHeight),
-                rowShimmer.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-                rowShimmer.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-                rowShimmer.heightAnchor.constraint(equalToConstant: 64)
+                rowShimmer.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+                rowShimmer.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+                rowShimmer.heightAnchor.constraint(equalToConstant: rowHeight)
             ])
-            rowShimmer.startShimmering()
+            rowShimmer.startAnimation() // Запускаем анимацию внутри ячейки
         }
+        
+        countLabelShimmer.isHidden = false
+        countLabel.isHidden = true
     }
 
     private func hideShimmers() {
-        shimmerViews.forEach {
-            $0.stopShimmering()
-            $0.removeFromSuperview()
+        shimmerViews.forEach { view in
+            if let shimmer = view as? ApplicationsListCellShimmerView {
+                shimmer.stopAnimation()
+            }
+            view.removeFromSuperview()
         }
         shimmerViews.removeAll()
+        
+        countLabelShimmer.isHidden = true
+        countLabel.isHidden = false
     }
 
     func update(items: [ApplicantItem], totalCount: Int) {

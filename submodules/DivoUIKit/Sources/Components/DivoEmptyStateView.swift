@@ -179,9 +179,9 @@ public final class DivoEmptyStateView: UIView {
 
         case let .largeIcon(icon):
             iconView.image = icon.withRenderingMode(.alwaysOriginal)
-            circleView.isHidden = true
+            circleView.isHidden = false
             circleView.backgroundColor = .clear
-            setCircleSize(0)
+            setCircleSize(68)
             setIconSize(68)
 
         case .textOnly:

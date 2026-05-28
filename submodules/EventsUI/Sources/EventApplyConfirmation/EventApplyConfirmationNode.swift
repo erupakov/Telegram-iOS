@@ -285,7 +285,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         setupParametersChecklist()
 
         setupErrorView()
-        setupSeccessView()
+        setupSuccessView()
 
         setupNavBar()
 
@@ -438,7 +438,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         ])
     }
 
-    private func setupSeccessView() {
+    private func setupSuccessView() {
         self.view.addSubview(successContainer)
                 
         successContainer.addSubview(successCheckmarkView)
