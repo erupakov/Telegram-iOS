@@ -205,7 +205,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         if let tabController = self.rootTabController as? TabBarControllerImpl {
             tabController.setControllers(tabController.controllers, selectedIndex: nil)
         }
-        self.popToRoot(animated: false)
+        // animated:true — иначе pop из DivoLanguagePickerController в Settings идёт резко;
+        // в других местах (token change, logout) popToRoot оставлен без анимации намеренно.
+        self.popToRoot(animated: true)
     }
 
     private func resetNavigationOnTokenChange() {

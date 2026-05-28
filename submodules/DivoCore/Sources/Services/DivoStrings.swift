@@ -296,6 +296,10 @@ public enum DivoStrings {
     public static var privacySecurity: String { L(en: "Privacy and Security", ru: "Конфиденциальность и безопасность", es: "Privacidad y seguridad", pt: "Privacidade e segurança", zh: "隐私与安全") }
     public static var dataStorage: String { L(en: "Data and Storage", ru: "Данные и хранилище", es: "Datos y almacenamiento", pt: "Dados e armazenamento", zh: "数据和存储") }
     public static var language: String { L(en: "Language", ru: "Язык", es: "Idioma", pt: "Idioma", zh: "语言") }
+    public static var languageAuto: String { L(en: "System", ru: "Системный", es: "Sistema", pt: "Sistema", zh: "系统") }
+    public static func languageSystemSubtitle(_ deviceName: String) -> String {
+        L(en: "Follows device — \(deviceName)", ru: "Как на устройстве — \(deviceName)", es: "Sigue el dispositivo — \(deviceName)", pt: "Segue o dispositivo — \(deviceName)", zh: "跟随设备 — \(deviceName)")
+    }
     public static var logOut: String { L(en: "Log out", ru: "Выйти", es: "Cerrar sesión", pt: "Sair", zh: "退出") }
     public static var logOutConfirmation: String { L(en: "Are you sure you want to log out?", ru: "Вы уверены, что хотите выйти?", es: "¿Estás seguro de que quieres cerrar sesión?", pt: "Tem certeza que deseja sair?", zh: "确定要退出登录吗？") }
     public static var settingsDebugLaunchOnboarding: String { L(en: "Launch onboarding (debug)", ru: "Запустить онбординг (debug)", es: "Iniciar onboarding (debug)", pt: "Iniciar onboarding (debug)", zh: "启动入门引导（调试）") }
