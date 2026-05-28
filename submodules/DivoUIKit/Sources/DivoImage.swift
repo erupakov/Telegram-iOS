@@ -20,6 +20,7 @@ public enum DivoImage {
     public static var badgeCalendar: UIImage { load("DivoBadgeCalendar") }
     public static var basket: UIImage { load("DivoBasket") }
     public static var basketWork: UIImage { load("DivoBasketWork") }
+    public static var blackCheckmark: UIImage { load("DivoBlackCheckmark") }
     public static var block: UIImage { load("DivoBlock") }
     public static var calendar: UIImage { load("DivoCalendar") }
     public static var channelIcon: UIImage { load("DivoChannelIcon") }

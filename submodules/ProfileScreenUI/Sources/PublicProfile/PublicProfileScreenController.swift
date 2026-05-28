@@ -851,7 +851,8 @@ extension PublicProfileScreenController {
                         city: city,
                         customAvatarURL: finalAvatarUrl,
                         originalDate: item.date,
-                        eventId: item.id
+                        eventId: item.id,
+                        isApplied: item.isApplied
                     )
                 }
 
