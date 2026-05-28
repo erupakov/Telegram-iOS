@@ -159,7 +159,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 await DivoAuthGoogleHandler.signIn(from: controller)
             }
         }
-        // Apple — заглушка до шага 4: тап → snackbar «Coming soon».
+        controller.onSignInWithApple = { [weak controller] in
+            Task { @MainActor in
+                await DivoAuthAppleHandler.signIn(from: controller)
+            }
+        }
         return controller
     }
 

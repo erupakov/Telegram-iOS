@@ -35,6 +35,7 @@ public final class FirebaseAuthClient: NSObject {
 
     private var currentSession: ASWebAuthenticationSession?
     private var presentationProvider: GoogleAuthPresentationProvider?
+    private var appleSignInDelegate: AppleSignInDelegate?
 
     private override init() {}
 
@@ -109,10 +110,78 @@ public final class FirebaseAuthClient: NSObject {
         )
     }
 
-    // MARK: - Apple (Шаг 4)
+    // MARK: - Apple
 
-    public func signInWithApple() async throws -> DivoFirebaseSignInResult {
-        throw DivoFirebaseAuthError.notConfigured
+    @MainActor
+    public func signInWithApple(presentingFrom anchor: ASPresentationAnchor?) async throws -> DivoFirebaseSignInResult {
+        let rawNonce = Self.generateAppleNonce(length: 32)
+        let hashedNonce = Self.sha256Hex(rawNonce)
+
+        let appleProvider = ASAuthorizationAppleIDProvider()
+        let request = appleProvider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = hashedNonce
+
+        let authorization = try await runAppleAuth(request: request, anchor: anchor)
+
+        guard let appleCredential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            throw DivoFirebaseAuthError.invalidResponse("not ASAuthorizationAppleIDCredential")
+        }
+        guard let idTokenData = appleCredential.identityToken,
+              let idToken = String(data: idTokenData, encoding: .utf8) else {
+            throw DivoFirebaseAuthError.missingToken
+        }
+
+        let firebaseCredential = OAuthProvider.appleCredential(
+            withIDToken: idToken,
+            rawNonce: rawNonce,
+            fullName: appleCredential.fullName
+        )
+        let authResult = try await Auth.auth().signIn(with: firebaseCredential)
+        let user = authResult.user
+
+        let displayName: String?
+        if let fullName = appleCredential.fullName {
+            let formatter = PersonNameComponentsFormatter()
+            let formatted = formatter.string(from: fullName)
+            displayName = formatted.isEmpty ? user.displayName : formatted
+        } else {
+            displayName = user.displayName
+        }
+
+        DivoConsoleLogger.shared.log(
+            "Firebase signIn apple ok: uid=\(user.uid) email=\(appleCredential.email ?? user.email ?? "nil")",
+            level: .info
+        )
+        return DivoFirebaseSignInResult(
+            uid: user.uid,
+            providerId: "apple.com",
+            idToken: idToken,
+            email: appleCredential.email ?? user.email,
+            displayName: displayName
+        )
+    }
+
+    @MainActor
+    private func runAppleAuth(request: ASAuthorizationAppleIDRequest, anchor: ASPresentationAnchor?) async throws -> ASAuthorization {
+        return try await withCheckedThrowingContinuation { continuation in
+            var didResume = false
+            let resumeOnce: (Result<ASAuthorization, Error>) -> Void = { [weak self] result in
+                guard !didResume else { return }
+                didResume = true
+                self?.appleSignInDelegate = nil
+                switch result {
+                case .success(let a): continuation.resume(returning: a)
+                case .failure(let e): continuation.resume(throwing: e)
+                }
+            }
+            let delegate = AppleSignInDelegate(anchor: anchor, completion: resumeOnce)
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = delegate
+            controller.presentationContextProvider = delegate
+            self.appleSignInDelegate = delegate
+            controller.performRequests()
+        }
     }
 
     public func signOut() throws {
@@ -243,6 +312,64 @@ public final class FirebaseAuthClient: NSObject {
             result.append(alphabet.randomElement()!)
         }
         return result
+    }
+
+    // MARK: - Apple nonce
+
+    private static func generateAppleNonce(length: Int) -> String {
+        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._")
+        var result = ""
+        var remaining = length
+        while remaining > 0 {
+            var random: UInt8 = 0
+            _ = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
+            if random < charset.count {
+                result.append(charset[Int(random)])
+                remaining -= 1
+            }
+        }
+        return result
+    }
+
+    private static func sha256Hex(_ input: String) -> String {
+        guard let data = input.data(using: .utf8) else { return "" }
+        let hash = SHA256.hash(data: data)
+        return hash.map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+private final class AppleSignInDelegate: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    private let anchor: ASPresentationAnchor?
+    private let completion: (Result<ASAuthorization, Error>) -> Void
+
+    init(anchor: ASPresentationAnchor?, completion: @escaping (Result<ASAuthorization, Error>) -> Void) {
+        self.anchor = anchor
+        self.completion = completion
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        completion(.success(authorization))
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        let nsError = error as NSError
+        if nsError.domain == ASAuthorizationError.errorDomain,
+           nsError.code == ASAuthorizationError.canceled.rawValue {
+            completion(.failure(DivoFirebaseAuthError.userCancelled))
+        } else {
+            completion(.failure(DivoFirebaseAuthError.providerFailed(underlying: error)))
+        }
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        if let anchor = anchor { return anchor }
+        if let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }),
+           let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first {
+            return window
+        }
+        return ASPresentationAnchor()
     }
 }
 
