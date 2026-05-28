@@ -707,6 +707,19 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         }
     }
 
+    private func formatCost(_ costString: String?) -> String? {
+        guard let costString = costString else { return nil }
+        guard let doubleValue = Double(costString) else { return costString }
+        
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.roundingMode = .halfUp
+        formatter.decimalSeparator = "."
+        
+        return formatter.string(from: NSNumber(value: doubleValue))
+    }
+
 
     // MARK: - Public State API
     
@@ -733,7 +746,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         // Header
         var fullLocationString: String
         let isFree = event.paymentType?.id == 2
-        let costPart = isFree ? nil : (event.cost ?? "")
+        let costPart = isFree ? nil : formatCost(event.cost)
         let countryFlag = Self.flag(for: event.address?.city?.countryCode)
         let (date, time) = formatEventDateAndTime(dateString: event.date)
         guard let city = event.address?.city?.name else { return }
@@ -743,7 +756,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
             fullLocationString = "\(date) • \(time) • \(countryFlag) \(city)"
         }
         
-        profileHeader.configure(fullUrl: event.creator?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventInfo: fullLocationString)
+        profileHeader.configure(fullUrl: event.creator?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventTypeId: event.type?.id, eventInfo: fullLocationString)
         
         // User profile Card
         // ХАРДКОР МЕТА - НЕ ГОТОВ БЭК

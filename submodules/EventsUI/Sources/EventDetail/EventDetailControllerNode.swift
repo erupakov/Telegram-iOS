@@ -1491,7 +1491,6 @@ final class EventDetailControllerNode: ASDisplayNode {
             counterActionsStack.isHidden = false
             
             eventCostTypeShimmerContainer.isHidden = true
-            eventCostTypeContainer.isHidden = self.eventData?.paymentType?.id == 2
             
             eventTypeLabelShimmerContainer.isHidden = true
             eventTypeLabelContainer.isHidden = false
@@ -1576,24 +1575,24 @@ final class EventDetailControllerNode: ASDisplayNode {
             moreButton.showsMenuAsPrimaryAction = true
         }
     }
+
+    // Вспомогательная функция, которая собирает красивую строку без нулей
+    private func rangeString(from: Any?, to: Any?) -> String? {
+        // Приводим к NSNumber. Это автоматом убирает лишние .0 (18.0 -> "18")
+        let fStr = (from as? NSNumber)?.stringValue
+        let tStr = (to as? NSNumber)?.stringValue
+        
+        if let f = fStr, let t = tStr {
+            // Если значения одинаковые (например 18 и 18), выводим просто "18"
+            return f == t ? f : "\(f)-\(t)"
+        }
+        // Если есть только одно значение, вернется оно. Если оба nil - вернется nil.
+        return fStr ?? tStr
+    }
     
     private func buildAppearanceList(attributes: EventFullModelAttributes?) -> [AppearanceAttribute] {
         
         var items: [AppearanceAttribute] = []
-        
-        // Вспомогательная функция, которая собирает красивую строку без нулей
-        func rangeString(from: Any?, to: Any?) -> String? {
-            // Приводим к NSNumber. Это автоматом убирает лишние .0 (18.0 -> "18")
-            let fStr = (from as? NSNumber)?.stringValue
-            let tStr = (to as? NSNumber)?.stringValue
-            
-            if let f = fStr, let t = tStr {
-                // Если значения одинаковые (например 18 и 18), выводим просто "18"
-                return f == t ? f : "\(f)-\(t)"
-            }
-            // Если есть только одно значение, вернется оно. Если оба nil - вернется nil.
-            return fStr ?? tStr
-        }
 
         if let roles = attributes?.role {
             let roleOptions: [FilterOptionItem] = [
@@ -1658,14 +1657,14 @@ final class EventDetailControllerNode: ASDisplayNode {
         if let eyeColor = attributes?.eyeColor {
             let eyeColorTitles = eyeColor.compactMap { $0.title }.joined(separator: ", ")
             if !eyeColorTitles.isEmpty {
-                items.append(.init(title: DivoStrings.eyeColor, value: eyeColorTitles))
+                items.append(.init(title: DivoStrings.attrEyeColor, value: eyeColorTitles))
             }
         }
         
         if let skinColor = attributes?.skinColor {
             let skinColorTitles = skinColor.compactMap { $0.title }.joined(separator: ", ")
             if !skinColorTitles.isEmpty {
-                items.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
+                items.append(.init(title: DivoStrings.attrSkinColor, value: skinColorTitles))
             }
         }
         
@@ -1753,6 +1752,38 @@ final class EventDetailControllerNode: ASDisplayNode {
             imageView.loadImage(from: photoURL)
         }
     }
+
+    private func formatCost(_ costString: String?) -> String? {
+        guard let costString = costString else { return nil }
+        guard let doubleValue = Double(costString) else { return costString }
+        
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.roundingMode = .halfUp
+        formatter.decimalSeparator = "."
+        
+        return formatter.string(from: NSNumber(value: doubleValue))
+    }
+    
+    private func formatAppliedDate(_ dateString: String?) -> String {
+        guard let dateString = dateString else {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: DivoStrings.current.rawValue)
+            formatter.dateFormat = "MMMM d"
+            return formatter.string(from: Date())
+        }
+        let serverFormatter = DateFormatter()
+        serverFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        serverFormatter.locale = Locale(identifier: "en_US_POSIX")
+        
+        guard let date = serverFormatter.date(from: dateString) else { return dateString }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: DivoStrings.current.rawValue)
+        formatter.dateFormat = "MMMM d"
+        return formatter.string(from: date)
+    }
     
     
     // MARK: - Internal
@@ -1770,12 +1801,13 @@ final class EventDetailControllerNode: ASDisplayNode {
         setImage(urlString: newEventData.files?.first?.fullUrl, for: backgroundImageView)
 
         eventTypeLabel.text = newEventData.type?.title
+        eventTypeLabelContainer.backgroundColor = EventTypeStyle.color(for: newEventData.type?.id)
         
         setupNavigationBarTitle(name: newEventData.title ?? DivoStrings.noName)
         
         let isFree: Bool = newEventData.paymentType?.id == 2
         eventCostTypeContainer.isHidden = newEventData.paymentType?.id == 2
-        eventCostTypeLabel.text = newEventData.cost
+        eventCostTypeLabel.text = formatCost(newEventData.cost)
         
         let (data, time) = formatEventDateAndTime(dateString: newEventData.date)
         profileHeaderView.configure(
@@ -1786,7 +1818,7 @@ final class EventDetailControllerNode: ASDisplayNode {
                 countryFlag: Self.flag(for: newEventData.address?.city?.countryCode),
                 city: newEventData.address?.city?.name,
                 isFree: isFree,
-                cost: newEventData.cost
+                cost: formatCost(newEventData.cost)
             )
         )
         
@@ -1849,11 +1881,13 @@ final class EventDetailControllerNode: ASDisplayNode {
             backgroundImageView.backgroundColor = DivoColorPalette.profileEmptyBackground
         }
         
+        appliedStatusViewContainer.isHidden = true
         eventTypeLabel.text = data.request.type
+        eventTypeLabelContainer.backgroundColor = EventTypeStyle.color(for: data.request.typeId)
         setupNavigationBarTitle(name: DivoStrings.previewEvent.uppercased())
         
         eventCostTypeContainer.isHidden = (data.request.isFree == true)
-        eventCostTypeLabel.text = data.request.cost
+        eventCostTypeLabel.text = formatCost(data.request.cost)
         
         let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)
         profileHeaderView.configure(
@@ -1864,7 +1898,7 @@ final class EventDetailControllerNode: ASDisplayNode {
                 countryFlag: "🌍",
                 city: DivoStrings.tbd,
                 isFree: data.request.isFree,
-                cost: data.request.cost
+                cost: formatCost(data.request.cost)
             )
         )
         
@@ -1906,23 +1940,23 @@ final class EventDetailControllerNode: ASDisplayNode {
             let genderTitles = gender.joined(separator: ", ")
             attrs.append(.init(title: DivoStrings.attrGender, value: genderTitles))
         }
-        if let age = data.request.age {
-            attrs.append(.init(title: DivoStrings.ageYo, value: "\(age.from)-\(age.to)"))
+        if let age = data.request.age, let str = rangeString(from: age.from, to: age.to) {
+            attrs.append(.init(title: DivoStrings.ageYo, value: str))
         }
-        if let height = data.request.height {
-            attrs.append(.init(title: DivoStrings.heightCm, value: "\(height.from)-\(height.to)"))
+        if let height = data.request.height, let str = rangeString(from: height.from, to: height.to) {
+            attrs.append(.init(title: DivoStrings.heightCm, value: str))
         }
-        if let weight = data.request.weight {
-            attrs.append(.init(title: DivoStrings.weightKg, value: "\(weight.from)-\(weight.to)"))
+        if let weight = data.request.weight, let str = rangeString(from: weight.from, to: weight.to) {
+            attrs.append(.init(title: DivoStrings.weightKg, value: str))
         }
-        if let waist = data.request.waist {
-            attrs.append(.init(title: DivoStrings.waistCm, value: "\(waist.from)-\(waist.to)"))
+        if let waist = data.request.waist, let str = rangeString(from: waist.from, to: waist.to) {
+            attrs.append(.init(title: DivoStrings.waistCm, value: str))
         }
-        if let hips = data.request.hips {
-            attrs.append(.init(title: DivoStrings.hipsCm, value: "\(hips.from)-\(hips.to)"))
+        if let hips = data.request.hips, let str = rangeString(from: hips.from, to: hips.to) {
+            attrs.append(.init(title: DivoStrings.hipsCm, value: str))
         }
-        if let shoesSize = data.request.shoesSize {
-            attrs.append(.init(title: DivoStrings.shoeSizeEU, value: "\(shoesSize.from)-\(shoesSize.to)"))
+        if let shoesSize = data.request.shoesSize, let str = rangeString(from: shoesSize.from, to: shoesSize.to) {
+            attrs.append(.init(title: DivoStrings.shoeSizeEU, value: str))
         }
         if let hairColor = data.request.hairColor {
             let hairColorTitles = hairColor.compactMap( { String($0) } ).joined(separator: ", ")
@@ -1934,11 +1968,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         }
         if let eyeColor = data.request.eyeColor {
             let eyeColorTitles = eyeColor.compactMap( { String($0) } ).joined(separator: ", ")
-            attrs.append(.init(title: DivoStrings.eyeColor, value: eyeColorTitles))
+            attrs.append(.init(title: DivoStrings.attrEyeColor, value: eyeColorTitles))
         }
         if let skinColor = data.request.skinColor {
             let skinColorTitles = skinColor.compactMap( { String($0) } ).joined(separator: ", ")
-            attrs.append(.init(title: DivoStrings.skinColor, value: skinColorTitles))
+            attrs.append(.init(title: DivoStrings.attrSkinColor, value: skinColorTitles))
         }
         
         if attrs.isEmpty {
@@ -1959,25 +1993,6 @@ final class EventDetailControllerNode: ASDisplayNode {
         activateTitleVisibility()
     }
 
-    private func formatAppliedDate(_ dateString: String?) -> String {
-        guard let dateString = dateString else {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: DivoStrings.current.rawValue)
-            formatter.dateFormat = "MMMM d"
-            return formatter.string(from: Date())
-        }
-        let serverFormatter = DateFormatter()
-        serverFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        serverFormatter.locale = Locale(identifier: "en_US_POSIX")
-        
-        guard let date = serverFormatter.date(from: dateString) else { return dateString }
-        
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: DivoStrings.current.rawValue)
-        formatter.dateFormat = "MMMM d"
-        return formatter.string(from: date)
-    }
-    
     // Метод управления загрузкой отзыва
     func toggleWithdrawLoading(active: Bool) {
         appliedStatusView.setWithdrawLoading(active)

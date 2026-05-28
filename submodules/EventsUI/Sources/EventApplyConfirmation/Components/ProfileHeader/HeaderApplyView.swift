@@ -118,9 +118,10 @@ class HeaderApplyView: UIView {
         textStack.setCustomSpacing(6, after: nameLabel)
     }
     
-    func configure(fullUrl: String? = nil, fullName: String? = nil, eventType: String? = nil, eventInfo: String? = nil) {
+    func configure(fullUrl: String? = nil, fullName: String? = nil, eventType: String? = nil, eventTypeId: Int? = nil, eventInfo: String? = nil) {
         nameLabel.text = fullName
         eventTypeLabel.text = eventType
+        eventTypeLabelContainer.backgroundColor = EventTypeStyle.color(for: eventTypeId)
         eventMetaLabel.text = eventInfo
         
         if let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl) {
