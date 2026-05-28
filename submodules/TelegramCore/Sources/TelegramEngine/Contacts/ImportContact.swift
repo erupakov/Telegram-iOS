@@ -78,7 +78,7 @@ func _internal_addContactInteractively(account: Account, peerId: PeerId, firstNa
             flags |= (1 << 1)
             note = .textWithEntities(.init(text: noteText, entities: apiEntitiesFromMessageTextEntities(noteEntities, associatedPeers: SimpleDictionary())))
         }
-        return account.network.request(Api.functions.contacts.addContact(flags: flags, id: inputUser, firstName: firstName, lastName: lastName, phone: phone, note: note))
+        return account.network.request(Api.functions.contacts.addContact_teamgram_layer201(flags: flags, id: inputUser, firstName: firstName, lastName: lastName, phone: phone, note: note))
         |> mapError { _ -> AddContactError in
             return .generic
         }

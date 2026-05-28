@@ -156,23 +156,24 @@ private final class AuthorizationSequenceCountrySelectionNavigationContentNode: 
         
         self.cancel = cancel
 
-        let darkSearchTheme = SearchBarNodeTheme(
-            background: DivoColorPalette.darkBackground,
+        // DIVO: шторка всегда светлая.
+        let lightSearchTheme = SearchBarNodeTheme(
+            background: DivoColorPalette.screenBackground,
             separator: .clear,
-            inputFill: DivoColorPalette.overlayInput,
-            primaryText: theme.chat.inputPanel.panelControlColor,
-            placeholder: theme.chat.inputPanel.inputPlaceholderColor,
-            inputIcon: DivoColorPalette.overlayInputIcon,
-            inputClear: DivoColorPalette.overlayInputIcon,
-            accent: theme.chat.inputPanel.panelControlAccentColor,
-            keyboard: theme.rootController.keyboardColor
+            inputFill: DivoColorPalette.fieldBackgroundLight,
+            primaryText: DivoColorPalette.primaryText,
+            placeholder: DivoColorPalette.secondaryText,
+            inputIcon: DivoColorPalette.secondaryText,
+            inputClear: DivoColorPalette.secondaryText,
+            accent: DivoColorPalette.accent,
+            keyboard: .light
         )
-        
-        self.searchBar = SearchBarNode(theme: darkSearchTheme, presentationTheme: theme, strings: strings, fieldStyle: .modern)
+
+        self.searchBar = SearchBarNode(theme: lightSearchTheme, presentationTheme: theme, strings: strings, fieldStyle: .modern)
         let placeholderText = strings.Common_Search
         let searchBarFont = Font.regular(17.0)
-        
-        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: theme.rootController.navigationSearchBar.inputPlaceholderTextColor)
+
+        self.searchBar.placeholderString = NSAttributedString(string: placeholderText, font: searchBarFont, textColor: DivoColorPalette.secondaryText)
         
         super.init()
         
@@ -359,13 +360,14 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
         self.displayCodes = displayCodes
         self.glass = glass
 
-        let darkNavTheme = NavigationBarTheme(
-            overallDarkAppearance: true,
-            buttonColor: DivoColorPalette.primaryTextOnDark,
+        // DIVO: шторка выбора страны всегда светлая.
+        let navTheme = NavigationBarTheme(
+            overallDarkAppearance: false,
+            buttonColor: DivoColorPalette.primaryText,
             disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor,
-            primaryTextColor: DivoColorPalette.primaryTextOnDark,
-            backgroundColor: DivoColorPalette.darkBackground,
-            opaqueBackgroundColor: DivoColorPalette.darkBackground,
+            primaryTextColor: DivoColorPalette.primaryText,
+            backgroundColor: DivoColorPalette.screenBackground,
+            opaqueBackgroundColor: DivoColorPalette.screenBackground,
             enableBackgroundBlur: false,
             separatorColor: .clear,
             badgeBackgroundColor: .clear,
@@ -373,13 +375,13 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
             badgeTextColor: .clear
         )
 
-        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: darkNavTheme, strings: NavigationBarStrings(presentationStrings: strings)))
+        super.init(navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: strings)))
 
         self._hasGlassStyle = glass
 
         self.navigationPresentation = .modal
 
-        self.statusBar.statusBarStyle = theme.rootController.statusBarStyle.style
+        self.statusBar.statusBarStyle = .Black
 
         if glass {
             self.title = strings.Login_SelectCountry
@@ -444,12 +446,12 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
             component: AnyComponent(GlassBarButtonComponent(
                 size: barButtonSize,
                 backgroundColor: nil,
-                isDark: self.theme.overallDarkAppearance,
+                isDark: false,
                 state: .glass,
                 component: AnyComponentWithIdentity(id: "close", component: AnyComponent(
                     BundleIconComponent(
                         name: "Navigation/Close",
-                        tintColor: self.theme.chat.inputPanel.panelControlColor
+                        tintColor: DivoColorPalette.primaryText
                     )
                 )),
                 action: { [weak self] _ in
@@ -465,12 +467,12 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
                 component: AnyComponent(GlassBarButtonComponent(
                     size: barButtonSize,
                     backgroundColor: nil,
-                    isDark: self.theme.overallDarkAppearance,
+                    isDark: false,
                     state: .glass,
                     component: AnyComponentWithIdentity(id: "search", component: AnyComponent(
                         BundleIconComponent(
                             name: "Navigation/Search",
-                            tintColor: self.theme.chat.inputPanel.panelControlColor
+                            tintColor: DivoColorPalette.primaryText
                         )
                     )),
                     action: { [weak self] _ in

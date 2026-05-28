@@ -199,6 +199,26 @@ public enum DivoColorPalette {
     /// #990000 — верхний стоп градиента AvatarStrokeView.
     public static let avatarStrokeRedDeep = UIColor(hexString: "#990000")!
 
+    // MARK: - Auth
+    /// #0A0A0A — текст на OAuth-кнопках (Google / Apple) на Welcome.
+    public static let authOAuthButtonText = UIColor(red: 10.0/255.0, green: 10.0/255.0, blue: 10.0/255.0, alpha: 1.0)
+    /// #000000 — текст footer Terms / Privacy на Welcome.
+    public static let authTermsText = UIColor.black
+    /// #222222 α0.12 — линии «or»-разделителя на Welcome.
+    public static let authSeparatorLine = UIColor(hexString: "#222222")!.withAlphaComponent(31.0 / 255.0)
+    /// #222222CC (primaryText α0.8) — subtitle и текст разделителя «or» на Welcome.
+    public static let authMutedText = UIColor(hexString: "#222222")!.withAlphaComponent(0.8)
+
+    // MARK: - Alert dialog
+    /// #F9F9F9 — фон card DivoAlertView.
+    public static let alertCardBackground = UIColor(hexString: "#F9F9F9")!
+    /// #000000F5 (black α0.96) — title text в DivoAlertView.
+    public static let alertTitleText = UIColor.black.withAlphaComponent(0.96)
+    /// #00000080 (black α0.5) — description text в DivoAlertView.
+    public static let alertDescriptionText = UIColor.black.withAlphaComponent(0.5)
+    /// Backdrop под DivoAlertView — black α0.5.
+    public static let alertBackdrop = UIColor.black.withAlphaComponent(0.5)
+
     // MARK: - Bronze tag gradient (6 стопов)
     public static let bronzeGradientLight = UIColor(hexString: "#BB7148")!
     public static let bronzeGradientSheen = UIColor(hexString: "#D5B187")!

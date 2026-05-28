@@ -16,6 +16,7 @@ import AuthorizationUtils
 import TelegramStringFormatting
 import TextNodeWithEntities
 import DivoUIKit
+import DivoCore
 
 final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
@@ -40,13 +41,19 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
     private let dividerNode: AuthorizationDividerNode
     private var signInWithAppleButton: UIControl?
     private let proceedNode: SolidRoundedButtonNode
-    
+
+    // DIVO: круглая back-кнопка (как на phone entry) + оранжевая кнопка Resend Code (когда таймер истёк).
+    private let divoNavigationBar = DivoNavigationBar()
+    var backPressed: (() -> Void)?
+    private let resendButtonNode: SolidRoundedButtonNode
+
     private let textField: TextFieldNode
     private let textSeparatorNode: ASDisplayNode
     private let pasteButton: HighlightableButtonNode
     
     private let codeInputView: CodeInputView
     private let errorTextNode: ImmediateTextNode
+    private let errorIconNode: ASImageNode
     
     private let hintButtonNode: HighlightTrackingButtonNode
     private let hintTextNode: ImmediateTextNode
@@ -217,7 +224,15 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.errorTextNode.displaysAsynchronously = false
         self.errorTextNode.textAlignment = .center
         self.errorTextNode.isUserInteractionEnabled = false
-        
+
+        // DIVO: красный кружок-«!» перед текстом ошибки (ImmediateTextNode не рендерит attachment → отдельная нода).
+        self.errorIconNode = ASImageNode()
+        self.errorIconNode.alpha = 0.0
+        self.errorIconNode.displaysAsynchronously = false
+        self.errorIconNode.isUserInteractionEnabled = false
+        self.errorIconNode.contentMode = .scaleAspectFit
+        self.errorIconNode.image = DivoImage.errorCircle
+
         self.hintButtonNode = HighlightableButtonNode()
         self.hintButtonNode.alpha = 0.0
         self.hintButtonNode.isUserInteractionEnabled = false
@@ -255,15 +270,20 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.proceedNode.iconSpacing = 4.0
         self.proceedNode.animationSize = CGSize(width: 36.0, height: 36.0)
         self.proceedNode.isEnabled = false
-        
+
+        // DIVO: оранжевая кнопка «Resend Code» — показывается когда таймер истёк (Expired-стейт).
+        let resendTheme = SolidRoundedButtonTheme(backgroundColor: DivoColorPalette.accent, foregroundColor: DivoColorPalette.primaryTextOnDark)
+        self.resendButtonNode = SolidRoundedButtonNode(title: DivoStrings.otpResendCode, theme: resendTheme, glass: false, font: .bold, fontSize: 20.0, height: 50.0, cornerRadius: 25.0)
+        self.resendButtonNode.isHidden = true
+
         super.init()
         
         self.setViewBlock({
             return UITracingLayerView()
         })
         
-        self.backgroundColor = DivoColorPalette.darkBackground
-        
+        self.backgroundColor = DivoColorPalette.screenBackground
+
         self.textField.textField.delegate = self
         
         self.addSubnode(self.codeInputView)
@@ -283,11 +303,17 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         self.addSubnode(self.resetTextNode)
         self.addSubnode(self.dividerNode)
         self.addSubnode(self.errorTextNode)
+        self.addSubnode(self.errorIconNode)
         self.addSubnode(self.hintButtonNode)
         self.hintButtonNode.addSubnode(self.hintTextNode)
         self.hintButtonNode.addSubnode(self.hintArrowNode)
         self.addSubnode(self.proceedNode)
-        
+        self.addSubnode(self.resendButtonNode)
+
+        self.resendButtonNode.pressed = { [weak self] in
+            self?.requestNextOption?()
+        }
+
         self.codeInputView.updated = { [weak self] in
             guard let strongSelf = self else {
                 return
@@ -351,7 +377,19 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
     
     override func didLoad() {
         super.didLoad()
-        
+
+        // DIVO: круглая back-кнопка как на phone entry; системный nav-bar скрыт в контроллере.
+        self.divoNavigationBar.makeNavigationBar(
+            backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
+            onBackTapped: { [weak self] in self?.backPressed?() }
+        )
+        self.view.addSubview(self.divoNavigationBar)
+        NSLayoutConstraint.activate([
+            self.divoNavigationBar.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+            self.divoNavigationBar.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+            self.divoNavigationBar.topAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor)
+        ])
+
         if let signInWithAppleButton = self.signInWithAppleButton {
             self.view.addSubview(signInWithAppleButton)
         }
@@ -419,7 +457,21 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         }
         self.appleSignInAllowed = appleSignInAllowed
         
-        self.currentOptionNode.attributedText = authorizationCurrentOptionText(codeType, phoneNumber: self.phoneNumber, email: self.email, strings: self.strings, primaryColor: .white, accentColor: self.theme.list.itemAccentColor)
+        if case .sms = codeType {
+            // DIVO: «We sent a 6-digit code to {phone}» — серый текст, номер жирным/тёмным.
+            let phone = self.phoneNumber
+            let full = String(format: DivoStrings.otpCodeSentToFormat, phone)
+            let subtitle = NSMutableAttributedString(string: full, attributes: [.font: Font.regular(16.0), .foregroundColor: DivoColorPalette.secondaryText])
+            if !phone.isEmpty, let range = full.range(of: phone) {
+                subtitle.addAttributes([.font: Font.semibold(16.0), .foregroundColor: DivoColorPalette.primaryText], range: NSRange(range, in: full))
+            }
+            let subtitleParagraph = NSMutableParagraphStyle()
+            subtitleParagraph.alignment = .center
+            subtitle.addAttribute(.paragraphStyle, value: subtitleParagraph, range: NSRange(location: 0, length: subtitle.length))
+            self.currentOptionNode.attributedText = subtitle
+        } else {
+            self.currentOptionNode.attributedText = authorizationCurrentOptionText(codeType, phoneNumber: self.phoneNumber, email: self.email, strings: self.strings, primaryColor: .white, accentColor: self.theme.list.itemAccentColor)
+        }
         self.currentOptionActivateAreaNode.accessibilityLabel = self.currentOptionNode.attributedText?.string ?? ""
         if case .missedCall = codeType {
             self.currentOptionInfoNode.attributedText = NSAttributedString(string: self.strings.Login_CodePhonePatternInfoText, font: Font.regular(17.0), textColor: self.theme.list.itemPrimaryTextColor, paragraphAlignment: .center)
@@ -533,7 +585,14 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeEmailTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
                 //                animationName = "IntroLetter"
             case .sms:
-                self.titleNode.attributedText = Font.helveticaNeue(self.strings.Login_EnterCodeSMSTitle.uppercased(), 34)
+                let smsTitleParagraph = NSMutableParagraphStyle()
+                smsTitleParagraph.alignment = .center
+                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeSMSTitle.uppercased(), attributes: [
+                    .font: Font.helveticaNeue(32.0),
+                    .foregroundColor: DivoColorPalette.primaryText,
+                    .kern: 0.5,
+                    .paragraphStyle: smsTitleParagraph
+                ])
             case .fragment:
                 self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeFragmentTitle, font: Font.semibold(28.0), textColor: self.theme.list.itemPrimaryTextColor)
                 
@@ -598,12 +657,15 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         
         let codeFieldSize = self.codeInputView.update(
             theme: CodeInputView.Theme(
-                inactiveBorder: self.theme.list.itemPlainSeparatorColor.argb,
-                activeBorder: DivoColorPalette.overlayDarkMediumLine.argb,
-                succeedBorder: self.theme.list.itemDisclosureActions.constructive.fillColor.argb,
-                failedBorder: self.theme.list.itemDestructiveColor.argb,
-                foreground: UIColor.white.argb,
-                isDark: self.theme.overallDarkAppearance
+                inactiveBorder: DivoColorPalette.separatorLight.argb,
+                activeBorder: DivoColorPalette.accent.argb,
+                succeedBorder: DivoColorPalette.snackbarSuccess.argb,
+                failedBorder: DivoColorPalette.snackbarError.argb,
+                foreground: DivoColorPalette.primaryText.argb,
+                background: DivoColorPalette.cardBackground.argb,
+                cornerRadius: 4.0,
+                boxSize: 46.0,
+                isDark: false
             ),
             prefix: codePrefix,
             count: codeLength,
@@ -611,8 +673,71 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             compact: layout.size.width <= 320.0 || (layout.size.width <= 375.0 && codeLength > 5)
         )
         
+        // DIVO: SMS-экран (ENTER CODE) — явная раскладка под дизайн Enter OTP Code.
+        if case .sms = self.codeType {
+            self.titleIconNode.isHidden = true
+            self.nextOptionArrowNode.isHidden = true
+            let contentWidth = maximumWidth - inset * 2.0
+            func centerX(_ w: CGFloat) -> CGFloat { return floorToScreenPixels((layout.size.width - w) / 2.0) }
+
+            let titleY = insets.top + 50.0 + 40.0
+            let titleFrame = CGRect(origin: CGPoint(x: centerX(titleSize.width), y: titleY), size: titleSize)
+            transition.updateFrame(node: self.titleNode, frame: titleFrame)
+
+            let subtitleFrame = CGRect(origin: CGPoint(x: centerX(currentOptionSize.width), y: titleFrame.maxY + 12.0), size: currentOptionSize)
+            transition.updateFrame(node: self.currentOptionNode, frame: subtitleFrame)
+
+            let boxesFrame = CGRect(origin: CGPoint(x: centerX(codeFieldSize.width), y: subtitleFrame.maxY + 28.0), size: codeFieldSize)
+            transition.updateFrame(node: self.codeInputView, frame: boxesFrame)
+
+            // Error-строка под боксами (иконка-«!» + текст), центрированная группой. Видимость — через alpha.
+            if let errorText = self.errorTextNode.attributedText, errorText.length > 0 {
+                let iconSide: CGFloat = 16.0
+                let iconSpacing: CGFloat = 6.0
+                let errorSize = self.errorTextNode.updateLayout(CGSize(width: contentWidth - iconSide - iconSpacing, height: .greatestFiniteMagnitude))
+                let groupWidth = iconSide + iconSpacing + errorSize.width
+                let groupX = centerX(groupWidth)
+                let errorY = boxesFrame.maxY + 12.0
+                let rowHeight = max(iconSide, errorSize.height)
+                self.errorIconNode.frame = CGRect(x: groupX, y: errorY + floorToScreenPixels((rowHeight - iconSide) / 2.0), width: iconSide, height: iconSide)
+                self.errorTextNode.frame = CGRect(origin: CGPoint(x: groupX + iconSide + iconSpacing, y: errorY + floorToScreenPixels((rowHeight - errorSize.height) / 2.0)), size: errorSize)
+            }
+
+            // Resend: пока идёт таймер — серый текст «Resend in m:ss»; когда истёк — оранжевая кнопка.
+            let buttonHeight: CGFloat = 50.0
+            let bottomY = layout.size.height - (layout.inputHeight ?? 0.0) - buttonHeight - inset
+            if let timeout = self.currentTimeoutTime, timeout > 0 {
+                self.resendButtonNode.isHidden = true
+                self.nextOptionButtonNode.isHidden = false
+                self.nextOptionButtonNode.isUserInteractionEnabled = false
+                self.nextOptionButtonNode.accessibilityTraits = [.staticText]
+                let t = Int(timeout)
+                let timeString = String(format: "%d:%02d", t / 60, t % 60)
+                self.nextOptionTitleNode.attributedText = NSAttributedString(string: String(format: DivoStrings.otpResendInFormat, timeString), font: Font.regular(15.0), textColor: DivoColorPalette.secondaryText, paragraphAlignment: .center)
+                let resendTextSize = self.nextOptionTitleNode.updateLayout(CGSize(width: contentWidth, height: .greatestFiniteMagnitude))
+                transition.updateFrame(node: self.nextOptionButtonNode, frame: CGRect(origin: CGPoint(x: centerX(resendTextSize.width), y: bottomY + floorToScreenPixels((buttonHeight - resendTextSize.height) / 2.0)), size: resendTextSize))
+                self.nextOptionTitleNode.frame = CGRect(origin: .zero, size: resendTextSize)
+            } else {
+                self.nextOptionButtonNode.isHidden = true
+                self.resendButtonNode.isHidden = false
+                let resendButtonHeight = self.resendButtonNode.updateLayout(width: contentWidth, transition: transition)
+                let resendButtonFrame = CGRect(origin: CGPoint(x: centerX(contentWidth), y: bottomY), size: CGSize(width: contentWidth, height: resendButtonHeight))
+                transition.updateFrame(node: self.resendButtonNode, frame: resendButtonFrame)
+                if let divoFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 20.0) {
+                    self.resendButtonNode.titleNode.attributedText = NSAttributedString(string: DivoStrings.otpResendCode, attributes: [.font: divoFont, .foregroundColor: DivoColorPalette.primaryTextOnDark, .kern: 20.0 * 0.005])
+                    let titleMeasure = self.resendButtonNode.titleNode.updateLayout(resendButtonFrame.size)
+                    self.resendButtonNode.titleNode.frame = CGRect(origin: CGPoint(x: floorToScreenPixels((resendButtonFrame.width - titleMeasure.width) / 2.0), y: floorToScreenPixels((resendButtonFrame.height - titleMeasure.height) / 2.0)), size: titleMeasure)
+                }
+            }
+
+            self.proceedNode.isHidden = true
+            self.titleActivateAreaNode.frame = titleFrame
+            self.currentOptionActivateAreaNode.frame = subtitleFrame
+            return
+        }
+
         var items: [AuthorizationLayoutItem] = []
-        
+
         switch self.codeType {
         case .email:
             items.append(AuthorizationLayoutItem(node: self.titleNode, size: titleSize, spacingBefore: AuthorizationLayoutItemSpacing(weight: 18.0, maxValue: 18.0), spacingAfter: AuthorizationLayoutItemSpacing(weight: 0.0, maxValue: 0.0)))
@@ -784,7 +909,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             errorOriginOffset = 11.0
         }
         
-        self.errorTextNode.attributedText = NSAttributedString(string: text, font: Font.regular(13.0), textColor: self.theme.list.itemDestructiveColor, paragraphAlignment: .center)
+        self.errorTextNode.attributedText = NSAttributedString(string: text, font: Font.regular(14.0), textColor: DivoColorPalette.snackbarError, paragraphAlignment: .center)
         
         if let (layout, _) = self.layoutArguments {
             let errorTextSize = self.errorTextNode.updateLayout(CGSize(width: layout.size.width - 48.0, height: .greatestFiniteMagnitude))
@@ -793,7 +918,13 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         }
         self.errorTextNode.alpha = 1.0
         self.errorTextNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.15)
-        
+        self.errorIconNode.alpha = 1.0
+        self.errorIconNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.15)
+        // DIVO: перераскладка, чтобы иконка-«!» встала перед текстом (SMS-ветка позиционирует группу).
+        if let (layout, navigationBarHeight) = self.layoutArguments {
+            self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
+        }
+
         let previousHintAlpha = self.hintButtonNode.alpha
         self.hintButtonNode.alpha = 0.0
         self.hintButtonNode.layer.animateAlpha(from: previousHintAlpha, to: 0.0, duration: 0.1)
@@ -807,7 +938,9 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         Queue.mainQueue().after(1.6) {
             self.errorTextNode.alpha = 0.0
             self.errorTextNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15)
-            
+            self.errorIconNode.alpha = 0.0
+            self.errorIconNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.15)
+
             self.hintButtonNode.alpha = previousHintAlpha
             self.hintButtonNode.layer.animateAlpha(from: 0.0, to: previousHintAlpha, duration: 0.1)
             

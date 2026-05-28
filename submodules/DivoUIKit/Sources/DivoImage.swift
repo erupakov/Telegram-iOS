@@ -16,6 +16,8 @@ public enum DivoImage {
     public static var addPhotoIcon: UIImage { load("DivoAddPhotoIcon") }
     public static var ageIcon: UIImage { load("DivoAgeIcon") }
     public static var associatedModels: UIImage { load("DivoAssociatedModels") }
+    public static var authAppleLogo: UIImage { load("DivoAuthAppleLogo") }
+    public static var authGoogleLogo: UIImage { load("DivoAuthGoogleLogo") }
     public static var badgeBaseWork: UIImage { load("DivoBadgeBaseWork") }
     public static var badgeCalendar: UIImage { load("DivoBadgeCalendar") }
     public static var basket: UIImage { load("DivoBasket") }
@@ -38,6 +40,7 @@ public enum DivoImage {
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
     public static var emptyModelsAgency: UIImage { load("DivoEmptyModelsAgency") }
     public static var emptyWorkProfile: UIImage { load("DivoEmptyWorkProfile") }
+    public static var errorCircle: UIImage { load("DivoErrorCircle") }
     public static var eventTest: UIImage { load("DivoEventTest") }
     public static var eventsAgency: UIImage { load("DivoEventsAgency") }
     public static var faceScanBlack: UIImage { load("DivoFaceScanBlack") }

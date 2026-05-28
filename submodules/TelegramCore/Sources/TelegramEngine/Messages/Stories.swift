@@ -1356,7 +1356,7 @@ func _internal_uploadStoryImpl(
                             flags |= 1 << 8
                         }
                         
-                        return network.request(Api.functions.stories.sendStory(
+                        return network.request(Api.functions.stories.sendStory_teamgram_layer201(
                             flags: flags,
                             peer: inputPeer,
                             media: inputMedia,

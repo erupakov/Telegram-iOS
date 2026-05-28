@@ -7,7 +7,7 @@ public final class DivoStandaloneLogsViewController: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .plain)
     private var entries: [DivoConsoleLogEntry] = []
     private var observer: Any?
-    private var navItem: UINavigationItem?
+    private weak var titleLabel: UILabel?
 
     private static let timeFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -32,22 +32,44 @@ public final class DivoStandaloneLogsViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .black
 
-        let close = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(closeTapped))
-        close.tintColor = .systemOrange
-        let share = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"), style: .plain, target: self, action: #selector(shareTapped))
-        share.tintColor = .systemOrange
-        let clear = UIBarButtonItem(title: "Clear", style: .plain, target: self, action: #selector(clearTapped))
-        clear.tintColor = .systemOrange
+        // DIVO: Используем обычные UIButton с addTarget — UIControl держит direct target
+        // reference и не зависит от UIResponder chain (в отличие от UIBarButtonItem в subview
+        // UINavigationBar). Не оборачиваем в UINavigationController, чтобы не ломать back
+        // на presenter'е после dismiss.
+        let toolbar = UIView()
+        toolbar.backgroundColor = UIColor(white: 0.08, alpha: 1)
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
 
-        let navBar = UINavigationBar(frame: .zero)
-        navBar.barStyle = .black
-        navBar.translatesAutoresizingMaskIntoConstraints = false
-        let navItem = UINavigationItem(title: "Console Logs")
-        navItem.leftBarButtonItem = close
-        navItem.rightBarButtonItems = [clear, share]
-        navBar.items = [navItem]
-        self.navItem = navItem
-        view.addSubview(navBar)
+        let titleLabel = UILabel()
+        titleLabel.text = "Console Logs"
+        titleLabel.textColor = .white
+        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        self.titleLabel = titleLabel
+
+        let closeButton = UIButton(type: .system)
+        closeButton.setTitle("Close", for: .normal)
+        closeButton.tintColor = .systemOrange
+        closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let clearButton = UIButton(type: .system)
+        clearButton.setTitle("Clear", for: .normal)
+        clearButton.tintColor = .systemOrange
+        clearButton.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
+        clearButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let shareButton = UIButton(type: .system)
+        shareButton.setTitle("Share", for: .normal)
+        shareButton.tintColor = .systemOrange
+        shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
+        shareButton.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(toolbar)
+        toolbar.addSubview(closeButton)
+        toolbar.addSubview(titleLabel)
+        toolbar.addSubview(clearButton)
+        toolbar.addSubview(shareButton)
 
         tableView.backgroundColor = .black
         tableView.separatorColor = UIColor(white: 0.2, alpha: 1)
@@ -58,11 +80,24 @@ public final class DivoStandaloneLogsViewController: UIViewController {
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
-            navBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            navBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            navBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            toolbar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            toolbar.heightAnchor.constraint(equalToConstant: 44),
 
-            tableView.topAnchor.constraint(equalTo: navBar.bottomAnchor),
+            closeButton.leadingAnchor.constraint(equalTo: toolbar.leadingAnchor, constant: 16),
+            closeButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+
+            titleLabel.centerXAnchor.constraint(equalTo: toolbar.centerXAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+
+            shareButton.trailingAnchor.constraint(equalTo: toolbar.trailingAnchor, constant: -16),
+            shareButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+
+            clearButton.trailingAnchor.constraint(equalTo: shareButton.leadingAnchor, constant: -16),
+            clearButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
+
+            tableView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -77,7 +112,7 @@ public final class DivoStandaloneLogsViewController: UIViewController {
     private func reload() {
         entries = DivoConsoleLogger.shared.getEntries()
         tableView.reloadData()
-        navItem?.title = "Console Logs (\(entries.count))"
+        titleLabel?.text = "Console Logs (\(entries.count))"
     }
 
     @objc private func closeTapped() {
@@ -152,6 +187,9 @@ public final class DivoShakeGestureHandler {
         guard let topVC = topmostViewController() else { return }
         if topVC is DivoStandaloneLogsViewController { return }
         let vc = DivoStandaloneLogsViewController()
+        // DIVO: стандартный present без UINavigationController-обёртки. Toolbar внутри VC
+        // — UIView с UIButton'ами (target/action через UIControl, не через UIResponder chain).
+        // Так после dismiss back/touch у presenter'а не ломаются.
         topVC.present(vc, animated: true)
     }
 

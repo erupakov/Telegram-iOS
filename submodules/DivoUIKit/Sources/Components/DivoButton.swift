@@ -72,7 +72,7 @@ public final class DivoButton: UIButton {
             
             heightConstraint?.constant = Self.buttonHeight
         }
-        
+
         applyNormalTitle(buttonFont: buttonFont)
         applyDisabledTitle(buttonFont: buttonFont)
         addDivoPressState(divoButtonStyle)
@@ -91,7 +91,7 @@ public final class DivoButton: UIButton {
         compact: Bool = false
     ) {
         if compact {
-            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius ?? Self.compactButtonHeight / 2)
+            makeDivoButton(title: title, loading: loading, buttonFont: buttonFont, radius: radius ?? Self.compactButtonHeight / 2, needUpdateImage: false)
             heightConstraint?.constant = Self.compactButtonHeight
             contentEdgeInsets = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 24)
         } else {
@@ -122,6 +122,11 @@ public final class DivoButton: UIButton {
         translatesAutoresizingMaskIntoConstraints = false
         backgroundColor = DivoColorPalette.accent
         layer.cornerRadius = Self.cornerRadius
+
+        // Если текст не помещается — обрезаем с конца. Главное слово
+        // обычно идёт первым («Publish event» → «Publish ev…»).
+        // (Случайно удалено в 1e01fbf9ad — возвращено для однострочной обрезки.)
+        titleLabel?.lineBreakMode = .byTruncatingTail
 
         contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right:  DivoDesignTokens.Spacing.m)
 

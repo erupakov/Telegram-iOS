@@ -131,7 +131,6 @@
             if (MTLogEnabled()) {
                 MTLog(@"[MTRequestMessageService#%" PRIxPTR " add request %@]", (intptr_t)self, request.metadata);
             }
-            
             [_requests addObject:request];
             [mtProto requestTransportTransaction];
         }
@@ -637,6 +636,12 @@
             MTOutgoingMessage *outgoingMessage = [[MTOutgoingMessage alloc] initWithData:decoratedRequestData metadata:request.metadata additionalDebugDescription:decoratedDebugDescription shortMetadata:request.shortMetadata messageId:messageId messageSeqNo:messageSeqNo];
             outgoingMessage.needsQuickAck = request.acknowledgementReceived != nil;
             outgoingMessage.hasHighPriority = request.hasHighPriority;
+            // DIVO: момент упаковки запроса в outgoing (реально идёт в TCP) — на debug-экран.
+            // Если есть "→ <RPC>", но нет потом "OK/ERROR ← <RPC>" — ответ не пришёл (завис/сервер молчит).
+            NSString *divoOut = [NSString stringWithFormat:@"[MTProto] → %@", request.metadata];
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoOut}];
+            });
             
             id unresolvedDependencyOnRequestInternalId = autoreleasingUnresolvedDependencyOnRequestInternalId;
             if (unresolvedDependencyOnRequestInternalId != nil)
@@ -807,7 +812,27 @@
                         rpcResult = request.responseParser(unwrappedData);
                         if (rpcResult == nil)
                         {
-                            rpcError = [[MTRpcError alloc] initWithErrorCode:444 errorDescription:@"🚫TL_PARSING_ERROR"];
+                            // DIVO: расширенный лог для диагностики TL_PARSING_ERROR — пишем
+                            // hex первых ~64 байт ответа сервера + constructor ID (первые 4 байта),
+                            // чтобы понять, что именно парсер не понял.
+                            uint32_t constructorId = 0;
+                            if (unwrappedData.length >= 4) {
+                                [unwrappedData getBytes:&constructorId length:4];
+                            }
+                            NSUInteger hexLength = MIN(unwrappedData.length, (NSUInteger)64);
+                            NSMutableString *hexDump = [NSMutableString stringWithCapacity:hexLength * 2];
+                            const uint8_t *bytes = (const uint8_t *)unwrappedData.bytes;
+                            for (NSUInteger i = 0; i < hexLength; i++) {
+                                [hexDump appendFormat:@"%02x", bytes[i]];
+                            }
+                            // DIVO: на debug-экран (как Android "can't parse magic"). Фоновая очередь, НЕ main —
+                            // прошлый откат был из-за main-thread блокировки, тут её нет. NSLog убран.
+                            NSString *divoParse = [NSString stringWithFormat:@"[MTProto] can't parse magic 0x%08x (len=%lu) ← %@ | hex=%@", constructorId, (unsigned long)unwrappedData.length, request.metadata, hexDump];
+                            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoParse}];
+                            });
+
+                            rpcError = [[MTRpcError alloc] initWithErrorCode:444 errorDescription:[NSString stringWithFormat:@"🚫TL_PARSING_ERROR constructor=0x%08x len=%lu hex=%@", constructorId, (unsigned long)unwrappedData.length, hexDump]];
                             [_context performBatchUpdates:^{
                                 MTDatacenterAuthInfo *authInfo = [_context authInfoForDatacenterWithId:mtProto.datacenterId selector:authInfoSelector];
                                 
@@ -820,6 +845,23 @@
                         }
                     }
                     
+                    // DIVO: исход ответа — на debug-экран через NotificationCenter (не NSLog, его не выгрузить).
+                    // Текст серверной ошибки виден как в Android. Постим с фоновой очереди (НЕ main),
+                    // чтобы не повторить main-thread блокировку, из-за которой откатывали прошлый раз.
+                    // code 444 = наш TL_PARSING_ERROR — логируется отдельно ниже.
+                    {
+                        NSString *divoOutcome = nil;
+                        if (rpcResult != nil) {
+                            divoOutcome = [NSString stringWithFormat:@"[MTProto] OK ← %@", request.metadata];
+                        } else if (rpcError != nil && rpcError.errorCode != 444) {
+                            divoOutcome = [NSString stringWithFormat:@"[MTProto] RPC ERROR ← %@ | code=%d desc=%@", request.metadata, (int)rpcError.errorCode, rpcError.errorDescription];
+                        }
+                        if (divoOutcome != nil) {
+                            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoOutcome}];
+                            });
+                        }
+                    }
                     if (rpcResult != nil) {
                         if (MTLogEnabled()) {
                             MTLog(@"[MTRequestMessageService#%p response for %" PRId64 " is %@]", self, request.requestContext.messageId, rpcResult);
