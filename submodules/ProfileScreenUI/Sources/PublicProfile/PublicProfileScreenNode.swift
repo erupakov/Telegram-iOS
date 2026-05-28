@@ -4425,7 +4425,29 @@ final class PublicProfileScreenNode: ASDisplayNode {
             }
         }
     }
-    
+
+    // Точечное обновление состояния ячейки события (Задачи 1 и 2)
+    public func updateEventLocally(eventId: Int, isApplied: Bool) {
+        guard let index = self.eventGalleryItems.firstIndex(where: { $0.eventId == eventId }) else { return }
+        
+        let oldItem = self.eventGalleryItems[index]
+        let newItem = EventItem(
+            name: oldItem.name,
+            data: oldItem.data,
+            time: oldItem.time,
+            countryFlag: oldItem.countryFlag,
+            city: oldItem.city,
+            customAvatarURL: oldItem.customAvatarURL,
+            originalDate: oldItem.originalDate,
+            eventId: oldItem.eventId,
+            isApplied: isApplied
+        )
+        self.eventGalleryItems[index] = newItem
+        
+        let indexPath = IndexPath(item: index, section: 0)
+        self.eventGalleryCollectionView.reloadItems(at: [indexPath])
+    }
+
     
     // MARK: - @objc
 

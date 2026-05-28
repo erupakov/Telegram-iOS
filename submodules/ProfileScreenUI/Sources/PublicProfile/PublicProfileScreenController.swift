@@ -128,11 +128,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         
         self.push(editEventController)
     }
-    
-    private func onEventApplyTapped(eventId: Int) {
-        // FIXME DIVO: implement event apply action
-        divoLog("[EVENT] Apply to event \(eventId) — not implemented yet")
-    }
 
     @available(iOS 14, *)
     private func navigateToAddPhoto() {
@@ -1068,13 +1063,57 @@ extension PublicProfileScreenController {
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
 
+    // Точечный асинхронный перезапрос статуса конкретного события (Задачи 1 и 2)
+    private func refreshSingleEventState(eventId: Int) {
+        Task { [weak self] in
+            do {
+                let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)",
+                    method: "GET"
+                )
+                guard let detail = response.data else { return }
+                
+                await MainActor.run {
+                    guard let self = self else { return }
+                    let isApplied = detail.isApplied ?? false
+                    // Точечно перерисовываем ячейку в Ноде профиля
+                    self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied)
+                }
+            } catch {
+                print("⚠️ refreshSingleEventState failed: \(error)")
+            }
+        }
+    }
+    
+    // Логика отклика на эвент через экран Confirmation (Задача 1)
+    private func onEventApplyTapped(eventId: Int) {
+        let confirmationController = EventApplyConfirmationController(
+            context: self.context,
+            eventId: eventId,
+            eventData: nil // Будет асинхронно загружен внутри самого контроллера
+        )
+        
+        // При успешном отклике плавно обновляем статус этой ячейки локально
+        confirmationController.onApplySuccess = { [weak self] in
+            guard let self = self else { return }
+            self.refreshSingleEventState(eventId: eventId)
+        }
+        
+        self.push(confirmationController)
+    }
+    
+    // Открытие экрана деталей эвента с отслеживанием изменений (Задача 2)
     private func openEventDetailScreen(for event: EventItem) {
         guard let eventId = event.eventId else { return }
         
         let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile)
+        
+        // Перехватываем изменения на детальном экране (отклик / отзыв заявки)
         detailController.onEventModified = { [weak self] in
-            self?.loadEvents()
+            guard let self = self else { return }
+            self.refreshSingleEventState(eventId: eventId)
         }
+        
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
     
