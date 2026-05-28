@@ -46,6 +46,7 @@ import NavigationBarImpl
 import ContextUI
 import ContextControllerImpl
 import DivoCore
+import DivoFirebaseKit
 import DivoUIKit
 
 #if canImport(AppCenter)
@@ -754,6 +755,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
 
         DivoBootstrap.start()
+        DivoFirebaseBootstrap.configure()
         setContextMenuControllerProvider { arguments in
             return ContextMenuControllerImpl(arguments)
         }

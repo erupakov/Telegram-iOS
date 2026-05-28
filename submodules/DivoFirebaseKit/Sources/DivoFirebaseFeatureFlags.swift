@@ -1,25 +1,41 @@
 import Foundation
 import DivoCore
+import FirebaseRemoteConfig
 
 public final class DivoFirebaseFeatureFlags: DivoFeatureFlags {
     public init() {}
 
+    private var rc: RemoteConfig { RemoteConfig.remoteConfig() }
+
     public func bool(forKey key: String, defaultValue: Bool) -> Bool {
-        // Шаг 2: RemoteConfig.remoteConfig()[key].boolValue
-        return defaultValue
+        let value = rc[key]
+        if value.source == .static {
+            return defaultValue
+        }
+        return value.boolValue
     }
 
     public func string(forKey key: String) -> String? {
-        // Шаг 2: RemoteConfig.remoteConfig()[key].stringValue
-        return nil
+        let value = rc[key]
+        if value.source == .static {
+            return nil
+        }
+        return value.stringValue
     }
 
     public func int(forKey key: String, defaultValue: Int) -> Int {
-        // Шаг 2: Int(RemoteConfig.remoteConfig()[key].numberValue.intValue)
-        return defaultValue
+        let value = rc[key]
+        if value.source == .static {
+            return defaultValue
+        }
+        return value.numberValue.intValue
     }
 
     public func refresh() async {
-        // Шаг 2: try? await RemoteConfig.remoteConfig().fetchAndActivate()
+        do {
+            _ = try await rc.fetchAndActivate()
+        } catch {
+            DivoConsoleLogger.shared.log("RemoteConfig refresh failed: \(error)", level: .error)
+        }
     }
 }
