@@ -118,6 +118,10 @@ public final class EventDetailController: TelegramBaseController {
             self?.presentWithdrawConfirmationSheet()
         }
 
+        self.controllerNode.onViewApplicationsTapped = { [weak self] in
+            self?.viewApplicationsPressed()
+        }
+
         self.displayNodeDidLoad()
         
         if isPreviewMode {
@@ -368,5 +372,17 @@ public final class EventDetailController: TelegramBaseController {
 
         self.activeGalleryController = galleryController
         self.push(galleryController)
+    }
+
+    // Метод для перехода на новый экран списка заявок
+    private func viewApplicationsPressed() {
+        guard let eventId = self.eventId else { return }
+        
+        let listController = ApplicationsListController(
+            context: self.context,
+            eventId: eventId
+        )
+        
+        self.push(listController)
     }
 }

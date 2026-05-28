@@ -1035,6 +1035,15 @@ public enum DivoStrings {
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
 
+    // MARK: - Event Applications List
+
+    public static var applicationsList: String { L(en: "Applications list", ru: "Список заявок", es: "Lista de solicitudes", pt: "Lista de candidaturas", zh: "申请列表") }
+    public static var pending: String { L(en: "Pending", ru: "В ожидании", es: "Pendiente", pt: "Pendente", zh: "待处理") }
+    public static var shortlisted: String { L(en: "Shortlisted", ru: "В шорт-листе", es: "Preseleccionado", pt: "Pré-selecionado", zh: "入围") }
+    public static var accepted: String { L(en: "Accepted", ru: "Принято", es: "Aceptado", pt: "Aceito", zh: "已接受") }
+    public static var rejected: String { L(en: "Rejected", ru: "Отклонено", es: "Rechazado", pt: "Rejeitado", zh: "已拒绝") }
+    public static var noApplicationsYet: String { L(en: "No applications yet", ru: "Пока нет заявок", es: "Aún no hay solicitudes", pt: "Nenhuma candidatura ainda", zh: "暂无申请") }
+    
     // MARK: - Helpers
 
     private static func pluralRu(_ n: Int, _ one: String, _ few: String, _ many: String) -> String {

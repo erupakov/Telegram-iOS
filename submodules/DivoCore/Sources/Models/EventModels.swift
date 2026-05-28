@@ -142,6 +142,22 @@ public struct EventFullDetailData: Decodable {
     public let modelAttributes: EventFullModelAttributes?
     public let creator: EventFullCreator?
     public let previsiousEventsFromSameOrigin: [EventSmallItem]?
+    public let appliedMembers: [EventAppliedMember]?
+}
+
+public struct EventAppliedMember: Decodable {
+    public let id: Int
+    public let appliedAt: String?
+    public let status: String?
+    public let user: EventAppliedUser?
+}
+
+public struct EventAppliedUser: Decodable {
+    public let id: Int
+    public let fullName: String?
+    public let roleLabel: String?
+    public let avatar: UserFile?
+    public let photo: UserFile?
 }
 
 // MARK: - Address & City (Full Detail)

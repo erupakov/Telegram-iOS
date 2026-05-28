@@ -32,6 +32,7 @@ public enum DivoImage {
     public static var crownPremium: UIImage { load("DivoCrownPremium") }
     public static var defWork: UIImage { load("DivoDefWork") }
     public static var emptyAppearanceProfile: UIImage { load("DivoEmptyAppearanceProfile") }
+    public static var emptyApplications: UIImage { load("DivoEmptyApplications") }
     public static var emptyBioProfile: UIImage { load("DivoEmptyBioProfile") }
     public static var emptyEvents: UIImage { load("DivoEmptyEvents") }
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
