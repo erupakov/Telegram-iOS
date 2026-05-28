@@ -20,7 +20,7 @@ public struct EventData {
     let cost: String?
     let countryFlag: String?
     
-    let appliesCount: Int?
+    var appliesCount: Int?
     let maxAttendees: Int?
     let paymentTypeId: Int?
     let applicationDeadline: String?

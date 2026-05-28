@@ -29,11 +29,13 @@ public final class EventApplyConfirmationController: TelegramBaseController {
 
     private let context: AccountContext
     private let eventId: Int
-    private let eventData: EventFullDetailData
+    // Сделали данные эвента опциональными и изменяемыми (var)
+    private var eventData: EventFullDetailData?
     
     public var onApplySuccess: (() -> Void)?
 
-    public init(context: AccountContext, eventId: Int, eventData: EventFullDetailData) {
+    // Задали значение по умолчанию eventData = nil для открытия из внешних списков
+    public init(context: AccountContext, eventId: Int, eventData: EventFullDetailData? = nil) {
         self.context = context
         self.eventId = eventId
         self.eventData = eventData
@@ -76,21 +78,36 @@ public final class EventApplyConfirmationController: TelegramBaseController {
     }
 
     private func fetchUserAndCompare() {
-        Task {
+        Task { [weak self] in
+            guard let self else { return }
             do {
-                // Получаем профиль текущего авторизованного пользователя (модели)
+                // 1. Если данные события не были переданы при инициализации (открытие из списка),
+                // сначала асинхронно дозагружаем полную информацию о событии
+                let finalEventData: EventFullDetailData
+                if let existingEventData = self.eventData {
+                    finalEventData = existingEventData
+                } else {
+                    let eventResponse: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                        path: "/event/\(self.eventId)"
+                    )
+                    guard let detail = eventResponse.data else { return }
+                    finalEventData = detail
+                }
+                
+                // 2. Получаем профиль модели
                 let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/user/info",
                     method: "GET"
                 )
-                
-                // Проводим сверку параметров
-                let (matches, hasMismatch, isMultiple, single) = self.compareParameters(user: userResponse.data, event: self.eventData)
+
+                // 3. Сохраняем загруженные данные и проводим сверку параметров
+                let (matches, hasMismatch, isMultiple, single) = self.compareParameters(user: userResponse.data, event: finalEventData)
                 
                 await MainActor.run {
+                    self.eventData = finalEventData
                     self.controllerNode.update(
                         user: userResponse.data,
-                        event: self.eventData,
+                        event: finalEventData,
                         matches: matches,
                         hasMismatch: hasMismatch,
                         isMultipleMismatches: isMultiple,
@@ -334,7 +351,7 @@ public final class EventApplyConfirmationController: TelegramBaseController {
         
         let body = ApplyEventRequest(eventId: self.eventId)
         
-        Task {
+        Task { [weak self] in
             do {
                 let _: ApplyEventResponse = try await DivoAPIClient.shared.request(
                     path: "/event/apply",
@@ -343,9 +360,10 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                 )
                 
                 await MainActor.run {
+                    guard let self else { return }
                     self.controllerNode.toggleSubmitLoading(active: false)
                     
-                    let deadlineText = self.formatDeadlineDate(self.eventData.applicationDeadline)
+                    let deadlineText = self.formatDeadlineDate(self.eventData?.applicationDeadline)
                     
                     self.controllerNode.showSuccessState(deadlineText: deadlineText)
                     
@@ -353,6 +371,7 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                 }
             } catch {
                 await MainActor.run {
+                    guard let self else { return }
                     self.controllerNode.toggleSubmitLoading(active: false)
                     self.controllerNode.showSnackbar(
                         message: DivoStrings.sendApplyRequestFail,
