@@ -168,6 +168,7 @@ final class DivoSettingsNode: ASDisplayNode {
     /// Сами row-view создаются с готовыми title'ами в init — без этого метода они застряли бы на старом языке до перезапуска.
     private func applyLocalization() {
         navigationBar.setTitle(DivoStrings.settings)
+        navigationBar.setRightButtonTitle(DivoStrings.settingsEdit)
         usernameContainer.setTitle(DivoStrings.settingsSetUsername)
         parametersContainer.setTitle(DivoStrings.fillYourParameters)
         savedMessagesContainer.setTitle(DivoStrings.savedMessages)

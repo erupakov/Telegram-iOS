@@ -148,8 +148,15 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             })
         }
 
-        // TODO: When MTProto is connected, force Telegram localization to one of the supported DIVO languages:
-        // context.engine.localization.downloadAndApplyLocalization(accountManager:languageCode:)
+        // FIXME DIVO: teamgram-сервер пока не реализует langpack.getDifference /
+        // langpack.getLangPack (отдаёт LANG_PACK_INVALID на langpack.getLanguage с пустым
+        // langPack), поэтому pack не приезжает и Telegram UI остаётся на en. Клиент
+        // корректный — заработает как только бэк добавит методы. Запрос оставлен для
+        // будущего: когда сервер починят, postbox подхватит pack автоматически.
+        let _ = context.engine.localization.downloadAndApplyLocalization(
+            accountManager: context.sharedContext.accountManager,
+            languageCode: DivoStrings.current.telegramCode
+        ).start()
 
         if DivoConfig.isDebugEnabled {
             self.debugShakeObserver = NotificationCenter.default.addObserver(

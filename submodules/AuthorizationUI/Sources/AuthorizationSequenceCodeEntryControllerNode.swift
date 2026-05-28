@@ -13,10 +13,10 @@ import AnimatedStickerNode
 import TelegramAnimatedStickerNode
 import SolidRoundedButtonNode
 import AuthorizationUtils
+import DivoCore
 import TelegramStringFormatting
 import TextNodeWithEntities
 import DivoUIKit
-import DivoCore
 
 final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
@@ -264,7 +264,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             self.signInWithAppleButton?.isHidden = true
             (self.signInWithAppleButton as? ASAuthorizationAppleIDButton)?.cornerRadius = 11
         }
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: self.theme), glass: true, height: 50.0, cornerRadius: 50.0 * 0.5)
+        self.proceedNode = SolidRoundedButtonNode(title: DivoStrings.authContinue, theme: SolidRoundedButtonTheme(theme: self.theme), glass: true, height: 50.0, cornerRadius: 50.0 * 0.5)
         self.proceedNode.progressType = .embedded
         self.proceedNode.isHidden = true
         self.proceedNode.iconSpacing = 4.0
@@ -587,7 +587,7 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
             case .sms:
                 let smsTitleParagraph = NSMutableParagraphStyle()
                 smsTitleParagraph.alignment = .center
-                self.titleNode.attributedText = NSAttributedString(string: self.strings.Login_EnterCodeSMSTitle.uppercased(), attributes: [
+                self.titleNode.attributedText = NSAttributedString(string: DivoStrings.authCodeTitle.uppercased(), attributes: [
                     .font: Font.helveticaNeue(32.0),
                     .foregroundColor: DivoColorPalette.primaryText,
                     .kern: 0.5,

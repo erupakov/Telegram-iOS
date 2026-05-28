@@ -41,6 +41,17 @@ public enum DivoStrings {
             case .zh: return "zh_Hans"
             }
         }
+
+        /// Дефолтный код страны для phone entry — берётся по языку, не по системному региону.
+        public var defaultPhoneCountryCode: Int32 {
+            switch self {
+            case .en: return 1   // US
+            case .ru: return 7   // RU
+            case .es: return 34  // ES
+            case .pt: return 55  // BR
+            case .zh: return 86  // CN
+            }
+        }
     }
 
     private static let overrideKey = "DivoStrings.languageOverride"
@@ -323,6 +334,17 @@ public enum DivoStrings {
     public static var authPrivacyPolicy: String { L(en: "Privacy Policy", ru: "Политикой конфиденциальности", es: "Política de privacidad", pt: "Política de Privacidade", zh: "隐私政策") }
     public static var authComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
     public static var authSignInFailed: String { L(en: "Sign-in failed. Please try again.", ru: "Не удалось войти. Попробуйте ещё раз.", es: "Error al iniciar sesión. Inténtalo de nuevo.", pt: "Falha ao entrar. Tente novamente.", zh: "登录失败，请重试。") }
+
+    // MARK: - Auth Phone & Code Entry
+    // Дублируем Telegram-овские Login_* строки локально: на teamgram-сервере не реализованы
+    // langpack.getDifference/getLangPack, без них Telegram presentationData.strings остаётся
+    // на en независимо от системного языка. См. FIXME DIVO в TelegramRootController.
+
+    public static var authPhoneTitle: String { L(en: "Your phone", ru: "Ваш номер", es: "Tu teléfono", pt: "Seu telefone", zh: "您的电话号码") }
+    public static var authPhoneConfirmation: String { L(en: "Is this the correct number?", ru: "Это правильный номер?", es: "¿Es este el número correcto?", pt: "Este é o número correto?", zh: "这是正确的号码吗？") }
+    public static var authContinue: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }
+    public static var authEdit: String { L(en: "Edit", ru: "Изменить", es: "Editar", pt: "Editar", zh: "编辑") }
+    public static var authCodeTitle: String { L(en: "Enter code", ru: "Введите код", es: "Introduce el código", pt: "Insira o código", zh: "输入验证码") }
 
     // MARK: - OTP / Code entry
     /// Подзаголовок экрана ввода кода. %@ — номер телефона (выделяется жирным в UI).

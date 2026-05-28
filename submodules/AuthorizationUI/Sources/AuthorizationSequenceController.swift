@@ -90,7 +90,12 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         }
         
         super.init(mode: .single, theme: NavigationControllerTheme(statusBar: navigationStatusBar, navigationBar: AuthorizationSequenceController.navigationBarTheme(presentationData.theme), emptyAreaColor: .black), isFlat: true)
-        
+
+        // Bootstrap Telegram language pack для unauthorized flow намеренно НЕ вызываем —
+        // teamgram отдаёт LANG_PACK_INVALID на langpack.getLanguage с пустым langPack,
+        // pack не приедет всё равно. Видимые auth-строки (title/Continue/Edit) уже
+        // переведены через DivoStrings. См. FIXME DIVO в TelegramRootController.
+
         self.inAppPurchaseManager = InAppPurchaseManager(engine: .unauthorized(self.engine))
         
         self.stateDisposable = (self.engine.auth.state()
@@ -1489,20 +1494,9 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     }
     
     public static func defaultCountryCode() -> Int32 {
-        let countryId = (Locale.current as NSLocale).object(forKey: .countryCode) as? String
-     
-        var countryCode: Int32 = 1
-        if let countryId = countryId {
-            let normalizedId = countryId.uppercased()
-            for (code, idAndName) in countryCodeToIdAndName {
-                if idAndName.0 == normalizedId {
-                    countryCode = Int32(code)
-                    break
-                }
-            }
-        }
-        
-        return countryCode
+        // По языку, а не по Locale.current.countryCode: регион устройства часто
+        // отличается от языка интерфейса (испанский UI на российской симке).
+        return DivoStrings.current.defaultPhoneCountryCode
     }
     
     public static func presentDidNotGetCodeUI(
