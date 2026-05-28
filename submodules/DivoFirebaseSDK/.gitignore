@@ -1,0 +1,2 @@
+# Firebase iOS SDK xcframework binaries — pulled by scripts/divo/install_firebase.sh
+xcframeworks/*.xcframework/

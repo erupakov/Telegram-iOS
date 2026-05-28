@@ -45,6 +45,7 @@ import RecaptchaEnterprise
 import NavigationBarImpl
 import ContextUI
 import ContextControllerImpl
+import DivoCore
 import DivoUIKit
 
 #if canImport(AppCenter)
@@ -751,6 +752,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }, openUrl: { url in
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         })
+
+        DivoBootstrap.start()
         setContextMenuControllerProvider { arguments in
             return ContextMenuControllerImpl(arguments)
         }
