@@ -10,6 +10,8 @@ swift_library(
     deps = [
         "//submodules/DivoCore:DivoCore",
         "//submodules/DivoFirebaseKit:DivoFirebaseKit",
+        "@firebase_ios_sdk//:FirebaseAuth",
+        "@firebase_ios_sdk//:FirebaseCore",
         # TelegramCore добавляется в шаге 5 для teamgram signIn/signUp:
         # "//submodules/TelegramCore:TelegramCore",
     ],

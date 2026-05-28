@@ -154,9 +154,12 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
             )
             strongSelf.pushViewController(phoneEntry, animated: true)
         }
-        // Google/Apple — заглушки до интеграции Firebase Auth (P0.4 в плане Eugene'а)
-        // и empty-Divo endpoint (P1.5/1.6). Сейчас тап → snackbar «Coming soon»
-        // через дефолтное поведение DivoAuthWelcomeController.
+        controller.onSignInWithGoogle = { [weak controller] in
+            Task { @MainActor in
+                await DivoAuthGoogleHandler.signIn(from: controller)
+            }
+        }
+        // Apple — заглушка до шага 4: тап → snackbar «Coming soon».
         return controller
     }
 

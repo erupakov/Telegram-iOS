@@ -288,6 +288,15 @@ public final class DivoAuthWelcomeController: ViewController {
             bottomInset: 24
         )
     }
+
+    public func showError(message: String) {
+        snackbar.show(
+            in: view,
+            message: message,
+            style: .error,
+            bottomInset: 24
+        )
+    }
 }
 
 // MARK: - White OAuth button (Google / Apple)

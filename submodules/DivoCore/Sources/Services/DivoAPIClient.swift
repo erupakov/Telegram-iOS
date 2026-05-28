@@ -1,5 +1,4 @@
 import Foundation
-import Network
 
 public final class DivoAPIClient {
     public static let shared = DivoAPIClient()
@@ -8,32 +7,17 @@ public final class DivoAPIClient {
     private let baseURL: URL
     private let logger = DivoRequestLogger.shared
 
-    private let networkMonitor = NWPathMonitor()
-    private let connectivityLock = NSLock()
-    private var _isNetworkSatisfied = true
-
-    private var isNetworkSatisfied: Bool {
-        connectivityLock.lock()
-        defer { connectivityLock.unlock() }
-        return _isNetworkSatisfied
-    }
-
     private init() {
         self.baseURL = DivoConfig.baseURL
         let config = URLSessionConfiguration.default
         config.protocolClasses = [DivoMockURLProtocol.self] + (config.protocolClasses ?? [])
         self.session = URLSession(configuration: config)
-        networkMonitor.pathUpdateHandler = { [weak self] path in
-            guard let self else { return }
-            self.connectivityLock.lock()
-            self._isNetworkSatisfied = (path.status == .satisfied)
-            self.connectivityLock.unlock()
-        }
-        networkMonitor.start(queue: DispatchQueue(label: "DivoAPIClient.networkMonitor"))
+        // Network connectivity мониторится через DivoNetworkMonitor.shared (single source of truth).
+        _ = DivoNetworkMonitor.shared
     }
 
     private func checkConnectivity() throws {
-        guard isNetworkSatisfied else {
+        guard DivoNetworkMonitor.shared.isConnected else {
             throw DivoAPIError.noInternetConnection
         }
     }

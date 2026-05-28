@@ -318,6 +318,7 @@ public enum DivoStrings {
     public static var authTermsOfService: String { L(en: "Terms of Service", ru: "Условиями использования", es: "Términos de servicio", pt: "Termos de Serviço", zh: "服务条款") }
     public static var authPrivacyPolicy: String { L(en: "Privacy Policy", ru: "Политикой конфиденциальности", es: "Política de privacidad", pt: "Política de Privacidade", zh: "隐私政策") }
     public static var authComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
+    public static var authSignInFailed: String { L(en: "Sign-in failed. Please try again.", ru: "Не удалось войти. Попробуйте ещё раз.", es: "Error al iniciar sesión. Inténtalo de nuevo.", pt: "Falha ao entrar. Tente novamente.", zh: "登录失败，请重试。") }
 
     // MARK: - OTP / Code entry
     /// Подзаголовок экрана ввода кода. %@ — номер телефона (выделяется жирным в UI).
