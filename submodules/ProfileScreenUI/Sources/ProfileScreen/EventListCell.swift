@@ -215,6 +215,7 @@ final class EventListCell: UICollectionViewCell {
                 applyButton.isHidden = true
                 applyStackView.isHidden = false
             } else {
+                applyStackView.isHidden = true
                 applyButton.isHidden = false
                 applyButton.makeDivoButton(title: DivoStrings.apply, buttonFont: Font.helveticaNeue(14), radius: 18)
             }

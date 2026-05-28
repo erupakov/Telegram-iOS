@@ -13,6 +13,7 @@ public enum DivoConfig {
     public static let tokenDidChangeNotification = Notification.Name("DivoConfig.tokenDidChange")
     public static let roleDidChangeNotification = Notification.Name("DivoConfig.roleDidChange")
     public static let profileDidUpdateNotification = Notification.Name("DivoConfig.profileDidUpdate")
+    public static let divoEventAppliedStatusChanged = Notification.Name("DivoConfig.eventAppliedStatusChanged")
 
     // MARK: - User Roles
 

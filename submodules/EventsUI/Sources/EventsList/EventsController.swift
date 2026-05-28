@@ -110,6 +110,12 @@ public final class EventsController: TelegramBaseController {
             self?.tabStates = [TabState(), TabState()]
             self?.loadEventsList(tabIndex: self?.selectedTabIndex ?? 0, reset: true)
         }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventAppliedStatusChanged(_:)),
+            name: DivoConfig.divoEventAppliedStatusChanged,
+            object: nil
+        )
     }
 
     private func updateNavigation() {
@@ -231,9 +237,9 @@ public final class EventsController: TelegramBaseController {
         self.push(detailController)
     }
 
-    // Точечное асинхронное обновление статуса отклика для одного эвента (Задачи 1 и 2)
+    // Точечное асинхронное обновление статуса отклика для одного эвента
     private func refreshSingleEventState(eventId: Int) {
-        Task { [weak self] in
+        Task {
             do {
                 let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/event/\(eventId)",
@@ -242,17 +248,18 @@ public final class EventsController: TelegramBaseController {
                 guard let detail = response.data else { return }
                 
                 await MainActor.run {
-                    guard let self = self else { return }
                     let isApplied = detail.isApplied ?? false
                     
-                    // 1. Обновляем локальный кэш табов
-                    if let index = self.tabStates[self.selectedTabIndex].events.firstIndex(where: { $0.id == eventId }) {
-                        self.tabStates[self.selectedTabIndex].events[index].isApplied = isApplied
-                        self.tabStates[self.selectedTabIndex].events[index].appliesCount = detail.appliesCount
-                    }
-                    
-                    // 2. Даем команду ноде перерисовать эту конкретную ячейку
-                    self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied, appliesCount: detail.appliesCount)
+                    // Публикуем уведомление для всех экранов в приложении
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventAppliedStatusChanged,
+                        object: nil,
+                        userInfo: [
+                            "eventId": eventId,
+                            "isApplied": isApplied,
+                            "appliesCount": detail.appliesCount ?? 0
+                        ]
+                    )
                 }
             } catch {
                 print("⚠️ refreshSingleEventState failed: \(error)")
@@ -487,6 +494,31 @@ public final class EventsController: TelegramBaseController {
         let controller = CreateEventController(context: context)
         controller.delegate = self
         self.push(controller)
+    }
+
+    @objc private func handleEventAppliedStatusChanged(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let eventId = userInfo["eventId"] as? Int,
+              let isApplied = userInfo["isApplied"] as? Bool else { return }
+        
+        let appliesCount = userInfo["appliesCount"] as? Int
+        
+        // 1. Обновляем локальный кэш во всех вкладках (Мои / Все), чтобы при переключении кэш был свежим
+        for tabIndex in 0..<self.tabStates.count {
+            if let index = self.tabStates[tabIndex].events.firstIndex(where: { $0.id == eventId }) {
+                self.tabStates[tabIndex].events[index].isApplied = isApplied
+                if let appliesCount = appliesCount {
+                    self.tabStates[tabIndex].events[index].appliesCount = appliesCount
+                } else {
+                    if let currentApplies = self.tabStates[tabIndex].events[index].appliesCount {
+                        self.tabStates[tabIndex].events[index].appliesCount = max(0, currentApplies + (isApplied ? 1 : -1))
+                    }
+                }
+            }
+        }
+        
+        // 2. Моментально перерисовываем ячейку на экране (если она видна)
+        self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied, appliesCount: appliesCount)
     }
 
     required public init(coder aDecoder: NSCoder) {

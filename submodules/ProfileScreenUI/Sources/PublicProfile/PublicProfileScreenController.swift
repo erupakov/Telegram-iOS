@@ -96,6 +96,14 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.peer = peer
 
         super.init(context: context, navigationBarPresentationData: nil)
+
+        // Подписываемся на уведомление о смене статуса отклика
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventAppliedStatusChanged(_:)),
+            name: DivoConfig.divoEventAppliedStatusChanged,
+            object: nil
+        )
     }
     
     deinit {
@@ -559,6 +567,15 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 completion(false)
             }
         }
+    }
+
+    @objc private func handleEventAppliedStatusChanged(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let eventId = userInfo["eventId"] as? Int,
+              let isApplied = userInfo["isApplied"] as? Bool else { return }
+        
+        // Точечно перерисовываем ячейку в Ноде профиля (кэш вкладки обновится автоматически, так как он лежит внутри Node)
+        self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied)
     }
 }
 
@@ -1063,9 +1080,9 @@ extension PublicProfileScreenController {
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
 
-    // Точечный асинхронный перезапрос статуса конкретного события (Задачи 1 и 2)
+    // Точечный асинхронный перезапрос статуса конкретного события
     private func refreshSingleEventState(eventId: Int) {
-        Task { [weak self] in
+        Task {
             do {
                 let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/event/\(eventId)",
@@ -1074,10 +1091,18 @@ extension PublicProfileScreenController {
                 guard let detail = response.data else { return }
                 
                 await MainActor.run {
-                    guard let self = self else { return }
                     let isApplied = detail.isApplied ?? false
-                    // Точечно перерисовываем ячейку в Ноде профиля
-                    self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied)
+                    
+                    // Публикуем уведомление
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventAppliedStatusChanged,
+                        object: nil,
+                        userInfo: [
+                            "eventId": eventId,
+                            "isApplied": isApplied,
+                            "appliesCount": detail.appliesCount ?? 0
+                        ]
+                    )
                 }
             } catch {
                 print("⚠️ refreshSingleEventState failed: \(error)")
