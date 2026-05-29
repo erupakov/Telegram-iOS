@@ -18,6 +18,12 @@ import TelegramStringFormatting
 import TextNodeWithEntities
 import DivoUIKit
 
+// DIVO PATCH (auth strings): подмена видимых Login_* строк на DivoStrings.auth* —
+// см. AuthorizationSequencePhoneEntryControllerNode.swift для контекста. Заменены
+// title (Login_EnterCodeSMSTitle) и Continue (Login_Continue). Subtitle с номером
+// телефона генерируется через Telegram-овский authorizationCurrentOptionText —
+// его не трогаем (он подхватит правильную локаль после прихода pack'а).
+
 final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let strings: PresentationStrings
     private let theme: PresentationTheme

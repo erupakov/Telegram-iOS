@@ -345,6 +345,7 @@ public enum DivoStrings {
     public static var authContinue: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续") }
     public static var authEdit: String { L(en: "Edit", ru: "Изменить", es: "Editar", pt: "Editar", zh: "编辑") }
     public static var authCodeTitle: String { L(en: "Enter code", ru: "Введите код", es: "Introduce el código", pt: "Insira o código", zh: "输入验证码") }
+    public static var languageApplying: String { L(en: "Applying language…", ru: "Применяем язык…", es: "Aplicando idioma…", pt: "Aplicando idioma…", zh: "正在应用语言…") }
 
     // MARK: - OTP / Code entry
     /// Подзаголовок экрана ввода кода. %@ — номер телефона (выделяется жирным в UI).

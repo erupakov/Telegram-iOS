@@ -19,6 +19,12 @@ import AuthorizationUtils
 import ManagedAnimationNode
 import Markdown
 
+// DIVO PATCH (auth strings): подмена видимых Login_* строк на DivoStrings.auth* —
+// teamgram-сервер не отдаёт Login_* pack для es/pt/zh (есть только en/ru), а наш
+// клиент по Telegram-стандарту шлёт пустой langPack, который сервер не accepts.
+// Поэтому видимые строки на этом экране (title, Continue, PhoneNumberConfirmation,
+// Edit) берём из DivoStrings. Откатить при upstream merge если бэк починит сервер.
+
 private final class PhoneAndCountryNode: ASDisplayNode {
     let strings: PresentationStrings
     let theme: PresentationTheme

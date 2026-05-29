@@ -11,6 +11,8 @@ import DivoUIKit
 public final class DivoLanguagePickerController: TelegramBaseController {
 
     private let context: AccountContext
+    private let languageApplyDisposable = MetaDisposable()
+    private var isApplyingLanguage = false
 
     private var pickerNode: DivoLanguagePickerNode {
         return self.displayNode as! DivoLanguagePickerNode
@@ -23,6 +25,10 @@ public final class DivoLanguagePickerController: TelegramBaseController {
 
     required init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        languageApplyDisposable.dispose()
     }
 
     override public func loadDisplayNode() {
@@ -44,37 +50,71 @@ public final class DivoLanguagePickerController: TelegramBaseController {
     }
 
     private func applySelection(_ selection: DivoLanguagePickerNode.Selection) {
-        // Сохраняем выбор в DivoStrings. didChangeNotification разлетится подписчикам.
+        // UX как в основном Telegram: spinner overlay → ждём Telegram pack →
+        // только после completed/error/timeout применяем DivoStrings (постит didChangeNotification)
+        // → TelegramRootController.refreshDivoTabTitles делает popToRoot → picker (вместе
+        // с overlay) исчезает, все controllers пересоздаются с новой локалью.
         //
-        // ВАЖНО: TelegramRootController.refreshDivoTabTitles подписан на эту нотификацию
-        // и делает popToRoot(animated: false) — чтобы push'нутые внутри табов экраны (которые
-        // могут не быть подписаны на notification) пересоздались с новым языком. Это значит:
-        //  - при реальной смене языка popToRoot сам уберёт picker, manual pop НЕ нужен;
-        //  - если язык не сменился (нажали back/тот же язык) — notification не летит,
-        //    picker нужно закрыть руками.
-        //
-        // Если делать manual pop + полагаться на popToRoot одновременно — две pop-операции
-        // конфликтуют и дают чёрный экран.
-        //
-        // Sync с Telegram-pack'ом через downloadAndApplyLocalization НЕ вызываем —
-        // вешает серый overlay (teamgram language pack pull).
+        // Устойчивость:
+        //  - Timeout 10с — если сервер не ответит ни completed, ни error, всё равно apply.
+        //  - apply() guard'нут флагом — не выполнится дважды (network race + timeout).
+        //  - [weak self] — если controller dismissed (swipe back/popToRoot), apply no-op.
+        //  - Overlay isUserInteractionEnabled=true — блокирует повторные тапы по языкам.
         let didChange: Bool
+        let resolvedLanguage: DivoStrings.Language
         switch selection {
         case .auto:
             didChange = DivoStrings.isOverridden
-            if didChange {
-                DivoStrings.resetToDeviceLanguage()
-            }
+            resolvedLanguage = DivoStrings.deviceLanguage
         case .explicit(let lang):
             didChange = !DivoStrings.isOverridden || DivoStrings.current != lang
-            if didChange {
-                DivoStrings.current = lang
-            }
+            resolvedLanguage = lang
         }
 
-        if !didChange {
+        guard didChange else {
             let _ = (self.navigationController as? NavigationController)?.popViewController(animated: true)
+            return
         }
+
+        if isApplyingLanguage {
+            return
+        }
+        isApplyingLanguage = true
+
+        let overlay = DivoLoadingOverlay()
+        overlay.show(in: self.view, message: DivoStrings.languageApplying)
+
+        var applied = false
+        let apply: () -> Void = { [weak self] in
+            guard self != nil else { return }
+            if applied { return }
+            applied = true
+            switch selection {
+            case .auto:
+                DivoStrings.resetToDeviceLanguage()
+            case .explicit(let lang):
+                DivoStrings.current = lang
+            }
+            // popToRoot из TelegramRootController.refreshDivoTabTitles уберёт picker сам.
+        }
+
+        let signal = context.engine.localization.downloadAndApplyLocalization(
+            accountManager: context.sharedContext.accountManager,
+            languageCode: resolvedLanguage.telegramCode
+        )
+        |> timeout(10.0, queue: Queue.mainQueue(), alternate: .fail(.generic))
+
+        languageApplyDisposable.set(signal.start(
+            next: { _ in
+                Queue.mainQueue().async { apply() }
+            },
+            error: { _ in
+                Queue.mainQueue().async { apply() }
+            },
+            completed: {
+                Queue.mainQueue().async { apply() }
+            }
+        ))
     }
 }
 
