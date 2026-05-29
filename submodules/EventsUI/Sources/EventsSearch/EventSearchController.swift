@@ -80,8 +80,8 @@ public final class EventsSearchController: ViewController {
             self?.openFilters()
         }
         
-        self.searchNode.onEventTapped = { [weak self] event in
-            self?.openEventDetailScreen(for: event)
+        self.searchNode.onEventTapped = { [weak self] eventId in
+            self?.openEventDetailScreen(for: eventId)
         }
         
         self.searchNode.requestAutocomplete = { [weak self] query in
@@ -133,10 +133,10 @@ public final class EventsSearchController: ViewController {
 
     // MARK: - Navigation & Action Flow
     
-    private func openEventDetailScreen(for event: EventData) {
+    private func openEventDetailScreen(for eventId: Int?) {
         let detailController = EventDetailController(
             context: self.context,
-            eventId: event.id,
+            eventId: eventId,
             // надо прокинуть мой эвент или нет
             // надо понять что с DivoConfig - это чисто разработческая штука или все-таки и в приожении работает
             isMyEvent: false,
@@ -145,7 +145,7 @@ public final class EventsSearchController: ViewController {
         
         // Подписываемся на обновление при возврате
         detailController.onEventModified = { [weak self] in
-            self?.refreshSingleEventState(eventId: event.id)
+            self?.refreshSingleEventState(eventId: eventId)
         }
         
         self.push(detailController)
@@ -165,7 +165,8 @@ public final class EventsSearchController: ViewController {
         self.push(confirmationController)
     }
 
-    private func refreshSingleEventState(eventId: Int) {
+    private func refreshSingleEventState(eventId: Int?) {
+        guard let eventId = eventId else { return }
         Task { [weak self] in
             do {
                 let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(

@@ -1055,6 +1055,7 @@ public enum DivoStrings {
     public static var paramEyeColor: String { L(en: "Eye color", ru: "Цвет глаз", es: "Color de ojos", pt: "Cor dos olhos", zh: "眼色") }
     public static var paramSkinColor: String { L(en: "Skin color", ru: "Цвет кожи", es: "Color de piel", pt: "Cor da pele", zh: "肤色") }
     public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)") }
+    public static func afterDeadlineData(_ data: String) -> String { L(en: "Applications closed \(data)", ru: "Прием заявок закрыт \(data)", es: "Inscripciones cerradas \(data)", pt: "Inscrições encerradas \(data)", zh: "申请已截止 \(data)") }
     public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭") }
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
@@ -1068,7 +1069,8 @@ public enum DivoStrings {
     public static var rejected: String { L(en: "Rejected", ru: "Отклонено", es: "Rechazado", pt: "Rejeitado", zh: "已拒绝") }
     public static var noApplicationsYet: String { L(en: "No applications yet", ru: "Пока нет заявок", es: "Aún no hay solicitudes", pt: "Nenhuma candidatura ainda", zh: "暂无申请") }
     public static var eventApplicationsListErrorTitle: String { L(en: "Couldn't load applications list", ru: "Не удалось загрузить список заявок", es: "No se pudo cargar la lista de solicitudes", pt: "Não foi possível carregar a lista de candidaturas", zh: "无法加载申请列表") }
-    
+    public static var сlosed: String { L(en: "Closed", ru: "Закрыто", es: "Cerrado", pt: "Fechado", zh: "已关闭") }
+
     // MARK: - Event Search
     
     public static var eventsSearchPlaceholder: String { L(en: "Search by name", ru: "Поиск по названию", es: "Buscar por nombre", pt: "Pesquisar por nome", zh: "按名称搜索") }

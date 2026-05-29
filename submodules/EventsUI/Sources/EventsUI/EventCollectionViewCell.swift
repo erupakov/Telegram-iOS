@@ -364,10 +364,31 @@ final class EventCollectionViewCell: UICollectionViewCell {
 
     func configure(with event: EventData, context: AccountContext) {
         self.currentEventId = event.id
+        applyButton.isEnabled = true
+        
+        var isDeadlinePassed = false
+        if let deadlineRaw = event.applicationDeadline {
+            let normalized = deadlineRaw.replacingOccurrences(of: " ", with: "T")
+            let parser = DateFormatter()
+            parser.locale = Locale(identifier: "en_US_POSIX")
+            parser.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            var deadlineDate = parser.date(from: normalized)
+            if deadlineDate == nil {
+                parser.dateFormat = "yyyy-MM-dd'T'HH:mm"
+                deadlineDate = parser.date(from: normalized)
+            }
+            if let date = deadlineDate {
+                isDeadlinePassed = date.timeIntervalSinceNow <= 0
+            }
+        }
         
         if event.isApplied == true {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isUserInteractionEnabled = false
+        } else if isDeadlinePassed {
+            let closedTitle = DivoStrings.сlosed
+            applyButton.makeDivoButton(title: closedTitle, buttonFont: Font.helveticaNeue(12), radius: 12)
+            applyButton.isEnabled = false
         } else {
             applyButton.makeDivoButton(title: DivoStrings.apply, loading: DivoStrings.applying, buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isUserInteractionEnabled = true

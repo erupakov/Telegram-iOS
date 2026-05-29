@@ -1827,8 +1827,26 @@ final class EventDetailControllerNode: ASDisplayNode {
         // ранее навешанные targets, иначе один тап стрельнёт несколько действий.
         applyButton.removeTarget(self, action: nil, for: .touchUpInside)
         applyButton.isUserInteractionEnabled = true
+        applyButton.isEnabled = true
         applyButton.isHidden = false
         appliedStatusViewContainer.isHidden = true
+        
+        // 1. Проверяем, прошёл ли дедлайн
+        var isDeadlinePassed = false
+        if let deadlineRaw = newEventData.applicationDeadline {
+            let normalized = deadlineRaw.replacingOccurrences(of: " ", with: "T")
+            let parser = DateFormatter()
+            parser.locale = Locale(identifier: "en_US_POSIX")
+            parser.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            var deadlineDate = parser.date(from: normalized)
+            if deadlineDate == nil {
+                parser.dateFormat = "yyyy-MM-dd'T'HH:mm"
+                deadlineDate = parser.date(from: normalized)
+            }
+            if let date = deadlineDate {
+                isDeadlinePassed = date.timeIntervalSinceNow <= 0
+            }
+        }
 
         if self.isMyEvent {
             applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
@@ -1841,6 +1859,10 @@ final class EventDetailControllerNode: ASDisplayNode {
             appliedStatusViewContainer.isHidden = false
         } else if self.isAgency {
             applyButton.isHidden = true
+        } else if isDeadlinePassed {
+            let closedTitle = DivoStrings.сlosed
+            applyButton.makeDivoButton(title: closedTitle, buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.isEnabled = false
         } else {
             applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
