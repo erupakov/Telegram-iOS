@@ -30,6 +30,7 @@ public final class EventDetailController: TelegramBaseController {
     private var eventData: EventFullDetailData?
     private let context: AccountContext
     private let isMyEvent: Bool?
+    private let isAgency: Bool?
     
     // Массив для хранения распарсенных фотографий галереи
     internal var currentGalleryPhotos: [UserPhoto] = []
@@ -46,13 +47,15 @@ public final class EventDetailController: TelegramBaseController {
         eventId: Int? = nil,
         isMyEvent: Bool? = nil,
         isPreviewMode: Bool = false,
-        previewData: EventPreviewData? = nil
+        previewData: EventPreviewData? = nil,
+        isAgency: Bool? = nil
     ) {
         self.context = context
         self.eventId = eventId
         self.isMyEvent = isMyEvent
         self.isPreviewMode = isPreviewMode
         self.previewData = previewData
+        self.isAgency = isAgency
 
         super.init(context: context, navigationBarPresentationData: nil)
     }
@@ -69,7 +72,8 @@ public final class EventDetailController: TelegramBaseController {
         self.displayNode = EventDetailControllerNode(
             context: self.context,
             isMyEvent: self.isMyEvent ?? false,
-            isPreviewMode: self.isPreviewMode
+            isPreviewMode: self.isPreviewMode,
+            isAgency: self.isAgency ?? false
         )
         
         // Перехватываем действия из кастомного навбара

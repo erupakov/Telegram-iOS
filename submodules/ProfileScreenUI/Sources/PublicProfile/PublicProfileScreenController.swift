@@ -61,6 +61,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private weak var activeGalleryController: ProfileGalleryController?
 
     private var isMyProfile: Bool
+    private var isMyRoleAgency: Bool
 
     private enum PickerPurpose {
         case photo
@@ -92,6 +93,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.context = context
         self.model = model
         self.isMyProfile = model.isMyProfile
+        self.isMyRoleAgency = DivoConfig.currentUserRole == .agency
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
 
@@ -227,7 +229,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             controller: self,
             context: self.context,
             presentationData: self.presentationData,
-            model: model
+            model: model,
+            isMyRoleAgency: self.isMyRoleAgency
         )
 
         self.controllerNode.onLikesTapped = {[weak self] in
@@ -864,7 +867,8 @@ extension PublicProfileScreenController {
                         customAvatarURL: finalAvatarUrl,
                         originalDate: item.date,
                         eventId: item.id,
-                        isApplied: item.isApplied
+                        isApplied: item.isApplied,
+                        isMyRoleAgency: self.isMyRoleAgency
                     )
                 }
 
@@ -1131,7 +1135,7 @@ extension PublicProfileScreenController {
     private func openEventDetailScreen(for event: EventItem) {
         guard let eventId = event.eventId else { return }
         
-        let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile)
+        let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile, isAgency: isMyRoleAgency)
         
         // Перехватываем изменения на детальном экране (отклик / отзыв заявки)
         detailController.onEventModified = { [weak self] in

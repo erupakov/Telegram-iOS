@@ -571,6 +571,7 @@ final class EventDetailControllerNode: ASDisplayNode {
     
     private let isMyEvent: Bool
     private let isPreviewMode: Bool
+    private let isAgency: Bool
     
     var onEditPreviewTapped: (() -> Void)?
     var onPublishPreviewTapped: (() -> Void)?
@@ -625,10 +626,11 @@ final class EventDetailControllerNode: ASDisplayNode {
     
     // MARK: - Init
     
-    init(context: AccountContext, isMyEvent: Bool = false, isPreviewMode: Bool = false) {
+    init(context: AccountContext, isMyEvent: Bool = false, isPreviewMode: Bool = false, isAgency:Bool = false) {
         self.context = context
         self.isMyEvent = isMyEvent
         self.isPreviewMode = isPreviewMode
+        self.isAgency = isAgency
 
         super.init()
         self.backgroundColor = DivoColorPalette.darkBackground
@@ -1503,7 +1505,6 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventDeadlineContainer.isHidden = false
             
             applyButtonShimmer.isHidden = true
-            applyButton.isHidden = false
 
             appliedStatusShimmerView.isHidden = true
             appliedStatusView.isHidden = false
@@ -1826,6 +1827,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         // ранее навешанные targets, иначе один тап стрельнёт несколько действий.
         applyButton.removeTarget(self, action: nil, for: .touchUpInside)
         applyButton.isUserInteractionEnabled = true
+        applyButton.isHidden = false
         appliedStatusViewContainer.isHidden = true
 
         if self.isMyEvent {
@@ -1837,6 +1839,8 @@ final class EventDetailControllerNode: ASDisplayNode {
             let dateText = self.formatAppliedDate(newEventData.date)  //newEventData.appliedAt ??
             appliedStatusView.configure(appliedDateText: dateText)
             appliedStatusViewContainer.isHidden = false
+        } else if self.isAgency {
+            applyButton.isHidden = true
         } else {
             applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)

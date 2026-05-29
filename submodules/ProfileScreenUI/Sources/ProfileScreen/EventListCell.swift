@@ -16,6 +16,7 @@ struct EventItem {
     let originalDate: String?
     let eventId: Int?
     let isApplied: Bool?
+    let isMyRoleAgency: Bool?
 }
 
 final class EventListCell: UICollectionViewCell {
@@ -202,7 +203,7 @@ final class EventListCell: UICollectionViewCell {
             avatarImageView.loadImage(from: url)
         }
         
-        if isMyProfile {
+        if isMyProfile || (item.isMyRoleAgency == true) {
             applyButton.isHidden = true
             
             nameLabelTrailingWithButton?.isActive = false

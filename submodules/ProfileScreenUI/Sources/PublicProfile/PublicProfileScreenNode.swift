@@ -59,6 +59,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private let model: ProfileModel
     private var modelDetail: UserDetail?
     private var modelRole: Role = .model
+    private var isMyRoleAgency: Bool
     private var avatarImage: UIImage?
 
     // MARK: - Screen state (см. enum'ы выше)
@@ -1039,11 +1040,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     // MARK: - Init
     
-    init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel) {
+    init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel, isMyRoleAgency: Bool) {
         self.controller = controller
         self.context = context
         self.presentationData = presentationData
         self.model = model
+        self.isMyRoleAgency = isMyRoleAgency
 
         super.init()
 
@@ -4440,7 +4442,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             customAvatarURL: oldItem.customAvatarURL,
             originalDate: oldItem.originalDate,
             eventId: oldItem.eventId,
-            isApplied: isApplied
+            isApplied: isApplied,
+            isMyRoleAgency: self.isMyRoleAgency
         )
         self.eventGalleryItems[index] = newItem
         

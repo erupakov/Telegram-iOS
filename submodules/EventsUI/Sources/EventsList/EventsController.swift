@@ -225,7 +225,8 @@ public final class EventsController: TelegramBaseController {
         let detailController = EventDetailController(
             context: self.context,
             eventId: event.id,
-            isMyEvent: self.userId == event.creatorId
+            isMyEvent: self.userId == event.creatorId,
+            isAgency: self.isAgency
         )
         
         // Перехватываем callback при изменении статуса отклика на детальном экране
