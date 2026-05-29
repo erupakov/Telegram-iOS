@@ -91,10 +91,15 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         
         super.init(mode: .single, theme: NavigationControllerTheme(statusBar: navigationStatusBar, navigationBar: AuthorizationSequenceController.navigationBarTheme(presentationData.theme), emptyAreaColor: .black), isFlat: true)
 
-        // Bootstrap Telegram language pack для unauthorized flow намеренно НЕ вызываем —
-        // teamgram отдаёт LANG_PACK_INVALID на langpack.getLanguage с пустым langPack,
-        // pack не приедет всё равно. Видимые auth-строки (title/Continue/Edit) уже
-        // переведены через DivoStrings. См. FIXME DIVO в TelegramRootController.
+        // DIVO PATCH (bootstrap pack, unauthorized): подтягиваем pack тихо чтобы Telegram-овские
+        // строки в auth flow (alerts, system buttons) подхватили нужную локаль. Без post
+        // notification — completed не должен триггерить popToRoot во время auth flow.
+        // Если pack недоступен на сервере для языка — silent error, видимые auth-строки
+        // переведены через DivoStrings (см. AuthorizationSequencePhoneEntryControllerNode).
+        let _ = self.engine.localization.downloadAndApplyLocalization(
+            accountManager: self.sharedContext.accountManager,
+            languageCode: DivoStrings.current.telegramCode
+        ).start()
 
         self.inAppPurchaseManager = InAppPurchaseManager(engine: .unauthorized(self.engine))
         

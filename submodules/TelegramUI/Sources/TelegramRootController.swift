@@ -149,24 +149,18 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         }
 
         // DIVO PATCH (bootstrap pack): подтягиваем Telegram language pack под DIVO-язык
-        // при создании root-controller'а (post-auth). По completed постим
-        // didChangeNotification → refreshDivoTabTitles делает popToRoot → живые controllers
-        // пересоздаются с актуальной presentationData. Без этого pack приезжает в postbox,
-        // но UI остаётся со снапшотом старых strings до перезапуска.
+        // при создании root-controller'а (post-auth). Pack применится в postbox тихо;
+        // UI пересоздаётся только при явной смене через DivoLanguagePickerController
+        // (там свой post DivoStrings.didChangeNotification). Здесь post НЕ делаем —
+        // на post-login flow controllers ещё не готовы и popToRoot выкидывает на welcome.
         //
-        // На teamgram-сервере есть pack'и только для языков, заведённых в app_languages
-        // (сейчас для app='ios': en, ru, classic-zh-cn, zh-hans-raw, zh-hant-raw, fa-raw).
-        // Для остальных Signal завершается с error и completed не вызывается — это OK,
-        // видимые DIVO-экраны уже переведены через DivoStrings. Этот блок удалить при
-        // merge upstream если бэк добавит es/pt в app_languages и сделает langPack fallback.
+        // Если pack для текущего языка отсутствует в app_languages — Signal silent error,
+        // видимые DIVO-экраны всё равно переведены через DivoStrings. Этот блок удалить
+        // при merge upstream когда бэк сделает langPack fallback на ENV.
         let _ = context.engine.localization.downloadAndApplyLocalization(
             accountManager: context.sharedContext.accountManager,
             languageCode: DivoStrings.current.telegramCode
-        ).start(completed: {
-            Queue.mainQueue().async {
-                NotificationCenter.default.post(name: DivoStrings.didChangeNotification, object: nil)
-            }
-        })
+        ).start()
 
         if DivoConfig.isDebugEnabled {
             self.debugShakeObserver = NotificationCenter.default.addObserver(
