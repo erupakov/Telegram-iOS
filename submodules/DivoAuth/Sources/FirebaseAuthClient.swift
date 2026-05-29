@@ -97,7 +97,7 @@ public final class FirebaseAuthClient: NSObject {
         let authResult = try await Auth.auth().signIn(with: credential)
         let user = authResult.user
 
-        DivoConsoleLogger.shared.log(
+        divoLog(
             "Firebase signIn google ok: uid=\(user.uid) email=\(user.email ?? "nil")",
             level: .info
         )
@@ -149,7 +149,7 @@ public final class FirebaseAuthClient: NSObject {
             displayName = user.displayName
         }
 
-        DivoConsoleLogger.shared.log(
+        divoLog(
             "Firebase signIn apple ok: uid=\(user.uid) email=\(appleCredential.email ?? user.email ?? "nil")",
             level: .info
         )

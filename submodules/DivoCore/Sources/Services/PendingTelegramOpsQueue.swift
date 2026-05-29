@@ -25,7 +25,7 @@ public final class PendingTelegramOpsQueue {
 
     public func enqueue(_ op: DivoPendingTelegramOp) {
         appendOpSync(op)
-        DivoConsoleLogger.shared.log("PendingTelegramOps enqueued: \(op)", level: .info)
+        divoLog("PendingTelegramOps enqueued: \(op)", level: .info)
         drain()
     }
 
@@ -37,15 +37,15 @@ public final class PendingTelegramOpsQueue {
         let (snapshot, currentExecutor) = readSnapshotSync()
 
         guard let exec = currentExecutor, !snapshot.isEmpty else { return }
-        DivoConsoleLogger.shared.log("PendingTelegramOps drain: \(snapshot.count) op(s)", level: .info)
+        divoLog("PendingTelegramOps drain: \(snapshot.count) op(s)", level: .info)
 
         for op in snapshot {
             do {
                 try await exec(op)
                 removeOpSync(op)
-                DivoConsoleLogger.shared.log("PendingTelegramOps done: \(op)", level: .info)
+                divoLog("PendingTelegramOps done: \(op)", level: .info)
             } catch {
-                DivoConsoleLogger.shared.log("PendingTelegramOps retry-later \(op): \(error)", level: .debug)
+                divoLog("PendingTelegramOps retry-later \(op): \(error)", level: .debug)
             }
         }
     }

@@ -35,7 +35,7 @@ public final class DivoFirebaseFeatureFlags: DivoFeatureFlags {
         do {
             _ = try await rc.fetchAndActivate()
         } catch {
-            DivoConsoleLogger.shared.log("RemoteConfig refresh failed: \(error)", level: .error)
+            divoLog("RemoteConfig refresh failed: \(error)", level: .error)
         }
     }
 }

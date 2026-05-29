@@ -1,4 +1,9 @@
 import Foundation
+import UIKit
+
+private var divoDeviceId: String {
+    UIDevice.current.identifierForVendor?.uuidString ?? "ios-unknown"
+}
 
 public enum DivoAuthProviderID: String, Codable {
     case google = "google.com"
@@ -151,8 +156,8 @@ public final class AuthRestService {
     private init() {}
 
     public func loginSocial(uid: String, providerId: String) async throws -> AuthTokenWithUserData {
-        let req = AuthLoginSocialRequest(uid: uid, providerId: providerId)
-        return try await client.request(path: "/api/auth/login-social", method: "POST", body: req)
+        let req = AuthLoginSocialRequest(uid: uid, providerId: providerId, deviceId: divoDeviceId)
+        return try await client.request(path: "/auth/login-social", method: "POST", body: req)
     }
 
     public func registerSocial(
@@ -165,9 +170,10 @@ public final class AuthRestService {
             uid: uid,
             providerId: providerId,
             role: role,
+            deviceId: divoDeviceId,
             additionalInfo: additionalInfo
         )
-        return try await client.request(path: "/api/auth/registration-social", method: "POST", body: req)
+        return try await client.request(path: "/auth/registration-social", method: "POST", body: req)
     }
 
     public func register(
@@ -175,8 +181,8 @@ public final class AuthRestService {
         email: String? = nil,
         additionalInfo: [String: String]? = nil
     ) async throws -> AuthTokenWithUserData {
-        let req = AuthRegistrationRequest(role: role, email: email, additionalInfo: additionalInfo)
-        return try await client.request(path: "/api/auth/registration", method: "POST", body: req)
+        let req = AuthRegistrationRequest(role: role, email: email, deviceId: divoDeviceId, additionalInfo: additionalInfo)
+        return try await client.request(path: "/auth/registration", method: "POST", body: req)
     }
 
     public func telegramLink(
@@ -184,12 +190,12 @@ public final class AuthRestService {
         phone: String? = nil,
         divoUserId: Int? = nil
     ) async throws -> AuthTokenWithUserData {
-        let req = AuthTelegramLinkRequest(telegramUserId: telegramUserId, divoUserId: divoUserId, phone: phone)
-        return try await client.request(path: "/api/auth/telegram-link", method: "POST", body: req)
+        let req = AuthTelegramLinkRequest(telegramUserId: telegramUserId, divoUserId: divoUserId, phone: phone, deviceId: divoDeviceId)
+        return try await client.request(path: "/auth/telegram-link", method: "POST", body: req)
     }
 
     public func userInfo() async throws -> DivoUserInfoData {
-        let success: DivoUserInfoSuccess = try await client.request(path: "/api/user/info")
+        let success: DivoUserInfoSuccess = try await client.request(path: "/user/info")
         return success.data
     }
 }

@@ -7,7 +7,7 @@ import FirebaseRemoteConfig
 public enum DivoFirebaseBootstrap {
     public static func configure() {
         guard FirebaseApp.app() == nil else {
-            DivoConsoleLogger.shared.log("DivoFirebaseBootstrap.configure() — already configured, skip", level: .info)
+            divoLog("DivoFirebaseBootstrap.configure() — already configured, skip", level: .info)
             return
         }
 
@@ -31,7 +31,7 @@ public enum DivoFirebaseBootstrap {
 
         configureRemoteConfig()
 
-        DivoConsoleLogger.shared.log("Firebase configured, projectID=\(DivoFirebaseConfig.projectID)", level: .info)
+        divoLog("Firebase configured, projectID=\(DivoFirebaseConfig.projectID)", level: .info)
     }
 
     private static func configureRemoteConfig() {
@@ -42,9 +42,9 @@ public enum DivoFirebaseBootstrap {
         Task {
             do {
                 _ = try await remoteConfig.fetchAndActivate()
-                DivoConsoleLogger.shared.log("RemoteConfig fetched", level: .info)
+                divoLog("RemoteConfig fetched", level: .info)
             } catch {
-                DivoConsoleLogger.shared.log("RemoteConfig fetch failed: \(error)", level: .error)
+                divoLog("RemoteConfig fetch failed: \(error)", level: .error)
             }
         }
     }

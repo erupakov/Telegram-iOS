@@ -4,29 +4,32 @@ import DivoAuth
 
 public enum DivoAuthGoogleHandler {
     @MainActor
-    public static func signIn(from controller: DivoAuthWelcomeController?) async {
+    public static func signIn(from controller: DivoAuthWelcomeController?) async -> DivoAuthOutcome? {
         guard DivoNetworkMonitor.shared.isConnected else {
-            DivoConsoleLogger.shared.log("Google sign-in skipped: no internet", level: .info)
+            divoLog("Google sign-in skipped: no internet", level: .info)
             controller?.showError(message: DivoStrings.noInternetConnection)
-            return
+            return nil
         }
 
         let anchor = controller?.view.window
         do {
             let result = try await FirebaseAuthClient.shared.signInWithGoogle(presentingFrom: anchor)
-            DivoConsoleLogger.shared.log(
-                "Google sign-in OK: uid=\(result.uid) email=\(result.email ?? "nil")",
-                level: .info
-            )
+            divoLog("Google sign-in OK: uid=\(result.uid) email=\(result.email ?? "nil")", level: .info)
+            let outcome = await AuthRestRouter.route(firebaseUid: result.uid, providerId: result.providerId)
+            DivoAuthOutcomePresenter.present(outcome, on: controller)
+            return outcome
         } catch DivoFirebaseAuthError.userCancelled {
-            DivoConsoleLogger.shared.log("Google sign-in cancelled by user", level: .debug)
+            divoLog("Google sign-in cancelled by user", level: .debug)
+            return nil
         } catch {
-            DivoConsoleLogger.shared.log("Google sign-in failed: \(error)", level: .error)
+            divoLog("Google sign-in failed: \(error)", level: .error)
             if !DivoNetworkMonitor.shared.isConnected {
                 controller?.showError(message: DivoStrings.noInternetConnection)
             } else {
-                controller?.showError(message: DivoStrings.authSignInFailed)
+                let message = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.authSignInFailed
+                controller?.showError(message: message)
             }
+            return nil
         }
     }
 }

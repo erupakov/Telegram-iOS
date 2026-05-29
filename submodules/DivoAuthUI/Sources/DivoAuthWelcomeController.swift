@@ -281,9 +281,13 @@ public final class DivoAuthWelcomeController: ViewController {
     }
 
     private func showComingSoon() {
+        showInfo(message: DivoStrings.authComingSoon)
+    }
+
+    public func showInfo(message: String) {
         snackbar.show(
             in: view,
-            message: DivoStrings.authComingSoon,
+            message: message,
             style: .success,
             bottomInset: 24
         )
