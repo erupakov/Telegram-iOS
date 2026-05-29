@@ -18,18 +18,21 @@ public enum AuthRestRouter {
         do {
             let token = try await AuthRestService.shared.loginSocial(uid: uid, providerId: providerId)
             DivoConfig.accessToken = token.accessToken
+            // telegramLinked может прийти вложенным (user.telegramLinked, по контракту) либо
+            // top-level — читаем оба, чтобы ветка A не ломалась на неожиданной форме ответа.
+            let telegramLinked = token.user.telegramLinked ?? token.telegramLinked ?? false
             divoLog(
-                "login-social OK: divoUserId=\(token.user.id) telegramLinked=\(token.user.telegramLinked ?? false)",
+                "login-social OK: divoUserId=\(token.user.id) telegramLinked=\(telegramLinked)",
                 level: .info
             )
 
-            let info = try await AuthRestService.shared.userInfo()
+            // user/info с retry: транзиентный фейл не должен ронять уже успешный login-social в .failed.
+            let info = try await userInfoWithRetry()
             divoLog(
                 "user/info: phone=\(info.phone ?? "nil") isRegistrationFinished=\(info.isRegistrationFinished ?? false) role=\(info.role ?? "nil")",
                 level: .info
             )
 
-            let telegramLinked = token.user.telegramLinked ?? false
             let isRegistrationFinished = info.isRegistrationFinished ?? false
 
             if telegramLinked {
@@ -49,5 +52,23 @@ public enum AuthRestRouter {
             divoLog("login-social failed: \(error)", level: .error)
             return .failed(error)
         }
+    }
+
+    /// `user/info` с небольшим retry — транзиентный сетевой фейл не должен отменять
+    /// уже успешный `login-social`. Возвращает данные либо пробрасывает последнюю ошибку.
+    private static func userInfoWithRetry(attempts: Int = 3) async throws -> DivoUserInfoData {
+        var lastError: Error?
+        for attempt in 1...attempts {
+            do {
+                return try await AuthRestService.shared.userInfo()
+            } catch {
+                lastError = error
+                divoLog("user/info attempt \(attempt)/\(attempts) failed: \(error)", level: .info)
+                if attempt < attempts {
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                }
+            }
+        }
+        throw lastError!
     }
 }
