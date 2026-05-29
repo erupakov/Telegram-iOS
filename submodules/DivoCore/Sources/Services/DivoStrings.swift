@@ -526,7 +526,7 @@ public enum DivoStrings {
     public static var previousEvents: String { L(en: "PREVIOUS EVENTS", ru: "ПРОШЕДШИЕ МЕРОПРИЯТИЯ", es: "EVENTOS ANTERIORES", pt: "EVENTOS ANTERIORES", zh: "往期活动") }
     public static var filterBy: String { L(en: "Filter by:", ru: "Фильтр:", es: "Filtrar por:", pt: "Filtrar por:", zh: "筛选：") }
     public static var location: String { L(en: "Location", ru: "Местоположение", es: "Ubicación", pt: "Localização", zh: "位置") }
-    public static var allTypes: String { L(en: "All Types", ru: "Все типы", es: "Todos los tipos", pt: "Todos os tipos", zh: "所有类型") }
+    public static var allTypes: String { L(en: "All types", ru: "Все типы", es: "Todos los tipos", pt: "Todos os tipos", zh: "所有类型") }
     public static var dateRange: String { L(en: "Date Range", ru: "Диапазон дат", es: "Rango de fechas", pt: "Intervalo de datas", zh: "日期范围") }
     public static var from: String { L(en: "From", ru: "От", es: "Desde", pt: "De", zh: "从") }
     public static var to: String { L(en: "To", ru: "До", es: "Hasta", pt: "Até", zh: "到") }
@@ -1069,6 +1069,13 @@ public enum DivoStrings {
     public static var noApplicationsYet: String { L(en: "No applications yet", ru: "Пока нет заявок", es: "Aún no hay solicitudes", pt: "Nenhuma candidatura ainda", zh: "暂无申请") }
     public static var eventApplicationsListErrorTitle: String { L(en: "Couldn't load applications list", ru: "Не удалось загрузить список заявок", es: "No se pudo cargar la lista de solicitudes", pt: "Não foi possível carregar a lista de candidaturas", zh: "无法加载申请列表") }
     
+    // MARK: - Event Search
+    
+    public static var eventsSearchPlaceholder: String { L(en: "Search by name", ru: "Поиск по названию", es: "Buscar por nombre", pt: "Pesquisar por nome", zh: "按名称搜索") }
+    public static var eventsSearchTypeEvents: String { L(en: "Type events", ru: "Тип мероприятий", es: "Tipo de eventos", pt: "Tipo de eventos", zh: "活动类型") }
+    public static var eventsSearchDateOfEvent: String { L(en: "Date of event", ru: "Дата мероприятия", es: "Fecha del evento", pt: "Data do evento", zh: "活动日期") }
+    public static var eventsSearchPaidOnly: String { L(en: "Paid only", ru: "Только платные", es: "Solo de pago", pt: "Apenas pagos", zh: "仅付费") }
+
     // MARK: - Helpers
 
     private static func pluralRu(_ n: Int, _ one: String, _ few: String, _ many: String) -> String {
