@@ -34,6 +34,10 @@ public enum DivoConfig {
 
     public static var currentUserRole: UserRole {
         get {
+            // При debug-форсе токена роль матчится с ним (консистентный UI).
+            if isDebugEnabled, let forced = forcedTestToken {
+                return forced.role
+            }
             let rawValue = UserDefaults.standard.string(forKey: roleKey) ?? UserRole.agency.rawValue
             return UserRole(rawValue: rawValue) ?? .agency
         }
@@ -52,8 +56,57 @@ public enum DivoConfig {
         UserDefaults.standard.removeObject(forKey: roleKey)
     }
 
+    // MARK: - Debug token force
+
+    private static let forcedTokenKey = "DivoConfig.forcedTestToken"
+
+    /// Дебаг-форс на один из тестовых токенов. nil = использовать реальный токен (от phone-auth).
+    /// Нужен для разработки: залочиться на известный тестовый аккаунт независимо от реального входа.
+    public enum ForcedTestToken: String {
+        case agency
+        case model
+
+        public var token: String {
+            switch self {
+            case .agency: return DivoConfig.agencyToken
+            case .model: return DivoConfig.modelToken
+            }
+        }
+        public var role: UserRole {
+            switch self {
+            case .agency: return .agency
+            case .model: return .model
+            }
+        }
+    }
+
+    public static var forcedTestToken: ForcedTestToken? {
+        get {
+            guard let raw = UserDefaults.standard.string(forKey: forcedTokenKey) else { return nil }
+            return ForcedTestToken(rawValue: raw)
+        }
+        set {
+            let oldValue = forcedTestToken
+            if let newValue {
+                UserDefaults.standard.set(newValue.rawValue, forKey: forcedTokenKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: forcedTokenKey)
+            }
+            if newValue != oldValue {
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: tokenDidChangeNotification, object: nil)
+                    NotificationCenter.default.post(name: roleDidChangeNotification, object: nil)
+                }
+            }
+        }
+    }
+
     public static var accessToken: String {
         get {
+            // Debug-форс на тестовый токен (если включён) перебивает реальный.
+            if isDebugEnabled, let forced = forcedTestToken {
+                return forced.token
+            }
             return UserDefaults.standard.string(forKey: tokenKey) ?? agencyToken
         }
         set {

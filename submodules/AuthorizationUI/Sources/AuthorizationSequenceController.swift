@@ -49,7 +49,10 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     private let apiHash: String
     public var presentationData: PresentationData
     private let openUrl: (String) -> Void
-    private let authorizationCompleted: () -> Void
+    // DIVO: не private — нужен из +DivoPhoneLink (вызываем после DIVO-линка).
+    let authorizationCompleted: () -> Void
+    // DIVO: телефон, введённый на phone-entry — нужен после teamgram-входа для привязки DIVO-аккаунта.
+    var divoPendingPhone: String?
 
     private var stateDisposable: Disposable?
     // DIVO: internal для +DivoSignUp.
@@ -222,6 +225,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     return
                 }
                 divoLog("[Auth UI] loginWithNumber — Continue tapped, phone=\(number), syncContacts=\(syncContacts). Дальше уходит запрос sendCode на MTProto.", level: .info)
+                self.divoPendingPhone = number
                 controller?.inProgress = true
                 
                 let disableAuthTokens = self.sharedContext.immediateExperimentalUISettings.disableReloginTokens
@@ -1335,7 +1339,9 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     private func updateState(state: InnerState) {
         switch state {
         case .authorized:
-            self.authorizationCompleted()
+            // DIVO: сначала линк DIVO-аккаунта (реальный токен), потом завершение авторизации —
+            // иначе токен встаёт уже в главном экране и popToRoot выкидывает на welcome.
+            self.divoCompleteAuthorizationWithDivoLink()
         case let .state(state):
             switch state {
                 case .empty:

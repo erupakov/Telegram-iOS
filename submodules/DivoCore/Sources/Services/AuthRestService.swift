@@ -32,6 +32,20 @@ public struct AuthLoginSocialRequest: Encodable {
     }
 }
 
+public struct AuthLoginRequest: Encodable {
+    public let email: String
+    public let password: String
+    public let deviceType: String
+    public let deviceId: String?
+
+    public init(email: String, password: String, deviceType: String = "ios", deviceId: String? = nil) {
+        self.email = email
+        self.password = password
+        self.deviceType = deviceType
+        self.deviceId = deviceId
+    }
+}
+
 public struct AuthTokenUserData: Decodable {
     public let id: Int
     public let telegramLinked: Bool?
@@ -42,6 +56,11 @@ public struct AuthTokenWithUserData: Decodable {
     public let accessToken: String
     public let user: AuthTokenUserData
     public let telegramLinked: Bool?
+}
+
+/// DIVO REST оборачивает ответы в { message, data, errors }. Распаковываем только data.
+public struct DivoEnvelope<T: Decodable>: Decodable {
+    public let data: T
 }
 
 public struct AuthRegistrationSocialRequest: Encodable {
@@ -157,7 +176,15 @@ public final class AuthRestService {
 
     public func loginSocial(uid: String, providerId: String) async throws -> AuthTokenWithUserData {
         let req = AuthLoginSocialRequest(uid: uid, providerId: providerId, deviceId: divoDeviceId)
-        return try await client.request(path: "/auth/login-social", method: "POST", body: req)
+        let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/login-social", method: "POST", body: req)
+        return env.data
+    }
+
+    /// Email/password логин. Для phone-флоу: email=<цифры phone>@divo.global + детерминированный пароль.
+    public func login(email: String, password: String) async throws -> AuthTokenWithUserData {
+        let req = AuthLoginRequest(email: email, password: password, deviceId: divoDeviceId)
+        let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/login", method: "POST", body: req)
+        return env.data
     }
 
     public func registerSocial(
@@ -173,16 +200,19 @@ public final class AuthRestService {
             deviceId: divoDeviceId,
             additionalInfo: additionalInfo
         )
-        return try await client.request(path: "/auth/registration-social", method: "POST", body: req)
+        let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/registration-social", method: "POST", body: req)
+        return env.data
     }
 
     public func register(
         role: String,
         email: String? = nil,
+        password: String? = nil,
         additionalInfo: [String: String]? = nil
     ) async throws -> AuthTokenWithUserData {
-        let req = AuthRegistrationRequest(role: role, email: email, deviceId: divoDeviceId, additionalInfo: additionalInfo)
-        return try await client.request(path: "/auth/registration", method: "POST", body: req)
+        let req = AuthRegistrationRequest(role: role, email: email, password: password, deviceId: divoDeviceId, additionalInfo: additionalInfo)
+        let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/registration", method: "POST", body: req)
+        return env.data
     }
 
     public func telegramLink(
@@ -191,11 +221,12 @@ public final class AuthRestService {
         divoUserId: Int? = nil
     ) async throws -> AuthTokenWithUserData {
         let req = AuthTelegramLinkRequest(telegramUserId: telegramUserId, divoUserId: divoUserId, phone: phone, deviceId: divoDeviceId)
-        return try await client.request(path: "/auth/telegram-link", method: "POST", body: req)
+        let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/telegram-link", method: "POST", body: req)
+        return env.data
     }
 
     public func userInfo() async throws -> DivoUserInfoData {
-        let success: DivoUserInfoSuccess = try await client.request(path: "/user/info")
-        return success.data
+        let env: DivoEnvelope<DivoUserInfoData> = try await client.request(path: "/user/info")
+        return env.data
     }
 }
