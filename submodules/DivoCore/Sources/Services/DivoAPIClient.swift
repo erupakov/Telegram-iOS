@@ -503,8 +503,22 @@ public enum DivoAPIError: Error, LocalizedError {
 
 /// Проверка «нет интернета» для произвольной `Error` — для catch-блоков,
 /// которые не приводят ошибку к `DivoAPIError` явно.
+///
+/// Помимо нашего reachability-предчека (`DivoAPIError.noInternetConnection`) ловим и «сырые»
+/// `URLError` от URLSession: предчек проходит, если глобальный монитор ещё не успел переключиться
+/// (сеть отвалилась в процессе запроса) — тогда падает уже сам запрос таймаутом/обрывом.
 public func isNetworkError(_ error: Error) -> Bool {
-    (error as? DivoAPIError)?.isNetwork == true
+    if (error as? DivoAPIError)?.isNetwork == true { return true }
+    if let urlError = error as? URLError {
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .timedOut,
+             .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed, .dataNotAllowed:
+            return true
+        default:
+            return false
+        }
+    }
+    return false
 }
 
 private struct ServerValidationError: Decodable {
