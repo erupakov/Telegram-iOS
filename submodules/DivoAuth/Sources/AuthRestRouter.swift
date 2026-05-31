@@ -45,8 +45,10 @@ public enum AuthRestRouter {
                 divoLog("→ branch C (unfinished registration)", level: .info)
                 return .unfinishedRegistration(divoUserId: token.user.id, phone: info.phone)
             }
-        } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 404 {
-            divoLog("login-social 404 → branch D (new user)", level: .info)
+        } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 404 || statusCode == 422 {
+            // 422 на НОВОМ Firebase-uid — штатный ответ бэка (by design, не баг): юзера ещё нет.
+            // Трактуем как 404 → ветка D (новый). Без этого новые соц-юзеры падали в .failed.
+            divoLog("login-social \(statusCode) → branch D (new user)", level: .info)
             return .newUser(firebaseUid: uid, providerId: providerId)
         } catch {
             divoLog("login-social failed: \(error)", level: .error)

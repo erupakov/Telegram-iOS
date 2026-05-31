@@ -2,6 +2,10 @@ import Foundation
 
 public enum DivoPendingTelegramOp: Codable, Equatable {
     case nameUpdate(firstName: String, lastName: String)
+    // Отложенный DIVO phone-link: если линк после teamgram-входа упал (нет сети) и юзер
+    // закрыл приложение на алерте «Повторить» — допроводим линк на следующем старте,
+    // иначе accessToken-геттер тихо отдаёт хардкод agencyToken (silent fallback).
+    case phoneLink(phone: String)
 }
 
 public final class PendingTelegramOpsQueue {
@@ -27,6 +31,19 @@ public final class PendingTelegramOpsQueue {
         appendOpSync(op)
         divoLog("PendingTelegramOps enqueued: \(op)", level: .info)
         drain()
+    }
+
+    /// Положить op в стор БЕЗ немедленного drain. Для cold-start страховки, когда живой
+    /// ретрай ведёт другой механизм (in-flow алерт) — параллельный прогон не нужен,
+    /// op сработает на следующем старте (DivoBootstrap → drain).
+    public func persist(_ op: DivoPendingTelegramOp) {
+        appendOpSync(op)
+        divoLog("PendingTelegramOps persisted (cold-start safety): \(op)", level: .info)
+    }
+
+    /// Снять op — например, когда живой ретрай уже довёл операцию и страховка не нужна.
+    public func remove(_ op: DivoPendingTelegramOp) {
+        removeOpSync(op)
     }
 
     public func drain() {

@@ -177,6 +177,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 await DivoAuthAppleHandler.signIn(from: controller)
             }
         }
+        // Ветки A/B соц-входа: presenter зовёт это с phone из user/info → headless teamgram.
+        // DIVO-токен уже выставлен login-social'ом, divoPendingPhone НЕ ставим (phone-link не нужен).
+        controller.onAuthenticateTeamgram = { [weak self] phone in
+            self?.divoHeadlessAuth(phone: phone)
+        }
         return controller
     }
 

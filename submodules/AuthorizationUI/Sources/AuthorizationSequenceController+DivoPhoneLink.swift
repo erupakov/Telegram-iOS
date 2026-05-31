@@ -47,9 +47,13 @@ extension AuthorizationSequenceController {
             switch outcome {
             case let .linked(divoUserId, linkedRole):
                 divoLog("[Auth UI] phone-link OK divoUserId=\(divoUserId) role=\(linkedRole ?? "nil") — завершаем авторизацию", level: .info)
+                // Линк довёлся — снимаем cold-start страховку, если она была поставлена прошлым фейлом.
+                PendingTelegramOpsQueue.shared.remove(.phoneLink(phone: phone))
                 complete()
             case let .failed(error):
                 divoLog("[Auth UI] phone-link FAILED — авторизацию НЕ завершаем, показываем retry: \(error)", level: .error)
+                // Страховка на случай force-quit на алерте: на следующем старте линк допроведётся сам.
+                PendingTelegramOpsQueue.shared.persist(.phoneLink(phone: phone))
                 self.divoPresentPhoneLinkFailure(error: error, phone: phone, role: role, complete: complete)
             }
         }
