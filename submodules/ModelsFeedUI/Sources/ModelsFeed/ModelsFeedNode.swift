@@ -70,6 +70,19 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private lazy var segmentedControl = DivoSegmentedControl(titles: tabTitles)
 
+    private let segmentedControlFadeOverlay: UIView = {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        if let gradient = view.layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.cgColor,
+                DivoColorPalette.screenBackground.withAlphaComponent(0.0).cgColor
+            ]
+            gradient.locations = [0.0, 0.45] as [NSNumber]
+        }
+        return view
+    }()
+
     private var loadingPlaceholderView: UIView?
     private var errorView: UIView?
     private var errorIconCenterYConstraint: NSLayoutConstraint?
@@ -275,6 +288,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.view.addSubview(self.mainCollectionView)
         self.view.addSubview(self.navBackgroundView)
         self.view.addSubview(self.storiesCollectionView)
+        self.view.addSubview(self.segmentedControlFadeOverlay)
         self.view.addSubview(self.tabsContainerView)
         for av in floatingAvatars { self.view.addSubview(av) }
         for lbl in floatingNames { self.view.addSubview(lbl) }
@@ -314,7 +328,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     }
 
     private let storiesHeight: CGFloat = 90
-    private let tabsHeight: CGFloat = 40
+    private let tabsHeight: CGFloat = 32
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
@@ -337,7 +351,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         let segmentHPadding: CGFloat = 16 + layout.safeInsets.left
         let segmentWidth = layout.size.width - segmentHPadding * 2
-        let segmentHeight = tabsHeight - 8
+        let segmentHeight = tabsHeight
         segmentedControl.frame = CGRect(x: segmentHPadding, y: 4, width: segmentWidth, height: segmentHeight)
 
         let headerHeight = navigationBarHeight + storiesHeight + tabsHeight
@@ -355,7 +369,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
 
         self.mainCollectionView.contentInset = UIEdgeInsets(
-            top: 0,
+            top: 10,
             left: 0,
             bottom: isPaginating ? Self.paginationSpinnerHeight : 0,
             right: 0
@@ -496,6 +510,15 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             y: tabsY,
             width: layout.size.width,
             height: tabsHeight
+        )
+
+        // --- Fade overlay: позиционируем строго под вкладками ---
+        // Он будет следовать за tabsContainerView (включая момент прилипания)
+        self.segmentedControlFadeOverlay.frame = CGRect(
+            x: 0,
+            y: tabsY + tabsHeight, // Начинается сразу под нижней границей вкладок
+            width: layout.size.width,
+            height: 50 // Высота зоны затухания
         )
     }
 
@@ -892,7 +915,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         guard let placeholder = loadingPlaceholderView,
               let (layout, navigationBarHeight) = containerLayout else { return }
 
-        let topOffset = navigationBarHeight + storiesHeight + tabsHeight + 8
+        let topOffset = navigationBarHeight + storiesHeight + tabsHeight + 8 + 10
         let cardHPadding: CGFloat = 16
         let width = layout.size.width - layout.safeInsets.left - layout.safeInsets.right - cardHPadding * 2
         placeholder.frame = CGRect(x: layout.safeInsets.left + cardHPadding, y: topOffset, width: width, height: 512)

@@ -120,23 +120,91 @@ public final class EventsController: TelegramBaseController {
 
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-
-        let copperColor = DivoColorPalette.accentSecondary
-
-        let searchIcon = generateTintedImage(image: PresentationResourcesRootController.navigationSearchIcon(self.presentationData.theme), color: copperColor)
-        let searchButton = UIBarButtonItem(image: searchIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.searchPressed))
-
-        var rightItems = [searchButton]
-
+        
+        let rightItem: UIBarButtonItem
+        
         if self.isAgency {
-            let addIcon = generateTintedImage(image: PresentationResourcesRootController.navigationAddIcon(self.presentationData.theme), color: copperColor)
-            let addButton = UIBarButtonItem(image: addIcon?.withRenderingMode(.alwaysOriginal), style: .plain, target: self, action: #selector(self.addPressed))
-            rightItems.insert(addButton, at: 0)
+            if let capsuleImage = Self.makeCapsuleIcon() {
+                let capsuleNode = CapsuleNavigationButtonNode(
+                    image: capsuleImage,
+                    onSearch: { [weak self] in
+                        self?.searchPressed()
+                    },
+                    onAdd: { [weak self] in
+                        self?.addPressed()
+                    }
+                )
+                
+                rightItem = UIBarButtonItem(customDisplayNode: capsuleNode)
+            } else {
+                let searchImage = Self.makeCircleIcon(systemName: "magnifyingglass")
+                rightItem = UIBarButtonItem(image: searchImage, style: .plain, target: self, action: #selector(self.searchPressed))
+            }
+        } else {
+            let searchImage = Self.makeCircleIcon(systemName: "magnifyingglass")
+            rightItem = UIBarButtonItem(image: searchImage, style: .plain, target: self, action: #selector(self.searchPressed))
         }
-
-        self.navigationItem.rightBarButtonItems = rightItems
-
+        
+        self.navigationItem.rightBarButtonItems = [rightItem]
         self.navigationItem.titleView = UIView()
+    }
+    
+    private static func makeCircleIcon(systemName: String) -> UIImage? {
+        let circleSize: CGFloat = 40
+        let padding: CGFloat = 8
+        let total = circleSize + padding * 2
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: total, height: total))
+        return renderer.image { ctx in
+            let gc = ctx.cgContext
+            gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: DivoColorPalette.shadow.withAlphaComponent(0.1).cgColor)
+            gc.setFillColor(UIColor.white.cgColor)
+            gc.fillEllipse(in: CGRect(x: padding, y: padding, width: circleSize, height: circleSize))
+            gc.setShadow(offset: .zero, blur: 0)
+            let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+            if let icon = UIImage(systemName: systemName, withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
+                let iconX = padding + (circleSize - icon.size.width) / 2
+                let iconY = padding + (circleSize - icon.size.height) / 2
+                icon.draw(at: CGPoint(x: iconX, y: iconY))
+            }
+        }.withRenderingMode(.alwaysOriginal)
+    }
+    
+    private static func makeCapsuleIcon() -> UIImage? {
+        let capsuleWidth: CGFloat = 88
+        let capsuleHeight: CGFloat = 40
+        let padding: CGFloat = 8
+        let totalWidth = capsuleWidth + padding * 2
+        let totalHeight = capsuleHeight + padding * 2
+        
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: totalWidth, height: totalHeight))
+        return renderer.image { ctx in
+            let gc = ctx.cgContext
+            
+            gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: DivoColorPalette.shadow.withAlphaComponent(0.1).cgColor)
+            gc.setFillColor(UIColor.white.cgColor)
+            
+            let path = UIBezierPath(roundedRect: CGRect(x: padding, y: padding, width: capsuleWidth, height: capsuleHeight), cornerRadius: 20)
+            gc.addPath(path.cgPath)
+            gc.fillPath()
+            
+            gc.setShadow(offset: .zero, blur: 0)
+            
+            let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+            
+            if let searchIcon = UIImage(systemName: "magnifyingglass", withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
+                let leftHalfCenterX = padding + 21
+                let iconX = leftHalfCenterX - searchIcon.size.width / 2 + 2
+                let iconY = padding + (capsuleHeight - searchIcon.size.height) / 2
+                searchIcon.draw(at: CGPoint(x: iconX, y: iconY))
+            }
+            
+            if let addIcon = UIImage(systemName: "plus", withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
+                let rightHalfCenterX = padding + 67
+                let iconX = rightHalfCenterX - addIcon.size.width / 2 - 2
+                let iconY = padding + (capsuleHeight - addIcon.size.height) / 2
+                addIcon.draw(at: CGPoint(x: iconX, y: iconY))
+            }
+        }.withRenderingMode(.alwaysOriginal)
     }
 
     private var lastContentOffset: CGPoint = .zero
