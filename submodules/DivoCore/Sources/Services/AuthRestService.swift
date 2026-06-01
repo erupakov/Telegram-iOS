@@ -255,6 +255,20 @@ public final class AuthRestService {
         let req = UserChangeRoleRequest(role: role)
         let _: DivoPlainEnvelope = try await client.request(path: "/user/change-role", method: "POST", body: req)
     }
+
+    /// Полный профиль текущего юзера (тот же `/user/info`, но богатая модель `UserDetail`).
+    /// Онбординг тянет его после регистрации, чтобы взять серверные `agency.id`/`gender` и не словить
+    /// 422 на обязательных полях структурного профиля (см. DivoOnboardingSubmitService).
+    public func userDetail() async throws -> UserDetail {
+        let env: UserDetailResponse = try await client.request(path: "/user/info")
+        return env.data
+    }
+
+    /// Агентский профиль (роль `agency_employee`): имя/фото = `title`/agency-photo. Нужен `agencyId`
+    /// (берём из `userDetail().agency?.id` после регистрации). Зеркалит EditProfile `/agency/update`.
+    public func updateAgency(_ req: UpdateDescriptionAgencyRequest) async throws {
+        let _: UpdateDescriptionAgencyResponse = try await client.request(path: "/agency/update", method: "POST", body: req)
+    }
 }
 
 public struct UserChangeRoleRequest: Encodable {

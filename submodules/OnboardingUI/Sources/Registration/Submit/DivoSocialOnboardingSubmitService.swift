@@ -111,29 +111,50 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
             throw error
         }
 
-        // updateProfile для НОВЫХ (soc/phone) — ВНЕ цепочки, BEST-EFFORT. Регистрация кладёт всё в
-        // additionalInfo (opaque), а структурные fullName/avatar бэк из него НЕ заполняет → в DIVO-профиле
-        // имя/фото не видны. Дотягиваем как Android. Фейл/422 (агентство) не роняет вход (профиль тогда
-        // держится на фолбеке бэка из additionalInfo). Legacy-ветка свой updateProfile уже сделала выше.
+        // Структурный профиль DIVO (best-effort, как Android): ТЯНЕМ профиль с сервера — там после
+        // регистрации уже есть agency.id и текущие поля — и обновляем ПРАВИЛЬНЫМ эндпоинтом per role.
+        // Иначе имя/фото не видны (бэк не мапит additionalInfo в структуру). 422/фейл вход НЕ роняет.
         let isNewUserRegistration = DivoConfig.pendingSocialRegistration != nil || phone != nil
         if isNewUserRegistration {
             let fullName = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
-            if !fullName.isEmpty || photoUuid != nil {
-                // gender НЕ шлём в update-profile: бэк ждёт id из /dictionary/gender, а онбординг
-                // собирает хардкод-id (male/female/…) → 422 «Выбранное значение для Пол ошибочно»
-                // роняло весь updateProfile (имя/фото не проставлялись). gender остаётся в additionalInfo
-                // (opaque, без валидации). Маппинг на словарь — отдельной задачей (правило «без хардкод-словарей»).
-                let bio = UpdateBiographyPageRequest(
-                    fullName: fullName.isEmpty ? nil : fullName,
-                    birthday: formDate("dateOfBirth", state: state, registry: registry),
-                    avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) }
-                )
-                do {
-                    try await AuthRestService.shared.updateProfile(bio)
-                    divoLog("Onboarding submit: updateProfile OK (структурный профиль DIVO: имя/фото)", level: .info)
-                } catch {
-                    divoLog("Onboarding submit: updateProfile FAILED (best-effort, профиль из additionalInfo): \(error)", level: .error)
+            let detail = try? await AuthRestService.shared.userDetail()
+            let effectiveRole = detail?.role ?? role
+            do {
+                if effectiveRole == "agency_employee" {
+                    // Агентство: профиль через /agency/update (имя = title, фото = agency photo) — нужен
+                    // agency.id с сервера. Через /user/update-profile агентство падало 422.
+                    if let agencyId = detail?.agency?.id {
+                        let title = formString("companyName", state: state, registry: registry)
+                            ?? detail?.agency?.title
+                            ?? (fullName.isEmpty ? nil : fullName)
+                        let req = UpdateDescriptionAgencyRequest(
+                            agencyId: agencyId,
+                            title: title,
+                            description: nil,
+                            photo: photoUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) }
+                        )
+                        try await AuthRestService.shared.updateAgency(req)
+                        divoLog("Onboarding submit: agency profile OK (title/photo, agencyId=\(agencyId))", level: .info)
+                    } else {
+                        // Индивид-специалист: роль agency_employee, но СВОЕГО агентства нет → /agency/update
+                        // нечего обновлять (500), /user/update-profile отвергает (422). Структурный профиль
+                        // для этого под-кейса невозможен без решения по контракту (роль/агентство на бэке).
+                        divoLog("Onboarding submit: agency_employee без agency.id (индивид-специалист) — структурный профиль пропущен, нужен контракт бэка", level: .warning)
+                    }
+                } else {
+                    // Модель/индивид: имя = fullName, фото = avatar. gender ЭХО-им с сервера (его словарный id),
+                    // обходим 422 на нашем hardcoded gender; birthday — наш либо серверный.
+                    let req = UpdateBiographyPageRequest(
+                        fullName: fullName.isEmpty ? nil : fullName,
+                        gender: detail?.gender?.id,
+                        birthday: formDate("dateOfBirth", state: state, registry: registry) ?? detail?.birthday,
+                        avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) }
+                    )
+                    try await AuthRestService.shared.updateProfile(req)
+                    divoLog("Onboarding submit: updateProfile OK (имя/фото, gender echo=\(detail?.gender?.id ?? "nil"))", level: .info)
                 }
+            } catch {
+                divoLog("Onboarding submit: profile update FAILED (best-effort): \(error)", level: .error)
             }
         }
 
