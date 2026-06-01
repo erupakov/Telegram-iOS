@@ -16,7 +16,7 @@ extension AuthorizationSequenceController {
     /// Показывает онбординг (fullScreen-модалкой на удержанном auth-overlay). Путь регистрации
     /// submit-сервис определяет сам по pending-флагам (соц-новый / phone-новый / existing-not-done).
     func divoPushOnboarding() {
-        let isSocial = DivoConfig.pendingSocialRegistration != nil
+        let isSocial = DivoConfig.pendingSocialRegistration != nil || DivoConfig.pendingSocialExistingOnboarding
         divoLog("[Auth UI] онбординг → push в auth-стек (\(isSocial ? "social" : "phone"))", level: .info)
 
         // Глушим auth-state observer: аккаунт уже authorized, overlay удержан вручную. Иначе поздний
@@ -49,6 +49,8 @@ extension AuthorizationSequenceController {
                 // Цепочка прошла целиком (submit пометил markOnboardingCompleted) → снимаем модалку
                 // онбординга и overlay → открывается уже готовый таббар.
                 DivoConfig.pendingSocialRegistration = nil
+                DivoConfig.pendingSocialExistingOnboarding = false
+                DivoConfig.pendingSocialLinkPhone = nil
                 DivoConfig.pendingPhoneOnboarding = false
                 DivoConfig.pendingPhoneNumber = nil
                 self.divoHoldOverlayForOnboarding = false

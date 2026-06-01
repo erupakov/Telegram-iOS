@@ -18,16 +18,21 @@ extension AuthorizationSequenceController {
     func divoCompleteAuthorizationWithDivoLink() {
         let complete = self.authorizationCompleted
 
-        // Соц-новый (ветка D): DIVO-аккаунта ещё нет — его создаст онбординг (registration-social
-        // в submit). Сразу пушим онбординг в этот же auth-overlay (он удержан с divoHeadlessAuth).
-        if DivoConfig.pendingSocialRegistration != nil {
+        // Соц-новый (D, DIVO-аккаунта нет → registration-social в submit) ИЛИ соц-существующий-не-пройден
+        // (C, change-role+update-profile в submit) → онбординг в этом же auth-overlay (он удержан).
+        if DivoConfig.pendingSocialRegistration != nil || DivoConfig.pendingSocialExistingOnboarding {
             self.divoPushOnboarding()
             return
         }
 
         guard let phone = self.divoPendingPhone else {
-            // Не phone-флоу (соц A/B / прочее) — DIVO-сессия уже выставлена своим путём, просто завершаем.
-            complete()
+            // Не phone-флоу. Ветка B (соц-миграция, telegramLinked=false): сшиваем свежий teamgram с
+            // DIVO-аккаунтом + синк имени, потом завершаем. Ветка A (уже связан) — просто завершаем.
+            if let socPhone = DivoConfig.pendingSocialLinkPhone, let divoUserId = DivoConfig.currentDivoUserId {
+                self.divoFinishSocialMigration(phone: socPhone, divoUserId: divoUserId, complete: complete)
+            } else {
+                complete()
+            }
             return
         }
         self.divoPendingPhone = nil
@@ -61,6 +66,40 @@ extension AuthorizationSequenceController {
         }
     }
 
+    /// Ветка B (соц-миграция, `telegramLinked=false`): teamgram уже вошёл, DIVO-токен выставлен
+    /// login-social'ом. Best-effort: сшиваем teamgram↔DIVO (`telegram-link`) + подтягиваем имя из
+    /// DIVO-профиля в teamgram (было placeholder "User"). Фейл НЕ блокирует вход (аккаунт уже доступен,
+    /// telegram-link уходит в очередь ретраев). По завершении снимаем удержанный overlay → таббар.
+    private func divoFinishSocialMigration(phone: String, divoUserId: Int, complete: @escaping () -> Void) {
+        Task { @MainActor in
+            if let telegramUserId = DivoTeamgramSync.shared.telegramUserId {
+                do {
+                    let linked = try await AuthRestService.shared.telegramLink(telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId)
+                    DivoConfig.accessToken = linked.accessToken
+                    divoLog("[Auth UI] social B: telegram-link OK → DIVO↔teamgram, новый токен", level: .info)
+                } catch {
+                    divoLog("[Auth UI] social B: telegram-link FAILED (best-effort) → очередь ретраев: \(error)", level: .error)
+                    PendingTelegramOpsQueue.shared.enqueue(.telegramLink(phone: phone, divoUserId: divoUserId))
+                }
+            } else {
+                divoLog("[Auth UI] social B: нет telegramUserId → telegram-link в очередь ретраев", level: .warning)
+                PendingTelegramOpsQueue.shared.enqueue(.telegramLink(phone: phone, divoUserId: divoUserId))
+            }
+
+            // Имя из DIVO-профиля → teamgram (placeholder "User" → настоящее). Best-effort.
+            if let detail = try? await AuthRestService.shared.userDetail(), let full = detail.fullName, !full.isEmpty {
+                let parts = full.split(separator: " ", maxSplits: 1).map(String.init)
+                try? await DivoTeamgramSync.shared.updateName(firstName: parts.first ?? full, lastName: parts.count > 1 ? parts[1] : "")
+                divoLog("[Auth UI] social B: teamgram name синхронизировано из DIVO-профиля", level: .info)
+            }
+
+            DivoConfig.pendingSocialLinkPhone = nil
+            self.divoHoldOverlayForOnboarding = false
+            complete()
+            self.dismiss()
+        }
+    }
+
     /// Разлогин teamgram-аккаунта (правило отката Marina): auth-state станет unauthorized → observer
     /// покажет welcome. Чистим pending-флаги онбординга + сохранённый прогресс + снимаем overlay.
     /// `failureText != nil` → показываем сообщение перед откатом (фейл, не молча). nil → молчаливая
@@ -69,6 +108,8 @@ extension AuthorizationSequenceController {
         DivoConfig.pendingPhoneOnboarding = false
         DivoConfig.pendingPhoneNumber = nil
         DivoConfig.pendingSocialRegistration = nil
+        DivoConfig.pendingSocialExistingOnboarding = false
+        DivoConfig.pendingSocialLinkPhone = nil
         self.divoHoldOverlayForOnboarding = false
         self.divoClearOnboardingChainObserver()
         // Снимаем модалку онбординга, если открыта (отмена/фейл цепочки). На phone-link-fail

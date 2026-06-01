@@ -243,7 +243,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     private let context = Promise<AuthorizedApplicationContext?>()
     private let contextDisposable = MetaDisposable()
     
-    private var authContextValue: UnauthorizedApplicationContext?
+    var authContextValue: UnauthorizedApplicationContext? // internal: читает divoResumeOnboardingOnColdStartIfNeeded (гард «не во время live auth-флоу»)
     private let authContext = Promise<UnauthorizedApplicationContext?>()
     private let authContextDisposable = MetaDisposable()
     
@@ -1302,6 +1302,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
 
                     self.mainWindow.debugAction = nil
                     self.mainWindow.viewController = context.rootController
+
+                    // DIVO: cold-start resume прерванного онбординга — поверх UIKit window-root (НЕ
+                    // Display-навигатора таббара). Таббар скрыт под модалкой до успеха онбординга.
+                    self.divoResumeOnboardingOnColdStartIfNeeded(context: context)
 
                     // DIVO: rootController готов — снимаем splash overlay (но не раньше min visible duration).
                     // Перед fade-out выставляем splash-цвет на view контроллера, чтобы под исчезающим

@@ -181,6 +181,30 @@ public enum DivoConfig {
         }
     }
 
+    private static let pendingSocialExistingOnboardingKey = "DivoConfig.pendingSocialExistingOnboarding"
+    private static let pendingSocialLinkPhoneKey = "DivoConfig.pendingSocialLinkPhone"
+
+    /// Соц-юзер с СУЩЕСТВУЮЩИМ DIVO-аккаунтом, но незавершённой регистрацией (ветка C,
+    /// `isRegistrationFinished=false`). После teamgram-входа показываем онбординг (выбор роли + профиль),
+    /// submit доводит через `change-role` + `update-profile` (НЕ `registration-social` — аккаунт уже есть).
+    public static var pendingSocialExistingOnboarding: Bool {
+        get { UserDefaults.standard.bool(forKey: pendingSocialExistingOnboardingKey) }
+        set { UserDefaults.standard.set(newValue, forKey: pendingSocialExistingOnboardingKey) }
+    }
+
+    /// Телефон для `telegram-link` соц-веток B/C (`telegramLinked=false`): после teamgram-входа сшиваем
+    /// свежий teamgram-аккаунт с существующим DIVO-аккаунтом. nil = линк не нужен (ветка A — уже связан).
+    public static var pendingSocialLinkPhone: String? {
+        get { UserDefaults.standard.string(forKey: pendingSocialLinkPhoneKey) }
+        set {
+            if let newValue {
+                UserDefaults.standard.set(newValue, forKey: pendingSocialLinkPhoneKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: pendingSocialLinkPhoneKey)
+            }
+        }
+    }
+
     private static let pendingPhoneOnboardingKey = "DivoConfig.pendingPhoneOnboarding"
     private static let pendingPhoneNumberKey = "DivoConfig.pendingPhoneNumber"
 

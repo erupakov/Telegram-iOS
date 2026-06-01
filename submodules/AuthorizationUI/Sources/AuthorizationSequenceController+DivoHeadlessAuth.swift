@@ -43,16 +43,21 @@ extension AuthorizationSequenceController {
     func divoHeadlessAuth(phone: String) {
         divoLog("[Auth UI] divoHeadlessAuth — старт по phone=\(phone)", level: .info)
 
-        // DIVO: соц-новый (ветка D) → после входа онбординг пушем в этот же auth-overlay. Удерживаем
-        // overlay ДО завершения teamgram (без гонки с teardown). Ветки A/B (существующие) — без онбординга.
-        if DivoConfig.pendingSocialRegistration != nil {
+        // DIVO: удерживаем overlay ДО завершения teamgram (без гонки с teardown), пока на нём предстоит
+        // доп. работа: онбординг (D новый / C существующий-не-пройден) ИЛИ telegram-link+синк имени
+        // (B миграция). Ветка A (reinstall, уже связан) ничего не ставит → overlay снимется штатно.
+        if DivoConfig.pendingSocialRegistration != nil
+            || DivoConfig.pendingSocialExistingOnboarding
+            || DivoConfig.pendingSocialLinkPhone != nil {
             self.divoHoldOverlayForOnboarding = true
         }
 
         // Подавляем пуш экранов ввода номера/кода из observer'а состояния — иначе они мелькают.
         self.divoSuppressAuthScreens = true
         // Светлый лоадинг на время всего flow (переиспользуем лоадер auto-signUp). Без phone/code экранов.
-        self.setViewControllers([DivoSignUpLoadingController()], animated: !self.viewControllers.isEmpty)
+        // DIVO: без анимации — со слайдом лоадер «въезжал сбоку», а дальше его бесшовно сменяет
+        // идентичный лоадер auto-signUp; вместе это читалось как мелькание экранов перед дверями.
+        self.setViewControllers([DivoSignUpLoadingController()], animated: false)
 
         let accountManager = self.sharedContext.accountManager
         let firebaseSecretStream = self.sharedContext.firebaseSecretStream
@@ -128,8 +133,10 @@ extension AuthorizationSequenceController {
         self.divoSuppressAuthScreens = false
         // teamgram не завершился — overlay не удерживаем (онбординга не будет, возвращаемся на welcome).
         self.divoHoldOverlayForOnboarding = false
-        // Соц-попытка (ветка D) не удалась — снимаем pending, иначе онбординг может всплыть позже.
+        // Соц-попытка (D/C/B) не удалась — снимаем все pending, иначе онбординг/линк всплывут позже.
         DivoConfig.pendingSocialRegistration = nil
+        DivoConfig.pendingSocialExistingOnboarding = false
+        DivoConfig.pendingSocialLinkPhone = nil
         divoLog("[Auth UI] divoHeadlessAuth error: \(error)", level: .error)
 
         // Сбрасываем state в .empty — иначе постбокс сохранит просроченный codeHash и cold start

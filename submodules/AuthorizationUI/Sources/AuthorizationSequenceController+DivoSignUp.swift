@@ -69,7 +69,9 @@ extension AuthorizationSequenceController {
             controllers.append(self.splashController())
         }
         controllers.append(DivoSignUpLoadingController())
-        self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
+        // DIVO: без анимации — бесшовная смена лоадера headless→signUp (оба DivoSignUpLoadingController),
+        // без бокового слайда (см. divoHeadlessAuth). Иначе перед дверями мелькали экраны.
+        self.setViewControllers(controllers, animated: false)
 
         let effectiveFirstName = firstName.isEmpty ? "User" : firstName
         self.actionDisposable.set((signUpWithName(

@@ -15,7 +15,12 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
     public init() {}
 
     public func submit(state: OnboardingRegistrationState, registry: OnboardingRoleRegistry) async throws {
-        let role = state.selectedRoleId.flatMap { registry.definition(for: $0)?.backendRoleRaw } ?? "model"
+        let rawRole = state.selectedRoleId.flatMap { registry.definition(for: $0)?.backendRoleRaw } ?? "model"
+        // Инвариант: `model` шлём ТОЛЬКО когда есть `agency_id` (бэк требует агентство для модели на
+        // /user/update-profile). Онбординг агентство пока НЕ собирает → отправляем `new_face` (Model без
+        // агентства = New Talent по квизу). Иначе update-profile даёт 422 по agency_id, имя/фото не лягут.
+        // Когда добавим сбор агентства в model-путь (беклог Option B) — слать `model` + agency_id.
+        let role = rawRole == "model" ? "new_face" : rawRole
         let phone = DivoConfig.pendingPhoneNumber
         let email = phone.map { PhoneAuthLinker.syntheticEmail(for: $0) }
         let firstName = formString("firstName", state: state, registry: registry)
@@ -73,17 +78,11 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                 DivoConfig.currentDivoUserId = token.user.id
                 divoLog("Onboarding submit: registration OK divoUserId=\(token.user.id)", level: .info)
             } else {
-                // Существующий-не-пройден (legacy): аккаунт уже есть → дорабатываем роль/профиль.
-                divoLog("Onboarding submit: existing account — change-role + update-profile", level: .info)
+                // Существующий-не-пройден (соц-C / phone-existing): аккаунт уже есть → МЕНЯЕМ только роль
+                // (атомарно). Имя/фото/gender — структурным блоком ниже (per role, gender через словарь),
+                // как у новых: иначе сырой gender-ключ ловил 422 и ронял всю цепочку в откат.
+                divoLog("Onboarding submit: existing account — change-role (профиль структурным блоком)", level: .info)
                 try await AuthRestService.shared.changeRole(role: role)
-                let fullName = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
-                let profile = UpdateBiographyPageRequest(
-                    fullName: fullName.isEmpty ? "User" : fullName,
-                    gender: formString("gender", state: state, registry: registry) ?? "male",
-                    birthday: formDate("dateOfBirth", state: state, registry: registry) ?? "1990-01-01"
-                )
-                try await AuthRestService.shared.updateProfile(profile)
-                divoLog("Onboarding submit: change-role + update-profile OK", level: .info)
             }
 
             if let parsed = DivoConfig.UserRole(rawValue: role) {
@@ -111,40 +110,40 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
             throw error
         }
 
-        // Структурный профиль DIVO (best-effort, как Android): ТЯНЕМ профиль с сервера — там после
-        // регистрации уже есть agency.id и текущие поля — и обновляем ПРАВИЛЬНЫМ эндпоинтом per role.
-        // Иначе имя/фото не видны (бэк не мапит additionalInfo в структуру). 422/фейл вход НЕ роняет.
-        let isNewUserRegistration = DivoConfig.pendingSocialRegistration != nil || phone != nil
-        if isNewUserRegistration {
+        // Структурный профиль DIVO (best-effort, как Android): ТЯНЕМ профиль с сервера (там после
+        // регистрации уже есть agency.id) и обновляем ПРАВИЛЬНЫМ эндпоинтом per role. Делаем для ВСЕХ
+        // путей (новый соц/phone И существующий-не-пройден соц-C) — у всех к этому моменту есть DIVO-сессия,
+        // а бэк additionalInfo в структуру надёжно не мапит → имя/фото/gender(словарь) шлём явно. Фейл/422
+        // вход НЕ роняет (вне атомарной цепочки).
+        let shouldUpdateStructuredProfile =
+            DivoConfig.pendingSocialRegistration != nil || phone != nil || DivoConfig.currentDivoUserId != nil
+        if shouldUpdateStructuredProfile {
             let fullName = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
             let detail = try? await AuthRestService.shared.userDetail()
             let effectiveRole = detail?.role ?? role
+            // ДИАГНОСТИКА (снять позже): реальная серверная роль vs отправленная — ловим случай, когда
+            // бэк завёл talent'а как agency_employee (тогда профиль никуда не ложится). agencyId=nil = без агентства.
+            divoLog("Onboarding submit: профиль per role — rawRole=\(rawRole) sentRole=\(role) serverRole=\(detail?.role ?? "nil") agencyId=\(detail?.agency?.id.map(String.init) ?? "nil")", level: .info)
             do {
-                if effectiveRole == "agency_employee" {
-                    // Агентство: профиль через /agency/update (имя = title, фото = agency photo) — нужен
-                    // agency.id с сервера. Через /user/update-profile агентство падало 422.
-                    if let agencyId = detail?.agency?.id {
-                        let title = formString("companyName", state: state, registry: registry)
-                            ?? detail?.agency?.title
-                            ?? (fullName.isEmpty ? nil : fullName)
-                        let req = UpdateDescriptionAgencyRequest(
-                            agencyId: agencyId,
-                            title: title,
-                            description: nil,
-                            photo: photoUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) }
-                        )
-                        try await AuthRestService.shared.updateAgency(req)
-                        divoLog("Onboarding submit: agency profile OK (title/photo, agencyId=\(agencyId))", level: .info)
-                    } else {
-                        // Индивид-специалист: роль agency_employee, но СВОЕГО агентства нет → /agency/update
-                        // нечего обновлять (500), /user/update-profile отвергает (422). Структурный профиль
-                        // для этого под-кейса невозможен без решения по контракту (роль/агентство на бэке).
-                        divoLog("Onboarding submit: agency_employee без agency.id (индивид-специалист) — структурный профиль пропущен, нужен контракт бэка", level: .warning)
-                    }
+                if effectiveRole == "agency_employee", let agencyId = detail?.agency?.id {
+                    // Агентство СО своим agency.id: профиль через /agency/update (имя = title, фото = agency photo).
+                    let title = formString("companyName", state: state, registry: registry)
+                        ?? detail?.agency?.title
+                        ?? (fullName.isEmpty ? nil : fullName)
+                    let req = UpdateDescriptionAgencyRequest(
+                        agencyId: agencyId,
+                        title: title,
+                        description: nil,
+                        photo: photoUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) }
+                    )
+                    try await AuthRestService.shared.updateAgency(req)
+                    divoLog("Onboarding submit: agency profile OK (title/photo, agencyId=\(agencyId))", level: .info)
                 } else {
-                    // Модель/индивид: имя = fullName, фото = avatar. gender — маппим выбранный вариант на
-                    // id из /dictionary/gender (бэк ждёт словарный id, не наш ключ → иначе 422); нет
-                    // совпадения/словаря → эхо с сервера / не шлём (без регресса). birthday — наш либо серверный.
+                    // Модель/талант/fan И индивид-специалист (agency_employee БЕЗ своего agency.id):
+                    // имя = fullName, фото = avatar через /user/update-profile. Раньше у индивид-специалиста
+                    // профиль пропускался → имя/фото не подтягивались; теперь шлём best-effort.
+                    // gender — маппим выбранный вариант на id из /dictionary/gender (бэк ждёт словарный id,
+                    // не наш ключ → иначе 422); нет совпадения/словаря → эхо с сервера / не шлём.
                     let genderId = await mappedGenderId(state: state, registry: registry) ?? detail?.gender?.id
                     let req = UpdateBiographyPageRequest(
                         fullName: fullName.isEmpty ? nil : fullName,
@@ -166,6 +165,9 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         // Фейл → оп в очередь ретраев (.telegramLink), дренится на старте.
         if let phone, let divoUserId = DivoConfig.currentDivoUserId {
             await Self.linkTelegramBestEffort(phone: phone, divoUserId: divoUserId)
+        } else if let socPhone = DivoConfig.pendingSocialLinkPhone, let divoUserId = DivoConfig.currentDivoUserId {
+            // Соц-ветка C (telegramLinked=false): сшиваем свежий teamgram с существующим DIVO-аккаунтом.
+            await Self.linkTelegramBestEffort(phone: socPhone, divoUserId: divoUserId)
         }
     }
 
