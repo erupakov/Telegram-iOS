@@ -269,6 +269,13 @@ public final class AuthRestService {
     public func updateAgency(_ req: UpdateDescriptionAgencyRequest) async throws {
         let _: UpdateDescriptionAgencyResponse = try await client.request(path: "/agency/update", method: "POST", body: req)
     }
+
+    /// Словарь полов (`/dictionary/gender`) — `[{id, title}]`. Бэк ждёт `id` из словаря, а онбординг
+    /// собирает свой ключ → маппим по заголовку (см. DivoOnboardingSubmitService). Зеркалит EditProfile.
+    public func genderDictionary() async throws -> [GenderOption] {
+        let env: GenderResponse = try await client.request(path: "/dictionary/gender")
+        return env.data
+    }
 }
 
 public struct UserChangeRoleRequest: Encodable {

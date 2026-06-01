@@ -142,16 +142,18 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                         divoLog("Onboarding submit: agency_employee без agency.id (индивид-специалист) — структурный профиль пропущен, нужен контракт бэка", level: .warning)
                     }
                 } else {
-                    // Модель/индивид: имя = fullName, фото = avatar. gender ЭХО-им с сервера (его словарный id),
-                    // обходим 422 на нашем hardcoded gender; birthday — наш либо серверный.
+                    // Модель/индивид: имя = fullName, фото = avatar. gender — маппим выбранный вариант на
+                    // id из /dictionary/gender (бэк ждёт словарный id, не наш ключ → иначе 422); нет
+                    // совпадения/словаря → эхо с сервера / не шлём (без регресса). birthday — наш либо серверный.
+                    let genderId = await mappedGenderId(state: state, registry: registry) ?? detail?.gender?.id
                     let req = UpdateBiographyPageRequest(
                         fullName: fullName.isEmpty ? nil : fullName,
-                        gender: detail?.gender?.id,
+                        gender: genderId,
                         birthday: formDate("dateOfBirth", state: state, registry: registry) ?? detail?.birthday,
                         avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) }
                     )
                     try await AuthRestService.shared.updateProfile(req)
-                    divoLog("Onboarding submit: updateProfile OK (имя/фото, gender echo=\(detail?.gender?.id ?? "nil"))", level: .info)
+                    divoLog("Onboarding submit: updateProfile OK (имя/фото, genderId=\(genderId ?? "nil"))", level: .info)
                 }
             } catch {
                 divoLog("Onboarding submit: profile update FAILED (best-effort): \(error)", level: .error)
@@ -194,6 +196,17 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         case let .option(id)?: return id // picker/gender кладёт id выбранной опции
         default: return nil
         }
+    }
+
+    /// Маппит выбранный gender-ключ онбординга (male/female/…) на id из `/dictionary/gender`: бэк ждёт
+    /// словарный id, а наш ключ отвергает (422). Сопоставляем по локализованному заголовку (наш title ==
+    /// title словаря, lowercased) — как EditProfile. Нет совпадения / словарь недоступен → nil (вызывающая
+    /// сторона делает эхо с сервера или не шлёт — без регресса). Best-effort.
+    private func mappedGenderId(state: OnboardingRegistrationState, registry: OnboardingRoleRegistry) async -> String? {
+        guard let key = formString("gender", state: state, registry: registry),
+              let dict = try? await AuthRestService.shared.genderDictionary() else { return nil }
+        let title = OnboardingStrings.resolve("onboarding.form.gender.option.\(key)").lowercased()
+        return dict.first(where: { $0.title.lowercased() == title })?.id
     }
 
     /// Дата из формы (.date) → "yyyy-MM-dd" для бэка (формат `date`).
