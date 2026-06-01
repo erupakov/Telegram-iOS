@@ -1764,6 +1764,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         formatter.roundingMode = .halfUp
         formatter.decimalSeparator = "."
         
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = "\u{00a0}"
+        
         return formatter.string(from: NSNumber(value: doubleValue))
     }
     
