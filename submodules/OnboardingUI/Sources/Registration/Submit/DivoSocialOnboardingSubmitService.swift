@@ -119,9 +119,12 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         if isNewUserRegistration {
             let fullName = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
             if !fullName.isEmpty || photoUuid != nil {
+                // gender НЕ шлём в update-profile: бэк ждёт id из /dictionary/gender, а онбординг
+                // собирает хардкод-id (male/female/…) → 422 «Выбранное значение для Пол ошибочно»
+                // роняло весь updateProfile (имя/фото не проставлялись). gender остаётся в additionalInfo
+                // (opaque, без валидации). Маппинг на словарь — отдельной задачей (правило «без хардкод-словарей»).
                 let bio = UpdateBiographyPageRequest(
                     fullName: fullName.isEmpty ? nil : fullName,
-                    gender: formString("gender", state: state, registry: registry),
                     birthday: formDate("dateOfBirth", state: state, registry: registry),
                     avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) }
                 )
