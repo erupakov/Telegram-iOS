@@ -41,6 +41,17 @@ public enum DivoBootstrap {
                 }
                 try await nameUpdate(firstName, lastName)
                 divoLog("DivoBootstrap: teamgram-имя обновлено для \(firstName)", level: .info)
+            case let .telegramLink(phone, divoUserId):
+                // telegram-link допроводим, когда поднят authorized-контекст (есть telegramUserId).
+                // Иначе оставляем op в очереди до следующего дренажа.
+                guard let telegramUserId = DivoTeamgramSync.shared.telegramUserId else {
+                    throw DivoBootstrapError.opNotHandled
+                }
+                let linked = try await AuthRestService.shared.telegramLink(
+                    telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId
+                )
+                DivoConfig.accessToken = linked.accessToken
+                divoLog("DivoBootstrap: telegram-link довёл сшивку для divoUserId=\(divoUserId)", level: .info)
             }
         }
     }

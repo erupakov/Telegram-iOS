@@ -6,6 +6,10 @@ public enum DivoPendingTelegramOp: Codable, Equatable {
     // закрыл приложение на алерте «Повторить» — допроводим линк на следующем старте,
     // иначе accessToken-геттер тихо отдаёт хардкод agencyToken (silent fallback).
     case phoneLink(phone: String)
+    // telegram-link после регистрации (best-effort): бэк ставит структурное user.phone +
+    // сшивает DIVO↔teamgram. Если упал на submit — дотягиваем ретраем (telegramUserId берётся
+    // из DivoTeamgramSync на момент дренажа).
+    case telegramLink(phone: String, divoUserId: Int)
 }
 
 public final class PendingTelegramOpsQueue {

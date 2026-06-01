@@ -25,5 +25,8 @@ extension AppDelegate {
         PendingTelegramOpsQueue.shared.registerExecutor(DivoBootstrap.makeExecutor(nameUpdate: nameUpdate))
         // DIVO: атомарный name-update в submit-цепочке онбординга (await), см. DivoTeamgramSync.
         DivoTeamgramSync.shared.setNameUpdater(nameUpdate)
+        // DIVO: telegram user id для telegram-link (структурный user.phone + сшивка DIVO↔teamgram).
+        // Читается на submit и в очереди ретраев (.telegramLink), см. DivoSocialOnboardingSubmitService.
+        DivoTeamgramSync.shared.telegramUserId = context.context.account.peerId.id._internalGetInt64Value()
     }
 }

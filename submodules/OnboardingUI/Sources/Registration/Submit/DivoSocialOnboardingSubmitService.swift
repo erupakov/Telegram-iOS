@@ -16,9 +16,40 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
 
     public func submit(state: OnboardingRegistrationState, registry: OnboardingRoleRegistry) async throws {
         let role = state.selectedRoleId.flatMap { registry.definition(for: $0)?.backendRoleRaw } ?? "model"
-        let additionalInfo = DivoJSONValue.object(from: FormSerializer.payload(state: state, registry: registry))
+        let phone = DivoConfig.pendingPhoneNumber
+        let email = phone.map { PhoneAuthLinker.syntheticEmail(for: $0) }
         let firstName = formString("firstName", state: state, registry: registry)
         let lastName = formString("lastName", state: state, registry: registry)
+
+        // Фото грузим в storage ДО регистрации (Android шлёт photoUuid/photoUrl прямо в профиле).
+        // Фейл аплоада — РЕТРАЕБЕЛЬНЫЙ и НЕ откатывает teamgram: throw здесь идёт мимо
+        // onboardingChainFailedNotification (постится только в do/catch ниже), поэтому submit-экран
+        // покажет снек ошибки + кнопку Retry (снек уже поднят над кнопкой, bottomInset+80), а по
+        // Retry submit перезапустится и фото зальётся снова. Аккаунт не разлогинивается.
+        var photoUuid: String?
+        var photoUrl: String?
+        if let photoPath = FormSerializer.photoAssetPath(state: state, registry: registry) {
+            do {
+                let data = try Data(contentsOf: URL(fileURLWithPath: photoPath))
+                let resp: FileUploadResponse = try await DivoAPIClient.shared.upload(path: "/file/upload-file", fileData: data)
+                photoUuid = resp.data?.uuid
+                photoUrl = resp.data?.fullUrl
+                divoLog("Onboarding submit: photo uploaded uuid=\(photoUuid ?? "nil")", level: .info)
+            } catch {
+                divoLog("Onboarding submit: photo upload FAILED (ретраебельно, без отката): \(error)", level: .error)
+                throw error
+            }
+        }
+
+        // Плоский профиль под контракт бэка (ключи как у Android) — все поля онбординга в additionalInfo.
+        let profile = FormSerializer.registrationProfile(
+            state: state, registry: registry, phone: phone, email: email,
+            photoUuid: photoUuid, photoUrl: photoUrl
+        )
+        let additionalInfo = DivoJSONValue.object(from: profile)
+
+        // Что уходит в профиль (ключи без значений — без PII): удобно сверять маппинг по ролям.
+        divoLog("Onboarding submit: profile fields=[\(profile.keys.sorted().joined(separator: ","))]", level: .info)
 
         do {
             if let creds = DivoConfig.pendingSocialRegistration {
@@ -78,6 +109,57 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
             divoLog("Onboarding submit FAILED (цепочка неполная) → откат: \(error)", level: .error)
             NotificationCenter.default.post(name: DivoConfig.onboardingChainFailedNotification, object: nil)
             throw error
+        }
+
+        // updateProfile для НОВЫХ (soc/phone) — ВНЕ цепочки, BEST-EFFORT. Регистрация кладёт всё в
+        // additionalInfo (opaque), а структурные fullName/avatar бэк из него НЕ заполняет → в DIVO-профиле
+        // имя/фото не видны. Дотягиваем как Android. Фейл/422 (агентство) не роняет вход (профиль тогда
+        // держится на фолбеке бэка из additionalInfo). Legacy-ветка свой updateProfile уже сделала выше.
+        let isNewUserRegistration = DivoConfig.pendingSocialRegistration != nil || phone != nil
+        if isNewUserRegistration {
+            let fullName = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
+            if !fullName.isEmpty || photoUuid != nil {
+                let bio = UpdateBiographyPageRequest(
+                    fullName: fullName.isEmpty ? nil : fullName,
+                    gender: formString("gender", state: state, registry: registry),
+                    birthday: formDate("dateOfBirth", state: state, registry: registry),
+                    avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) }
+                )
+                do {
+                    try await AuthRestService.shared.updateProfile(bio)
+                    divoLog("Onboarding submit: updateProfile OK (структурный профиль DIVO: имя/фото)", level: .info)
+                } catch {
+                    divoLog("Onboarding submit: updateProfile FAILED (best-effort, профиль из additionalInfo): \(error)", level: .error)
+                }
+            }
+        }
+
+        // telegram-link (phone-флоу) — ВНЕ атомарной цепочки, BEST-EFFORT: бэк ставит структурное
+        // user.phone (его читают DIVO-настройки) + сшивает DIVO↔teamgram. НЕ блокирует вход и НЕ
+        // откатывает — DIVO-аккаунт уже создан (откат был бы иллюзорным, на бэке он не удаляется).
+        // Фейл → оп в очередь ретраев (.telegramLink), дренится на старте.
+        if let phone, let divoUserId = DivoConfig.currentDivoUserId {
+            await Self.linkTelegramBestEffort(phone: phone, divoUserId: divoUserId)
+        }
+    }
+
+    /// telegram-link для phone-флоу. `telegramUserId` приходит из `DivoTeamgramSync` (ставит AppDelegate
+    /// при поднятии authorized-контекста). Успех → новый токен; фейл/нет id → оп в очередь ретраев.
+    private static func linkTelegramBestEffort(phone: String, divoUserId: Int) async {
+        guard let telegramUserId = DivoTeamgramSync.shared.telegramUserId else {
+            divoLog("Onboarding submit: telegram-link — нет telegramUserId → в очередь ретраев", level: .warning)
+            PendingTelegramOpsQueue.shared.enqueue(.telegramLink(phone: phone, divoUserId: divoUserId))
+            return
+        }
+        do {
+            let linked = try await AuthRestService.shared.telegramLink(
+                telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId
+            )
+            DivoConfig.accessToken = linked.accessToken
+            divoLog("Onboarding submit: telegram-link OK → user.phone + DIVO↔teamgram, новый токен", level: .info)
+        } catch {
+            divoLog("Onboarding submit: telegram-link FAILED (best-effort) → в очередь ретраев: \(error)", level: .error)
+            PendingTelegramOpsQueue.shared.enqueue(.telegramLink(phone: phone, divoUserId: divoUserId))
         }
     }
 

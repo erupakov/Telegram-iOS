@@ -17,8 +17,17 @@ public final class DivoTeamgramSync {
 
     private let lock = NSLock()
     private var nameUpdater: NameUpdater?
+    private var _telegramUserId: Int64?
 
     private init() {}
+
+    /// telegram user id (= `account.peerId.id`) авторизованного teamgram-аккаунта. Нужен для
+    /// telegram-link (сшивка DIVO↔teamgram + установка структурного `user.phone` на бэке).
+    /// Ставится из AppDelegate при поднятии authorized-контекста; читается на submit и в очереди ретраев.
+    public var telegramUserId: Int64? {
+        get { lock.lock(); defer { lock.unlock() }; return _telegramUserId }
+        set { lock.lock(); _telegramUserId = newValue; lock.unlock() }
+    }
 
     /// Регистрируется из AppDelegate при готовности authorized-контекста (захватывает движок).
     public func setNameUpdater(_ updater: NameUpdater?) {
