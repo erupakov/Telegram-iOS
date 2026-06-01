@@ -212,6 +212,7 @@ public struct EventFullCreator: Decodable {
     public let photo: UserFile?
     public let avatar: UserFile?
     public let roleLabel: String?
+    public let isVerified: Bool?
 }
 
 // MARK: - Helpers

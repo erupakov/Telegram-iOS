@@ -1880,7 +1880,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         let logoURLString = newEventData.creator?.avatar?.fullUrl
         let logoURL = logoURLString != nil ? URL(string: logoURLString!) : nil
-        organizerView.configure(name: newEventData.creator?.fullName , logoURL: logoURL)
+        organizerView.configure(name: newEventData.creator?.fullName, isVerified: newEventData.creator?.isVerified, logoURL: logoURL)
         
         descriptionView.update(biography: newEventData.description)
         requirementsLabel.text = newEventData.requirements
@@ -1941,7 +1941,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
-        organizerView.configure(name: DivoStrings.you, logoURL: nil)
+        organizerView.configure(name: DivoStrings.you, isVerified: false, logoURL: nil)
         
         descriptionView.update(biography: data.request.description)
         requirementsLabel.text = data.request.requirements

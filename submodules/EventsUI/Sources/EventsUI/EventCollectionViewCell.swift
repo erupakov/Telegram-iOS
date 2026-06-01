@@ -395,6 +395,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         }
         
         profileNameLabel.text = event.profileName
+        profileCheckImageView.isHidden = event.isVerified == false
         titleLabel.text = event.title
         
         if let deadlineStr = event.timeRemaining {

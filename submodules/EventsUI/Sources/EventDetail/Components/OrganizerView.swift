@@ -59,6 +59,15 @@ final class OrganizerView: UIView {
     }()
     
     private var lastLogoURL: URL?
+
+    private let profileCheckImageView: UIImageView = {
+        let profileCheckImageView = UIImageView()
+        profileCheckImageView.contentMode = .scaleAspectFill
+        profileCheckImageView.clipsToBounds = true
+        profileCheckImageView.translatesAutoresizingMaskIntoConstraints = false
+        profileCheckImageView.image = DivoImage.verified
+        return profileCheckImageView
+    }()
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -75,7 +84,12 @@ final class OrganizerView: UIView {
         containerView.addSubview(titleLabel)
         containerView.addSubview(logoImageView)
         
-        let textStack = UIStackView(arrangedSubviews: [agencyNameLabel, periodLabel])
+        let nameStack = UIStackView(arrangedSubviews: [agencyNameLabel, profileCheckImageView, UIView()])
+        nameStack.axis = .horizontal
+        nameStack.spacing = DivoDesignTokens.Spacing.xs
+        nameStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        let textStack = UIStackView(arrangedSubviews: [nameStack, periodLabel])
         textStack.axis = .vertical
         textStack.spacing = DivoDesignTokens.Spacing.xs
         textStack.translatesAutoresizingMaskIntoConstraints = false
@@ -110,15 +124,20 @@ final class OrganizerView: UIView {
             // визуально смещается вверх и расходится с серединой логотипа.
             textStack.centerYAnchor.constraint(equalTo: logoImageView.centerYAnchor),
             textStack.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+
+            profileCheckImageView.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.m),
+            profileCheckImageView.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.m),
         ])
     }
     
-    func configure(name: String?, logoURL: URL?) {
+    func configure(name: String?, isVerified: Bool?, logoURL: URL?) {
         UIView.performWithoutAnimation {
             self.agencyNameLabel.text = name?.uppercased() ?? DivoStrings.unknownAgency
             self.agencyNameLabel.layer.removeAllAnimations()
             self.layoutIfNeeded()
         }
+        
+        profileCheckImageView.isHidden = isVerified == false
 
         guard lastLogoURL != logoURL else { return }
         lastLogoURL = logoURL
