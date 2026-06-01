@@ -498,9 +498,17 @@ final class EventsControllerNode: ASDisplayNode {
         if let (layout, navigationBarHeight) = containerLayout {
             let currentTabsHeight = self.isAgency ? self.tabsHeight : 0.0
             view.frame = CGRect(x: 0, y: navigationBarHeight + currentTabsHeight, width: layout.size.width, height: layout.size.height - navigationBarHeight - currentTabsHeight)
+            view.additionalBottomInset = self.emptyStateTabBarInset(for: layout)
         }
 
         view.animateAppearance()
+    }
+
+    /// Высота overlay-таббара Telegram сверх safe area. CTA эмпти-стейта привязана к
+    /// `safeAreaLayoutGuide.bottomAnchor`, который учитывает только home-indicator, но не таббар —
+    /// тот же зазор, что error-state/снэкбар закрывают через `intrinsicInsets.bottom`.
+    private func emptyStateTabBarInset(for layout: ContainerViewLayout) -> CGFloat {
+        return max(0, layout.intrinsicInsets.bottom - layout.safeInsets.bottom)
     }
 
     private func hideEmptyState() {
@@ -590,6 +598,7 @@ final class EventsControllerNode: ASDisplayNode {
         
         if let emptyView = emptyStateView {
             emptyView.frame = CGRect(x: 0, y: navigationBarHeight + currentTabsHeight, width: layout.size.width, height: layout.size.height - navigationBarHeight - currentTabsHeight)
+            emptyView.additionalBottomInset = self.emptyStateTabBarInset(for: layout)
         }
         
         layoutErrorState()

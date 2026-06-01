@@ -101,6 +101,17 @@ public final class DivoEmptyStateView: UIView {
     private var ctaAction: (() -> Void)?
     private var secondaryCtaButton: UIButton?
     private var secondaryCtaAction: (() -> Void)?
+    private var buttonsStackBottomConstraint: NSLayoutConstraint?
+
+    /// Дополнительный нижний отступ блока кнопок сверх safe area. Нужен, когда эмпти-стейт
+    /// лежит под overlay-таббаром Telegram — `safeAreaLayoutGuide` его не учитывает, и хост
+    /// передаёт сюда высоту таббара, чтобы CTA не уезжала под него.
+    public var additionalBottomInset: CGFloat = 0 {
+        didSet {
+            guard oldValue != additionalBottomInset else { return }
+            buttonsStackBottomConstraint?.constant = -(DivoDesignTokens.Spacing.m + additionalBottomInset)
+        }
+    }
     private var iconWidthConstraint: NSLayoutConstraint?
     private var iconHeightConstraint: NSLayoutConstraint?
     private var circleWidthConstraint: NSLayoutConstraint?
@@ -245,10 +256,12 @@ public final class DivoEmptyStateView: UIView {
     private func installButtonsStackIfNeeded() {
         guard buttonsStack.superview == nil else { return }
         addSubview(buttonsStack)
+        let bottom = buttonsStack.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -(DivoDesignTokens.Spacing.m + additionalBottomInset))
+        buttonsStackBottomConstraint = bottom
         NSLayoutConstraint.activate([
             buttonsStack.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             buttonsStack.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            buttonsStack.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            bottom,
         ])
     }
 

@@ -1,33 +1,32 @@
 import Foundation
 import Display
+import SwiftSignalKit
+import TelegramCore
 import DivoCore
 import AccountContext
 import AlertUI
 import PresentationDataUtils
+import OnboardingUI
 
-// DIVO: после успешного teamgram-входа по телефону СНАЧАЛА заводим/находим DIVO-аккаунт
-// по этому телефону (PhoneAuthLinker) и ставим реальный accessToken, и ТОЛЬКО ПОТОМ завершаем
-// авторизацию (переход в приложение).
+// DIVO: после teamgram-входа по телефону заводим/находим DIVO-аккаунт (PhoneAuthLinker) и ставим
+// accessToken ДО завершения авторизации — иначе главный экран поднимется без DIVO-сессии и
+// tokenDidChange/popToRoot выкинет на welcome.
 //
-// Почему именно в таком порядке: если завершить авторизацию первой, главный экран успевает
-// подняться на хардкод-agency-токене, а реальный токен встаёт через ~секунды → летит
-// tokenDidChangeNotification → resetNavigationOnTokenChange() (popToRoot) во время/после перехода
-// → выкидывает на welcome. Делая линк ДО completion, токен готов до создания главного root'а —
-// приложение сразу грузится под реальным аккаунтом, смены токена в главном экране нет.
-//
-// Если линк УПАЛ (нет сети / бэк лёг) — НЕ завершаем авторизацию молча: иначе accessToken-геттер
-// отдаст хардкод agencyToken, и юзер тихо зайдёт под чужим тест-аккаунтом
-// (feedback_no_silent_dictionary_fallbacks). Вместо этого держим лоадинг-экран и показываем
-// алерт с «Повторить» — пускаем дальше только после реально успешного линка.
-//
-// Сейчас: роль нового юзера = текущая (default/debug) до role-picker; telegramUserId = nil
-// (telegram-link пропускается) — протащим userId позже.
+// Правило отката (Marina): teamgram-логин прошёл, но ЛЮБОЙ следующий шаг цепочки упал →
+// РАЗЛОГИН teamgram (→ welcome). Никакого частичного входа, никакого retry с сохранением teamgram.
 extension AuthorizationSequenceController {
     func divoCompleteAuthorizationWithDivoLink() {
         let complete = self.authorizationCompleted
 
+        // Соц-новый (ветка D): DIVO-аккаунта ещё нет — его создаст онбординг (registration-social
+        // в submit). Сразу пушим онбординг в этот же auth-overlay (он удержан с divoHeadlessAuth).
+        if DivoConfig.pendingSocialRegistration != nil {
+            self.divoPushOnboarding()
+            return
+        }
+
         guard let phone = self.divoPendingPhone else {
-            // Не phone-флоу (соц/прочее) — DIVO-токен уже выставлен своим путём, просто завершаем.
+            // Не phone-флоу (соц A/B / прочее) — DIVO-сессия уже выставлена своим путём, просто завершаем.
             complete()
             return
         }
@@ -39,40 +38,62 @@ extension AuthorizationSequenceController {
         self.divoRunPhoneLink(phone: phone, role: role, complete: complete)
     }
 
-    /// Один прогон линка. На время работы остаётся показанный ранее лоадинг-экран
-    /// (из divoHandleAutoSignUp). Успех → завершаем авторизацию; фейл → алерт с retry.
+    /// Линк DIVO-аккаунта. На время работы остаётся лоадинг-экран (из divoHandleAutoSignUp).
+    /// Успех → завершаем авторизацию; фейл → разлогин teamgram (правило отката).
     private func divoRunPhoneLink(phone: String, role: String, complete: @escaping () -> Void) {
         Task { @MainActor in
             let outcome = await PhoneAuthLinker.linkAfterTeamgram(phone: phone, telegramUserId: nil, role: role)
             switch outcome {
-            case let .linked(divoUserId, linkedRole):
-                divoLog("[Auth UI] phone-link OK divoUserId=\(divoUserId) role=\(linkedRole ?? "nil") — завершаем авторизацию", level: .info)
-                // Линк довёлся — снимаем cold-start страховку, если она была поставлена прошлым фейлом.
-                PendingTelegramOpsQueue.shared.remove(.phoneLink(phone: phone))
-                complete()
+            case .ready:
+                // Существующий, онбординг пройден (токен уже выставлен) — завершаем, в таббар.
+                divoLog("[Auth UI] phone-link: существующий + онбординг пройден — завершаем", level: .info)
+                self.divoFinishWithoutOnboarding(complete: complete)
+            case .onboarding:
+                // Новый (регистрация на submit) ИЛИ существующий-не-пройден (update-profile) → онбординг.
+                divoLog("[Auth UI] phone-link: → онбординг (регистрация/профиль на submit)", level: .info)
+                self.divoPushOnboarding()
             case let .failed(error):
-                divoLog("[Auth UI] phone-link FAILED — авторизацию НЕ завершаем, показываем retry: \(error)", level: .error)
-                // Страховка на случай force-quit на алерте: на следующем старте линк допроведётся сам.
-                PendingTelegramOpsQueue.shared.persist(.phoneLink(phone: phone))
-                self.divoPresentPhoneLinkFailure(error: error, phone: phone, role: role, complete: complete)
+                // teamgram прошёл, но DIVO-детект (login) упал → разлогин teamgram (→ welcome).
+                divoLog("[Auth UI] phone-link FAILED → разлогин teamgram + welcome: \(error)", level: .error)
+                let message = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.onboardingChainFailed
+                self.divoLogoutTeamgram(failureText: message)
             }
         }
     }
 
-    private func divoPresentPhoneLinkFailure(error: Error, phone: String, role: String, complete: @escaping () -> Void) {
-        let strings = self.presentationData.strings
-        // Отдельный текст про сеть — самый частый кейс (кейс 7). Прочее (бэк 5xx/валидация) — generic.
-        let text = isNetworkError(error) ? strings.Login_NetworkError : strings.Login_UnknownError
+    /// Разлогин teamgram-аккаунта (правило отката Marina): auth-state станет unauthorized → observer
+    /// покажет welcome. Чистим pending-флаги онбординга + сохранённый прогресс + снимаем overlay.
+    /// `failureText != nil` → показываем сообщение перед откатом (фейл, не молча). nil → молчаливая
+    /// отмена (юзер сам). `internal` — зовётся также из +DivoOnboarding.
+    func divoLogoutTeamgram(failureText: String? = nil) {
+        DivoConfig.pendingPhoneOnboarding = false
+        DivoConfig.pendingPhoneNumber = nil
+        DivoConfig.pendingSocialRegistration = nil
+        self.divoHoldOverlayForOnboarding = false
+        self.divoClearOnboardingChainObserver()
+        // Снимаем модалку онбординга, если открыта (отмена/фейл цепочки). На phone-link-fail
+        // онбординга ещё нет — no-op. Через прямую ссылку: viewControllers.last?.presentedViewController
+        // == nil (презентация переназначена на nav-контейнер), см. divoOnboardingController.
+        self.divoOnboardingController?.dismiss(animated: false)
+        // Чистим сохранённый прогресс онбординга — следующий вход (новый юзер) стартует с нуля.
+        // (app-kill НЕ логаутит, поэтому resume на cold-start не страдает.)
+        OnboardingProgressStore().clear()
 
-        self.currentWindow?.present(
-            textAlertController(sharedContext: self.sharedContext, title: nil, text: text, actions: [
-                TextAlertAction(type: .defaultAction, title: strings.ChatImportActivity_Retry, action: { [weak self] in
-                    self?.divoRunPhoneLink(phone: phone, role: role, complete: complete)
-                })
-            ]),
-            on: .root,
-            blockInteraction: false,
-            completion: {}
-        )
+        if let failureText {
+            self.currentWindow?.present(
+                textAlertController(sharedContext: self.sharedContext, title: nil, text: failureText, actions: [
+                    TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})
+                ]),
+                on: .root, blockInteraction: false, completion: {}
+            )
+        }
+
+        let _ = logoutFromAccount(
+            id: self.account.id,
+            accountManager: self.sharedContext.accountManager,
+            alreadyLoggedOutRemotely: false
+        ).start()
+        // Снимаем удержанный overlay — логаут поднимет новый welcome-контекст.
+        self.dismiss()
     }
 }

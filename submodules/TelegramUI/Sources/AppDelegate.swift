@@ -48,6 +48,7 @@ import ContextControllerImpl
 import DivoCore
 import DivoFirebaseKit
 import DivoUIKit
+import OnboardingUI
 
 #if canImport(AppCenter)
 import AppCenter
@@ -755,6 +756,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
 
         DivoBootstrap.start()
+        // DIVO: онбординг вшит в auth-флоу пушем (см. AuthorizationSequenceController+DivoOnboarding) —
+        // и сам обрабатывает откат при фейле цепочки. Никаких post-auth модальных observer'ов здесь.
         DivoFirebaseBootstrap.configure()
         setContextMenuControllerProvider { arguments in
             return ContextMenuControllerImpl(arguments)
@@ -1285,6 +1288,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             self.contextValue = context
             if let context = context {
                 setupLegacyComponents(context: context.context)
+                self.divoRegisterPendingOpsExecutor(context: context)
                 let isReady = context.isReady.get()
                 contextReadyDisposable.set((isReady
                 |> filter { $0 }
@@ -1347,7 +1351,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             
             if let authContextValue = self.authContextValue {
                 authContextValue.account.shouldBeServiceTaskMaster.set(.single(.never))
-                if authContextValue.authorizationCompleted {
+                if authContextValue.rootController.divoHoldOverlayForOnboarding {
+                    // DIVO: онбординг вшит в auth-флоу пушем — НЕ дисмиссим auth-overlay здесь.
+                    // teamgram уже authorized (таббар строится под overlay'ем), но контроллер удержан
+                    // и снимет себя сам по завершении/отмене онбординга (см. +DivoOnboarding). Флаг
+                    // ставится ДО завершения teamgram, поэтому гонки с этим teardown нет.
+                    divoLog("[App] auth-overlay удержан для онбординга (push-в-auth) — не дисмиссим", level: .info)
+                } else if authContextValue.authorizationCompleted {
                     let accountId = authContextValue.account.id
                     let _ = (self.context.get()
                     |> filter { context in

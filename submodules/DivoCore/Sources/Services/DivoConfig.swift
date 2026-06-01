@@ -13,6 +13,11 @@ public enum DivoConfig {
     public static let tokenDidChangeNotification = Notification.Name("DivoConfig.tokenDidChange")
     public static let roleDidChangeNotification = Notification.Name("DivoConfig.roleDidChange")
     public static let profileDidUpdateNotification = Notification.Name("DivoConfig.profileDidUpdate")
+    /// Выставлен pending-онбординг (соц/phone). Нужно перепроверить app-gate: на первом входе
+    /// context-ready может отработать ДО установки флага (async-линк) — нотификация добивает гонку.
+    public static let pendingOnboardingDidChangeNotification = Notification.Name("DivoConfig.pendingOnboardingDidChange")
+    /// Онбординг-цепочка (registration/role/profile) не прошла целиком → откат: logout teamgram + welcome.
+    public static let onboardingChainFailedNotification = Notification.Name("DivoConfig.onboardingChainFailed")
 
     // MARK: - User Roles
 
@@ -38,8 +43,9 @@ public enum DivoConfig {
             if isDebugEnabled, let forced = forcedTestToken {
                 return forced.role
             }
-            let rawValue = UserDefaults.standard.string(forKey: roleKey) ?? UserRole.agency.rawValue
-            return UserRole(rawValue: rawValue) ?? .agency
+            // Дефолт роли — model: новый юзер по умолчанию модель, не агентство.
+            let rawValue = UserDefaults.standard.string(forKey: roleKey) ?? UserRole.model.rawValue
+            return UserRole(rawValue: rawValue) ?? .model
         }
         set {
             let oldValue = currentUserRole
@@ -143,6 +149,96 @@ public enum DivoConfig {
 
     public static let shareBaseURL = "https://api.divo.fashion"
     public static let shareHost = "api.divo.fashion"
+
+    // MARK: - Pending social registration (ветка D)
+
+    /// Соц-юзер прошёл Firebase, но DIVO-аккаунта ещё нет (login-social 422). Запоминаем
+    /// uid/providerId, чтобы ПОСЛЕ teamgram-входа показать онбординг и довести registration-social.
+    /// Чистится по завершении онбординга.
+    public struct PendingSocialRegistration: Codable, Equatable {
+        public let uid: String
+        public let providerId: String
+        public init(uid: String, providerId: String) {
+            self.uid = uid
+            self.providerId = providerId
+        }
+    }
+
+    private static let pendingSocialRegKey = "DivoConfig.pendingSocialRegistration"
+
+    public static var pendingSocialRegistration: PendingSocialRegistration? {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: pendingSocialRegKey) else { return nil }
+            return try? JSONDecoder().decode(PendingSocialRegistration.self, from: data)
+        }
+        set {
+            if let newValue, let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.standard.set(data, forKey: pendingSocialRegKey)
+                NotificationCenter.default.post(name: pendingOnboardingDidChangeNotification, object: nil)
+            } else {
+                UserDefaults.standard.removeObject(forKey: pendingSocialRegKey)
+            }
+        }
+    }
+
+    private static let pendingPhoneOnboardingKey = "DivoConfig.pendingPhoneOnboarding"
+    private static let pendingPhoneNumberKey = "DivoConfig.pendingPhoneNumber"
+
+    /// Phone-юзер на онбординге: DIVO-аккаунт ещё НЕ заведён (регистрация — на submit с реальной
+    /// ролью + additionalInfo) ИЛИ заведён ранее, но онбординг не пройден (legacy). App-gate
+    /// показывает онбординг, пока флаг true.
+    public static var pendingPhoneOnboarding: Bool {
+        get { UserDefaults.standard.bool(forKey: pendingPhoneOnboardingKey) }
+        set {
+            UserDefaults.standard.set(newValue, forKey: pendingPhoneOnboardingKey)
+            if newValue {
+                NotificationCenter.default.post(name: pendingOnboardingDidChangeNotification, object: nil)
+            }
+        }
+    }
+
+    /// Телефон НОВОГО phone-юзера, чей DIVO-аккаунт ещё не создан — нужен на submit, чтобы
+    /// зарегистрироваться (синтетический email/пароль из номера) с реальной ролью + additionalInfo.
+    /// Персистится для resume на cold-start. nil = аккаунт уже есть (existing-not-done → update-profile).
+    public static var pendingPhoneNumber: String? {
+        get { UserDefaults.standard.string(forKey: pendingPhoneNumberKey) }
+        set {
+            if let newValue {
+                UserDefaults.standard.set(newValue, forKey: pendingPhoneNumberKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: pendingPhoneNumberKey)
+            }
+        }
+    }
+
+    // MARK: - Onboarding completion (локально, бэк флаг isRegistrationFinished не ставит)
+
+    private static let currentDivoUserIdKey = "DivoConfig.currentDivoUserId"
+    private static let onboardingCompletedKey = "DivoConfig.onboardingCompletedUserIds"
+
+    /// divoUserId текущей DIVO-сессии (ставит PhoneAuthLinker / registration). Нужен, чтобы пометить
+    /// онбординг пройденным именно для этого аккаунта.
+    public static var currentDivoUserId: Int? {
+        get {
+            let value = UserDefaults.standard.integer(forKey: currentDivoUserIdKey)
+            return value == 0 ? nil : value
+        }
+        set { UserDefaults.standard.set(newValue ?? 0, forKey: currentDivoUserIdKey) }
+    }
+
+    /// Онбординг пройден (ведём локально, по divoUserId — бэк `isRegistrationFinished` не выставляет).
+    public static func isOnboardingCompleted(_ userId: Int) -> Bool {
+        let ids = UserDefaults.standard.array(forKey: onboardingCompletedKey) as? [Int] ?? []
+        return ids.contains(userId)
+    }
+
+    public static func markOnboardingCompleted(_ userId: Int) {
+        var ids = UserDefaults.standard.array(forKey: onboardingCompletedKey) as? [Int] ?? []
+        if !ids.contains(userId) {
+            ids.append(userId)
+            UserDefaults.standard.set(ids, forKey: onboardingCompletedKey)
+        }
+    }
 
     // MARK: - Mock Mode
 

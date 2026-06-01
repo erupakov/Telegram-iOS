@@ -5,6 +5,7 @@ import Postbox
 import TelegramCore
 import SwiftSignalKit
 import DivoCore
+import DivoAuthUI
 import AccountContext
 import AlertUI
 import PresentationDataUtils
@@ -42,6 +43,14 @@ extension AuthorizationSequenceController {
     func divoHeadlessAuth(phone: String) {
         divoLog("[Auth UI] divoHeadlessAuth — старт по phone=\(phone)", level: .info)
 
+        // DIVO: соц-новый (ветка D) → после входа онбординг пушем в этот же auth-overlay. Удерживаем
+        // overlay ДО завершения teamgram (без гонки с teardown). Ветки A/B (существующие) — без онбординга.
+        if DivoConfig.pendingSocialRegistration != nil {
+            self.divoHoldOverlayForOnboarding = true
+        }
+
+        // Подавляем пуш экранов ввода номера/кода из observer'а состояния — иначе они мелькают.
+        self.divoSuppressAuthScreens = true
         // Светлый лоадинг на время всего flow (переиспользуем лоадер auto-signUp). Без phone/code экранов.
         self.setViewControllers([DivoSignUpLoadingController()], animated: !self.viewControllers.isEmpty)
 
@@ -108,12 +117,19 @@ extension AuthorizationSequenceController {
 
         self.actionDisposable.set((signal |> deliverOnMainQueue).startStrict(error: { [weak self] error in
             self?.divoHandleHeadlessAuthError(error)
-        }, completed: {
+        }, completed: { [weak self] in
+            // signUp-ветка дальше идёт в divoHandleAutoSignUp (свой лоадер) — phone/code экранов уже не будет.
+            self?.divoSuppressAuthScreens = false
             divoLog("[Auth UI] divoHeadlessAuth — цепочка ОК (signIn → вошёл; signUp → передан в auto-signUp)", level: .info)
         }))
     }
 
     private func divoHandleHeadlessAuthError(_ error: DivoHeadlessAuthError) {
+        self.divoSuppressAuthScreens = false
+        // teamgram не завершился — overlay не удерживаем (онбординга не будет, возвращаемся на welcome).
+        self.divoHoldOverlayForOnboarding = false
+        // Соц-попытка (ветка D) не удалась — снимаем pending, иначе онбординг может всплыть позже.
+        DivoConfig.pendingSocialRegistration = nil
         divoLog("[Auth UI] divoHeadlessAuth error: \(error)", level: .error)
 
         // Сбрасываем state в .empty — иначе постбокс сохранит просроченный codeHash и cold start
@@ -126,12 +142,21 @@ extension AuthorizationSequenceController {
         // а не сбрасывать в .empty. Пока стенд берёт фиксированный 12345, так что это редкий путь.
         let text: String
         switch error {
+        case .sendCode(.timeout):
+            text = self.presentationData.strings.Login_NetworkError
         case .sendCode(.limitExceeded), .verify(.limitExceeded), .signUp(.limitExceeded):
             text = self.presentationData.strings.Login_CodeFloodError
         case .verify(.codeExpired), .signUp(.codeExpired):
             text = self.presentationData.strings.Login_CodeExpiredError
         default:
             text = self.presentationData.strings.Login_UnknownError
+        }
+
+        // Лоадер был выставлен вручную; setState(.empty) НЕ перерисует UI, если state уже был .empty
+        // (sendCode упал до смены состояния → distinctUntilChanged не эмитит) → иначе вечный спиннер.
+        // Возвращаем welcome явно — с него можно повторить вход.
+        if !(self.viewControllers.first is DivoAuthWelcomeController) {
+            self.setViewControllers([self.welcomeController()], animated: true)
         }
 
         self.currentWindow?.present(

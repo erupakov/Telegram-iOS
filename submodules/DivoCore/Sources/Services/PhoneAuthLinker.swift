@@ -16,55 +16,61 @@ import CryptoKit
 //     → DivoConfig.accessToken = real → (если есть telegramUserId) telegram-link → user/info → роль
 
 public enum PhoneAuthLinkOutcome {
-    case linked(divoUserId: Int, role: String?)
+    /// Существующий DIVO-аккаунт, онбординг пройден → токен выставлен, идём сразу в таббар.
+    case ready
+    /// Онбординг нужен (новый ИЛИ существующий-не-пройден). Регистрация/доработка профиля —
+    /// на submit онбординга (детали в `DivoConfig.pendingPhoneNumber`: non-nil = новый, регаемся;
+    /// nil = аккаунт уже есть, update-profile).
+    case onboarding
     case failed(Error)
 }
 
 public enum PhoneAuthLinker {
-    /// Связать teamgram-вход по телефону с DIVO-аккаунтом. Ставит `DivoConfig.accessToken` и роль.
-    /// - telegramUserId: если nil — `telegram-link` пропускается (добавим, когда протащим userId).
-    /// - role: для `registration` нового юзера; существующему перетрётся из `user/info`.
+    /// ДЕТЕКТ DIVO-аккаунта после teamgram-входа по телефону. DIVO-запросы можно поздно, поэтому
+    /// аккаунт НОВОГО юзера здесь НЕ заводим — регистрация уходит на submit онбординга (с реальной
+    /// ролью + additionalInfo). Здесь только `login`, чтобы отличить существующего от нового.
+    /// - Существующий (login OK) → ставим токен; если онбординг пройден → `.ready`, иначе `.onboarding`.
+    /// - Новый (login 404/401/422) → НЕ регистрируем; запоминаем phone для submit → `.onboarding`.
     @discardableResult
     public static func linkAfterTeamgram(phone: String, telegramUserId: Int64?, role: String) async -> PhoneAuthLinkOutcome {
         let email = syntheticEmail(for: phone)
         let password = derivedPassword(for: phone)
         do {
-            let token: AuthTokenWithUserData
             do {
-                token = try await AuthRestService.shared.login(email: email, password: password)
+                let token = try await AuthRestService.shared.login(email: email, password: password)
+                // Существующий → ставим токен (главный экран увидит DIVO-сессию).
+                DivoConfig.accessToken = token.accessToken
+                DivoConfig.currentDivoUserId = token.user.id
                 divoLog("phone-auth: login OK (существующий) divoUserId=\(token.user.id)", level: .info)
-            } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 404 || statusCode == 401 || statusCode == 422 {
-                divoLog("phone-auth: login → не найден (\(statusCode)), регистрируем role=\(role)", level: .info)
-                token = try await AuthRestService.shared.register(role: role, email: email, password: password)
-                divoLog("phone-auth: registration OK divoUserId=\(token.user.id)", level: .info)
-            }
 
-            // Реальный токен вместо хардкод agencyToken → tokenDidChangeNotification → профиль перезагрузится.
-            DivoConfig.accessToken = token.accessToken
-
-            if let telegramUserId {
-                do {
-                    _ = try await AuthRestService.shared.telegramLink(telegramUserId: telegramUserId, phone: phone)
-                    divoLog("phone-auth: telegram-link OK", level: .info)
-                } catch {
-                    divoLog("phone-auth: telegram-link failed (продолжаем): \(error)", level: .error)
+                let info = try await AuthRestService.shared.userInfo()
+                if let roleString = info.role, let parsed = DivoConfig.UserRole(rawValue: roleString) {
+                    DivoConfig.currentUserRole = parsed
                 }
-            } else {
-                divoLog("phone-auth: telegram-link пропущен (нет telegramUserId — добавим в wiring)", level: .info)
-            }
 
-            // Реальная роль из профиля — вместо дебаг-флага.
-            let info = try await AuthRestService.shared.userInfo()
-            if let roleString = info.role, let parsed = DivoConfig.UserRole(rawValue: roleString) {
-                DivoConfig.currentUserRole = parsed
-            } else {
-                divoLog("phone-auth: user/info role=\(info.role ?? "nil") не маппится в DivoConfig.UserRole — оставляем текущую", level: .info)
+                if DivoConfig.isOnboardingCompleted(token.user.id) {
+                    DivoConfig.pendingPhoneOnboarding = false
+                    DivoConfig.pendingPhoneNumber = nil
+                    divoLog("phone-auth: existing + onboardingDone → в таббар", level: .info)
+                    return .ready
+                } else {
+                    // Аккаунт есть, но онбординг не пройден (legacy/orphaned) → онбординг доводит профиль
+                    // через update-profile (регистрация не нужна — аккаунт уже есть).
+                    DivoConfig.pendingPhoneNumber = nil
+                    DivoConfig.pendingPhoneOnboarding = true
+                    divoLog("phone-auth: existing, онбординг НЕ пройден → онбординг", level: .info)
+                    return .onboarding
+                }
+            } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 404 || statusCode == 401 || statusCode == 422 {
+                // Новый: аккаунт НЕ заводим. Регистрация — на submit (реальная роль + additionalInfo).
+                // Токена пока нет — главный экран под онбордингом грузит по fallback-токену, выкида нет.
+                divoLog("phone-auth: login → не найден (\(statusCode)) → новый, регистрация на submit", level: .info)
+                DivoConfig.pendingPhoneNumber = phone
+                DivoConfig.pendingPhoneOnboarding = true
+                return .onboarding
             }
-
-            divoLog("phone-auth: DONE divoUserId=\(token.user.id) role=\(info.role ?? "nil")", level: .info)
-            return .linked(divoUserId: token.user.id, role: info.role)
         } catch {
-            divoLog("phone-auth FAILED: \(error)", level: .error)
+            divoLog("phone-auth FAILED (login): \(error)", level: .error)
             return .failed(error)
         }
     }

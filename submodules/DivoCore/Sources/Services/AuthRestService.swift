@@ -73,7 +73,7 @@ public struct AuthRegistrationSocialRequest: Encodable {
     public let timezone: String?
     public let deviceId: String?
     public let deviceType: String
-    public let additionalInfo: [String: String]?
+    public let additionalInfo: [String: DivoJSONValue]?
 
     public init(
         uid: String,
@@ -85,7 +85,7 @@ public struct AuthRegistrationSocialRequest: Encodable {
         subrole: String? = nil,
         timezone: String? = nil,
         deviceId: String? = nil,
-        additionalInfo: [String: String]? = nil
+        additionalInfo: [String: DivoJSONValue]? = nil
     ) {
         self.uid = uid
         self.providerId = providerId
@@ -108,7 +108,7 @@ public struct AuthRegistrationRequest: Encodable {
     public let timezone: String?
     public let deviceId: String?
     public let deviceType: String
-    public let additionalInfo: [String: String]?
+    public let additionalInfo: [String: DivoJSONValue]?
 
     public init(
         role: String,
@@ -118,7 +118,7 @@ public struct AuthRegistrationRequest: Encodable {
         subrole: String? = nil,
         timezone: String? = nil,
         deviceId: String? = nil,
-        additionalInfo: [String: String]? = nil
+        additionalInfo: [String: DivoJSONValue]? = nil
     ) {
         self.role = role
         self.deviceType = deviceType
@@ -151,6 +151,10 @@ public struct AuthTelegramLinkRequest: Encodable {
         self.deviceId = deviceId
         self.deviceType = deviceType
     }
+}
+
+public struct AuthDummyPhoneData: Decodable {
+    public let phone: String
 }
 
 public struct DivoUserInfoData: Decodable {
@@ -191,7 +195,7 @@ public final class AuthRestService {
         uid: String,
         providerId: String,
         role: String,
-        additionalInfo: [String: String]? = nil
+        additionalInfo: [String: DivoJSONValue]? = nil
     ) async throws -> AuthTokenWithUserData {
         let req = AuthRegistrationSocialRequest(
             uid: uid,
@@ -208,7 +212,7 @@ public final class AuthRestService {
         role: String,
         email: String? = nil,
         password: String? = nil,
-        additionalInfo: [String: String]? = nil
+        additionalInfo: [String: DivoJSONValue]? = nil
     ) async throws -> AuthTokenWithUserData {
         let req = AuthRegistrationRequest(role: role, email: email, password: password, deviceId: divoDeviceId, additionalInfo: additionalInfo)
         let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/registration", method: "POST", body: req)
@@ -229,4 +233,36 @@ public final class AuthRestService {
         let env: DivoEnvelope<DivoUserInfoData> = try await client.request(path: "/user/info")
         return env.data
     }
+
+    /// Генерирует уникальный тестовый номер (+9995XXXXXXXX, ITU-код 999, без авторизации).
+    /// Для соц/новых юзеров, у которых нет реального номера: нужен phone для teamgram-входа.
+    public func dummyPhone() async throws -> String {
+        let env: DivoEnvelope<AuthDummyPhoneData> = try await client.request(path: "/auth/dummy_phone")
+        return env.data.phone
+    }
+
+    /// DIVO-профиль после регистрации. Используем ТУ ЖЕ структуру, что рабочий экран
+    /// редактирования (EditProfileController) — `UpdateBiographyPageRequest` (fullName/gender/
+    /// birthday/model). Openapi-схема UserUpdateProfileRequest (countryId/cityId/birthDate) —
+    /// другая/устаревшая, бэк на ней 500'ит.
+    public func updateProfile(_ req: UpdateBiographyPageRequest) async throws {
+        let _: DivoPlainEnvelope = try await client.request(path: "/user/update-profile", method: "POST", body: req)
+    }
+
+    /// Явная установка роли. registration-social создаёт аккаунт с дефолтной ролью (agency),
+    /// поэтому выбранную в онбординге роль ставим отдельным вызовом.
+    public func changeRole(role: String) async throws {
+        let req = UserChangeRoleRequest(role: role)
+        let _: DivoPlainEnvelope = try await client.request(path: "/user/change-role", method: "POST", body: req)
+    }
+}
+
+public struct UserChangeRoleRequest: Encodable {
+    public let role: String
+    public init(role: String) { self.role = role }
+}
+
+/// Толерантный envelope для ответов, тело которых нам не нужно (читаем только статус).
+private struct DivoPlainEnvelope: Decodable {
+    let message: String?
 }

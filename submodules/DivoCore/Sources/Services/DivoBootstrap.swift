@@ -7,12 +7,21 @@ private enum DivoBootstrapError: Error {
 public enum DivoBootstrap {
     public static func start() {
         divoLog("DivoBootstrap.start()", level: .info)
+        // Ранний executor: обрабатывает только phone-link (чистый REST). nameUpdate требует
+        // доступ к teamgram-аккаунту — TelegramUI ПЕРЕРЕГИСТРИРУЕТ executor с исполнителем имени,
+        // когда поднимется авторизованный контекст (см. AppDelegate). До этого момента op
+        // .nameUpdate просто лежит в очереди.
+        PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil))
+    }
 
-        // Единый executor очереди отложенных операций (слот один на очередь). registerExecutor
-        // сам дёргает drain() — на каждом холодном старте докатываем накопленные op'ы.
-        // Сейчас обрабатываем phone-link (страховка auth-флоу при обрыве сети). name-sync,
-        // когда дойдёт, дописывает свою ветку В ЭТОТ ЖЕ switch, а не регистрирует свой executor.
-        PendingTelegramOpsQueue.shared.registerExecutor { op in
+    /// Единый executor очереди отложенных операций (слот один на очередь).
+    /// - phone-link: обрабатывается всегда (cold-start страховка auth-флоу, чистый REST).
+    /// - nameUpdate: имя в teamgram после онбординга — требует аккаунт, исполнитель приходит
+    ///   из TelegramUI; если `nameUpdate == nil`, op остаётся в очереди до авторизованного контекста.
+    public static func makeExecutor(
+        nameUpdate: ((_ firstName: String, _ lastName: String) async throws -> Void)?
+    ) -> PendingTelegramOpsQueue.Executor {
+        return { op in
             switch op {
             case let .phoneLink(phone):
                 let outcome = await PhoneAuthLinker.linkAfterTeamgram(
@@ -21,15 +30,17 @@ public enum DivoBootstrap {
                     role: DivoConfig.currentUserRole.rawValue
                 )
                 if case let .failed(error) = outcome {
-                    // Не удалось (всё ещё нет сети / бэк лёг) — оставляем op в очереди,
-                    // повторим на следующем старте.
+                    // Не удалось (нет сети / бэк лёг) — оставляем op до следующего старта.
                     throw error
                 }
                 divoLog("DivoBootstrap: отложенный phone-link довёл линк для \(phone)", level: .info)
-            case .nameUpdate:
-                // Не наш scope (post-onboarding name sync пока не подключён) — кидаем,
-                // чтобы op остался в очереди нетронутым до своей реализации.
-                throw DivoBootstrapError.opNotHandled
+            case let .nameUpdate(firstName, lastName):
+                guard let nameUpdate else {
+                    // Нет исполнителя (ещё не авторизованы) — оставляем op в очереди.
+                    throw DivoBootstrapError.opNotHandled
+                }
+                try await nameUpdate(firstName, lastName)
+                divoLog("DivoBootstrap: teamgram-имя обновлено для \(firstName)", level: .info)
             }
         }
     }

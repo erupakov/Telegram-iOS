@@ -334,6 +334,7 @@ public enum DivoStrings {
     public static var authPrivacyPolicy: String { L(en: "Privacy Policy", ru: "Политикой конфиденциальности", es: "Política de privacidad", pt: "Política de Privacidade", zh: "隐私政策") }
     public static var authComingSoon: String { L(en: "Coming soon", ru: "Скоро будет доступно", es: "Próximamente", pt: "Em breve", zh: "即将推出") }
     public static var authSignInFailed: String { L(en: "Sign-in failed. Please try again.", ru: "Не удалось войти. Попробуйте ещё раз.", es: "Error al iniciar sesión. Inténtalo de nuevo.", pt: "Falha ao entrar. Tente novamente.", zh: "登录失败，请重试。") }
+    public static var onboardingChainFailed: String { L(en: "Couldn't finish setting up your account. Please sign in again.", ru: "Не удалось завершить регистрацию. Войдите ещё раз.", es: "No se pudo completar el registro. Inicia sesión de nuevo.", pt: "Não foi possível concluir o cadastro. Entre novamente.", zh: "无法完成注册，请重新登录。") }
 
     // MARK: - Auth Phone & Code Entry
     // Дублируем Telegram-овские Login_* строки локально: на teamgram-сервере не реализованы
