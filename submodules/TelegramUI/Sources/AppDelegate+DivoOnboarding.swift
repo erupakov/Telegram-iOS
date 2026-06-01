@@ -42,8 +42,10 @@ extension AppDelegate {
     /// present на нём крэшит, см. reference_navigationcontroller_present_crash). Таббар построен под
     /// модалкой и скрыт; раскрывается только при успехе (dismiss). Отмена/фейл цепочки → logout teamgram.
     func divoResumeOnboardingOnColdStartIfNeeded(context: AuthorizedApplicationContext) {
-        // Только настоящий cold-start: если активен auth-флоу (overlay удержан), онбординг ведёт он сам.
-        guard self.authContextValue == nil else { return }
+        // Только настоящий cold-start. authContextValue == nil НЕ годится: при live-флоу с удержанным
+        // overlay'ем authContextValue обнуляется (см. authContext-подписку), и хук мог бы показать ВТОРОЙ
+        // онбординг поверх живого. Гейтим по in-memory флагу «auth-флоу был в этой сессии».
+        guard !self.divoHadAuthContextThisLaunch else { return }
         let hasPending = DivoConfig.pendingSocialRegistration != nil
             || DivoConfig.pendingSocialExistingOnboarding
             || DivoConfig.pendingPhoneOnboarding
@@ -69,11 +71,7 @@ extension AppDelegate {
             onFinish: { [weak self] success in
                 removeObserver()
                 if success {
-                    DivoConfig.pendingSocialRegistration = nil
-                    DivoConfig.pendingSocialExistingOnboarding = false
-                    DivoConfig.pendingSocialLinkPhone = nil
-                    DivoConfig.pendingPhoneOnboarding = false
-                    DivoConfig.pendingPhoneNumber = nil
+                    DivoConfig.clearPendingOnboardingFlags()
                     onboardingRef?.dismiss(animated: true)
                     divoLog("[Auth UI] cold-start онбординг завершён → таббар", level: .info)
                 } else {
@@ -99,11 +97,7 @@ extension AppDelegate {
     /// Откат cold-start онбординга: чистим pending + сохранённый прогресс, снимаем модалку и логаутим
     /// teamgram → app вернётся в unauthorized-контекст (welcome). Зеркалит divoLogoutTeamgram из auth-флоу.
     private func divoColdStartOnboardingLogout(context: AuthorizedApplicationContext, onboarding: UIViewController?) {
-        DivoConfig.pendingSocialRegistration = nil
-        DivoConfig.pendingSocialExistingOnboarding = false
-        DivoConfig.pendingSocialLinkPhone = nil
-        DivoConfig.pendingPhoneOnboarding = false
-        DivoConfig.pendingPhoneNumber = nil
+        DivoConfig.resetDivoSessionForRollback() // токен + divoUserId + pending-флаги
         OnboardingProgressStore().clear()
         onboarding?.dismiss(animated: false)
         let _ = logoutFromAccount(

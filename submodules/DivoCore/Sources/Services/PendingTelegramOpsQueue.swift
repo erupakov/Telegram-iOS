@@ -1,6 +1,6 @@
 import Foundation
 
-public enum DivoPendingTelegramOp: Codable, Equatable {
+public enum DivoPendingTelegramOp: Codable, Equatable, Hashable {
     case nameUpdate(firstName: String, lastName: String)
     // Отложенный DIVO phone-link: если линк после teamgram-входа упал (нет сети) и юзер
     // закрыл приложение на алерте «Повторить» — допроводим линк на следующем старте,
@@ -21,6 +21,10 @@ public final class PendingTelegramOpsQueue {
     private let storage = UserDefaults.standard
     private let lock = NSLock()
     private var executor: Executor?
+    /// Операции, исполняемые ПРЯМО СЕЙЧАС. Несколько drain'ов (registerExecutor + enqueue + token-change)
+    /// могут стартовать поверх одного снапшота — без этого один и тот же op (напр. .telegramLink) уходил
+    /// бы на сервер 2-3 раза параллельно (двойной POST + гонка токена). Дедуп только на enqueue не спасал.
+    private var inFlight: Set<DivoPendingTelegramOp> = []
 
     private init() {}
 
@@ -61,6 +65,11 @@ public final class PendingTelegramOpsQueue {
         divoLog("PendingTelegramOps drain: \(snapshot.count) op(s)", level: .info)
 
         for op in snapshot {
+            // Занять op (синхронно — NSLock нельзя в async-контексте). false = уже исполняется
+            // параллельным drain'ом ИЛИ уже снят из стора (снапшот устарел) → пропускаем, иначе двойное
+            // исполнение (напр. .telegramLink ушёл бы на сервер дважды).
+            guard claimForExecutionSync(op) else { continue }
+
             do {
                 try await exec(op)
                 removeOpSync(op)
@@ -68,7 +77,23 @@ public final class PendingTelegramOpsQueue {
             } catch {
                 divoLog("PendingTelegramOps retry-later \(op): \(error)", level: .debug)
             }
+            releaseInFlightSync(op)
         }
+    }
+
+    /// Атомарно занять op под исполнение. true = заняли; false = уже исполняется ИЛИ уже снят из стора.
+    private func claimForExecutionSync(_ op: DivoPendingTelegramOp) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard loadOps().contains(op), !inFlight.contains(op) else { return false }
+        inFlight.insert(op)
+        return true
+    }
+
+    private func releaseInFlightSync(_ op: DivoPendingTelegramOp) {
+        lock.lock()
+        defer { lock.unlock() }
+        inFlight.remove(op)
     }
 
     private func appendOpSync(_ op: DivoPendingTelegramOp) {

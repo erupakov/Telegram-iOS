@@ -48,11 +48,7 @@ extension AuthorizationSequenceController {
             if success {
                 // Цепочка прошла целиком (submit пометил markOnboardingCompleted) → снимаем модалку
                 // онбординга и overlay → открывается уже готовый таббар.
-                DivoConfig.pendingSocialRegistration = nil
-                DivoConfig.pendingSocialExistingOnboarding = false
-                DivoConfig.pendingSocialLinkPhone = nil
-                DivoConfig.pendingPhoneOnboarding = false
-                DivoConfig.pendingPhoneNumber = nil
+                DivoConfig.clearPendingOnboardingFlags()
                 self.divoHoldOverlayForOnboarding = false
                 // Снимаем модалку онбординга через прямую ссылку (а не viewControllers.last?.presentedViewController,
                 // который == nil из-за переназначения презентации на nav-контейнер), затем сам overlay → таббар.

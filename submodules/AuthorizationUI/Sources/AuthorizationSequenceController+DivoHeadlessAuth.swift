@@ -134,9 +134,7 @@ extension AuthorizationSequenceController {
         // teamgram не завершился — overlay не удерживаем (онбординга не будет, возвращаемся на welcome).
         self.divoHoldOverlayForOnboarding = false
         // Соц-попытка (D/C/B) не удалась — снимаем все pending, иначе онбординг/линк всплывут позже.
-        DivoConfig.pendingSocialRegistration = nil
-        DivoConfig.pendingSocialExistingOnboarding = false
-        DivoConfig.pendingSocialLinkPhone = nil
+        DivoConfig.clearPendingOnboardingFlags()
         divoLog("[Auth UI] divoHeadlessAuth error: \(error)", level: .error)
 
         // Сбрасываем state в .empty — иначе постбокс сохранит просроченный codeHash и cold start

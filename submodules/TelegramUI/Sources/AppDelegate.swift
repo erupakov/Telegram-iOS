@@ -243,7 +243,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     private let context = Promise<AuthorizedApplicationContext?>()
     private let contextDisposable = MetaDisposable()
     
-    var authContextValue: UnauthorizedApplicationContext? // internal: читает divoResumeOnboardingOnColdStartIfNeeded (гард «не во время live auth-флоу»)
+    var authContextValue: UnauthorizedApplicationContext?
+    // DIVO: был ли live auth-флоу в ЭТОЙ сессии процесса (welcome → авторизация). На genuine cold-start
+    // (teamgram-сессия восстановлена, auth-контекст не создаётся) остаётся false → cold-start resume можно
+    // показывать. Если auth-флоу был — онбординг ведёт он сам, cold-start resume НЕ дублирует. In-memory
+    // (НЕ persisted): после kill сбрасывается, поэтому resume на следующем запуске не блокируется.
+    var divoHadAuthContextThisLaunch = false
     private let authContext = Promise<UnauthorizedApplicationContext?>()
     private let authContextDisposable = MetaDisposable()
     
@@ -1336,6 +1341,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     self.resetIntentsIfNeeded(context: context.context)
                 }))
             } else {
+                // DIVO: authorized-аккаунт был и пропал → ЛОГАУТ. Чистим DIVO-сессию (accessToken +
+                // currentDivoUserId + pending-флаги), иначе она протекает в следующий вход: юзер видел в
+                // настройках телефон ПРЕДЫДУЩЕГО аккаунта, а cold-start resume путался по чужому divoUserId
+                // (думал «онбординг уже пройден»). На первом запуске (firstTime) чистить нечего.
+                if !firstTime {
+                    DivoConfig.resetDivoSessionForRollback()
+                }
                 self.mainWindow.viewController = nil
                 self.mainWindow.topLevelOverlayControllers = []
                 contextReadyDisposable.set(nil)
@@ -1382,6 +1394,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
             self.authContextValue = context
             if let context = context {
+                self.divoHadAuthContextThisLaunch = true // DIVO: live auth-флоу был → cold-start resume не нужен/не дублирует
                 let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
                 
                 let progressSignal = Signal<Never, NoError> { [weak self] subscriber in

@@ -91,8 +91,13 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
 
             // Имя в teamgram (placeholder "User" → настоящее) — ФАТАЛЬНО и ДОЖИДАЕМСЯ
             // (часть атомарной цепочки: не прошло → throw → откат teamgram). Не best-effort.
-            if let firstName, !firstName.isEmpty {
-                try await DivoTeamgramSync.shared.updateName(firstName: firstName, lastName: lastName ?? "")
+            // Роли без firstName (компания/индустрия) — берём companyName/contactName, иначе teamgram-имя
+            // осталось бы "User" навсегда (онбординг помечается пройденным → не переспросит).
+            let teamgramFirstName = (firstName?.isEmpty == false ? firstName : nil)
+                ?? formString("companyName", state: state, registry: registry)
+                ?? formString("contactName", state: state, registry: registry)
+            if let teamgramFirstName, !teamgramFirstName.isEmpty {
+                try await DivoTeamgramSync.shared.updateName(firstName: teamgramFirstName, lastName: lastName ?? "")
                 divoLog("Onboarding submit: teamgram name update OK", level: .info)
             }
 

@@ -105,11 +105,7 @@ extension AuthorizationSequenceController {
     /// `failureText != nil` → показываем сообщение перед откатом (фейл, не молча). nil → молчаливая
     /// отмена (юзер сам). `internal` — зовётся также из +DivoOnboarding.
     func divoLogoutTeamgram(failureText: String? = nil) {
-        DivoConfig.pendingPhoneOnboarding = false
-        DivoConfig.pendingPhoneNumber = nil
-        DivoConfig.pendingSocialRegistration = nil
-        DivoConfig.pendingSocialExistingOnboarding = false
-        DivoConfig.pendingSocialLinkPhone = nil
+        DivoConfig.resetDivoSessionForRollback() // токен + divoUserId + все pending-флаги (см. DivoConfig)
         self.divoHoldOverlayForOnboarding = false
         self.divoClearOnboardingChainObserver()
         // Снимаем модалку онбординга, если открыта (отмена/фейл цепочки). На phone-link-fail

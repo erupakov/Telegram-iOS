@@ -235,6 +235,26 @@ public enum DivoConfig {
         }
     }
 
+    /// Снять ВСЕ pending-флаги онбординга разом (вход завершён / откат / cold-start). Один источник
+    /// правды: раньше эти 5 флагов чистились вручную в 5+ местах — легко было забыть один и оставить
+    /// залипший флаг, который заново триггерит онбординг или cold-start resume.
+    public static func clearPendingOnboardingFlags() {
+        pendingSocialRegistration = nil
+        pendingSocialExistingOnboarding = false
+        pendingSocialLinkPhone = nil
+        pendingPhoneOnboarding = false
+        pendingPhoneNumber = nil
+    }
+
+    /// Полный откат DIVO-сессии при фейле/отмене онбординга (правило атомарности): сбрасываем токен
+    /// (геттер вернёт fallback agencyToken) + divoUserId + pending-флаги — чтобы в следующей
+    /// welcome-сессии не остался чужой accessToken/currentDivoUserId, бэкающий REST не того юзера.
+    public static func resetDivoSessionForRollback() {
+        resetToken()
+        currentDivoUserId = nil
+        clearPendingOnboardingFlags()
+    }
+
     // MARK: - Onboarding completion (локально, бэк флаг isRegistrationFinished не ставит)
 
     private static let currentDivoUserIdKey = "DivoConfig.currentDivoUserId"
