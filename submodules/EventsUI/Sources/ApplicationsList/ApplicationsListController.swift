@@ -104,9 +104,7 @@ public final class ApplicationsListController: TelegramBaseController {
             
                     let dateStr = self.formatAppliedDate(member.appliedAt)
 
-                    // status: бэк сейчас отдаёт только "going" — рабочие статусы (pending/shortlisted/
-                    // accepted/rejected) ещё не реализованы, поэтому rawValue-парс даёт nil, пока они
-                    // не появятся. Как только бэк начнёт слать эти значения — табы подхватят их сами.
+                    // бэк пока отдаёт только "going" → rawValue даёт nil до реальных статусов
                     return ApplicantItem(
                         id: user.id,
                         name: user.fullName ?? "",

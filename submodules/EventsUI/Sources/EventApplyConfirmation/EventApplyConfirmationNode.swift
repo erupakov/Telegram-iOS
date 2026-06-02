@@ -744,8 +744,6 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         }
         
         // Header
-        // Город может отсутствовать в данных — собираем строку из доступных сегментов,
-        // не обрывая конфигурацию остального экрана (профиль/параметры) ранним return.
         let isFree = event.paymentType?.id == 2
         let costPart = isFree ? nil : formatCost(event.cost)
         let countryFlag = Self.flag(for: event.address?.city?.countryCode)
@@ -764,13 +762,11 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         profileHeader.configure(fullUrl: event.creator?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventTypeId: event.type?.id, eventInfo: fullLocationString)
         
         // User profile Card
-        // followers — реальные из statistic. Online-статус бэк пока НЕ отдаёт (нет поля в /user/info),
-        // оставляем статичную заглушку DivoStrings.online до появления реального поля presence/online.
         var metaParts: [String] = []
         if let followers = user.statistic?.followersCount {
             metaParts.append(DivoStrings.followersString(followers))
         }
-        metaParts.append(DivoStrings.online) // TODO DIVO: заглушка — нет поля online/presence в /user/info
+        metaParts.append(DivoStrings.online) // TODO DIVO: online-статус бэк пока не отдаёт
         userProfile.configure(name: user.fullName, role: Role(apiRole: user.role).title, meta: metaParts.joined(separator: " · "), fullUrl: user.avatar?.fullUrl)
 
         // Parameters Checklist Card
