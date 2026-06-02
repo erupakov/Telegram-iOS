@@ -795,17 +795,7 @@ extension PublicProfileScreenController {
                 let items = response.data?.items ?? []
                 let models = items.compactMap { item -> ModelItem? in
                     guard let userId = item.userId else { return nil }
-                    let roleLabel: String
-                    switch item.role {
-                    case "model":
-                        roleLabel = DivoStrings.roleModel
-                    case "new_face":
-                        roleLabel = DivoStrings.roleNewFace
-                    case "agency_employee":
-                        roleLabel = DivoStrings.roleAgency
-                    default:
-                        roleLabel = DivoStrings.roleModel
-                    }
+                    let roleLabel = Role(apiRole: item.role).title
                     return ModelItem(
                         id: userId,
                         name: item.name ?? DivoStrings.noName,

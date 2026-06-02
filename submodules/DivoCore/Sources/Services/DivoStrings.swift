@@ -222,6 +222,7 @@ public enum DivoStrings {
     public static var roleModel: String { L(en: "Model", ru: "Модель", es: "Modelo", pt: "Modelo", zh: "模特") }
     public static var roleNewFace: String { L(en: "New face", ru: "Новое лицо", es: "Cara nueva", pt: "Rosto novo", zh: "新面孔") }
     public static var roleAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司") }
+    public static var roleFan: String { L(en: "Fan", ru: "Фанат", es: "Fan", pt: "Fã", zh: "粉丝") }
     public static var statusModel: String { L(en: "♦️ model", ru: "♦️ модель", es: "♦️ modelo", pt: "♦️ modelo", zh: "♦️ 模特") }
 
     // MARK: - Profile Edit Menu
