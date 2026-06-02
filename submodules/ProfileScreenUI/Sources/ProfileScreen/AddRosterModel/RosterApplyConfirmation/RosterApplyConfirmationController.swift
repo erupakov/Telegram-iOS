@@ -103,14 +103,13 @@ public final class RosterApplyConfirmationController: TelegramBaseController {
     }
     
     private func performConfirmAddition(_ name: String?) {
-        guard let agencyId = self.agencyId else { return }
         self.controllerNode.toggleSubmitLoading(active: true)
         
         Task { [weak self] in
             guard let userId = self?.userId else { return }
             do {
                 let _: FollowResponse = try await DivoAPIClient.shared.request(
-                    path: "/agency/\(agencyId)/models/\(userId)",
+                    path: "/agency/\(userId)/models",
                     method: "POST"
                 )
                 

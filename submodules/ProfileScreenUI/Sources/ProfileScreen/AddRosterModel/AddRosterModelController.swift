@@ -94,40 +94,13 @@ public class AddRosterModelController: TelegramBaseController {
     }
     
     // Метод вызова родного закругленного алерта Telegram
-// Метод вызова родного закругленного алерта Telegram
     private func showRepresentedByAnotherAlert(agencyName: String) {
-        // 1. Получаем тему для алерта на основе текущей темы презентации
-        // let alertTheme = defaultAlertControllerTheme(self.presentationData.theme)
+        let alert = RosterAlertController(
+            agencyName: agencyName
+        )
         
-        // 2. Создаем стилизованные AttributedString (используя встроенные расширения Telegram)
-        // let titleAttr = NSAttributedString(
-        //     string: "This model is currently represented by \(agencyName)",
-        //     font: Font.bold(17),
-        //     textColor: .red//self.presentationData.theme.actionSheet.primaryActionTextColor
-        // )
-        
-        // let textAttr = NSAttributedString(
-        //     string: "You cannot add her to your roster while she is with another agency.",
-        //     font: Font.regular(13),
-        //     textColor: .red //self.presentationData.theme.actionSheet.secondaryActionTextColor
-        // )
-        
-        // // 3. Собираем алерт-контроллер по правильной сигнатуре
-        // let alertController = textAlertController(
-        //     theme: nil,
-        //     title: titleAttr,
-        //     text: textAttr,
-        //     actions: [
-        //         TextAlertAction(
-        //             type: .defaultAction,
-        //             title: DivoStrings.cancel,
-        //             action: {}
-        //         )
-        //     ]
-        // )
-        
-        // // Презентуем алерт поверх всего окна приложения (стандартный метод Telegram)
-        // self.present(alertController, in: .window(.root))
+        alert.modalPresentationStyle = .overCurrentContext
+        self.navigationController?.present(alert, animated: false, completion: nil)
     }
 
     // MARK: - Server Request Flow

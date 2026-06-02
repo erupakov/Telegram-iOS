@@ -1090,7 +1090,9 @@ public enum DivoStrings {
     public static var addModelConfirming: String { L(en: "Confirming...", ru: "Подтверждение...", es: "Confirmando...", pt: "Confirmando...", zh: "确认中...") }
     public static func addModelSuccess(_ name: String) -> String { L(en: "We successfully added (name) to the agency.", ru: "Мы успешно добавили (name) в агентство.", es: "Agregamos exitosamente a (name) a la agencia.", pt: "Adicionamos (name) à agência com sucesso.", zh: "我们成功将 (name) 添加到经纪公司。") }
     public static var modelSuccessDelete: String { L(en: "Successfully removed the model from the agency", ru: "Модель успешно удалена из агентства", es: "Modelo eliminado exitosamente de la agencia", pt: "Modelo removido da agência com sucesso", zh: "已成功从经纪公司移除模特") }
-    
+    public static func addModelAlertTitle(_ name: String) -> String { L(en: "This model is currently represented by \(name)", ru: "Эта модель в настоящее время представлена агенством \(name)", es: "Este modelo está actualmente representado por \(name)", pt: "Este modelo é atualmente representado por \(name)", zh: "该模特目前由 \(name) 代理") }
+    public static var addModelAlertSubtitle: String { L(en: "You cannot add her to your roster while she is with another agency.", ru: "Вы не можете добавить её в свой список, пока она находится в другом агентстве.", es: "No puedes agregarla a tu lista mientras esté con otra agencia.", pt: "Você não pode adicioná-la à sua lista enquanto ela estiver em outra agência.", zh: "她在其他经纪公司期间，您无法将她添加到您的名单中。") }
+
     // MARK: - Helpers
 
     private static func pluralRu(_ n: Int, _ one: String, _ few: String, _ many: String) -> String {
