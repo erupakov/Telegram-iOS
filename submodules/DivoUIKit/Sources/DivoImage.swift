@@ -22,6 +22,7 @@ public enum DivoImage {
     public static var badgeCalendar: UIImage { load("DivoBadgeCalendar") }
     public static var basket: UIImage { load("DivoBasket") }
     public static var basketWork: UIImage { load("DivoBasketWork") }
+    public static var blackCheckmark: UIImage { load("DivoBlackCheckmark") }
     public static var block: UIImage { load("DivoBlock") }
     public static var calendar: UIImage { load("DivoCalendar") }
     public static var channelIcon: UIImage { load("DivoChannelIcon") }
@@ -33,6 +34,7 @@ public enum DivoImage {
     public static var crownPremium: UIImage { load("DivoCrownPremium") }
     public static var defWork: UIImage { load("DivoDefWork") }
     public static var emptyAppearanceProfile: UIImage { load("DivoEmptyAppearanceProfile") }
+    public static var emptyApplications: UIImage { load("DivoEmptyApplications") }
     public static var emptyBioProfile: UIImage { load("DivoEmptyBioProfile") }
     public static var emptyEvents: UIImage { load("DivoEmptyEvents") }
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }
@@ -46,6 +48,7 @@ public enum DivoImage {
     public static var faceSearchError: UIImage { load("DivoFaceSearchError") }
     public static var faceSearchInfo: UIImage { load("DivoFaceSearchInfo") }
     public static var genderIcon: UIImage { load("DivoGenderIcon") }
+    public static var greenCheckmark: UIImage { load("DivoGreenCheckmark") }
     public static var group: UIImage { load("DivoGroup") }
     public static var heartActionIcon: UIImage { load("DivoHeartActionIcon") }
     public static var heightIcon: UIImage { load("DivoHeightIcon") }
@@ -142,12 +145,14 @@ public enum DivoImage {
     public static var storyAvatarStub6: UIImage { load("DivoStoryAvatarStub6") }
     public static var storyAvatarStub7: UIImage { load("DivoStoryAvatarStub7") }
     public static var storyAvatarStub8: UIImage { load("DivoStoryAvatarStub8") }
+    public static var successApply: UIImage { load("DivoSuccessApply") }
     public static var tikTokIcon: UIImage { load("DivoTikTokIcon") }
     public static var timeIcon: UIImage { load("DivoTimeIcon") }
     public static var uploadPhoto: UIImage { load("DivoUploadPhoto") }
     public static var verified: UIImage { load("DivoVerified") }
     public static var videoIcon: UIImage { load("DivoVideoIcon") }
     public static var videoIconButton: UIImage { load("DivoVideoIconButton") }
+    public static var warning: UIImage { load("DivoWarning") }
     public static var webIcon: UIImage { load("DivoWebIcon") }
     public static var whitePlus: UIImage { load("DivoWhitePlus") }
     public static var youtubeIcon: UIImage { load("DivoYoutubeIcon") }

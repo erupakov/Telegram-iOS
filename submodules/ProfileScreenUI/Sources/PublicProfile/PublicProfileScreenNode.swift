@@ -59,6 +59,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private let model: ProfileModel
     private var modelDetail: UserDetail?
     private var modelRole: Role = .model
+    private var isMyRoleAgency: Bool
     private var avatarImage: UIImage?
 
     // MARK: - Screen state (см. enum'ы выше)
@@ -1039,11 +1040,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     // MARK: - Init
     
-    init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel) {
+    init(controller: ViewController, context: AccountContext, presentationData: PresentationData, model: ProfileModel, isMyRoleAgency: Bool) {
         self.controller = controller
         self.context = context
         self.presentationData = presentationData
         self.model = model
+        self.isMyRoleAgency = isMyRoleAgency
 
         super.init()
 
@@ -4425,7 +4427,30 @@ final class PublicProfileScreenNode: ASDisplayNode {
             }
         }
     }
-    
+
+    // Точечное обновление состояния ячейки события (Задачи 1 и 2)
+    public func updateEventLocally(eventId: Int, isApplied: Bool) {
+        guard let index = self.eventGalleryItems.firstIndex(where: { $0.eventId == eventId }) else { return }
+        
+        let oldItem = self.eventGalleryItems[index]
+        let newItem = EventItem(
+            name: oldItem.name,
+            data: oldItem.data,
+            time: oldItem.time,
+            countryFlag: oldItem.countryFlag,
+            city: oldItem.city,
+            customAvatarURL: oldItem.customAvatarURL,
+            originalDate: oldItem.originalDate,
+            eventId: oldItem.eventId,
+            isApplied: isApplied,
+            isMyRoleAgency: self.isMyRoleAgency
+        )
+        self.eventGalleryItems[index] = newItem
+        
+        let indexPath = IndexPath(item: index, section: 0)
+        self.eventGalleryCollectionView.reloadItems(at: [indexPath])
+    }
+
     
     // MARK: - @objc
 

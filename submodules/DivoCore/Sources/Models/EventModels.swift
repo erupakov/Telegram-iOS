@@ -135,6 +135,8 @@ public struct EventFullDetailData: Decodable {
     public let isPublic: Bool?
     public let ndaRequired: Bool?
     public let applicationDeadline: String?
+    /// Дата подачи; бэк пока возвращает null → UI берёт fallback.
+    public let applicationDate: String?
     public let maxAttendees: Int?
     public let requirements: String?
     public let address: EventFullAddress?
@@ -142,6 +144,23 @@ public struct EventFullDetailData: Decodable {
     public let modelAttributes: EventFullModelAttributes?
     public let creator: EventFullCreator?
     public let previsiousEventsFromSameOrigin: [EventSmallItem]?
+    public let appliedMembers: [EventAppliedMember]?
+}
+
+public struct EventAppliedMember: Decodable {
+    public let id: Int
+    public let appliedAt: String?
+    public let status: String?
+    public let user: EventAppliedUser?
+}
+
+public struct EventAppliedUser: Decodable {
+    public let id: Int
+    public let fullName: String?
+    public let roleLabel: String?
+    public let avatar: UserFile?
+    public let photo: UserFile?
+    public let isVerified: Bool?
 }
 
 // MARK: - Address & City (Full Detail)
@@ -238,6 +257,7 @@ public struct CreateEventPreview: Codable {
     public let title: String
     public let description: String
     public let type: String
+    public let typeId: Int
     public let date: String
     public let address: EventAddressRequest
     public let files: [EventFileRequest]
@@ -259,15 +279,16 @@ public struct CreateEventPreview: Codable {
     public let waist: EventRangeRequest?
     public let hips: EventRangeRequest?
     public let shoesSize: EventRangeRequest?
-    public let hairColor: [Int]?
-    public let hairLength: [Int]?
-    public let eyeColor: [Int]?
-    public let skinColor: [Int]?
+    public let hairColor: [String]?
+    public let hairLength: [String]?
+    public let eyeColor: [String]?
+    public let skinColor: [String]?
 
     public init(
         title: String,
         description: String,
         type: String,
+        typeId: Int,
         date: String,
         address: EventAddressRequest,
         files: [EventFileRequest],
@@ -287,14 +308,15 @@ public struct CreateEventPreview: Codable {
         waist: EventRangeRequest?,
         hips: EventRangeRequest?,
         shoesSize: EventRangeRequest?,
-        hairColor: [Int]?,
-        hairLength: [Int]?,
-        eyeColor: [Int]?,
-        skinColor: [Int]?
+        hairColor: [String]?,
+        hairLength: [String]?,
+        eyeColor: [String]?,
+        skinColor: [String]?
     ) {
         self.title = title
         self.description = description
         self.type = type
+        self.typeId = typeId
         self.date = date
         self.address = address
         self.files = files

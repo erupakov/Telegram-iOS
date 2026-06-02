@@ -30,6 +30,7 @@ public final class EventDetailController: TelegramBaseController {
     private var eventData: EventFullDetailData?
     private let context: AccountContext
     private let isMyEvent: Bool?
+    private let isAgency: Bool?
     
     // Массив для хранения распарсенных фотографий галереи
     internal var currentGalleryPhotos: [UserPhoto] = []
@@ -46,13 +47,15 @@ public final class EventDetailController: TelegramBaseController {
         eventId: Int? = nil,
         isMyEvent: Bool? = nil,
         isPreviewMode: Bool = false,
-        previewData: EventPreviewData? = nil
+        previewData: EventPreviewData? = nil,
+        isAgency: Bool? = nil
     ) {
         self.context = context
         self.eventId = eventId
         self.isMyEvent = isMyEvent
         self.isPreviewMode = isPreviewMode
         self.previewData = previewData
+        self.isAgency = isAgency
 
         super.init(context: context, navigationBarPresentationData: nil)
     }
@@ -69,7 +72,8 @@ public final class EventDetailController: TelegramBaseController {
         self.displayNode = EventDetailControllerNode(
             context: self.context,
             isMyEvent: self.isMyEvent ?? false,
-            isPreviewMode: self.isPreviewMode
+            isPreviewMode: self.isPreviewMode,
+            isAgency: self.isAgency ?? false
         )
         
         // Перехватываем действия из кастомного навбара
@@ -114,12 +118,90 @@ public final class EventDetailController: TelegramBaseController {
             self.getEvent()
         }
 
+        self.controllerNode.onWithdrawTapped = { [weak self] in
+            self?.presentWithdrawConfirmationSheet()
+        }
+
+        self.controllerNode.onViewApplicationsTapped = { [weak self] in
+            self?.viewApplicationsPressed()
+        }
+
         self.displayNodeDidLoad()
         
         if isPreviewMode {
             loadPreview()
         } else {
             getEvent()
+        }
+    }
+
+    private func presentWithdrawConfirmationSheet() {
+        let theme = ActionSheetControllerTheme(
+            dimColor: UIColor(white: 0, alpha: 0.5),
+            backgroundType: .light,
+            itemBackgroundColor: DivoColorPalette.cardBackground,
+            itemHighlightedBackgroundColor: DivoColorPalette.screenBackground,
+            standardActionTextColor: DivoColorPalette.primaryText,
+            destructiveActionTextColor: DivoColorPalette.accent,
+            disabledActionTextColor: DivoColorPalette.disabledText,
+            primaryTextColor: DivoColorPalette.primaryText,
+            secondaryTextColor: DivoColorPalette.secondaryText,
+            controlAccentColor: DivoColorPalette.accent,
+            controlColor: DivoColorPalette.secondaryText,
+            switchFrameColor: DivoColorPalette.separatorSystem,
+            switchContentColor: DivoColorPalette.accent,
+            switchHandleColor: DivoColorPalette.cardBackground,
+            baseFontSize: 17.0
+        )
+        let actionSheet = ActionSheetController(theme: theme)
+        
+        actionSheet.setItemGroups([
+            ActionSheetItemGroup(items: [
+                DivoActionSheetHeaderItem(
+                    title: DivoStrings.withdrawSheetTitle,
+                    subtitle: DivoStrings.withdrawSheetSubtitle
+                ),
+                ActionSheetButtonItem(title: DivoStrings.keepApplication, color: .destructive) { [weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                }
+            ]),
+            ActionSheetItemGroup(items: [
+                ActionSheetButtonItem(title: DivoStrings.withdrawConfirm, color: .accent, font: .bold) { [weak self, weak actionSheet] in
+                    actionSheet?.dismissAnimated()
+                    self?.withdrawApplication()
+                }
+            ])
+        ])
+        
+        self.present(actionSheet, in: .window(.root))
+    }
+    
+    private func withdrawApplication() {
+        guard let eventId = self.eventId else { return }
+        
+        self.controllerNode.toggleWithdrawLoading(active: true)
+        let body = ApplyEventRequest(eventId: eventId)
+        
+        Task {
+            do {
+                let _: ApplyEventResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/unapply",
+                    method: "POST",
+                    body: body
+                )
+                
+                await MainActor.run {
+                    self.controllerNode.toggleWithdrawLoading(active: false)
+                    self.getEvent()
+                    self.onEventModified?()
+                }
+            } catch {
+                await MainActor.run {
+                    self.controllerNode.toggleWithdrawLoading(active: false)
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.withdrawApplicationFail
+                    self.controllerNode.showSnackbar(message: userMsg, style: .error)
+                }
+            }
         }
     }
 
@@ -261,8 +343,24 @@ public final class EventDetailController: TelegramBaseController {
     }
 
     private func applyPressed() {
-        // TODO DIVO: реализовать подачу заявки на событие (REST endpoint + состояние кнопки)
         divoLog("Apply button pressed")
+        guard let eventId = self.eventId, let eventData = self.eventData else { return }
+        
+        // Инициализируем новый контроллер подтверждения параметров
+        let confirmationController = EventApplyConfirmationController(
+            context: self.context,
+            eventId: eventId,
+            eventData: eventData
+        )
+        
+        // При успешной отправке заявки обновляем текущий экран деталей
+        confirmationController.onApplySuccess = { [weak self] in
+            self?.getEvent()
+            self?.onEventModified?()
+        }
+        
+        // Пушим экран в стек навигации
+        self.push(confirmationController)
     }
     
     // Открытие галереи на полный экран
@@ -280,5 +378,17 @@ public final class EventDetailController: TelegramBaseController {
 
         self.activeGalleryController = galleryController
         self.push(galleryController)
+    }
+
+    // Метод для перехода на новый экран списка заявок
+    private func viewApplicationsPressed() {
+        guard let eventId = self.eventId else { return }
+        
+        let listController = ApplicationsListController(
+            context: self.context,
+            eventId: eventId
+        )
+        
+        self.push(listController)
     }
 }

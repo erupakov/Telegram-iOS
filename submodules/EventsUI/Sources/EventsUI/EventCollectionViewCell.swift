@@ -185,7 +185,6 @@ final class EventCollectionViewCell: UICollectionViewCell {
         super.init(frame: frame)
         setupViews()
         
-        applyButton.makeDivoButton(title: DivoStrings.apply, loading: DivoStrings.applying, buttonFont: Font.helveticaNeue(12), radius: 12)
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
     }
 
@@ -370,10 +369,10 @@ final class EventCollectionViewCell: UICollectionViewCell {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isUserInteractionEnabled = false
         } else {
-            applyButton.makeDivoButton(title: DivoStrings.apply, buttonFont: Font.helveticaNeue(12), radius: 12)
+            applyButton.makeDivoButton(title: DivoStrings.apply, loading: DivoStrings.applying, buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isUserInteractionEnabled = true
         }
-
+        
         profileNameLabel.text = event.profileName
         titleLabel.text = event.title
         
@@ -456,6 +455,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         self.setNeedsLayout()
     }
 }
+
 
 class ImageGalleryCell: UICollectionViewCell {
     private let imageView = UIImageView()

@@ -233,13 +233,17 @@ class ProfileHeaderView: UIView {
         
         roleLabel.text = viewModel.role.title
 
-        var fullLocationString: String
+        var infoSegments: [String] = []
         if let age = viewModel.age {
-            fullLocationString = "\(DivoStrings.ageString(age)) • \(viewModel.countryFlag) \(viewModel.location)"
-        } else {
-            fullLocationString = "\(viewModel.countryFlag) \(viewModel.location)"
+            infoSegments.append(DivoStrings.ageString(age))
         }
-        infoLabel.text = fullLocationString
+        let locationPart = [viewModel.countryFlag, viewModel.location]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        if !locationPart.isEmpty {
+            infoSegments.append(locationPart)
+        }
+        infoLabel.text = infoSegments.joined(separator: " • ")
         
         if let image = viewModel.avatarImage {
             applyAvatarContentsRect(for: image)

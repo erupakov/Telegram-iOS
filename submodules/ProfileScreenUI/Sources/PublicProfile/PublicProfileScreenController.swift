@@ -61,6 +61,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private weak var activeGalleryController: ProfileGalleryController?
 
     private var isMyProfile: Bool
+    private var isMyRoleAgency: Bool
 
     private enum PickerPurpose {
         case photo
@@ -92,10 +93,19 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.context = context
         self.model = model
         self.isMyProfile = model.isMyProfile
+        self.isMyRoleAgency = DivoConfig.currentUserRole == .agency
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         self.peer = peer
 
         super.init(context: context, navigationBarPresentationData: nil)
+
+        // Подписываемся на уведомление о смене статуса отклика
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventAppliedStatusChanged(_:)),
+            name: DivoConfig.divoEventAppliedStatusChanged,
+            object: nil
+        )
     }
     
     deinit {
@@ -127,11 +137,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
         
         self.push(editEventController)
-    }
-    
-    private func onEventApplyTapped(eventId: Int) {
-        // FIXME DIVO: implement event apply action
-        divoLog("[EVENT] Apply to event \(eventId) — not implemented yet")
     }
 
     @available(iOS 14, *)
@@ -224,7 +229,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             controller: self,
             context: self.context,
             presentationData: self.presentationData,
-            model: model
+            model: model,
+            isMyRoleAgency: self.isMyRoleAgency
         )
 
         self.controllerNode.onLikesTapped = {[weak self] in
@@ -565,6 +571,15 @@ public final class PublicProfileScreenController: TelegramBaseController {
             }
         }
     }
+
+    @objc private func handleEventAppliedStatusChanged(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let eventId = userInfo["eventId"] as? Int,
+              let isApplied = userInfo["isApplied"] as? Bool else { return }
+        
+        // Точечно перерисовываем ячейку в Ноде профиля (кэш вкладки обновится автоматически, так как он лежит внутри Node)
+        self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied)
+    }
 }
 
 // MARK: - Helpers
@@ -851,7 +866,9 @@ extension PublicProfileScreenController {
                         city: city,
                         customAvatarURL: finalAvatarUrl,
                         originalDate: item.date,
-                        eventId: item.id
+                        eventId: item.id,
+                        isApplied: item.isApplied,
+                        isMyRoleAgency: self.isMyRoleAgency
                     )
                 }
 
@@ -1067,13 +1084,65 @@ extension PublicProfileScreenController {
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
 
+    // Точечный асинхронный перезапрос статуса конкретного события
+    private func refreshSingleEventState(eventId: Int) {
+        Task {
+            do {
+                let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)",
+                    method: "GET"
+                )
+                guard let detail = response.data else { return }
+                
+                await MainActor.run {
+                    let isApplied = detail.isApplied ?? false
+                    
+                    // Публикуем уведомление
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventAppliedStatusChanged,
+                        object: nil,
+                        userInfo: [
+                            "eventId": eventId,
+                            "isApplied": isApplied,
+                            "appliesCount": detail.appliesCount ?? 0
+                        ]
+                    )
+                }
+            } catch {
+                divoLog("refreshSingleEventState failed: \(error)", level: .error)
+            }
+        }
+    }
+    
+    // Логика отклика на эвент через экран Confirmation (Задача 1)
+    private func onEventApplyTapped(eventId: Int) {
+        let confirmationController = EventApplyConfirmationController(
+            context: self.context,
+            eventId: eventId,
+            eventData: nil // Будет асинхронно загружен внутри самого контроллера
+        )
+        
+        // При успешном отклике плавно обновляем статус этой ячейки локально
+        confirmationController.onApplySuccess = { [weak self] in
+            guard let self = self else { return }
+            self.refreshSingleEventState(eventId: eventId)
+        }
+        
+        self.push(confirmationController)
+    }
+    
+    // Открытие экрана деталей эвента с отслеживанием изменений (Задача 2)
     private func openEventDetailScreen(for event: EventItem) {
         guard let eventId = event.eventId else { return }
         
-        let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile)
+        let detailController = EventDetailController(context: context, eventId: eventId, isMyEvent: isMyProfile, isAgency: isMyRoleAgency)
+        
+        // Перехватываем изменения на детальном экране (отклик / отзыв заявки)
         detailController.onEventModified = { [weak self] in
-            self?.loadEvents()
+            guard let self = self else { return }
+            self.refreshSingleEventState(eventId: eventId)
         }
+        
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)
     }
     

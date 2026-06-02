@@ -13,6 +13,8 @@ public enum DivoConfig {
     public static let tokenDidChangeNotification = Notification.Name("DivoConfig.tokenDidChange")
     public static let roleDidChangeNotification = Notification.Name("DivoConfig.roleDidChange")
     public static let profileDidUpdateNotification = Notification.Name("DivoConfig.profileDidUpdate")
+    /// Статус заявки на событие изменился (apply/unapply) → перерисовать ячейки эвентов в табе/профиле.
+    public static let divoEventAppliedStatusChanged = Notification.Name("DivoConfig.eventAppliedStatusChanged")
     /// Выставлен pending-онбординг (соц/phone). Нужно перепроверить app-gate: на первом входе
     /// context-ready может отработать ДО установки флага (async-линк) — нотификация добивает гонку.
     public static let pendingOnboardingDidChangeNotification = Notification.Name("DivoConfig.pendingOnboardingDidChange")

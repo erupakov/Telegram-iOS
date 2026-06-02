@@ -110,6 +110,12 @@ public final class EventsController: TelegramBaseController {
             self?.tabStates = [TabState(), TabState()]
             self?.loadEventsList(tabIndex: self?.selectedTabIndex ?? 0, reset: true)
         }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventAppliedStatusChanged(_:)),
+            name: DivoConfig.divoEventAppliedStatusChanged,
+            object: nil
+        )
     }
 
     private func updateNavigation() {
@@ -194,6 +200,9 @@ public final class EventsController: TelegramBaseController {
         self.controllerNode.applyForEvent = { [weak self] eventId, cell in
             self?.applyForEvent(eventId: eventId, cell: cell)
         }
+        self.controllerNode.onEventTapped = { [weak self] event in
+            self?.openEventDetail(event)
+        }
         
         // Связываем действие повторения запроса при полноэкранной ошибке
         self.controllerNode.onRetry = { [weak self] in
@@ -209,6 +218,54 @@ public final class EventsController: TelegramBaseController {
 
         self.controllerNode.updateIsAgency(self.isAgency)
         self._ready.set(.single(true))
+    }
+
+    // Открытие детального экрана с отслеживанием изменений (Задача 2)
+    private func openEventDetail(_ event: EventData) {
+        let detailController = EventDetailController(
+            context: self.context,
+            eventId: event.id,
+            isMyEvent: self.userId == event.creatorId,
+            isAgency: self.isAgency
+        )
+        
+        // Перехватываем callback при изменении статуса отклика на детальном экране
+        detailController.onEventModified = { [weak self] in
+            guard let self = self else { return }
+            self.refreshSingleEventState(eventId: event.id)
+        }
+        
+        self.push(detailController)
+    }
+
+    // Точечное асинхронное обновление статуса отклика для одного эвента
+    private func refreshSingleEventState(eventId: Int) {
+        Task {
+            do {
+                let response: EventFullDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/event/\(eventId)",
+                    method: "GET"
+                )
+                guard let detail = response.data else { return }
+                
+                await MainActor.run {
+                    let isApplied = detail.isApplied ?? false
+                    
+                    // Публикуем уведомление для всех экранов в приложении
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventAppliedStatusChanged,
+                        object: nil,
+                        userInfo: [
+                            "eventId": eventId,
+                            "isApplied": isApplied,
+                            "appliesCount": detail.appliesCount ?? 0
+                        ]
+                    )
+                }
+            } catch {
+                divoLog("refreshSingleEventState failed: \(error)", level: .error)
+            }
+        }
     }
 
     private func switchToTab(_ index: Int) {
@@ -400,49 +457,25 @@ public final class EventsController: TelegramBaseController {
             )
         }
     }
-
-    // Логика отклика на эвент
+    
+    // Новая логика отклика на эвент из главного списка событий
     private func applyForEvent(eventId: Int, cell: EventCollectionViewCell) {
-        cell.setApplyButtonLoading(true)
-        // НЕ скрываем активный снэкбар тут — иначе apply-tap затрёт persistent
-        // pagination-error snackbar. Свой ошибочный снэкбар покажется ниже.
-
-        let body = ApplyEventRequest(eventId: eventId)
-
-        Task { [weak self, weak cell] in
-            do {
-                let _: ApplyEventResponse = try await DivoAPIClient.shared.request(
-                    path: "/event/apply",
-                    method: "POST",
-                    body: body
-                )
-
-                await MainActor.run {
-                    guard let self else { return }
-                    // Обновляем модель текущего таба, чтобы при переиспользовании
-                    // ячейки состояние "Applied" не откатилось.
-                    if let idx = self.tabStates[self.selectedTabIndex].events.firstIndex(where: { $0.id == eventId }) {
-                        self.tabStates[self.selectedTabIndex].events[idx].isApplied = true
-                    }
-                    if let cell, cell.currentEventId == eventId {
-                        cell.setApplyButtonLoading(false, isApplied: true)
-                    }
-                }
-            } catch {
-                divoLog("event/apply failed (id=\(eventId)): \(error)", level: .error)
-                await MainActor.run {
-                    guard let self else { return }
-                    if let cell, cell.currentEventId == eventId {
-                        cell.setApplyButtonLoading(false)
-                    }
-                    // Серверное сообщение (4xx body) через userFacingMessage,
-                    // fallback на generic. localizedDescription не используем — он не локализован.
-                    // Это инфо-ошибка: без Retry и не persistent — снэкбар сам исчезнет.
-                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedApplyEvent
-                    self.controllerNode.showSnackbar(message: userMsg, style: .error)
-                }
-            }
+        // Инициализируем контроллер подтверждения параметров
+        // Параметр eventData передаем как nil, контроллер сам загрузит его асинхронно
+        let confirmationController = EventApplyConfirmationController(
+            context: self.context,
+            eventId: eventId,
+            eventData: nil
+        )
+        
+        // При успешном отклике обновляем главный список
+        confirmationController.onApplySuccess = { [weak self] in
+            guard let self = self else { return }
+            self.refreshSingleEventState(eventId: eventId)
         }
+        
+        // Пушим контроллер в стек навигации
+        self.push(confirmationController)
     }
     
     private static func flag(for countryCode: String?) -> String {
@@ -462,6 +495,31 @@ public final class EventsController: TelegramBaseController {
         let controller = CreateEventController(context: context)
         controller.delegate = self
         self.push(controller)
+    }
+
+    @objc private func handleEventAppliedStatusChanged(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let eventId = userInfo["eventId"] as? Int,
+              let isApplied = userInfo["isApplied"] as? Bool else { return }
+        
+        let appliesCount = userInfo["appliesCount"] as? Int
+        
+        // 1. Обновляем локальный кэш во всех вкладках (Мои / Все), чтобы при переключении кэш был свежим
+        for tabIndex in 0..<self.tabStates.count {
+            if let index = self.tabStates[tabIndex].events.firstIndex(where: { $0.id == eventId }) {
+                self.tabStates[tabIndex].events[index].isApplied = isApplied
+                if let appliesCount = appliesCount {
+                    self.tabStates[tabIndex].events[index].appliesCount = appliesCount
+                } else {
+                    if let currentApplies = self.tabStates[tabIndex].events[index].appliesCount {
+                        self.tabStates[tabIndex].events[index].appliesCount = max(0, currentApplies + (isApplied ? 1 : -1))
+                    }
+                }
+            }
+        }
+        
+        // 2. Моментально перерисовываем ячейку на экране (если она видна)
+        self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied, appliesCount: appliesCount)
     }
 
     required public init(coder aDecoder: NSCoder) {

@@ -280,9 +280,23 @@ final class CreateEventNode: ASDisplayNode {
     var roleOptions: [FilterOptionItem] = [
         FilterOptionItem(id: "all", title: DivoStrings.feedSearchAllRoles),
         FilterOptionItem(id: "model", title: DivoStrings.debugModel),
-        FilterOptionItem(id: "new_face", title: DivoStrings.debugNewTalent),
-        FilterOptionItem(id: "agency_employee", title: DivoStrings.debugAgency)
+        FilterOptionItem(id: "new_face", title: DivoStrings.debugNewTalent)
     ]
+
+    /// Сопоставляет выбранные ID с их локализованными названиями (Titles) для отображения в интерфейсе.
+    /// Если список пуст (выбрано «Все»), возвращает название первого мастер-пункта.
+    private func resolvedSelectionTitles(_ ids: [String]?, options: [FilterOptionItem]) -> [String]? {
+        guard let ids = ids else { return nil }
+        if ids.isEmpty {
+            // Если массив пуст — значит выбран мастер-пункт «Все».
+            // Возвращаем массив, содержащий название этого первого пункта (например, «Все роли»)
+            return options.first.map { [$0.title] } ?? []
+        }
+        // Мапим выбранные ID в их локализованные названия из справочника
+        return ids.compactMap { id in
+            options.first(where: { $0.id == id })?.title
+        }
+    }
 
     /// Универсальный разворот выбора multi-select filter'а под отправку на бэк.
     /// Семантика FilterOptionsController: пустой selectedOptionIds = «Все»
@@ -1651,6 +1665,19 @@ final class CreateEventNode: ASDisplayNode {
             isPublic: publicEventSwitch.isOn
         )
     }
+    
+    private func formatCost(_ costString: String?) -> String? {
+        guard let costString = costString else { return nil }
+        guard let doubleValue = Double(costString) else { return costString }
+        
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.roundingMode = .halfUp
+        formatter.decimalSeparator = "."
+        
+        return formatter.string(from: NSNumber(value: doubleValue))
+    }
 
 
     // MARK: - Internal
@@ -2114,12 +2141,12 @@ final class CreateEventNode: ASDisplayNode {
         var waistRange: EventRangeRequest?
         var hipsRange: EventRangeRequest?
         var shoesRange: EventRangeRequest?
-        let genders = resolvedSelection(genderDropdownIds, options: genderOptions)
-        let hairColors: [Int]? = resolvedSelection(hairColorDropdownIds, options: hairColorOptions)?.compactMap { Int($0) }
-        let hairLengths: [Int]? = resolvedSelection(hairLengthDropdownIds, options: hairLengthOptions)?.compactMap { Int($0) }
-        let eyeColors: [Int]? = resolvedSelection(eyeColorDropdownIds, options: eyeColorOptions)?.compactMap { Int($0) }
-        let skinColors: [Int]? = resolvedSelection(skinColorDropdownIds, options: skinColorOptions)?.compactMap { Int($0) }
-        
+        let genders = resolvedSelectionTitles(genderDropdownIds, options: genderOptions)
+        let hairColors: [String]? = resolvedSelectionTitles(hairColorDropdownIds, options: hairColorOptions)
+        let hairLengths: [String]? = resolvedSelectionTitles(hairLengthDropdownIds, options: hairLengthOptions)
+        let eyeColors: [String]? = resolvedSelectionTitles(eyeColorDropdownIds, options: eyeColorOptions)
+        let skinColors: [String]? = resolvedSelectionTitles(skinColorDropdownIds, options: skinColorOptions)
+
         if let selectedAge = selectedAge {
             ageRange = EventRangeRequest(from: Float(selectedAge.lowerBound), to: Float(selectedAge.upperBound))
         }
@@ -2146,6 +2173,7 @@ final class CreateEventNode: ASDisplayNode {
             title: title,
             description: description,
             type: eventTypeTitle ?? "Event",
+            typeId: Int(eventTypeId ?? "0") ?? 0,
             date: dateString,
             address: address,
             files: eventFiles,
@@ -2250,7 +2278,7 @@ final class CreateEventNode: ASDisplayNode {
         }
         
         paidEventSwitch.isOn = detail.paymentType?.id == 1
-        rateTextField.text = detail.cost
+        rateTextField.text = formatCost(detail.cost)
         rateTimeId = String(detail.paymentFrequency?.id ?? 0)
         rateTimeTitle = detail.paymentFrequency?.title ?? ""
         

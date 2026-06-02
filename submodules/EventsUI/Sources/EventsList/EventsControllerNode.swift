@@ -113,6 +113,7 @@ final class EventsControllerNode: ASDisplayNode {
     var loadMore: (() -> Void)?
     var createEvent: (() -> Void)?
     var applyForEvent: ((Int, EventCollectionViewCell) -> Void)?
+    var onEventTapped: ((EventData) -> Void)? // Передаем тап по ячейке в контроллер
     
     var onRetry: (() -> Void)?
     var onPaginationRetry: (() -> Void)?
@@ -279,6 +280,28 @@ final class EventsControllerNode: ASDisplayNode {
         }, completion: { [weak self] _ in
             self?.updatePaginationSpinnerFrame()
         })
+    }
+
+    // Метод точечного обновления ячейки на экране (Задачи 1 и 2)
+    public func updateEventLocally(eventId: Int, isApplied: Bool, appliesCount: Int? = nil) {
+        guard let index = self.events.firstIndex(where: { $0.id == eventId }) else { return }
+        
+        var event = self.events[index]
+        event.isApplied = isApplied
+        
+        if let appliesCount = appliesCount {
+            event.appliesCount = appliesCount
+        } else {
+            // Если кол-во мест не пришло с сервера — вычисляем математически
+            if let currentApplies = event.appliesCount {
+                event.appliesCount = max(0, currentApplies + (isApplied ? 1 : -1))
+            }
+        }
+        
+        self.events[index] = event
+        
+        let indexPath = IndexPath(item: index, section: 0)
+        self.collectionView.reloadItems(at: [indexPath])
     }
 
     // MARK: - State machine
@@ -663,11 +686,7 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard indexPath.item < events.count else { return }
         let selectedEvent = events[indexPath.item]
-        let detailController = EventDetailController(context: context, eventId: selectedEvent.id, isMyEvent: self.userId == selectedEvent.creatorId)
-        
-        if let navigationController = controller?.navigationController {
-            navigationController.pushViewController(detailController, animated: true)
-        }
+        self.onEventTapped?(selectedEvent) // Передаем событие навигации в контроллер
     }
     
     // Отслеживание скролла для подгрузки новых страниц

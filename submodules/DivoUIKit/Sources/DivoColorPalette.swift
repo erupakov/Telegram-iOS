@@ -226,6 +226,10 @@ public enum DivoColorPalette {
     public static let bronzeGradientDark = UIColor(hexString: "#89503B")!
     public static let bronzeGradientDeep = UIColor(hexString: "#823F36")!
 
+    // MARK: - Event confirm
+    public static let applyBorder = UIColor(hexString: "#E8520A")!
+    public static let warningApply = UIColor(hexString: "#DF1C41")!
+
     // MARK: - Event type badges
 
     public static let eventTypeCasting          = UIColor(hexString: "#185FA5")!
@@ -242,6 +246,11 @@ public enum DivoColorPalette {
     public static let eventTypeBodyArt          = UIColor(rgb: 0x00897B)
     public static let eventTypeHostess          = UIColor(rgb: 0x3949AB)
     public static let eventTypeForeignContracts = UIColor(rgb: 0x1E88E5)
+
+    public static let pendingStatus = UIColor(hexString: "#E8520A")!
+    public static let shortlistedStatus = UIColor(hexString: "#534AB7")!
+    public static let acceptedStatus = UIColor(hexString: "#0F6E56")!
+    public static let rejectedStatus = UIColor(hexString: "#DF1C41")!
 }
 
 public enum EventTypeStyle: Int {
