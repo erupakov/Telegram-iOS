@@ -6,7 +6,8 @@ import DivoCore
 import DivoUIKit
 
 struct ModelItem {
-    let id: Int
+    let recordId: Int
+    let userId: Int
     let name: String
     let role: String
     let isPremium: Bool
@@ -35,16 +36,6 @@ final class ModelListCell: UICollectionViewCell {
         label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
-    }()
-
-    private let premiumBadgeContainer: UIView = {
-        let view = UIView()
-        view.backgroundColor = DivoColorPalette.cardBackground
-        view.layer.cornerRadius = badgeHeight / 2
-        view.layer.borderWidth = 1
-        view.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.1).cgColor
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
     }()
 
     private let premiumBadgeIcon: UIImageView = {
@@ -80,10 +71,24 @@ final class ModelListCell: UICollectionViewCell {
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
+    
+    private let optionsButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setImage(DivoImage.moreActionIconBlack, for: .normal)
+        btn.tintColor = DivoColorPalette.primaryText
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
+    
+    private var optionsButtonWidthConstraint: NSLayoutConstraint?
+    private var recordId: Int? = nil
+    
+    var onDeleteTapped: ((Int?) -> Void)?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
+        setupOptionsMenu()
     }
 
     required init?(coder: NSCoder) {
@@ -93,39 +98,41 @@ final class ModelListCell: UICollectionViewCell {
     private func setupViews() {
         contentView.backgroundColor = DivoColorPalette.cardBackground
 
+        let nameStack = UIStackView(arrangedSubviews: [nameLabel, premiumBadgeIcon])
+        nameStack.axis = .horizontal
+        nameStack.spacing = 4
+        nameStack.alignment = .leading
+        nameStack.translatesAutoresizingMaskIntoConstraints = false
+        
+        let infoStack = UIStackView(arrangedSubviews: [nameStack, roleLabel])
+        infoStack.axis = .vertical
+        infoStack.spacing = 4
+        infoStack.alignment = .leading
+        infoStack.translatesAutoresizingMaskIntoConstraints = false
+        
         contentView.addSubview(avatarImageView)
-        contentView.addSubview(nameLabel)
-        contentView.addSubview(premiumBadgeContainer)
-        premiumBadgeContainer.addSubview(premiumBadgeIcon)
-        premiumBadgeContainer.addSubview(premiumBadgeLabel)
-        contentView.addSubview(roleLabel)
+        contentView.addSubview(infoStack)
+        contentView.addSubview(optionsButton)
         contentView.addSubview(separatorView)
 
         NSLayoutConstraint.activate([
             avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
-            avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
+            avatarImageView.widthAnchor.constraint(equalToConstant: 52),
+            avatarImageView.heightAnchor.constraint(equalToConstant: 52),
+            
+            infoStack.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
+            infoStack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            infoStack.trailingAnchor.constraint(equalTo: optionsButton.leadingAnchor, constant: -DivoDesignTokens.Spacing.xs),
 
-            nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
-            nameLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),
+            premiumBadgeIcon.widthAnchor.constraint(equalToConstant: 20),
+            premiumBadgeIcon.heightAnchor.constraint(equalToConstant: 20),
+            
 
-            premiumBadgeContainer.leadingAnchor.constraint(equalTo: nameLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
-            premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            premiumBadgeContainer.centerYAnchor.constraint(equalTo: nameLabel.centerYAnchor),
-            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
-
-            premiumBadgeIcon.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
-            premiumBadgeIcon.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
-            premiumBadgeIcon.leadingAnchor.constraint(equalTo: premiumBadgeContainer.leadingAnchor, constant: 6),
-
-            premiumBadgeLabel.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
-            premiumBadgeLabel.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
-            premiumBadgeLabel.leadingAnchor.constraint(equalTo: premiumBadgeIcon.trailingAnchor, constant: 2),
-            premiumBadgeLabel.trailingAnchor.constraint(equalTo: premiumBadgeContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
-
-            roleLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
-            roleLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
+            optionsButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            optionsButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            optionsButton.widthAnchor.constraint(equalToConstant: 24),
+            optionsButton.heightAnchor.constraint(equalToConstant: 24),
             
             separatorView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             separatorView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -133,11 +140,31 @@ final class ModelListCell: UICollectionViewCell {
             separatorView.heightAnchor.constraint(equalToConstant: 1),
         ])
     }
+    
+    private func setupOptionsMenu() {
+        optionsButton.adjustsImageWhenHighlighted = false
+        optionsButton.addDivoPressState(.pill)
 
-    func configure(with item: ModelItem, context: AccountContext) {
+        if #available(iOS 14.0, *) {
+            let deleteAction = UIAction(
+                title: DivoStrings.delete,
+                image: nil,
+                attributes: .destructive
+            ) { [weak self] _ in
+                self?.onDeleteTapped?(self?.recordId)
+            }
+            let menu = UIMenu(title: "", children: [deleteAction])
+            optionsButton.menu = menu
+            optionsButton.showsMenuAsPrimaryAction = true
+        }
+    }
+    
+    func configure(with item: ModelItem, isMyProfile: Bool) {
+        self.recordId = item.recordId
         nameLabel.text = item.name
         roleLabel.text = item.role
-        premiumBadgeContainer.isHidden = !item.isPremium
+        premiumBadgeIcon.isHidden = !item.isPremium
+        optionsButton.isHidden = !isMyProfile
         let placeholderColor = DivoColorPalette.imagePlaceholderLight
         if let avatarURLString = item.customAvatarURL,
            let url = CDNURLHelper.convertToCDNURL(avatarURLString) {
@@ -160,4 +187,3 @@ final class ModelListCell: UICollectionViewCell {
         avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderDark
     }
 }
-

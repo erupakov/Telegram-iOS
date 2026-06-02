@@ -1078,6 +1078,19 @@ public enum DivoStrings {
     public static var eventsSearchDateOfEvent: String { L(en: "Date of event", ru: "Дата мероприятия", es: "Fecha del evento", pt: "Data do evento", zh: "活动日期") }
     public static var eventsSearchPaidOnly: String { L(en: "Paid only", ru: "Только платные", es: "Solo de pago", pt: "Apenas pagos", zh: "仅付费") }
 
+    // MARK: - Add Model
+    
+    public static var addModelTitle: String { L(en: "Add a model to your roster", ru: "Добавить модель в список", es: "Agregar un modelo a tu lista", pt: "Adicionar um modelo à sua lista", zh: "将模特添加到您的名单中") }
+    public static var addModelInitialState: String { L(en: "Start typing to search for a model", ru: "Начните вводить текст для поиска модели", es: "Comienza a escribir para buscar un modelo", pt: "Comece a digitar para buscar um modelo", zh: "开始输入以搜索模特") }
+    public static var addModelSearchNoFoundTitle: String { L(en: "No Results Found", ru: "Результатов не найдено", es: "No se encontraron resultados", pt: "Nenhum resultado encontrado", zh: "未找到结果") }
+    public static var addModelSearchNoFoundSubtitle: String { L(en: "Try a different search query", ru: "Попробуйте другой поисковый запрос", es: "Prueba una consulta de búsqueda diferente", pt: "Tente uma consulta de busca diferente", zh: "尝试不同的搜索词") }
+    public static var addModelSearchAlreadyAdded: String { L(en: "Already added", ru: "Уже добавлен", es: "Ya agregado", pt: "Já adicionado", zh: "已添加") }
+    public static var addModelConfirm: String { L(en: "Confirm", ru: "Подтвердить", es: "Confirmar", pt: "Confirmar", zh: "确认") }
+    public static var addModelNote: String { L(en: "Note: Adding this model to your roster allows your agency to send them exclusive private casting calls, manage their bookings, and officially represent them on Divo.", ru: "Примечание: Добавление этой модели в список позволяет вашему агентству отправлять ей эксклюзивные частные приглашения на кастинги, управлять её бронированиями и официально представлять её на Divo.", es: "Nota: Agregar este modelo a tu lista permite que tu agencia le envíe convocatorias de casting privadas exclusivas, gestione sus reservas y la represente oficialmente en Divo.", pt: "Nota: Adicionar este modelo à sua lista permite que sua agência envie convites exclusivos privados para elenco, gerencie suas reservas e a represente oficialmente no Divo.", zh: "注意：将此模特添加到您的名单中后，您的经纪公司可以向其发送独家私人试镜邀请、管理其预订，并在 Divo 上正式代表该模特。") }
+    public static var addModelConfirming: String { L(en: "Confirming...", ru: "Подтверждение...", es: "Confirmando...", pt: "Confirmando...", zh: "确认中...") }
+    public static func addModelSuccess(_ name: String) -> String { L(en: "We successfully added (name) to the agency.", ru: "Мы успешно добавили (name) в агентство.", es: "Agregamos exitosamente a (name) a la agencia.", pt: "Adicionamos (name) à agência com sucesso.", zh: "我们成功将 (name) 添加到经纪公司。") }
+    public static var modelSuccessDelete: String { L(en: "Successfully removed the model from the agency", ru: "Модель успешно удалена из агентства", es: "Modelo eliminado exitosamente de la agencia", pt: "Modelo removido da agência com sucesso", zh: "已成功从经纪公司移除模特") }
+    
     // MARK: - Helpers
 
     private static func pluralRu(_ n: Int, _ one: String, _ few: String, _ many: String) -> String {
