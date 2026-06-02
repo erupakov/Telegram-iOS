@@ -50,6 +50,7 @@ public final class ModelsFeedController: TelegramBaseController {
     private var selectedTabIndex: Int = 0
     private let feedlinePageSize = 16
     private var tokenChangeObserver: NSObjectProtocol?
+    private var roleChangeObserver: NSObjectProtocol?
 
     private let createActionDisposable = MetaDisposable()
     private let clearDisposable = MetaDisposable()
@@ -77,6 +78,18 @@ public final class ModelsFeedController: TelegramBaseController {
 
         self.tokenChangeObserver = NotificationCenter.default.addObserver(
             forName: DivoConfig.tokenDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            self.tabStates = [TabState(), TabState(), TabState()]
+            self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
+        }
+        // DIVO: роль сменилась (рефреш с сервера на cold-start / change-role) БЕЗ смены токена → тоже
+        // перезагружаем ленту (контент зависит от роли: agency vs model). roleDidChangeNotification
+        // постится только на реальное изменение.
+        self.roleChangeObserver = NotificationCenter.default.addObserver(
+            forName: DivoConfig.roleDidChangeNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
@@ -206,6 +219,9 @@ public final class ModelsFeedController: TelegramBaseController {
         self.peerViewDisposable.dispose()
         self.clearDisposable.dispose()
         if let observer = self.tokenChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = self.roleChangeObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }

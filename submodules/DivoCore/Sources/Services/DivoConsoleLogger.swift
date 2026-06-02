@@ -32,7 +32,12 @@ public final class DivoConsoleLogger {
         // NotificationCenter, а мы кладём это в логи — как Android-алерт "can't parse magic".
         NotificationCenter.default.addObserver(forName: Notification.Name("DivoMTProtoLog"), object: nil, queue: nil) { [weak self] note in
             if let msg = note.userInfo?["message"] as? String {
-                self?.log(msg, level: .error, file: "MTProto", line: 0)
+                // DIVO: трейсы MTProto (→ / OK ←) — это .info, не ошибки. Реальные проблемы
+                // (RPC ERROR от сервера, can't parse magic = TL_PARSING_ERROR) остаются .error,
+                // чтобы не тонули в шуме happy-path-трафика.
+                let level: DivoConsoleLogEntry.Level =
+                    (msg.contains("RPC ERROR") || msg.contains("can't parse")) ? .error : .info
+                self?.log(msg, level: level, file: "MTProto", line: 0)
             }
         }
     }

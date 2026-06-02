@@ -566,7 +566,7 @@ private extension OnboardingFormCatalog {
                               help: "onboarding.form.field.profilePhoto.help"),
                     ],
                     primaryButtonKey: "onboarding.button.done",
-                    allowSkip: true
+                    allowSkip: false
                 ),
             ]
         )
