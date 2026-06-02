@@ -345,6 +345,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
             showSearch: showSearch,
             isOpenPresent: true,
             isResetButton: false,
+            firstOptionIsAll: false
         )
         
         sheet.onSave = { [weak self, weak controller] selectedItems in
