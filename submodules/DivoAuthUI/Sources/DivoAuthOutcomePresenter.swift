@@ -12,8 +12,15 @@ public enum DivoAuthOutcomePresenter {
     public static func present(_ outcome: DivoAuthOutcome, on controller: DivoAuthWelcomeController?) {
         switch outcome {
         case let .divo2Reinstall(divoUserId, phone):
-            divoLog("social → branch A (reinstall) divoUserId=\(divoUserId) → headless teamgram signIn", level: .info)
-            startTeamgram(phone: phone, on: controller)
+            if let phone, !phone.isEmpty {
+                divoLog("social → branch A (reinstall) divoUserId=\(divoUserId) → headless teamgram signIn", level: .info)
+                startTeamgram(phone: phone, on: controller)
+            } else {
+                // Гугл без recoverable phone (user/info.phone=nil) → фейковый номер через dummy_phone + relink (как ветка B).
+                divoLog("social → branch A без phone в user/info → dummy_phone + relink", level: .warning)
+                DivoConfig.currentDivoUserId = divoUserId
+                startTeamgramForLink(phone: nil, on: controller)
+            }
         case let .divo1Migration(divoUserId, phone):
             // Ветка B (telegramLinked=false): headless teamgram + telegram-link (сшивка DIVO↔teamgram) после входа.
             divoLog("social → branch B (link) divoUserId=\(divoUserId) → headless teamgram + telegram-link", level: .info)
