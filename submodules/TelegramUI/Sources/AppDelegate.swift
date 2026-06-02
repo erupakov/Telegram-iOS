@@ -1347,6 +1347,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 // (думал «онбординг уже пройден»). На первом запуске (firstTime) чистить нечего.
                 if !firstTime {
                     DivoConfig.resetDivoSessionForRollback()
+                    DivoConfig.forcedTestToken = nil // дебаг-форс токена сбрасываем на логауте, иначе он перебивает следующий вход (и роль подтянется по чужому токену)
                 }
                 self.mainWindow.viewController = nil
                 self.mainWindow.topLevelOverlayControllers = []
