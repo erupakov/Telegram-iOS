@@ -24,6 +24,10 @@ public final class EventsSearchController: ViewController {
     private var gridOffset = 0
     private let gridLimit = 20
     
+    /// id и роль текущего DIVO-пользователя (из /user/info) — для «мой эвент»/isAgency, как в EventsController.
+    private var currentUserId: Int?
+    private var isAgency: Bool = false
+
     private var currentFilters = EventsSearchFilterState()
     private var preloadedEventTypes: [FilterOptionItem] = []
     private var preloadedGenders: [FilterOptionItem] = []
@@ -124,6 +128,8 @@ public final class EventsSearchController: ViewController {
         DispatchQueue.main.async { [weak self] in
             self?.loadDictionaries()
         }
+
+        self.fetchCurrentUserId()
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -132,11 +138,29 @@ public final class EventsSearchController: ViewController {
     }
 
     // MARK: - Navigation & Action Flow
-    
+
+    /// Тянем id+роль текущего юзера (как EventsController) — нужно, чтобы понять «мой эвент».
+    /// DivoConfig.currentDivoUserId для этого ненадёжен (ставится только в auth/registration путях).
+    private func fetchCurrentUserId() {
+        Task { @MainActor in
+            do {
+                let response: UserDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/info",
+                    method: "GET"
+                )
+                self.currentUserId = response.data.id
+                let role = response.data.role ?? ""
+                self.isAgency = role == "agency" || role == "agency_employee"
+            } catch {
+                divoLog("EventsSearch: /user/info failed: \(error)", level: .error)
+            }
+        }
+    }
+
     private func openEventDetailScreen(for eventId: Int?, creatorId: Int?) {
         // «Мой эвент» = создатель совпадает с текущим DIVO-пользователем (как в EventsController).
         let isMyEvent: Bool
-        if let myId = DivoConfig.currentDivoUserId, let creatorId {
+        if let myId = self.currentUserId, let creatorId {
             isMyEvent = myId == creatorId
         } else {
             isMyEvent = false
@@ -146,7 +170,7 @@ public final class EventsSearchController: ViewController {
             context: self.context,
             eventId: eventId,
             isMyEvent: isMyEvent,
-            isAgency: DivoConfig.currentUserRole == .agency
+            isAgency: self.isAgency
         )
         
         // Подписываемся на обновление при возврате
