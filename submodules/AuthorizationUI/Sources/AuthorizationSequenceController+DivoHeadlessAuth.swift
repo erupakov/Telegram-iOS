@@ -44,10 +44,9 @@ extension AuthorizationSequenceController {
         divoLog("[Auth UI] divoHeadlessAuth — старт по phone=\(phone)", level: .info)
 
         // DIVO: удерживаем overlay ДО завершения teamgram (без гонки с teardown), пока на нём предстоит
-        // доп. работа: онбординг (D новый / C существующий-не-пройден) ИЛИ telegram-link+синк имени
-        // (B миграция). Ветка A (reinstall, уже связан) ничего не ставит → overlay снимется штатно.
+        // доп. работа: онбординг (D новый) ИЛИ telegram-link+синк имени (B — аккаунт есть, teamgram не
+        // связан). Ветка A (reinstall, уже связан) ничего не ставит → overlay снимется штатно.
         if DivoConfig.pendingSocialRegistration != nil
-            || DivoConfig.pendingSocialExistingOnboarding
             || DivoConfig.pendingSocialLinkPhone != nil {
             self.divoHoldOverlayForOnboarding = true
         }
@@ -133,8 +132,9 @@ extension AuthorizationSequenceController {
         self.divoSuppressAuthScreens = false
         // teamgram не завершился — overlay не удерживаем (онбординга не будет, возвращаемся на welcome).
         self.divoHoldOverlayForOnboarding = false
-        // Соц-попытка (D/C/B) не удалась — снимаем все pending, иначе онбординг/линк всплывут позже.
-        DivoConfig.clearPendingOnboardingFlags()
+        // Соц-попытка (D/B) не удалась — чистим всю DIVO-сессию (токен/роль/pending), иначе онбординг/линк
+        // всплывут позже, а login-social'ом уже выставленный токен утечёт в welcome.
+        DivoConfig.resetDivoSessionForRollback()
         divoLog("[Auth UI] divoHeadlessAuth error: \(error)", level: .error)
 
         // Сбрасываем state в .empty — иначе постбокс сохранит просроченный codeHash и cold start

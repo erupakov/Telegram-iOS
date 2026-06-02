@@ -16,11 +16,9 @@ import CryptoKit
 //     → DivoConfig.accessToken = real → (если есть telegramUserId) telegram-link → user/info → роль
 
 public enum PhoneAuthLinkOutcome {
-    /// Существующий DIVO-аккаунт, онбординг пройден → токен выставлен, идём сразу в таббар.
+    /// Существующий DIVO-аккаунт (login OK) → токен выставлен, сразу в таббар (существование = онбординг пройден).
     case ready
-    /// Онбординг нужен (новый ИЛИ существующий-не-пройден). Регистрация/доработка профиля —
-    /// на submit онбординга (детали в `DivoConfig.pendingPhoneNumber`: non-nil = новый, регаемся;
-    /// nil = аккаунт уже есть, update-profile).
+    /// Онбординга нет — DIVO-аккаунта нет (login 404); регистрация на submit (phone в `pendingPhoneNumber`).
     case onboarding
     case failed(Error)
 }
@@ -29,7 +27,7 @@ public enum PhoneAuthLinker {
     /// ДЕТЕКТ DIVO-аккаунта после teamgram-входа по телефону. DIVO-запросы можно поздно, поэтому
     /// аккаунт НОВОГО юзера здесь НЕ заводим — регистрация уходит на submit онбординга (с реальной
     /// ролью + additionalInfo). Здесь только `login`, чтобы отличить существующего от нового.
-    /// - Существующий (login OK) → ставим токен; если онбординг пройден → `.ready`, иначе `.onboarding`.
+    /// - Существующий (login OK) → ставим токен → `.ready` (аккаунт есть ⇒ онбординг пройден).
     /// - Новый (login 404/401/422) → НЕ регистрируем; запоминаем phone для submit → `.onboarding`.
     @discardableResult
     public static func linkAfterTeamgram(phone: String, telegramUserId: Int64?, role: String) async -> PhoneAuthLinkOutcome {
@@ -42,7 +40,7 @@ public enum PhoneAuthLinker {
                 DivoConfig.accessToken = token.accessToken
                 DivoConfig.currentDivoUserId = token.user.id
                 divoLog("phone-auth: login OK (существующий DIVO-2) divoUserId=\(token.user.id)", level: .info)
-                return try await finishExisting(divoUserId: token.user.id)
+                return await finishExisting(divoUserId: token.user.id)
             } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 404 || statusCode == 401 || statusCode == 422 {
                 // DIVO-2 по синт-email нет. DIVO-1 recovery: telegram-link by-phone (расширение Eugene) —
                 // бэк ищет юзера по phone (divoId опущен), 404 если нет. Так подцепляем старый аккаунт,
@@ -79,34 +77,30 @@ public enum PhoneAuthLinker {
             DivoConfig.accessToken = linked.accessToken
             DivoConfig.currentDivoUserId = linked.user.id
             divoLog("phone-auth: telegram-link by-phone OK (recovery) divoUserId=\(linked.user.id)", level: .info)
-            return try await finishExisting(divoUserId: linked.user.id)
+            return await finishExisting(divoUserId: linked.user.id)
         } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 404 {
             divoLog("phone-auth: telegram-link by-phone 404 — юзера по номеру нет", level: .info)
             return nil
         }
     }
 
-    /// Существующий DIVO-аккаунт (найден login'ом или recovery): тянем роль + завершённость и решаем
-    /// `.ready` (онбординг не нужен) либо `.onboarding` (профиль доводит change-role + update-profile).
-    /// Завершённость — по серверному `isRegistrationFinished` ИЛИ локальной отметке (на reinstall стор
-    /// стёрт, но бэк отдаёт флаг → завершённый юзер, в т.ч. DIVO-1 миграция, идёт сразу в таббар).
-    private static func finishExisting(divoUserId: Int) async throws -> PhoneAuthLinkOutcome {
-        let info = try await AuthRestService.shared.userInfo()
+    /// Существующий аккаунт (login/recovery) → таббар (в phone-флоу аккаунт заводится на submit, так что его существование = онбординг пройден).
+    private static func finishExisting(divoUserId: Int) async -> PhoneAuthLinkOutcome {
+        // Роль — часть DIVO-сессии: не дотянули user/info после ретраев → НЕ пускаем с дефолтной ролью, отдаём .failed (вызывающий разлогинит teamgram + покажет ошибку).
+        let info: DivoUserInfoData
+        do {
+            info = try await AuthRestService.shared.userInfoWithRetry()
+        } catch {
+            divoLog("phone-auth: user/info не дотянулся после ретраев → .failed (разлогин)", level: .error)
+            return .failed(error)
+        }
         if let roleString = info.role, let parsed = DivoConfig.UserRole(rawValue: roleString) {
             DivoConfig.currentUserRole = parsed
         }
-        if info.isRegistrationFinished == true || DivoConfig.isOnboardingCompleted(divoUserId) {
-            DivoConfig.pendingPhoneOnboarding = false
-            DivoConfig.pendingPhoneNumber = nil
-            DivoConfig.markOnboardingCompleted(divoUserId) // локальный стор догоняет серверный флаг
-            divoLog("phone-auth: existing + registrationFinished → в таббар", level: .info)
-            return .ready
-        } else {
-            DivoConfig.pendingPhoneNumber = nil
-            DivoConfig.pendingPhoneOnboarding = true
-            divoLog("phone-auth: existing, регистрация НЕ завершена → онбординг", level: .info)
-            return .onboarding
-        }
+        DivoConfig.pendingPhoneOnboarding = false
+        DivoConfig.pendingPhoneNumber = nil
+        divoLog("phone-auth: existing DIVO-аккаунт (login OK, divoUserId=\(divoUserId)) → таббар", level: .info)
+        return .ready
     }
 
     /// telegramUserId для telegram-link: переданный (если есть) либо из `DivoTeamgramSync` с коротким

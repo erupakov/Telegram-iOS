@@ -18,9 +18,9 @@ extension AuthorizationSequenceController {
     func divoCompleteAuthorizationWithDivoLink() {
         let complete = self.authorizationCompleted
 
-        // Соц-новый (D, DIVO-аккаунта нет → registration-social в submit) ИЛИ соц-существующий-не-пройден
-        // (C, change-role+update-profile в submit) → онбординг в этом же auth-overlay (он удержан).
-        if DivoConfig.pendingSocialRegistration != nil || DivoConfig.pendingSocialExistingOnboarding {
+        // Соц-новый (D, DIVO-аккаунта нет → registration-social в submit) → онбординг в этом же
+        // auth-overlay (он удержан).
+        if DivoConfig.pendingSocialRegistration != nil {
             self.divoPushOnboarding()
             return
         }

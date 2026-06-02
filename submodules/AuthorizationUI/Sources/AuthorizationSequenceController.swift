@@ -1375,6 +1375,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 case .empty:
                     let alreadyShowingWelcome = self.viewControllers.first is DivoAuthWelcomeController
                     if !alreadyShowingWelcome {
+                        self.divoClearOnboardingProgressOnWelcome()
                         let welcome = self.welcomeController()
                         self.setViewControllers([welcome], animated: !self.viewControllers.isEmpty)
                     }

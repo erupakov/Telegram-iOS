@@ -47,11 +47,8 @@ extension AppDelegate {
         // онбординг поверх живого. Гейтим по in-memory флагу «auth-флоу был в этой сессии».
         guard !self.divoHadAuthContextThisLaunch else { return }
         let hasPending = DivoConfig.pendingSocialRegistration != nil
-            || DivoConfig.pendingSocialExistingOnboarding
             || DivoConfig.pendingPhoneOnboarding
         guard hasPending else { return }
-        // Защита от устаревшего флага: онбординг уже отмечен пройденным для этого юзера.
-        if let userId = DivoConfig.currentDivoUserId, DivoConfig.isOnboardingCompleted(userId) { return }
         guard let host = self.window?.rootViewController, host.presentedViewController == nil else { return }
 
         divoLog("[Auth UI] cold-start: незавершённый онбординг → резюм поверх window-root", level: .info)
