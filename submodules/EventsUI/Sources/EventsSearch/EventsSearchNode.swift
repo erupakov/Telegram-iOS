@@ -302,7 +302,7 @@ final class EventsSearchNode: ASDisplayNode {
 
     var onClosePressed: (() -> Void)?
     var onFilterPressed: (() -> Void)?
-    var onEventTapped: ((Int?) -> Void)?
+    var onEventTapped: ((Int?, Int?) -> Void)?
     var requestAutocomplete: ((String) -> Void)?
     var cancelAutocomplete: (() -> Void)?
     var requestGridSearch: ((String) -> Void)?
@@ -1044,7 +1044,7 @@ extension EventsSearchNode: UITableViewDelegate, UITableViewDataSource {
         tableView.deselectRow(at: indexPath, animated: true)
         searchTextField.resignFirstResponder()
         let item = currentAutocompleteResults[indexPath.row]
-        onEventTapped?(item.eventId)
+        onEventTapped?(item.eventId, item.creatorId)
     }
 }
 
@@ -1107,6 +1107,6 @@ extension EventsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard gridState == .results, indexPath.item < currentGridResults.count else { return }
         let item = currentGridResults[indexPath.item]
-        onEventTapped?(item.id)
+        onEventTapped?(item.id, item.creatorId)
     }
 }

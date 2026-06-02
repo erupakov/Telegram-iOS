@@ -80,8 +80,8 @@ public final class EventsSearchController: ViewController {
             self?.openFilters()
         }
         
-        self.searchNode.onEventTapped = { [weak self] eventId in
-            self?.openEventDetailScreen(for: eventId)
+        self.searchNode.onEventTapped = { [weak self] eventId, creatorId in
+            self?.openEventDetailScreen(for: eventId, creatorId: creatorId)
         }
         
         self.searchNode.requestAutocomplete = { [weak self] query in
@@ -133,13 +133,19 @@ public final class EventsSearchController: ViewController {
 
     // MARK: - Navigation & Action Flow
     
-    private func openEventDetailScreen(for eventId: Int?) {
+    private func openEventDetailScreen(for eventId: Int?, creatorId: Int?) {
+        // «Мой эвент» = создатель совпадает с текущим DIVO-пользователем (как в EventsController).
+        let isMyEvent: Bool
+        if let myId = DivoConfig.currentDivoUserId, let creatorId {
+            isMyEvent = myId == creatorId
+        } else {
+            isMyEvent = false
+        }
+
         let detailController = EventDetailController(
             context: self.context,
             eventId: eventId,
-            // надо прокинуть мой эвент или нет
-            // надо понять что с DivoConfig - это чисто разработческая штука или все-таки и в приожении работает
-            isMyEvent: false,
+            isMyEvent: isMyEvent,
             isAgency: DivoConfig.currentUserRole == .agency
         )
         
@@ -471,7 +477,7 @@ public final class EventsSearchController: ViewController {
                         originalDate: item.date,
                         eventId: item.id,
                         isApplied: item.isApplied,
-                        isMyRoleAgency: DivoConfig.currentUserRole == .agency
+                        creatorId: item.creator?.id
                     )
                 }
                 
