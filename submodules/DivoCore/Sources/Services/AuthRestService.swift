@@ -163,7 +163,6 @@ public struct DivoUserInfoData: Decodable {
     public let phone: String?
     public let role: String?
     public let subrole: String?
-    public let isRegistrationFinished: Bool?
 }
 
 public struct DivoUserInfoSuccess: Decodable {
@@ -232,6 +231,20 @@ public final class AuthRestService {
     public func userInfo() async throws -> DivoUserInfoData {
         let env: DivoEnvelope<DivoUserInfoData> = try await client.request(path: "/user/info")
         return env.data
+    }
+
+    /// user/info с коротким ретраем: транзиентный сбой не должен ронять флоу, которым нужны роль/phone.
+    public func userInfoWithRetry(attempts: Int = 3) async throws -> DivoUserInfoData {
+        var lastError: Error?
+        for attempt in 1...attempts {
+            do {
+                return try await userInfo()
+            } catch {
+                lastError = error
+                if attempt < attempts { try? await Task.sleep(nanoseconds: 400_000_000) }
+            }
+        }
+        throw lastError!
     }
 
     /// Генерирует уникальный тестовый номер (+9995XXXXXXXX, ITU-код 999, без авторизации).

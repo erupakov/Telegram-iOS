@@ -2,13 +2,11 @@ import Foundation
 import DivoCore
 
 public enum DivoAuthOutcome {
-    /// Ветка A: DIVO 2 reinstall — login-social OK, telegramLinked=true. Дальше teamgram signIn по user.phone (шаг 5C).
+    /// Ветка A: аккаунт есть и связан — login-social OK, telegramLinked=true. teamgram signIn по user.phone → таббар.
     case divo2Reinstall(divoUserId: Int, phone: String?)
-    /// Ветка B: DIVO 1 миграция — login-social OK, telegramLinked=false, isRegistrationFinished=true. Дальше teamgram signUp по user.phone + telegram-link (шаг 5C).
+    /// Ветка B: аккаунт есть, teamgram не связан (login-social 200, telegramLinked=false) → signUp + telegram-link, без онбординга (вкл. DIVO-1 миграцию).
     case divo1Migration(divoUserId: Int, phone: String?)
-    /// Ветка C: недозаведённый — login-social OK, telegramLinked=false, isRegistrationFinished=false. Дальше онбординг PROJ-004.
-    case unfinishedRegistration(divoUserId: Int, phone: String?)
-    /// Ветка D: новый юзер — login-social 404. Дальше онбординг + registration-social + teamgram signUp + telegram-link.
+    /// Ветка D: пользователя в DIVO нет — login-social 404/422. Онбординг + registration-social + teamgram signUp + telegram-link.
     case newUser(firebaseUid: String, providerId: String)
     case failed(Error)
 }
@@ -26,10 +24,10 @@ public enum AuthRestRouter {
                 level: .info
             )
 
-            // user/info с retry: транзиентный фейл не должен ронять уже успешный login-social в .failed.
-            let info = try await userInfoWithRetry()
+            // user/info (с ретраем) — нужны phone (headless teamgram) и роль.
+            let info = try await AuthRestService.shared.userInfoWithRetry()
             divoLog(
-                "user/info: phone=\(info.phone ?? "nil") isRegistrationFinished=\(info.isRegistrationFinished ?? false) role=\(info.role ?? "nil")",
+                "user/info: phone=\(info.phone ?? "nil") role=\(info.role ?? "nil")",
                 level: .info
             )
 
@@ -42,17 +40,13 @@ public enum AuthRestRouter {
                 divoLog("login-social: currentUserRole ← server '\(roleString)'", level: .info)
             }
 
-            let isRegistrationFinished = info.isRegistrationFinished ?? false
-
+            // login-social 200 = аккаунт есть ⇒ онбординга нет: связан → таббар (A), не связан → link (B).
             if telegramLinked {
-                divoLog("→ branch A (DIVO 2 reinstall)", level: .info)
+                divoLog("→ branch A (reinstall)", level: .info)
                 return .divo2Reinstall(divoUserId: token.user.id, phone: info.phone)
-            } else if isRegistrationFinished {
-                divoLog("→ branch B (DIVO 1 migration)", level: .info)
-                return .divo1Migration(divoUserId: token.user.id, phone: info.phone)
             } else {
-                divoLog("→ branch C (unfinished registration)", level: .info)
-                return .unfinishedRegistration(divoUserId: token.user.id, phone: info.phone)
+                divoLog("→ branch B (teamgram не связан → link)", level: .info)
+                return .divo1Migration(divoUserId: token.user.id, phone: info.phone)
             }
         } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 404 || statusCode == 422 {
             // 422 на НОВОМ Firebase-uid — штатный ответ бэка (by design, не баг): юзера ещё нет.
@@ -60,26 +54,9 @@ public enum AuthRestRouter {
             divoLog("login-social \(statusCode) → branch D (new user)", level: .info)
             return .newUser(firebaseUid: uid, providerId: providerId)
         } catch {
+            DivoConfig.resetDivoSessionForRollback() // неполная DIVO-авторизация → чистим сессию (токен/роль), презентер покажет ошибку
             divoLog("login-social failed: \(error)", level: .error)
             return .failed(error)
         }
-    }
-
-    /// `user/info` с небольшим retry — транзиентный сетевой фейл не должен отменять
-    /// уже успешный `login-social`. Возвращает данные либо пробрасывает последнюю ошибку.
-    private static func userInfoWithRetry(attempts: Int = 3) async throws -> DivoUserInfoData {
-        var lastError: Error?
-        for attempt in 1...attempts {
-            do {
-                return try await AuthRestService.shared.userInfo()
-            } catch {
-                lastError = error
-                divoLog("user/info attempt \(attempt)/\(attempts) failed: \(error)", level: .info)
-                if attempt < attempts {
-                    try? await Task.sleep(nanoseconds: 400_000_000)
-                }
-            }
-        }
-        throw lastError!
     }
 }

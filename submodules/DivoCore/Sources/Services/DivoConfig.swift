@@ -183,18 +183,9 @@ public enum DivoConfig {
         }
     }
 
-    private static let pendingSocialExistingOnboardingKey = "DivoConfig.pendingSocialExistingOnboarding"
     private static let pendingSocialLinkPhoneKey = "DivoConfig.pendingSocialLinkPhone"
 
-    /// Соц-юзер с СУЩЕСТВУЮЩИМ DIVO-аккаунтом, но незавершённой регистрацией (ветка C,
-    /// `isRegistrationFinished=false`). После teamgram-входа показываем онбординг (выбор роли + профиль),
-    /// submit доводит через `change-role` + `update-profile` (НЕ `registration-social` — аккаунт уже есть).
-    public static var pendingSocialExistingOnboarding: Bool {
-        get { UserDefaults.standard.bool(forKey: pendingSocialExistingOnboardingKey) }
-        set { UserDefaults.standard.set(newValue, forKey: pendingSocialExistingOnboardingKey) }
-    }
-
-    /// Телефон для `telegram-link` соц-веток B/C (`telegramLinked=false`): после teamgram-входа сшиваем
+    /// Телефон для `telegram-link` соц-ветки B (`telegramLinked=false`): после teamgram-входа сшиваем
     /// свежий teamgram-аккаунт с существующим DIVO-аккаунтом. nil = линк не нужен (ветка A — уже связан).
     public static var pendingSocialLinkPhone: String? {
         get { UserDefaults.standard.string(forKey: pendingSocialLinkPhoneKey) }
@@ -238,11 +229,10 @@ public enum DivoConfig {
     }
 
     /// Снять ВСЕ pending-флаги онбординга разом (вход завершён / откат / cold-start). Один источник
-    /// правды: раньше эти 5 флагов чистились вручную в 5+ местах — легко было забыть один и оставить
+    /// правды: эти флаги чистились вручную в нескольких местах — легко было забыть один и оставить
     /// залипший флаг, который заново триггерит онбординг или cold-start resume.
     public static func clearPendingOnboardingFlags() {
         pendingSocialRegistration = nil
-        pendingSocialExistingOnboarding = false
         pendingSocialLinkPhone = nil
         pendingPhoneOnboarding = false
         pendingPhoneNumber = nil
@@ -258,33 +248,18 @@ public enum DivoConfig {
         clearPendingOnboardingFlags()
     }
 
-    // MARK: - Onboarding completion (локально, бэк флаг isRegistrationFinished не ставит)
+    // MARK: - DIVO session user id
 
     private static let currentDivoUserIdKey = "DivoConfig.currentDivoUserId"
-    private static let onboardingCompletedKey = "DivoConfig.onboardingCompletedUserIds"
 
-    /// divoUserId текущей DIVO-сессии (ставит PhoneAuthLinker / registration). Нужен, чтобы пометить
-    /// онбординг пройденным именно для этого аккаунта.
+    /// divoUserId текущей DIVO-сессии (ставит PhoneAuthLinker / registration). Нужен для telegram-link
+    /// и привязки отложенных операций к аккаунту.
     public static var currentDivoUserId: Int? {
         get {
             let value = UserDefaults.standard.integer(forKey: currentDivoUserIdKey)
             return value == 0 ? nil : value
         }
         set { UserDefaults.standard.set(newValue ?? 0, forKey: currentDivoUserIdKey) }
-    }
-
-    /// Онбординг пройден (ведём локально, по divoUserId — бэк `isRegistrationFinished` не выставляет).
-    public static func isOnboardingCompleted(_ userId: Int) -> Bool {
-        let ids = UserDefaults.standard.array(forKey: onboardingCompletedKey) as? [Int] ?? []
-        return ids.contains(userId)
-    }
-
-    public static func markOnboardingCompleted(_ userId: Int) {
-        var ids = UserDefaults.standard.array(forKey: onboardingCompletedKey) as? [Int] ?? []
-        if !ids.contains(userId) {
-            ids.append(userId)
-            UserDefaults.standard.set(ids, forKey: onboardingCompletedKey)
-        }
     }
 
     // MARK: - Mock Mode

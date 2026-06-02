@@ -1829,8 +1829,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         // ранее навешанные targets, иначе один тап стрельнёт несколько действий.
         applyButton.removeTarget(self, action: nil, for: .touchUpInside)
         applyButton.isUserInteractionEnabled = true
+        applyButton.isEnabled = true
         applyButton.isHidden = false
         appliedStatusViewContainer.isHidden = true
+        
+        let isDeadlinePassed = EventDateFormatter.isDeadlinePassed(newEventData.applicationDeadline)
 
         if self.isMyEvent {
             applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
@@ -1844,6 +1847,10 @@ final class EventDetailControllerNode: ASDisplayNode {
             appliedStatusViewContainer.isHidden = false
         } else if self.isAgency {
             applyButton.isHidden = true
+        } else if isDeadlinePassed {
+            let closedTitle = DivoStrings.closed
+            applyButton.makeDivoButton(title: closedTitle, buttonFont: Font.helveticaNeue(14), radius: 18)
+            applyButton.isEnabled = false
         } else {
             applyButton.makeDivoButton(title: DivoStrings.applyNow, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.addTarget(self, action: #selector(applyTapped), for: .touchUpInside)
@@ -1862,7 +1869,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         let logoURLString = newEventData.creator?.avatar?.fullUrl
         let logoURL = logoURLString != nil ? URL(string: logoURLString!) : nil
-        organizerView.configure(name: newEventData.creator?.fullName , logoURL: logoURL)
+        organizerView.configure(name: newEventData.creator?.fullName, isVerified: newEventData.creator?.isVerified, logoURL: logoURL)
         
         descriptionView.update(biography: newEventData.description)
         requirementsLabel.text = newEventData.requirements
@@ -1924,7 +1931,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
-        organizerView.configure(name: DivoStrings.you, logoURL: nil)
+        organizerView.configure(name: DivoStrings.you, isVerified: false, logoURL: nil)
         
         descriptionView.update(biography: data.request.description)
         requirementsLabel.text = data.request.requirements

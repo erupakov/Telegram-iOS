@@ -453,7 +453,8 @@ public final class EventsController: TelegramBaseController {
                 applicationDeadline: item.applicationDeadline,
                 isCurrentRoleAgency: self.isAgency,
                 isApplied: item.isApplied,
-                creatorId: item.creator?.id
+                creatorId: item.creator?.id,
+                isVerified: item.creator?.isVerified
             )
         }
     }

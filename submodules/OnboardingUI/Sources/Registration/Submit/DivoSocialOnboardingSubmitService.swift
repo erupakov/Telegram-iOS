@@ -89,6 +89,9 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                 DivoConfig.currentUserRole = parsed
             }
 
+            // Аккаунт создан → снимаем pending СРАЗУ: kill на дальнейших шагах не должен оставить флаг (иначе cold-start заново покажет онбординг и пере-регистрирует существующий аккаунт).
+            DivoConfig.clearPendingOnboardingFlags()
+
             // Имя в teamgram (placeholder "User" → настоящее) — ФАТАЛЬНО и ДОЖИДАЕМСЯ
             // (часть атомарной цепочки: не прошло → throw → откат teamgram). Не best-effort.
             // Роли без firstName (компания/индустрия) — берём companyName/contactName, иначе teamgram-имя
@@ -99,12 +102,6 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
             if let teamgramFirstName, !teamgramFirstName.isEmpty {
                 try await DivoTeamgramSync.shared.updateName(firstName: teamgramFirstName, lastName: lastName ?? "")
                 divoLog("Onboarding submit: teamgram name update OK", level: .info)
-            }
-
-            // Цепочка пройдена целиком → помечаем онбординг пройденным локально (бэк не ставит флаг),
-            // чтобы повторный вход этим аккаунтом НЕ показывал онбординг снова.
-            if let userId = DivoConfig.currentDivoUserId {
-                DivoConfig.markOnboardingCompleted(userId)
             }
 
             divoLog("Onboarding submit OK: role=\(role)", level: .info)
@@ -120,8 +117,7 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         // путей (новый соц/phone И существующий-не-пройден соц-C) — у всех к этому моменту есть DIVO-сессия,
         // а бэк additionalInfo в структуру надёжно не мапит → имя/фото/gender(словарь) шлём явно. Фейл/422
         // вход НЕ роняет (вне атомарной цепочки).
-        let shouldUpdateStructuredProfile =
-            DivoConfig.pendingSocialRegistration != nil || phone != nil || DivoConfig.currentDivoUserId != nil
+        let shouldUpdateStructuredProfile = phone != nil || DivoConfig.currentDivoUserId != nil
         if shouldUpdateStructuredProfile {
             let fullName = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
             let detail = try? await AuthRestService.shared.userDetail()
@@ -170,9 +166,6 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         // Фейл → оп в очередь ретраев (.telegramLink), дренится на старте.
         if let phone, let divoUserId = DivoConfig.currentDivoUserId {
             await Self.linkTelegramBestEffort(phone: phone, divoUserId: divoUserId)
-        } else if let socPhone = DivoConfig.pendingSocialLinkPhone, let divoUserId = DivoConfig.currentDivoUserId {
-            // Соц-ветка C (telegramLinked=false): сшиваем свежий teamgram с существующим DIVO-аккаунтом.
-            await Self.linkTelegramBestEffort(phone: socPhone, divoUserId: divoUserId)
         }
     }
 

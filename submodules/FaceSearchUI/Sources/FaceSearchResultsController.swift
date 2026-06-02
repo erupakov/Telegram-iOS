@@ -430,6 +430,7 @@ public enum FaceSearchResultsMapper {
         case "model": return DivoStrings.debugModel
         case "new_face": return DivoStrings.debugNewTalent
         case "agency_employee": return DivoStrings.debugAgency
+        case "fan": return DivoStrings.roleFan
         default: return role
         }
     }

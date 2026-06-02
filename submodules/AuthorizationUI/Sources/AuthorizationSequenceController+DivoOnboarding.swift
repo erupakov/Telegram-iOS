@@ -16,7 +16,7 @@ extension AuthorizationSequenceController {
     /// Показывает онбординг (fullScreen-модалкой на удержанном auth-overlay). Путь регистрации
     /// submit-сервис определяет сам по pending-флагам (соц-новый / phone-новый / existing-not-done).
     func divoPushOnboarding() {
-        let isSocial = DivoConfig.pendingSocialRegistration != nil || DivoConfig.pendingSocialExistingOnboarding
+        let isSocial = DivoConfig.pendingSocialRegistration != nil
         divoLog("[Auth UI] онбординг → push в auth-стек (\(isSocial ? "social" : "phone"))", level: .info)
 
         // Глушим auth-state observer: аккаунт уже authorized, overlay удержан вручную. Иначе поздний
@@ -46,8 +46,7 @@ extension AuthorizationSequenceController {
             guard let self else { return }
             self.divoClearOnboardingChainObserver()
             if success {
-                // Цепочка прошла целиком (submit пометил markOnboardingCompleted) → снимаем модалку
-                // онбординга и overlay → открывается уже готовый таббар.
+                // Цепочка прошла целиком → снимаем модалку онбординга и overlay → открывается готовый таббар.
                 DivoConfig.clearPendingOnboardingFlags()
                 self.divoHoldOverlayForOnboarding = false
                 // Снимаем модалку онбординга через прямую ссылку (а не viewControllers.last?.presentedViewController,
@@ -84,5 +83,10 @@ extension AuthorizationSequenceController {
             NotificationCenter.default.removeObserver(observer)
             self.divoOnboardingChainFailedObserver = nil
         }
+    }
+
+    /// Приземление на welcome (любой разлогин / старт unauthorized) → чистим прогресс онбординга, чтобы следующий вход (в т.ч. другой номер на установке) стартовал с нуля. Активный онбординг сюда не доходит (stateDisposable снят), cold-start resume идёт через .authorized.
+    func divoClearOnboardingProgressOnWelcome() {
+        OnboardingProgressStore().clear()
     }
 }

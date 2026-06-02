@@ -3,7 +3,6 @@ import Postbox
 import SwiftSignalKit
 import TelegramApi
 import MtProtoKit
-import DivoCore
 
 
 public enum AuthorizationCodeRequestError {
@@ -187,7 +186,7 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
         }
         
         let sendCode = Api.functions.auth.sendCode(phoneNumber: phoneNumber, apiId: apiId, apiHash: apiHash, settings: .codeSettings(.init(flags: flags, logoutTokens: authTokens.map { Buffer(data: $0) }, token: token, appSandbox: appSandbox)))
-        divoLog("[MTProto sendCode] sending — phoneNumber=\(phoneNumber), apiId=\(apiId)", level: .info)
+        divoMTProtoLog("[MTProto sendCode] sending — phoneNumber=\(phoneNumber), apiId=\(apiId)", level: .info)
 
         enum SendCodeResult {
             case password(hint: String?)
@@ -196,11 +195,11 @@ public func sendAuthorizationCode(accountManager: AccountManager<TelegramAccount
 
         let codeAndAccount = account.network.request(sendCode, automaticFloodWait: false)
         |> map { result -> (SendCodeResult, UnauthorizedAccount) in
-            divoLog("[MTProto sendCode] OK — \(result)", level: .info)
+            divoMTProtoLog("[MTProto sendCode] OK — \(result)", level: .info)
             return (.sentCode(result), account)
         }
         |> `catch` { error -> Signal<(SendCodeResult, UnauthorizedAccount), MTRpcError> in
-            divoLog("[MTProto sendCode] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
+            divoMTProtoLog("[MTProto sendCode] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
             switch MatchString(error.errorDescription ?? "") {
                 case Regex("(PHONE_|USER_|NETWORK_)MIGRATE_(\\d+)"):
                     let range = error.errorDescription.range(of: "MIGRATE_")!
@@ -1043,14 +1042,14 @@ public func authorizeWithCode(accountManager: AccountManager<TelegramAccountMana
                             }
                     }
                  
-                    divoLog("[MTProto signIn] sending — apiId=\(account.networkArguments.apiId), flags=\(flags), number=\(number)", level: .info)
+                    divoMTProtoLog("[MTProto signIn] sending — apiId=\(account.networkArguments.apiId), flags=\(flags), number=\(number)", level: .info)
                     return account.network.request(Api.functions.auth.signIn(flags: flags, phoneNumber: number, phoneCodeHash: hash, phoneCode: phoneCode, emailVerification: emailVerification), automaticFloodWait: false)
                     |> map { authorization in
-                        divoLog("[MTProto signIn] OK — got authorization", level: .info)
+                        divoMTProtoLog("[MTProto signIn] OK — got authorization", level: .info)
                         return .authorization(authorization)
                     }
                     |> `catch` { error -> Signal<AuthorizationCodeResult, AuthorizationCodeVerificationError> in
-                        divoLog("[MTProto signIn] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
+                        divoMTProtoLog("[MTProto signIn] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
                         switch (error.errorCode, error.errorDescription ?? "") {
                             case (401, "SESSION_PASSWORD_NEEDED"):
                                 return account.network.request(Api.functions.account.getPassword(), automaticFloodWait: false)
@@ -1507,17 +1506,17 @@ public enum SignUpError {
 }
 
 public func signUpWithName(accountManager: AccountManager<TelegramAccountManagerTypes>, account: UnauthorizedAccount, firstName: String, lastName: String, avatarData: Data?, avatarVideo: Signal<UploadedPeerPhotoData?, NoError>?, videoStartTimestamp: Double?, disableJoinNotifications: Bool = false, forcedPasswordSetupNotice: @escaping (Int32) -> (NoticeEntryKey, CodableEntry)?) -> Signal<Void, SignUpError> {
-    divoLog("[MTProto signUp] entry — first=\(firstName), last=\(lastName)", level: .info)
+    divoMTProtoLog("[MTProto signUp] entry — first=\(firstName), last=\(lastName)", level: .info)
     return account.postbox.transaction { transaction -> Signal<Void, SignUpError> in
         if let state = transaction.getState() as? UnauthorizedAccountState, case let .signUp(number, codeHash, _, _, _, syncContacts) = state.contents {
             var flags: Int32 = 0
             if disableJoinNotifications {
                 flags |= (1 << 0)
             }
-            divoLog("[MTProto signUp] sending — number=\(number), flags=\(flags)", level: .info)
+            divoMTProtoLog("[MTProto signUp] sending — number=\(number), flags=\(flags)", level: .info)
             return account.network.request(Api.functions.auth.signUp(flags: flags, phoneNumber: number, phoneCodeHash: codeHash, firstName: firstName, lastName: lastName))
             |> mapError { error -> SignUpError in
-                divoLog("[MTProto signUp] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
+                divoMTProtoLog("[MTProto signUp] raw error — code=\(error.errorCode), description=\(error.errorDescription ?? "<nil>")", level: .error)
                 if error.errorDescription.hasPrefix("FLOOD_WAIT") {
                     return .limitExceeded
                 } else if error.errorDescription == "PHONE_CODE_EXPIRED" {

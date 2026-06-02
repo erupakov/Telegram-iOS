@@ -4,39 +4,34 @@ import DivoAuth
 
 /// Presenter для DivoAuthOutcome после Firebase + REST routing. Все ветки заходят в teamgram через
 /// `onAuthenticateTeamgram` (headless), DIVO-токен уже выставлен login-social'ом в роутере:
-/// - A (reinstall, telegramLinked=true) → signIn по user/info.phone → таббар (без онбординга/линка);
-/// - B (migration, finished, не связан) → signUp + telegram-link + синк имени → таббар;
-/// - C (unfinished) → teamgram + онбординг (выбор роли + change-role/update-profile на submit) + линк;
-/// - D (новый) → dummy_phone + teamgram + онбординг (registration-social на submit).
+/// - A (telegramLinked=true) → signIn по user/info.phone → таббар (без онбординга/линка);
+/// - B (аккаунт есть, teamgram не связан) → signUp + telegram-link + синк имени → таббар (без онбординга);
+/// - D (новый, login-social 404/422) → dummy_phone + teamgram + онбординг (registration-social на submit).
 public enum DivoAuthOutcomePresenter {
     @MainActor
     public static func present(_ outcome: DivoAuthOutcome, on controller: DivoAuthWelcomeController?) {
         switch outcome {
         case let .divo2Reinstall(divoUserId, phone):
-            divoLog("social → branch A (reinstall) divoUserId=\(divoUserId) → headless teamgram signIn", level: .info)
-            startTeamgram(phone: phone, on: controller)
+            if let phone, !phone.isEmpty {
+                divoLog("social → branch A (reinstall) divoUserId=\(divoUserId) → headless teamgram signIn", level: .info)
+                startTeamgram(phone: phone, on: controller)
+            } else {
+                // Гугл без recoverable phone (user/info.phone=nil) → фейковый номер через dummy_phone + relink (как ветка B).
+                divoLog("social → branch A без phone в user/info → dummy_phone + relink", level: .warning)
+                DivoConfig.currentDivoUserId = divoUserId
+                startTeamgramForLink(phone: nil, on: controller)
+            }
         case let .divo1Migration(divoUserId, phone):
-            // Ветка B (telegramLinked=false, регистрация завершена): headless teamgram + telegram-link
-            // (сшивка DIVO↔свежий teamgram) + синк имени из DIVO-профиля — делает
-            // divoCompleteAuthorizationWithDivoLink по pendingSocialLinkPhone. Онбординга нет.
-            divoLog("social → branch B (migration) divoUserId=\(divoUserId) → headless teamgram + telegram-link", level: .info)
+            // Ветка B (telegramLinked=false): headless teamgram + telegram-link (сшивка DIVO↔teamgram) после входа.
+            divoLog("social → branch B (link) divoUserId=\(divoUserId) → headless teamgram + telegram-link", level: .info)
             DivoConfig.currentDivoUserId = divoUserId
-            DivoConfig.pendingSocialLinkPhone = phone
-            startTeamgram(phone: phone, on: controller)
+            startTeamgramForLink(phone: phone, on: controller)
         case let .newUser(firebaseUid, providerId):
             // Ветка D (новый): DIVO-аккаунта ещё нет. Берём dummy phone → teamgram signUp ("User"),
             // запоминаем pending-регистрацию — после teamgram-входа онбординг пушится в auth-флоу и
             // доводит registration-social (см. AuthorizationSequenceController+DivoOnboarding).
             divoLog("social → branch D (new) → dummy_phone + teamgram + онбординг", level: .info)
             startNewUserRegistration(firebaseUid: firebaseUid, providerId: providerId, on: controller)
-        case let .unfinishedRegistration(divoUserId, phone):
-            // Ветка C: DIVO-аккаунт есть, регистрация НЕ завершена → headless teamgram + онбординг
-            // (выбор роли + профиль), submit доводит через change-role + update-profile (аккаунт уже
-            // есть, registration-social НЕ зовём). telegramLinked=false → линкуем после онбординга.
-            divoLog("social → branch C (unfinished) divoUserId=\(divoUserId) → headless teamgram + онбординг (resume)", level: .info)
-            DivoConfig.currentDivoUserId = divoUserId
-            DivoConfig.pendingSocialExistingOnboarding = true
-            startTeamgramForExisting(phone: phone, on: controller)
         case .failed(let error):
             let message = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.authSignInFailed
             controller?.showError(message: message)
@@ -65,6 +60,7 @@ public enum DivoAuthOutcomePresenter {
     @MainActor
     private static func startTeamgram(phone: String?, on controller: DivoAuthWelcomeController?) {
         guard let phone, !phone.isEmpty else {
+            DivoConfig.resetDivoSessionForRollback() // частичный auth (токен) без teamgram → откат
             divoLog("social outcome без phone в user/info — headless teamgram невозможен", level: .error)
             controller?.showError(message: DivoStrings.authSignInFailed)
             return
@@ -72,11 +68,9 @@ public enum DivoAuthOutcomePresenter {
         controller?.onAuthenticateTeamgram?(phone)
     }
 
-    /// Ветка C (существующий-не-пройден): teamgram по `user/info.phone`, а если бэк его ещё не отдал —
-    /// генерим dummy (как ветка D). Запоминаем номер в `pendingSocialLinkPhone` для telegram-link после
-    /// онбординга. Онбординг покажет `divoCompleteAuthorizationWithDivoLink` (overlay удержан в headless).
+    /// Ветка B: teamgram по `user/info.phone`, а нет его — генерим dummy. Номер → `pendingSocialLinkPhone` для telegram-link после входа. Фейл dummy → откат частичного auth.
     @MainActor
-    private static func startTeamgramForExisting(phone: String?, on controller: DivoAuthWelcomeController?) {
+    private static func startTeamgramForLink(phone: String?, on controller: DivoAuthWelcomeController?) {
         if let phone, !phone.isEmpty {
             DivoConfig.pendingSocialLinkPhone = phone
             controller?.onAuthenticateTeamgram?(phone)
@@ -86,12 +80,11 @@ public enum DivoAuthOutcomePresenter {
             do {
                 let dummy = try await AuthRestService.shared.dummyPhone()
                 DivoConfig.pendingSocialLinkPhone = dummy
-                divoLog("social branch C: dummy_phone=\(dummy) → headless teamgram", level: .info)
+                divoLog("social branch B: dummy_phone=\(dummy) → headless teamgram", level: .info)
                 controller?.onAuthenticateTeamgram?(dummy)
             } catch {
-                DivoConfig.pendingSocialExistingOnboarding = false
-                DivoConfig.pendingSocialLinkPhone = nil
-                divoLog("social branch C: dummy_phone failed: \(error)", level: .error)
+                DivoConfig.resetDivoSessionForRollback()
+                divoLog("social branch B: dummy_phone failed: \(error)", level: .error)
                 let message = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.authSignInFailed
                 controller?.showError(message: message)
             }

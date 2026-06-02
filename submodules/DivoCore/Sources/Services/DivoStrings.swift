@@ -222,6 +222,7 @@ public enum DivoStrings {
     public static var roleModel: String { L(en: "Model", ru: "Модель", es: "Modelo", pt: "Modelo", zh: "模特") }
     public static var roleNewFace: String { L(en: "New face", ru: "Новое лицо", es: "Cara nueva", pt: "Rosto novo", zh: "新面孔") }
     public static var roleAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司") }
+    public static var roleFan: String { L(en: "Fan", ru: "Фанат", es: "Fan", pt: "Fã", zh: "粉丝") }
     public static var statusModel: String { L(en: "♦️ model", ru: "♦️ модель", es: "♦️ modelo", pt: "♦️ modelo", zh: "♦️ 模特") }
 
     // MARK: - Profile Edit Menu
@@ -555,7 +556,7 @@ public enum DivoStrings {
     public static var previousEvents: String { L(en: "PREVIOUS EVENTS", ru: "ПРОШЕДШИЕ МЕРОПРИЯТИЯ", es: "EVENTOS ANTERIORES", pt: "EVENTOS ANTERIORES", zh: "往期活动") }
     public static var filterBy: String { L(en: "Filter by:", ru: "Фильтр:", es: "Filtrar por:", pt: "Filtrar por:", zh: "筛选：") }
     public static var location: String { L(en: "Location", ru: "Местоположение", es: "Ubicación", pt: "Localização", zh: "位置") }
-    public static var allTypes: String { L(en: "All Types", ru: "Все типы", es: "Todos los tipos", pt: "Todos os tipos", zh: "所有类型") }
+    public static var allTypes: String { L(en: "All types", ru: "Все типы", es: "Todos los tipos", pt: "Todos os tipos", zh: "所有类型") }
     public static var dateRange: String { L(en: "Date Range", ru: "Диапазон дат", es: "Rango de fechas", pt: "Intervalo de datas", zh: "日期范围") }
     public static var from: String { L(en: "From", ru: "От", es: "Desde", pt: "De", zh: "从") }
     public static var to: String { L(en: "To", ru: "До", es: "Hasta", pt: "Até", zh: "到") }
@@ -1087,6 +1088,7 @@ public enum DivoStrings {
     public static var paramEyeColor: String { L(en: "Eye color", ru: "Цвет глаз", es: "Color de ojos", pt: "Cor dos olhos", zh: "眼色") }
     public static var paramSkinColor: String { L(en: "Skin color", ru: "Цвет кожи", es: "Color de piel", pt: "Cor da pele", zh: "肤色") }
     public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)") }
+    public static func afterDeadlineData(_ data: String) -> String { L(en: "Applications closed \(data)", ru: "Прием заявок закрыт \(data)", es: "Inscripciones cerradas \(data)", pt: "Inscrições encerradas \(data)", zh: "申请已截止 \(data)") }
     public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭") }
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
@@ -1100,7 +1102,15 @@ public enum DivoStrings {
     public static var rejected: String { L(en: "Rejected", ru: "Отклонено", es: "Rechazado", pt: "Rejeitado", zh: "已拒绝") }
     public static var noApplicationsYet: String { L(en: "No applications yet", ru: "Пока нет заявок", es: "Aún no hay solicitudes", pt: "Nenhuma candidatura ainda", zh: "暂无申请") }
     public static var eventApplicationsListErrorTitle: String { L(en: "Couldn't load applications list", ru: "Не удалось загрузить список заявок", es: "No se pudo cargar la lista de solicitudes", pt: "Não foi possível carregar a lista de candidaturas", zh: "无法加载申请列表") }
+    public static var closed: String { L(en: "Closed", ru: "Закрыто", es: "Cerrado", pt: "Fechado", zh: "已关闭") }
+
+    // MARK: - Event Search
     
+    public static var eventsSearchPlaceholder: String { L(en: "Search by name", ru: "Поиск по названию", es: "Buscar por nombre", pt: "Pesquisar por nome", zh: "按名称搜索") }
+    public static var eventsSearchTypeEvents: String { L(en: "Type events", ru: "Тип мероприятий", es: "Tipo de eventos", pt: "Tipo de eventos", zh: "活动类型") }
+    public static var eventsSearchDateOfEvent: String { L(en: "Date of event", ru: "Дата мероприятия", es: "Fecha del evento", pt: "Data do evento", zh: "活动日期") }
+    public static var eventsSearchPaidOnly: String { L(en: "Paid only", ru: "Только платные", es: "Solo de pago", pt: "Apenas pagos", zh: "仅付费") }
+
     // MARK: - Helpers
 
     private static func pluralRu(_ n: Int, _ one: String, _ few: String, _ many: String) -> String {

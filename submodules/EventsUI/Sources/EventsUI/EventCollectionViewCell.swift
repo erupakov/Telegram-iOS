@@ -364,16 +364,24 @@ final class EventCollectionViewCell: UICollectionViewCell {
 
     func configure(with event: EventData, context: AccountContext) {
         self.currentEventId = event.id
+        applyButton.isEnabled = true
+        
+        let isDeadlinePassed = EventDateFormatter.isDeadlinePassed(event.applicationDeadline)
         
         if event.isApplied == true {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isUserInteractionEnabled = false
+        } else if isDeadlinePassed {
+            let closedTitle = DivoStrings.closed
+            applyButton.makeDivoButton(title: closedTitle, buttonFont: Font.helveticaNeue(12), radius: 12)
+            applyButton.isEnabled = false
         } else {
             applyButton.makeDivoButton(title: DivoStrings.apply, loading: DivoStrings.applying, buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isUserInteractionEnabled = true
         }
         
         profileNameLabel.text = event.profileName
+        profileCheckImageView.isHidden = event.isVerified != true
         titleLabel.text = event.title
         
         if let deadlineStr = event.timeRemaining {
