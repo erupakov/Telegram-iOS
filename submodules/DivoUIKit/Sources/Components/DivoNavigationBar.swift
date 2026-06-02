@@ -151,6 +151,15 @@ public final class DivoNavigationBar: UIView {
     public func setRightTitle(_ title: String) {
         textRightLabel.text = title
     }
+
+    /// Обновляет заголовок text-right кнопки. performWithoutAnimation + layoutIfNeeded —
+    /// UIButton иногда не перерисовывает title сразу при вызове из notification observer'а.
+    public func setRightButtonTitle(_ title: String) {
+        UIView.performWithoutAnimation {
+            textRightButton.setTitle(title, for: .normal)
+            textRightButton.layoutIfNeeded()
+        }
+    }
     
     public func makeNavigationBar(
         title: String? = nil,

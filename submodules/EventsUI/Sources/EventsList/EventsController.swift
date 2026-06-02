@@ -331,7 +331,7 @@ public final class EventsController: TelegramBaseController {
                     )
                 }
             } catch {
-                print("⚠️ refreshSingleEventState failed: \(error)")
+                divoLog("refreshSingleEventState failed: \(error)", level: .error)
             }
         }
     }

@@ -137,7 +137,7 @@ final class OrganizerView: UIView {
             self.layoutIfNeeded()
         }
         
-        profileCheckImageView.isHidden = isVerified == false
+        profileCheckImageView.isHidden = isVerified != true
 
         guard lastLogoURL != logoURL else { return }
         lastLogoURL = logoURL

@@ -1,4 +1,5 @@
 http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 bazel_dep(name = "bazel_features", version = "1.33.0")
 bazel_dep(name = "bazel_skylib", version = "1.8.1")
@@ -53,6 +54,16 @@ http_file(
     name = "flatbuffers_zip",
     urls = ["https://github.com/google/flatbuffers/archive/refs/tags/v24.12.23.zip"],
     sha256 = "c5cd6a605ff20350c7faa19d8eeb599df6117ea4aabd16ac58a7eb5ba82df4e7",
+)
+
+# DIVO: Firebase iOS SDK xcframework distribution. BUILD targets see
+# //submodules/DivoFirebaseSDK:firebase.BUILD. To bump: change version + sha256.
+http_archive(
+    name = "firebase_ios_sdk",
+    urls = ["https://github.com/firebase/firebase-ios-sdk/releases/download/11.5.0/Firebase.zip"],
+    sha256 = "ef517aa51647037f23cb0fae1175b489d49bea5f0da9e53752709c3299a21dae",
+    strip_prefix = "Firebase",
+    build_file = "//submodules/DivoFirebaseSDK:firebase.BUILD",
 )
 
 provisioning_profile_repository = use_extension("@build_bazel_rules_apple//apple:apple.bzl", "provisioning_profile_repository_extension")

@@ -49,9 +49,31 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     private let apiHash: String
     public var presentationData: PresentationData
     private let openUrl: (String) -> Void
-    private let authorizationCompleted: () -> Void
+    // DIVO: не private — нужен из +DivoPhoneLink (вызываем после DIVO-линка).
+    let authorizationCompleted: () -> Void
+    // DIVO: телефон, введённый на phone-entry — нужен после teamgram-входа для привязки DIVO-аккаунта.
+    var divoPendingPhone: String?
+    /// Во время headless-входа (соц-ветки) подавляем пуш экранов ввода номера/кода из observer'а
+    /// состояния — иначе они мелькают поверх лоадера. Сбрасывается по завершении/ошибке headless.
+    var divoSuppressAuthScreens = false
+    /// DIVO: онбординг вшит в auth-флоу пушем. teamgram авторизуется ДО онбординга, поэтому
+    /// auth-overlay надо удержать (AppDelegate не дисмиссит его, пока флаг true) — иначе таббар
+    /// откроется поверх. Ставится ДО завершения teamgram (phone: loginWithNumber; social-D:
+    /// divoHeadlessAuth), снимается на финале/отмене онбординга. Подробнее — +DivoOnboarding.
+    /// `public` — читается из AppDelegate (TelegramUI), кросс-модульно.
+    public var divoHoldOverlayForOnboarding = false
+    /// Токен подписки на onboardingChainFailedNotification (только пока онбординг в стеке).
+    var divoOnboardingChainFailedObserver: NSObjectProtocol?
+    /// Модалка онбординга, запушенная в auth-overlay. Держим прямую (weak) ссылку, чтобы снять её
+    /// по завершении/отмене: онбординг презентится из `viewControllers.last`, но UIKit переназначает
+    /// презентацию на контейнер (этот nav-controller), поэтому `viewControllers.last.presentedViewController`
+    /// == nil. Снимаем через саму модалку — `dismiss()` на presented-контроллере всегда работает.
+    weak var divoOnboardingController: UIViewController?
 
-    private var stateDisposable: Disposable?
+    // DIVO: internal — глушим из +DivoOnboarding при пуше онбординга, чтобы поздний
+    // `.unauthorized(.empty)` (гашение старого unauth-аккаунта после switchToAuthorizedAccount)
+    // не дёрнул updateState(.empty) → setViewControllers([welcome]) и не затёр запушенный онбординг.
+    var stateDisposable: Disposable?
     // DIVO: internal для +DivoSignUp.
     internal let actionDisposable = MetaDisposable()
     private var applicationStateDisposable: Disposable?
@@ -90,7 +112,17 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         }
         
         super.init(mode: .single, theme: NavigationControllerTheme(statusBar: navigationStatusBar, navigationBar: AuthorizationSequenceController.navigationBarTheme(presentationData.theme), emptyAreaColor: .black), isFlat: true)
-        
+
+        // DIVO PATCH (bootstrap pack, unauthorized): подтягиваем pack тихо чтобы Telegram-овские
+        // строки в auth flow (alerts, system buttons) подхватили нужную локаль. Без post
+        // notification — completed не должен триггерить popToRoot во время auth flow.
+        // Если pack недоступен на сервере для языка — silent error, видимые auth-строки
+        // переведены через DivoStrings (см. AuthorizationSequencePhoneEntryControllerNode).
+        let _ = self.engine.localization.downloadAndApplyLocalization(
+            accountManager: self.sharedContext.accountManager,
+            languageCode: DivoStrings.current.telegramCode
+        ).start()
+
         self.inAppPurchaseManager = InAppPurchaseManager(engine: .unauthorized(self.engine))
         
         self.stateDisposable = (self.engine.auth.state()
@@ -144,7 +176,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
         return ViewController(navigationBarPresentationData: nil)
     }
 
-    private func welcomeController() -> DivoAuthWelcomeController {
+    func welcomeController() -> DivoAuthWelcomeController {
         let controller = DivoAuthWelcomeController()
         controller.onContinueWithPhone = { [weak self] in
             guard let strongSelf = self else { return }
@@ -154,9 +186,21 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
             )
             strongSelf.pushViewController(phoneEntry, animated: true)
         }
-        // Google/Apple — заглушки до интеграции Firebase Auth (P0.4 в плане Eugene'а)
-        // и empty-Divo endpoint (P1.5/1.6). Сейчас тап → snackbar «Coming soon»
-        // через дефолтное поведение DivoAuthWelcomeController.
+        controller.onSignInWithGoogle = { [weak controller] in
+            Task { @MainActor in
+                await DivoAuthGoogleHandler.signIn(from: controller)
+            }
+        }
+        controller.onSignInWithApple = { [weak controller] in
+            Task { @MainActor in
+                await DivoAuthAppleHandler.signIn(from: controller)
+            }
+        }
+        // Ветки A/B соц-входа: presenter зовёт это с phone из user/info → headless teamgram.
+        // DIVO-токен уже выставлен login-social'ом, divoPendingPhone НЕ ставим (phone-link не нужен).
+        controller.onAuthenticateTeamgram = { [weak self] phone in
+            self?.divoHeadlessAuth(phone: phone)
+        }
         return controller
     }
 
@@ -205,6 +249,11 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     return
                 }
                 divoLog("[Auth UI] loginWithNumber — Continue tapped, phone=\(number), syncContacts=\(syncContacts). Дальше уходит запрос sendCode на MTProto.", level: .info)
+                self.divoPendingPhone = number
+                // DIVO: phone-вход может вести к онбордингу (решается в phone-link, уже ПОСЛЕ авторизации
+                // teamgram). Удерживаем auth-overlay превентивно — снимем сами после phone-link
+                // (онбординг → push; без онбординга → divoFinishWithoutOnboarding). Без гонки с teardown.
+                self.divoHoldOverlayForOnboarding = true
                 controller?.inProgress = true
                 
                 let disableAuthTokens = self.sharedContext.immediateExperimentalUISettings.disableReloginTokens
@@ -1318,12 +1367,15 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     private func updateState(state: InnerState) {
         switch state {
         case .authorized:
-            self.authorizationCompleted()
+            // DIVO: сначала линк DIVO-аккаунта (реальный токен), потом завершение авторизации —
+            // иначе токен встаёт уже в главном экране и popToRoot выкидывает на welcome.
+            self.divoCompleteAuthorizationWithDivoLink()
         case let .state(state):
             switch state {
                 case .empty:
                     let alreadyShowingWelcome = self.viewControllers.first is DivoAuthWelcomeController
                     if !alreadyShowingWelcome {
+                        self.divoClearOnboardingProgressOnWelcome()
                         let welcome = self.welcomeController()
                         self.setViewControllers([welcome], animated: !self.viewControllers.isEmpty)
                     }
@@ -1333,6 +1385,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                 
                 case let .phoneEntry(countryCode, number):
+                    if self.divoSuppressAuthScreens { return }
                     var controllers: [ViewController] = []
                     if !self.otherAccountPhoneNumbers.1.isEmpty {
                         controllers.append(self.splashController())
@@ -1340,6 +1393,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     controllers.append(self.phoneEntryController(countryCode: countryCode, number: number))
                     self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
                 case let .confirmationCodeEntry(number, type, phoneCodeHash, timeout, nextType, _, previousCodeEntry, usePrevious):
+                    if self.divoSuppressAuthScreens { return }
                     var controllers: [ViewController] = []
                     if !self.otherAccountPhoneNumbers.1.isEmpty {
                         controllers.append(self.splashController())
@@ -1482,20 +1536,9 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     }
     
     public static func defaultCountryCode() -> Int32 {
-        let countryId = (Locale.current as NSLocale).object(forKey: .countryCode) as? String
-     
-        var countryCode: Int32 = 1
-        if let countryId = countryId {
-            let normalizedId = countryId.uppercased()
-            for (code, idAndName) in countryCodeToIdAndName {
-                if idAndName.0 == normalizedId {
-                    countryCode = Int32(code)
-                    break
-                }
-            }
-        }
-        
-        return countryCode
+        // По языку, а не по Locale.current.countryCode: регион устройства часто
+        // отличается от языка интерфейса (испанский UI на российской симке).
+        return DivoStrings.current.defaultPhoneCountryCode
     }
     
     public static func presentDidNotGetCodeUI(

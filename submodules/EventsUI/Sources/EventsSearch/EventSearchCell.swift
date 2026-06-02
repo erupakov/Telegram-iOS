@@ -23,7 +23,7 @@ struct EventItem {
     let originalDate: String?
     let eventId: Int?
     let isApplied: Bool?
-    let isMyRoleAgency: Bool?
+    let creatorId: Int?
 }
 
 final class EventSearchCell: UITableViewCell {

@@ -92,7 +92,7 @@ public final class AuthorizationSequencePhoneEntryController: ViewController, MF
         }
         
         if !otherAccountPhoneNumbers.1.isEmpty {
-            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: "___close", style: .plain, target: self, action: #selector(self.cancelPressed))
+            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: presentationData.strings.Common_Close, style: .plain, target: self, action: #selector(self.cancelPressed))
         }
         
         if let countriesConfiguration {

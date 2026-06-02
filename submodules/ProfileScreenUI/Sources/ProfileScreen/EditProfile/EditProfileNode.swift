@@ -383,16 +383,18 @@ final class EditProfileNode: ASDisplayNode {
         var placeholder = ""
         var bioTitle = ""
         var bio = ""
+        // Пустые поля оставляем пустыми (плейсхолдер покажет подсказку) — НЕ подставляем «Имя» /
+        // текст-подсказку как реальное значение, иначе оно молча уходит в профиль при сохранении.
         if model?.role == "agency_employee" {
-            name = model?.agency?.title ?? DivoStrings.name
+            name = model?.agency?.title ?? ""
             placeholder = "\(DivoStrings.agencyProfile) *"
             bioTitle = DivoStrings.descriptionTitle
-            bio = model?.agency?.description ?? DivoStrings.fillInInfoAboutAgency
+            bio = model?.agency?.description ?? ""
         } else {
-            name = model?.fullName ?? DivoStrings.name
+            name = model?.fullName ?? ""
             placeholder = "\(DivoStrings.fullName) *"
             bioTitle = DivoStrings.biographyTitle
-            bio = model?.model?.description ?? DivoStrings.fillInInfoAboutYou
+            bio = model?.model?.description ?? ""
         }
         
         self.nameTextField = DivoTextField(title: name, prefix: "")

@@ -50,27 +50,22 @@ public final class DivoButton: UIButton {
 
     // MARK: - Configuration
     
-    public func makeDivoButton(
-        title: String,
-        loading: String? = nil,
-        buttonFont: UIFont = Font.helveticaNeue(20),
-        radius: CGFloat? = nil,
-        divoButtonStyle: DivoButtonStyle = .primary,
-        needUpdateImage: Bool = true
-    ) {
+    public func makeDivoButton(title: String, loading: String? = nil, buttonFont: UIFont = Font.helveticaNeue(20), radius: CGFloat? = nil, divoButtonStyle: DivoButtonStyle = .primary, needUpdateImage: Bool = true) {
         self.normalTitle = title
         self.loadingTitle = loading
         self.buttonFont = buttonFont
 
+        // Сбрасываем иконку, если кнопку ранее настраивали через icon-вариант.
+        // Иначе при переходе applied → apply (или любом обратном переключении)
+        // иконка с прошлого состояния визуально остаётся.
+        // needUpdateImage=false — когда вызывающий сам ставит картинку сразу после
+        // (icon-вариант): без этого setImage/инсеты дёргаются лишний раз на каждом
+        // переконфиге кнопки в layout-проходе → инвалидация layout → шторм/зависание.
         if needUpdateImage {
             setImage(nil, for: .normal)
             setImage(nil, for: .highlighted)
             imageEdgeInsets = .zero
             titleEdgeInsets = .zero
-            
-            contentEdgeInsets = UIEdgeInsets(top: 0, left: DivoDesignTokens.Spacing.m, bottom: 0, right: DivoDesignTokens.Spacing.m)
-            
-            heightConstraint?.constant = Self.buttonHeight
         }
 
         applyNormalTitle(buttonFont: buttonFont)
@@ -202,12 +197,15 @@ public final class DivoButton: UIButton {
 
     // MARK: - Saving state
 
+    /// Переключает кнопку в состояние saving и добавляет блокирующий overlay на `hostView`.
+    /// При `active == false` — снимает overlay и возвращает кнопку в normal.
     public func setSaving(_ active: Bool, in hostView: UIView) {
         guard active != isSaving else { return }
         isSaving = active
         isUserInteractionEnabled = !active
 
         if active {
+            // Скрыть обычный title, показать spinner + "Saving..."
             savingLabel.attributedText = savingAttributedString()
             spinner.startAnimating()
 
@@ -246,6 +244,7 @@ public final class DivoButton: UIButton {
             overlay.trailingAnchor.constraint(equalTo: hostView.trailingAnchor),
             overlay.bottomAnchor.constraint(equalTo: hostView.bottomAnchor),
         ])
+        // Кнопка должна быть поверх overlay, чтобы визуально не перекрывалась
         if let parent = self.superview {
             parent.bringSubviewToFront(self)
         }
@@ -254,4 +253,5 @@ public final class DivoButton: UIButton {
     private func removeBlockingOverlay(from hostView: UIView) {
         hostView.viewWithTag(Self.blockingOverlayTag)?.removeFromSuperview()
     }
+
 }

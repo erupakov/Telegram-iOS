@@ -99,19 +99,18 @@ class EventHeaderView: UIView {
         guard let name = viewModel.name else { return }
         nameLabel.attributedText = NSAttributedString(string: name, attributes: attributes)
         
-        var fullLocationString: String
-        guard let date = viewModel.date,
-              let time = viewModel.time,
-              let countryFlag = viewModel.countryFlag,
-              let city = viewModel.city
-        else { return }
-        if let cost = viewModel.cost, viewModel.isFree != true {
-            fullLocationString = "\(date) • \(time) • \(countryFlag) \(city) • $ \(cost)"
-        } else {
-            fullLocationString = "\(date) • \(time) • \(countryFlag) \(city)"
+        var infoSegments: [String] = []
+        if let date = viewModel.date, !date.isEmpty { infoSegments.append(date) }
+        if let time = viewModel.time, !time.isEmpty { infoSegments.append(time) }
+        let locationPart = [viewModel.countryFlag, viewModel.city]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        if !locationPart.isEmpty { infoSegments.append(locationPart) }
+        if viewModel.isFree != true, let cost = viewModel.cost, !cost.isEmpty {
+            infoSegments.append("$ \(cost)")
         }
-        
-        infoLabel.text = fullLocationString
+        infoLabel.text = infoSegments.joined(separator: " • ")
 
         self.layoutIfNeeded()
     }

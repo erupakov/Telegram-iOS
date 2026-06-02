@@ -13,11 +13,12 @@ import AlertUI
 import PresentationDataUtils
 import TelegramNotices
 
-// DIVO: лоадинг-экран на время auto-signUp (signUpWithName летит на сервер).
-// Апстрим в этот момент держит видимый signUp-экран с прогрессом на кнопке; мы экран ввода имени
-// убрали, поэтому вместо пустого splash-stub показываем светлый экран со спиннером — иначе у нового
+// DIVO: лоадинг-экран на время серверного auth-шага (signUpWithName / headless signIn).
+// Апстрим в этот момент держит видимый экран с прогрессом на кнопке; мы экраны ввода имени/кода
+// убрали, поэтому вместо пустого splash-stub показываем светлый экран со спиннером — иначе у
 // юзера несколько секунд висит пустой серый/белый экран перед таббаром.
-private final class DivoSignUpLoadingController: ViewController {
+// `internal` (не private): переиспользуется из +DivoHeadlessAuth.swift.
+final class DivoSignUpLoadingController: ViewController {
     private var activityIndicator: UIActivityIndicatorView?
 
     init() {
@@ -68,7 +69,9 @@ extension AuthorizationSequenceController {
             controllers.append(self.splashController())
         }
         controllers.append(DivoSignUpLoadingController())
-        self.setViewControllers(controllers, animated: !self.viewControllers.isEmpty)
+        // DIVO: без анимации — бесшовная смена лоадера headless→signUp (оба DivoSignUpLoadingController),
+        // без бокового слайда (см. divoHeadlessAuth). Иначе перед дверями мелькали экраны.
+        self.setViewControllers(controllers, animated: false)
 
         let effectiveFirstName = firstName.isEmpty ? "User" : firstName
         self.actionDisposable.set((signUpWithName(

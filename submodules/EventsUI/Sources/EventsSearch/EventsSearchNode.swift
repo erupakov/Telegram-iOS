@@ -181,7 +181,7 @@ final class EventsSearchNode: ASDisplayNode {
 
     private let emptyStateIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "magnifyingglass")
+        imageView.image = DivoImage.searchFieldIcon
         imageView.tintColor = DivoColorPalette.systemLabelTertiary
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -212,7 +212,7 @@ final class EventsSearchNode: ASDisplayNode {
     private let emptyStateResetButton: UIButton = {
         let button = UIButton(type: .custom)
         button.setTitle(DivoStrings.feedSearchResetFilters, for: .normal)
-        button.setTitleColor(.white, for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
         button.titleLabel?.font = Font.medium(14)
         button.backgroundColor = DivoColorPalette.secondaryButtonBackground
         button.layer.cornerRadius = 20
@@ -244,8 +244,8 @@ final class EventsSearchNode: ASDisplayNode {
 
     private let activeFiltersClearButton: UIButton = {
         let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .bold)
-        button.setImage(UIImage(systemName: "xmark", withConfiguration: config), for: .normal)
+        button.setImage(DivoImage.searchCloseIcon, for: .normal)
+        button.imageView?.contentMode = .scaleAspectFit
         button.tintColor = DivoColorPalette.primaryText
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
@@ -302,13 +302,13 @@ final class EventsSearchNode: ASDisplayNode {
 
     var onClosePressed: (() -> Void)?
     var onFilterPressed: (() -> Void)?
-    var onEventTapped: ((Int?) -> Void)?
+    var onEventTapped: ((Int?, Int?) -> Void)?
     var requestAutocomplete: ((String) -> Void)?
     var cancelAutocomplete: (() -> Void)?
     var requestGridSearch: ((String) -> Void)?
     var loadMoreGridResults: (() -> Void)?
     var onSearchCleared: (() -> Void)?
-    var onGridApplyTapped: ((Int, EventCollectionViewCell) -> Void)?
+    var onGridApplyTapped: ((Int) -> Void)?
     var onFiltersClearTapped: (() -> Void)?
     
     private var searchTimer: Timer?
@@ -369,6 +369,7 @@ final class EventsSearchNode: ASDisplayNode {
     deinit {
         NotificationCenter.default.removeObserver(self)
         searchTimer?.invalidate()
+        loaderDelayTimer?.invalidate()
         currentTask?.cancel()
     }
     
@@ -1044,7 +1045,7 @@ extension EventsSearchNode: UITableViewDelegate, UITableViewDataSource {
         tableView.deselectRow(at: indexPath, animated: true)
         searchTextField.resignFirstResponder()
         let item = currentAutocompleteResults[indexPath.row]
-        onEventTapped?(item.eventId)
+        onEventTapped?(item.eventId, item.creatorId)
     }
 }
 
@@ -1079,9 +1080,8 @@ extension EventsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
             let item = currentGridResults[indexPath.item]
             cell.configure(with: item, context: context)
             
-            cell.onApply = { [weak self, weak cell] in
-                guard let self = self, let cell = cell else { return }
-                self.onGridApplyTapped?(item.id, cell)
+            cell.onApply = { [weak self] in
+                self?.onGridApplyTapped?(item.id)
             }
             return cell
         default:
@@ -1107,6 +1107,6 @@ extension EventsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         guard gridState == .results, indexPath.item < currentGridResults.count else { return }
         let item = currentGridResults[indexPath.item]
-        onEventTapped?(item.id)
+        onEventTapped?(item.id, item.creatorId)
     }
 }
