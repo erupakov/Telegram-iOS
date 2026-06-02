@@ -1101,7 +1101,7 @@ public enum DivoStrings {
     public static var rejected: String { L(en: "Rejected", ru: "Отклонено", es: "Rechazado", pt: "Rejeitado", zh: "已拒绝") }
     public static var noApplicationsYet: String { L(en: "No applications yet", ru: "Пока нет заявок", es: "Aún no hay solicitudes", pt: "Nenhuma candidatura ainda", zh: "暂无申请") }
     public static var eventApplicationsListErrorTitle: String { L(en: "Couldn't load applications list", ru: "Не удалось загрузить список заявок", es: "No se pudo cargar la lista de solicitudes", pt: "Não foi possível carregar a lista de candidaturas", zh: "无法加载申请列表") }
-    public static var сlosed: String { L(en: "Closed", ru: "Закрыто", es: "Cerrado", pt: "Fechado", zh: "已关闭") }
+    public static var closed: String { L(en: "Closed", ru: "Закрыто", es: "Cerrado", pt: "Fechado", zh: "已关闭") }
 
     // MARK: - Event Search
     

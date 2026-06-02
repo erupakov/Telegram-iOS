@@ -192,7 +192,7 @@ public final class EventsSearchController: ViewController {
                     )
                 }
             } catch {
-                print("⚠️ refreshSingleEventState failed: \(error)")
+                divoLog("refreshSingleEventState failed: \(error)", level: .error)
             }
         }
     }
@@ -643,7 +643,8 @@ public final class EventsSearchController: ViewController {
                 applicationDeadline: item.applicationDeadline,
                 isCurrentRoleAgency: DivoConfig.currentUserRole == .agency,
                 isApplied: item.isApplied,
-                creatorId: item.creator?.id
+                creatorId: item.creator?.id,
+                isVerified: item.creator?.isVerified
             )
         }
     }

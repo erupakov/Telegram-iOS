@@ -26,9 +26,6 @@ public enum EventDateFormatter {
             formatter.setLocalizedDateFormatFromTemplate("MMM d")
             let formattedDate = formatter.string(from: date)
             
-            // Если у вас есть метод локализации в DivoStrings, лучше использовать его, например:
-            // return DivoStrings.applicationsClosed(formattedDate)
-            // Либо возвращаем строку напрямую:
             return DivoStrings.afterDeadlineData(formattedDate)
         }
         

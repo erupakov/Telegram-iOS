@@ -386,7 +386,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isUserInteractionEnabled = false
         } else if isDeadlinePassed {
-            let closedTitle = DivoStrings.сlosed
+            let closedTitle = DivoStrings.closed
             applyButton.makeDivoButton(title: closedTitle, buttonFont: Font.helveticaNeue(12), radius: 12)
             applyButton.isEnabled = false
         } else {
@@ -395,7 +395,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         }
         
         profileNameLabel.text = event.profileName
-        profileCheckImageView.isHidden = event.isVerified == false
+        profileCheckImageView.isHidden = event.isVerified != true
         titleLabel.text = event.title
         
         if let deadlineStr = event.timeRemaining {

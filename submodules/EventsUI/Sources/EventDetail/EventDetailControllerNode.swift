@@ -1863,7 +1863,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         } else if self.isAgency {
             applyButton.isHidden = true
         } else if isDeadlinePassed {
-            let closedTitle = DivoStrings.сlosed
+            let closedTitle = DivoStrings.closed
             applyButton.makeDivoButton(title: closedTitle, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.isEnabled = false
         } else {
