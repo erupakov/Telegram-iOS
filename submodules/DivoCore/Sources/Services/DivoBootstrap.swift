@@ -12,6 +12,20 @@ public enum DivoBootstrap {
         // когда поднимется авторизованный контекст (см. AppDelegate). До этого момента op
         // .nameUpdate просто лежит в очереди.
         PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil))
+
+        // DIVO: на cold-start подтягиваем актуальную роль с сервера (me = /user/info) — если серверная
+        // сменилась, клиент подхватывает её (currentUserRole.setter постит roleDidChangeNotification только
+        // на реальное изменение → ModelsFeed и др. перерисуются). Только при реальной сессии (есть
+        // divoUserId), best-effort: нет сети / 401 → оставляем персистнутую роль.
+        if DivoConfig.currentDivoUserId != nil {
+            Task {
+                guard let info = try? await AuthRestService.shared.userInfo(),
+                      let roleString = info.role,
+                      let parsed = DivoConfig.UserRole(rawValue: roleString) else { return }
+                DivoConfig.currentUserRole = parsed
+                divoLog("DivoBootstrap: роль обновлена с сервера ← '\(roleString)'", level: .info)
+            }
+        }
     }
 
     /// Единый executor очереди отложенных операций (слот один на очередь).

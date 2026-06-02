@@ -251,6 +251,7 @@ public enum DivoConfig {
     /// welcome-сессии не остался чужой accessToken/currentDivoUserId, бэкающий REST не того юзера.
     public static func resetDivoSessionForRollback() {
         resetToken()
+        resetRole() // роль → дефолт (model); на следующем входе перезапишется с сервера
         currentDivoUserId = nil
         clearPendingOnboardingFlags()
     }

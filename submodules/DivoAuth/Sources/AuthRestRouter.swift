@@ -33,6 +33,15 @@ public enum AuthRestRouter {
                 level: .info
             )
 
+            // DIVO: роль — source of truth с СЕРВЕРА. Для существующих (login-social 200) пишем
+            // currentUserRole из user/info.role; setter постит roleDidChangeNotification только на реальное
+            // изменение (ModelsFeed и др. перерисуются). Новый юзер (ветка D, 404) роль выбирает в
+            // онбординге — там и пишется. `customer` и неизвестные строки → nil → роль не трогаем.
+            if let roleString = info.role, let parsed = DivoConfig.UserRole(rawValue: roleString) {
+                DivoConfig.currentUserRole = parsed
+                divoLog("login-social: currentUserRole ← server '\(roleString)'", level: .info)
+            }
+
             let isRegistrationFinished = info.isRegistrationFinished ?? false
 
             if telegramLinked {
