@@ -13,7 +13,6 @@ import DivoCore
 
 final class AddRosterModelNode: ASDisplayNode {
     
-    // MARK: - State Properties
     var state: AddRosterScreenState = .initial {
         didSet {
             if oldValue != state {
@@ -24,14 +23,12 @@ final class AddRosterModelNode: ASDisplayNode {
     
     private var users: [RosterSearchUser] = []
 
-    // MARK: - Callbacks
     var onSearchTextChanged: ((String) -> Void)?
     var onLoadMore: (() -> Void)?
     var onUserSelected: ((RosterSearchUser) -> Void)?
     var onCloseTapped: (() -> Void)?
     var onRetry: (() -> Void)?
 
-    // MARK: - UI Elements
     private let navigationBar = DivoNavigationBar()
 
     private let searchFieldContainer: UIView = {
@@ -89,8 +86,6 @@ final class AddRosterModelNode: ASDisplayNode {
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-
-    // MARK: - ScrollView & StackView (FilterOptionsController Style)
     
     private let resultsContainer: UIView = {
         let view = UIView()
@@ -117,6 +112,7 @@ final class AddRosterModelNode: ASDisplayNode {
         scrollView.showsVerticalScrollIndicator = false
         scrollView.contentInset = UIEdgeInsets(top: 12, left: 0, bottom: 20, right: 0)
         scrollView.scrollIndicatorInsets = scrollView.contentInset
+        scrollView.keyboardDismissMode = .onDrag
         return scrollView
     }()
 
@@ -131,7 +127,6 @@ final class AddRosterModelNode: ASDisplayNode {
         return stackView
     }()
 
-    // Белая карточка-подложка под стэк (автоматически тянется по высоте)
     private let backgroundView: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.cardBackground
@@ -141,7 +136,6 @@ final class AddRosterModelNode: ASDisplayNode {
         return view
     }()
 
-    // Состояние "Начните вводить текст"
     private let initialPlaceholderLabel: UILabel = {
         let label = UILabel()
         label.font = Font.helveticaNeue(26)
@@ -153,7 +147,6 @@ final class AddRosterModelNode: ASDisplayNode {
         return label
     }()
 
-    // Состояние "Результатов нет"
     private let emptyContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -172,7 +165,7 @@ final class AddRosterModelNode: ASDisplayNode {
     
     private let emptyIcon: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(systemName: "magnifyingglass")
+        imageView.image = DivoImage.searchFieldIcon
         imageView.tintColor = DivoColorPalette.systemLabelTertiary
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
@@ -200,7 +193,6 @@ final class AddRosterModelNode: ASDisplayNode {
         return label
     }()
 
-    // Рыжий лоадер для пагинации
     private let footerSpinner: UIActivityIndicatorView = {
         let loader = UIActivityIndicatorView(style: .medium)
         loader.color = DivoColorPalette.accent
@@ -225,7 +217,7 @@ final class AddRosterModelNode: ASDisplayNode {
 
     
     // MARK: - Init
-    
+
     override init() {
         super.init()
         
@@ -242,10 +234,12 @@ final class AddRosterModelNode: ASDisplayNode {
         self.backgroundColor = DivoColorPalette.screenBackground
         setupLayout()
         applyState()
+        
+        let dismissTap = UITapGestureRecognizer(target: self, action: #selector(self.dismissKeyboard))
+        dismissTap.cancelsTouchesInView = false
+        dismissTap.delegate = self
+        self.view.addGestureRecognizer(dismissTap)
     }
-    
-    
-    // MARK: - Private
 
     private func setupLayout() {
         view.addSubview(navigationBar)
@@ -346,7 +340,6 @@ final class AddRosterModelNode: ASDisplayNode {
             emptySubTitleLabel.bottomAnchor.constraint(equalTo: emptyContainer.bottomAnchor)
         ])
         
-        // Позиционирование ScrollView, StackView и фоновой подложки (FilterOptionsController Style)
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -372,7 +365,6 @@ final class AddRosterModelNode: ASDisplayNode {
             autocompleteLoader.centerYAnchor.constraint(equalTo: resultsContainer.centerYAnchor)
         ])
         
-        // Позиционирование белой карточки-контейнера без привязки к низу экрана
         NSLayoutConstraint.activate([
             resultsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             resultsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -388,7 +380,7 @@ final class AddRosterModelNode: ASDisplayNode {
             searchFadeOverlay.heightAnchor.constraint(equalToConstant: 60),
         ])
     }
-    
+
     private func applyState() {
         switch state {
         case .initial:
@@ -418,7 +410,6 @@ final class AddRosterModelNode: ASDisplayNode {
             emptyContainer.isHidden = true
             initialPlaceholderLabel.isHidden = true
             
-            // Наполнение stackView вьюшками моделей
             self.users = users
             stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
             
@@ -426,11 +417,9 @@ final class AddRosterModelNode: ASDisplayNode {
                 let cell = RosterUserView()
                 cell.configure(with: user, searchText: searchTextField.text ?? "")
                 
-                // Скрываем разделитель у последней ячейки
                 let isLast = index == users.count - 1
                 cell.setupSeparator(isHidden: isLast)
                 
-                // Добавляем жест нажатия
                 let tapGesture = UITapGestureRecognizer(target: self, action: #selector(userCellTapped(_:)))
                 cell.addGestureRecognizer(tapGesture)
                 cell.tag = index
@@ -449,8 +438,6 @@ final class AddRosterModelNode: ASDisplayNode {
             errorPlaceholderView.isHidden = true
             initialPlaceholderLabel.isHidden = true
             
-            emptyTitleLabel.text = DivoStrings.noSearchResults.uppercased()
-            emptySubTitleLabel.text = DivoStrings.noSearchResultsSubtitle
             emptyContainer.isHidden = false
             
         case .failed(let networkError):
@@ -468,9 +455,9 @@ final class AddRosterModelNode: ASDisplayNode {
         }
     }
 
-    
+
     // MARK: - Handlers
-    
+
     @objc private func faceScanTapped() {
         view.endEditing(true)
         searchTextField.resignFirstResponder()
@@ -486,6 +473,10 @@ final class AddRosterModelNode: ASDisplayNode {
         let selectedUser = users[cell.tag]
         onUserSelected?(selectedUser)
     }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
+    }
 }
 
 
@@ -495,17 +486,14 @@ extension AddRosterModelNode: UIScrollViewDelegate {
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === self.scrollView else { return }
         
-        // КРИТИЧЕСКИЙ ФИКС: разрешаем пагинацию только в состоянии успеха и только если список уже не пуст
         guard case .success = state, !users.isEmpty else { return }
         
         let offsetY = scrollView.contentOffset.y
         let contentHeight = scrollView.contentSize.height
         let height = scrollView.frame.size.height
         
-        // Предотвращаем ложный триггер при пустом скролле на этапе первой верстки
         guard contentHeight > 0 else { return }
         
-        // Триггерим пагинацию при достижении конца списка с запасом в 200pt
         if offsetY > contentHeight - height - 200 {
             onLoadMore?()
         }
@@ -518,6 +506,18 @@ extension AddRosterModelNode: UIScrollViewDelegate {
 extension AddRosterModelNode: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
+        return true
+    }
+}
+
+
+// MARK: - UIGestureRecognizerDelegate
+
+extension AddRosterModelNode: UIGestureRecognizerDelegate {
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        if touch.view is UIControl || touch.view is RosterUserView {
+            return false
+        }
         return true
     }
 }
