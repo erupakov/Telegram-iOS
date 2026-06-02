@@ -121,7 +121,7 @@ public final class ApplicationsListController: TelegramBaseController {
                 }
                 
             } catch {
-                print("⚠️ loadApplicants failed: \(error)")
+                divoLog("loadApplicants failed: \(error)", level: .error)
                 await MainActor.run {
                     // Переводим узел в состояние ошибки
                     self.controllerNode.phase = .failed(networkError: self.isNetworkError(error))

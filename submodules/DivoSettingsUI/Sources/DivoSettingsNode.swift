@@ -101,20 +101,25 @@ final class DivoSettingsNode: ASDisplayNode {
     var onOnboardingEntryTapped: (() -> Void)?
     var onSetUsernameTapped: (() -> Void)?
     var onFillParametersTapped: (() -> Void)?
+    var onLanguageTapped: (() -> Void)?
     var onQrTapped: (() -> Void)?
     var onLogOutTapped: (() -> Void)?
     var presentController: ((UIViewController) -> Void)?
     var saveMeasuringSystem: ((String?) -> Void)?
+
+    private var localizationObserver: NSObjectProtocol?
 
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     private var navigationBarTopConstraint: NSLayoutConstraint?
 
     private var selectedMeasuringSystemId: String?
     private var selectedMeasuringSystemTitle: String?
-    private let measuringSystem: [MeasuringOption] = [
-        MeasuringOption(id: "metric", title: DivoStrings.metric),
-        MeasuringOption(id: "imperial", title: DivoStrings.imperial),
-    ]
+    private var measuringSystem: [MeasuringOption] {
+        [
+            MeasuringOption(id: "metric", title: DivoStrings.metric),
+            MeasuringOption(id: "imperial", title: DivoStrings.imperial),
+        ]
+    }
 
     private let snackbar = DivoSnackbar()
     typealias SnackbarStyle = DivoSnackbar.Style
@@ -134,11 +139,50 @@ final class DivoSettingsNode: ASDisplayNode {
         )
 
         measuringSystemContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(measuringSystemTapped)))
+        languageContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(languageTapped)))
 
         setupCustomNavBar()
         setupUI()
 
+        // Стартовое значение для row "Язык" — сами title'ы уже выставлены в init у containers.
+        languageContainer.setValue(DivoStrings.current.displayName)
+
         applyState()
+
+        localizationObserver = NotificationCenter.default.addObserver(
+            forName: DivoStrings.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.applyLocalization()
+        }
+    }
+
+    deinit {
+        if let observer = localizationObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    /// Перерисовывает title'ы row'ов и navbar после смены `DivoStrings.current`.
+    /// Сами row-view создаются с готовыми title'ами в init — без этого метода они застряли бы на старом языке до перезапуска.
+    private func applyLocalization() {
+        navigationBar.setTitle(DivoStrings.settings)
+        navigationBar.setRightButtonTitle(DivoStrings.settingsEdit)
+        usernameContainer.setTitle(DivoStrings.settingsSetUsername)
+        parametersContainer.setTitle(DivoStrings.fillYourParameters)
+        savedMessagesContainer.setTitle(DivoStrings.savedMessages)
+        notificationsSoundsContainer.setTitle(DivoStrings.notificationsSounds)
+        privacySecurityContainer.setTitle(DivoStrings.privacySecurity)
+        dataStorageContainer.setTitle(DivoStrings.dataStorage)
+        languageContainer.setTitle(DivoStrings.language)
+        languageContainer.setValue(DivoStrings.current.displayName)
+        measuringSystemContainer.setTitle(DivoStrings.measuringSystem)
+        logOutContainer.setTitle(DivoStrings.logOut)
+        onboardingEntryContainer.setTitle(DivoStrings.settingsDebugLaunchOnboarding)
+        // measuring system dropdown value title тоже зависит от языка — обновим выбранный заголовок.
+        selectedMeasuringSystemTitle = measuringSystem.first(where: { $0.id == selectedMeasuringSystemId })?.title
+        measuringSystemContainer.setValue(selectedMeasuringSystemTitle ?? "")
     }
 
     private func applyState() {
@@ -513,6 +557,11 @@ final class DivoSettingsNode: ASDisplayNode {
     }
 
     // MARK: - Actions
+
+    @objc private func languageTapped() {
+        guard screenPhase == .ready else { return }
+        onLanguageTapped?()
+    }
 
     @objc private func measuringSystemTapped() {
         guard screenPhase == .ready else { return }

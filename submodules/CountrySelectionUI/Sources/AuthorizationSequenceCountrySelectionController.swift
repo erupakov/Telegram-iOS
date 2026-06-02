@@ -92,7 +92,8 @@ private var countryCodesLanguageObserverToken: Any? = {
 }()
 
 public func loadServerCountryCodes(accountManager: AccountManager<TelegramAccountManagerTypes>, engine: TelegramEngineUnauthorized, completion: @escaping () -> Void) {
-    let _ = (engine.localization.getCountriesList(accountManager: accountManager, langCode: nil)
+    // langCode явный из DivoStrings — иначе сервер берёт код из postbox, который может ещё не обновиться.
+    let _ = (engine.localization.getCountriesList(accountManager: accountManager, langCode: DivoStrings.current.telegramCode)
     |> deliverOnMainQueue).start(next: { countries in
         countryCodes = countries
         
@@ -117,7 +118,8 @@ public func loadServerCountryCodes(accountManager: AccountManager<TelegramAccoun
 }
 
 public func loadServerCountryCodes(accountManager: AccountManager<TelegramAccountManagerTypes>, engine: TelegramEngine, completion: @escaping () -> Void) {
-    let _ = (engine.localization.getCountriesList(accountManager: accountManager, langCode: nil)
+    // langCode явный из DivoStrings — иначе сервер берёт код из postbox, который может ещё не обновиться.
+    let _ = (engine.localization.getCountriesList(accountManager: accountManager, langCode: DivoStrings.current.telegramCode)
     |> deliverOnMainQueue).start(next: { countries in
         countryCodes = countries
 
@@ -322,20 +324,9 @@ public final class AuthorizationSequenceCountrySelectionController: ViewControll
     }
     
     public static func defaultCountryCode() -> Int32 {
-        let countryId = (Locale.current as NSLocale).object(forKey: .countryCode) as? String
-     
-        var countryCode: Int32 = 1
-        if let countryId = countryId {
-            let normalizedId = countryId.uppercased()
-            for (code, idAndName) in countryCodeToIdAndName {
-                if idAndName.0 == normalizedId {
-                    countryCode = Int32(code)
-                    break
-                }
-            }
-        }
-        
-        return countryCode
+        // По языку, а не по Locale.current.countryCode: регион устройства часто
+        // отличается от языка интерфейса (испанский UI на российской симке).
+        return DivoStrings.current.defaultPhoneCountryCode
     }
     
     private let theme: PresentationTheme

@@ -149,8 +149,9 @@ class ParametersApplyView: UIView {
             rowsStackView.addArrangedSubview(rowContainer)
         }
         
+        warningLabel.isHidden = false
         if hasMismatch {
-            warningLabel.isHidden = false
+            warningLabel.textColor = DivoColorPalette.warningApply
             if isMultipleMismatches {
                 warningLabel.text = DivoStrings.fewParametersDont
             } else if let single = singleMismatch {
@@ -159,6 +160,7 @@ class ParametersApplyView: UIView {
                 warningLabel.text = DivoStrings.fewParametersDont
             }
         } else {
+            warningLabel.textColor = DivoColorPalette.snackbarSuccess
             warningLabel.text = DivoStrings.allParametersSuccess
         }
         

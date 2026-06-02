@@ -80,6 +80,9 @@ public final class DivoSettingsController: TelegramBaseController {
         self.controllerNode.onFillParametersTapped = { [weak self] in
             self?.openMyParameters()
         }
+        self.controllerNode.onLanguageTapped = { [weak self] in
+            self?.openLanguagePicker()
+        }
         self.controllerNode.onQrTapped = { [weak self] in
             // TODO(DIVO): open QR scanner.
             _ = self
@@ -192,6 +195,13 @@ public final class DivoSettingsController: TelegramBaseController {
         profileController.delegate = self
         if let nav = self.navigationController as? NavigationController {
             nav.pushViewController(profileController, animated: true)
+        }
+    }
+
+    private func openLanguagePicker() {
+        let pickerController = DivoLanguagePickerController(context: context)
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(pickerController, animated: true)
         }
     }
 

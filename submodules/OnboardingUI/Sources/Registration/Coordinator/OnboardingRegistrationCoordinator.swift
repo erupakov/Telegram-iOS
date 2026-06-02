@@ -250,6 +250,14 @@ extension OnboardingRegistrationCoordinator: OnboardingQuizViewController.Delega
 extension OnboardingRegistrationCoordinator: OnboardingRoleResultViewController.Delegate {
 
     public func roleResultControllerDidConfirm(_ controller: OnboardingRoleResultViewController) {
+        // Фиксируем выбранную роль ИМЕННО здесь — единая точка для всех путей. Пикеры и
+        // experience-квиз ставят selectedRoleId сами, но Fan идёт topLevelChoice→roleResult напрямую,
+        // минуя их, и раньше оставался с selectedRoleId=nil → на submit role сваливалась в дефолт
+        // "model", форма не резолвилась (firstName nil), additionalInfo.form уходил пустым и
+        // teamgram name-update пропускался. roleResult предшествует форме для ВСЕХ ролей.
+        if case .roleResult(let roleId) = state.currentStep {
+            updateState { $0.selectedRoleId = roleId }
+        }
         guard let next = stateMachine.nextStep(from: state) else { return }
         go(to: next)
     }

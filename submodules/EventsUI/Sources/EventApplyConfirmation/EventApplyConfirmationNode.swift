@@ -744,18 +744,23 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         }
         
         // Header
-        var fullLocationString: String
+        // Город может отсутствовать в данных — собираем строку из доступных сегментов,
+        // не обрывая конфигурацию остального экрана (профиль/параметры) ранним return.
         let isFree = event.paymentType?.id == 2
         let costPart = isFree ? nil : formatCost(event.cost)
         let countryFlag = Self.flag(for: event.address?.city?.countryCode)
         let (date, time) = formatEventDateAndTime(dateString: event.date)
-        guard let city = event.address?.city?.name else { return }
-        if let costPart = costPart {
-            fullLocationString = "\(date) • \(time) • \(countryFlag) \(city) • $ \(costPart)"
-        } else {
-            fullLocationString = "\(date) • \(time) • \(countryFlag) \(city)"
-        }
-        
+
+        let cityPart: String? = {
+            guard let city = event.address?.city?.name, !city.isEmpty else { return nil }
+            return countryFlag.isEmpty ? city : "\(countryFlag) \(city)"
+        }()
+
+        var locationSegments: [String] = [date, time]
+        if let cityPart = cityPart { locationSegments.append(cityPart) }
+        if let costPart = costPart { locationSegments.append("$ \(costPart)") }
+        let fullLocationString = locationSegments.joined(separator: " • ")
+
         profileHeader.configure(fullUrl: event.creator?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventTypeId: event.type?.id, eventInfo: fullLocationString)
         
         // User profile Card

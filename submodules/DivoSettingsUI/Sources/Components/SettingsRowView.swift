@@ -117,6 +117,10 @@ final class SettingsRowView: UIView {
         valueLabel.text = text
     }
 
+    func setTitle(_ text: String) {
+        titleLabel.text = text
+    }
+
     func setSeparatorHidden(_ isHidden: Bool) {
         separator.isHidden = isHidden
     }
