@@ -744,23 +744,30 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         }
         
         // Header
-        var fullLocationString: String
         let isFree = event.paymentType?.id == 2
         let costPart = isFree ? nil : formatCost(event.cost)
         let countryFlag = Self.flag(for: event.address?.city?.countryCode)
         let (date, time) = formatEventDateAndTime(dateString: event.date)
-        guard let city = event.address?.city?.name else { return }
-        if let costPart = costPart {
-            fullLocationString = "\(date) • \(time) • \(countryFlag) \(city) • $ \(costPart)"
-        } else {
-            fullLocationString = "\(date) • \(time) • \(countryFlag) \(city)"
-        }
-        
+
+        let cityPart: String? = {
+            guard let city = event.address?.city?.name, !city.isEmpty else { return nil }
+            return countryFlag.isEmpty ? city : "\(countryFlag) \(city)"
+        }()
+
+        var locationSegments: [String] = [date, time]
+        if let cityPart = cityPart { locationSegments.append(cityPart) }
+        if let costPart = costPart { locationSegments.append("$ \(costPart)") }
+        let fullLocationString = locationSegments.joined(separator: " • ")
+
         profileHeader.configure(fullUrl: event.creator?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventTypeId: event.type?.id, eventInfo: fullLocationString)
         
         // User profile Card
-        // ХАРДКОР МЕТА - НЕ ГОТОВ БЭК
-        userProfile.configure(name: user.fullName, role: Role(apiRole: user.role).title, meta: "12K followers · Online", fullUrl: user.avatar?.fullUrl)
+        var metaParts: [String] = []
+        if let followers = user.statistic?.followersCount {
+            metaParts.append(DivoStrings.followersString(followers))
+        }
+        metaParts.append(DivoStrings.online) // TODO DIVO: online-статус бэк пока не отдаёт
+        userProfile.configure(name: user.fullName, role: Role(apiRole: user.role).title, meta: metaParts.joined(separator: " · "), fullUrl: user.avatar?.fullUrl)
 
         // Parameters Checklist Card
         parametersView.configure(matches: matches, hasMismatch: hasMismatch, isMultipleMismatches: isMultipleMismatches, singleMismatch: singleMismatch)

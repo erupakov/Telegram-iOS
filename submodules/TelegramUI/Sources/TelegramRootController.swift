@@ -148,8 +148,19 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             })
         }
 
-        // TODO: When MTProto is connected, force Telegram localization to one of the supported DIVO languages:
-        // context.engine.localization.downloadAndApplyLocalization(accountManager:languageCode:)
+        // DIVO PATCH (bootstrap pack): подтягиваем Telegram language pack под DIVO-язык
+        // при создании root-controller'а (post-auth). Pack применится в postbox тихо;
+        // UI пересоздаётся только при явной смене через DivoLanguagePickerController
+        // (там свой post DivoStrings.didChangeNotification). Здесь post НЕ делаем —
+        // на post-login flow controllers ещё не готовы и popToRoot выкидывает на welcome.
+        //
+        // Если pack для текущего языка отсутствует в app_languages — Signal silent error,
+        // видимые DIVO-экраны всё равно переведены через DivoStrings. Этот блок удалить
+        // при merge upstream когда бэк сделает langPack fallback на ENV.
+        let _ = context.engine.localization.downloadAndApplyLocalization(
+            accountManager: context.sharedContext.accountManager,
+            languageCode: DivoStrings.current.telegramCode
+        ).start()
 
         if DivoConfig.isDebugEnabled {
             self.debugShakeObserver = NotificationCenter.default.addObserver(
@@ -205,7 +216,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         if let tabController = self.rootTabController as? TabBarControllerImpl {
             tabController.setControllers(tabController.controllers, selectedIndex: nil)
         }
-        self.popToRoot(animated: false)
+        // animated:true — иначе pop из DivoLanguagePickerController в Settings идёт резко;
+        // в других местах (token change, logout) popToRoot оставлен без анимации намеренно.
+        self.popToRoot(animated: true)
     }
 
     private func resetNavigationOnTokenChange() {

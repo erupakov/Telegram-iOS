@@ -162,9 +162,10 @@ private func synchronizeLocalizationUpdates(accountManager: AccountManager<Teleg
     |> castError(SynchronizeLocalizationUpdatesError.self)
     |> mapToSignal { (primary, secondary) -> Signal<Void, SynchronizeLocalizationUpdatesError> in
         var differences: [Signal<Api.LangPackDifference, MTRpcError>] = []
-        differences.append(network.request(Api.functions.langpack.getDifference(langPack: "", langCode: primary.code, fromVersion: primary.version)))
+        // DIVO PATCH: langPack="ios" — см. TelegramEngine/Localization/LocalizationPreview.swift.
+        differences.append(network.request(Api.functions.langpack.getDifference(langPack: "ios", langCode: primary.code, fromVersion: primary.version)))
         if let secondary = secondary {
-            differences.append(network.request(Api.functions.langpack.getDifference(langPack: "", langCode: secondary.code, fromVersion: secondary.version)))
+            differences.append(network.request(Api.functions.langpack.getDifference(langPack: "ios", langCode: secondary.code, fromVersion: secondary.version)))
         }
         
         return combineLatest(differences)

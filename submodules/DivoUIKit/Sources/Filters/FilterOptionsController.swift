@@ -22,6 +22,8 @@ public final class FilterOptionsController: UIViewController {
     private let showSearch: Bool
     private let isOpenPresent: Bool
     private let isResetButton: Bool
+    /// false для single-select (онбординг): первая опция — не псевдо-«Все».
+    private let firstOptionIsAll: Bool
    
     public var onSave: (([FilterOptionItem]) -> Void)?
 
@@ -106,7 +108,8 @@ public final class FilterOptionsController: UIViewController {
         isMultiSelect: Bool = false,
         showSearch: Bool = false,
         isOpenPresent: Bool = false,
-        isResetButton: Bool = true
+        isResetButton: Bool = true,
+        firstOptionIsAll: Bool = true
     ) {
         self.allOptions = options
         self.filteredOptions = options
@@ -115,6 +118,7 @@ public final class FilterOptionsController: UIViewController {
         self.showSearch = showSearch
         self.isOpenPresent = isOpenPresent
         self.isResetButton = isResetButton
+        self.firstOptionIsAll = firstOptionIsAll
         super.init(nibName: nil, bundle: nil)
 
         navigationBar.makeNavigationBar(
@@ -271,7 +275,7 @@ public final class FilterOptionsController: UIViewController {
         for (index, option) in filteredOptions.enumerated() {
             let cell = createOptionCell(
                 option: option,
-                isSelected: selectedOptionIds.contains(option.id) || (selectedOptionIds.isEmpty && option.id == allOptionId),
+                isSelected: selectedOptionIds.contains(option.id) || (firstOptionIsAll && selectedOptionIds.isEmpty && option.id == allOptionId),
                 isLast: index == filteredOptions.count - 1
             )
 

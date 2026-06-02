@@ -181,17 +181,13 @@ final class ApplicationsListCell: UICollectionViewCell {
         metaLabel.text = metaParts.joined(separator: " · ")
         
         if let avatarURL = CDNURLHelper.convertToCDNURL(item.avatarUrl) {
-            Task {
-                do {
-                    let (data, _) = try await URLSession.shared.data(from: avatarURL)
-                    if let image = UIImage(data: data) {
-                        await MainActor.run {
-                            self.avatarImageView.image = image
-                            self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-                        }
-                    }
-                } catch {}
+            // loadImage отменяется в prepareForReuse → нет гонки при reuse ячейки
+            avatarImageView.loadImage(from: avatarURL) { [weak self] image in
+                self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
             }
+        } else {
+            avatarImageView.cancelImageLoad()
+            avatarImageView.image = nil
         }
         self.layoutIfNeeded()
     }

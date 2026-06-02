@@ -164,9 +164,9 @@ public final class EventApplyConfirmationController: TelegramBaseController {
             if let f = fromStr, let t = toStr {
                 valueStr = f == t ? "\(f) \(suffix)" : "\(f)-\(t) \(suffix)"
             } else if let f = fromStr {
-                valueStr = "From \(f) \(suffix)"
+                valueStr = DivoStrings.rangeFrom("\(f) \(suffix)")
             } else if let t = toStr {
-                valueStr = "Up to \(t) \(suffix)"
+                valueStr = DivoStrings.rangeUpTo("\(t) \(suffix)")
             } else {
                 valueStr = DivoStrings.tbd
             }
@@ -373,8 +373,9 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                 await MainActor.run {
                     guard let self else { return }
                     self.controllerNode.toggleSubmitLoading(active: false)
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.sendApplyRequestFail
                     self.controllerNode.showSnackbar(
-                        message: DivoStrings.sendApplyRequestFail,
+                        message: userMsg,
                         style: .error
                     )
                 }

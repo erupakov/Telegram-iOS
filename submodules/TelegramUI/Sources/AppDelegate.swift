@@ -45,7 +45,10 @@ import RecaptchaEnterprise
 import NavigationBarImpl
 import ContextUI
 import ContextControllerImpl
+import DivoCore
+import DivoFirebaseKit
 import DivoUIKit
+import OnboardingUI
 
 #if canImport(AppCenter)
 import AppCenter
@@ -240,7 +243,12 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     private let context = Promise<AuthorizedApplicationContext?>()
     private let contextDisposable = MetaDisposable()
     
-    private var authContextValue: UnauthorizedApplicationContext?
+    var authContextValue: UnauthorizedApplicationContext?
+    // DIVO: был ли live auth-флоу в ЭТОЙ сессии процесса (welcome → авторизация). На genuine cold-start
+    // (teamgram-сессия восстановлена, auth-контекст не создаётся) остаётся false → cold-start resume можно
+    // показывать. Если auth-флоу был — онбординг ведёт он сам, cold-start resume НЕ дублирует. In-memory
+    // (НЕ persisted): после kill сбрасывается, поэтому resume на следующем запуске не блокируется.
+    var divoHadAuthContextThisLaunch = false
     private let authContext = Promise<UnauthorizedApplicationContext?>()
     private let authContextDisposable = MetaDisposable()
     
@@ -751,6 +759,11 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         }, openUrl: { url in
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         })
+
+        DivoBootstrap.start()
+        // DIVO: онбординг вшит в auth-флоу пушем (см. AuthorizationSequenceController+DivoOnboarding) —
+        // и сам обрабатывает откат при фейле цепочки. Никаких post-auth модальных observer'ов здесь.
+        DivoFirebaseBootstrap.configure()
         setContextMenuControllerProvider { arguments in
             return ContextMenuControllerImpl(arguments)
         }
@@ -1280,6 +1293,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             self.contextValue = context
             if let context = context {
                 setupLegacyComponents(context: context.context)
+                self.divoRegisterPendingOpsExecutor(context: context)
                 let isReady = context.isReady.get()
                 contextReadyDisposable.set((isReady
                 |> filter { $0 }
@@ -1293,6 +1307,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
 
                     self.mainWindow.debugAction = nil
                     self.mainWindow.viewController = context.rootController
+
+                    // DIVO: cold-start resume прерванного онбординга — поверх UIKit window-root (НЕ
+                    // Display-навигатора таббара). Таббар скрыт под модалкой до успеха онбординга.
+                    self.divoResumeOnboardingOnColdStartIfNeeded(context: context)
 
                     // DIVO: rootController готов — снимаем splash overlay (но не раньше min visible duration).
                     // Перед fade-out выставляем splash-цвет на view контроллера, чтобы под исчезающим
@@ -1323,6 +1341,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     self.resetIntentsIfNeeded(context: context.context)
                 }))
             } else {
+                // DIVO: authorized-аккаунт был и пропал → ЛОГАУТ. Чистим DIVO-сессию (accessToken +
+                // currentDivoUserId + pending-флаги), иначе она протекает в следующий вход: юзер видел в
+                // настройках телефон ПРЕДЫДУЩЕГО аккаунта, а cold-start resume путался по чужому divoUserId
+                // (думал «онбординг уже пройден»). На первом запуске (firstTime) чистить нечего.
+                if !firstTime {
+                    DivoConfig.resetDivoSessionForRollback()
+                }
                 self.mainWindow.viewController = nil
                 self.mainWindow.topLevelOverlayControllers = []
                 contextReadyDisposable.set(nil)
@@ -1342,7 +1367,13 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             
             if let authContextValue = self.authContextValue {
                 authContextValue.account.shouldBeServiceTaskMaster.set(.single(.never))
-                if authContextValue.authorizationCompleted {
+                if authContextValue.rootController.divoHoldOverlayForOnboarding {
+                    // DIVO: онбординг вшит в auth-флоу пушем — НЕ дисмиссим auth-overlay здесь.
+                    // teamgram уже authorized (таббар строится под overlay'ем), но контроллер удержан
+                    // и снимет себя сам по завершении/отмене онбординга (см. +DivoOnboarding). Флаг
+                    // ставится ДО завершения teamgram, поэтому гонки с этим teardown нет.
+                    divoLog("[App] auth-overlay удержан для онбординга (push-в-auth) — не дисмиссим", level: .info)
+                } else if authContextValue.authorizationCompleted {
                     let accountId = authContextValue.account.id
                     let _ = (self.context.get()
                     |> filter { context in
@@ -1363,6 +1394,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             }
             self.authContextValue = context
             if let context = context {
+                self.divoHadAuthContextThisLaunch = true // DIVO: live auth-флоу был → cold-start resume не нужен/не дублирует
                 let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
                 
                 let progressSignal = Signal<Never, NoError> { [weak self] subscriber in

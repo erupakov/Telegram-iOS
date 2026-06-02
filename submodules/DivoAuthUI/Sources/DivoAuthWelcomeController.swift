@@ -37,6 +37,10 @@ public final class DivoAuthWelcomeController: ViewController {
     public var onSignInWithApple: (() -> Void)?
     public var onOpenTerms: (() -> Void)?
     public var onOpenPrivacy: (() -> Void)?
+    /// Ветки A/B соц-входа (существующий юзер): DIVO-токен уже выставлен login-social'ом,
+    /// осталось войти в teamgram по известному phone. AuthorizationSequenceController
+    /// прокидывает сюда headless-вход — модуль DivoAuthUI не знает про teamgram напрямую.
+    public var onAuthenticateTeamgram: ((String) -> Void)?
 
     // MARK: - Subviews
 
@@ -281,10 +285,23 @@ public final class DivoAuthWelcomeController: ViewController {
     }
 
     private func showComingSoon() {
+        showInfo(message: DivoStrings.authComingSoon)
+    }
+
+    public func showInfo(message: String) {
         snackbar.show(
             in: view,
-            message: DivoStrings.authComingSoon,
+            message: message,
             style: .success,
+            bottomInset: 24
+        )
+    }
+
+    public func showError(message: String) {
+        snackbar.show(
+            in: view,
+            message: message,
+            style: .error,
             bottomInset: 24
         )
     }

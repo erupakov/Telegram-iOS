@@ -103,15 +103,16 @@ public final class ApplicationsListController: TelegramBaseController {
                     guard let user = member.user else { return nil }
             
                     let dateStr = self.formatAppliedDate(member.appliedAt)
-                    
+
+                    // бэк пока отдаёт только "going" → rawValue даёт nil до реальных статусов
                     return ApplicantItem(
                         id: user.id,
                         name: user.fullName ?? "",
                         avatarUrl: user.avatar?.fullUrl,
-                        isVerified: false,
+                        isVerified: user.isVerified,
                         role: user.roleLabel,
                         dateApplied: dateStr,
-                        status: .accepted
+                        status: ApplicationStatus(rawValue: member.status ?? "")
                     )
                 }
                 
@@ -121,7 +122,7 @@ public final class ApplicationsListController: TelegramBaseController {
                 }
                 
             } catch {
-                print("⚠️ loadApplicants failed: \(error)")
+                divoLog("loadApplicants failed: \(error)", level: .error)
                 await MainActor.run {
                     // Переводим узел в состояние ошибки
                     self.controllerNode.phase = .failed(networkError: self.isNetworkError(error))
@@ -183,17 +184,6 @@ public final class ApplicationsListController: TelegramBaseController {
             return true
         }
         return false
-    }
-
-    private func calculateAge(from birthdayString: String) -> Int? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        guard let birthday = formatter.date(from: birthdayString) else { return nil }
-
-        let now = Date()
-        let calendar = Calendar.current
-        return calendar.dateComponents([.year], from: birthday, to: now).year
     }
 
     private func formatAppliedDate(_ dateString: String?) -> String {
