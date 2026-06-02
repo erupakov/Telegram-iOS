@@ -44,6 +44,12 @@ public enum EventDateFormatter {
         return DivoStrings.deadlineDataTime(body)
     }
     
+    /// True, если дедлайн заявки уже прошёл. Невалидная/пустая строка → false.
+    public static func isDeadlinePassed(_ deadline: String?) -> Bool {
+        guard let raw = deadline, let date = parse(raw) else { return false }
+        return date.timeIntervalSinceNow <= 0
+    }
+
     private static func parse(_ raw: String) -> Date? {
         let normalized = raw.replacingOccurrences(of: " ", with: "T")
         let formatter = DateFormatter()

@@ -1833,22 +1833,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyButton.isHidden = false
         appliedStatusViewContainer.isHidden = true
         
-        // 1. Проверяем, прошёл ли дедлайн
-        var isDeadlinePassed = false
-        if let deadlineRaw = newEventData.applicationDeadline {
-            let normalized = deadlineRaw.replacingOccurrences(of: " ", with: "T")
-            let parser = DateFormatter()
-            parser.locale = Locale(identifier: "en_US_POSIX")
-            parser.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-            var deadlineDate = parser.date(from: normalized)
-            if deadlineDate == nil {
-                parser.dateFormat = "yyyy-MM-dd'T'HH:mm"
-                deadlineDate = parser.date(from: normalized)
-            }
-            if let date = deadlineDate {
-                isDeadlinePassed = date.timeIntervalSinceNow <= 0
-            }
-        }
+        let isDeadlinePassed = EventDateFormatter.isDeadlinePassed(newEventData.applicationDeadline)
 
         if self.isMyEvent {
             applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)

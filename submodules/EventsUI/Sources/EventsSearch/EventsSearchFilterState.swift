@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import DivoCore
-import DivoUIKit
 
 public struct EventsSearchFilterState: Equatable {
     public var eventTypeIds: [Int] = []
