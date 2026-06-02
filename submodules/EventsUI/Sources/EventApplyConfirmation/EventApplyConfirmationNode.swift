@@ -764,8 +764,14 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         profileHeader.configure(fullUrl: event.creator?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventTypeId: event.type?.id, eventInfo: fullLocationString)
         
         // User profile Card
-        // ХАРДКОР МЕТА - НЕ ГОТОВ БЭК
-        userProfile.configure(name: user.fullName, role: Role(apiRole: user.role).title, meta: "12K followers · Online", fullUrl: user.avatar?.fullUrl)
+        // followers — реальные из statistic. Online-статус бэк пока НЕ отдаёт (нет поля в /user/info),
+        // оставляем статичную заглушку DivoStrings.online до появления реального поля presence/online.
+        var metaParts: [String] = []
+        if let followers = user.statistic?.followersCount {
+            metaParts.append(DivoStrings.followersString(followers))
+        }
+        metaParts.append(DivoStrings.online) // TODO DIVO: заглушка — нет поля online/presence в /user/info
+        userProfile.configure(name: user.fullName, role: Role(apiRole: user.role).title, meta: metaParts.joined(separator: " · "), fullUrl: user.avatar?.fullUrl)
 
         // Parameters Checklist Card
         parametersView.configure(matches: matches, hasMismatch: hasMismatch, isMultipleMismatches: isMultipleMismatches, singleMismatch: singleMismatch)

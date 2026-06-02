@@ -1836,7 +1836,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         } else if newEventData.isApplied == true {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.isUserInteractionEnabled = false
-            let dateText = self.formatAppliedDate(newEventData.date)  //newEventData.appliedAt ??
+            // applicationDate — дата подачи заявки текущим юзером. Бэк пока возвращает null,
+            // поэтому fallback на дату эвента. Когда поле заработает — дата подхватится автоматически.
+            let dateText = self.formatAppliedDate(newEventData.applicationDate ?? newEventData.date)
             appliedStatusView.configure(appliedDateText: dateText)
             appliedStatusViewContainer.isHidden = false
         } else if self.isAgency {

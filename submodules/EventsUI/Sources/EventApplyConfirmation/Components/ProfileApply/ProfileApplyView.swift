@@ -151,16 +151,8 @@ final class ProfileApplyView: UIView {
         }
         
         if let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl) {
-            Task {
-                do {
-                    let (data, _) = try await URLSession.shared.data(from: avatarURL)
-                    if let image = UIImage(data: data) {
-                        await MainActor.run {
-                            self.logoImageView.image = image
-                            self.logoImageView.applyAvatarTopCropIfNeeded(image: image)
-                        }
-                    }
-                } catch {}
+            logoImageView.loadImage(from: avatarURL) { [weak self] image in
+                self?.logoImageView.applyAvatarTopCropIfNeeded(image: image)
             }
         }
         self.layoutIfNeeded()

@@ -135,6 +135,9 @@ public struct EventFullDetailData: Decodable {
     public let isPublic: Bool?
     public let ndaRequired: Bool?
     public let applicationDeadline: String?
+    /// Дата подачи заявки текущим юзером. Бэк пока возвращает null (поле есть в схеме,
+    /// но не заполняется) — UI берёт fallback, пока значение не появится.
+    public let applicationDate: String?
     public let maxAttendees: Int?
     public let requirements: String?
     public let address: EventFullAddress?
@@ -158,6 +161,7 @@ public struct EventAppliedUser: Decodable {
     public let roleLabel: String?
     public let avatar: UserFile?
     public let photo: UserFile?
+    public let isVerified: Bool?
 }
 
 // MARK: - Address & City (Full Detail)

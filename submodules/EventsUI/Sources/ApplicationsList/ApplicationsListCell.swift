@@ -181,17 +181,15 @@ final class ApplicationsListCell: UICollectionViewCell {
         metaLabel.text = metaParts.joined(separator: " · ")
         
         if let avatarURL = CDNURLHelper.convertToCDNURL(item.avatarUrl) {
-            Task {
-                do {
-                    let (data, _) = try await URLSession.shared.data(from: avatarURL)
-                    if let image = UIImage(data: data) {
-                        await MainActor.run {
-                            self.avatarImageView.image = image
-                            self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-                        }
-                    }
-                } catch {}
+            // ImageLoader сверяет currentLoadingURL перед установкой картинки и
+            // отменяется через cancelImageLoad() в prepareForReuse — это снимает
+            // гонку, когда ячейку переиспользуют до завершения загрузки аватара.
+            avatarImageView.loadImage(from: avatarURL) { [weak self] image in
+                self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
             }
+        } else {
+            avatarImageView.cancelImageLoad()
+            avatarImageView.image = nil
         }
         self.layoutIfNeeded()
     }

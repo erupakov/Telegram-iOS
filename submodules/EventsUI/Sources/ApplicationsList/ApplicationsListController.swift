@@ -103,15 +103,18 @@ public final class ApplicationsListController: TelegramBaseController {
                     guard let user = member.user else { return nil }
             
                     let dateStr = self.formatAppliedDate(member.appliedAt)
-                    
+
+                    // status: бэк сейчас отдаёт только "going" — рабочие статусы (pending/shortlisted/
+                    // accepted/rejected) ещё не реализованы, поэтому rawValue-парс даёт nil, пока они
+                    // не появятся. Как только бэк начнёт слать эти значения — табы подхватят их сами.
                     return ApplicantItem(
                         id: user.id,
                         name: user.fullName ?? "",
                         avatarUrl: user.avatar?.fullUrl,
-                        isVerified: false,
+                        isVerified: user.isVerified,
                         role: user.roleLabel,
                         dateApplied: dateStr,
-                        status: .accepted
+                        status: ApplicationStatus(rawValue: member.status ?? "")
                     )
                 }
                 
@@ -183,17 +186,6 @@ public final class ApplicationsListController: TelegramBaseController {
             return true
         }
         return false
-    }
-
-    private func calculateAge(from birthdayString: String) -> Int? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        guard let birthday = formatter.date(from: birthdayString) else { return nil }
-
-        let now = Date()
-        let calendar = Calendar.current
-        return calendar.dateComponents([.year], from: birthday, to: now).year
     }
 
     private func formatAppliedDate(_ dateString: String?) -> String {
