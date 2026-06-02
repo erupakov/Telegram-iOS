@@ -329,6 +329,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     private let storiesHeight: CGFloat = 90
     private let tabsHeight: CGFloat = 32
+    private let feedTopInset: CGFloat = 10
+    private let fadeOverlayHeight: CGFloat = 50
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
@@ -369,7 +371,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
 
         self.mainCollectionView.contentInset = UIEdgeInsets(
-            top: 10,
+            top: feedTopInset,
             left: 0,
             bottom: isPaginating ? Self.paginationSpinnerHeight : 0,
             right: 0
@@ -512,13 +514,12 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             height: tabsHeight
         )
 
-        // --- Fade overlay: позиционируем строго под вкладками ---
-        // Он будет следовать за tabsContainerView (включая момент прилипания)
+        // --- Fade overlay: under tabs ---
         self.segmentedControlFadeOverlay.frame = CGRect(
             x: 0,
-            y: tabsY + tabsHeight, // Начинается сразу под нижней границей вкладок
+            y: tabsY + tabsHeight,
             width: layout.size.width,
-            height: 50 // Высота зоны затухания
+            height: fadeOverlayHeight
         )
     }
 
@@ -915,7 +916,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         guard let placeholder = loadingPlaceholderView,
               let (layout, navigationBarHeight) = containerLayout else { return }
 
-        let topOffset = navigationBarHeight + storiesHeight + tabsHeight + 8 + 10
+        let topOffset = navigationBarHeight + storiesHeight + tabsHeight + 8 + feedTopInset
         let cardHPadding: CGFloat = 16
         let width = layout.size.width - layout.safeInsets.left - layout.safeInsets.right - cardHPadding * 2
         placeholder.frame = CGRect(x: layout.safeInsets.left + cardHPadding, y: topOffset, width: width, height: 512)
