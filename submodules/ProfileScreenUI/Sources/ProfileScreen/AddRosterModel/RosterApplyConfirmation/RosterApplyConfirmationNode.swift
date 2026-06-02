@@ -179,7 +179,8 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
         return view
     }()
 
-    private let loadingSpinner = DivoSegmentedSpinner()
+    private var didStartShimmerAnimation = false
+    
 
     // MARK: - Init
     
@@ -195,16 +196,16 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
             self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
         }
         
-        if !profileShimmerView.isHidden {
+        if case .loading = phase, !didStartShimmerAnimation, profileShimmerView.bounds.width > 0 {
             profileShimmerView.startAnimation()
-        }
-        if !parametersShimmer.isHidden {
+            
             parametersShimmer.stopShimmering()
             parametersShimmer.startShimmering()
-        }
-        if !noteTitleShimmer.isHidden {
+            
             noteTitleShimmer.stopShimmering()
             noteTitleShimmer.startShimmering()
+            
+            didStartShimmerAnimation = true
         }
     }
 
@@ -354,20 +355,12 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
 
     private func setupStatusViews() {
         self.view.addSubview(errorView)
-        self.view.addSubview(loadingSpinner)
-        loadingSpinner.translatesAutoresizingMaskIntoConstraints = false
-        loadingSpinner.isHidden = true
-
+        
         NSLayoutConstraint.activate([
             errorView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
             errorView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
             errorView.topAnchor.constraint(equalTo: self.view.topAnchor),
             errorView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
-
-            loadingSpinner.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
-            loadingSpinner.centerYAnchor.constraint(equalTo: self.view.centerYAnchor),
-            loadingSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
-            loadingSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl)
         ])
     }
 
@@ -408,11 +401,9 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
             noteTitleShimmer.stopShimmering()
             noteTitleShimmer.startShimmering()
             
-            scrollView.isHidden = true
+            scrollView.isHidden = false
             bottomButtonsContainer.isHidden = true
             errorView.isHidden = true
-            loadingSpinner.isHidden = false
-            loadingSpinner.startAnimating()
             
         case .content:
             profileShimmerView.isHidden = true
@@ -426,8 +417,6 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
             noteTitleLabel.isHidden = false
             noteTitleShimmer.stopShimmering()
             
-            loadingSpinner.isHidden = true
-            loadingSpinner.stopAnimating()
             errorView.isHidden = true
             
             UIView.animate(withDuration: 0.3) {
@@ -450,11 +439,9 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
             
             scrollView.isHidden = true
             bottomButtonsContainer.isHidden = true
-            loadingSpinner.isHidden = true
-            loadingSpinner.stopAnimating()
             
             errorView.configure(
-                title: networkError ? DivoStrings.profileTabErrorNetworkTitle : DivoStrings.eventDetailErrorTitle,
+                title: networkError ? DivoStrings.profileTabErrorNetworkTitle : DivoStrings.failedLoadInteractionList,
                 subtitle: DivoStrings.profileTabErrorSubtitle,
                 onRetry: { [weak self] in self?.onRetryTapped?() }
             )
@@ -492,7 +479,6 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
         
         profileHeader.configure(fullUrl: user.avatar?.fullUrl, fullName: user.fullName, role: user.roleLabel,  meta: fullLocationString)
 
-        // Отрисовка чипсов параметров (H 178 · B 86 · W 61 · H 90)
         let app = user.model?.appearance
         let h = app?.height.flatMap { "H \(Int($0))" } ?? ""
         let b = app?.weight.flatMap { "B \(Int($0))" } ?? ""
