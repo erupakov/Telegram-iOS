@@ -4410,9 +4410,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if isVisible {
             floatingAddButton.makeDivoButton(title: title, leadingIcon: icon, buttonFont: Font.helveticaNeue(16), radius: 20)
             
-            if floatingAddButton.isHidden {
-                floatingAddButton.alpha = 0
-                floatingAddButton.isHidden = false
+            if floatingAddButton.isHidden || floatingAddButton.alpha < 1.0 {
+                floatingAddButton.layer.removeAllAnimations()
+                
+                if floatingAddButton.isHidden {
+                    floatingAddButton.alpha = 0
+                    floatingAddButton.isHidden = false
+                }
+                
                 UIView.animate(withDuration: 0.3) {
                     self.floatingAddButton.alpha = 1.0
                 }
@@ -4423,8 +4428,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
             if !floatingAddButton.isHidden {
                 UIView.animate(withDuration: 0.3, animations: {
                     self.floatingAddButton.alpha = 0.0
-                }) { _ in
-                    self.floatingAddButton.isHidden = true
+                }) { finished in
+                    if finished {
+                        self.floatingAddButton.isHidden = true
+                    }
                 }
             }
         }
