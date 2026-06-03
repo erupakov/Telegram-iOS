@@ -71,7 +71,11 @@ public extension PresentationData {
                 components.withUpdated(
                     fill: [DivoColorPalette.chatBubbleFill],
                     highlightedFill: DivoColorPalette.chatBubbleHighlight,
-                    stroke: DivoColorPalette.chatBubbleFill
+                    stroke: DivoColorPalette.chatBubbleFill,
+                    reactionInactiveBackground: DivoColorPalette.chatReactionInactiveBg,
+                    reactionInactiveForeground: DivoColorPalette.primaryText,
+                    reactionActiveBackground: DivoColorPalette.accentSecondary,
+                    reactionActiveForeground: DivoColorPalette.primaryTextOnDark
                 )
             }
             return bubble.withUpdated(withWallpaper: patch(bubble.withWallpaper), withoutWallpaper: patch(bubble.withoutWallpaper))
@@ -87,7 +91,13 @@ public extension PresentationData {
                 mediaActiveControlColor: DivoColorPalette.accentSecondary,
                 mediaInactiveControlColor: DivoColorPalette.chatMediaInactiveControl,
                 mediaControlInnerBackgroundColor: DivoColorPalette.chatBubbleFill,
-                pendingActivityColor: DivoColorPalette.accentSecondary
+                pendingActivityColor: DivoColorPalette.accentSecondary,
+                fileDurationColor: DivoColorPalette.accentSecondary,
+                polls: parted.polls.withUpdated(
+                    radioButton: DivoColorPalette.accentSecondary,
+                    radioProgress: DivoColorPalette.accentSecondary,
+                    bar: DivoColorPalette.accentSecondary
+                )
             )
         }
 

@@ -270,6 +270,8 @@ public enum DivoColorPalette {
     public static let chatInputPlaceholder = primaryText.withAlphaComponent(0.6)
     /// Непрослушанная часть волны голосового / неактивный медиа-контрол — приглушённый accentSecondary.
     public static let chatMediaInactiveControl = accentSecondary.withAlphaComponent(0.4)
+    /// Подложка неактивной реакции и кнопки транскрипции аудио — accentSecondary @10%.
+    public static let chatReactionInactiveBg = accentSecondary.withAlphaComponent(0.1)
 }
 
 public enum EventTypeStyle: Int {
