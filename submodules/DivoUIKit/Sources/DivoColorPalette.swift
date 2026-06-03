@@ -251,6 +251,25 @@ public enum DivoColorPalette {
     public static let shortlistedStatus = UIColor(hexString: "#534AB7")!
     public static let acceptedStatus = UIColor(hexString: "#0F6E56")!
     public static let rejectedStatus = UIColor(hexString: "#DF1C41")!
+
+    // MARK: - Chat theme (кастомизация чата под DIVO, PROJ-016)
+    /// Фон чата. Дизайн задаёт accentSecondary @20%, но обои Telegram (`TelegramWallpaper.color`)
+    /// хранят непрозрачный RGB — значение сплющено поверх белого. UInt32 для `.color(_:)`.
+    public static let chatWallpaperValue: UInt32 = 0xF2E4DD
+    /// Заливка бабблов — входящие и исходящие одинаковые.
+    public static let chatBubbleFill = UIColor(hexString: "#F4F4F4")!
+    /// Подсветка баббла при long-press — нейтральная, чтобы не мигало сине-зелёным дефолтом.
+    public static let chatBubbleHighlight = UIColor(hexString: "#E8E8E8")!
+    /// Время в баббле — systemLabelTertiary @73%.
+    public static let chatBubbleTime = systemLabelTertiary.withAlphaComponent(0.73)
+    /// Фон pill даты и сервисных сообщений — accentSecondary @40%.
+    public static let chatServicePillFill = accentSecondary.withAlphaComponent(0.4)
+    /// Иконки панели ввода (скрепка, микрофон) — primaryText @80%.
+    public static let chatInputControl = primaryText.withAlphaComponent(0.8)
+    /// Плейсхолдер «Message» и иконка внутри поля — primaryText @60%.
+    public static let chatInputPlaceholder = primaryText.withAlphaComponent(0.6)
+    /// Непрослушанная часть волны голосового / неактивный медиа-контрол — приглушённый accentSecondary.
+    public static let chatMediaInactiveControl = accentSecondary.withAlphaComponent(0.4)
 }
 
 public enum EventTypeStyle: Int {
