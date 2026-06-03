@@ -125,16 +125,8 @@ class HeaderApplyView: UIView {
         eventMetaLabel.text = eventInfo
         
         if let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl) {
-            Task {
-                do {
-                    let (data, _) = try await URLSession.shared.data(from: avatarURL)
-                    if let image = UIImage(data: data) {
-                        await MainActor.run {
-                            self.avatarImageView.image = image
-                            self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-                        }
-                    }
-                } catch {}
+            avatarImageView.loadImage(from: avatarURL) { [weak self] image in
+                self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
             }
         }
         self.layoutIfNeeded()

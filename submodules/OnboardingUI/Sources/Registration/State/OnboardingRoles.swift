@@ -385,7 +385,9 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
             discoveredFrom: .talentSubRolePicker,
             resultId: .actor, formId: .talentActorDancerSinger,
-            backendRoleRaw: "agency_employee"
+            // Talent (дверь 1) без агентства = New Talent → new_face. Model требует agency_id на
+            // /user/update-profile (Model = «есть агентство»), у свежего таланта его нет → 422.
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .dancer, category: .talent,
@@ -395,7 +397,9 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
             discoveredFrom: .talentSubRolePicker,
             resultId: .dancer, formId: .talentActorDancerSinger,
-            backendRoleRaw: "agency_employee"
+            // Talent (дверь 1) без агентства = New Talent → new_face. Model требует agency_id на
+            // /user/update-profile (Model = «есть агентство»), у свежего таланта его нет → 422.
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .singerPerformer, category: .talent,
@@ -405,7 +409,9 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.talents",
             discoveredFrom: .talentSubRolePicker,
             resultId: .singerPerformer, formId: .talentActorDancerSinger,
-            backendRoleRaw: "agency_employee"
+            // Talent (дверь 1) без агентства = New Talent → new_face. Model требует agency_id на
+            // /user/update-profile (Model = «есть агентство»), у свежего таланта его нет → 422.
+            backendRoleRaw: "new_face"
         ),
 
         // MARK: C — Creative Professionals → 3.3.C → 4.C1 (или 4.C2 для Studio) — секция «CREATIVE» в Talent picker

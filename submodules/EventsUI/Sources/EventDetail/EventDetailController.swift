@@ -198,6 +198,8 @@ public final class EventDetailController: TelegramBaseController {
             } catch {
                 await MainActor.run {
                     self.controllerNode.toggleWithdrawLoading(active: false)
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.withdrawApplicationFail
+                    self.controllerNode.showSnackbar(message: userMsg, style: .error)
                 }
             }
         }

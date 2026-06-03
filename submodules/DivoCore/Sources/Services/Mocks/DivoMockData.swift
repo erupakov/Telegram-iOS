@@ -192,7 +192,6 @@ public enum DivoMockData {
                 "roleLabel": "\(roleLabel)",
                 "measuringSystem": "metric",
                 "pushNotifications": true,
-                "isRegistrationFinished": true,
                 "is_premium": true,
                 "model": \(modelBlock),
                 "customer": \(customerBlock),

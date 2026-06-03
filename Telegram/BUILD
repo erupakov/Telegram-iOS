@@ -537,7 +537,7 @@ store_signin_fragment = """
     <string>Default</string>
 </array>
 """
-signin_fragment = store_signin_fragment if telegram_bundle_id in store_bundle_ids else ""
+signin_fragment = store_signin_fragment if (telegram_bundle_id in store_bundle_ids or telegram_bundle_id == "app.divo.fashion") else ""
 
 plist_fragment(
     name = "TelegramEntitlements",

@@ -12,7 +12,9 @@ swift_library(
     deps = [
         "//submodules/AppBundle:AppBundle",
         "//submodules/Display:Display",
+        "//submodules/DivoAuth:DivoAuth",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/DivoFirebaseKit:DivoFirebaseKit",
         "//submodules/DivoUIKit:DivoUIKit",
     ],
     visibility = [

@@ -9,7 +9,8 @@ public enum RequestLocalizationPreviewError {
 }
 
 func _internal_requestLocalizationPreview(network: Network, identifier: String) -> Signal<LocalizationInfo, RequestLocalizationPreviewError> {
-    return network.request(Api.functions.langpack.getLanguage(langPack: "", langCode: identifier))
+    // DIVO PATCH: langPack="ios" вместо "" — teamgram-сервер не делает fallback на ENV langPack, отвечает LANG_PACK_INVALID на пустой. Откатить при merge upstream если бэк починит сервер.
+    return network.request(Api.functions.langpack.getLanguage(langPack: "ios", langCode: identifier))
     |> mapError { _ -> RequestLocalizationPreviewError in
         return .generic
     }

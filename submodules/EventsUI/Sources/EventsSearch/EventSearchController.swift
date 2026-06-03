@@ -24,6 +24,10 @@ public final class EventsSearchController: ViewController {
     private var gridOffset = 0
     private let gridLimit = 20
     
+    /// id и роль текущего DIVO-пользователя (из /user/info) — для «мой эвент»/isAgency, как в EventsController.
+    private var currentUserId: Int?
+    private var isAgency: Bool = false
+
     private var currentFilters = EventsSearchFilterState()
     private var preloadedEventTypes: [FilterOptionItem] = []
     private var preloadedGenders: [FilterOptionItem] = []
@@ -80,8 +84,8 @@ public final class EventsSearchController: ViewController {
             self?.openFilters()
         }
         
-        self.searchNode.onEventTapped = { [weak self] eventId in
-            self?.openEventDetailScreen(for: eventId)
+        self.searchNode.onEventTapped = { [weak self] eventId, creatorId in
+            self?.openEventDetailScreen(for: eventId, creatorId: creatorId)
         }
         
         self.searchNode.requestAutocomplete = { [weak self] query in
@@ -111,8 +115,8 @@ public final class EventsSearchController: ViewController {
             }
         }
 
-        self.searchNode.onGridApplyTapped = { [weak self] eventId, cell in
-            self?.applyForEvent(eventId: eventId, cell: cell)
+        self.searchNode.onGridApplyTapped = { [weak self] eventId in
+            self?.applyForEvent(eventId: eventId)
         }
 
         self.searchNode.onFiltersClearTapped = { [weak self] in
@@ -124,6 +128,8 @@ public final class EventsSearchController: ViewController {
         DispatchQueue.main.async { [weak self] in
             self?.loadDictionaries()
         }
+
+        self.fetchCurrentUserId()
     }
 
     override public func viewWillAppear(_ animated: Bool) {
@@ -132,15 +138,39 @@ public final class EventsSearchController: ViewController {
     }
 
     // MARK: - Navigation & Action Flow
-    
-    private func openEventDetailScreen(for eventId: Int?) {
+
+    /// Тянем id+роль текущего юзера (как EventsController) — нужно, чтобы понять «мой эвент».
+    /// DivoConfig.currentDivoUserId для этого ненадёжен (ставится только в auth/registration путях).
+    private func fetchCurrentUserId() {
+        Task { @MainActor in
+            do {
+                let response: UserDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/info",
+                    method: "GET"
+                )
+                self.currentUserId = response.data.id
+                let role = response.data.role ?? ""
+                self.isAgency = role == "agency" || role == "agency_employee"
+            } catch {
+                divoLog("EventsSearch: /user/info failed: \(error)", level: .error)
+            }
+        }
+    }
+
+    private func openEventDetailScreen(for eventId: Int?, creatorId: Int?) {
+        // «Мой эвент» = создатель совпадает с текущим DIVO-пользователем (как в EventsController).
+        let isMyEvent: Bool
+        if let myId = self.currentUserId, let creatorId {
+            isMyEvent = myId == creatorId
+        } else {
+            isMyEvent = false
+        }
+
         let detailController = EventDetailController(
             context: self.context,
             eventId: eventId,
-            // надо прокинуть мой эвент или нет
-            // надо понять что с DivoConfig - это чисто разработческая штука или все-таки и в приожении работает
-            isMyEvent: false,
-            isAgency: DivoConfig.currentUserRole == .agency
+            isMyEvent: isMyEvent,
+            isAgency: self.isAgency
         )
         
         // Подписываемся на обновление при возврате
@@ -151,7 +181,7 @@ public final class EventsSearchController: ViewController {
         self.push(detailController)
     }
 
-    private func applyForEvent(eventId: Int, cell: EventCollectionViewCell) {
+    private func applyForEvent(eventId: Int) {
         let confirmationController = EventApplyConfirmationController(
             context: self.context,
             eventId: eventId,
@@ -192,7 +222,7 @@ public final class EventsSearchController: ViewController {
                     )
                 }
             } catch {
-                print("⚠️ refreshSingleEventState failed: \(error)")
+                divoLog("refreshSingleEventState failed: \(error)", level: .error)
             }
         }
     }
@@ -253,68 +283,15 @@ public final class EventsSearchController: ViewController {
                 sheet.preferredCornerRadius = 24
             }
         }
-        self.view.window?.rootViewController?.present(navVC, animated: true)
+        self.present(navVC, animated: true)
     }
 
     private func handleFiltersClear() {
-        let oldFilters = currentFilters
-        let oldCount = oldFilters.activeFilterCount
-
         currentFilters = EventsSearchFilterState()
         searchNode.updateActiveFiltersCount(0)
-
-        gridOffset = 0
-        hasMoreGridResults = true
         isFetchingGrid = false
-
-        searchNode.showGridLoading(isFirstPage: true)
-
-        currentSearchTask?.cancel()
-        currentSearchTask = Task { @MainActor in
-            isFetchingGrid = true
-
-            do {
-                let request = buildRequest(limit: gridLimit, offset: 0, query: currentQuery.isEmpty ? nil : currentQuery)
-                let response: EventListResponse = try await DivoAPIClient.shared.request(
-                    path: "/event/list",
-                    method: "POST",
-                    body: request
-                )
-
-                guard !Task.isCancelled else { isFetchingGrid = false; return }
-
-                let events = self.mapEvents(response.data.items)
-                let totalCount = response.data.pagination?.meta?.totalCount
-                self.searchNode.updateGrid(
-                    results: events,
-                    totalCount: totalCount ?? 0,
-                    isFirstPage: true,
-                    query: self.currentQuery
-                )
-                self.gridOffset = response.data.items.count
-                self.hasMoreGridResults = self.gridOffset < totalCount ?? 0
-                self.isFetchingGrid = false
-
-                if events.count < self.gridLimit && self.hasMoreGridResults {
-                    self.fetchGridResults(isFirstPage: false)
-                }
-            } catch {
-                self.isFetchingGrid = false
-                guard !Task.isCancelled else { return }
-                self.currentFilters = oldFilters
-                self.searchNode.updateActiveFiltersCount(oldCount)
-                self.searchNode.showGridError()
-                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.feedSearchResultsLoadFailed
-                self.searchNode.showSnackbar(
-                    message: userMsg,
-                    style: .error,
-                    retryAction: { [weak self] in
-                        self?.handleFiltersClear()
-                    },
-                    persistent: true
-                )
-            }
-        }
+        hasMoreGridResults = true
+        fetchGridResults(isFirstPage: true)
     }
 
     // MARK: - Network Requests
@@ -430,6 +407,9 @@ public final class EventsSearchController: ViewController {
         }
     }
     
+    // FIXME DIVO: бэк не поддерживает поиск/фильтры эвентов (/event/list — только offset/limit/creatorId,
+    // /event/search нет, swagger 2026-06-03) → query и currentFilters сюда не прокидываются.
+    // Доработать после реализации ручки на сервере (задача на доработку заведена).
     private func buildRequest(limit: Int, offset: Int, query: String? = nil) -> EventListRequest {
         return EventListRequest(
             offset: offset,
@@ -457,7 +437,7 @@ public final class EventsSearchController: ViewController {
                 let eventItems = response.data.items.map { item -> EventItem in
                     let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: item.date)
                     let city = item.address?.city?.name ?? DivoStrings.unknownCity
-                    let flag = self.emojiFlag(from: item.address?.city?.countryCode)
+                    let flag = Self.flag(for: item.address?.city?.countryCode)
                     let avatarUrl = item.files?.first?.fullUrl
                     let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
 
@@ -471,7 +451,7 @@ public final class EventsSearchController: ViewController {
                         originalDate: item.date,
                         eventId: item.id,
                         isApplied: item.isApplied,
-                        isMyRoleAgency: DivoConfig.currentUserRole == .agency
+                        creatorId: item.creator?.id
                     )
                 }
                 
@@ -643,7 +623,8 @@ public final class EventsSearchController: ViewController {
                 applicationDeadline: item.applicationDeadline,
                 isCurrentRoleAgency: DivoConfig.currentUserRole == .agency,
                 isApplied: item.isApplied,
-                creatorId: item.creator?.id
+                creatorId: item.creator?.id,
+                isVerified: item.creator?.isVerified
             )
         }
     }
@@ -661,10 +642,7 @@ public final class EventsSearchController: ViewController {
             return (dateString, "")
         }
 
-        let languageCode = Locale.preferredLanguages.first?
-            .components(separatedBy: "-")
-            .first?
-            .lowercased() ?? "en"
+        let languageCode = DivoStrings.current.rawValue
         let localeIdentifierByLanguage: [String: String] = [
             "ru": "ru_RU",
             "en": "en_US",
@@ -698,13 +676,6 @@ public final class EventsSearchController: ViewController {
         let formattedTime = timeUIFormatter.string(from: date)
 
         return (formattedDate, formattedTime)
-    }
-
-    private func emojiFlag(from countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2 else { return "🌍" }
-        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
-        }
     }
 
     private static func flag(for countryCode: String?) -> String {

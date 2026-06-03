@@ -19,6 +19,12 @@ import AuthorizationUtils
 import ManagedAnimationNode
 import Markdown
 
+// DIVO PATCH (auth strings): подмена видимых Login_* строк на DivoStrings.auth* —
+// teamgram-сервер не отдаёт Login_* pack для es/pt/zh (есть только en/ru), а наш
+// клиент по Telegram-стандарту шлёт пустой langPack, который сервер не accepts.
+// Поэтому видимые строки на этом экране (title, Continue, PhoneNumberConfirmation,
+// Edit) берём из DivoStrings. Откатить при upstream merge если бэк починит сервер.
+
 private final class PhoneAndCountryNode: ASDisplayNode {
     let strings: PresentationStrings
     let theme: PresentationTheme
@@ -355,7 +361,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     // (updateColors). Переприменяем HelveticaNeue Condensed Bold поверх — иначе шрифт «едет» при вводе.
     private func updateProceedTitle() {
         guard let divoFont = UIFont(name: "HelveticaNeue-CondensedBold", size: 20.0) else { return }
-        self.proceedNode.titleNode.attributedText = NSAttributedString(string: self.strings.Login_Continue, attributes: [
+        self.proceedNode.titleNode.attributedText = NSAttributedString(string: DivoStrings.authContinue, attributes: [
             .font: divoFont,
             .foregroundColor: self.proceedNode.isEnabled ? DivoColorPalette.primaryTextOnDark : DivoColorPalette.disabledText,
             .kern: 20.0 * 0.005
@@ -442,7 +448,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         self.titleNode = ASTextNode()
         self.titleNode.isUserInteractionEnabled = true
         self.titleNode.displaysAsynchronously = false
-        self.titleNode.attributedText = AuthorizationSequencePhoneEntryControllerNode.titleAttributedString(account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle)
+        self.titleNode.attributedText = AuthorizationSequencePhoneEntryControllerNode.titleAttributedString(DivoStrings.authPhoneTitle)
         
         self.titleActivateAreaNode = AccessibilityAreaNode()
         self.titleActivateAreaNode.accessibilityTraits = .staticText
@@ -472,7 +478,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
             disabledForegroundColor: DivoColorPalette.disabledText
         )
 
-        self.proceedNode = SolidRoundedButtonNode(title: self.strings.Login_Continue, theme: customButtonTheme, glass: false, font: .bold, fontSize: 20.0, height: 50.0, cornerRadius: 25.0)
+        self.proceedNode = SolidRoundedButtonNode(title: DivoStrings.authContinue, theme: customButtonTheme, glass: false, font: .bold, fontSize: 20.0, height: 50.0, cornerRadius: 25.0)
         
         self.proceedNode.progressType = .embedded
         self.proceedNode.isEnabled = false
@@ -591,7 +597,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
     }
     
     func animateIn(buttonFrame: CGRect, buttonTitle: String, animationSnapshot: UIView, textSnapshot: UIView) {
-        self.proceedNode.animateTitle(to: self.strings.Login_Continue)
+        self.proceedNode.animateTitle(to: DivoStrings.authContinue)
         
         self.animationSnapshotView?.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak self] _ in
             self?.animationSnapshotView?.removeFromSuperview()
@@ -650,7 +656,7 @@ final class AuthorizationSequencePhoneEntryControllerNode: ASDisplayNode {
         var insets = layout.insets(options: [])
         insets.top = layout.statusBarHeight ?? 20.0
 
-        self.titleNode.attributedText = AuthorizationSequencePhoneEntryControllerNode.titleAttributedString(self.account == nil ? strings.Login_NewNumber : strings.Login_PhoneTitle)
+        self.titleNode.attributedText = AuthorizationSequencePhoneEntryControllerNode.titleAttributedString(DivoStrings.authPhoneTitle)
 
         self.titleActivateAreaNode.accessibilityLabel = self.titleNode.attributedText?.string ?? ""
 
@@ -855,18 +861,18 @@ final class PhoneConfirmationController: ViewController {
             
             self.textNode = ImmediateTextNode()
             self.textNode.displaysAsynchronously = false
-            self.textNode.attributedText = NSAttributedString(string: strings.Login_PhoneNumberConfirmation, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
+            self.textNode.attributedText = NSAttributedString(string: DivoStrings.authPhoneConfirmation, font: Font.regular(17.0), textColor: theme.list.itemPrimaryTextColor)
             self.textNode.textAlignment = .center
             
             self.textActivateAreaNode = AccessibilityAreaNode()
             self.textActivateAreaNode.accessibilityTraits = .staticText
             
             self.cancelButton = HighlightableButtonNode()
-            self.cancelButton.setTitle(strings.Login_Edit, with: Font.regular(19.0), with: theme.list.itemAccentColor, for: .normal)
+            self.cancelButton.setTitle(DivoStrings.authEdit, with: Font.regular(19.0), with: theme.list.itemAccentColor, for: .normal)
             self.cancelButton.accessibilityTraits = [.button]
-            self.cancelButton.accessibilityLabel = strings.Login_Edit
+            self.cancelButton.accessibilityLabel = DivoStrings.authEdit
             
-            self.proceedNode = SolidRoundedButtonNode(title: strings.Login_Continue, theme: SolidRoundedButtonTheme(theme: theme), glass: false, height: 50.0, cornerRadius: 50.0 * 0.5)
+            self.proceedNode = SolidRoundedButtonNode(title: DivoStrings.authContinue, theme: SolidRoundedButtonTheme(theme: theme), glass: false, height: 50.0, cornerRadius: 50.0 * 0.5)
             self.proceedNode.progressType = .embedded
             
             let font = Font.with(size: 20.0, design: .regular, traits: [.monospacedNumbers])
@@ -1117,7 +1123,7 @@ final class PhoneConfirmationController: ViewController {
             let textSize = self.textNode.updateLayout(backgroundSize)
             transition.updateFrame(node: self.textNode, frame: CGRect(origin: CGPoint(x: floorToScreenPixels((backgroundSize.width - textSize.width) / 2.0), y: 88.0), size: textSize).offsetBy(dx: backgroundFrame.minX, dy: backgroundFrame.minY))
             self.textActivateAreaNode.frame = self.textNode.frame
-            self.textActivateAreaNode.accessibilityLabel = "\(self.code) \(self.number). \(self.strings.Login_PhoneNumberConfirmation)"
+            self.textActivateAreaNode.accessibilityLabel = "\(self.code) \(self.number). \(DivoStrings.authPhoneConfirmation)"
             
             let proceedWidth = backgroundSize.width - innerInset * 2.0
             let proceedHeight = self.proceedNode.updateLayout(width: proceedWidth, transition: transition)

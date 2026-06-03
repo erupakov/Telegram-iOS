@@ -1502,8 +1502,9 @@ final class EventDetailControllerNode: ASDisplayNode {
             profileHeaderView.isHidden = false
             
             eventDeadlineShimmerContainer.isHidden = true
-            eventDeadlineContainer.isHidden = false
-            
+            // показываем только при непустом тексте — иначе пустой овал
+            eventDeadlineContainer.isHidden = (eventDeadlineLabel.text ?? "").isEmpty
+
             applyButtonShimmer.isHidden = true
 
             appliedStatusShimmerView.isHidden = true
@@ -1811,7 +1812,8 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         let isFree: Bool = newEventData.paymentType?.id == 2
         eventCostTypeContainer.isHidden = newEventData.paymentType?.id == 2
-        eventCostTypeLabel.text = formatCost(newEventData.cost)
+        // «Платно», не конкретная цена (цена остаётся в meta-хедере).
+        eventCostTypeLabel.text = DivoStrings.paid
         
         let (data, time) = formatEventDateAndTime(dateString: newEventData.date)
         profileHeaderView.configure(
@@ -1834,22 +1836,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         applyButton.isHidden = false
         appliedStatusViewContainer.isHidden = true
         
-        // 1. Проверяем, прошёл ли дедлайн
-        var isDeadlinePassed = false
-        if let deadlineRaw = newEventData.applicationDeadline {
-            let normalized = deadlineRaw.replacingOccurrences(of: " ", with: "T")
-            let parser = DateFormatter()
-            parser.locale = Locale(identifier: "en_US_POSIX")
-            parser.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-            var deadlineDate = parser.date(from: normalized)
-            if deadlineDate == nil {
-                parser.dateFormat = "yyyy-MM-dd'T'HH:mm"
-                deadlineDate = parser.date(from: normalized)
-            }
-            if let date = deadlineDate {
-                isDeadlinePassed = date.timeIntervalSinceNow <= 0
-            }
-        }
+        let isDeadlinePassed = EventDateFormatter.isDeadlinePassed(newEventData.applicationDeadline)
 
         if self.isMyEvent {
             applyButton.makeDivoButton(title: DivoStrings.viewApplications, buttonFont: Font.helveticaNeue(14), radius: 18)
@@ -1857,13 +1844,14 @@ final class EventDetailControllerNode: ASDisplayNode {
         } else if newEventData.isApplied == true {
             applyButton.makeDivoButton(title: DivoStrings.applied, leadingIcon: DivoImage.searchWhiteCheckmark, iconSize: CGSize(width: 16, height: 16), buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.isUserInteractionEnabled = false
-            let dateText = self.formatAppliedDate(newEventData.date)  //newEventData.appliedAt ??
+            // applicationDate бэк пока шлёт null → fallback на дату эвента
+            let dateText = self.formatAppliedDate(newEventData.applicationDate ?? newEventData.date)
             appliedStatusView.configure(appliedDateText: dateText)
             appliedStatusViewContainer.isHidden = false
         } else if self.isAgency {
             applyButton.isHidden = true
         } else if isDeadlinePassed {
-            let closedTitle = DivoStrings.сlosed
+            let closedTitle = DivoStrings.closed
             applyButton.makeDivoButton(title: closedTitle, buttonFont: Font.helveticaNeue(14), radius: 18)
             applyButton.isEnabled = false
         } else {
@@ -1875,6 +1863,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventDeadlineLabel.text = deadlineText
             eventDeadlineContainer.isHidden = false
         } else {
+            eventDeadlineLabel.text = nil
             eventDeadlineContainer.isHidden = true
         }
         
@@ -1916,7 +1905,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         setupNavigationBarTitle(name: DivoStrings.previewEvent.uppercased())
         
         eventCostTypeContainer.isHidden = (data.request.isFree == true)
-        eventCostTypeLabel.text = formatCost(data.request.cost)
+        eventCostTypeLabel.text = DivoStrings.paid
         
         let (dStr, tStr) = formatEventDateAndTime(dateString: data.request.date)
         profileHeaderView.configure(
@@ -1935,6 +1924,7 @@ final class EventDetailControllerNode: ASDisplayNode {
             eventDeadlineLabel.text = deadlineText
             eventDeadlineContainer.isHidden = false
         } else {
+            eventDeadlineLabel.text = nil
             eventDeadlineContainer.isHidden = true
         }
         

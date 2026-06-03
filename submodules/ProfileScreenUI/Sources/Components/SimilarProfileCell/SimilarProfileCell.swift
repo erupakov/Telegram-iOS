@@ -84,8 +84,11 @@ final class SimilarProfileCell: UICollectionViewCell {
         let age = item.age.flatMap { calculateAge(from: $0) }
         let flag = Self.flag(for: item.countryCode)
         let city = item.countryName ?? ""
-        let agePrefix = age.map { DivoStrings.ageString($0) + " • " } ?? ""
-        infoLabel.text = "\(agePrefix)\(flag) \(city)"
+        var infoSegments: [String] = []
+        if let age = age { infoSegments.append(DivoStrings.ageString(age)) }
+        let locationPart = [flag, city].filter { !$0.isEmpty }.joined(separator: " ")
+        if !locationPart.isEmpty { infoSegments.append(locationPart) }
+        infoLabel.text = infoSegments.joined(separator: " • ")
         imageView.loadImage(from: item.avatarURL) { [weak self] image in
             self?.imageView.applyAvatarTopCropIfNeeded(image: image)
         }

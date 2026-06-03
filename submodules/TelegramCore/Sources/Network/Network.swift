@@ -4,7 +4,6 @@ import TelegramApi
 import SwiftSignalKit
 import MtProtoKit
 import NetworkLogging
-import DivoCore
 
 #if os(iOS)
     import CloudData
@@ -908,7 +907,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
             _contextProxyId.set(value)
         }, contextLoggedOutUpdated: { [weak self] in
             Logger.shared.log("Network", "contextLoggedOut")
-            divoLog("[MTProto Network] contextLoggedOut — сервер инвалидировал сессию (logout event)", level: .warning)
+            divoMTProtoLog("[MTProto Network] contextLoggedOut — сервер инвалидировал сессию (logout event)", level: .warning)
             self?.loggedOut?()
         })
         self.networkHelper = networkHelper
@@ -977,7 +976,7 @@ public final class Network: NSObject, MTRequestMessageServiceDelegate {
     
     public func requestMessageServiceAuthorizationRequired(_ requestMessageService: MTRequestMessageService!) {
         Logger.shared.log("Network", "requestMessageServiceAuthorizationRequired")
-        divoLog("[MTProto Network] AUTH_KEY_UNREGISTERED — сервер не знает наш auth_key (после deploy / reset). Клиент сейчас сделает loggedOut + новый handshake.", level: .error)
+        divoMTProtoLog("[MTProto Network] AUTH_KEY_UNREGISTERED — сервер не знает наш auth_key (после deploy / reset). Клиент сейчас сделает loggedOut + новый handshake.", level: .error)
         self.loggedOut?()
     }
     

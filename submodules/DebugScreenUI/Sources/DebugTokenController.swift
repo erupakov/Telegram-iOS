@@ -210,14 +210,9 @@ private final class DebugTokenNode: ASDisplayNode {
     }
 
     private func selectPreset(_ preset: TokenPreset) {
-        switch preset {
-        case .agency:
-            DivoConfig.accessToken = DivoConfig.agencyToken
-            DivoConfig.currentUserRole = .agency
-        case .model:
-            DivoConfig.accessToken = DivoConfig.modelToken
-            DivoConfig.currentUserRole = .model
-        }
+        let target: DivoConfig.ForcedTestToken = (preset == .agency) ? .agency : .model
+        // Тап = форс на этот тестовый токен; повторный тап по выбранному = снять форс (вернуться к реальному).
+        DivoConfig.forcedTestToken = (DivoConfig.forcedTestToken == target) ? nil : target
         updateCurrentTokenDisplay()
         updatePresetSelection()
     }
@@ -226,6 +221,8 @@ private final class DebugTokenNode: ASDisplayNode {
         guard let text = customTextField.text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return
         }
+        // Кастомный токен — это реальный слот, поэтому снимаем форс, чтобы он применился.
+        DivoConfig.forcedTestToken = nil
         DivoConfig.accessToken = text.trimmingCharacters(in: .whitespacesAndNewlines)
         customTextField.resignFirstResponder()
         customTextField.text = ""
@@ -240,9 +237,9 @@ private final class DebugTokenNode: ASDisplayNode {
     }
 
     private func updatePresetSelection() {
-        let current = DivoConfig.accessToken
-        agencyRow.setSelected(current == DivoConfig.agencyToken)
-        modelRow.setSelected(current == DivoConfig.modelToken)
+        // Чекмарк = форс активен на этом токене (а не просто текущий effective-токен).
+        agencyRow.setSelected(DivoConfig.forcedTestToken == .agency)
+        modelRow.setSelected(DivoConfig.forcedTestToken == .model)
     }
 
     private func tokenPreview(_ token: String) -> String {

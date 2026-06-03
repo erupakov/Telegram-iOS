@@ -20,7 +20,8 @@ func _internal_currentlySuggestedLocalization(network: Network, extractKeys: [St
 }
 
 func _internal_suggestedLocalizationInfo(network: Network, languageCode: String, extractKeys: [String]) -> Signal<SuggestedLocalizationInfo, NoError> {
-    return combineLatest(network.request(Api.functions.langpack.getLanguages(langPack: "")), network.request(Api.functions.langpack.getStrings(langPack: "", langCode: languageCode, keys: extractKeys)))
+    // DIVO PATCH: langPack="ios" — см. LocalizationPreview.swift.
+    return combineLatest(network.request(Api.functions.langpack.getLanguages(langPack: "ios")), network.request(Api.functions.langpack.getStrings(langPack: "ios", langCode: languageCode, keys: extractKeys)))
         |> retryRequest
         |> map { languages, strings -> SuggestedLocalizationInfo in
             var entries: [LocalizationEntry] = []
@@ -54,7 +55,8 @@ func _internal_availableLocalizations(postbox: Postbox, network: Network, allowC
     } else {
         cached = .complete()
     }
-    let remote = network.request(Api.functions.langpack.getLanguages(langPack: ""))
+    // DIVO PATCH: langPack="ios" — см. LocalizationPreview.swift.
+    let remote = network.request(Api.functions.langpack.getLanguages(langPack: "ios"))
     |> retryRequest
     |> mapToSignal { languages -> Signal<[LocalizationInfo], NoError> in
         let infos: [LocalizationInfo] = languages.map(LocalizationInfo.init(apiLanguage:))
@@ -74,7 +76,8 @@ public enum DownloadLocalizationError {
 }
 
 func _internal_downloadLocalization(network: Network, languageCode: String) -> Signal<Localization, DownloadLocalizationError> {
-    return network.request(Api.functions.langpack.getLangPack(langPack: "", langCode: languageCode))
+    // DIVO PATCH: langPack="ios" — см. LocalizationPreview.swift.
+    return network.request(Api.functions.langpack.getLangPack(langPack: "ios", langCode: languageCode))
     |> mapError { _ -> DownloadLocalizationError in
         return .generic
     }
