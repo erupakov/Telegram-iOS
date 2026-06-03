@@ -1676,6 +1676,9 @@ final class CreateEventNode: ASDisplayNode {
         formatter.roundingMode = .halfUp
         formatter.decimalSeparator = "."
         
+        formatter.usesGroupingSeparator = true
+        formatter.groupingSeparator = "\u{00a0}"
+        
         return formatter.string(from: NSNumber(value: doubleValue))
     }
 
@@ -2755,6 +2758,59 @@ extension CreateEventNode: UICollectionViewDataSource, UICollectionViewDelegateF
 // MARK: - UITextFieldDelegate
 
 extension CreateEventNode: UITextFieldDelegate {
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        if textField == rateTextField {
+            let allowedCharacters = CharacterSet.decimalDigits
+            let characterSet = CharacterSet(charactersIn: string)
+            if !string.isEmpty && !allowedCharacters.isSuperset(of: characterSet) {
+                return false
+            }
+            
+            let currentText = textField.text ?? ""
+            guard let stringRange = Range(range, in: currentText) else { return false }
+            let updatedText = currentText.replacingCharacters(in: stringRange, with: string)
+            
+            let cleanText = updatedText.replacingOccurrences(of: " ", with: "")
+                                       .replacingOccurrences(of: "\u{00a0}", with: "")
+            
+            if cleanText.isEmpty {
+                textField.text = ""
+                self.switchChange()
+                return false
+            }
+            
+            if cleanText.count > 9 {
+                return false
+            }
+            
+            if let doubleValue = Double(cleanText) {
+                let formatter = NumberFormatter()
+                formatter.minimumFractionDigits = 0
+                formatter.maximumFractionDigits = 0
+                formatter.usesGroupingSeparator = true
+                formatter.groupingSeparator = "\u{00a0}"
+                
+                if let formattedText = formatter.string(from: NSNumber(value: doubleValue)) {
+                    let selectedRange = textField.selectedTextRange
+                    
+                    textField.text = formattedText
+                    
+                    if let selectedRange = selectedRange {
+                        let cursorOffsetFromEnd = currentText.count - textField.offset(from: textField.beginningOfDocument, to: selectedRange.start)
+                        let newCursorOffset = max(0, formattedText.count - cursorOffsetFromEnd)
+                        if let newPosition = textField.position(from: textField.beginningOfDocument, offset: newCursorOffset) {
+                            textField.selectedTextRange = textField.textRange(from: newPosition, to: newPosition)
+                        }
+                    }
+                }
+            }
+            
+            self.switchChange()
+            return false
+        }
+        return true
+    }
+
     func textFieldDidBeginEditing(_ textField: UITextField) {
         if textField == rateTextField {
             rateFieldContainer.layer.borderWidth = 1.0
