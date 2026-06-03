@@ -27,9 +27,10 @@ public class AddRosterModelController: TelegramBaseController {
     private var searchDebounceTimer: Timer?
     
     private var currentQuery: String = ""
-    private var isLoading: Bool = false
-
-    // Callback завершения выбора модели
+    
+    private var currentSearchTask: Task<Void, Never>?
+    private var loadedUsers: [RosterSearchUser] = []
+    
     public var onModelAdded: ((RosterSearchUser) -> Void)?
 
     // MARK: - Init
@@ -48,14 +49,16 @@ public class AddRosterModelController: TelegramBaseController {
         self.displayNode = AddRosterModelNode()
         self.displayNodeDidLoad()
 
-        // 1. Обработка ввода в поисковую строку с задержкой (Debounce)
         self.controllerNode.onSearchTextChanged = { [weak self] text in
             guard let self = self else { return }
             self.searchDebounceTimer?.invalidate()
+            
+            self.currentSearchTask?.cancel()
 
             let cleanQuery = text.trimmingCharacters(in: .whitespacesAndNewlines)
             if cleanQuery.isEmpty {
                 self.currentQuery = ""
+                self.loadedUsers = []
                 self.controllerNode.state = .initial
                 return
             }
@@ -66,16 +69,13 @@ public class AddRosterModelController: TelegramBaseController {
             }
         }
 
-        // 2. Закрытие экрана
         self.controllerNode.onCloseTapped = { [weak self] in
             self?.dismiss()
         }
 
-        // 3. Выбор пользователя из результатов поиска
         self.controllerNode.onUserSelected = { [weak self] user in
             guard let self = self else { return }
             
-            // Если модель уже добавлена в наш ростер, просто игнорируем
             if case .alreadyAdded(let agencyName) = user.status {
                 self.showRepresentedByAnotherAlert(agencyName: agencyName)
                 return
@@ -84,7 +84,6 @@ public class AddRosterModelController: TelegramBaseController {
             self.onModelAdded?(user)
         }
 
-        // 4. Повтор запроса при ошибке
         self.controllerNode.onRetry = { [weak self] in
             guard let self = self else { return }
             if !self.currentQuery.isEmpty {
@@ -93,7 +92,7 @@ public class AddRosterModelController: TelegramBaseController {
         }
     }
     
-    // Метод вызова родного закругленного алерта Telegram
+    // Метод вызова кастомного алерта
     private func showRepresentedByAnotherAlert(agencyName: String) {
         let alert = RosterAlertController(
             agencyName: agencyName
@@ -104,38 +103,37 @@ public class AddRosterModelController: TelegramBaseController {
     }
 
     // MARK: - Server Request Flow
+    
     private func performRosterSearch(query: String) {
-        guard !isLoading else { return }
+        self.currentSearchTask?.cancel()
         
         self.controllerNode.state = .loading
-        self.isLoading = true
         
-        Task { [weak self] in
+        self.currentSearchTask = Task { [weak self] in
             do {
                 let request = AgencySearchRequest(
                     name: query
                 )
                 
-                // Делаем реальный сетевой POST-запрос к /agency/search
                 let response: AgencySearchResponse = try await DivoAPIClient.shared.request(
                     path: "/agency/search",
                     method: "POST",
                     body: request
                 )
                 
+                guard !Task.isCancelled else { return }
+                
                 let profileItems = response.data.items
                 
-                // Маппим DTO-объекты в наши UI-модели RosterSearchUser
                 let mappedUsers = self?.mapToRosterUsers(profileItems) ?? []
                
                 await MainActor.run {
                     guard let self = self else { return }
-                    self.isLoading = false
                     
-                    // Проверяем, не успел ли измениться поисковый запрос во время выполнения запроса к серверу
                     let currentTextFieldText = self.controllerNode.searchTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                     guard currentTextFieldText == query else { return }
 
+                    self.loadedUsers = mappedUsers
                     if mappedUsers.isEmpty {
                         self.controllerNode.state = .empty
                     } else {
@@ -145,14 +143,14 @@ public class AddRosterModelController: TelegramBaseController {
             } catch {
                 await MainActor.run {
                     guard let self = self else { return }
-                    self.isLoading = false
+                    guard !Task.isCancelled else { return }
+                    
                     self.controllerNode.state = .failed(networkError: true)
                 }
             }
         }
     }
 
-    // Метод маппинга SearchUserDTO в RosterSearchUser с определением статуса модели
     private func mapToRosterUsers(_ items: [AgencySearchUserDTO]) -> [RosterSearchUser] {
         return items.compactMap { item -> RosterSearchUser? in
             let name = item.name

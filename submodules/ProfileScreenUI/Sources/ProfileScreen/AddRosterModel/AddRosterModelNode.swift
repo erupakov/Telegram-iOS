@@ -74,18 +74,6 @@ final class AddRosterModelNode: ASDisplayNode {
         }
         return view
     }()
-
-    private let faceScanButton: UIButton = {
-        let button = UIButton(type: .custom)
-        button.adjustsImageWhenHighlighted = false
-        button.backgroundColor = DivoColorPalette.accent
-        button.layer.cornerRadius = 18
-        let image = DivoImage.searchFaceScan
-        button.setImage(image, for: .normal)
-        button.tintColor = DivoColorPalette.primaryTextOnDark
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
     
     private let resultsContainer: UIView = {
         let view = UIView()
@@ -253,7 +241,6 @@ final class AddRosterModelNode: ASDisplayNode {
         view.addSubview(searchFieldContainer)
         searchFieldContainer.addSubview(searchIcon)
         searchFieldContainer.addSubview(searchTextField)
-        searchFieldContainer.addSubview(faceScanButton)
         
         // Настройка ScrollView & StackView
         view.addSubview(scrollView)
@@ -272,9 +259,6 @@ final class AddRosterModelNode: ASDisplayNode {
         // Оборачиваем footerSpinner в контейнер
         footerSpinner.center = CGPoint(x: (UIScreen.main.bounds.width - DivoDesignTokens.Spacing.xl) / 2, y: 30)
         footerSpinnerContainer.addSubview(footerSpinner)
-        
-        faceScanButton.addDivoPressState(.accentInline)
-        faceScanButton.addTarget(self, action: #selector(faceScanTapped), for: .touchUpInside)
 
         NSLayoutConstraint.activate([
             searchFieldContainer.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -288,14 +272,9 @@ final class AddRosterModelNode: ASDisplayNode {
             searchIcon.heightAnchor.constraint(equalToConstant: 20),
 
             searchTextField.leadingAnchor.constraint(equalTo: searchIcon.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
-            searchTextField.trailingAnchor.constraint(equalTo: faceScanButton.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
+            searchTextField.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
             searchTextField.topAnchor.constraint(equalTo: searchFieldContainer.topAnchor),
             searchTextField.bottomAnchor.constraint(equalTo: searchFieldContainer.bottomAnchor),
-
-            faceScanButton.trailingAnchor.constraint(equalTo: searchFieldContainer.trailingAnchor, constant: -2),
-            faceScanButton.centerYAnchor.constraint(equalTo: searchFieldContainer.centerYAnchor),
-            faceScanButton.widthAnchor.constraint(equalToConstant: 38),
-            faceScanButton.heightAnchor.constraint(equalToConstant: 38),
 
             initialPlaceholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             initialPlaceholderLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 40),
@@ -457,11 +436,6 @@ final class AddRosterModelNode: ASDisplayNode {
 
 
     // MARK: - Handlers
-
-    @objc private func faceScanTapped() {
-        view.endEditing(true)
-        searchTextField.resignFirstResponder()
-    }
 
     @objc private func searchTextChangedHandler() {
         onSearchTextChanged?(searchTextField.text ?? "")
