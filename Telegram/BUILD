@@ -141,7 +141,7 @@ genrule(
     ],
 )
 
-minimum_os_version = "18.0"
+minimum_os_version = "13.0"
 
 notificationServiceExtensionVersion = "v1"
 
@@ -1839,7 +1839,7 @@ swift_library(
 ios_ui_test_suite(
     name = "iOSAppUITestSuite",
     bundle_id = "org.telegram.Telegram-iOS-uitests",
-    minimum_os_version = "18.0",
+    minimum_os_version = "13.0",
     runners = [
         ":iPhone-17__26.2",
     ],
