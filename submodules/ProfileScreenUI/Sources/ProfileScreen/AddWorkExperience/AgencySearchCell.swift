@@ -116,8 +116,8 @@ final class AgencySearchCell: UITableViewCell {
         logoEmptyImageView.isHidden = false
 
         if let urlString = item.agencyAvatarLink, let url = URL(string: urlString) {
-            logoImageView.loadImage(from: url) { [weak self] _ in
-                self?.logoEmptyImageView.isHidden = true
+            logoImageView.loadImage(from: url) { [weak self] image in
+                self?.logoEmptyImageView.isHidden = image != nil
             }
         }
 

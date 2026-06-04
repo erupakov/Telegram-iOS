@@ -72,14 +72,6 @@ class ProfileHeaderView: UIView {
         avatarImageView.applyAvatarTopCropIfNeeded(image: image)
     }
     
-    private let avatarSpinner: UIActivityIndicatorView = {
-        let spinner = UIActivityIndicatorView(style: .large)
-        spinner.color = DivoColorPalette.primaryText
-        spinner.hidesWhenStopped = true
-        spinner.translatesAutoresizingMaskIntoConstraints = false
-        return spinner
-    }()
-
     private let onlineStatusView: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.onlineIndicator
@@ -161,7 +153,6 @@ class ProfileHeaderView: UIView {
     private func setupViews() {
         addSubview(ringView)
         addSubview(avatarImageView)
-        addSubview(avatarSpinner)
         addSubview(onlineStatusView)
 
         addSubview(nameLabel)
@@ -180,9 +171,6 @@ class ProfileHeaderView: UIView {
             avatarImageView.bottomAnchor.constraint(equalTo: bottomAnchor),
             avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
             avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
-
-            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
-            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
 
             ringView.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
             ringView.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
@@ -253,23 +241,7 @@ class ProfileHeaderView: UIView {
         self.layoutIfNeeded()
     }
     
-    func changeAvatar(with image: UIImage?) {
-        if let image = image {
-            avatarImageView.image = image
-            applyAvatarContentsRect(for: image)
-        } else {
-            avatarImageView.image = DivoImage.emptyBackgroundAvatar
-            applyAvatarContentsRect(for: nil)
-        }
-    }
-    
-    func toggleSpinner(active: Bool) {
-        if active {
-            avatarSpinner.startAnimating()
-            avatarImageView.alpha = 0.5
-        } else {
-            avatarSpinner.stopAnimating()
-            avatarImageView.alpha = 1.0
-        }
+    func loadAvatar(from url: URL?) {
+        avatarImageView.loadImage(from: url, placeholder: DivoImage.emptyBackgroundAvatar, cropAvatarIfNeeded: true)
     }
 }

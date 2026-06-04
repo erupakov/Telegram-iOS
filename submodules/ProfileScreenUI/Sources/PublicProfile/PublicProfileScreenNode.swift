@@ -3146,25 +3146,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
             .joined(separator: " • ")
     }
 
-    /// Грузит аватар в шапку. Спиннер гарантированно гасится на всех путях:
-    /// nil-URL, ошибка конвертации, ошибка загрузки, успех.
+    /// Грузит аватар в шапку: шиммер на время загрузки, заглушка при nil-URL/ошибке.
     private func loadHeaderAvatar(urlString: String?) {
-        let fallbackAvatar = DivoImage.emptyBackgroundAvatar
-        
-        guard
-            let urlString,
-            let avatarURL = CDNURLHelper.convertToCDNURL(urlString)
-        else {
-            self.profileHeaderView.toggleSpinner(active: false)
-            self.profileHeaderView.changeAvatar(with: fallbackAvatar)
-            return
-        }
-
-        ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-            guard let self else { return }
-            self.profileHeaderView.toggleSpinner(active: false)
-            self.profileHeaderView.changeAvatar(with: image ?? fallbackAvatar)
-        }
+        profileHeaderView.loadAvatar(from: CDNURLHelper.convertToCDNURL(urlString))
     }
     
     // Первоначальная настройка титула NavigationBar
@@ -3434,7 +3418,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
-        self.profileHeaderView.toggleSpinner(active: true)
         self.modelDetail = detail
         var bio: String?
         var appearance: [AppearanceAttribute]

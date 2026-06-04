@@ -64,12 +64,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()
-    
-    private let avatarSpinner: DivoSegmentedSpinner = {
-        let avatarSpinner = DivoSegmentedSpinner()
-        avatarSpinner.isHidden = true
-        return avatarSpinner
-    }()
 
     private let workInfoLabel: UILabel = {
         let label = UILabel()
@@ -315,8 +309,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
         contentView.addSubview(avatarContainer)
         avatarContainer.addSubview(avatarImageView)
         avatarContainer.addSubview(avatarEmptyImageView)
-        avatarSpinner.translatesAutoresizingMaskIntoConstraints = false
-        avatarContainer.addSubview(avatarSpinner)
 
         contentView.addSubview(workInfoLabel)
         contentView.addSubview(agencyNameLabel)
@@ -393,11 +385,6 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
             avatarEmptyImageView.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             avatarEmptyImageView.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
             
-            avatarSpinner.centerXAnchor.constraint(equalTo: avatarImageView.centerXAnchor),
-            avatarSpinner.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
-            avatarSpinner.widthAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
-            avatarSpinner.heightAnchor.constraint(equalToConstant: DivoDesignTokens.Spacing.xl),
-
             // Event info label
             workInfoLabel.topAnchor.constraint(equalTo: avatarContainer.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
             workInfoLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -722,8 +709,7 @@ final class AddWorkExperience: ASDisplayNode, UITextFieldDelegate {
     }
     
     func loadAvatar(isLoading: Bool) {
-        isLoading ? avatarSpinner.startAnimating() : avatarSpinner.stopAnimating()
-        avatarSpinner.isHidden = !isLoading
+        isLoading ? avatarImageView.addShimmerOverlay() : avatarImageView.removeShimmerOverlay()
         if currentPhoto == nil {
             avatarEmptyImageView.isHidden = isLoading
         }
