@@ -3149,20 +3149,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
     /// Грузит аватар в шапку. Спиннер гарантированно гасится на всех путях:
     /// nil-URL, ошибка конвертации, ошибка загрузки, успех.
     private func loadHeaderAvatar(urlString: String?) {
+        let fallbackAvatar = DivoImage.emptyBackgroundAvatar
+        
         guard
             let urlString,
             let avatarURL = CDNURLHelper.convertToCDNURL(urlString)
         else {
             self.profileHeaderView.toggleSpinner(active: false)
+            self.profileHeaderView.changeAvatar(with: fallbackAvatar)
             return
         }
 
         ImageLoader.shared.load(url: avatarURL) { [weak self] image in
             guard let self else { return }
             self.profileHeaderView.toggleSpinner(active: false)
-            if let image {
-                self.profileHeaderView.changeAvatar(with: image)
-            }
+            self.profileHeaderView.changeAvatar(with: image ?? fallbackAvatar)
         }
     }
     
@@ -3452,8 +3453,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 )
             )
 
+            let placeholder = DivoImage.emptyBackgroundAgencyProfile
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-                headerImageView.loadImage(from: photoURL)
+                headerImageView.loadImage(from: photoURL, placeholder: placeholder)
+            } else {
+                headerImageView.image = placeholder
             }
 
             bio = (detail.agency?.description?.isEmpty == false)
@@ -3482,8 +3486,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 )
             )
 
-            if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-                headerImageView.loadImage(from: photoURL)
+            let placeholder = DivoImage.emptyBackgroundModelProfile
+//            if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            if let photoURLString = nil as String?, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+                headerImageView.loadImage(from: photoURL, placeholder: placeholder)
+            } else {
+                headerImageView.image = placeholder
             }
 
             bio = (detail.model?.description?.isEmpty == false)
@@ -4218,6 +4226,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .models {
                 self.updateCollectionsContainerHeight(animated: false)
+                self.updateFloatingButton(for: currentTab)
             }
         }
     }
@@ -4267,6 +4276,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .events {
                 self.updateCollectionsContainerHeight(animated: false)
+                self.updateFloatingButton(for: currentTab)
             }
         }
     }

@@ -165,17 +165,12 @@ final class ModelListCell: UICollectionViewCell {
         roleLabel.text = item.role
         premiumBadgeIcon.isHidden = !item.isPremium
         optionsButton.isHidden = !isMyProfile
-        let placeholderColor = DivoColorPalette.imagePlaceholderLight
-        if let avatarURLString = item.customAvatarURL,
-           let url = CDNURLHelper.convertToCDNURL(avatarURLString) {
-            avatarImageView.backgroundColor = placeholderColor
-            avatarImageView.loadImage(from: url) { [weak self] image in
-                self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-            }
+
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = item.customAvatarURL, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
         } else {
-            avatarImageView.image = nil
-            avatarImageView.backgroundColor = placeholderColor
-            avatarImageView.applyAvatarTopCropIfNeeded(image: nil)
+            avatarImageView.image = placeholder
         }
     }
 

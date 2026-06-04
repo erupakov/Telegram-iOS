@@ -124,10 +124,11 @@ class HeaderApplyView: UIView {
         eventTypeLabelContainer.backgroundColor = EventTypeStyle.color(for: eventTypeId)
         eventMetaLabel.text = eventInfo
         
-        if let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl) {
-            avatarImageView.loadImage(from: avatarURL) { [weak self] image in
-                self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            avatarImageView.image = placeholder
         }
         self.layoutIfNeeded()
     }

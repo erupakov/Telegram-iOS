@@ -46,7 +46,7 @@ final class EventsSearchNode: ASDisplayNode {
         let field = UITextField()
         field.font = Font.regular(14)
         field.textColor = DivoColorPalette.primaryText
-        field.tintColor = DivoColorPalette.accentSecondary
+        field.tintColor = DivoColorPalette.accent
         field.placeholder = DivoStrings.eventsSearchPlaceholder
         field.clearButtonMode = .whileEditing
         field.autocorrectionType = .no

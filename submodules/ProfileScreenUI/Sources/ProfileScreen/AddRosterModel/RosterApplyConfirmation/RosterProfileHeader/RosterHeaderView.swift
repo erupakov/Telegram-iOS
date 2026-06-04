@@ -146,18 +146,11 @@ class RosterHeaderView: UIView {
         metaLabel.isHidden = meta == nil
         metaLabel.text = meta
         
-        if let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl) {
-            Task {
-                do {
-                    let (data, _) = try await URLSession.shared.data(from: avatarURL)
-                    if let image = UIImage(data: data) {
-                        await MainActor.run {
-                            self.avatarImageView.image = image
-                            self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-                        }
-                    }
-                } catch {}
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            avatarImageView.image = placeholder
         }
         self.layoutIfNeeded()
     }

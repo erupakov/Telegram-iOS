@@ -61,7 +61,6 @@ class ProfileHeaderView: UIView {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.image = UIImage(systemName: "person.crop.circle.fill")
         iv.tintColor = DivoColorPalette.primaryText
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -260,7 +259,7 @@ class ProfileHeaderView: UIView {
             avatarImageView.image = image
             applyAvatarContentsRect(for: image)
         } else {
-            avatarImageView.image = UIImage(systemName: "person.crop.circle.fill")
+            avatarImageView.image = DivoImage.emptyBackgroundAvatar
             applyAvatarContentsRect(for: nil)
         }
     }

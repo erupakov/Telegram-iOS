@@ -299,14 +299,14 @@ final class CardCollectionViewCell: UICollectionViewCell {
         } else {
             topGlassView.alpha = 0
             bottomGlassView.alpha = 0
-            mainImageView.backgroundColor = placeholderColor
+            mainImageView.image = Role(apiRole: model.role) == .agency ? DivoImage.emptyBackgroundAgencyProfileSmall : DivoImage.emptyBackgroundModelProfileSmall
         }
 
         // Name
         nameLabel.text = model.name
 
         // Role badge
-        let roleText = model.roleLabel ?? model.role ?? ""
+        let roleText = Role(apiRole: model.role).title
         if roleText.isEmpty {
             roleBadgeView.isHidden = true
         } else {

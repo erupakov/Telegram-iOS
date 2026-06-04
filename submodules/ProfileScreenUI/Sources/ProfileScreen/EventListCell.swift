@@ -120,15 +120,9 @@ final class EventListCell: UICollectionViewCell {
         
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
         
-        // =========================================================================
-        // НАСТРОЙКА ПРИОРИТЕТОВ СЖАТИЯ
-        // =========================================================================
-        
-        // 1. Самое сжимаемое (приоритет 250 - сожмется первым)
         nameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         nameLabel.lineBreakMode = .byTruncatingTail
         
-        // 2. Средняя сжимаемость (приоритет 500 - сжимается во вторую очередь)
         let mediumCompressionPriority = UILayoutPriority(500)
         applyButton.setContentCompressionResistancePriority(mediumCompressionPriority, for: .horizontal)
         applyStackView.setContentCompressionResistancePriority(mediumCompressionPriority, for: .horizontal)
@@ -136,10 +130,8 @@ final class EventListCell: UICollectionViewCell {
         labelBadgeApply.setContentCompressionResistancePriority(mediumCompressionPriority, for: .horizontal)
         rigthStack.setContentCompressionResistancePriority(mediumCompressionPriority, for: .horizontal)
         
-        // 3. Не может сжиматься вообще (приоритет 1000 - максимальная защита)
         infoLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         infoLabel.lineBreakMode = .byTruncatingTail
-        // =========================================================================
         
         nameLabelTrailingWithButton = nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: rigthStack.leadingAnchor, constant: -10)
         nameLabelTrailingWithoutButton = nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m)
@@ -199,8 +191,11 @@ final class EventListCell: UICollectionViewCell {
         if !location.isEmpty { infoParts.append(location) }
         infoLabel.text = infoParts.joined(separator: " · ")
         
-        if let urlString = item.customAvatarURL, let url = URL(string: urlString) {
-            avatarImageView.loadImage(from: url)
+        let placeholder = DivoImage.emptyBackgroundEventSmall
+        if let photoURLString = item.customAvatarURL, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            avatarImageView.image = placeholder
         }
         
         if isMyProfile || (item.isMyRoleAgency == true) {
