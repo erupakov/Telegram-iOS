@@ -1,5 +1,5 @@
 //
-//  RosterUserCell.swift
+//  RosterUserView.swift
 //  divo-ios
 //
 //  Created by Michail Shagovitov on 01.06.2026.
@@ -189,7 +189,7 @@ final class RosterUserView: UIView {
 
     private func setDefaultAvatar() {
         avatarImageView.image = UIImage(systemName: "person.crop.circle.fill")
-        avatarImageView.tintColor = .lightGray
+        avatarImageView.tintColor = DivoColorPalette.systemLabelTertiary
         avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
     }
 }

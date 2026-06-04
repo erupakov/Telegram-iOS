@@ -145,7 +145,14 @@ public class AddRosterModelController: TelegramBaseController {
                     guard let self = self else { return }
                     guard !Task.isCancelled else { return }
                     
-                    self.controllerNode.state = .failed(networkError: true)
+                    if isNetworkError(error) {
+                        self.controllerNode.state = .failed(networkError: true)
+                    } else if let message = (error as? DivoAPIError)?.userFacingMessage, !message.isEmpty {
+                        self.controllerNode.state = .idle
+                        self.controllerNode.showSnackbar(message: message, style: .error)
+                    } else {
+                        self.controllerNode.state = .failed(networkError: false)
+                    }
                 }
             }
         }
@@ -153,19 +160,19 @@ public class AddRosterModelController: TelegramBaseController {
 
     private func mapToRosterUsers(_ items: [AgencySearchUserDTO]) -> [RosterSearchUser] {
         return items.compactMap { item -> RosterSearchUser? in
-            let name = item.name
+            guard let userId = item.userId else { return nil }
             let avatarUrl = item.photo?.fullUrl
-            var status: RosterUserStatus
+            let status: RosterUserStatus
             if let agencyName = item.currentAgency?.title {
                 status = .alreadyAdded(agencyName: agencyName)
             } else {
-                //handle НАДО В РУЧКЕ ДОБАВИТЬ
+                // FIXME DIVO: handle приходит как имя — ждём отдельное поле от бэка
                 status = .available(handle: item.name ?? "", role: Role(apiRole: item.role).title)
             }
             
             return RosterSearchUser(
-                id: item.userId ?? 0,
-                name: name ?? "",
+                id: userId,
+                name: item.name ?? "",
                 avatarUrl: avatarUrl,
                 isPremium: item.isPremium ?? false,
                 status: status

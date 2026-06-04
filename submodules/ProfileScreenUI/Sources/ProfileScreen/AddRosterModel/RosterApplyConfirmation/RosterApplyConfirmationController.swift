@@ -10,7 +10,6 @@ import UIKit
 import Display
 import AsyncDisplayKit
 import TelegramCore
-import SwiftSignalKit
 import TelegramPresentationData
 import AccountContext
 import TelegramBaseController
@@ -25,15 +24,12 @@ public final class RosterApplyConfirmationController: TelegramBaseController {
 
     private let context: AccountContext
     private let userId: Int
-    private var agencyId: Int?
-    private var userDetail: UserDetail?
-    
+
     public var onConfirmSuccess: ((String?) -> Void)?
 
-    public init(context: AccountContext, userId: Int, agencyId: Int? = nil) {
+    public init(context: AccountContext, userId: Int) {
         self.context = context
         self.userId = userId
-        self.agencyId = agencyId
         super.init(context: context, navigationBarPresentationData: nil)
     }
 
@@ -42,11 +38,7 @@ public final class RosterApplyConfirmationController: TelegramBaseController {
     }
 
     override public func loadDisplayNode() {
-        self.displayNode = RosterApplyConfirmationNode(context: self.context)
-        
-        self.controllerNode.onBackTapped = { [weak self] in
-            self?.navigationController?.popViewController(animated: true)
-        }
+        self.displayNode = RosterApplyConfirmationNode()
         
         self.controllerNode.onCancelTapped = { [weak self] in
             self?.navigationController?.popViewController(animated: true)
@@ -75,28 +67,17 @@ public final class RosterApplyConfirmationController: TelegramBaseController {
         Task { [weak self] in
             guard let self = self else { return }
             do {
-                // 1. Загружаем детальную информацию о модели
                 let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/user/\(self.userId)",
                     method: "GET"
                 )
-                
-                // 2. Если ID агентства не передано, берем его из профиля текущего пользователя
-                if self.agencyId == nil {
-                    let myProfileResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
-                        path: "/user/info",
-                        method: "GET"
-                    )
-                    self.agencyId = myProfileResponse.data.agency?.id
-                }
 
                 await MainActor.run {
-                    self.userDetail = userResponse.data
                     self.controllerNode.update(with: userResponse.data)
                 }
             } catch {
                 await MainActor.run {
-                    self.controllerNode.markFailed(networkError: self.isNetworkError(error))
+                    self.controllerNode.markFailed(networkError: isNetworkError(error))
                 }
             }
         }
@@ -122,19 +103,11 @@ public final class RosterApplyConfirmationController: TelegramBaseController {
                 await MainActor.run {
                     guard let self = self else { return }
                     self.controllerNode.toggleSubmitLoading(active: false)
-                    self.controllerNode.showSnackbar(
-                        message: DivoStrings.genericError,
-                        style: .error
-                    )
+                    let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError
+                    self.controllerNode.showSnackbar(message: userMsg, style: .error)
                 }
             }
         }
     }
 
-    private func isNetworkError(_ error: Error) -> Bool {
-        if let apiError = error as? DivoAPIError, case .noInternetConnection = apiError {
-            return true
-        }
-        return false
-    }
 }

@@ -31,6 +31,7 @@ public struct RosterSearchUser: Equatable {
 
 public enum AddRosterScreenState: Equatable {
     case initial
+    case idle
     case loading
     case empty
     case success(users: [RosterSearchUser])

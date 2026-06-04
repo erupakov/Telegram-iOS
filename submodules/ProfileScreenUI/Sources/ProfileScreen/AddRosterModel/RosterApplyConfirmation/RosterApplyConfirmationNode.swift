@@ -9,19 +9,13 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
-import TelegramCore
-import TelegramPresentationData
-import AccountContext
-import AppBundle
 import DivoUIKit
 import DivoCore
 
-final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
-    private let context: AccountContext
+final class RosterApplyConfirmationNode: ASDisplayNode {
     private var containerLayout: (ContainerViewLayout, CGFloat)?
 
     // Callbacks
-    var onBackTapped: (() -> Void)?
     var onCancelTapped: (() -> Void)?
     var onConfirmTapped: ((String?) -> Void)?
     var onRetryTapped: (() -> Void)?
@@ -184,8 +178,7 @@ final class RosterApplyConfirmationNode: ASDisplayNode, UITextViewDelegate {
 
     // MARK: - Init
     
-    init(context: AccountContext) {
-        self.context = context
+    override init() {
         super.init()
         setupUI()
     }

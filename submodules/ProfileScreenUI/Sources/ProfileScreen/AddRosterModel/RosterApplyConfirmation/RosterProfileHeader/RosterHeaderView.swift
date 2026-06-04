@@ -147,16 +147,18 @@ class RosterHeaderView: UIView {
         metaLabel.text = meta
         
         if let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl) {
-            Task {
+            Task { [weak self] in
                 do {
                     let (data, _) = try await URLSession.shared.data(from: avatarURL)
                     if let image = UIImage(data: data) {
                         await MainActor.run {
-                            self.avatarImageView.image = image
-                            self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
+                            self?.avatarImageView.image = image
+                            self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
                         }
                     }
-                } catch {}
+                } catch {
+                    divoLog("RosterHeader avatar load failed: \(error)", level: .error)
+                }
             }
         }
         self.layoutIfNeeded()
