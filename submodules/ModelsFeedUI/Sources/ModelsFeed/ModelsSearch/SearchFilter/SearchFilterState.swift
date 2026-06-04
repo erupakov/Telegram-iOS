@@ -19,7 +19,9 @@ struct SearchFilterState: Equatable {
     var countryIds: [String] = []
     var countryTitles: [String] = []
 
-    var city: String?
+    var cityId: Int?
+    var cityTitle: String?
+    var rawCityId: String?
     
     var ageRange: ClosedRange<Int>?
     var heightRange: ClosedRange<Double>?
@@ -39,7 +41,7 @@ struct SearchFilterState: Equatable {
             !roleIds.isEmpty,
             !genderIds.isEmpty,
             !countryIds.isEmpty,
-            !(city?.isEmpty ?? true),
+            cityId != nil,
             ageRange != nil,
             heightRange != nil,
             weightRange != nil,
@@ -68,7 +70,9 @@ struct SearchFilterState: Equatable {
         genderTitles = []
         countryIds = []
         countryTitles = []
-        city = nil
+        cityId = nil
+        cityTitle = nil
+        rawCityId = nil
         ageRange = nil
         heightRange = nil
         weightRange = nil

@@ -27,14 +27,13 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     ]
     
     lazy var countryOptions:[FilterOptionItem] = {
-        var options = [FilterOptionItem(id: "all", title: DivoStrings.feedSearchAllCountries)]
+        var options: [FilterOptionItem] = []
         options.append(contentsOf: CountryHelper.getAllCountries())
         return options
     }()
     
     var onApply: ((SearchFilterState) -> Void)?
     var onClose: ((SearchFilterState) -> Void)?
-    var onSelectCountry: ((@escaping (String, String) -> Void) -> Void)?
     
     private struct AppearanceFilterItem {
         let title: String
@@ -56,23 +55,8 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     private let roleRow = FilterRowView(title: DivoStrings.debugRole)
     private let genderRow = FilterRowView(title: DivoStrings.paramGender)
     private let countryRow = FilterRowView(title: DivoStrings.debugCountry)
+    private let cityRow = FilterRowView(title: DivoStrings.debugCity)
     
-    private let cityTextField: UITextField = {
-        let tf = UITextField()
-        tf.placeholder = DivoStrings.debugCity
-        tf.backgroundColor = DivoColorPalette.cardBackground
-        tf.layer.cornerRadius = 23 // TODO: DS alignment — не в шкале Radius (border inset от card=24)
-        tf.font = Font.regular(16)
-        let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 46))
-        tf.leftView = paddingView
-        tf.leftViewMode = .always
-        tf.rightView = paddingView
-        tf.rightViewMode = .always
-        tf.autocapitalizationType = .words
-        tf.translatesAutoresizingMaskIntoConstraints = false
-        return tf
-    }()
-
     private let moreFiltersButton: UIButton = {
         let btn = UIButton(type: .custom)
         btn.setTitle(DivoStrings.feedSearchMoreFilters, for: .normal)
@@ -346,18 +330,12 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             stackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -DivoDesignTokens.Spacing.xl)
         ])
 
-        let innerStack = UIStackView(arrangedSubviews: [roleRow, genderRow, countryRow])
+        let innerStack = UIStackView(arrangedSubviews: [roleRow, genderRow, countryRow, cityRow])
         innerStack.axis = .vertical
         innerStack.translatesAutoresizingMaskIntoConstraints = false
         innerStack.spacing = DivoDesignTokens.Spacing.m
 
         stackView.addArrangedSubview(innerStack)
-
-        cityTextField.delegate = self
-        cityTextField.addTarget(self, action: #selector(cityChanged), for: .editingChanged)
-
-        NSLayoutConstraint.activate([cityTextField.heightAnchor.constraint(equalToConstant: 46)])
-        stackView.addArrangedSubview(cityTextField)
         
         let isAgency = DivoConfig.currentUserRole == .agency
         
@@ -401,6 +379,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         roleRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(roleTapped)))
         genderRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(genderTapped)))
         countryRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countryTapped)))
+        cityRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cityTapped)))
         
         reloadAppearanceOptions()
     }
@@ -410,9 +389,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         
         for (index, item) in appearanceFilterItems.enumerated() {
             let isLast = index == appearanceFilterItems.count - 1
-            
             let cell = AppearanceFilterRowView(title: item.title, isLast: isLast)
-            
             cell.setItems(item.getValues(), emptyTitle: item.emptyTitle)
             
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(appearanceCellTapped(_:)))
@@ -421,64 +398,6 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
             
             appearanceContainerStack.addArrangedSubview(cell)
         }
-    }
-    
-    private func createAppearanceCell(title: String, value: String, isLast: Bool) -> UIView {
-        let cell = UIView()
-        cell.backgroundColor = .clear
-        cell.translatesAutoresizingMaskIntoConstraints = false
-        cell.heightAnchor.constraint(equalToConstant: 50).isActive = true
-        
-        let titleLabel = UILabel()
-        titleLabel.text = title
-        titleLabel.font = Font.regular(16)
-        titleLabel.textColor = DivoColorPalette.primaryText
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        cell.addSubview(titleLabel)
-        
-        let valueLabel = UILabel()
-        valueLabel.text = value
-        valueLabel.font = Font.regular(14)
-        valueLabel.textColor = DivoColorPalette.systemLabelTertiary
-        valueLabel.textAlignment = .right
-        valueLabel.translatesAutoresizingMaskIntoConstraints = false
-        cell.addSubview(valueLabel)
-        
-        let chevronImageView = UIImageView()
-        chevronImageView.image = DivoImage.searchChevronRight
-        chevronImageView.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
-        chevronImageView.translatesAutoresizingMaskIntoConstraints = false
-        cell.addSubview(chevronImageView)
-        
-        if !isLast {
-            let separator = UIView()
-            separator.backgroundColor = DivoColorPalette.separatorSystem
-            separator.translatesAutoresizingMaskIntoConstraints = false
-            cell.addSubview(separator)
-            
-            NSLayoutConstraint.activate([
-                separator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-                separator.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-                separator.bottomAnchor.constraint(equalTo: cell.bottomAnchor),
-                separator.heightAnchor.constraint(equalToConstant: 1)
-            ])
-        }
-        
-        NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            titleLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            
-            chevronImageView.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            chevronImageView.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            chevronImageView.widthAnchor.constraint(equalToConstant: 20),
-            chevronImageView.heightAnchor.constraint(equalToConstant: 20),
-            
-            valueLabel.trailingAnchor.constraint(equalTo: chevronImageView.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
-            valueLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            valueLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.m)
-        ])
-        
-        return cell
     }
     
     private func updateAppearanceValues() {
@@ -495,11 +414,24 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         genderRow.setItems(currentFilters.genderTitles, emptyTitle: DivoStrings.feedSearchAllGenders)
         countryRow.setItems(currentFilters.countryTitles, emptyTitle: DivoStrings.feedSearchAllCountries)
 
-        cityTextField.text = currentFilters.city
+        let hasCountry = !currentFilters.countryIds.isEmpty
+        let hasCity = currentFilters.cityId != nil
+        
+        cityRow.isHidden = !hasCountry
+        cityRow.setItems(currentFilters.cityTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.chooseCity)
+        
+        let isApplyEnabled: Bool
+        if hasCountry {
+            isApplyEnabled = hasCity
+        } else {
+            isApplyEnabled = true
+        }
+        
+        applyButton.isEnabled = isApplyEnabled
 
         updateAppearanceValues()
-
         updateResetButtonState()
+        setupScrollViewInsets()
     }
 
     private func updateResetButtonState() {
@@ -644,6 +576,52 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
 
+    private func resolveFilterCityOnBackend(cityName: String) {
+        self.cityRow.setLoading(true)
+        
+        Task { @MainActor in
+            do {
+                let encodedQuery = cityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cityName
+                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
+                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
+                    method: "GET"
+                )
+                
+                self.cityRow.setLoading(false)
+                
+                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                    self.currentFilters.cityId = cityId
+                    
+                    let resolvedCityName = firstResult.city?.name ?? cityName
+                    let countryCode = firstResult.country?.code ?? firstResult.city?.countryCode
+                    
+                    let flag = emojiFlag(from: countryCode)
+                    let countryName = firstResult.country?.name ?? firstResult.city?.countryName ?? ""
+                    let finalTitle = countryName.isEmpty ? "\(flag) \(resolvedCityName)" : "\(flag) \(resolvedCityName), \(countryName)"
+                    
+                    self.currentFilters.cityTitle = finalTitle
+                } else {
+                    self.currentFilters.cityId = nil
+                    self.currentFilters.cityTitle = nil
+                }
+                
+                self.updateUI()
+            } catch {
+                self.cityRow.setLoading(false)
+                self.currentFilters.cityId = nil
+                self.currentFilters.cityTitle = nil
+                self.updateUI()
+            }
+        }
+    }
+
+    private func emojiFlag(from countryCode: String?) -> String {
+        guard let code = countryCode, code.count == 2 else { return "🌍" }
+        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
+            result + String(UnicodeScalar(127397 + scalar.value)!)
+        }
+    }
+
 
     // MARK: - Internal
     
@@ -672,12 +650,6 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     @objc private func applyTapped() {
         onApply?(currentFilters)
         dismiss(animated: true)
-    }
-    
-    @objc private func cityChanged() {
-        let text = cityTextField.text ?? ""
-        currentFilters.city = text.isEmpty ? nil : text
-        updateUI()
     }
     
     @objc private func moreFiltersTapped() {
@@ -742,40 +714,88 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
     
-    @objc private func countryTapped() {
+        @objc private func countryTapped() {
         let selectedIds = currentFilters.countryIds
-        let selectedSet = Set(selectedIds)
-
-        var orderedOptions = countryOptions
-        if !selectedSet.isEmpty {
-            let allOption = orderedOptions[0]
-            let rest = Array(orderedOptions.dropFirst())
-            let selected = rest.filter { selectedSet.contains($0.id) }
-            let unselected = rest.filter { !selectedSet.contains($0.id) }
-            orderedOptions = [allOption] + selected + unselected
-        }
-
+        
         let vc = FilterOptionsController(
             title: DivoStrings.debugCountry,
-            options: orderedOptions,
+            options: countryOptions,
             selectedOptionIds: selectedIds,
-            isMultiSelect: true,
+            isMultiSelect: false,
             showSearch: true
         )
 
         vc.onSave = { [weak self] selectedItems in
-            if selectedItems.isEmpty {
-                self?.currentFilters.countryIds = []
-                self?.currentFilters.countryTitles = []
+            guard let self = self else { return }
+            if let selected = selectedItems.first {
+                let oldCountryId = self.currentFilters.countryIds.first
+                self.currentFilters.countryIds = [selected.id]
+                self.currentFilters.countryTitles = [selected.title]
+                
+                if oldCountryId != selected.id {
+                    self.currentFilters.cityId = nil
+                    self.currentFilters.cityTitle = nil
+                    self.currentFilters.rawCityId = nil
+                }
             } else {
-                self?.currentFilters.countryIds = selectedItems.map { $0.id }
-                self?.currentFilters.countryTitles = selectedItems.map { $0.title }
+                self.currentFilters.countryIds = []
+                self.currentFilters.countryTitles = []
+                self.currentFilters.cityId = nil
+                self.currentFilters.cityTitle = nil
+                self.currentFilters.rawCityId = nil
             }
-            self?.updateUI()
+            self.updateUI()
         }
         
         navigationController?.pushViewController(vc, animated: true)
     }
     
+    @objc private func cityTapped() {
+        guard let countryCode = currentFilters.countryIds.first, !countryCode.isEmpty else {
+            return
+        }
+        
+        let preselected: [FilterOptionItem]
+        if let rawId = self.currentFilters.rawCityId, let title = self.currentFilters.cityTitle {
+            preselected = [FilterOptionItem(id: rawId, title: title)]
+        } else {
+            preselected = []
+        }
+        
+        let vc = CitySearchController(
+            title: DivoStrings.chooseCity,
+            preselectedItems: preselected,
+            isOpenPresent: true,
+            filterCountryCode: countryCode
+        )
+                
+        vc.onSave = { [weak self] selectedItems in
+            guard let self = self else { return }
+            if let selected = selectedItems.first {
+                self.currentFilters.rawCityId = selected.id
+                
+                let rawParts = selected.id.components(separatedBy: "|||")
+                let cityName = rawParts.joined(separator: ", ")
+                
+                self.resolveFilterCityOnBackend(cityName: cityName)
+            } else {
+                self.currentFilters.cityId = nil
+                self.currentFilters.cityTitle = nil
+                self.currentFilters.rawCityId = nil
+                self.updateUI()
+            }
+        }
+        
+        let nav = UINavigationController(rootViewController: vc)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = 24
+            }
+        }
+        self.present(nav, animated: true)
+    }
 }
 
