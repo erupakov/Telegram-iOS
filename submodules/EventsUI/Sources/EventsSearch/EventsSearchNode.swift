@@ -46,7 +46,7 @@ final class EventsSearchNode: ASDisplayNode {
         let field = UITextField()
         field.font = Font.regular(14)
         field.textColor = DivoColorPalette.primaryText
-        field.tintColor = DivoColorPalette.accentSecondary
+        field.tintColor = DivoColorPalette.accent
         field.placeholder = DivoStrings.eventsSearchPlaceholder
         field.clearButtonMode = .whileEditing
         field.autocorrectionType = .no
@@ -1078,7 +1078,7 @@ extension EventsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
                 return UICollectionViewCell()
             }
             let item = currentGridResults[indexPath.item]
-            cell.configure(with: item, context: context)
+            cell.configure(with: item)
             
             cell.onApply = { [weak self] in
                 self?.onGridApplyTapped?(item.id)

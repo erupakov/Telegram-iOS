@@ -89,9 +89,7 @@ final class SimilarProfileCell: UICollectionViewCell {
         let locationPart = [flag, city].filter { !$0.isEmpty }.joined(separator: " ")
         if !locationPart.isEmpty { infoSegments.append(locationPart) }
         infoLabel.text = infoSegments.joined(separator: " • ")
-        imageView.loadImage(from: item.avatarURL) { [weak self] image in
-            self?.imageView.applyAvatarTopCropIfNeeded(image: image)
-        }
+        imageView.loadImage(from: item.avatarURL, placeholder: DivoImage.emptyBackgroundAvatar, cropAvatarIfNeeded: true)
     }
 
     private static func flag(for countryCode: String?) -> String {

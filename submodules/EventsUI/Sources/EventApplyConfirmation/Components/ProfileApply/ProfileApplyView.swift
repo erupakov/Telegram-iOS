@@ -150,10 +150,11 @@ final class ProfileApplyView: UIView {
             self.layoutIfNeeded()
         }
         
-        if let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl) {
-            logoImageView.loadImage(from: avatarURL) { [weak self] image in
-                self?.logoImageView.applyAvatarTopCropIfNeeded(image: image)
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            logoImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            logoImageView.image = placeholder
         }
         self.layoutIfNeeded()
     }

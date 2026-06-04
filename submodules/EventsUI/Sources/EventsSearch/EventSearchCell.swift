@@ -134,10 +134,11 @@ final class EventSearchCell: UITableViewCell {
         
         infoLabel.text = infoParts.joined(separator: " · ")
 
-        if let avatarUrlStr = item.customAvatarURL, let url = URL(string: avatarUrlStr) {
-            avatarImageView.loadImage(from: url)
+        let placeholder = DivoImage.emptyBackgroundEventSmall
+        if let photoURLString = item.customAvatarURL, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder)
         } else {
-            avatarImageView.image = DivoImage.defWork
+            avatarImageView.image = placeholder
         }
     }
 }

@@ -457,8 +457,11 @@ final class RosterApplyConfirmationNode: ASDisplayNode {
         self.phase = .content
         self.userFullName = user.fullName
         
-        if let userCover = user.photo?.fullUrl, let url = CDNURLHelper.convertToCDNURL(userCover) {
-            coverImageView.loadImage(from: url)
+        let placeholder = DivoImage.emptyBackgroundModelProfile
+        if let photoURLString = user.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            coverImageView.loadImage(from: photoURL, placeholder: placeholder)
+        } else {
+            coverImageView.image = placeholder
         }
         
         let countryFlag = Self.flag(for: user.city?.countryCode)

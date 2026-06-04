@@ -73,6 +73,7 @@ final class InteractionUserCell: UITableViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        avatarImageView.cancelImageLoad()
         avatarImageView.image = nil
         avatarImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         avatarImageView.stopShimmering()
@@ -131,38 +132,12 @@ final class InteractionUserCell: UITableViewCell {
         roleLabel.text = user.role
         premiumBadgeContainer.isHidden = !user.isPremium
         
-        avatarImageView.startShimmering()
-        
-        if let avatarURLString = user.avatarUrl, let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
-            ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    
-                    if let image = image {
-                        self.avatarImageView.alpha = 0
-                        self.avatarImageView.image = image
-                        self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-                        self.avatarImageView.backgroundColor = .clear
-
-                        UIView.animate(withDuration: 0.3) {
-                            self.avatarImageView.alpha = 1.0
-                        }
-                    } else {
-                        self.setDefaultAvatar()
-                    }
-                    self.avatarImageView.stopShimmering()
-                }
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = user.avatarUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
         } else {
-            self.avatarImageView.stopShimmering()
-            self.setDefaultAvatar()
+            avatarImageView.image = placeholder
         }
-    }
-
-    private func setDefaultAvatar() {
-        avatarImageView.image = UIImage(systemName: "person.crop.circle.fill")
-        avatarImageView.tintColor = .lightGray
-        avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
     }
 
     override func setHighlighted(_ highlighted: Bool, animated: Bool) {

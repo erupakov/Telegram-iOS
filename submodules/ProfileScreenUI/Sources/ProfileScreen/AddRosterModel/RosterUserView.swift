@@ -150,46 +150,20 @@ final class RosterUserView: UIView {
             statusIconView.isHidden = true
             statusLabel.text = "@\(handle) · \(role)"
             statusLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
-            
+            avatarImageView.alpha = 1.0
+
         case .alreadyAdded:
             statusIconView.isHidden = true
             statusLabel.text = DivoStrings.addModelSearchAlreadyAdded
             statusLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
+            avatarImageView.alpha = 0.5
         }
 
-        avatarImageView.startShimmering()
-        if let avatarURLString = user.avatarUrl, let avatarURL = CDNURLHelper.convertToCDNURL(avatarURLString) {
-            ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    if let image = image {
-                        self.avatarImageView.alpha = 0
-                        self.avatarImageView.image = image
-                        self.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-                        self.avatarImageView.backgroundColor = .clear
-                        UIView.animate(withDuration: 0.3) {
-                            switch user.status {
-                            case .alreadyAdded(_):
-                                self.avatarImageView.alpha = 0.5
-                            case .available(_, _):
-                                self.avatarImageView.alpha = 1.0
-                            }
-                        }
-                    } else {
-                        self.setDefaultAvatar()
-                    }
-                    self.avatarImageView.stopShimmering()
-                }
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = user.avatarUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
         } else {
-            self.avatarImageView.stopShimmering()
-            self.setDefaultAvatar()
+            avatarImageView.image = placeholder
         }
-    }
-
-    private func setDefaultAvatar() {
-        avatarImageView.image = UIImage(systemName: "person.crop.circle.fill")
-        avatarImageView.tintColor = DivoColorPalette.systemLabelTertiary
-        avatarImageView.backgroundColor = DivoColorPalette.imagePlaceholderMedium
     }
 }

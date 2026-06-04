@@ -430,6 +430,7 @@ public final class SearchResultGridCell: UICollectionViewCell {
 
         applyVariant(viewModel.variant, role: viewModel.roleLabel)
 
+        let placeholder = DivoImage.emptyBackgroundModelProfile
         if let url = viewModel.imageURL {
             applyDarkTextStyle(false)
             // Blur показываем сразу — на dark material даёт scrim для
@@ -437,11 +438,12 @@ public final class SearchResultGridCell: UICollectionViewCell {
             // переключаем material на `.light` (прежний визуал поверх фото).
             progressiveBlurView.effect = UIBlurEffect(style: .systemUltraThinMaterialDark)
             animateBlurAppearance()
-            backgroundImageView.loadImage(from: url) { [weak self] image in
+            backgroundImageView.loadImage(from: url, placeholder: placeholder) { [weak self] image in
                 guard let self, image != nil else { return }
                 self.progressiveBlurView.effect = UIBlurEffect(style: .light)
             }
         } else {
+            backgroundImageView.image = placeholder
             applyDarkTextStyle(true)
         }
     }

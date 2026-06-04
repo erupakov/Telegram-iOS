@@ -1748,12 +1748,6 @@ final class EventDetailControllerNode: ASDisplayNode {
 
         return (formattedDate, formattedTime)
     }
-    
-    private func setImage(urlString: String? = nil, for imageView: UIImageView) {
-        if let photoURLString = urlString, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-            imageView.loadImage(from: photoURL)
-        }
-    }
 
     private func formatCost(_ costString: String?) -> String? {
         guard let costString = costString else { return nil }
@@ -1803,7 +1797,12 @@ final class EventDetailControllerNode: ASDisplayNode {
         // кнопки и контейнеры заполнены — пользователь видит пустые placeholder'ы.
         self.eventData = newEventData
 
-        setImage(urlString: newEventData.files?.first?.fullUrl, for: backgroundImageView)
+        let placeholder = DivoImage.emptyBackgroundEvent
+        if let photoURLString = newEventData.files?.first?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            backgroundImageView.loadImage(from: photoURL, placeholder: placeholder)
+        } else {
+            backgroundImageView.image = placeholder
+        }
 
         eventTypeLabel.text = newEventData.type?.title
         eventTypeLabelContainer.backgroundColor = EventTypeStyle.color(for: newEventData.type?.id)
@@ -1870,9 +1869,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         currentAppliedLabel.text = DivoStrings.currentApplied(newEventData.appliesCount ?? 0)
         allAppliedLabel.text = DivoStrings.allApplied(newEventData.maxAttendees ?? 0)
         
-        let logoURLString = newEventData.creator?.avatar?.fullUrl
-        let logoURL = logoURLString != nil ? URL(string: logoURLString!) : nil
-        organizerView.configure(name: newEventData.creator?.fullName, isVerified: newEventData.creator?.isVerified, logoURL: logoURL)
+        organizerView.configure(name: newEventData.creator?.fullName, isVerified: newEventData.creator?.isVerified, logoURLString: newEventData.creator?.avatar?.fullUrl)
         
         descriptionView.update(biography: newEventData.description)
         requirementsLabel.text = newEventData.requirements
@@ -1934,7 +1931,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         currentAppliedLabel.text = DivoStrings.currentApplied(0)
         allAppliedLabel.text = DivoStrings.allApplied(data.request.maxAttendees ?? 0)
         
-        organizerView.configure(name: DivoStrings.you, isVerified: false, logoURL: nil)
+        organizerView.configure(name: DivoStrings.you, isVerified: false, logoURLString: nil)
         
         descriptionView.update(biography: data.request.description)
         requirementsLabel.text = data.request.requirements
