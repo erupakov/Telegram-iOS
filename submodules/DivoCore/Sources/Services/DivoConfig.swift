@@ -22,6 +22,7 @@ public enum DivoConfig {
     public static let onboardingChainFailedNotification = Notification.Name("DivoConfig.onboardingChainFailed")
     public static let divoEventDataUpdated = Notification.Name("DivoConfig.divoEventDataUpdated")
     public static let divoEventDeleted = Notification.Name("DivoConfig.divoEventDeleted")
+    public static let divoEventCreated = Notification.Name("DivoConfig.divoEventCreated")
 
     // MARK: - User Roles
 

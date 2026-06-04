@@ -128,6 +128,12 @@ public final class EventsController: TelegramBaseController {
             name: DivoConfig.divoEventDeleted,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleGlobalEventCreated),
+            name: DivoConfig.divoEventCreated,
+            object: nil
+        )
     }
 
     private func updateNavigation() {
@@ -686,6 +692,10 @@ public final class EventsController: TelegramBaseController {
         }
         
         self.controllerNode.removeEventLocally(eventId: eventId)
+    }
+
+    @objc private func handleGlobalEventCreated() {
+        self.loadEventsList(tabIndex: self.selectedTabIndex, reset: true)
     }
 
     required public init(coder aDecoder: NSCoder) {

@@ -118,6 +118,12 @@ public final class PublicProfileScreenController: TelegramBaseController {
             name: DivoConfig.divoEventDeleted,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleGlobalEventCreated),
+            name: DivoConfig.divoEventCreated,
+            object: nil
+        )
     }
     
     deinit {
@@ -1310,6 +1316,12 @@ extension PublicProfileScreenController {
             isApplied: detail.isApplied,
             isMyRoleAgency: self.isMyRoleAgency
         )
+    }
+
+    @objc private func handleGlobalEventCreated() {
+        if self.isMyProfile {
+            self.loadEvents()
+        }
     }
 }
 

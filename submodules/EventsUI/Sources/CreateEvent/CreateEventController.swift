@@ -321,6 +321,12 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
                 if response.errors == nil || response.errors?.isEmpty == true {
                     self.onEventCreated?()
+
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventCreated,
+                        object: nil,
+                        userInfo: nil
+                    )
                     
                     let successController = EventPublishedSuccessController(context: self.context)
                     

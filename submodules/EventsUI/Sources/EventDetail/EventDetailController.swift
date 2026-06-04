@@ -58,6 +58,13 @@ public final class EventDetailController: TelegramBaseController {
         self.isAgency = isAgency
 
         super.init(context: context, navigationBarPresentationData: nil)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleGlobalEventCreated),
+            name: DivoConfig.divoEventCreated,
+            object: nil
+        )
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -396,5 +403,10 @@ public final class EventDetailController: TelegramBaseController {
         )
         
         self.push(listController)
+    }
+
+    @objc private func handleGlobalEventCreated() {
+        self.getEvent()
+        self.onEventModified?()
     }
 }
