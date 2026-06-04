@@ -34,6 +34,11 @@ public extension PresentationData {
         )
         let patchedNavigationBar = self.theme.rootController.navigationBar.withUpdated(accentTextColor: accent)
         let patchedRootController = self.theme.rootController.withUpdated(navigationBar: patchedNavigationBar)
+        // DIVO: фон бейджей в списке чатов (непрочитанные «N», упоминания «@», реакции) — на фирменный orange.
+        let patchedChatList = self.theme.chatList.withUpdated(
+            unreadBadgeActiveBackgroundColor: accent,
+            reactionBadgeActiveBackgroundColor: accent
+        )
 
         let patchedTheme = PresentationTheme(
             name: self.theme.name,
@@ -44,7 +49,7 @@ public extension PresentationData {
             passcode: self.theme.passcode,
             rootController: patchedRootController,
             list: patchedList,
-            chatList: self.theme.chatList,
+            chatList: patchedChatList,
             chat: self.theme.chat,
             actionSheet: patchedActionSheet,
             contextMenu: self.theme.contextMenu,
