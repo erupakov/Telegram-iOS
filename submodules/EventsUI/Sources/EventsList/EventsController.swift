@@ -157,11 +157,11 @@ public final class EventsController: TelegramBaseController {
         return renderer.image { ctx in
             let gc = ctx.cgContext
             gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: DivoColorPalette.shadow.withAlphaComponent(0.1).cgColor)
-            gc.setFillColor(UIColor.white.cgColor)
+            gc.setFillColor(DivoColorPalette.cardBackground.cgColor)
             gc.fillEllipse(in: CGRect(x: padding, y: padding, width: circleSize, height: circleSize))
             gc.setShadow(offset: .zero, blur: 0)
             let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-            if let icon = UIImage(systemName: systemName, withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
+            if let icon = UIImage(systemName: systemName, withConfiguration: config)?.withTintColor(DivoColorPalette.primaryText, renderingMode: .alwaysOriginal) {
                 let iconX = padding + (circleSize - icon.size.width) / 2
                 let iconY = padding + (circleSize - icon.size.height) / 2
                 icon.draw(at: CGPoint(x: iconX, y: iconY))
@@ -181,7 +181,7 @@ public final class EventsController: TelegramBaseController {
             let gc = ctx.cgContext
             
             gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: DivoColorPalette.shadow.withAlphaComponent(0.1).cgColor)
-            gc.setFillColor(UIColor.white.cgColor)
+            gc.setFillColor(DivoColorPalette.cardBackground.cgColor)
             
             let path = UIBezierPath(roundedRect: CGRect(x: padding, y: padding, width: capsuleWidth, height: capsuleHeight), cornerRadius: 20)
             gc.addPath(path.cgPath)
@@ -191,14 +191,14 @@ public final class EventsController: TelegramBaseController {
             
             let config = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
             
-            if let searchIcon = UIImage(systemName: "magnifyingglass", withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
+            if let searchIcon = UIImage(systemName: "magnifyingglass", withConfiguration: config)?.withTintColor(DivoColorPalette.primaryText, renderingMode: .alwaysOriginal) {
                 let leftHalfCenterX = padding + 21
                 let iconX = leftHalfCenterX - searchIcon.size.width / 2 + 2
                 let iconY = padding + (capsuleHeight - searchIcon.size.height) / 2
                 searchIcon.draw(at: CGPoint(x: iconX, y: iconY))
             }
             
-            if let addIcon = UIImage(systemName: "plus", withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
+            if let addIcon = UIImage(systemName: "plus", withConfiguration: config)?.withTintColor(DivoColorPalette.primaryText, renderingMode: .alwaysOriginal) {
                 let rightHalfCenterX = padding + 67
                 let iconX = rightHalfCenterX - addIcon.size.width / 2 - 2
                 let iconY = padding + (capsuleHeight - addIcon.size.height) / 2
