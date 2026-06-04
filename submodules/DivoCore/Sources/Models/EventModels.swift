@@ -261,6 +261,8 @@ public struct CreateEventPreview: Codable {
     public let typeId: Int
     public let date: String
     public let address: EventAddressRequest
+    public let countryCode: String?
+    public let cityName: String?
     public let files: [EventFileRequest]
 
     public let isFree: Bool?
@@ -292,6 +294,8 @@ public struct CreateEventPreview: Codable {
         typeId: Int,
         date: String,
         address: EventAddressRequest,
+        countryCode: String?,
+        cityName: String?,
         files: [EventFileRequest],
         isFree: Bool?,
         cost: String?,
@@ -320,6 +324,8 @@ public struct CreateEventPreview: Codable {
         self.typeId = typeId
         self.date = date
         self.address = address
+        self.countryCode = countryCode
+        self.cityName = cityName
         self.files = files
         self.isFree = isFree
         self.cost = cost

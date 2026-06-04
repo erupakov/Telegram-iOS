@@ -1092,6 +1092,8 @@ public enum DivoStrings {
     public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭") }
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
+    public static var cityNotFound: String { L(en: "City not found in database", ru: "Город не найден в базе данных", es: "Ciudad no encontrada en la base de datos", pt: "Cidade não encontrada no banco de dados", zh: "数据库中未找到城市") }
+    public static var chooseCity: String { L(en: "Choose City", ru: "Выберите город", es: "Elige ciudad", pt: "Escolha cidade", zh: "选择城市") }
 
     // MARK: - Event Applications List
 

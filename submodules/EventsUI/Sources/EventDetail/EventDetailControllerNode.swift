@@ -1910,8 +1910,8 @@ final class EventDetailControllerNode: ASDisplayNode {
                 name: data.request.title,
                 date: dStr,
                 time: tStr,
-                countryFlag: "🌍",
-                city: DivoStrings.tbd,
+                countryFlag: Self.flag(for: data.request.countryCode),
+                city: data.request.cityName,
                 isFree: data.request.isFree,
                 cost: formatCost(data.request.cost)
             )
