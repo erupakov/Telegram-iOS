@@ -249,7 +249,9 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         self.mainCollectionView.delaysContentTouches = false
         self.mainCollectionView.canCancelContentTouches = true
         self.mainCollectionView.showsVerticalScrollIndicator = false
-
+        if #available(iOS 11.0, *) {
+            self.mainCollectionView.contentInsetAdjustmentBehavior = .never
+        }
         self.mainCollectionView.register(CardCollectionViewCell.self, forCellWithReuseIdentifier: "CardCell")
         self.mainCollectionView.addSubview(self.paginationSpinnerView)
 

@@ -146,6 +146,7 @@ public final class OnboardingFormStepViewController: UIViewController {
         values[key] = value
         fieldRows[key]?.applyValue(value)
         updatePrimaryEnabled()
+        updateCityFieldAvailability()
     }
 
     public override func viewDidLoad() {
@@ -437,6 +438,7 @@ public final class OnboardingFormStepViewController: UIViewController {
         updatePrimaryEnabled()
 
         setupTextFieldsChain()
+        updateCityFieldAvailability()
     }
     
     private func setupTextFieldsChain() {
@@ -542,5 +544,64 @@ public final class OnboardingFormStepViewController: UIViewController {
             if containsFirstResponder(subview) { return true }
         }
         return false
+    }
+
+    // Метод блокировки ячейки выбора города, пока не выбрана страна
+    private func updateCityFieldAvailability() {
+        guard let cityField = step.fields.first(where: {
+            if case .city = $0.kind { return true }
+            return false
+        }), let cityRow = fieldRows[cityField.key] else { return }
+        
+        let countryField = step.fields.first(where: {
+            if case .country = $0.kind { return true }
+            return $0.key.contains("country")
+        })
+        
+        let hasCountrySelected: Bool
+        if let countryKey = countryField?.key, let value = values[countryKey] {
+            switch value {
+            case .string(let str):
+                hasCountrySelected = !str.isEmpty
+            case .option(let id):
+                hasCountrySelected = !id.isEmpty
+            case .empty:
+                hasCountrySelected = false
+            default:
+                hasCountrySelected = true
+            }
+        } else {
+            hasCountrySelected = false
+        }
+        
+        cityRow.alpha = hasCountrySelected ? 1.0 : 0.5
+        cityRow.isUserInteractionEnabled = hasCountrySelected
+    }
+    
+    public func setFieldLoading(_ isLoading: Bool, forKey key: String) {
+        fieldRows[key]?.setRowLoading(isLoading)
+    }
+    
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: DivoDesignTokens.Spacing.m,
+            bottomAnchor: primaryButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }
