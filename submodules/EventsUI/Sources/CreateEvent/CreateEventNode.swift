@@ -2544,7 +2544,7 @@ final class CreateEventNode: ASDisplayNode {
                 self.rawCityId = selected.id
                 
                 let rawParts = selected.id.components(separatedBy: "|||")
-                let cityName = rawParts.first ?? ""
+                let cityName = rawParts.joined(separator: ", ")
                 
                 self.onCityChosen?(cityName)
             } else {
