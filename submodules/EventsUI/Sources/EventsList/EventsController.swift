@@ -116,6 +116,18 @@ public final class EventsController: TelegramBaseController {
             name: DivoConfig.divoEventAppliedStatusChanged,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventDataUpdated(_:)),
+            name: DivoConfig.divoEventDataUpdated,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventDeleted(_:)),
+            name: DivoConfig.divoEventDeleted,
+            object: nil
+        )
     }
 
     private func updateNavigation() {
@@ -319,7 +331,6 @@ public final class EventsController: TelegramBaseController {
                 await MainActor.run {
                     let isApplied = detail.isApplied ?? false
                     
-                    // Публикуем уведомление для всех экранов в приложении
                     NotificationCenter.default.post(
                         name: DivoConfig.divoEventAppliedStatusChanged,
                         object: nil,
@@ -328,6 +339,12 @@ public final class EventsController: TelegramBaseController {
                             "isApplied": isApplied,
                             "appliesCount": detail.appliesCount ?? 0
                         ]
+                    )
+                    
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventDataUpdated,
+                        object: nil,
+                        userInfo: ["eventDetail": detail]
                     )
                 }
             } catch {
@@ -589,6 +606,86 @@ public final class EventsController: TelegramBaseController {
         
         // 2. Моментально перерисовываем ячейку на экране (если она видна)
         self.controllerNode.updateEventLocally(eventId: eventId, isApplied: isApplied, appliesCount: appliesCount)
+    }
+
+    @objc private func handleEventDataUpdated(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let detail = userInfo["eventDetail"] as? EventFullDetailData else { return }
+        
+        let divoLocale = Locale(identifier: DivoStrings.current.rawValue)
+        
+        let datePartFormatter = DateFormatter()
+        datePartFormatter.locale = divoLocale
+        datePartFormatter.setLocalizedDateFormatFromTemplate("MMM d")
+        
+        let timePartFormatter = DateFormatter()
+        timePartFormatter.locale = divoLocale
+        timePartFormatter.timeStyle = .short
+        timePartFormatter.dateStyle = .none
+        
+        let isoFormatter = DateFormatter()
+        isoFormatter.locale = Locale(identifier: "en_US_POSIX")
+        isoFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        
+        let dateString: String
+        if let raw = detail.date {
+            let normalized = raw.replacingOccurrences(of: " ", with: "T")
+            if let date = isoFormatter.date(from: normalized) {
+                dateString = datePartFormatter.string(from: date) + " · " + timePartFormatter.string(from: date)
+            } else {
+                dateString = raw
+            }
+        } else {
+            dateString = ""
+        }
+        
+        let timeRemainingStr = EventDateFormatter.timeRemaining(deadline: detail.applicationDeadline)
+        
+        let coverURL = detail.files?.first?.fullUrl
+        let avatarURL = detail.creator?.avatar?.fullUrl
+        let cityName = detail.address?.city?.name ?? ""
+        
+        let updatedEvent = EventData(
+            id: detail.id,
+            title: detail.title,
+            subtitle: detail.type?.title,
+            profileName: detail.creator?.fullName,
+            timeRemaining: timeRemainingStr,
+            type: detail.type?.title,
+            typeId: detail.type?.id,
+            coverPhotoURL: coverURL,
+            profilePhotoURL: avatarURL,
+            location: cityName,
+            eventDateFormatted: dateString,
+            countryFlag: Self.flag(for: detail.address?.city?.countryCode),
+            appliesCount: detail.appliesCount,
+            maxAttendees: detail.maxAttendees,
+            paymentTypeId: detail.paymentType?.id,
+            applicationDeadline: detail.applicationDeadline,
+            isCurrentRoleAgency: self.isAgency,
+            isApplied: detail.isApplied,
+            creatorId: detail.creator?.id,
+            isVerified: detail.creator?.isVerified
+        )
+        
+        for tabIndex in 0..<self.tabStates.count {
+            if let index = self.tabStates[tabIndex].events.firstIndex(where: { $0.id == detail.id }) {
+                self.tabStates[tabIndex].events[index] = updatedEvent
+            }
+        }
+        
+        self.controllerNode.updateEventDataLocally(updatedEvent)
+    }
+    
+    @objc private func handleEventDeleted(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let eventId = userInfo["eventId"] as? Int else { return }
+        
+        for tabIndex in 0..<self.tabStates.count {
+            self.tabStates[tabIndex].events.removeAll(where: { $0.id == eventId })
+        }
+        
+        self.controllerNode.removeEventLocally(eventId: eventId)
     }
 
     required public init(coder aDecoder: NSCoder) {

@@ -874,6 +874,67 @@ final class EventsSearchNode: ASDisplayNode {
             }
         }
     }
+
+    func updateEventLocally(_ updatedEvent: EventData) {
+        if let index = currentGridResults.firstIndex(where: { $0.id == updatedEvent.id }) {
+            currentGridResults[index] = updatedEvent
+            gridCollectionView.reloadItems(at: [IndexPath(item: index, section: 0)])
+        }
+        
+        if let index = currentAutocompleteResults.firstIndex(where: { $0.eventId == updatedEvent.id }) {
+            let oldItem = currentAutocompleteResults[index]
+            
+            let newItem = EventItem(
+                name: updatedEvent.title ?? DivoStrings.eventFallbackName,
+                data: updatedEvent.eventDateFormatted,
+                time: "",
+                countryFlag: updatedEvent.countryFlag ?? "🌍",
+                city: updatedEvent.location,
+                customAvatarURL: updatedEvent.coverPhotoURL,
+                originalDate: oldItem.originalDate,
+                eventId: updatedEvent.id,
+                isApplied: updatedEvent.isApplied,
+                creatorId: updatedEvent.creatorId
+            )
+            currentAutocompleteResults[index] = newItem
+            resultsTableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .fade)
+        }
+    }
+    
+    func removeEventLocally(eventId: Int) {
+        if let index = currentGridResults.firstIndex(where: { $0.id == eventId }) {
+            currentGridResults.remove(at: index)
+            
+            gridCollectionView.performBatchUpdates({
+                gridCollectionView.deleteItems(at: [IndexPath(item: index, section: 0)])
+            }, completion: { [weak self] _ in
+                guard let self = self else { return }
+                if self.currentGridResults.isEmpty && self.gridState == .results {
+                    self.gridState = .empty
+                    self.emptyStateContainer.isHidden = false
+                    self.gridCollectionView.isHidden = true
+                    self.bottomBlurOverlay.isHidden = true
+                    self.resultsCountLabel.isHidden = true
+                }
+            })
+        }
+        
+        if let index = currentAutocompleteResults.firstIndex(where: { $0.eventId == eventId }) {
+            currentAutocompleteResults.remove(at: index)
+            
+            resultsTableView.performBatchUpdates({
+                resultsTableView.deleteRows(at: [IndexPath(row: index, section: 0)], with: .fade)
+            }, completion: { [weak self] _ in
+                guard let self = self else { return }
+                if self.currentAutocompleteResults.isEmpty {
+                    self.resultsContainer.isHidden = true
+                    self.resultsContainerHeightConstraint?.constant = 0
+                    self.view.layoutIfNeeded()
+                }
+            })
+        }
+    }
+
     
     // MARK: @objc
     

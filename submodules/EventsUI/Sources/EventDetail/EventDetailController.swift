@@ -310,6 +310,12 @@ public final class EventDetailController: TelegramBaseController {
                     method: "DELETE"
                 )
                 
+                NotificationCenter.default.post(
+                    name: DivoConfig.divoEventDeleted,
+                    object: nil,
+                    userInfo: ["eventId": eventId]
+                )
+                
                 self.onEventModified?()
                 self.navigationController?.popViewController(animated: true)
                 

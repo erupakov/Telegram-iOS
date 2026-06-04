@@ -106,6 +106,18 @@ public final class PublicProfileScreenController: TelegramBaseController {
             name: DivoConfig.divoEventAppliedStatusChanged,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventDataUpdated(_:)),
+            name: DivoConfig.divoEventDataUpdated,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleEventDeleted(_:)),
+            name: DivoConfig.divoEventDeleted,
+            object: nil
+        )
     }
     
     deinit {
@@ -916,7 +928,7 @@ extension PublicProfileScreenController {
                     let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
 
                     return EventItem(
-                        name: item.title ?? "Event",
+                        name: item.title ?? DivoStrings.eventFallbackName,
                         data: formattedDate,
                         time: formattedTime,
                         countryFlag: flag,
@@ -1164,6 +1176,11 @@ extension PublicProfileScreenController {
                             "appliesCount": detail.appliesCount ?? 0
                         ]
                     )
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventDataUpdated,
+                        object: nil,
+                        userInfo: ["eventDetail": detail]
+                    )
                 }
             } catch {
                 divoLog("refreshSingleEventState failed: \(error)", level: .error)
@@ -1256,6 +1273,43 @@ extension PublicProfileScreenController {
                 await MainActor.run { completion(.failure(error)) }
             }
         }
+    }
+
+    @objc private func handleEventDataUpdated(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let detail = userInfo["eventDetail"] as? EventFullDetailData else { return }
+        
+        let updatedItem = self.mapDetailToEventItem(detail)
+        
+        self.controllerNode.updateEventDataLocally(updatedItem)
+    }
+    
+    @objc private func handleEventDeleted(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let eventId = userInfo["eventId"] as? Int else { return }
+        
+        self.controllerNode.removeEventLocally(eventId: eventId)
+    }
+    
+    private func mapDetailToEventItem(_ detail: EventFullDetailData) -> EventItem {
+        let (formattedDate, formattedTime) = self.formatEventDateAndTime(dateString: detail.date)
+        let city = detail.address?.city?.name ?? DivoStrings.unknownCity
+        let flag = self.emojiFlag(from: detail.address?.city?.countryCode)
+        let avatarUrl = detail.files?.first?.fullUrl
+        let finalAvatarUrl = avatarUrl != nil ? CDNURLHelper.convertToCDNURL(avatarUrl!)?.absoluteString : nil
+        
+        return EventItem(
+            name: detail.title ?? DivoStrings.eventFallbackName,
+            data: formattedDate,
+            time: formattedTime,
+            countryFlag: flag,
+            city: city,
+            customAvatarURL: finalAvatarUrl,
+            originalDate: detail.date,
+            eventId: detail.id,
+            isApplied: detail.isApplied,
+            isMyRoleAgency: self.isMyRoleAgency
+        )
     }
 }
 
