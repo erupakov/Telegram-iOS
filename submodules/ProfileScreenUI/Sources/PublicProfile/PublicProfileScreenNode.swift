@@ -774,6 +774,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onModelAgencyTapped: ((ModelItem) -> Void)?
     var onEventTapped: ((EventItem) -> Void)?
 
+    var onModelDeleteTapped: ((Int?) -> Void)?
+
     private var socialLinksMap: [UIButton: String] = [:]
 
     private enum SocialIcon {
@@ -4408,9 +4410,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if isVisible {
             floatingAddButton.makeDivoButton(title: title, leadingIcon: icon, buttonFont: Font.helveticaNeue(16), radius: 20)
             
-            if floatingAddButton.isHidden {
-                floatingAddButton.alpha = 0
-                floatingAddButton.isHidden = false
+            if floatingAddButton.isHidden || floatingAddButton.alpha < 1.0 {
+                floatingAddButton.layer.removeAllAnimations()
+                
+                if floatingAddButton.isHidden {
+                    floatingAddButton.alpha = 0
+                    floatingAddButton.isHidden = false
+                }
+                
                 UIView.animate(withDuration: 0.3) {
                     self.floatingAddButton.alpha = 1.0
                 }
@@ -4421,8 +4428,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
             if !floatingAddButton.isHidden {
                 UIView.animate(withDuration: 0.3, animations: {
                     self.floatingAddButton.alpha = 0.0
-                }) { _ in
-                    self.floatingAddButton.isHidden = true
+                }) { finished in
+                    if finished {
+                        self.floatingAddButton.isHidden = true
+                    }
                 }
             }
         }
@@ -4709,7 +4718,10 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
                 return UICollectionViewCell()
             }
             let item = modelGalleryItems[indexPath.item]
-            cell.configure(with: item, context: self.context)
+            cell.configure(with: item, isMyProfile: self.model.isMyProfile)
+            cell.onDeleteTapped = { [weak self] recordId in
+                self?.onModelDeleteTapped?(recordId)
+            }
             return cell
         } else if collectionView == eventGalleryCollectionView {
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: EventListCell.reuseIdentifier, for: indexPath) as? EventListCell else {
