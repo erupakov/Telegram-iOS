@@ -1,11 +1,11 @@
 import Foundation
+import DivoCore
 
 public struct CountryHelper {
     public static func getAllCountries() -> [FilterOptionItem] {
         var countries: [FilterOptionItem] = []
 
-        let preferredLocale = Locale.preferredLanguages.first ?? "en"
-        let localizationLocale = Locale(identifier: preferredLocale)
+        let localizationLocale = Locale(identifier: DivoStrings.current.rawValue)
 
         for regionCode in Locale.isoRegionCodes {
             if let countryName = localizationLocale.localizedString(forRegionCode: regionCode) {

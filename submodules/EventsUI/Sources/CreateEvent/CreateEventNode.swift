@@ -542,6 +542,16 @@ final class CreateEventNode: ASDisplayNode {
     var onGalleryItemTapped: ((String) -> Void)?
     var retryLoadEventData: (() -> Void)?
 
+    private let countryRow = FilterRowView(title: DivoStrings.debugCountry + " *")
+    lazy var countryOptions: [FilterOptionItem] = {
+        var options: [FilterOptionItem] = []
+        options.append(contentsOf: CountryHelper.getAllCountries())
+        return options
+    }()
+    
+    private var countryId: String?
+    private var countryTitle: String?
+
     private var cityId: String?
     private var cityTitle: String?
     private var countryCode: String?
@@ -1021,6 +1031,10 @@ final class CreateEventNode: ASDisplayNode {
         dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventTime + " *", inputView: eventTime))
         step1StackView.addArrangedSubview(dateTimeRow)
         dateTimeRow.heightAnchor.constraint(equalToConstant: 68).isActive = true
+
+        step1StackView.addArrangedSubview(countryRow)
+        countryRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        countryRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countryTapped)))
         
         step1StackView.addArrangedSubview(cityRow)
         cityRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
@@ -1427,10 +1441,15 @@ final class CreateEventNode: ASDisplayNode {
     
     private func updateDropdownsUI() {
         eventTypeDropdown.setItems(eventTypeTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.chooseEvent)
+        countryRow.setItems(countryTitle.map { [$0] } ?? [], emptyTitle: "")
         
         let flagEmoji = emojiFlag(from: self.countryCode)
         let formattedCity = self.cityTitle.map { ["\(flagEmoji) \($0)".trimmingCharacters(in: .whitespaces)] } ?? []
         cityRow.setItems(formattedCity, emptyTitle: "")
+        
+        let hasCountry = countryId != nil && !countryId!.isEmpty
+        cityRow.alpha = hasCountry ? 1.0 : 0.5
+        cityRow.isUserInteractionEnabled = hasCountry
         
         whoCanApplyDropdown.setItems(whoCanApplyTitles ?? [], emptyTitle: DivoStrings.notSet)
         maxParticipantsDropdown.setItems(maxParticipants.map {["\($0)"] } ?? [], emptyTitle: DivoStrings.notSet)
@@ -2262,11 +2281,20 @@ final class CreateEventNode: ASDisplayNode {
         if let city = detail.address?.city {
             let cityName = city.name ?? ""
             let countryName = city.countryName ?? ""
+            let countryCode = city.countryCode ?? ""
             
             self.rawCityId = cityName + "|||" + countryName
             self.cityId = String(city.id ?? 1)
             self.cityTitle = cityName
-            self.countryCode = city.countryCode ?? ""
+            self.countryCode = countryCode
+            
+            self.countryId = countryCode
+            
+            let locale = Locale(identifier: DivoStrings.current.rawValue)
+            if let localizedCountry = locale.localizedString(forRegionCode: countryCode) {
+                let flag = emojiFlag(from: countryCode)
+                self.countryTitle = "\(flag) \(localizedCountry)"
+            }
         }
         
         whoCanApplyIds = detail.modelAttributes?.role
@@ -2522,8 +2550,54 @@ final class CreateEventNode: ASDisplayNode {
         presentSheet(vc)
     }
     
+    @objc private func countryTapped() {
+        self.view.endEditing(true)
+        let selectedIds = countryId != nil ? [String(countryId!)] : []
+        
+        let vc = FilterOptionsController(
+            title: DivoStrings.debugCountry,
+            options: countryOptions,
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: true,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            guard let self = self else { return }
+            if let selected = selectedItems.first {
+                let oldCountryId = self.countryId
+                
+                self.countryId = selected.id
+                self.countryTitle = selected.title
+                
+                if oldCountryId != selected.id {
+                    self.cityId = nil
+                    self.cityTitle = nil
+                    self.rawCityId = nil
+                    self.countryCode = nil
+                }
+            } else {
+                self.countryId = nil
+                self.countryTitle = nil
+                self.cityId = nil
+                self.cityTitle = nil
+                self.rawCityId = nil
+                self.countryCode = nil
+            }
+            self.updateDropdownsUI()
+        }
+        
+        presentSheet(vc)
+    }
+    
     @objc private func cityTapped() {
         self.view.endEditing(true)
+        
+        guard let selectedCountryCode = self.countryId, !selectedCountryCode.isEmpty else {
+            return
+        }
         
         let preselected: [FilterOptionItem]
         if let rawId = self.rawCityId, let title = self.cityTitle {
@@ -2535,7 +2609,8 @@ final class CreateEventNode: ASDisplayNode {
         let vc = CitySearchController(
             title: DivoStrings.chooseCity,
             preselectedItems: preselected,
-            isOpenPresent: true
+            isOpenPresent: true,
+            filterCountryCode: selectedCountryCode
         )
         
         vc.onSave = { [weak self] selectedItems in

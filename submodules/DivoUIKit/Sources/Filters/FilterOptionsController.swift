@@ -82,7 +82,7 @@ public final class FilterOptionsController: UIViewController {
         let field = UITextField()
         field.font = Font.regular(14)
         field.textColor = DivoColorPalette.primaryText
-        field.tintColor = DivoColorPalette.accentSecondary
+        field.tintColor = DivoColorPalette.accent
         field.clearButtonMode = .whileEditing
         field.autocorrectionType = .no
         field.returnKeyType = .search

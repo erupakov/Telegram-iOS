@@ -104,19 +104,38 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         return map
     }()
 
+    private var filterCountryCode: String?
+    private var allowedCountryNames: Set<String> = []
+    
+
     // MARK: - Init
+
     public init(
         title: String,
         preselectedItems: [FilterOptionItem] = [],
         isMultiSelect: Bool = false,
-        isOpenPresent: Bool = false
+        isOpenPresent: Bool = false,
+        filterCountryCode: String? = nil
     ) {
         self.isMultiSelect = isMultiSelect
         self.isOpenPresent = isOpenPresent
+        self.filterCountryCode = filterCountryCode
         super.init(nibName: nil, bundle: nil)
-
+        
         for item in preselectedItems {
             self.selectedCities[item.id] = item.title
+        }
+        
+        if let countryCode = filterCountryCode {
+            let preferredLocale = Locale(identifier: DivoStrings.current.rawValue)
+            let enLocale = Locale(identifier: "en")
+            
+            if let name = preferredLocale.localizedString(forRegionCode: countryCode) {
+                self.allowedCountryNames.insert(name.lowercased())
+            }
+            if let enName = enLocale.localizedString(forRegionCode: countryCode) {
+                self.allowedCountryNames.insert(enName.lowercased())
+            }
         }
 
         navigationBar.makeNavigationBar(
@@ -370,8 +389,18 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     public func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
         self.currentResults = completer.results.filter { completion in
             let subtitle = completion.subtitle.lowercased()
+            
             let hasHouseNumber = subtitle.rangeOfCharacter(from: .decimalDigits) != nil
-            return !hasHouseNumber
+            guard !hasHouseNumber else { return false }
+            
+            if !allowedCountryNames.isEmpty {
+                let matchesCountry = allowedCountryNames.contains { countryName in
+                    subtitle.contains(countryName)
+                }
+                return matchesCountry
+            }
+            
+            return true
         }
         reloadOptions()
     }
