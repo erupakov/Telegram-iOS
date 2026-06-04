@@ -997,6 +997,41 @@ public extension Api.User {
     }
 }
 
+// Вложенный reply_to в send-методах. Форк сериализует inputReplyToMessage новейшим 222-конструктором
+// 869fbe10 (+monoforum_peer_id@flags.5, +todo_item_id@flags.6), а сервер на layer 201 знает только
+// 22c0f6d5 (биты 0-4) → reply_to не парсится, reply_to_msg_id теряется: ответ уходит с красным «!»
+// или приходит пустым. Пишем 201-конструктор и сбрасываем биты 5/6; остальные поля идентичны.
+// story/monoforum на 201 не дрейфят — сериализуются штатно.
+private func serializeInputReplyTo_teamgram_layer201(_ replyTo: Api.InputReplyTo, _ buffer: Buffer) {
+    guard case let .inputReplyToMessage(data) = replyTo else {
+        replyTo.serialize(buffer, true)
+        return
+    }
+    buffer.appendInt32(583071445)
+    let flags201 = data.flags & ~((Int32(1) << 5) | (Int32(1) << 6))
+    serializeInt32(flags201, buffer: buffer, boxed: false)
+    serializeInt32(data.replyToMsgId, buffer: buffer, boxed: false)
+    if Int(flags201) & Int(1 << 0) != 0 {
+        serializeInt32(data.topMsgId!, buffer: buffer, boxed: false)
+    }
+    if Int(flags201) & Int(1 << 1) != 0 {
+        data.replyToPeerId!.serialize(buffer, true)
+    }
+    if Int(flags201) & Int(1 << 2) != 0 {
+        serializeString(data.quoteText!, buffer: buffer, boxed: false)
+    }
+    if Int(flags201) & Int(1 << 3) != 0 {
+        buffer.appendInt32(481674261)
+        buffer.appendInt32(Int32(data.quoteEntities!.count))
+        for item in data.quoteEntities! {
+            item.serialize(buffer, true)
+        }
+    }
+    if Int(flags201) & Int(1 << 4) != 0 {
+        serializeInt32(data.quoteOffset!, buffer: buffer, boxed: false)
+    }
+}
+
 public extension Api.functions.messages {
     // messages.sendMessage#fbf2340a (layer 201) — DIVO encode-фикс.
     // Форк кодирует sendMessage новым 222-конструктором 545cd15a с полями suggested_post (flags.22)
@@ -1010,7 +1045,7 @@ public extension Api.functions.messages {
         serializeInt32(flags201, buffer: buffer, boxed: false)
         peer.serialize(buffer, true)
         if Int(flags201) & Int(1 << 0) != 0 {
-            replyTo!.serialize(buffer, true)
+            serializeInputReplyTo_teamgram_layer201(replyTo!, buffer)
         }
         serializeString(message, buffer: buffer, boxed: false)
         serializeInt64(randomId, buffer: buffer, boxed: false)
@@ -1058,7 +1093,7 @@ public extension Api.functions.messages {
         serializeInt32(flags201, buffer: buffer, boxed: false)
         peer.serialize(buffer, true)
         if Int(flags201) & Int(1 << 0) != 0 {
-            replyTo!.serialize(buffer, true)
+            serializeInputReplyTo_teamgram_layer201(replyTo!, buffer)
         }
         media.serialize(buffer, true)
         serializeString(message, buffer: buffer, boxed: false)
@@ -1194,7 +1229,7 @@ public extension Api.functions.messages {
         let flags201 = flags & 250
         serializeInt32(flags201, buffer: buffer, boxed: false)
         if Int(flags201) & Int(1 << 4) != 0 {
-            replyTo!.serialize(buffer, true)
+            serializeInputReplyTo_teamgram_layer201(replyTo!, buffer)
         }
         peer.serialize(buffer, true)
         serializeString(message, buffer: buffer, boxed: false)
