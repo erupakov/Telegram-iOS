@@ -80,7 +80,6 @@ final class ModelListCell: UICollectionViewCell {
         return btn
     }()
     
-    private var optionsButtonWidthConstraint: NSLayoutConstraint?
     private var recordId: Int? = nil
     
     var onDeleteTapped: ((Int?) -> Void)?

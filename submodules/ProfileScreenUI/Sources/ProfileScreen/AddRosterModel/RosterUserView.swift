@@ -1,5 +1,5 @@
 //
-//  RosterUserCell.swift
+//  RosterUserView.swift
 //  divo-ios
 //
 //  Created by Michail Shagovitov on 01.06.2026.
