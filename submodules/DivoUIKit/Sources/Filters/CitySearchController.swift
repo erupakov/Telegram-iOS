@@ -91,7 +91,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     private lazy var countryNameToCodeMap: [String: String] = {
         var map: [String: String] = [:]
         let preferredLocale = Locale(identifier: DivoStrings.current.rawValue)
-        let enLocale = Locale(identifier: DivoStrings.current.rawValue)
+        let enLocale = Locale(identifier: "en")
         
         for code in Locale.isoRegionCodes {
             if let countryName = preferredLocale.localizedString(forRegionCode: code) {
