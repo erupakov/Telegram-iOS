@@ -73,6 +73,7 @@ final class InteractionUserCell: UITableViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        avatarImageView.cancelImageLoad()
         avatarImageView.image = nil
         avatarImageView.layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
         avatarImageView.stopShimmering()

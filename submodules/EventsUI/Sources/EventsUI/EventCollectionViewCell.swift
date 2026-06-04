@@ -2,12 +2,9 @@ import Foundation
 import UIKit
 import AsyncDisplayKit
 import Display
-import TelegramCore
 import DivoCore
 import DivoUIKit
-import SwiftSignalKit
 import TelegramPresentationData
-import AccountContext
 
 final class EventCollectionViewCell: UICollectionViewCell {
 
@@ -362,7 +359,7 @@ final class EventCollectionViewCell: UICollectionViewCell {
         }
     }
 
-    func configure(with event: EventData, context: AccountContext) {
+    func configure(with event: EventData) {
         self.currentEventId = event.id
         applyButton.isEnabled = true
         

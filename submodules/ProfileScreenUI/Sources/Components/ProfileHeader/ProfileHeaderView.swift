@@ -61,7 +61,6 @@ class ProfileHeaderView: UIView {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
-        iv.tintColor = DivoColorPalette.primaryText
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
     }()

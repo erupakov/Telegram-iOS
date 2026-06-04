@@ -672,7 +672,7 @@ extension EventsControllerNode: UICollectionViewDataSource, UICollectionViewDele
             fatalError("Unable to dequeue EventCollectionViewCell")
         }
         let event = events[indexPath.item]
-        cell.configure(with: event, context: context)
+        cell.configure(with: event)
         
         // Связываем действие тапа на кнопку Apply с замыканием узла
         cell.onApply = { [weak self, weak cell] in

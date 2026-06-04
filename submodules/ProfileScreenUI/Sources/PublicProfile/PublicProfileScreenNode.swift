@@ -3487,8 +3487,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             )
 
             let placeholder = DivoImage.emptyBackgroundModelProfile
-//            if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-            if let photoURLString = nil as String?, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
                 headerImageView.loadImage(from: photoURL, placeholder: placeholder)
             } else {
                 headerImageView.image = placeholder
