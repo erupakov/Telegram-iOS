@@ -35,6 +35,13 @@ public enum DivoImage {
     public static var defWork: UIImage { load("DivoDefWork") }
     public static var emptyAppearanceProfile: UIImage { load("DivoEmptyAppearanceProfile") }
     public static var emptyApplications: UIImage { load("DivoEmptyApplications") }
+    public static var emptyBackgroundAgencyProfile: UIImage { load("DivoEmptyBackgroundAgencyProfile") }
+    public static var emptyBackgroundAgencyProfileSmall: UIImage { load("DivoEmptyBackgroundAgencyProfileSmall") }
+    public static var emptyBackgroundAvatar: UIImage { load("DivoEmptyBackgroundAvatar") }
+    public static var emptyBackgroundEvent: UIImage { load("DivoEmptyBackgroundEvent") }
+    public static var emptyBackgroundEventSmall: UIImage { load("DivoEmptyBackgroundEventSmall") }
+    public static var emptyBackgroundModelProfile: UIImage { load("DivoEmptyBackgroundModelProfile") }
+    public static var emptyBackgroundModelProfileSmall: UIImage { load("DivoEmptyBackgroundModelProfileSmall") }
     public static var emptyBioProfile: UIImage { load("DivoEmptyBioProfile") }
     public static var emptyEvents: UIImage { load("DivoEmptyEvents") }
     public static var emptyImageWork: UIImage { load("DivoEmptyImageWork") }

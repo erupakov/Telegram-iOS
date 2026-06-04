@@ -742,8 +742,11 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         self.phase = .confirmation(matches: matches, hasMismatch: hasMismatch)
 
         // Event cover
-        if let firstFile = event.files?.first?.fullUrl, let url = CDNURLHelper.convertToCDNURL(firstFile) {
-            backgroundImageView.loadImage(from: url)
+        let placeholder = DivoImage.emptyBackgroundEvent
+        if let photoURLString = event.files?.first?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            backgroundImageView.loadImage(from: photoURL, placeholder: placeholder)
+        } else {
+            backgroundImageView.image = placeholder
         }
         
         // Header

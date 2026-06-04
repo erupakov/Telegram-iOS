@@ -220,8 +220,69 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToAddModel() {
-        let addModelController = AddModelController(context: self.context, presentationData: self.presentationData)
-        self.push(addModelController)
+        let addRosterController = AddRosterModelController(context: self.context)
+        
+        let nav = UINavigationController(rootViewController: addRosterController)
+        nav.setNavigationBarHidden(true, animated: false)
+        
+        addRosterController.onModelAdded = { [weak self, weak nav] selectedUser in
+            guard let self = self, let nav = nav else { return }
+            
+            let confirmationController = RosterApplyConfirmationController(
+                context: self.context,
+                userId: selectedUser.id
+            )
+            
+            confirmationController.onConfirmSuccess = { [weak self, weak nav] name in
+                guard let self = self else { return }
+                nav?.dismiss(animated: true)
+                self.loadModels()
+                guard let name = name else { return }
+                self.controllerNode.showSnackbar(
+                    message: DivoStrings.addModelSuccess(name),
+                    style: .success
+                )
+            }
+            nav.pushViewController(confirmationController, animated: true)
+        }
+        
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = 24
+            }
+        }
+        
+        self.present(nav, animated: true)
+    }
+
+    private func deleteModelFromAgency(_ recordId: Int?) {
+        guard let recordId = recordId, let agencyId = self.userDetailModel?.agency?.id else { return }
+        Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: "/agency/\(agencyId)/models/\(recordId)",
+                    method: "DELETE"
+                )
+                
+                await MainActor.run {
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.modelSuccessDelete,
+                        style: .success
+                    )
+                    self.loadModels()
+                }
+            } catch {
+                await MainActor.run {
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.genericError,
+                        style: .error
+                    )
+                }
+            }
+        }
     }
 
     override public func loadDisplayNode() {
@@ -343,6 +404,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onEventTapped = { [weak self] event in
             self?.openEventDetailScreen(for: event)
+        }
+
+        self.controllerNode.onModelDeleteTapped = { [weak self] recordId in
+            self?.deleteModelFromAgency(recordId)
         }
 
         self.displayNodeDidLoad()
@@ -797,7 +862,8 @@ extension PublicProfileScreenController {
                     guard let userId = item.userId else { return nil }
                     let roleLabel = Role(apiRole: item.role).title
                     return ModelItem(
-                        id: userId,
+                        recordId: item.id,
+                        userId: userId,
                         name: item.name ?? DivoStrings.noName,
                         role: roleLabel,
                         isPremium: item.isPremium ?? false,
@@ -1065,7 +1131,7 @@ extension PublicProfileScreenController {
             savesCount: "0",
             biography: "",
             socialMediaHandles: [],
-            userId: user.id,
+            userId: user.userId,
             role: user.role,
             mainImageURL: mainImageURL,
             avatarImageURL: mainImageURL

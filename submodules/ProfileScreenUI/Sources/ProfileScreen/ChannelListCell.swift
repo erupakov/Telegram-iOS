@@ -133,8 +133,11 @@ final class ChannelListCell: UICollectionViewCell {
         titleLabel.text = item.title
         subtitleLabel.text = DivoStrings.followersString(item.followersCount)
         premiumBadgeContainer.isHidden = !item.isPremium
+        let placeholder = DivoImage.emptyBackgroundAvatar
         if let urlString = item.customAvatarURL, let url = URL(string: urlString) {
-            avatarImageView.loadImage(from: url)
+            avatarImageView.loadImage(from: url, placeholder: placeholder)
+        } else {
+            avatarImageView.image = placeholder
         }
     }
 }

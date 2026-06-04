@@ -1,5 +1,6 @@
 import UIKit
 import ObjectiveC
+import DivoCore
 
 public final class ImageLoader {
     public static let shared = ImageLoader()
@@ -15,18 +16,26 @@ public final class ImageLoader {
     }
 
     public func load(url: URL, completion: @escaping (UIImage?) -> Void) {
+        let deliver: (UIImage?) -> Void = { image in
+            if DivoDebugFlags.slowImageLoading {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { completion(image) }
+            } else {
+                DispatchQueue.main.async { completion(image) }
+            }
+        }
+
         if let cached = cache.object(forKey: url as NSURL) {
-            DispatchQueue.main.async { completion(cached) }
+            deliver(cached)
             return
         }
 
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let data = data, let image = UIImage(data: data) else {
-                DispatchQueue.main.async { completion(nil) }
+                deliver(nil)
                 return
             }
             self?.cache.setObject(image, forKey: url as NSURL)
-            DispatchQueue.main.async { completion(image) }
+            deliver(image)
         }.resume()
     }
 }
@@ -39,14 +48,21 @@ public extension UIImageView {
         set { objc_setAssociatedObject(self, &currentURLKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 
-    func loadImage(from url: URL?, placeholder: UIImage? = nil) {
-        loadImage(from: url, placeholder: placeholder, completion: nil)
+    func loadImage(from url: URL?, placeholder: UIImage? = nil, cropAvatarIfNeeded: Bool = false) {
+        loadImage(from: url, placeholder: placeholder, cropAvatarIfNeeded: cropAvatarIfNeeded, completion: nil)
     }
 
-    func loadImage(from url: URL?, placeholder: UIImage? = nil, completion: ((UIImage?) -> Void)?) {
+    func loadImage(from url: URL?, placeholder: UIImage? = nil, cropAvatarIfNeeded: Bool = false, completion: ((UIImage?) -> Void)?) {
         image = placeholder
+        
+        if cropAvatarIfNeeded {
+            applyAvatarTopCropIfNeeded(image: placeholder)
+        } else {
+            layer.contentsRect = CGRect(x: 0, y: 0, width: 1, height: 1)
+        }
+        
         currentLoadingURL = url
-        guard let url = url else {
+        guard let url = url, !DivoDebugFlags.forceImagePlaceholders else {
             removeShimmerOverlay()
             completion?(nil)
             return
@@ -56,9 +72,14 @@ public extension UIImageView {
 
         ImageLoader.shared.load(url: url) { [weak self] loadedImage in
             guard self?.currentLoadingURL == url else { return }
-            self?.image = loadedImage
-            // По умолчанию используем стандартный кроп (центрированный). Для аватаров можно
-            // отдельно вызвать `applyAvatarTopCropIfNeeded(image:)`.
+
+            let finalImage = loadedImage ?? placeholder
+            self?.image = finalImage
+            
+            if cropAvatarIfNeeded {
+                self?.applyAvatarTopCropIfNeeded(image: finalImage)
+            }
+            
             self?.removeShimmerOverlay()
             completion?(loadedImage)
         }

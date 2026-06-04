@@ -284,29 +284,27 @@ final class CardCollectionViewCell: UICollectionViewCell {
         self.currentLikesCount = model.likesCount
         self.currentSavesCount = model.savesCount
 
-        let placeholderColor = DivoColorPalette.imagePlaceholderLight
+        let placeholder = Role(apiRole: model.role) == .agency ? DivoImage.emptyBackgroundAgencyProfileSmall : DivoImage.emptyBackgroundModelProfileSmall
 
         // Main image
         if let url = model.mainImageURL {
             // Glass показываем сразу при наличии URL — он даёт scrim в зоне
-            // текста ещё до загрузки фото, белый текст имени читается на
-            // светлом placeholder. Когда фото придёт — glass уже на месте,
+            // текста ещё до загрузки фото. Когда фото придёт — glass уже на месте,
             // лишнего fade-in не нужно.
             topGlassView.alpha = 1
             bottomGlassView.alpha = 1
-            mainImageView.backgroundColor = placeholderColor
-            mainImageView.loadImage(from: url)
+            mainImageView.loadImage(from: url, placeholder: placeholder)
         } else {
             topGlassView.alpha = 0
             bottomGlassView.alpha = 0
-            mainImageView.backgroundColor = placeholderColor
+            mainImageView.image = placeholder
         }
 
         // Name
         nameLabel.text = model.name
 
         // Role badge
-        let roleText = model.roleLabel ?? model.role ?? ""
+        let roleText = Role(apiRole: model.role).title
         if roleText.isEmpty {
             roleBadgeView.isHidden = true
         } else {

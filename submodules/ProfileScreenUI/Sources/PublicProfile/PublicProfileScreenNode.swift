@@ -774,6 +774,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onModelAgencyTapped: ((ModelItem) -> Void)?
     var onEventTapped: ((EventItem) -> Void)?
 
+    var onModelDeleteTapped: ((Int?) -> Void)?
+
     private var socialLinksMap: [UIButton: String] = [:]
 
     private enum SocialIcon {
@@ -3144,24 +3146,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
             .joined(separator: " • ")
     }
 
-    /// Грузит аватар в шапку. Спиннер гарантированно гасится на всех путях:
-    /// nil-URL, ошибка конвертации, ошибка загрузки, успех.
+    /// Грузит аватар в шапку: шиммер на время загрузки, заглушка при nil-URL/ошибке.
     private func loadHeaderAvatar(urlString: String?) {
-        guard
-            let urlString,
-            let avatarURL = CDNURLHelper.convertToCDNURL(urlString)
-        else {
-            self.profileHeaderView.toggleSpinner(active: false)
-            return
-        }
-
-        ImageLoader.shared.load(url: avatarURL) { [weak self] image in
-            guard let self else { return }
-            self.profileHeaderView.toggleSpinner(active: false)
-            if let image {
-                self.profileHeaderView.changeAvatar(with: image)
-            }
-        }
+        profileHeaderView.loadAvatar(from: CDNURLHelper.convertToCDNURL(urlString))
     }
     
     // Первоначальная настройка титула NavigationBar
@@ -3431,7 +3418,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
-        self.profileHeaderView.toggleSpinner(active: true)
         self.modelDetail = detail
         var bio: String?
         var appearance: [AppearanceAttribute]
@@ -3450,8 +3436,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 )
             )
 
+            let placeholder = DivoImage.emptyBackgroundAgencyProfile
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-                headerImageView.loadImage(from: photoURL)
+                headerImageView.loadImage(from: photoURL, placeholder: placeholder)
+            } else {
+                headerImageView.image = placeholder
             }
 
             bio = (detail.agency?.description?.isEmpty == false)
@@ -3480,8 +3469,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 )
             )
 
+            let placeholder = DivoImage.emptyBackgroundModelProfile
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-                headerImageView.loadImage(from: photoURL)
+                headerImageView.loadImage(from: photoURL, placeholder: placeholder)
+            } else {
+                headerImageView.image = placeholder
             }
 
             bio = (detail.model?.description?.isEmpty == false)
@@ -4216,6 +4208,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .models {
                 self.updateCollectionsContainerHeight(animated: false)
+                self.updateFloatingButton(for: currentTab)
             }
         }
     }
@@ -4265,6 +4258,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             self.updateAllCollectionViewHeights(layout: layout)
             if self.currentTab == .events {
                 self.updateCollectionsContainerHeight(animated: false)
+                self.updateFloatingButton(for: currentTab)
             }
         }
     }
@@ -4408,9 +4402,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if isVisible {
             floatingAddButton.makeDivoButton(title: title, leadingIcon: icon, buttonFont: Font.helveticaNeue(16), radius: 20)
             
-            if floatingAddButton.isHidden {
-                floatingAddButton.alpha = 0
-                floatingAddButton.isHidden = false
+            if floatingAddButton.isHidden || floatingAddButton.alpha < 1.0 {
+                floatingAddButton.layer.removeAllAnimations()
+                
+                if floatingAddButton.isHidden {
+                    floatingAddButton.alpha = 0
+                    floatingAddButton.isHidden = false
+                }
+                
                 UIView.animate(withDuration: 0.3) {
                     self.floatingAddButton.alpha = 1.0
                 }
@@ -4421,8 +4420,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
             if !floatingAddButton.isHidden {
                 UIView.animate(withDuration: 0.3, animations: {
                     self.floatingAddButton.alpha = 0.0
-                }) { _ in
-                    self.floatingAddButton.isHidden = true
+                }) { finished in
+                    if finished {
+                        self.floatingAddButton.isHidden = true
+                    }
                 }
             }
         }
@@ -4709,7 +4710,10 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
                 return UICollectionViewCell()
             }
             let item = modelGalleryItems[indexPath.item]
-            cell.configure(with: item, context: self.context)
+            cell.configure(with: item, isMyProfile: self.model.isMyProfile)
+            cell.onDeleteTapped = { [weak self] recordId in
+                self?.onModelDeleteTapped?(recordId)
+            }
             return cell
         } else if collectionView == eventGalleryCollectionView {
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: EventListCell.reuseIdentifier, for: indexPath) as? EventListCell else {

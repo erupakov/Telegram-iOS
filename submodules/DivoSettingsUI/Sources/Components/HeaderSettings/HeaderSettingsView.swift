@@ -90,10 +90,11 @@ final class HeaderSettingsView: UIView {
         phoneLabel.text = phone
         phoneLabel.isHidden = phone == nil
 
-        avatarImageView.cancelImageLoad()
-        let avatarURL = CDNURLHelper.convertToCDNURL(fullUrl)
-        avatarImageView.loadImage(from: avatarURL) { [weak avatarImageView] image in
-            avatarImageView?.applyAvatarTopCropIfNeeded(image: image)
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            avatarImageView.image = placeholder
         }
     }
 }

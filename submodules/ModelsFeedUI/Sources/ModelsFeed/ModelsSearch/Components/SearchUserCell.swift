@@ -100,11 +100,11 @@ final class SearchUserCell: UITableViewCell {
         nameTopConstraint.isActive = hasDescription
         nameCenterYConstraint.isActive = !hasDescription
         
-        if let avatarURLString = item.searchImage?.fullUrl,
-           let url = CDNURLHelper.convertToCDNURL(avatarURLString) {
-            avatarView.loadImage(from: url) { [weak self] image in
-                self?.avatarView.applyAvatarTopCropIfNeeded(image: image)
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = item.searchImage?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            avatarView.image = placeholder
         }
         
         let displayName = item.title ?? item.user?.fullName ?? ""

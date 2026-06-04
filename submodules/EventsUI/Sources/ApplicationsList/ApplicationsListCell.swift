@@ -180,14 +180,11 @@ final class ApplicationsListCell: UICollectionViewCell {
         if let date = item.dateApplied { metaParts.append(date) }
         metaLabel.text = metaParts.joined(separator: " · ")
         
-        if let avatarURL = CDNURLHelper.convertToCDNURL(item.avatarUrl) {
-            // loadImage отменяется в prepareForReuse → нет гонки при reuse ячейки
-            avatarImageView.loadImage(from: avatarURL) { [weak self] image in
-                self?.avatarImageView.applyAvatarTopCropIfNeeded(image: image)
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = item.avatarUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
         } else {
-            avatarImageView.cancelImageLoad()
-            avatarImageView.image = nil
+            avatarImageView.image = placeholder
         }
         self.layoutIfNeeded()
     }

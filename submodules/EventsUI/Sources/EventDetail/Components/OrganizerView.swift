@@ -57,8 +57,6 @@ final class OrganizerView: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
-    private var lastLogoURL: URL?
 
     private let profileCheckImageView: UIImageView = {
         let profileCheckImageView = UIImageView()
@@ -130,7 +128,7 @@ final class OrganizerView: UIView {
         ])
     }
     
-    func configure(name: String?, isVerified: Bool?, logoURL: URL?) {
+    func configure(name: String?, isVerified: Bool?, logoURLString: String?) {
         UIView.performWithoutAnimation {
             self.agencyNameLabel.text = name?.uppercased() ?? DivoStrings.unknownAgency
             self.agencyNameLabel.layer.removeAllAnimations()
@@ -139,25 +137,11 @@ final class OrganizerView: UIView {
         
         profileCheckImageView.isHidden = isVerified != true
 
-        guard lastLogoURL != logoURL else { return }
-        lastLogoURL = logoURL
-
-        guard let url = logoURL else {
-            UIView.performWithoutAnimation {
-                self.logoImageView.image = nil
-                self.layoutIfNeeded()
-            }
-            return
-        }
-
-        ImageLoader.shared.load(url: url) { [weak self] image in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                UIView.performWithoutAnimation {
-                    self.logoImageView.image = image
-                    self.layoutIfNeeded()
-                }
-            }
+        let placeholder = DivoImage.emptyBackgroundAvatar
+        if let photoURLString = logoURLString, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
+            logoImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            logoImageView.image = placeholder
         }
     }
 }
