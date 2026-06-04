@@ -306,7 +306,7 @@ private func synchronizeMarkAllUnseenReactions(transaction: Transaction, postbox
         }
     }
     
-    let signal = network.request(Api.functions.messages.readReactions(flags: flags, peer: inputPeer, topMsgId: topMsgId, savedPeerId: savedPeerId))
+    let signal = network.request(Api.functions.messages.readReactions_teamgram_layer201(flags: flags, peer: inputPeer, topMsgId: topMsgId, savedPeerId: savedPeerId))
     |> map(Optional.init)
     |> `catch` { _ -> Signal<Api.messages.AffectedHistory?, Bool> in
         return .fail(true)

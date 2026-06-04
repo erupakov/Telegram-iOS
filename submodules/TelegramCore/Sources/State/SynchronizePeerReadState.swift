@@ -258,7 +258,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
                     }
                     if markedUnread {
                         pushSignal = pushSignal
-                        |> then(network.request(Api.functions.messages.markDialogUnread(flags: 1 << 0, parentPeer: nil, peer: .inputDialogPeer(.init(peer: inputPeer))))
+                        |> then(network.request(Api.functions.messages.markDialogUnread_teamgram_layer201(flags: 1 << 0, parentPeer: nil, peer: .inputDialogPeer(.init(peer: inputPeer))))
                         |> `catch` { _ -> Signal<Api.Bool, NoError> in
                             return .complete()
                         }
@@ -297,7 +297,7 @@ private func pushPeerReadState(network: Network, postbox: Postbox, stateManager:
 
                     if markedUnread {
                         pushSignal = pushSignal
-                        |> then(network.request(Api.functions.messages.markDialogUnread(flags: 1 << 0, parentPeer: nil, peer: .inputDialogPeer(.init(peer: inputPeer))))
+                        |> then(network.request(Api.functions.messages.markDialogUnread_teamgram_layer201(flags: 1 << 0, parentPeer: nil, peer: .inputDialogPeer(.init(peer: inputPeer))))
                         |> `catch` { _ -> Signal<Api.Bool, NoError> in
                             return .complete()
                         }

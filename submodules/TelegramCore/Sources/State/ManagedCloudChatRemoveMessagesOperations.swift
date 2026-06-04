@@ -456,7 +456,7 @@ private func _internal_clearHistory(transaction: Transaction, postbox: Postbox, 
                     flags |= 1 << 3
                     updatedMaxId = 0
                 }
-                let signal = network.request(Api.functions.messages.deleteSavedHistory(flags: flags, parentPeer: nil, peer: inputSubPeer, maxId: updatedMaxId, minDate: operation.minTimestamp, maxDate: operation.maxTimestamp))
+                let signal = network.request(Api.functions.messages.deleteSavedHistory_teamgram_layer201(flags: flags, parentPeer: nil, peer: inputSubPeer, maxId: updatedMaxId, minDate: operation.minTimestamp, maxDate: operation.maxTimestamp))
                 |> map { result -> Api.messages.AffectedHistory? in
                     return result
                 }
@@ -534,7 +534,7 @@ private func _internal_clearHistory(transaction: Transaction, postbox: Postbox, 
                         updatedMaxId = 0
                     }
                     flags |= 1 << 0
-                    let signal = network.request(Api.functions.messages.deleteSavedHistory(flags: flags, parentPeer: inputPeer, peer: inputSubPeer, maxId: updatedMaxId, minDate: operation.minTimestamp, maxDate: operation.maxTimestamp))
+                    let signal = network.request(Api.functions.messages.deleteSavedHistory_teamgram_layer201(flags: flags, parentPeer: inputPeer, peer: inputSubPeer, maxId: updatedMaxId, minDate: operation.minTimestamp, maxDate: operation.maxTimestamp))
                     |> map { result -> Api.messages.AffectedHistory? in
                         return result
                     }

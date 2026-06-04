@@ -264,6 +264,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1662637586] = { return Api.DocumentAttribute.parse_documentAttributeSticker($0) }
     dict[1137015880] = { return Api.DocumentAttribute.parse_documentAttributeVideo($0) }
     dict[-1763006997] = { return Api.DraftMessage.parse_draftMessage($0) }
+    // DIVO: draftMessage#2d65321f (layer 201). Строгий префикс 222 (-1763006997): 222 добавил suggested_post@flags.8,
+    // поля flags.1-7 идентичны → безопасный alias. Без него любой диалог с черновиком (dialog draft@flags.1) не
+    // парсится в getDialogs → весь список падает (особенно на свежем входе без кэша postbox).
+    dict[761606687] = { return Api.DraftMessage.parse_draftMessage($0) }
     dict[453805082] = { return Api.DraftMessage.parse_draftMessageEmpty($0) }
     dict[-1764723459] = { return Api.EmailVerification.parse_emailVerificationApple($0) }
     dict[-1842457175] = { return Api.EmailVerification.parse_emailVerificationCode($0) }
@@ -491,6 +495,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[609840449] = { return Api.InputQuickReplyShortcut.parse_inputQuickReplyShortcut($0) }
     dict[18418929] = { return Api.InputQuickReplyShortcut.parse_inputQuickReplyShortcutId($0) }
     dict[-2036351472] = { return Api.InputReplyTo.parse_inputReplyToMessage($0) }
+    // DIVO: inputReplyToMessage#22c0f6d5 (layer 201) для ДЕКОДА — сервер эхает сохранённый draft.reply_to (InputReplyTo).
+    // Строгий префикс 222 (-2036351472): 222 добавил monoforum_peer_id@flags.5 + todo_item_id@flags.6, которых 201 не
+    // выставляет; биты 0-4 идентичны → безопасный alias. Парный к encode-обёртке serializeInputReplyTo_teamgram_layer201.
+    dict[583071445] = { return Api.InputReplyTo.parse_inputReplyToMessage($0) }
     dict[1775660101] = { return Api.InputReplyTo.parse_inputReplyToMonoForum($0) }
     dict[1484862010] = { return Api.InputReplyTo.parse_inputReplyToStory($0) }
     dict[-251549057] = { return Api.InputSavedStarGift.parse_inputSavedStarGiftChat($0) }
@@ -707,6 +715,11 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[1269016922] = { return Api.MessageReactor.parse_messageReactor($0) }
     dict[-2083123262] = { return Api.MessageReplies.parse_messageReplies($0) }
     dict[1763137035] = { return Api.MessageReplyHeader.parse_messageReplyHeader($0) }
+    // DIVO: messageReplyHeader#afbc09db (layer 201). Строгий префикс 222 (1763137035): отличается только
+    // todo_item_id@flags.11, которого 201-сервер не выставляет; биты 0-10 идентичны → безопасный alias
+    // на тот же парсер (как storyItem). Без него ЛЮБОЕ сообщение-ответ в getDifference/getHistory не
+    // парсится → весь difference падает → синк встаёт («Обновление»), эхо отправленного reply не применяется (красный «!»).
+    dict[-1346631205] = { return Api.MessageReplyHeader.parse_messageReplyHeader($0) }
     dict[240843065] = { return Api.MessageReplyHeader.parse_messageReplyStoryHeader($0) }
     dict[2030298073] = { return Api.MessageReportOption.parse_messageReportOption($0) }
     dict[1163625789] = { return Api.MessageViews.parse_messageViews($0) }

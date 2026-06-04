@@ -733,7 +733,7 @@ func fetchMessageHistoryHole(accountPeerId: PeerId, source: FetchMessageHistoryH
                         }
                     }
                     
-                    request = source.request(Api.functions.messages.getUnreadReactions(flags: flags, peer: inputPeer, topMsgId: topMsgId, savedPeerId: savedPeerId, offsetId: offsetId, addOffset: addOffset, limit: Int32(selectedLimit), maxId: maxId, minId: minId))
+                    request = source.request(Api.functions.messages.getUnreadReactions_teamgram_layer201(flags: flags, peer: inputPeer, topMsgId: topMsgId, savedPeerId: savedPeerId, offsetId: offsetId, addOffset: addOffset, limit: Int32(selectedLimit), maxId: maxId, minId: minId))
                 } else if tag == .liveLocation {
                     let selectedLimit = count
                     
