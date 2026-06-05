@@ -1139,7 +1139,7 @@ extension EventsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
                 return UICollectionViewCell()
             }
             let item = currentGridResults[indexPath.item]
-            cell.configure(with: item, context: context)
+            cell.configure(with: item)
             
             cell.onApply = { [weak self] in
                 self?.onGridApplyTapped?(item.id)

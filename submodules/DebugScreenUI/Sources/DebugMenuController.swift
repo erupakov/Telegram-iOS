@@ -169,6 +169,22 @@ private final class DebugMenuNode: ASDisplayNode, UITableViewDataSource, UITable
                     self?.clearOnboardingProgress()
                 }),
             ]),
+            (header: "Image loading", rows: [
+                Row(icon: "tortoise", title: "Slow image loading (2s)", subtitle: {
+                    DivoDebugFlags.slowImageLoading ? "On" : "Off"
+                }, accessory: .toggle(DivoDebugFlags.slowImageLoading, { [weak self] enabled in
+                    DivoDebugFlags.slowImageLoading = enabled
+                    self?.buildSections()
+                    self?.tableView.reloadData()
+                }), action: {}),
+                Row(icon: "photo", title: "Force placeholders", subtitle: {
+                    DivoDebugFlags.forceImagePlaceholders ? "On" : "Off"
+                }, accessory: .toggle(DivoDebugFlags.forceImagePlaceholders, { [weak self] enabled in
+                    DivoDebugFlags.forceImagePlaceholders = enabled
+                    self?.buildSections()
+                    self?.tableView.reloadData()
+                }), action: {}),
+            ]),
             (header: DivoStrings.debugNetwork, rows: [
                 Row(icon: "speedometer", title: DivoStrings.debugNetworkOverlay, subtitle: { "" }, accessory: .toggle(overlayEnabled, { [weak self] enabled in
                     UserDefaults.standard.set(enabled, forKey: "DivoNetworkOverlay.enabled")

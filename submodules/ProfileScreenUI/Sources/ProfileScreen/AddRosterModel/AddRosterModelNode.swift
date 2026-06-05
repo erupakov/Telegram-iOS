@@ -24,7 +24,6 @@ final class AddRosterModelNode: ASDisplayNode {
     private var users: [RosterSearchUser] = []
 
     var onSearchTextChanged: ((String) -> Void)?
-    var onLoadMore: (() -> Void)?
     var onUserSelected: ((RosterSearchUser) -> Void)?
     var onCloseTapped: (() -> Void)?
     var onRetry: (() -> Void)?
@@ -181,20 +180,6 @@ final class AddRosterModelNode: ASDisplayNode {
         return label
     }()
 
-    private let footerSpinner: UIActivityIndicatorView = {
-        let loader = UIActivityIndicatorView(style: .medium)
-        loader.color = DivoColorPalette.accent
-        loader.hidesWhenStopped = true
-        return loader
-    }()
-
-    private let footerSpinnerContainer: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        view.heightAnchor.constraint(equalToConstant: 60).isActive = true
-        return view
-    }()
-
     private let errorPlaceholderView: ProfileTabErrorView = {
         let view = ProfileTabErrorView()
         view.backgroundColor = DivoColorPalette.screenBackground
@@ -227,6 +212,13 @@ final class AddRosterModelNode: ASDisplayNode {
         dismissTap.cancelsTouchesInView = false
         dismissTap.delegate = self
         self.view.addGestureRecognizer(dismissTap)
+
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     private func setupLayout() {
@@ -249,16 +241,10 @@ final class AddRosterModelNode: ASDisplayNode {
         
         view.addSubview(initialPlaceholderLabel)
         
-        view.addSubview(autocompleteLoader)
         view.addSubview(errorPlaceholderView)
         
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChangedHandler), for: .editingChanged)
-        scrollView.delegate = self
-        
-        // Оборачиваем footerSpinner в контейнер
-        footerSpinner.center = CGPoint(x: (UIScreen.main.bounds.width - DivoDesignTokens.Spacing.xl) / 2, y: 30)
-        footerSpinnerContainer.addSubview(footerSpinner)
 
         NSLayoutConstraint.activate([
             searchFieldContainer.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -370,6 +356,15 @@ final class AddRosterModelNode: ASDisplayNode {
             errorPlaceholderView.isHidden = true
             emptyContainer.isHidden = true
             initialPlaceholderLabel.isHidden = false
+
+        case .idle:
+            resultsContainer.isHidden = true
+            scrollView.isHidden = true
+            autocompleteLoader.isHidden = true
+            autocompleteLoader.stopAnimating()
+            errorPlaceholderView.isHidden = true
+            emptyContainer.isHidden = true
+            initialPlaceholderLabel.isHidden = true
             
         case .loading:
             resultsContainer.isHidden = false
@@ -428,7 +423,7 @@ final class AddRosterModelNode: ASDisplayNode {
             initialPlaceholderLabel.isHidden = true
             
             errorPlaceholderView.isHidden = false
-            errorPlaceholderView.configure(tab: .events, networkError: networkError) { [weak self] in
+            errorPlaceholderView.configure(tab: .models, networkError: networkError) { [weak self] in
                 self?.onRetry?()
             }
         }
@@ -451,26 +446,41 @@ final class AddRosterModelNode: ASDisplayNode {
     @objc private func dismissKeyboard() {
         view.endEditing(true)
     }
-}
 
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        currentKeyboardHeight = frame.height
+        snackbar.updateBottomInset(snackbarBottomInset)
+    }
 
-// MARK: - UIScrollViewDelegate
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        currentKeyboardHeight = 0
+        snackbar.updateBottomInset(snackbarBottomInset)
+    }
 
-extension AddRosterModelNode: UIScrollViewDelegate {
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        guard scrollView === self.scrollView else { return }
-        
-        guard case .success = state, !users.isEmpty else { return }
-        
-        let offsetY = scrollView.contentOffset.y
-        let contentHeight = scrollView.contentSize.height
-        let height = scrollView.frame.size.height
-        
-        guard contentHeight > 0 else { return }
-        
-        if offsetY > contentHeight - height - 200 {
-            onLoadMore?()
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+    private var currentKeyboardHeight: CGFloat = 0
+
+    private var snackbarBottomInset: CGFloat {
+        if currentKeyboardHeight > 0 {
+            return currentKeyboardHeight - view.safeAreaInsets.bottom + DivoDesignTokens.Spacing.m
+        } else {
+            return DivoDesignTokens.Spacing.m
         }
+    }
+
+    func showSnackbar(message: String, style: SnackbarStyle) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: snackbarBottomInset,
+            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor
+        )
     }
 }
 

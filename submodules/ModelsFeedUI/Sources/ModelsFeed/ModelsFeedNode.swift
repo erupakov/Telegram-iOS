@@ -988,7 +988,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         emptyView.backgroundColor = DivoColorPalette.screenBackground
         emptyView.configure(config)
 
-        self.view.addSubview(emptyView)
+        self.view.insertSubview(emptyView, belowSubview: self.segmentedControlFadeOverlay)
         emptyStateView = emptyView
 
         if let (layout, navigationBarHeight) = containerLayout {

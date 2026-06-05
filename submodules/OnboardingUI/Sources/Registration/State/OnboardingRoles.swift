@@ -423,7 +423,7 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
             resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .stylist, category: .creativeProfessionals,
@@ -433,7 +433,7 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
             resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .makeupArtist, category: .creativeProfessionals,
@@ -443,7 +443,7 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
             resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .hairStylist, category: .creativeProfessionals,
@@ -453,7 +453,7 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
             resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .videographer, category: .creativeProfessionals,
@@ -463,7 +463,7 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
             resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .creativeDirector, category: .creativeProfessionals,
@@ -473,7 +473,7 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
             resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .fashionDesigner, category: .creativeProfessionals,
@@ -483,7 +483,7 @@ extension OnboardingRoleRegistry {
             pickerSectionKey: "onboarding.quiz.talentPicker.section.creative",
             discoveredFrom: .talentSubRolePicker,
             resultId: .creativeProfessional, formId: .creativeIndividual,
-            backendRoleRaw: "agency_employee"
+            backendRoleRaw: "new_face"
         ),
         OnboardingRoleDefinition(
             id: .studioLocation, category: .creativeProfessionals,

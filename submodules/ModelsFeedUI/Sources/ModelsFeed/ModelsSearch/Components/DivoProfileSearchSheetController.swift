@@ -350,11 +350,12 @@ private final class DivoProfileSearchCell: UITableViewCell {
         nameLabel.attributedText = Self.highlightedName(item.title ?? item.user?.fullName ?? "", query: query)
         checkmarkView.isHidden = !isSelected
 
+        let placeholder = DivoImage.emptyBackgroundAvatar
         if let urlString = item.searchImage?.fullUrl,
            let url = CDNURLHelper.convertToCDNURL(urlString) {
-            avatarView.loadImage(from: url) { [weak self] image in
-                self?.avatarView.applyAvatarTopCropIfNeeded(image: image)
-            }
+            avatarView.loadImage(from: url, placeholder: placeholder, cropAvatarIfNeeded: true)
+        } else {
+            avatarView.image = placeholder
         }
     }
 

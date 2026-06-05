@@ -1,5 +1,5 @@
 //
-//  RosterUserCell.swift
+//  RosterUserView.swift
 //  divo-ios
 //
 //  Created by Michail Shagovitov on 01.06.2026.
@@ -150,16 +150,18 @@ final class RosterUserView: UIView {
             statusIconView.isHidden = true
             statusLabel.text = "@\(handle) · \(role)"
             statusLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
-            
+            avatarImageView.alpha = 1.0
+
         case .alreadyAdded:
             statusIconView.isHidden = true
             statusLabel.text = DivoStrings.addModelSearchAlreadyAdded
             statusLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
+            avatarImageView.alpha = 0.5
         }
 
         let placeholder = DivoImage.emptyBackgroundAvatar
         if let photoURLString = user.avatarUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-            avatarImageView.loadImage(from: photoURL, placeholder: placeholder)
+            avatarImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)
         } else {
             avatarImageView.image = placeholder
         }

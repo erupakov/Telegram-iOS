@@ -57,8 +57,6 @@ final class OrganizerView: UIView {
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
-    
-    private var lastLogoURL: URL?
 
     private let profileCheckImageView: UIImageView = {
         let profileCheckImageView = UIImageView()
@@ -137,8 +135,8 @@ final class OrganizerView: UIView {
             self.layoutIfNeeded()
         }
         
-        profileCheckImageView.isHidden = isVerified == false
-          
+        profileCheckImageView.isHidden = isVerified != true
+
         let placeholder = DivoImage.emptyBackgroundAvatar
         if let photoURLString = logoURLString, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
             logoImageView.loadImage(from: photoURL, placeholder: placeholder, cropAvatarIfNeeded: true)

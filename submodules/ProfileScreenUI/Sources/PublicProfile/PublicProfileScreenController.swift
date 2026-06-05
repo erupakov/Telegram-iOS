@@ -248,8 +248,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
             
             let confirmationController = RosterApplyConfirmationController(
                 context: self.context,
-                userId: selectedUser.id,
-                agencyId: self.userDetailModel?.agency?.id
+                userId: selectedUser.id
             )
             
             confirmationController.onConfirmSuccess = { [weak self, weak nav] name in

@@ -12,6 +12,8 @@ public enum DivoDebugFlags {
 
     private enum Keys {
         static let showOnboardingEntry = "DivoDebugFlags.showOnboardingEntry"
+        static let slowImageLoading = "DivoDebugFlags.slowImageLoading"
+        static let forceImagePlaceholders = "DivoDebugFlags.forceImagePlaceholders"
     }
 
     /// Показать ли row «Запустить онбординг (debug)» в DIVO Settings под логаутом.
@@ -21,6 +23,32 @@ public enum DivoDebugFlags {
         set {
             let oldValue = showOnboardingEntry
             UserDefaults.standard.set(newValue, forKey: Keys.showOnboardingEntry)
+            if newValue != oldValue {
+                NotificationCenter.default.post(name: didChangeNotification, object: nil)
+            }
+        }
+    }
+
+    /// Задерживает выдачу картинок в `ImageLoader` (~2с), чтобы успеть рассмотреть шиммер.
+    /// Действует и на кэш — иначе повторная загрузка мгновенна и шиммера не видно.
+    public static var slowImageLoading: Bool {
+        get { UserDefaults.standard.bool(forKey: Keys.slowImageLoading) }
+        set {
+            let oldValue = slowImageLoading
+            UserDefaults.standard.set(newValue, forKey: Keys.slowImageLoading)
+            if newValue != oldValue {
+                NotificationCenter.default.post(name: didChangeNotification, object: nil)
+            }
+        }
+    }
+
+    /// Заставляет `loadImage` сразу показывать placeholder, минуя сеть — чтобы проверить
+    /// пустые состояния (заглушки) без отключения интернета и чистки кэша.
+    public static var forceImagePlaceholders: Bool {
+        get { UserDefaults.standard.bool(forKey: Keys.forceImagePlaceholders) }
+        set {
+            let oldValue = forceImagePlaceholders
+            UserDefaults.standard.set(newValue, forKey: Keys.forceImagePlaceholders)
             if newValue != oldValue {
                 NotificationCenter.default.post(name: didChangeNotification, object: nil)
             }
