@@ -597,7 +597,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cityName
+                let encodedQuery = cityName
                 let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/geo/search-by-address-name?query=\(encodedQuery)",
                     method: "GET"

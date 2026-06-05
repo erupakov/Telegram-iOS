@@ -99,6 +99,10 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             self?.deleteWorkExperience(itemId: itemId)
         }
 
+        self.editProfileNode.onCityChosen = { [weak self] cityName in
+            self?.resolveProfileCityOnBackend(cityName: cityName)
+        }
+
         self.displayNodeDidLoad()
 
         self.loadAppearanceDictionary()
@@ -300,6 +304,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 let request = UpdateBiographyPageRequest(
                     fullName: rawData.fullName,
                     gender: rawData.gender,
+                    geoCityId: rawData.geoCityId,
                     birthday: rawData.birthday,
                     model: rawData.model,
                     avatar: avatarUuid
@@ -336,7 +341,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     agencyId: rawData.agencyId,
                     title: rawData.title,
                     description: rawData.description,
-                    photo: photoUuid
+                    photo: photoUuid,
+                    address: rawData.address
                 )
 
                 let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
@@ -374,6 +380,40 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         super.containerLayoutUpdated(layout, transition: transition)
 
         self.editProfileNode.containerLayoutUpdated(layout, navigationBarHeight: self.cleanNavigationHeight, actualNavigationBarHeight: self.navigationLayout(layout: layout).navigationFrame.maxY, transition: transition)
+    }
+
+    private func resolveProfileCityOnBackend(cityName: String) {
+        self.editProfileNode.setCityRowLoading(true)
+        
+        Task { @MainActor in
+            do {
+                let encodedQuery = cityName
+                
+                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
+                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
+                    method: "GET"
+                )
+                
+                self.editProfileNode.setCityRowLoading(false)
+                
+                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                    let resolvedCityName = firstResult.city?.name ?? cityName
+                    let finalTitle = "\(resolvedCityName)"
+                    
+                    self.editProfileNode.updateCity(id: cityId, title: finalTitle)
+                } else {
+                    self.editProfileNode.updateCity(id: nil, title: nil)
+                    self.editProfileNode.showSnackbar(message: DivoStrings.cityNotFound, style: .error)
+                }
+                
+            } catch {
+                self.editProfileNode.setCityRowLoading(false)
+                self.editProfileNode.updateCity(id: nil, title: nil)
+                
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError
+                self.editProfileNode.showSnackbar(message: userMsg, style: .error)
+            }
+        }
     }
 }
 
