@@ -6,6 +6,7 @@ import AccountContext
 import TelegramCore
 import TelegramPresentationData
 import TelegramBaseController
+import SettingsUI
 import AppBundle
 import DivoCore
 import DivoUIKit
@@ -79,12 +80,23 @@ public final class DivoSettingsController: TelegramBaseController {
         self.controllerNode.onFillParametersTapped = { [weak self] in
             self?.openMyParameters()
         }
+        self.controllerNode.onSavedMessagesTapped = { [weak self] in
+            self?.openSavedMessages()
+        }
+        self.controllerNode.onNotificationsTapped = { [weak self] in
+            self?.openNotifications()
+        }
+        self.controllerNode.onPrivacyTapped = { [weak self] in
+            self?.openPrivacy()
+        }
+        self.controllerNode.onDataStorageTapped = { [weak self] in
+            self?.openDataStorage()
+        }
         self.controllerNode.onLanguageTapped = { [weak self] in
             self?.openLanguagePicker()
         }
         self.controllerNode.onQrTapped = { [weak self] in
-            // TODO(DIVO): open QR scanner.
-            _ = self
+            self?.openQrCode()
         }
 
         self.controllerNode.presentController = { [weak self] vc in
@@ -209,6 +221,45 @@ public final class DivoSettingsController: TelegramBaseController {
         let pickerController = DivoLanguagePickerController(context: context)
         if let nav = self.navigationController as? NavigationController {
             nav.pushViewController(pickerController, animated: true)
+        }
+    }
+
+    private func openSavedMessages() {
+        guard let navigationController = self.navigationController as? NavigationController else { return }
+        // Saved Messages = чат с самим собой; тянем self-peer и открываем нативный чат.
+        let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
+        |> deliverOnMainQueue).start(next: { [weak self] peer in
+            guard let self, let peer else { return }
+            self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: self.context, chatLocation: .peer(peer)))
+        })
+    }
+
+    private func openNotifications() {
+        let controller = notificationsAndSoundsController(context: context, exceptionsList: nil)
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(controller, animated: true)
+        }
+    }
+
+    private func openPrivacy() {
+        let controller = context.sharedContext.makePrivacyAndSecurityController(context: context)
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(controller, animated: true)
+        }
+    }
+
+    private func openDataStorage() {
+        let controller = context.sharedContext.makeDataAndStorageController(context: context, sensitiveContent: false)
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(controller, animated: true)
+        }
+    }
+
+    private func openQrCode() {
+        guard let user = userDetailData else { return }
+        let shareURL = "\(DivoConfig.shareBaseURL)/profile/\(user.id)"
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(DivoQrController(shareURL: shareURL), animated: true)
         }
     }
 

@@ -34,8 +34,11 @@ public extension PresentationData {
         )
         let patchedNavigationBar = self.theme.rootController.navigationBar.withUpdated(accentTextColor: accent)
         let patchedRootController = self.theme.rootController.withUpdated(navigationBar: patchedNavigationBar)
-        // DIVO: фон бейджей в списке чатов (непрочитанные «N», упоминания «@», реакции) — на фирменный orange.
+        // DIVO: бейджи списка чатов (непрочитанные «N», упоминания «@», реакции) — на фирменный orange.
+        // Галочки статуса отправки/прочтения (дефолт был зелёным) — на accentSecondary, тем же цветом,
+        // что и галочки в самом чате (`outgoingCheckColor` в withDivoChatTheme).
         let patchedChatList = self.theme.chatList.withUpdated(
+            checkmarkColor: DivoColorPalette.accentSecondary,
             unreadBadgeActiveBackgroundColor: accent,
             reactionBadgeActiveBackgroundColor: accent
         )

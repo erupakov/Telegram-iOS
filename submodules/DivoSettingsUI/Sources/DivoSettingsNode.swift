@@ -101,6 +101,10 @@ final class DivoSettingsNode: ASDisplayNode {
     var onOnboardingEntryTapped: (() -> Void)?
     var onSetUsernameTapped: (() -> Void)?
     var onFillParametersTapped: (() -> Void)?
+    var onSavedMessagesTapped: (() -> Void)?
+    var onNotificationsTapped: (() -> Void)?
+    var onPrivacyTapped: (() -> Void)?
+    var onDataStorageTapped: (() -> Void)?
     var onLanguageTapped: (() -> Void)?
     var onQrTapped: (() -> Void)?
     var onLogOutTapped: (() -> Void)?
@@ -134,7 +138,10 @@ final class DivoSettingsNode: ASDisplayNode {
             font: Font.helveticaNeue(20),
             backButtonConfiguration: .circle(DivoImage.qrCode),
             rightButtonConfiguration: .text(DivoStrings.settingsEdit),
-            onBackTapped: { [weak self] in self?.onQrTapped?() },
+            onBackTapped: { [weak self] in
+                guard self?.screenPhase == .ready else { return }
+                self?.onQrTapped?()
+            },
             onCircleTextTapped: { [weak self] in self?.onProfileTapped?() }
         )
 
@@ -348,6 +355,8 @@ final class DivoSettingsNode: ASDisplayNode {
             savedMessagesContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
         ])
 
+        savedMessagesContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(savedMessagesTapped)))
+
         contentViewStack.addArrangedSubview(savedMessagesStackContainer)
     }
 
@@ -378,6 +387,10 @@ final class DivoSettingsNode: ASDisplayNode {
             languageContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
             measuringSystemContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
         ])
+
+        notificationsSoundsContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(notificationsTapped)))
+        privacySecurityContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(privacyTapped)))
+        dataStorageContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(dataStorageTapped)))
 
         contentViewStack.addArrangedSubview(mainSettingsStackContainer)
     }
@@ -608,5 +621,25 @@ final class DivoSettingsNode: ASDisplayNode {
     @objc private func parametersTapped() {
         guard screenPhase == .ready else { return }
         onFillParametersTapped?()
+    }
+
+    @objc private func savedMessagesTapped() {
+        guard screenPhase == .ready else { return }
+        onSavedMessagesTapped?()
+    }
+
+    @objc private func notificationsTapped() {
+        guard screenPhase == .ready else { return }
+        onNotificationsTapped?()
+    }
+
+    @objc private func privacyTapped() {
+        guard screenPhase == .ready else { return }
+        onPrivacyTapped?()
+    }
+
+    @objc private func dataStorageTapped() {
+        guard screenPhase == .ready else { return }
+        onDataStorageTapped?()
     }
 }
