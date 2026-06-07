@@ -9,7 +9,7 @@ import DivoAuth
 /// - D (новый, login-social 404/422) → dummy_phone + teamgram + онбординг (registration-social на submit).
 public enum DivoAuthOutcomePresenter {
     @MainActor
-    public static func present(_ outcome: DivoAuthOutcome, on controller: DivoAuthWelcomeController?) {
+    public static func present(_ outcome: DivoAuthOutcome, on controller: DivoAuthWelcomeController?, displayName: String? = nil, photoUrl: String? = nil) {
         switch outcome {
         case let .divo2Reinstall(divoUserId, phone):
             if let phone, !phone.isEmpty {
@@ -31,7 +31,7 @@ public enum DivoAuthOutcomePresenter {
             // запоминаем pending-регистрацию — после teamgram-входа онбординг пушится в auth-флоу и
             // доводит registration-social (см. AuthorizationSequenceController+DivoOnboarding).
             divoLog("social → branch D (new) → dummy_phone + teamgram + онбординг", level: .info)
-            startNewUserRegistration(firebaseUid: firebaseUid, providerId: providerId, on: controller)
+            startNewUserRegistration(firebaseUid: firebaseUid, providerId: providerId, displayName: displayName, photoUrl: photoUrl, on: controller)
         case .failed(let error):
             let message = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.authSignInFailed
             controller?.showError(message: message)
@@ -41,8 +41,8 @@ public enum DivoAuthOutcomePresenter {
     /// Ветка D: соц-юзера в DIVO нет. Генерим dummy phone, запоминаем uid/providerId для онбординга
     /// (app-gate после входа), и запускаем headless teamgram signUp по этому номеру.
     @MainActor
-    private static func startNewUserRegistration(firebaseUid: String, providerId: String, on controller: DivoAuthWelcomeController?) {
-        DivoConfig.pendingSocialRegistration = .init(uid: firebaseUid, providerId: providerId)
+    private static func startNewUserRegistration(firebaseUid: String, providerId: String, displayName: String?, photoUrl: String?, on controller: DivoAuthWelcomeController?) {
+        DivoConfig.pendingSocialRegistration = .init(uid: firebaseUid, providerId: providerId, displayName: displayName, photoUrl: photoUrl)
         Task { @MainActor in
             do {
                 let phone = try await AuthRestService.shared.dummyPhone()

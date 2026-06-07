@@ -11,13 +11,16 @@ public struct DivoFirebaseSignInResult {
     public let idToken: String?
     public let email: String?
     public let displayName: String?
+    /// URL аватара провайдера. Google отдаёт, Apple — нет (фото не предоставляет).
+    public let photoUrl: String?
 
-    public init(uid: String, providerId: String, idToken: String? = nil, email: String? = nil, displayName: String? = nil) {
+    public init(uid: String, providerId: String, idToken: String? = nil, email: String? = nil, displayName: String? = nil, photoUrl: String? = nil) {
         self.uid = uid
         self.providerId = providerId
         self.idToken = idToken
         self.email = email
         self.displayName = displayName
+        self.photoUrl = photoUrl
     }
 }
 
@@ -106,7 +109,8 @@ public final class FirebaseAuthClient: NSObject {
             providerId: "google.com",
             idToken: tokens.idToken,
             email: user.email,
-            displayName: user.displayName
+            displayName: user.displayName,
+            photoUrl: user.photoURL?.absoluteString
         )
     }
 
@@ -158,7 +162,8 @@ public final class FirebaseAuthClient: NSObject {
             providerId: "apple.com",
             idToken: idToken,
             email: appleCredential.email ?? user.email,
-            displayName: displayName
+            displayName: displayName,
+            photoUrl: user.photoURL?.absoluteString
         )
     }
 
