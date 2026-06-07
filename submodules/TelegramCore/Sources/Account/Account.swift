@@ -1351,8 +1351,18 @@ public class Account {
             return (shouldBeMaster == .now || shouldBeMaster == .always) && isMaster
         }
         |> distinctUntilChanged
-        
-        self.network.shouldKeepConnection.set(shouldBeMaster)
+
+        // DIVO ВРЕМЕННАЯ ДИАГНОСТИКА (connection storm / навбар «Обновление»): снять перед PR.
+        // distinctUntilChanged выше → каждый лог = реальная смена значения. Флапает true↔false при
+        // раннем входе в Чаты → корень в isMasterClient/serviceTaskMaster; стабильно true при штормящих
+        // коннектах → корень в транспорте (MTTcpTransport реконнект).
+        self.network.shouldKeepConnection.set(shouldBeMaster
+        |> map { divoValue -> Bool in
+            DispatchQueue.global(qos: .utility).async {
+                NotificationCenter.default.post(name: Notification.Name("DivoMTProtoLog"), object: nil, userInfo: ["message": "[MTProto] shouldKeepConnection=\(divoValue)"])
+            }
+            return divoValue
+        })
         self.network.shouldExplicitelyKeepWorkerConnections.set(self.shouldExplicitelyKeepWorkerConnections.get())
         self.network.shouldKeepBackgroundDownloadConnections.set(self.shouldKeepBackgroundDownloadConnections.get())
         

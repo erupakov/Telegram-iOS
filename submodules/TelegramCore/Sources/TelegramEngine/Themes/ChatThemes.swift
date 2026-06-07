@@ -286,7 +286,7 @@ func _internal_setChatTheme(account: Account, peerId: PeerId, chatTheme: ChatThe
             } else {
                 inputTheme = .inputChatThemeEmpty
             }
-            return account.network.request(Api.functions.messages.setChatTheme(peer: inputPeer, theme: inputTheme))
+            return account.network.request(Api.functions.messages.setChatTheme_teamgram_layer201(peer: inputPeer, theme: inputTheme))
             |> `catch` { error in
                 return .complete()
             }

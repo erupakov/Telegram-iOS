@@ -311,6 +311,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     body: request
                 )
 
+                // DIVO сохранил имя → синкаем его в teamgram (best-effort, ретрай на сбое).
+                DivoTeamgramName.syncToTeamgram(fullName: rawData.fullName)
+
                 self.delegate?.didUpdateProfileData()
                 NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
                 self.navigationController?.popViewController(animated: true)
@@ -344,6 +347,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "POST",
                     body: request
                 )
+
+                // DIVO сохранил название агентства → синкаем его в teamgram-имя (best-effort).
+                DivoTeamgramName.syncToTeamgram(fullName: rawData.title)
 
                 self.delegate?.didUpdateProfileData()
                 NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)

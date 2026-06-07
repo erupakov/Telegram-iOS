@@ -40,9 +40,13 @@ extension AuthorizationSequenceController {
         }
 
         let submitService = DivoOnboardingSubmitService()
+        // Соц-регистрация: префилл имени/фото из провайдера (для phone pendingSocialRegistration nil → nil).
+        let socialPrefill = DivoConfig.pendingSocialRegistration.flatMap {
+            OnboardingSocialPrefill(displayName: $0.displayName, photoUrl: $0.photoUrl)
+        }
         // forceFresh: false — резюмим сохранённый шаг онбординга (req: при перезаходе тот же экран).
         // Чистый старт для нового юзера гарантирует чистка стора на logout (см. divoLogoutTeamgram).
-        let onboarding = OnboardingRegistrationEntry.makeController(forceFresh: false, submitService: submitService, onFinish: { [weak self] success in
+        let onboarding = OnboardingRegistrationEntry.makeController(forceFresh: false, submitService: submitService, prefill: socialPrefill, onFinish: { [weak self] success in
             guard let self else { return }
             self.divoClearOnboardingChainObserver()
             if success {

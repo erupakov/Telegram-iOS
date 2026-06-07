@@ -16,7 +16,7 @@ public enum DivoAuthGoogleHandler {
             let result = try await FirebaseAuthClient.shared.signInWithGoogle(presentingFrom: anchor)
             divoLog("Google sign-in OK: uid=\(result.uid) email=\(result.email ?? "nil")", level: .info)
             let outcome = await AuthRestRouter.route(firebaseUid: result.uid, providerId: result.providerId)
-            DivoAuthOutcomePresenter.present(outcome, on: controller)
+            DivoAuthOutcomePresenter.present(outcome, on: controller, displayName: result.displayName, photoUrl: result.photoUrl)
             return outcome
         } catch DivoFirebaseAuthError.userCancelled {
             divoLog("Google sign-in cancelled by user", level: .debug)

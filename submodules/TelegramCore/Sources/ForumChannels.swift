@@ -544,7 +544,7 @@ func _internal_setChannelForumMode(postbox: Postbox, network: Network, stateMana
         guard let inputChannel = inputChannel else {
             return .complete()
         }
-        return network.request(Api.functions.channels.toggleForum(channel: inputChannel, enabled: isForum ? .boolTrue : .boolFalse, tabs: displayForumAsTabs ? .boolTrue : .boolFalse))
+        return network.request(Api.functions.channels.toggleForum_teamgram_layer201(channel: inputChannel, enabled: isForum ? .boolTrue : .boolFalse, tabs: displayForumAsTabs ? .boolTrue : .boolFalse))
         |> map(Optional.init)
         |> `catch` { _ -> Signal<Api.Updates?, NoError> in
             return .single(nil)

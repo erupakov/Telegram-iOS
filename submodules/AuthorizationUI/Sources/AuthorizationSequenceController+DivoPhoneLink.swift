@@ -18,6 +18,12 @@ extension AuthorizationSequenceController {
     func divoCompleteAuthorizationWithDivoLink() {
         let complete = self.authorizationCompleted
 
+        // клавиатуру гасим тут, а не на dismiss — экран уходит позже (после async-линка), иначе она висит над таббаром
+        self.view.endEditing(true)
+        // снимаем observer здесь (до async-линка) — иначе поздний .empty мигнёт welcome; см. divoPushOnboarding
+        self.stateDisposable?.dispose()
+        self.stateDisposable = nil
+
         // Соц-новый (D, DIVO-аккаунта нет → registration-social в submit) → онбординг в этом же
         // auth-overlay (он удержан).
         if DivoConfig.pendingSocialRegistration != nil {

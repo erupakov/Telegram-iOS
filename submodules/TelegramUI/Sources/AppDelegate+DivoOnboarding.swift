@@ -61,10 +61,15 @@ extension AppDelegate {
                 chainFailedObserver = nil
             }
         }
+        // Соц-регистрация: префилл имени/фото из провайдера (для phone pendingSocialRegistration nil → nil).
+        let socialPrefill = DivoConfig.pendingSocialRegistration.flatMap {
+            OnboardingSocialPrefill(displayName: $0.displayName, photoUrl: $0.photoUrl)
+        }
         // forceFresh: false — резюмим сохранённый прогресс (тот же экран, что бросил юзер).
         let onboarding = OnboardingRegistrationEntry.makeController(
             forceFresh: false,
             submitService: DivoOnboardingSubmitService(),
+            prefill: socialPrefill,
             onFinish: { [weak self] success in
                 removeObserver()
                 if success {

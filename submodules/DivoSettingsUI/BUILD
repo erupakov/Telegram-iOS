@@ -17,6 +17,7 @@ swift_library(
         "//submodules/AccountContext:AccountContext",
         "//submodules/TelegramCore:TelegramCore",
         "//submodules/TelegramBaseController:TelegramBaseController",
+        "//submodules/SettingsUI:SettingsUI",
         "//submodules/DivoCore:DivoCore",
         "//submodules/DivoUIKit:DivoUIKit",
         "//submodules/ProfileScreenUI:ProfileScreenUI",
