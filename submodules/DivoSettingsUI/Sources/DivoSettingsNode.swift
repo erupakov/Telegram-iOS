@@ -324,6 +324,7 @@ final class DivoSettingsNode: ASDisplayNode {
             parametersContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
         ])
 
+        usernameContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(usernameTapped)))
         parametersContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(parametersTapped)))
 
         contentViewStack.addArrangedSubview(parametersUsernameStackContainer)
@@ -597,6 +598,11 @@ final class DivoSettingsNode: ASDisplayNode {
     @objc private func profileTapped() {
         guard screenPhase == .ready else { return }
         onProfileTapped?()
+    }
+
+    @objc private func usernameTapped() {
+        guard screenPhase == .ready else { return }
+        onSetUsernameTapped?()
     }
 
     @objc private func parametersTapped() {

@@ -74,8 +74,7 @@ public final class DivoSettingsController: TelegramBaseController {
             self?.openMyProfile()
         }
         self.controllerNode.onSetUsernameTapped = { [weak self] in
-            // TODO(DIVO): open set username flow.
-            _ = self
+            self?.openSetName()
         }
         self.controllerNode.onFillParametersTapped = { [weak self] in
             self?.openMyParameters()
@@ -198,6 +197,14 @@ public final class DivoSettingsController: TelegramBaseController {
         }
     }
 
+    private func openSetName() {
+        let controller = SetNameController(context: context, userDetail: userDetailData)
+        controller.delegate = self
+        if let nav = self.navigationController as? NavigationController {
+            nav.pushViewController(controller, animated: true)
+        }
+    }
+
     private func openLanguagePicker() {
         let pickerController = DivoLanguagePickerController(context: context)
         if let nav = self.navigationController as? NavigationController {
@@ -260,6 +267,17 @@ extension DivoSettingsController: EditParametersDelegate {
 
         self.controllerNode.showSnackbar(
             message: DivoStrings.parametersUpdated,
+            style: .success
+        )
+    }
+}
+
+extension DivoSettingsController: SetNameDelegate {
+    func didUpdateName() {
+        self.reloadProfile()
+
+        self.controllerNode.showSnackbar(
+            message: DivoStrings.profileUpdated,
             style: .success
         )
     }
