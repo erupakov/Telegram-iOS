@@ -530,17 +530,17 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             if testingEnvironment {
                 seedAddressList = [
-                    1: ["18.185.234.86"],
-                    2: ["18.185.234.86"],
-                    3: ["18.185.234.86"]
+                    1: ["34.141.45.93"],
+                    2: ["34.141.45.93"],
+                    3: ["34.141.45.93"]
                 ]
             } else {
                 seedAddressList = [
-                    1: ["18.185.234.86"],
-                    2: ["18.185.234.86"],
-                    3: ["18.185.234.86"],
-                    4: ["18.185.234.86"],
-                    5: ["18.185.234.86"]
+                    1: ["34.141.45.93"],
+                    2: ["34.141.45.93"],
+                    3: ["34.141.45.93"],
+                    4: ["34.141.45.93"],
+                    5: ["34.141.45.93"]
                 ]
             }
             
@@ -604,6 +604,14 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             let requestService = MTRequestMessageService(context: context)!
             let connectionStatusDelegate = MTProtoConnectionStatusDelegate()
             connectionStatusDelegate.action = { [weak connectionStatus] info in
+                // DIVO ВРЕМЕННАЯ ДИАГНОСТИКА («Обновление» висит): какой статус/флаги шлёт транспорт. Снять перед PR.
+                // connected=true + UCC/PST=false → транспорт хочет .online; если навбар всё равно «Обновление» — виноват stateManager.isUpdating (синк).
+                let divoConnected = info.flags.contains(.Connected)
+                let divoUCC = info.flags.contains(.UpdatingConnectionContext)
+                let divoPST = info.flags.contains(.PerformingServiceTasks)
+                DispatchQueue.global(qos: .utility).async {
+                    NotificationCenter.default.post(name: Notification.Name("DivoMTProtoLog"), object: nil, userInfo: ["message": "[MTProto] connStatus: connected=\(divoConnected) UpdatingConnectionContext=\(divoUCC) PerformingServiceTasks=\(divoPST)"])
+                }
                 if info.flags.contains(.Connected) {
                     if !info.flags.intersection([.UpdatingConnectionContext, .PerformingServiceTasks]).isEmpty {
                         connectionStatus?.set(.single(.updating(proxyAddress: info.proxyAddress)))

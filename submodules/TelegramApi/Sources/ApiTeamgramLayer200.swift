@@ -1375,6 +1375,31 @@ public extension Api.functions.messages {
             return result
         })
     }
+
+    // messages.setChatTheme#e63be13f (layer 201). 222 заменил emoticon:string → theme:InputChatTheme.
+    // На 201 — только emoticon-строка: inputChatTheme→emoticon, inputChatThemeEmpty→"" (сброс темы);
+    // inputChatThemeUniqueGift на 201 не существует → "" (best-effort). Иначе сервер не понимает метод.
+    static func setChatTheme_teamgram_layer201(peer: Api.InputPeer, theme: Api.InputChatTheme) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Updates>) {
+        let buffer = Buffer()
+        buffer.appendInt32(-432283329)
+        peer.serialize(buffer, true)
+        let emoticon: String
+        switch theme {
+        case let .inputChatTheme(data):
+            emoticon = data.emoticon
+        case .inputChatThemeEmpty, .inputChatThemeUniqueGift:
+            emoticon = ""
+        }
+        serializeString(emoticon, buffer: buffer, boxed: false)
+        return (FunctionDescription(name: "messages.setChatTheme(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.Updates? in
+            let reader = BufferReader(buffer)
+            var result: Api.Updates?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.Updates
+            }
+            return result
+        })
+    }
 }
 
 public extension Api.functions.channels {
