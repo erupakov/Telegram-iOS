@@ -1475,7 +1475,7 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                         self.controllerNode.hideUploadStatusView(isPhoto: true)
                     }
                     self.controllerNode.showSnackbar(
-                        message: DivoStrings.errorUploadingPhotos,
+                        message: Self.userFacingMessage(from: error),
                         style: .error
                     )
                 }
@@ -1581,7 +1581,7 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                         self.controllerNode.hideUploadStatusView(isPhoto: false)
                     }
                     self.controllerNode.showSnackbar(
-                        message: DivoStrings.errorUploadingVideos,
+                        message: Self.userFacingMessage(from: error),
                         style: .error
                     )
                 }
