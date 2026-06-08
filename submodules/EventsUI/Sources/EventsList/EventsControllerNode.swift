@@ -304,6 +304,31 @@ final class EventsControllerNode: ASDisplayNode {
         self.collectionView.reloadItems(at: [indexPath])
     }
 
+    public func updateEventDataLocally(_ updatedEvent: EventData) {
+        guard let index = self.events.firstIndex(where: { $0.id == updatedEvent.id }) else { return }
+        
+        self.events[index] = updatedEvent
+        let indexPath = IndexPath(item: index, section: 0)
+        self.collectionView.reloadItems(at: [indexPath])
+    }
+    
+    public func removeEventLocally(eventId: Int) {
+        guard let index = self.events.firstIndex(where: { $0.id == eventId }) else { return }
+        
+        self.events.remove(at: index)
+        let indexPath = IndexPath(item: index, section: 0)
+        
+        self.collectionView.performBatchUpdates({
+            self.collectionView.deleteItems(at: [indexPath])
+        }, completion: { [weak self] _ in
+            guard let self = self else { return }
+            if self.events.isEmpty {
+                self.phase = .empty
+            }
+        })
+    }
+
+
     // MARK: - State machine
 
     private func applyState() {

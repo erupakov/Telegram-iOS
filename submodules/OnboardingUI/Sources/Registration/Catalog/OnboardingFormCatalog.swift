@@ -139,9 +139,10 @@ private extension OnboardingFormCatalog {
                               title: "onboarding.form.field.country.title", 
                               placeholder: "onboarding.form.field.country.placeholder", 
                               required: true),
-                        field("city",    
-                              kind: .city,                                                                           
-                              placeholder: "onboarding.form.field.city.placeholder",    
+                        field("city",
+                              kind: .city,
+                              title: "onboarding.form.field.city.title",
+                              placeholder: "onboarding.form.field.city.placeholder",
                               required: true),
                     ],
                     primaryButtonKey: "onboarding.button.continue"
@@ -215,7 +216,7 @@ private extension OnboardingFormCatalog {
                     ],
                     primaryButtonKey: "onboarding.button.continue"
                 ),
-                personalDetailsStep(progressKey: progress(2, of: 4), includeCity: true),
+                personalDetailsStep(progressKey: progress(2, of: 4)),
                 FormStep(
                     titleKey: "onboarding.form.4B.step3.title",
                     stepProgressKey: progress(3, of: 4),
@@ -266,7 +267,7 @@ private extension OnboardingFormCatalog {
                     ],
                     primaryButtonKey: "onboarding.button.continue"
                 ),
-                personalDetailsStep(progressKey: progress(2, of: 4), includeCity: true),
+                personalDetailsStep(progressKey: progress(2, of: 4)),
                 FormStep(
                     titleKey: "onboarding.form.4C1.step3.title",
                     subtitleKey: "onboarding.form.4C1.step3.subtitle",
@@ -307,9 +308,10 @@ private extension OnboardingFormCatalog {
                               title: "onboarding.form.field.country.title", 
                               placeholder: "onboarding.form.field.country.placeholder", 
                               required: true),
-                        field("city",    
-                              kind: .city,    
-                              placeholder: "onboarding.form.field.city.placeholder",    
+                        field("city",
+                              kind: .city,
+                              title: "onboarding.form.field.city.title",
+                              placeholder: "onboarding.form.field.city.placeholder",
                               required: true),
                     ],
                     primaryButtonKey: "onboarding.button.continue"
@@ -456,9 +458,10 @@ private extension OnboardingFormCatalog {
                               title: "onboarding.form.field.country.title", 
                               placeholder: "onboarding.form.field.country.placeholder", 
                               required: true),
-                        field("city",    
-                              kind: .city,    
-                              placeholder: "onboarding.form.field.city.placeholder",    
+                        field("city",
+                              kind: .city,
+                              title: "onboarding.form.field.city.title",
+                              placeholder: "onboarding.form.field.city.placeholder",
                               required: true),
                         field("specialisation",
                               kind: .picker(options: specialisationOptions),
@@ -552,6 +555,11 @@ private extension OnboardingFormCatalog {
                               title: "onboarding.form.field.country.title",                           
                               placeholder: "onboarding.form.field.country.placeholder",   
                               required: true),
+                        field("city",
+                              kind: .city,
+                              title: "onboarding.form.field.city.title",
+                              placeholder: "onboarding.form.field.city.placeholder",
+                              required: true),
                     ],
                     primaryButtonKey: "onboarding.button.continue"
                 ),
@@ -601,15 +609,13 @@ private extension OnboardingFormCatalog {
     }
 
     /// «PERSONAL DETAILS» — общий шаг для 4.B / 4.C1.
-    func personalDetailsStep(progressKey: String, includeCity: Bool) -> FormStep {
-        var fields: [FormField] = [
+    func personalDetailsStep(progressKey: String) -> FormStep {
+        let fields: [FormField] = [
             field("dateOfBirth", kind: .date(min: dateOfBirthMin, max: dateOfBirthMax),      title: "onboarding.form.field.dateOfBirth.title", placeholder: "onboarding.form.field.dateOfBirth.placeholder", required: true),
             field("gender",      kind: .picker(options: genderOptions),   title: "onboarding.form.field.gender.title",      placeholder: "onboarding.form.field.gender.placeholder",      required: true),
             field("country",     kind: .country(options: countryOptions), title: "onboarding.form.field.country.title",     placeholder: "onboarding.form.field.country.placeholder",     required: true),
+            field("city",        kind: .city,                             title: "onboarding.form.field.city.title",        placeholder: "onboarding.form.field.city.placeholder",        required: true),
         ]
-        if includeCity {
-            fields.append(field("city", kind: .city, placeholder: "onboarding.form.field.city.placeholder", required: true))
-        }
         return FormStep(
             titleKey: "onboarding.form.section.personalDetails.title",
             stepProgressKey: progressKey,
@@ -629,9 +635,10 @@ private extension OnboardingFormCatalog {
                       title: "onboarding.form.field.country.title", 
                       placeholder: "onboarding.form.field.country.placeholder", 
                       required: true),
-                field("city",    
-                      kind: .city,    
-                      placeholder: "onboarding.form.field.city.placeholder",    
+                field("city",
+                      kind: .city,
+                      title: "onboarding.form.field.city.title",
+                      placeholder: "onboarding.form.field.city.placeholder",
                       required: true),
             ],
             primaryButtonKey: "onboarding.button.continue"

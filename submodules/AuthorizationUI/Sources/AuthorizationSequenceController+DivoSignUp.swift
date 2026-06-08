@@ -19,7 +19,7 @@ import TelegramNotices
 // юзера несколько секунд висит пустой серый/белый экран перед таббаром.
 // `internal` (не private): переиспользуется из +DivoHeadlessAuth.swift.
 final class DivoSignUpLoadingController: ViewController {
-    private var activityIndicator: UIActivityIndicatorView?
+    private var loadingView: DivoFullscreenLoadingView?
 
     init() {
         super.init(navigationBarPresentationData: nil)
@@ -33,22 +33,16 @@ final class DivoSignUpLoadingController: ViewController {
         self.displayNode = ASDisplayNode()
         self.displayNode.backgroundColor = DivoColorPalette.screenBackground
 
-        let indicator = UIActivityIndicatorView(style: .medium)
-        indicator.color = DivoColorPalette.primaryText
-        indicator.startAnimating()
-        self.displayNode.view.addSubview(indicator)
-        self.activityIndicator = indicator
+        let loadingView = DivoFullscreenLoadingView()
+        self.displayNode.view.addSubview(loadingView)
+        self.loadingView = loadingView
 
         self.displayNodeDidLoad()
     }
 
     override func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         super.containerLayoutUpdated(layout, transition: transition)
-        if let indicator = self.activityIndicator {
-            indicator.sizeToFit()
-            let size = indicator.bounds.size
-            indicator.frame = CGRect(origin: CGPoint(x: floor((layout.size.width - size.width) / 2.0), y: floor((layout.size.height - size.height) / 2.0)), size: size)
-        }
+        self.loadingView?.frame = CGRect(origin: .zero, size: layout.size)
     }
 }
 

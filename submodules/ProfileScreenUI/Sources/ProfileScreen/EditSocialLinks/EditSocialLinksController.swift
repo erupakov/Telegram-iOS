@@ -75,7 +75,13 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
         self.displayNodeDidLoad()
     }
-    
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     private func saveSocialLinks(linksData: LinksData) {
         Task { @MainActor in
             do {

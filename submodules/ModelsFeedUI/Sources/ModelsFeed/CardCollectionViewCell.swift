@@ -292,7 +292,8 @@ final class CardCollectionViewCell: UICollectionViewCell {
             // текста ещё до загрузки фото. Когда фото придёт — glass уже на месте,
             // лишнего fade-in не нужно.
             topGlassView.alpha = 1
-            bottomGlassView.alpha = 1
+            // Нижний блюр — подложка превью-карусели; без превью его не рисуем.
+            bottomGlassView.alpha = model.previewImageURLs.isEmpty ? 0 : 1
             mainImageView.loadImage(from: url, placeholder: placeholder)
         } else {
             topGlassView.alpha = 0

@@ -9,6 +9,9 @@ final class HeaderSettingsView: UIView {
 
     /// Горизонтальный отступ для имени/телефона. Совпадает с боковыми отступами карточек.
     private static let horizontalPadding: CGFloat = 18
+    /// Отступ аватарки сверху — совпадает с inset'ом загрузочного шиммера (выравнивание при переходе).
+    private static let topPadding: CGFloat = 12
+    private static let avatarToTextSpacing: CGFloat = 12
 
     private let avatarImageView: UIImageView = {
         let view = UIImageView()
@@ -56,32 +59,26 @@ final class HeaderSettingsView: UIView {
         let textStack = UIStackView()
         textStack.translatesAutoresizingMaskIntoConstraints = false
         textStack.axis = .vertical
-        textStack.spacing = 12
+        textStack.spacing = 6
         textStack.alignment = .fill
-
-        let avatarContainer = UIView()
-        avatarContainer.translatesAutoresizingMaskIntoConstraints = false
-        avatarContainer.addSubview(avatarImageView)
-
-        textStack.addArrangedSubview(avatarContainer)
         textStack.addArrangedSubview(nameLabel)
         textStack.addArrangedSubview(phoneLabel)
 
+        addSubview(avatarImageView)
         addSubview(textStack)
 
+        // Контент прижат к верху, высота вью — по контенту: без телефона блок короче, а имя остаётся под аватаркой.
         NSLayoutConstraint.activate([
-            textStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.horizontalPadding),
-            textStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.horizontalPadding),
-            textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
-
-            avatarImageView.centerXAnchor.constraint(equalTo: avatarContainer.centerXAnchor),
-            avatarImageView.topAnchor.constraint(equalTo: avatarContainer.topAnchor),
-            avatarImageView.bottomAnchor.constraint(equalTo: avatarContainer.bottomAnchor),
+            avatarImageView.topAnchor.constraint(equalTo: topAnchor, constant: Self.topPadding),
+            avatarImageView.centerXAnchor.constraint(equalTo: centerXAnchor),
             avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
             avatarImageView.widthAnchor.constraint(equalToConstant: Self.avatarSize),
-        ])
 
-        textStack.setCustomSpacing(6, after: nameLabel)
+            textStack.topAnchor.constraint(equalTo: avatarImageView.bottomAnchor, constant: Self.avatarToTextSpacing),
+            textStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: Self.horizontalPadding),
+            textStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -Self.horizontalPadding),
+            textStack.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
     }
 
     func configure(fullUrl: String? = nil, fullName: String? = nil, phone: String? = nil) {

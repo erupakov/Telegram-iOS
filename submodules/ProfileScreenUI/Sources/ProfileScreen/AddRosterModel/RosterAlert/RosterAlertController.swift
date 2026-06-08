@@ -44,7 +44,13 @@ public final class RosterAlertController: ViewController {
             self?.dismissAnimated()
         }
     }
-    
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     private func dismissAnimated() {
         self.controllerNode.animateOut { [weak self] in
             self?.dismiss(animated: false, completion: nil)

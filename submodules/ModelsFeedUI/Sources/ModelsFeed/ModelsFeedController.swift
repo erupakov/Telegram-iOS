@@ -105,6 +105,12 @@ public final class ModelsFeedController: TelegramBaseController {
         }
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
 

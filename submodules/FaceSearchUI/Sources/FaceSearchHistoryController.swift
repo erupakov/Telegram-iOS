@@ -24,6 +24,12 @@ public final class FaceSearchHistoryController: ViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         let items = FaceSearchHistoryStorage.shared.loadAll()
         let node = FaceSearchHistoryScreenNode(items: items)

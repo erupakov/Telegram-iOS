@@ -4452,6 +4452,37 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.eventGalleryCollectionView.reloadItems(at: [indexPath])
     }
 
+    public func updateEventDataLocally(_ updatedItem: EventItem) {
+        guard let index = self.eventGalleryItems.firstIndex(where: { $0.eventId == updatedItem.eventId }) else { return }
+        
+        self.eventGalleryItems[index] = updatedItem
+        let indexPath = IndexPath(item: index, section: 0)
+        self.eventGalleryCollectionView.reloadItems(at: [indexPath])
+    }
+    
+    public func removeEventLocally(eventId: Int) {
+        guard let index = self.eventGalleryItems.firstIndex(where: { $0.eventId == eventId }) else { return }
+        
+        self.eventGalleryItems.remove(at: index)
+        let indexPath = IndexPath(item: index, section: 0)
+        
+        self.eventGalleryCollectionView.performBatchUpdates({
+            self.eventGalleryCollectionView.deleteItems(at: [indexPath])
+            
+            if let layout = self.containerLayout?.0 {
+                self.updateAllCollectionViewHeights(layout: layout)
+                if self.currentTab == .events {
+                    self.updateCollectionsContainerHeight(animated: true)
+                }
+            }
+        }, completion: { [weak self] _ in
+            guard let self = self else { return }
+            if self.eventGalleryItems.isEmpty {
+                self.eventsPhase = .empty
+            }
+        })
+    }
+
     
     // MARK: - @objc
 

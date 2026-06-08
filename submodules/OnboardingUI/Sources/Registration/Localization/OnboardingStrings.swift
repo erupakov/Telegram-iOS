@@ -144,8 +144,9 @@ public enum OnboardingStrings {
         case "onboarding.form.field.gender.title":                     return DivoStrings.paramGender
         case "onboarding.form.field.gender.placeholder":               return DivoStrings.onboardingFieldGenderPlaceholder
         case "onboarding.form.field.country.title":                    return DivoStrings.onboardingFieldCountryTitle
+        case "onboarding.form.field.city.title":                       return DivoStrings.onboardingFieldCityPlaceholder
         case "onboarding.form.field.country.placeholder":              return DivoStrings.chooseCountry
-        case "onboarding.form.field.city.placeholder":                 return DivoStrings.onboardingFieldCityPlaceholder
+        case "onboarding.form.field.city.placeholder":                 return DivoStrings.chooseCity
         case "onboarding.form.field.instagramHandle.placeholder":      return DivoStrings.onboardingFieldInstagramHandlePlaceholder
         case "onboarding.form.field.instagramHandle.help":             return DivoStrings.onboardingFieldInstagramHandleHelp
         case "onboarding.form.field.instagramOrPortfolio.placeholder": return DivoStrings.onboardingFieldInstagramOrPortfolioPlaceholder

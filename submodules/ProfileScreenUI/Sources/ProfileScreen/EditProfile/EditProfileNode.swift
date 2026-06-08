@@ -321,6 +321,7 @@ final class EditProfileNode: ASDisplayNode {
         let eyeColorId: Int?
         let skinColorId: Int?
         let birthdayTimestamp: Int32?
+        let cityId: Int?
     }
 
     private var initialSnapshot: ProfileSnapshot?
@@ -368,6 +369,16 @@ final class EditProfileNode: ASDisplayNode {
     private var lastContainerSize: CGSize = .zero
     private var keyboardHandler: DivoKeyboardHandler?
 
+    private let countryRow = FilterRowView(title: DivoStrings.debugCountry)
+    private let cityRow = FilterRowView(title: DivoStrings.debugCity + " *")
+    
+    private var selectedCountryCode: String?
+    private var selectedCountryTitle: String?
+    private var selectedCityId: Int?
+    private var selectedCityTitle: String?
+    private var rawCityId: String?
+    
+    var onCityChosen: ((String) -> Void)?
 
     // MARK: - Init
     
@@ -431,6 +442,34 @@ final class EditProfileNode: ASDisplayNode {
         self.selectedGenderTitle = model?.gender?.title
         self.selectedBirthdayTimestamp = parseBirthday(model?.birthday)
         
+        if model?.role != "agency_employee" , let city = model?.city {
+            self.selectedCityId = city.id
+            self.selectedCityTitle = city.name
+            self.selectedCountryCode = city.countryCode
+            self.rawCityId = (city.name ?? "") + "|||" + (city.countryName ?? "")
+            
+            if let code = city.countryCode {
+                let locale = Locale(identifier: DivoStrings.current.rawValue)
+                if let countryName = locale.localizedString(forRegionCode: code) {
+                    let flag = CountryHelper.emojiFlag(for: code)
+                    self.selectedCountryTitle = "\(flag) \(countryName)"
+                }
+            }
+        } else if let agencyCity = model?.agency?.address?.city {
+            self.selectedCityId = agencyCity.id
+            self.selectedCityTitle = agencyCity.name
+            self.selectedCountryCode = agencyCity.countryCode
+            self.rawCityId = (agencyCity.name ?? "") + "|||" + (agencyCity.countryName ?? "")
+            
+            if let code = agencyCity.countryCode {
+                let locale = Locale(identifier: DivoStrings.current.rawValue)
+                if let countryName = locale.localizedString(forRegionCode: code) {
+                    let flag = CountryHelper.emojiFlag(for: code)
+                    self.selectedCountryTitle = "\(flag) \(countryName)"
+                }
+            }
+        }
+
         navigationBar.makeNavigationBar(
             backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
             onBackTapped: { [weak self] in self?.onBackTapped?() }
@@ -707,6 +746,8 @@ final class EditProfileNode: ASDisplayNode {
         aboutEventTextField.translatesAutoresizingMaskIntoConstraints = false
         
         bioStackView.addArrangedSubview(nameTextField.view)
+        bioStackView.addArrangedSubview(countryRow)
+        bioStackView.addArrangedSubview(cityRow)
         bioStackView.addArrangedSubview(aboutEventTextField)
         
         NSLayoutConstraint.activate([
@@ -714,8 +755,14 @@ final class EditProfileNode: ASDisplayNode {
             nameTextField.view.heightAnchor.constraint(equalToConstant: 48),
 
             aboutEventTextField.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
-            aboutEventTextField.heightAnchor.constraint(equalToConstant: 140)
+            aboutEventTextField.heightAnchor.constraint(equalToConstant: 140),
+
+            countryRow.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
+            cityRow.widthAnchor.constraint(equalTo: bioStackView.widthAnchor)
         ])
+        
+        countryRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countryTapped)))
+        cityRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cityTapped)))
         
         view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
@@ -1023,6 +1070,15 @@ final class EditProfileNode: ASDisplayNode {
         hairColorDropdown.setItems([selectedHairColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
         eyeColorDropdown.setItems([selectedEyeColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
         skinColorDropdown.setItems([selectedSkinColorTitle ?? DivoStrings.notSet], emptyTitle: DivoStrings.notSet)
+
+        countryRow.setItems(selectedCountryTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.debugCountry)
+        
+        let hasCountry = selectedCountryCode != nil && !selectedCountryCode!.isEmpty
+        cityRow.isHidden = !hasCountry
+        
+        let flagEmoji = CountryHelper.emojiFlag(for: selectedCountryCode)
+        let formattedCity = selectedCityTitle.map { ["\(flagEmoji) \($0)".trimmingCharacters(in: .whitespaces)] } ?? []
+        cityRow.setItems(formattedCity, emptyTitle: DivoStrings.debugCity)
     }
 
     private func makeSnapshot() -> ProfileSnapshot {
@@ -1039,7 +1095,8 @@ final class EditProfileNode: ASDisplayNode {
             hairColorId: selectedHairColorId,
             eyeColorId: selectedEyeColorId,
             skinColorId: selectedSkinColorId,
-            birthdayTimestamp: selectedBirthdayTimestamp
+            birthdayTimestamp: selectedBirthdayTimestamp,
+            cityId: selectedCityId
         )
     }
 
@@ -1052,7 +1109,12 @@ final class EditProfileNode: ASDisplayNode {
             let hasChanges = makeSnapshot() != initialSnapshot || avatarChanged
             let trimmedName = (nameTextField.textField.text ?? "")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
-            applyButton.isEnabled = hasChanges && !trimmedName.isEmpty
+            
+            let hasCountry = selectedCountryCode != nil && !selectedCountryCode!.isEmpty
+            let hasCity = selectedCityId != nil
+            let isGeoValid = !hasCountry || hasCity
+            
+            applyButton.isEnabled = hasChanges && !trimmedName.isEmpty && isGeoValid
         }
     }
 
@@ -1234,6 +1296,17 @@ final class EditProfileNode: ASDisplayNode {
         renderWorkList()
     }
 
+    func setCityRowLoading(_ isLoading: Bool) {
+        self.cityRow.setLoading(isLoading)
+    }
+    
+    func updateCity(id: Int?, title: String?) {
+        self.selectedCityId = id
+        self.selectedCityTitle = title
+        self.updateDropdownsUI()
+        self.updateSaveButtonState()
+    }
+
     @objc private func appearanceCellTapped(_ gesture: UITapGestureRecognizer) {
         guard let view = gesture.view, view.tag < appearanceEditItems.count else { return }
         appearanceEditItems[view.tag].onTap()
@@ -1267,6 +1340,7 @@ final class EditProfileNode: ASDisplayNode {
         let data = UpdateBiographyPageRequest(
             fullName: trimmedName,
             gender: self.selectedGenderId,
+            geoCityId: self.selectedCityId,
             birthday: getFormattedBirthdayForAPI(),
             model: UpdateBiographyPageRequest.ModelData(
                 description: self.aboutEventTextField.text,
@@ -1314,7 +1388,10 @@ final class EditProfileNode: ASDisplayNode {
         let data = UpdateDescriptionAgencyRequest(
             agencyId: model?.agency?.id,
             title: trimmedTitle,
-            description: self.aboutEventTextField.text
+            description: self.aboutEventTextField.text,
+            address: UpdateAgencyAddress(
+                cityId: self.selectedCityId
+            )
         )
 
         self.toggleSaving(active: true)
@@ -1394,6 +1471,81 @@ final class EditProfileNode: ASDisplayNode {
     
     @objc private func workAddExperienceButtonTapped() {
         onAddWorkExperience?()
+    }
+
+    @objc private func countryTapped() {
+        self.view.endEditing(true)
+        let selectedIds = selectedCountryCode != nil ? [String(selectedCountryCode!)] : []
+        
+        let vc = FilterOptionsController(
+            title: DivoStrings.debugCountry,
+            options: CountryHelper.getAllCountries(),
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: true,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            guard let self = self else { return }
+            if let selected = selectedItems.first {
+                let oldCountryId = self.selectedCountryCode
+                self.selectedCountryCode = selected.id
+                self.selectedCountryTitle = selected.title
+                
+                if oldCountryId != selected.id {
+                    self.selectedCityId = nil
+                    self.selectedCityTitle = nil
+                    self.rawCityId = nil
+                }
+            } else {
+                self.selectedCountryCode = nil
+                self.selectedCountryTitle = nil
+                self.selectedCityId = nil
+                self.selectedCityTitle = nil
+                self.rawCityId = nil
+            }
+            self.updateDropdownsUI()
+            self.updateSaveButtonState()
+        }
+        presentSheet(vc)
+    }
+    
+    @objc private func cityTapped() {
+        self.view.endEditing(true)
+        
+        guard let countryCode = self.selectedCountryCode, !countryCode.isEmpty else { return }
+        
+        let preselected: [FilterOptionItem]
+        if let rawId = self.rawCityId, let title = self.selectedCityTitle {
+            preselected = [FilterOptionItem(id: rawId, title: title)]
+        } else {
+            preselected = []
+        }
+        
+        let vc = CitySearchController(
+            title: DivoStrings.chooseCity,
+            preselectedItems: preselected,
+            isOpenPresent: true,
+            filterCountryCode: countryCode
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            guard let self = self else { return }
+            if let selected = selectedItems.first {
+                self.rawCityId = selected.id
+                
+                let rawParts = selected.id.components(separatedBy: "|||")
+                let cityName = rawParts.joined(separator: ", ")
+                
+                self.onCityChosen?(cityName)
+            } else {
+                self.rawCityId = nil
+                self.updateCity(id: nil, title: nil)
+            }
+        }
+        presentSheet(vc)
     }
     
 

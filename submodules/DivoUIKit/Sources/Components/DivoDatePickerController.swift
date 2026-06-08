@@ -59,6 +59,8 @@ public final class DivoDatePickerController: UIViewController {
     
     override public func viewDidLoad() {
         super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
         view.backgroundColor = DivoColorPalette.screenBackground
         
         setupHeader()

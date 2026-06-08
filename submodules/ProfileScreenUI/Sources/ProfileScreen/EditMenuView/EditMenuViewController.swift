@@ -35,6 +35,8 @@ final class EditMenuViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
         view.backgroundColor = .clear
         
         overlayButton.frame = view.bounds

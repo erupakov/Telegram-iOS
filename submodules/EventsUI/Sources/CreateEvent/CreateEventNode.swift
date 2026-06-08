@@ -266,12 +266,9 @@ final class CreateEventNode: ASDisplayNode {
     private let eventDate: DateSelectionControl
     private let eventTime: DateSelectionControl
 
-    private let countryRow = FilterRowView(title: DivoStrings.debugCountry + " *")
-    lazy var countryOptions: [FilterOptionItem] = {
-        var options: [FilterOptionItem] = []
-        options.append(contentsOf: CountryHelper.getAllCountries())
-        return options
-    }()
+    private let cityRow = FilterRowView(title: DivoStrings.debugCity + " *")
+    private var rawCityId: String?
+    var onCityChosen: ((String) -> Void)?
 
     // MARK: - Step 2 UI
     private let whoCanApplyDropdown = FilterRowView(title: DivoStrings.whoCanApply + " *")
@@ -545,8 +542,19 @@ final class CreateEventNode: ASDisplayNode {
     var onGalleryItemTapped: ((String) -> Void)?
     var retryLoadEventData: (() -> Void)?
 
+    private let countryRow = FilterRowView(title: DivoStrings.debugCountry + " *")
+    lazy var countryOptions: [FilterOptionItem] = {
+        var options: [FilterOptionItem] = []
+        options.append(contentsOf: CountryHelper.getAllCountries())
+        return options
+    }()
+    
     private var countryId: String?
     private var countryTitle: String?
+
+    private var cityId: String?
+    private var cityTitle: String?
+    private var countryCode: String?
 
     private var selectedEventTypeId: Int?
     private var eventTypeOffset: Int = 0
@@ -622,6 +630,7 @@ final class CreateEventNode: ASDisplayNode {
         let paymentFrequency: Int?
         let paymentFrequencyTitle: String?
         let isPublic: Bool?
+        let cityId: Int?
     }
 
     private var initialSnapshot: EventSnapshot?
@@ -1022,10 +1031,14 @@ final class CreateEventNode: ASDisplayNode {
         dateTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventTime + " *", inputView: eventTime))
         step1StackView.addArrangedSubview(dateTimeRow)
         dateTimeRow.heightAnchor.constraint(equalToConstant: 68).isActive = true
-        
+
         step1StackView.addArrangedSubview(countryRow)
         countryRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
         countryRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countryTapped)))
+        
+        step1StackView.addArrangedSubview(cityRow)
+        cityRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        cityRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cityTapped)))
     }
     
     private func buildStep2() {
@@ -1429,6 +1442,15 @@ final class CreateEventNode: ASDisplayNode {
     private func updateDropdownsUI() {
         eventTypeDropdown.setItems(eventTypeTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.chooseEvent)
         countryRow.setItems(countryTitle.map { [$0] } ?? [], emptyTitle: "")
+        
+        let flagEmoji = CountryHelper.emojiFlag(for: self.countryCode)
+        let formattedCity = self.cityTitle.map { ["\(flagEmoji) \($0)".trimmingCharacters(in: .whitespaces)] } ?? []
+        cityRow.setItems(formattedCity, emptyTitle: "")
+        
+        let hasCountry = countryId != nil && !countryId!.isEmpty
+        cityRow.alpha = hasCountry ? 1.0 : 0.5
+        cityRow.isUserInteractionEnabled = hasCountry
+        
         whoCanApplyDropdown.setItems(whoCanApplyTitles ?? [], emptyTitle: DivoStrings.notSet)
         maxParticipantsDropdown.setItems(maxParticipants.map {["\($0)"] } ?? [], emptyTitle: DivoStrings.notSet)
         genderDropdown.setItems(genderDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
@@ -1662,7 +1684,8 @@ final class CreateEventNode: ASDisplayNode {
             paymentType: paidEventSwitch.isOn ? 1 : 2,
             paymentFrequency: Int(rateTimeId ?? "1"),
             paymentFrequencyTitle: rateTimeTitle,
-            isPublic: publicEventSwitch.isOn
+            isPublic: publicEventSwitch.isOn,
+            cityId: self.cityId.flatMap(Int.init) ?? 1
         )
     }
     
@@ -1682,8 +1705,18 @@ final class CreateEventNode: ASDisplayNode {
         return formatter.string(from: NSNumber(value: doubleValue))
     }
 
-
     // MARK: - Internal
+
+    func setCityRowLoading(_ isLoading: Bool) {
+        self.cityRow.setLoading(isLoading)
+    }
+
+    func updateCity(id: String?, title: String?, code: String?) {
+        self.cityId = id
+        self.cityTitle = title
+        self.countryCode = code
+        self.updateDropdownsUI()
+    }
     
     func startPhotoUpload(image: UIImage) -> EventGalleryItem {
         let item = EventGalleryItem(image: image, isUploading: true)
@@ -2001,8 +2034,7 @@ final class CreateEventNode: ASDisplayNode {
         deadlineFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let deadlineDateString = formatter.string(from: deadlineFinalDate)
         
-        // TODO: DIVO — city picker not implemented, using 1 as hardcoded stub
-        let cityId = Int(self.countryId ?? "1") ?? 1
+        let cityId = self.cityId.flatMap(Int.init) ?? 1
         let address = EventAddressRequest(
             street: nil,
             house: nil,
@@ -2049,7 +2081,10 @@ final class CreateEventNode: ASDisplayNode {
         shoesRange = EventRangeRequest(from: rangeFloat(selectedShoeSize?.lowerBound), to: rangeFloat(selectedShoeSize?.upperBound))
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2
-        let cost = rateTextField.text == "" ? nil : rateTextField.text
+        
+        let costClean = rateTextField.text?.replacingOccurrences(of: "\u{00a0}", with: "").replacingOccurrences(of: " ", with: "")
+        let cost = (costClean == "" || costClean == nil) ? nil : costClean
+        
         let requirements = requirementsTextField.text == "" ? nil : requirementsTextField.text
         
         return CreateEventRequest(
@@ -2110,8 +2145,7 @@ final class CreateEventNode: ASDisplayNode {
 
         let dateDeadlineString = formatter.string(from: finalDeadlineDate)
 
-        // TODO: DIVO — city picker not implemented, using 1 as hardcoded stub
-        let cityId = Int(self.countryId ?? "1") ?? 1
+        let cityId = self.cityId.flatMap(Int.init) ?? 1
         let address = EventAddressRequest(
             street: nil,
             house: nil,
@@ -2170,15 +2204,19 @@ final class CreateEventNode: ASDisplayNode {
         }
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2
-        let cost = paymentType == 1 ? rateTextField.text == "" ? nil : rateTextField.text : nil
+        
+        let costClean = rateTextField.text?.replacingOccurrences(of: "\u{00a0}", with: "").replacingOccurrences(of: " ", with: "")
+        let cost = paymentType == 1 ? ((costClean == "" || costClean == nil) ? nil : costClean) : nil
         
         return CreateEventPreview(
             title: title,
             description: description,
-            type: eventTypeTitle ?? "Event",
+            type: eventTypeTitle ?? DivoStrings.eventFallbackName,
             typeId: Int(eventTypeId ?? "0") ?? 0,
             date: dateString,
             address: address,
+            countryCode: countryCode,
+            cityName: cityTitle,
             files: eventFiles,
             isFree: !paidEventSwitch.isOn,
             cost: cost,
@@ -2232,7 +2270,24 @@ final class CreateEventNode: ASDisplayNode {
             }
         }
         
-        // НИЧЕГО НЕ ПРО СТРАНУ И НЕПОНЯТНО КАК ЗАПОЛНЯТЬ АДРЕС
+        if let city = detail.address?.city {
+            let cityName = city.name ?? ""
+            let countryName = city.countryName ?? ""
+            let countryCode = city.countryCode ?? ""
+            
+            self.rawCityId = cityName + "|||" + countryName
+            self.cityId = String(city.id ?? 1)
+            self.cityTitle = cityName
+            self.countryCode = countryCode
+            
+            self.countryId = countryCode
+            
+            let locale = Locale(identifier: DivoStrings.current.rawValue)
+            if let localizedCountry = locale.localizedString(forRegionCode: countryCode) {
+                let flag = CountryHelper.emojiFlag(for: countryCode)
+                self.countryTitle = "\(flag) \(localizedCountry)"
+            }
+        }
         
         whoCanApplyIds = detail.modelAttributes?.role
         whoCanApplyTitles = whoCanApplyIds?.compactMap { id in
@@ -2498,18 +2553,71 @@ final class CreateEventNode: ASDisplayNode {
             isMultiSelect: false,
             showSearch: true,
             isOpenPresent: true,
-            isResetButton: false,
+            isResetButton: false
         )
-
+        
         vc.onSave = { [weak self] selectedItems in
+            guard let self = self else { return }
             if let selected = selectedItems.first {
-                self?.countryId = selected.id
-                self?.countryTitle = selected.title
+                let oldCountryId = self.countryId
+                
+                self.countryId = selected.id
+                self.countryTitle = selected.title
+                
+                if oldCountryId != selected.id {
+                    self.cityId = nil
+                    self.cityTitle = nil
+                    self.rawCityId = nil
+                    self.countryCode = nil
+                }
             } else {
-                self?.countryId = nil
-                self?.countryTitle = nil
+                self.countryId = nil
+                self.countryTitle = nil
+                self.cityId = nil
+                self.cityTitle = nil
+                self.rawCityId = nil
+                self.countryCode = nil
             }
-            self?.updateDropdownsUI()
+            self.updateDropdownsUI()
+        }
+        
+        presentSheet(vc)
+    }
+    
+    @objc private func cityTapped() {
+        self.view.endEditing(true)
+        
+        guard let selectedCountryCode = self.countryId, !selectedCountryCode.isEmpty else {
+            return
+        }
+        
+        let preselected: [FilterOptionItem]
+        if let rawId = self.rawCityId, let title = self.cityTitle {
+            preselected = [FilterOptionItem(id: rawId, title: title)]
+        } else {
+            preselected = []
+        }
+        
+        let vc = CitySearchController(
+            title: DivoStrings.chooseCity,
+            preselectedItems: preselected,
+            isOpenPresent: true,
+            filterCountryCode: selectedCountryCode
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            guard let self = self else { return }
+            if let selected = selectedItems.first {
+                self.rawCityId = selected.id
+                
+                let rawParts = selected.id.components(separatedBy: "|||")
+                let cityName = rawParts.joined(separator: ", ")
+                
+                self.onCityChosen?(cityName)
+            } else {
+                self.rawCityId = nil
+                self.updateCity(id: nil, title: nil, code: nil)
+            }
         }
         
         presentSheet(vc)
@@ -2664,7 +2772,7 @@ final class CreateEventNode: ASDisplayNode {
             
             let hasDate = eventDateInt > 0
             let hasTime = eventTimeInt > 0
-            let hasCountry = countryId != nil && !countryId!.isEmpty
+            let hasCountry = cityId != nil && !cityId!.isEmpty
             
             isValid = hasPhoto && hasEventType && hasName && hasDesc && hasDate && hasTime && hasCountry
             

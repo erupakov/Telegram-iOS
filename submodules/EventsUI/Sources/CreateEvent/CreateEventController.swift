@@ -70,6 +70,12 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         NotificationCenter.default.removeObserver(self)
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         let currentAvatarMixin = Atomic<NSObject?>(value: nil)
         let theme = self.presentationData.theme
@@ -127,6 +133,10 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
 
         self.createEventNode.retryLoadEventData = { [weak self] in
             self?.retryLoadEventData()
+        }
+
+        self.createEventNode.onCityChosen = { [weak self] cityName in
+            self?.resolveCityOnBackend(cityName: cityName)
         }
 
         self.displayNodeDidLoad()
@@ -317,6 +327,12 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
                 if response.errors == nil || response.errors?.isEmpty == true {
                     self.onEventCreated?()
+
+                    NotificationCenter.default.post(
+                        name: DivoConfig.divoEventCreated,
+                        object: nil,
+                        userInfo: nil
+                    )
                     
                     let successController = EventPublishedSuccessController(context: self.context)
                     
@@ -648,6 +664,41 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     private func retryLoadEventData() {
         createEventNode.resetToInitialLoading()
         self.loadInitialData()
+    }
+
+    private func resolveCityOnBackend(cityName: String) {
+        self.createEventNode.setCityRowLoading(true)
+        
+        Task { @MainActor in
+            do {
+                let encodedQuery = cityName.divoURLQueryEncoded
+
+                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
+                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
+                    method: "GET"
+                )
+                
+                self.createEventNode.setCityRowLoading(false)
+                
+                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                    let resolvedCityId = String(cityId)
+                    
+                    let resolvedCityName = firstResult.city?.name ?? cityName
+                    let countryCode = firstResult.country?.code ?? firstResult.city?.countryCode
+                    
+                    self.createEventNode.updateCity(id: resolvedCityId, title: resolvedCityName, code: countryCode)
+                } else {
+                    self.createEventNode.updateCity(id: nil, title: nil, code: nil)
+                    self.createEventNode.showSnackbar(message: DivoStrings.cityNotFound, style: .error)
+                }
+            } catch {
+                self.createEventNode.setCityRowLoading(false)
+                self.createEventNode.updateCity(id: nil, title: nil, code: nil)
+                
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError
+                self.createEventNode.showSnackbar(message: userMsg, style: .error)
+            }
+        }
     }
 }
 

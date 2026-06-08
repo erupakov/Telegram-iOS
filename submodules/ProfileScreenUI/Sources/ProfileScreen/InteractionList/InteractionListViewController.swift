@@ -221,6 +221,8 @@ final class InteractionListViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
         setupUI()
         loadInitialData()
     }

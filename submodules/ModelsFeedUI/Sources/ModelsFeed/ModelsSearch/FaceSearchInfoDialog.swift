@@ -89,6 +89,8 @@ final class FaceSearchInfoDialog: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
         view.backgroundColor = .clear
         setupLayout()
         actionButton.addTarget(self, action: #selector(actionTapped), for: .touchUpInside)

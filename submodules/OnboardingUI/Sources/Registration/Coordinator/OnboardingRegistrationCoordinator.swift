@@ -38,6 +38,8 @@ public final class OnboardingRegistrationCoordinator {
     /// крестиком из top-level (`completedSuccessfully = false`).
     public let onFinish: (Bool) -> Void
 
+    private var rawOnboardingCityId: String?
+
     /// Данные из соц-провайдера (имя/фото) для префилла. Применяются один раз на форму при первом
     /// показе её шага — только к пустым полям (не затираем правки на резюме).
     private let socialPrefill: OnboardingSocialPrefill?
@@ -81,6 +83,8 @@ public final class OnboardingRegistrationCoordinator {
         self.navigationController = UINavigationController()
         self.navigationController.setNavigationBarHidden(true, animated: false)
         self.navigationController.modalPresentationStyle = .fullScreen
+        // DIVO свёрстан под светлую палитру — форсим .light на весь стек онбординга
+        self.navigationController.overrideUserInterfaceStyle = .light
 
         // Запускаем с текущего шага.
         pushController(for: state.currentStep, animated: false)
@@ -299,7 +303,63 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         case .multiPicker(let options, _, _):
             presentPickerSheet(controller: controller, fieldKey: fieldKey, titleKey: field.placeholderKey ?? "onboarding.button.continue", options: options)
         case .country(let options):
-            presentPickerSheet(controller: controller, showSearch: true, fieldKey: fieldKey, titleKey: field.titleKey ?? "onboarding.form.field.country.placeholder", options: options)
+            let currentSelectedCountryId: String? = {
+                guard let value = state.value(forForm: formId, fieldKey: fieldKey),
+                      case .option(let id) = value else { return nil }
+                return id
+            }()
+            
+            let options = options.map { FilterOptionItem(id: String($0.id), title: OnboardingStrings.resolve($0.titleKey)) }
+            let selectedIds = currentSelectedCountryId != nil ? [String(currentSelectedCountryId!)] : []
+            
+            let sheet = FilterOptionsController(
+                title: OnboardingStrings.resolve(field.placeholderKey ?? "onboarding.form.field.country.placeholder"),
+                options: options,
+                selectedOptionIds: selectedIds,
+                isMultiSelect: false,
+                showSearch: true,
+                isOpenPresent: true,
+                isResetButton: false
+            )
+            
+            sheet.onSave = { [weak self, weak controller] selectedItems in
+                guard let self = self else { return }
+                if let selected = selectedItems.first {
+                    let newCountryCode = selected.id
+                    
+                    if currentSelectedCountryId != newCountryCode {
+                        self.updateState { $0.setValue(.empty, forForm: formId, fieldKey: "city") }
+                        if let formController = controller {
+                            formController.updateFieldValue(.empty, forKey: "city")
+                        }
+                        self.rawOnboardingCityId = nil
+                    }
+                    
+                    let value = FormFieldValue.option(newCountryCode)
+                    self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
+                    if let formController = controller {
+                        formController.updateFieldValue(value, forKey: fieldKey)
+                    }
+                }
+            }
+            
+            let nav = UINavigationController(rootViewController: sheet)
+            nav.setNavigationBarHidden(true, animated: false)
+            if #available(iOS 15.0, *) {
+                if let sheet = nav.sheetPresentationController {
+                    sheet.detents = [.large()]
+                    sheet.prefersGrabberVisible = true
+                    sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+                }
+            }
+            controller.present(nav, animated: true)
+        case .city:
+            guard let countryVal = state.value(forForm: formId, fieldKey: "country"),
+                  case .option(let countryCode) = countryVal, !countryCode.isEmpty else {
+                return
+            }
+            
+            self.presentCitySearchSheet(controller: controller, field: field, countryCode: countryCode)
         case .date(let minDate, let maxDate, let presentation):
             presentDateSheet(
                 controller: controller,
@@ -488,6 +548,96 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
                 divoLog("Photo picker failed for field \(fieldKey): \(error.localizedDescription)", level: .error)
                 // Тихо игнорируем — юзер просто остаётся без фото. Если потребуется snackbar —
                 // дёрнем delegate, добавим вид.
+            }
+        }
+    }
+
+    private func presentCitySearchSheet(controller: UIViewController, field: FormField, countryCode: String) {
+        let preselected: [FilterOptionItem]
+        if let rawId = self.rawOnboardingCityId,
+           let formId = formIdFromCurrentStepOptional(),
+           let cityVal = state.value(forForm: formId, fieldKey: field.key),
+           case .option(let cityId) = cityVal,
+           let title = OnboardingFormFieldRow.resolvedCityTitles[cityId] {
+            preselected = [FilterOptionItem(id: rawId, title: title)]
+        } else {
+            preselected = []
+        }
+        
+        let sheet = CitySearchController(
+            title: OnboardingStrings.resolve(field.placeholderKey ?? "onboarding.form.field.city.placeholder"),
+            preselectedItems: preselected,
+            isMultiSelect: false,
+            isOpenPresent: true,
+            filterCountryCode: countryCode
+        )
+        
+        sheet.onSave = { [weak self, weak controller] selectedItems in
+            guard let self = self,
+                  let formId = self.formIdFromCurrentStepOptional(),
+                  let selected = selectedItems.first,
+                  let formController = controller as? OnboardingFormStepViewController else { return }
+            
+            self.rawOnboardingCityId = selected.id
+            let rawParts = selected.id.components(separatedBy: "|||")
+            let cityName = rawParts.joined(separator: ", ")
+            
+            self.resolveOnboardingCity(cityName: cityName, fieldKey: field.key, formId: formId, controller: formController)
+        }
+        
+        let nav = UINavigationController(rootViewController: sheet)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        controller.present(nav, animated: true)
+    }
+    
+    private func resolveOnboardingCity(
+        cityName: String,
+        fieldKey: String,
+        formId: OnboardingFormID,
+        controller: OnboardingFormStepViewController
+    ) {
+        controller.setFieldLoading(true, forKey: fieldKey)
+        
+        Task { @MainActor in
+            do {
+                let encodedQuery = cityName.divoURLQueryEncoded
+                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
+                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
+                    method: "GET"
+                )
+                
+                controller.setFieldLoading(false, forKey: fieldKey)
+                
+                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                    let resolvedCityId = String(cityId)
+                    let resolvedCityName = firstResult.city?.name ?? cityName
+                    let countryCode = firstResult.country?.code ?? firstResult.city?.countryCode
+                    
+                    let flag = CountryHelper.emojiFlag(for: countryCode)
+                    let countryName = firstResult.country?.name ?? firstResult.city?.countryName ?? ""
+                    let finalTitle = countryName.isEmpty ? "\(flag) \(resolvedCityName)" : "\(flag) \(resolvedCityName), \(countryName)"
+                    
+                    OnboardingFormFieldRow.resolvedCityTitles[resolvedCityId] = finalTitle
+                    
+                    let value: FormFieldValue = .option(resolvedCityId)
+                    self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
+                    
+                    controller.updateFieldValue(value, forKey: fieldKey)
+                } else {
+                    self.rawOnboardingCityId = nil
+                    controller.showSnackbar(message: DivoStrings.cityNotFound, style: .error)
+                }
+            } catch {
+                controller.setFieldLoading(false, forKey: fieldKey)
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError
+                controller.showSnackbar(message: userMsg, style: .error)
             }
         }
     }

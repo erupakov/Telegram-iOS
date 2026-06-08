@@ -30,33 +30,39 @@ public final class FilterRowView: UIView {
         return label
     }()
 
+    private let chevron: UIImageView = {
+        let iv = UIImageView(image: DivoImage.searchChevronRight)
+        iv.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
+        iv.setContentHuggingPriority(.required, for: .horizontal)
+        return iv
+    }()
+    
+    private let spinner: UIActivityIndicatorView = {
+        let loader = UIActivityIndicatorView(style: .medium)
+        loader.color = DivoColorPalette.accent
+        loader.hidesWhenStopped = true
+        loader.translatesAutoresizingMaskIntoConstraints = false
+        return loader
+    }()
+
     private var currentItems: [String] = []
     private var emptyTitle: String = ""
 
     public init(title: String = "") {
         super.init(frame: .zero)
         self.isUserInteractionEnabled = true
-
+        
         self.backgroundColor = .white
         self.layer.cornerRadius = 23 // TODO: DS alignment — не в шкале Radius (border inset от card=24)
 
         titleLabel.text = title
-
-        let chevron = UIImageView(image: DivoImage.searchChevronRight)
-        chevron.tintColor = DivoColorPalette.primaryText.withAlphaComponent(0.8)
-        chevron.contentMode = .scaleAspectFit
-        chevron.setContentHuggingPriority(.required, for: .horizontal)
-        chevron.setContentHuggingPriority(.required, for: .vertical)
-        chevron.setContentCompressionResistancePriority(.required, for: .horizontal)
-        chevron.setContentCompressionResistancePriority(.required, for: .vertical)
-        chevron.translatesAutoresizingMaskIntoConstraints = false
-
-        let stack = UIStackView(arrangedSubviews:[titleLabel, UIView(), valueLabel, chevron])
+        
+        let stack = UIStackView(arrangedSubviews: [titleLabel, UIView(), valueLabel, spinner, chevron])
         stack.axis = .horizontal
         stack.spacing = DivoDesignTokens.Spacing.s
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
-
+        
         addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -64,14 +70,25 @@ public final class FilterRowView: UIView {
             stack.topAnchor.constraint(equalTo: topAnchor),
             stack.bottomAnchor.constraint(equalTo: bottomAnchor),
             heightAnchor.constraint(equalToConstant: 46),
-            chevron.widthAnchor.constraint(equalToConstant: 20),
-            chevron.heightAnchor.constraint(equalToConstant: 20)
+            
+            spinner.widthAnchor.constraint(equalToConstant: 20),
+            spinner.heightAnchor.constraint(equalToConstant: 20)
         ])
-
-        addPressState()
     }
 
     required init?(coder: NSCoder) { fatalError() }
+
+    public func setLoading(_ isLoading: Bool) {
+        if isLoading {
+            valueLabel.isHidden = true
+            chevron.isHidden = true
+            spinner.startAnimating()
+        } else {
+            valueLabel.isHidden = false
+            chevron.isHidden = false
+            spinner.stopAnimating()
+        }
+    }
 
     public func setItems(_ items: [String], emptyTitle: String) {
         self.currentItems = items

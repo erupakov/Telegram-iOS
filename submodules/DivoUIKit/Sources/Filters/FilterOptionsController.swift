@@ -82,7 +82,7 @@ public final class FilterOptionsController: UIViewController {
         let field = UITextField()
         field.font = Font.regular(14)
         field.textColor = DivoColorPalette.primaryText
-        field.tintColor = DivoColorPalette.accentSecondary
+        field.tintColor = DivoColorPalette.accent
         field.clearButtonMode = .whileEditing
         field.autocorrectionType = .no
         field.returnKeyType = .search
@@ -144,6 +144,9 @@ public final class FilterOptionsController: UIViewController {
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
 
         view.backgroundColor = DivoColorPalette.screenBackground
 
@@ -258,8 +261,9 @@ public final class FilterOptionsController: UIViewController {
         if isResetButton {
             NSLayoutConstraint.activate([
                 deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
-                deleteButton.leadingAnchor.constraint(equalTo: stackView.leadingAnchor),
-                deleteButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor),
+                // Ширина от видимой области скролла, а не от stackView — он схлопывается в 0 при пустом поиске.
+                deleteButton.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor),
+                deleteButton.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor),
                 deleteButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
                 deleteButton.heightAnchor.constraint(equalToConstant: 48)
             ])
@@ -270,7 +274,8 @@ public final class FilterOptionsController: UIViewController {
         // Очищаем stackView
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        let allOptionId = allOptions.first?.id ?? ""
+        // «Все» = пункт с id == "all", а не просто первый (иначе у списков без «Все» галочка на первом).
+        let allOptionId = allOptions.first(where: { $0.id == "all" })?.id
 
         for (index, option) in filteredOptions.enumerated() {
             let cell = createOptionCell(
@@ -304,6 +309,7 @@ public final class FilterOptionsController: UIViewController {
         let label = UILabel()
         label.text = option.title
         label.font = Font.regular(16)
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(label)
 
@@ -344,7 +350,8 @@ public final class FilterOptionsController: UIViewController {
     @objc private func optionTapped(_ gesture: UITapGestureRecognizer) {
         guard let cell = gesture.view, let index = cell.tag as Int? else { return }
         let option = filteredOptions[index]
-        let allOptionId = allOptions.first?.id ?? ""
+        // «Все» = пункт с id == "all", а не просто первый (иначе у списков без «Все» галочка на первом).
+        let allOptionId = allOptions.first(where: { $0.id == "all" })?.id
 
         if isMultiSelect {
             if option.id == allOptionId {

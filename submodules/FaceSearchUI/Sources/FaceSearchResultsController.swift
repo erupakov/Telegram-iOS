@@ -66,6 +66,12 @@ public final class FaceSearchResultsController: ViewController {
         currentTask?.cancel()
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         let node = FaceSearchResultsNode(
             results: self.results,

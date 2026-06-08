@@ -188,6 +188,8 @@ final class EventsSearchFilterController: UIViewController, UITextFieldDelegate 
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
         view.backgroundColor = DivoColorPalette.screenBackground
         setupCustomNavBar()
         setupUI()

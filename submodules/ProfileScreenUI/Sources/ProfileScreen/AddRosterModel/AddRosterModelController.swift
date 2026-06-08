@@ -91,6 +91,12 @@ public class AddRosterModelController: TelegramBaseController {
             }
         }
     }
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
     
     // Метод вызова кастомного алерта
     private func showRepresentedByAnotherAlert(agencyName: String) {

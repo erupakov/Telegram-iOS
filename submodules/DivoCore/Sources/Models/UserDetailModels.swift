@@ -238,6 +238,7 @@ public struct UpdateMeasuringSystemRequest: Encodable {
 public struct UpdateBiographyPageRequest: Encodable {
     public let fullName: String?
     public let gender: String?
+    public let geoCityId: Int?
     public let birthday: String?
     public let model: ModelData?
     public let avatar: AvatarUuid?
@@ -257,9 +258,10 @@ public struct UpdateBiographyPageRequest: Encodable {
         }
     }
 
-    public init(fullName: String? = nil, gender: String? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
+    public init(fullName: String? = nil, gender: String? = nil, geoCityId: Int? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
         self.fullName = fullName
         self.gender = gender
+        self.geoCityId = geoCityId
         self.birthday = birthday
         self.model = model
         self.avatar = avatar
@@ -469,18 +471,28 @@ public struct UpdateDescriptionAgencyRequest: Encodable {
     public let description: String?
     public let background: AvatarUuid?
     public let photo: AvatarUuid?
+    public let address: UpdateAgencyAddress?
 
     public struct AvatarUuid: Encodable {
         public let uuid: String
         public init(uuid: String) { self.uuid = uuid }
     }
 
-    public init(agencyId: Int?, title: String? = nil, description: String? = nil, background: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
+    public init(agencyId: Int?, title: String? = nil, description: String? = nil, background: AvatarUuid? = nil, photo: AvatarUuid? = nil, address: UpdateAgencyAddress? = nil) {
         self.agencyId = agencyId
         self.title = title
         self.description = description
         self.background = background
         self.photo = photo
+        self.address = address
+    }
+}
+
+public struct UpdateAgencyAddress: Encodable {
+    public let cityId: Int?
+    
+    public init(cityId: Int? = nil) {
+        self.cityId = cityId
     }
 }
 

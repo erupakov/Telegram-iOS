@@ -74,7 +74,13 @@ public class ModelsSearchController: ViewController {
         self.presentationDataDisposable?.dispose()
         self.currentSearchTask?.cancel()
     }
-    
+
+    override public func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
 
@@ -750,7 +756,7 @@ public class ModelsSearchController: ViewController {
         let hairColor = self.currentFilters.hairColor?.isEmpty == true ? nil : self.currentFilters.hairColor
         let hairLength = self.currentFilters.hairLength?.isEmpty == true ? nil : self.currentFilters.hairLength
 
-        let hasModelParams = gender != nil || age != nil || weight != nil || height != nil || waist != nil || shoesSize != nil || hips != nil || eyeColor != nil || skinColor != nil || hairColor != nil || hairLength != nil
+        let hasModelParams = gender != nil || age != nil || weight != nil || height != nil || waist != nil || shoesSize != nil || hips != nil || eyeColor != nil || skinColor != nil || hairColor != nil || hairLength != nil || self.currentFilters.cityId != nil
 
         return ModelsSearchRequest(
             offset: offset,
@@ -760,6 +766,7 @@ public class ModelsSearchController: ViewController {
             withoutNfts: true,
             modelParameters: hasModelParams ? ModelSearchParameters(
                 gender: gender,
+                geoCityId: self.currentFilters.cityId,
                 age: age,
                 weight: weight,
                 height: height,

@@ -58,6 +58,13 @@ public final class EventDetailController: TelegramBaseController {
         self.isAgency = isAgency
 
         super.init(context: context, navigationBarPresentationData: nil)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleGlobalEventCreated),
+            name: DivoConfig.divoEventCreated,
+            object: nil
+        )
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -66,6 +73,12 @@ public final class EventDetailController: TelegramBaseController {
 
     deinit {
         self.getEventDisposable.dispose()
+    }
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
     }
 
     override public func loadDisplayNode() {
@@ -310,6 +323,12 @@ public final class EventDetailController: TelegramBaseController {
                     method: "DELETE"
                 )
                 
+                NotificationCenter.default.post(
+                    name: DivoConfig.divoEventDeleted,
+                    object: nil,
+                    userInfo: ["eventId": eventId]
+                )
+                
                 self.onEventModified?()
                 self.navigationController?.popViewController(animated: true)
                 
@@ -390,5 +409,10 @@ public final class EventDetailController: TelegramBaseController {
         )
         
         self.push(listController)
+    }
+
+    @objc private func handleGlobalEventCreated() {
+        self.getEvent()
+        self.onEventModified?()
     }
 }

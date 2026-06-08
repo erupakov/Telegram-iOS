@@ -72,6 +72,8 @@ final class OnboardingFormFieldRow: UIView {
         emptyIconPhoto.image = DivoImage.uploadPhoto
         return emptyIconPhoto
     }()
+
+    public static var resolvedCityTitles: [String: String] = [:]
     
 
     init(field: FormField, value: FormFieldValue?) {
@@ -112,9 +114,9 @@ final class OnboardingFormFieldRow: UIView {
 
     @objc private func rowTapped() {
         switch field.kind {
-        case .text, .multilineText, .email, .url, .phone, .city:
+        case .text, .multilineText, .email, .url, .phone:
             textField.becomeFirstResponder()
-        case .picker, .multiPicker, .country, .date, .photo:
+        case .picker, .multiPicker, .country, .city, .date, .photo:
             presentController?()
         }
     }
@@ -123,9 +125,9 @@ final class OnboardingFormFieldRow: UIView {
 
     private func setupForKind() {
         switch field.kind {
-        case .text, .multilineText, .email, .url, .phone, .city:
+        case .text, .multilineText, .email, .url, .phone:
             installTextField()
-        case .picker, .country, .multiPicker:
+        case .picker, .country, .city, .multiPicker:
             installPickerButton()
         case .date:
             installPickerButton()
@@ -238,7 +240,7 @@ final class OnboardingFormFieldRow: UIView {
 
     func applyValue(_ value: FormFieldValue) {
         switch field.kind {
-        case .text, .multilineText, .email, .url, .phone, .city:
+        case .text, .multilineText, .email, .url, .phone:
             if case .string(let s) = value { textField.textField.text = s }
 
         case .picker(let options), .multiPicker(let options, _, _):
@@ -250,6 +252,15 @@ final class OnboardingFormFieldRow: UIView {
         case .country(let options):
             if case .option(let id) = value, let opt = options.first(where: { $0.id == id }) {
                 pickerRowTitle = OnboardingStrings.resolve(opt.titleKey)
+                updateDropdownsUI()
+            }
+            
+        case .city:
+            if case .option(let cityId) = value {
+                pickerRowTitle = OnboardingFormFieldRow.resolvedCityTitles[cityId] ?? OnboardingStrings.resolve(field.placeholderKey ?? "")
+                updateDropdownsUI()
+            } else {
+                pickerRowTitle = nil
                 updateDropdownsUI()
             }
 
@@ -298,8 +309,16 @@ final class OnboardingFormFieldRow: UIView {
                 photoLabel.isHidden = false
                 emptyIconPhoto.isHidden = false
                 helpLabel.isHidden = false
-                photoArea.isBordered = true
             }
+        }
+    }
+
+    public func setRowLoading(_ isLoading: Bool) {
+        switch field.kind {
+        case .city:
+            pickerRow.setLoading(isLoading)
+        default:
+            break
         }
     }
 

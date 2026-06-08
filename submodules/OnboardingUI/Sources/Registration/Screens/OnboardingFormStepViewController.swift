@@ -26,6 +26,8 @@ public final class OnboardingFormStepViewController: UIViewController {
     private var step: FormStep
     private var values: [String: FormFieldValue]
     private var fieldRows: [String: OnboardingFormFieldRow] = [:]
+    /// Текущий применённый ключ заголовка primary-кнопки — чтобы не переконфигурировать её на каждый ввод.
+    private var currentPrimaryButtonKey: String?
 
     private let navigationBar = DivoNavigationBar()
     private let topFadeOverlay = OnboardingBottomFadeOverlay()
@@ -146,6 +148,7 @@ public final class OnboardingFormStepViewController: UIViewController {
         values[key] = value
         fieldRows[key]?.applyValue(value)
         updatePrimaryEnabled()
+        updateCityFieldAvailability()
     }
 
     public override func viewDidLoad() {
@@ -352,7 +355,9 @@ public final class OnboardingFormStepViewController: UIViewController {
             progressLabel.isHidden = true
         }
 
-        primaryButton.makeDivoButton(title: OnboardingStrings.resolve(step.primaryButtonKey))
+        let initialButtonKey = primaryButtonKeyForCurrentState()
+        currentPrimaryButtonKey = initialButtonKey
+        primaryButton.makeDivoButton(title: OnboardingStrings.resolve(initialButtonKey))
 
         fieldsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         fieldRows.removeAll()
@@ -437,6 +442,7 @@ public final class OnboardingFormStepViewController: UIViewController {
         updatePrimaryEnabled()
 
         setupTextFieldsChain()
+        updateCityFieldAvailability()
     }
     
     private func setupTextFieldsChain() {
@@ -520,6 +526,21 @@ public final class OnboardingFormStepViewController: UIViewController {
 
     private func updatePrimaryEnabled() {
         primaryButton.isEnabled = FormValidator.isStepValid(step, values: values) || step.allowSkip
+
+        let key = primaryButtonKeyForCurrentState()
+        if key != currentPrimaryButtonKey {
+            currentPrimaryButtonKey = key
+            primaryButton.makeDivoButton(title: OnboardingStrings.resolve(key))
+        }
+    }
+
+    /// Необязательный шаг (нет required-полей) и пусто → «Skip»; иначе обычный ключ. «Done»/«Let's go» не трогаем.
+    private func primaryButtonKeyForCurrentState() -> String {
+        guard step.primaryButtonKey == "onboarding.button.continue" else { return step.primaryButtonKey }
+        let stepIsOptional = step.fields.allSatisfy { !$0.isRequired }
+        guard stepIsOptional else { return step.primaryButtonKey }
+        let isEmpty = step.fields.allSatisfy { (values[$0.key]?.isEmpty ?? true) }
+        return isEmpty ? "onboarding.button.skip" : step.primaryButtonKey
     }
 
     @objc private func backTapped()    { delegate?.formStepControllerDidTapBack(self) }
@@ -542,5 +563,63 @@ public final class OnboardingFormStepViewController: UIViewController {
             if containsFirstResponder(subview) { return true }
         }
         return false
+    }
+
+    private func updateCityFieldAvailability() {
+        guard let cityField = step.fields.first(where: {
+            if case .city = $0.kind { return true }
+            return false
+        }), let cityRow = fieldRows[cityField.key] else { return }
+        
+        let countryField = step.fields.first(where: {
+            if case .country = $0.kind { return true }
+            return $0.key.contains("country")
+        })
+        
+        let hasCountrySelected: Bool
+        if let countryKey = countryField?.key, let value = values[countryKey] {
+            switch value {
+            case .string(let str):
+                hasCountrySelected = !str.isEmpty
+            case .option(let id):
+                hasCountrySelected = !id.isEmpty
+            case .empty:
+                hasCountrySelected = false
+            default:
+                hasCountrySelected = true
+            }
+        } else {
+            hasCountrySelected = false
+        }
+        
+        cityRow.alpha = hasCountrySelected ? 1.0 : 0.5
+        cityRow.isUserInteractionEnabled = hasCountrySelected
+    }
+    
+    public func setFieldLoading(_ isLoading: Bool, forKey key: String) {
+        fieldRows[key]?.setRowLoading(isLoading)
+    }
+    
+    // MARK: - Snackbar
+
+    typealias SnackbarStyle = DivoSnackbar.Style
+
+    private let snackbar = DivoSnackbar()
+
+    func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        snackbar.show(
+            in: self.view,
+            message: message,
+            style: style,
+            bottomInset: DivoDesignTokens.Spacing.m,
+            bottomAnchor: primaryButton.topAnchor,
+            retryTitle: retryAction != nil ? DivoStrings.retry : nil,
+            retryAction: retryAction,
+            persistent: persistent
+        )
+    }
+
+    func hideSnackbar(animated: Bool) {
+        snackbar.hide(animated: animated)
     }
 }

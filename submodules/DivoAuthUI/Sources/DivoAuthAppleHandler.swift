@@ -11,6 +11,9 @@ public enum DivoAuthAppleHandler {
             return nil
         }
 
+        // Ставим до показа шторки Apple — к её закрытию лоадер уже на месте, велком не мелькает.
+        // Снимется при ошибке/отмене; при успехе сменится лоадером headless-флоу.
+        controller?.showAuthLoading()
         let anchor = controller?.view.window
         do {
             let result = try await FirebaseAuthClient.shared.signInWithApple(presentingFrom: anchor)
@@ -20,6 +23,7 @@ public enum DivoAuthAppleHandler {
             return outcome
         } catch DivoFirebaseAuthError.userCancelled {
             divoLog("Apple sign-in cancelled by user", level: .debug)
+            controller?.hideAuthLoading()
             return nil
         } catch {
             divoLog("Apple sign-in failed: \(error)", level: .error)
