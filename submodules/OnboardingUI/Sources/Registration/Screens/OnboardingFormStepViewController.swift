@@ -26,6 +26,8 @@ public final class OnboardingFormStepViewController: UIViewController {
     private var step: FormStep
     private var values: [String: FormFieldValue]
     private var fieldRows: [String: OnboardingFormFieldRow] = [:]
+    /// Текущий применённый ключ заголовка primary-кнопки — чтобы не переконфигурировать её на каждый ввод.
+    private var currentPrimaryButtonKey: String?
 
     private let navigationBar = DivoNavigationBar()
     private let topFadeOverlay = OnboardingBottomFadeOverlay()
@@ -353,7 +355,9 @@ public final class OnboardingFormStepViewController: UIViewController {
             progressLabel.isHidden = true
         }
 
-        primaryButton.makeDivoButton(title: OnboardingStrings.resolve(step.primaryButtonKey))
+        let initialButtonKey = primaryButtonKeyForCurrentState()
+        currentPrimaryButtonKey = initialButtonKey
+        primaryButton.makeDivoButton(title: OnboardingStrings.resolve(initialButtonKey))
 
         fieldsStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         fieldRows.removeAll()
@@ -522,6 +526,21 @@ public final class OnboardingFormStepViewController: UIViewController {
 
     private func updatePrimaryEnabled() {
         primaryButton.isEnabled = FormValidator.isStepValid(step, values: values) || step.allowSkip
+
+        let key = primaryButtonKeyForCurrentState()
+        if key != currentPrimaryButtonKey {
+            currentPrimaryButtonKey = key
+            primaryButton.makeDivoButton(title: OnboardingStrings.resolve(key))
+        }
+    }
+
+    /// Необязательный шаг (нет required-полей) и пусто → «Skip»; иначе обычный ключ. «Done»/«Let's go» не трогаем.
+    private func primaryButtonKeyForCurrentState() -> String {
+        guard step.primaryButtonKey == "onboarding.button.continue" else { return step.primaryButtonKey }
+        let stepIsOptional = step.fields.allSatisfy { !$0.isRequired }
+        guard stepIsOptional else { return step.primaryButtonKey }
+        let isEmpty = step.fields.allSatisfy { (values[$0.key]?.isEmpty ?? true) }
+        return isEmpty ? "onboarding.button.skip" : step.primaryButtonKey
     }
 
     @objc private func backTapped()    { delegate?.formStepControllerDidTapBack(self) }

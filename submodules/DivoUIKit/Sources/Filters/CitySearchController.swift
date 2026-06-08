@@ -163,8 +163,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     public override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Палитра DIVO статично-светлая (без dark-вариантов) — форсим светлую тему,
-        // иначе в тёмной теме системные цвета текста уходят в белый и текст пропадает.
+        // DIVO свёрстан под светлую палитру — форсим .light
         overrideUserInterfaceStyle = .light
 
         view.backgroundColor = DivoColorPalette.screenBackground

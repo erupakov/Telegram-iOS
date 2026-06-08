@@ -145,8 +145,7 @@ public final class FilterOptionsController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Палитра DIVO статично-светлая (без dark-вариантов) — форсим светлую тему,
-        // иначе в тёмной теме системные цвета текста уходят в белый и текст пропадает.
+        // DIVO свёрстан под светлую палитру — форсим .light
         overrideUserInterfaceStyle = .light
 
         view.backgroundColor = DivoColorPalette.screenBackground
@@ -262,8 +261,7 @@ public final class FilterOptionsController: UIViewController {
         if isResetButton {
             NSLayoutConstraint.activate([
                 deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
-                // Ширину берём от видимой области скролла, а не от stackView: при пустом поиске
-                // (нет ячеек) stackView схлопывается в 0 и кнопка переставала быть на всю ширину.
+                // Ширина от видимой области скролла, а не от stackView — он схлопывается в 0 при пустом поиске.
                 deleteButton.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor),
                 deleteButton.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor),
                 deleteButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
@@ -276,8 +274,7 @@ public final class FilterOptionsController: UIViewController {
         // Очищаем stackView
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        // «Все» — это пункт с id == "all" (так его заводят все каллеры), а НЕ просто первый пункт.
-        // Иначе у списков без «Все» (напр. страны) первый элемент ошибочно отмечался галочкой.
+        // «Все» = пункт с id == "all", а не просто первый (иначе у списков без «Все» галочка на первом).
         let allOptionId = allOptions.first(where: { $0.id == "all" })?.id
 
         for (index, option) in filteredOptions.enumerated() {
@@ -353,8 +350,7 @@ public final class FilterOptionsController: UIViewController {
     @objc private func optionTapped(_ gesture: UITapGestureRecognizer) {
         guard let cell = gesture.view, let index = cell.tag as Int? else { return }
         let option = filteredOptions[index]
-        // «Все» — это пункт с id == "all" (так его заводят все каллеры), а НЕ просто первый пункт.
-        // Иначе у списков без «Все» (напр. страны) первый элемент ошибочно отмечался галочкой.
+        // «Все» = пункт с id == "all", а не просто первый (иначе у списков без «Все» галочка на первом).
         let allOptionId = allOptions.first(where: { $0.id == "all" })?.id
 
         if isMultiSelect {

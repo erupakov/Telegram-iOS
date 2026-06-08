@@ -1,17 +1,15 @@
 import Foundation
 
 public extension String {
-    /// Percent-кодирует строку для безопасной подстановки в значение query-параметра URL.
-    /// Без этого `URL(string:)` на iOS 13–16 возвращает nil для значений с пробелами/не-ASCII
-    /// (имена городов: «New York, US», «São Paulo», «Москва») → краш на force-unwrap в `DivoAPIClient`.
+    /// Percent-кодирует значение query-параметра: без этого `URL(string:)` на iOS 13–16
+    /// возвращает nil на пробелах/не-ASCII → краш force-unwrap в `DivoAPIClient`.
     var divoURLQueryEncoded: String {
         addingPercentEncoding(withAllowedCharacters: .divoURLQueryValueAllowed) ?? self
     }
 }
 
 public extension CharacterSet {
-    /// `urlQueryAllowed` без sub-delimiter'ов, имеющих смысл внутри query (`&=+?#`), —
-    /// чтобы такие символы в значении не ломали структуру строки запроса.
+    /// `urlQueryAllowed` минус sub-delimiter'ы (`&=+?#`), чтобы они в значении не ломали query.
     static let divoURLQueryValueAllowed: CharacterSet = {
         var set = CharacterSet.urlQueryAllowed
         set.remove(charactersIn: "&=+?#")
