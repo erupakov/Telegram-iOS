@@ -57,6 +57,16 @@ public final class DivoTextField: ASDisplayNode, UITextFieldDelegate {
     }
     
     // MARK: - Logic
+
+    /// Программно выставить пользовательский текст, сохранив несъедаемый prefix (для prefill).
+    public func setText(_ userText: String) {
+        if prefix == nil {
+            fieldNode.textField.text = userText
+        } else {
+            updateText(userText: userText)
+        }
+    }
+
     private func updateText(userText: String) {
         guard let prefix = prefix else { return }
         

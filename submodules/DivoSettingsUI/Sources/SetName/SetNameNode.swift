@@ -6,15 +6,33 @@ import DivoCore
 
 final class SetNameNode: ASDisplayNode {
 
+    /// Состояние валидации ника. Источник истины для статус-строки и гейтинга кнопки Save.
+    enum UsernameState: Equatable {
+        case neutral                    // пустой или не изменённый ник — валидно, статус не показываем
+        case checking
+        case available(message: String)
+        case error(message: String)
+    }
+
+    /// Что делать с ником при сохранении — решает нода, исполняет контроллер.
+    enum UsernameAction: Equatable {
+        case unchanged
+        case set(String)
+        case clear
+    }
+
     private enum Layout {
         static let buttonBottomInset: CGFloat = 40
         static let bottomFadeHeight: CGFloat = 140
         static let bottomFadeOpaqueLocation: NSNumber = 0.45
         static let navBarToContentSpacing: CGFloat = 24
+        static let labelToFieldSpacing: CGFloat = 8
+        static let statusToHintSpacing: CGFloat = 4
     }
 
     var onBackTapped: (() -> Void)?
-    var saveName: ((String) -> Void)?
+    var onSave: ((_ name: String, _ usernameAction: UsernameAction) -> Void)?
+    var onUsernameChanged: ((_ handle: String) -> Void)?
 
     private let navigationBar = DivoNavigationBar()
 
@@ -28,7 +46,50 @@ final class SetNameNode: ASDisplayNode {
         return sv
     }()
 
+    private let formStack: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.alignment = .fill
+        stack.spacing = Layout.labelToFieldSpacing
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+
+    private let nameSectionLabel = SetNameNode.makeSectionLabel(DivoStrings.name)
+    private let usernameSectionLabel = SetNameNode.makeSectionLabel(DivoStrings.usernameSection)
+
     private let nameTextField: DivoTextField
+    private let usernameTextField = DivoTextField(title: "", prefix: "@")
+
+    private let usernameStatusRow: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.alignment = .center
+        stack.spacing = 6
+        return stack
+    }()
+    private let usernameSpinner: UIActivityIndicatorView = {
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.hidesWhenStopped = true
+        spinner.color = DivoColorPalette.secondaryText
+        return spinner
+    }()
+    private let usernameStatusLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(13)
+        label.textColor = DivoColorPalette.secondaryText
+        label.numberOfLines = 0
+        return label
+    }()
+    private let usernameHintLabel: UILabel = {
+        let label = UILabel()
+        label.text = DivoStrings.usernameHint
+        label.font = Font.regular(13)
+        label.textColor = DivoColorPalette.secondaryText
+        label.numberOfLines = 0
+        return label
+    }()
+
     private let applyButton = DivoButton()
     private var applyButtonBottomConstraint: NSLayoutConstraint?
 
@@ -53,6 +114,14 @@ final class SetNameNode: ASDisplayNode {
     private var keyboardHandler: DivoKeyboardHandler?
 
     private let initialName: String
+    private var initialUsername: String = ""
+    private var usernameState: UsernameState = .neutral {
+        didSet {
+            if oldValue != usernameState {
+                renderUsernameState()
+            }
+        }
+    }
 
     // MARK: - Init
 
@@ -91,6 +160,12 @@ final class SetNameNode: ASDisplayNode {
         nameTextField.textField.returnKeyType = .done
         nameTextField.onReturn = { [weak self] in self?.view.endEditing(true) }
 
+        usernameTextField.textField.autocapitalizationType = .none
+        usernameTextField.textField.autocorrectionType = .no
+        usernameTextField.textField.keyboardType = .asciiCapable
+        usernameTextField.textField.returnKeyType = .done
+        usernameTextField.onReturn = { [weak self] in self?.view.endEditing(true) }
+
         setupUI()
         setupConstraints()
 
@@ -98,6 +173,7 @@ final class SetNameNode: ASDisplayNode {
         scrollView.scrollIndicatorInsets = scrollView.contentInset
 
         nameTextField.textField.addTarget(self, action: #selector(nameDidChange), for: .editingChanged)
+        usernameTextField.textField.addTarget(self, action: #selector(usernameDidChange), for: .editingChanged)
         applyButton.addTarget(self, action: #selector(saveButtonPressed), for: .touchUpInside)
 
         keyboardHandler = DivoKeyboardHandler(
@@ -109,16 +185,40 @@ final class SetNameNode: ASDisplayNode {
         )
         keyboardHandler?.subscribe()
 
+        if !initialUsername.isEmpty {
+            usernameTextField.setText(initialUsername)
+        }
+        renderUsernameState()
         updateSaveButtonState()
     }
 
     // MARK: - Setup
 
+    private static func makeSectionLabel(_ text: String) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.font = Font.medium(14)
+        label.textColor = DivoColorPalette.primaryText
+        label.numberOfLines = 1
+        return label
+    }
+
     private func setupUI() {
         view.addSubview(navigationBar)
 
-        nameTextField.view.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.addSubview(nameTextField.view)
+        usernameStatusRow.addArrangedSubview(usernameSpinner)
+        usernameStatusRow.addArrangedSubview(usernameStatusLabel)
+
+        formStack.addArrangedSubview(nameSectionLabel)
+        formStack.addArrangedSubview(nameTextField.view)
+        formStack.addArrangedSubview(usernameSectionLabel)
+        formStack.addArrangedSubview(usernameTextField.view)
+        formStack.addArrangedSubview(usernameStatusRow)
+        formStack.addArrangedSubview(usernameHintLabel)
+        formStack.setCustomSpacing(DivoDesignTokens.Spacing.l, after: nameTextField.view)
+        formStack.setCustomSpacing(Layout.statusToHintSpacing, after: usernameStatusRow)
+
+        scrollView.addSubview(formStack)
         view.addSubview(scrollView)
 
         view.addSubview(bottomFadeOverlay)
@@ -144,11 +244,11 @@ final class SetNameNode: ASDisplayNode {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            nameTextField.view.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: Layout.navBarToContentSpacing),
-            nameTextField.view.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-            nameTextField.view.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            nameTextField.view.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            nameTextField.view.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
+            formStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: Layout.navBarToContentSpacing),
+            formStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            formStack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            formStack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            formStack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
 
             buttonBottomCns,
             applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -167,11 +267,70 @@ final class SetNameNode: ASDisplayNode {
         applyButton.setSaving(active, in: view)
     }
 
+    /// Прелоад текущего ника (из Telegram-аккаунта) — приходит асинхронно.
+    func setInitialUsername(_ username: String) {
+        self.initialUsername = username
+        guard isNodeLoaded else { return }
+        if !username.isEmpty {
+            usernameTextField.setText(username)
+        }
+        updateSaveButtonState()
+    }
+
+    /// Применить результат валидации ника (из контроллера) и пересчитать кнопку Save.
+    func applyUsernameState(_ state: UsernameState) {
+        self.usernameState = state
+        updateSaveButtonState()
+    }
+
+    private func renderUsernameState() {
+        switch usernameState {
+        case .neutral:
+            usernameSpinner.stopAnimating()
+            usernameStatusLabel.text = nil
+            usernameStatusRow.isHidden = true
+        case .checking:
+            usernameSpinner.startAnimating()
+            usernameStatusLabel.text = nil
+            usernameStatusRow.isHidden = false
+        case let .available(message):
+            usernameSpinner.stopAnimating()
+            usernameStatusLabel.text = message
+            usernameStatusLabel.textColor = DivoColorPalette.snackbarSuccess
+            usernameStatusRow.isHidden = false
+        case let .error(message):
+            usernameSpinner.stopAnimating()
+            usernameStatusLabel.text = message
+            usernameStatusLabel.textColor = DivoColorPalette.errorState
+            usernameStatusRow.isHidden = false
+        }
+    }
+
+    private func currentNameTrimmed() -> String {
+        return (nameTextField.textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func currentHandle() -> String {
+        var raw = usernameTextField.textField.text ?? ""
+        while raw.hasPrefix("@") { raw.removeFirst() }
+        return raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private func updateSaveButtonState() {
-        let trimmed = (nameTextField.textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let isValid = !trimmed.isEmpty && trimmed != initialName
-        applyButton.isEnabled = isValid
-        navigationBar.setEnableRightButton(isValid)
+        let name = currentNameTrimmed()
+        let handle = currentHandle()
+        let nameChanged = name != initialName
+        let usernameChanged = handle != initialUsername
+        let usernameOK: Bool
+        switch usernameState {
+        case .neutral, .available:
+            usernameOK = true
+        case .checking, .error:
+            usernameOK = false
+        }
+        let canSave = !name.isEmpty && usernameOK && (nameChanged || usernameChanged)
+        applyButton.isEnabled = canSave
+        navigationBar.setEnableRightButton(canSave)
     }
 
     // MARK: - Actions
@@ -180,12 +339,31 @@ final class SetNameNode: ASDisplayNode {
         updateSaveButtonState()
     }
 
+    @objc private func usernameDidChange() {
+        let handle = currentHandle()
+        // Пустой/неизменённый ник валиден без обращения к серверу; иначе ждём проверки занятости.
+        self.usernameState = (handle.isEmpty || handle == initialUsername) ? .neutral : .checking
+        onUsernameChanged?(handle)
+        updateSaveButtonState()
+    }
+
     @objc private func saveButtonPressed() {
         view.endEditing(true)
-        let trimmed = (nameTextField.textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        let name = currentNameTrimmed()
+        guard !name.isEmpty else { return }
+
+        let handle = currentHandle()
+        let action: UsernameAction
+        if handle == initialUsername {
+            action = .unchanged
+        } else if handle.isEmpty {
+            action = .clear
+        } else {
+            action = .set(handle)
+        }
+
         toggleSaving(active: true)
-        saveName?(trimmed)
+        onSave?(name, action)
     }
 
     // MARK: - Snackbar
