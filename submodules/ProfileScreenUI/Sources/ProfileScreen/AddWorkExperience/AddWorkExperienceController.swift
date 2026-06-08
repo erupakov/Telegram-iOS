@@ -72,6 +72,12 @@ public class AddWorkExperienceController: ViewController, UINavigationController
         }
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     // MARK: - Agency Search Request
     private var searchTask: Task<Void, Never>?
     

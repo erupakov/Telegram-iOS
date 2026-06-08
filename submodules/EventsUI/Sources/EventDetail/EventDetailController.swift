@@ -75,6 +75,12 @@ public final class EventDetailController: TelegramBaseController {
         self.getEventDisposable.dispose()
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = EventDetailControllerNode(
             context: self.context,

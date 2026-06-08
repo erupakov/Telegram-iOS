@@ -58,6 +58,12 @@ public final class FaceSearchController: ViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         let node = FaceSearchNode(image: self.selectedImage)
         node.onBackPressed = { [weak self] in

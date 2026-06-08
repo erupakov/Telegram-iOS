@@ -145,6 +145,10 @@ public final class FilterOptionsController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Палитра DIVO статично-светлая (без dark-вариантов) — форсим светлую тему,
+        // иначе в тёмной теме системные цвета текста уходят в белый и текст пропадает.
+        overrideUserInterfaceStyle = .light
+
         view.backgroundColor = DivoColorPalette.screenBackground
 
         setupCustomNavBar()
@@ -308,6 +312,7 @@ public final class FilterOptionsController: UIViewController {
         let label = UILabel()
         label.text = option.title
         label.font = Font.regular(16)
+        label.textColor = DivoColorPalette.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         cell.addSubview(label)
 

@@ -83,6 +83,9 @@ public final class OnboardingRegistrationCoordinator {
         self.navigationController = UINavigationController()
         self.navigationController.setNavigationBarHidden(true, animated: false)
         self.navigationController.modalPresentationStyle = .fullScreen
+        // Онбординг свёрстан под статично-светлую палитру DIVO — форсим светлую тему на весь стек,
+        // иначе в тёмной теме тексты без явного цвета уходят в белый и пропадают.
+        self.navigationController.overrideUserInterfaceStyle = .light
 
         // Запускаем с текущего шага.
         pushController(for: state.currentStep, animated: false)

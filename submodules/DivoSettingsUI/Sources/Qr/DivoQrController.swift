@@ -19,6 +19,12 @@ public final class DivoQrController: ViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = DivoQrNode(shareURL: shareURL)
 

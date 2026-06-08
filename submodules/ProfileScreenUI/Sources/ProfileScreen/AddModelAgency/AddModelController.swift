@@ -71,7 +71,13 @@ public class AddModelController: ViewController {
     deinit {
         (self.presentationDataDisposable as? Disposable)?.dispose()
     }
-    
+
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = AddModelNode(
             context: self.context,

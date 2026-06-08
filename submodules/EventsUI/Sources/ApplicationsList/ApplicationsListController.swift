@@ -46,6 +46,12 @@ public final class ApplicationsListController: TelegramBaseController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = ApplicationsListNode(context: self.context)
         

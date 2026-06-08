@@ -110,6 +110,12 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         self.loadWorkExperience()
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     private func loadAppearanceDictionary() {
         self.editProfileNode.toggleSpinner(active: true)
         Task { @MainActor in

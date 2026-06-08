@@ -169,6 +169,12 @@ public final class WorkExperienceController: TelegramBaseController {
         self.fetchData()
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     private func editWorkExperience(_ item: WorkHistoryItem) {
         let controller = AddWorkExperienceController(context: self.context, editItem: item)
         controller.delegate = self

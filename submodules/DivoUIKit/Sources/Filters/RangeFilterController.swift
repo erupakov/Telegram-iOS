@@ -102,6 +102,8 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
 
     public override func viewDidLoad() {
         super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
 
         view.backgroundColor = DivoColorPalette.screenBackground
 

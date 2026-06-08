@@ -74,7 +74,13 @@ public class ModelsSearchController: ViewController {
         self.presentationDataDisposable?.dispose()
         self.currentSearchTask?.cancel()
     }
-    
+
+    override public func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     override public func loadDisplayNode() {
         self.displayNode = ModelsSearchNode(context: self.context, presentationData: self.presentationData)
 

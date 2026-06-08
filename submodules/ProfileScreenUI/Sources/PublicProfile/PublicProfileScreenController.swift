@@ -431,6 +431,12 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.displayNodeDidLoad()
     }
 
+    public override func viewDidLoad() {
+        super.viewDidLoad()
+        // DIVO свёрстан под светлую палитру — форсим .light
+        overrideUserInterfaceStyle = .light
+    }
+
     private func handleGridShare(item: UserDetail?, image: UIImage?) {
         guard let item = item else { return }
         let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(item.id)")!
