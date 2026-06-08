@@ -546,7 +546,6 @@ public final class OnboardingFormStepViewController: UIViewController {
         return false
     }
 
-    // Метод блокировки ячейки выбора города, пока не выбрана страна
     private func updateCityFieldAvailability() {
         guard let cityField = step.fields.first(where: {
             if case .city = $0.kind { return true }

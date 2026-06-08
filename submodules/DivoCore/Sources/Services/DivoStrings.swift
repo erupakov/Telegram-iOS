@@ -1094,8 +1094,6 @@ public enum DivoStrings {
     public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭") }
     public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额") }
-    public static var cityNotFound: String { L(en: "City not found in database", ru: "Город не найден в базе данных", es: "Ciudad no encontrada en la base de datos", pt: "Cidade não encontrada no banco de dados", zh: "数据库中未找到城市") }
-    public static var chooseCity: String { L(en: "Choose City", ru: "Выберите город", es: "Elige ciudad", pt: "Escolha cidade", zh: "选择城市") }
 
     // MARK: - Event Applications List
 
@@ -1114,6 +1112,12 @@ public enum DivoStrings {
     public static var eventsSearchTypeEvents: String { L(en: "Type events", ru: "Тип мероприятий", es: "Tipo de eventos", pt: "Tipo de eventos", zh: "活动类型") }
     public static var eventsSearchDateOfEvent: String { L(en: "Date of event", ru: "Дата мероприятия", es: "Fecha del evento", pt: "Data do evento", zh: "活动日期") }
     public static var eventsSearchPaidOnly: String { L(en: "Paid only", ru: "Только платные", es: "Solo de pago", pt: "Apenas pagos", zh: "仅付费") }
+
+    // MARK: - City Search
+
+    public static var citySearchPlaceholder: String { L(en: "Search city", ru: "Поиск города", es: "Buscar ciudad", pt: "Pesquisar cidade", zh: "搜索城市") }
+    public static var cityNotFound: String { L(en: "City not found in database", ru: "Город не найден в базе данных", es: "Ciudad no encontrada en la base de datos", pt: "Cidade não encontrada no banco de dados", zh: "数据库中未找到城市") }
+    public static var chooseCity: String { L(en: "Choose City", ru: "Выберите город", es: "Elige ciudad", pt: "Escolha cidade", zh: "选择城市") }
 
     // MARK: - Add Model
     

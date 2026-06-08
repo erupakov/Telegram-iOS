@@ -665,8 +665,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName
-                
+                let encodedQuery = cityName.divoURLQueryEncoded
+
                 let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/geo/search-by-address-name?query=\(encodedQuery)",
                     method: "GET"

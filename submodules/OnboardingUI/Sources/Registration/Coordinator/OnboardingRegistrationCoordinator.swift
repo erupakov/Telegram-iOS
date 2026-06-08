@@ -595,7 +595,6 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         controller.present(nav, animated: true)
     }
     
-    // Метод асинхронного резолва города на онбординге
     private func resolveOnboardingCity(
         cityName: String,
         fieldKey: String,
@@ -606,7 +605,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName
+                let encodedQuery = cityName.divoURLQueryEncoded
                 let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/geo/search-by-address-name?query=\(encodedQuery)",
                     method: "GET"
@@ -619,7 +618,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
                     let resolvedCityName = firstResult.city?.name ?? cityName
                     let countryCode = firstResult.country?.code ?? firstResult.city?.countryCode
                     
-                    let flag = self.emojiFlag(from: countryCode)
+                    let flag = CountryHelper.emojiFlag(for: countryCode)
                     let countryName = firstResult.country?.name ?? firstResult.city?.countryName ?? ""
                     let finalTitle = countryName.isEmpty ? "\(flag) \(resolvedCityName)" : "\(flag) \(resolvedCityName), \(countryName)"
                     
@@ -629,19 +628,15 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
                     self.updateState { $0.setValue(value, forForm: formId, fieldKey: fieldKey) }
                     
                     controller.updateFieldValue(value, forKey: fieldKey)
+                } else {
+                    self.rawOnboardingCityId = nil
+                    controller.showSnackbar(message: DivoStrings.cityNotFound, style: .error)
                 }
             } catch {
                 controller.setFieldLoading(false, forKey: fieldKey)
                 let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError
                 controller.showSnackbar(message: userMsg, style: .error)
             }
-        }
-    }
-    
-    private func emojiFlag(from countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2 else { return "🌍" }
-        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
         }
     }
 }

@@ -53,8 +53,8 @@ public final class FilterRowView: UIView {
         self.isUserInteractionEnabled = true
         
         self.backgroundColor = .white
-        self.layer.cornerRadius = 23
-        
+        self.layer.cornerRadius = 23 // TODO: DS alignment — не в шкале Radius (border inset от card=24)
+
         titleLabel.text = title
         
         let stack = UIStackView(arrangedSubviews: [titleLabel, UIView(), valueLabel, spinner, chevron])

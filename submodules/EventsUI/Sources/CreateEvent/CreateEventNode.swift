@@ -1443,7 +1443,7 @@ final class CreateEventNode: ASDisplayNode {
         eventTypeDropdown.setItems(eventTypeTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.chooseEvent)
         countryRow.setItems(countryTitle.map { [$0] } ?? [], emptyTitle: "")
         
-        let flagEmoji = emojiFlag(from: self.countryCode)
+        let flagEmoji = CountryHelper.emojiFlag(for: self.countryCode)
         let formattedCity = self.cityTitle.map { ["\(flagEmoji) \($0)".trimmingCharacters(in: .whitespaces)] } ?? []
         cityRow.setItems(formattedCity, emptyTitle: "")
         
@@ -1704,14 +1704,6 @@ final class CreateEventNode: ASDisplayNode {
         
         return formatter.string(from: NSNumber(value: doubleValue))
     }
-
-    private func emojiFlag(from countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2 else { return "🌍" }
-        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
-        }
-    }
-
 
     // MARK: - Internal
 
@@ -2292,7 +2284,7 @@ final class CreateEventNode: ASDisplayNode {
             
             let locale = Locale(identifier: DivoStrings.current.rawValue)
             if let localizedCountry = locale.localizedString(forRegionCode: countryCode) {
-                let flag = emojiFlag(from: countryCode)
+                let flag = CountryHelper.emojiFlag(for: countryCode)
                 self.countryTitle = "\(flag) \(localizedCountry)"
             }
         }

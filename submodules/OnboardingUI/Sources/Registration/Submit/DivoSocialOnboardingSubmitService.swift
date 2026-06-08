@@ -146,9 +146,13 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                     // gender — маппим выбранный вариант на id из /dictionary/gender (бэк ждёт словарный id,
                     // не наш ключ → иначе 422); нет совпадения/словаря → эхо с сервера / не шлём.
                     let genderId = await mappedGenderId(state: state, registry: registry) ?? detail?.gender?.id
+                    // Город онбординга — это уже резолвнутый geoCityId (числовой). Шлём явно тем же
+                    // эндпоинтом, что имя/фото/gender: additionalInfo бэк в структуру надёжно не мапит.
+                    let geoCityId = formString("city", state: state, registry: registry).flatMap { Int($0) }
                     let req = UpdateBiographyPageRequest(
                         fullName: fullName.isEmpty ? nil : fullName,
                         gender: genderId,
+                        geoCityId: geoCityId,
                         birthday: formDate("dateOfBirth", state: state, registry: registry) ?? detail?.birthday,
                         avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) }
                     )

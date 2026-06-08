@@ -380,15 +380,6 @@ final class EditProfileNode: ASDisplayNode {
     
     var onCityChosen: ((String) -> Void)?
 
-    private static func flag(for countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2,
-              code.allSatisfy({ $0.isASCII && $0.isLetter }) else { return "" }
-        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
-        }
-    }
-
-
     // MARK: - Init
     
     init(context: AccountContext, presentationData: PresentationData, model: UserDetail?, selectedIndex: Int = 0) {
@@ -460,7 +451,7 @@ final class EditProfileNode: ASDisplayNode {
             if let code = city.countryCode {
                 let locale = Locale(identifier: DivoStrings.current.rawValue)
                 if let countryName = locale.localizedString(forRegionCode: code) {
-                    let flag = Self.flag(for: code)
+                    let flag = CountryHelper.emojiFlag(for: code)
                     self.selectedCountryTitle = "\(flag) \(countryName)"
                 }
             }
@@ -473,7 +464,7 @@ final class EditProfileNode: ASDisplayNode {
             if let code = agencyCity.countryCode {
                 let locale = Locale(identifier: DivoStrings.current.rawValue)
                 if let countryName = locale.localizedString(forRegionCode: code) {
-                    let flag = Self.flag(for: code)
+                    let flag = CountryHelper.emojiFlag(for: code)
                     self.selectedCountryTitle = "\(flag) \(countryName)"
                 }
             }
@@ -1085,7 +1076,7 @@ final class EditProfileNode: ASDisplayNode {
         let hasCountry = selectedCountryCode != nil && !selectedCountryCode!.isEmpty
         cityRow.isHidden = !hasCountry
         
-        let flagEmoji = Self.flag(for: selectedCountryCode)
+        let flagEmoji = CountryHelper.emojiFlag(for: selectedCountryCode)
         let formattedCity = selectedCityTitle.map { ["\(flagEmoji) \($0)".trimmingCharacters(in: .whitespaces)] } ?? []
         cityRow.setItems(formattedCity, emptyTitle: DivoStrings.debugCity)
     }

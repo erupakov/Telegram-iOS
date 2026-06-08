@@ -99,7 +99,9 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
     }()
     
     private let navigationBar = DivoNavigationBar()
-    
+
+    private let snackbar = DivoSnackbar()
+
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -581,7 +583,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName
+                let encodedQuery = cityName.divoURLQueryEncoded
                 let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
                     path: "/geo/search-by-address-name?query=\(encodedQuery)",
                     method: "GET"
@@ -595,7 +597,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                     let resolvedCityName = firstResult.city?.name ?? cityName
                     let countryCode = firstResult.country?.code ?? firstResult.city?.countryCode
                     
-                    let flag = emojiFlag(from: countryCode)
+                    let flag = CountryHelper.emojiFlag(for: countryCode)
                     let countryName = firstResult.country?.name ?? firstResult.city?.countryName ?? ""
                     let finalTitle = countryName.isEmpty ? "\(flag) \(resolvedCityName)" : "\(flag) \(resolvedCityName), \(countryName)"
                     
@@ -603,25 +605,25 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 } else {
                     self.currentFilters.cityId = nil
                     self.currentFilters.cityTitle = nil
+                    self.showFilterSnackbar(DivoStrings.cityNotFound)
                 }
-                
+
                 self.updateUI()
             } catch {
                 self.cityRow.setLoading(false)
                 self.currentFilters.cityId = nil
                 self.currentFilters.cityTitle = nil
                 self.updateUI()
+                let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError
+                self.showFilterSnackbar(userMsg)
             }
         }
     }
 
-    private func emojiFlag(from countryCode: String?) -> String {
-        guard let code = countryCode, code.count == 2 else { return "🌍" }
-        return code.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
-        }
+    private func showFilterSnackbar(_ message: String) {
+        let bottomInset = view.safeAreaInsets.bottom + applyButton.bounds.height + DivoDesignTokens.Spacing.m * 2
+        snackbar.show(in: view, message: message, style: .error, bottomInset: bottomInset)
     }
-
 
     // MARK: - Internal
     
@@ -714,7 +716,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         navigationController?.pushViewController(vc, animated: true)
     }
     
-        @objc private func countryTapped() {
+    @objc private func countryTapped() {
         let selectedIds = currentFilters.countryIds
         
         let vc = FilterOptionsController(

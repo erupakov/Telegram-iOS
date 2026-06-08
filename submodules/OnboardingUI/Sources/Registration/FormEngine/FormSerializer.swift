@@ -88,7 +88,8 @@ public enum FormSerializer {
 
         if let dob = dateString("dateOfBirth") { out["dateOfBirth"] = dob }
         if let gender = string("gender") { out["gender"] = gender }
-        if let city = string("city") { out["city"] = city }
+        // Город хранится как резолвнутый geoCityId (числовой) — канонический ключ во всём приложении.
+        if let geoCityId = string("city").flatMap({ Int($0) }) { out["geoCityId"] = geoCityId }
 
         // Страна: храним ISO regionCode (CountryHelper.id) → countryCode + локализованное имя.
         if let code = string("country") {

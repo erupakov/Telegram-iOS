@@ -7,7 +7,6 @@
 
 import Display
 import UIKit
-import TelegramCore
 import MapKit
 import DivoCore
 
@@ -15,7 +14,9 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
 
     private let completer = MKLocalSearchCompleter()
     private var currentResults: [MKLocalSearchCompletion] = []
-    
+    private var searchDebounceTimer: Foundation.Timer?
+    private var completerErrorText: String?
+
     private var selectedCities: [String: String] = [:]
     
     private let isMultiSelect: Bool
@@ -80,7 +81,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         field.font = Font.regular(14)
         field.textColor = DivoColorPalette.primaryText
         field.tintColor = DivoColorPalette.accent
-        field.placeholder = DivoStrings.feedSearchPlaceholder
+        field.placeholder = DivoStrings.citySearchPlaceholder
         field.clearButtonMode = .whileEditing
         field.autocorrectionType = .no
         field.returnKeyType = .search
@@ -181,7 +182,32 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         tapDismiss.cancelsTouchesInView = false
         view.addGestureRecognizer(tapDismiss)
 
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
+
+        // Сразу показываем уже выбранные города (предвыбор) — до первого ввода.
+        reloadOptions()
+
         searchTextField.becomeFirstResponder()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        searchDebounceTimer?.invalidate()
+    }
+
+    @objc private func keyboardWillShow(_ notification: Notification) {
+        guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        // scrollView прибит к view.bottomAnchor, поэтому перекрытие = высота вьюхи минус верх клавиатуры.
+        let keyboardTop = view.convert(frame, from: nil).minY
+        let overlap = max(0, view.bounds.maxY - keyboardTop)
+        scrollView.contentInset.bottom = overlap
+        scrollView.verticalScrollIndicatorInsets.bottom = overlap
+    }
+
+    @objc private func keyboardWillHide(_ notification: Notification) {
+        scrollView.contentInset.bottom = 0
+        scrollView.verticalScrollIndicatorInsets.bottom = 0
     }
 
     private func syncSystemLanguageWithAppLanguage() {
@@ -265,7 +291,12 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     
     private func reloadOptions() {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        
+
+        if let errorText = completerErrorText {
+            stackView.addArrangedSubview(makeMessageView(errorText))
+            return
+        }
+
         if currentResults.isEmpty && !selectedCities.isEmpty {
             let sortedKeys = Array(selectedCities.keys).sorted()
             for (index, key) in sortedKeys.enumerated() {
@@ -286,14 +317,22 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
             }
             return
         }
-        
+
+        if currentResults.isEmpty {
+            let query = (searchTextField.text ?? "").trimmingCharacters(in: .whitespaces)
+            if !query.isEmpty {
+                stackView.addArrangedSubview(makeMessageView(DivoStrings.cityNotFound))
+            }
+            return
+        }
+
         for (index, completion) in currentResults.enumerated() {
             let id = completion.title + "|||" + completion.subtitle
             let flag = extractFlag(from: completion.subtitle)
-            
+
             let countryName = completion.subtitle.split(separator: ",").last?.trimmingCharacters(in: .whitespaces) ?? ""
             let fullTitle = countryName.isEmpty ? "\(flag) \(completion.title)" : "\(flag) \(completion.title), \(countryName)"
-            
+
             let isSelected = selectedCities[id] != nil
             
             let cell = createOptionCell(
@@ -359,34 +398,53 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         return cell
     }
 
+    private func makeMessageView(_ text: String) -> UIView {
+        let cell = UIView()
+        cell.backgroundColor = .clear
+        cell.translatesAutoresizingMaskIntoConstraints = false
+        cell.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        cell.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width - 32).isActive = true
+
+        let label = UILabel()
+        label.text = text
+        label.font = Font.regular(16)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        cell.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            label.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            label.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+        ])
+
+        return cell
+    }
+
     private func extractFlag(from subtitle: String) -> String {
         let components = subtitle.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard let countryName = components.last?.lowercased() else { return "🌍" }
-        
+
         if let code = countryNameToCodeMap[countryName] {
-            return emojiFlag(for: code)
+            return CountryHelper.emojiFlag(for: code)
         }
-        
+
         for (name, code) in countryNameToCodeMap {
             if countryName.contains(name) || name.contains(countryName) {
-                return emojiFlag(for: code)
+                return CountryHelper.emojiFlag(for: code)
             }
         }
-        
+
         return "🌍"
-    }
-    
-    private func emojiFlag(for countryCode: String) -> String {
-        guard countryCode.count == 2 else { return "🌍" }
-        return countryCode.uppercased().unicodeScalars.reduce("") { result, scalar in
-            result + String(UnicodeScalar(127397 + scalar.value)!)
-        }
     }
 
 
     // MARK: - MKLocalSearchCompleterDelegate
     
     public func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
+        self.completerErrorText = nil
         self.currentResults = completer.results.filter { completion in
             let subtitle = completion.subtitle.lowercased()
             
@@ -406,7 +464,17 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     }
     
     public func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        print("Completer failed with error: \(error)")
+        divoLog("CitySearch completer failed: \(error)", level: .error)
+        completerErrorText = isNoInternet(error) ? DivoStrings.noInternetConnection : DivoStrings.genericError
+        currentResults = []
+        reloadOptions()
+    }
+
+    private func isNoInternet(_ error: Error) -> Bool {
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain { return true }
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError, underlying.domain == NSURLErrorDomain { return true }
+        return false
     }
 
 
@@ -458,12 +526,17 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     @objc private func searchTextChanged() {
         let text = searchTextField.text ?? ""
 
+        searchDebounceTimer?.invalidate()
+        completerErrorText = nil
+
         if text.isEmpty {
             completer.cancel()
             currentResults = []
             reloadOptions()
         } else {
-            completer.queryFragment = text
+            searchDebounceTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+                self?.completer.queryFragment = text
+            }
         }
     }
 
