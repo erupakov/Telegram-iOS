@@ -22,6 +22,7 @@ swift_library(
         "//submodules/DivoUIKit:DivoUIKit",
         "//submodules/ProfileScreenUI:ProfileScreenUI",
         "//submodules/OnboardingUI:OnboardingUI",
+        "//submodules/PhoneNumberFormat:PhoneNumberFormat",
     ],
     visibility = [
         "//visibility:public",

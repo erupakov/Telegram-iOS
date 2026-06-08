@@ -5,6 +5,7 @@ import AccountContext
 import AppBundle
 import DivoCore
 import DivoUIKit
+import PhoneNumberFormat
 
 enum ScreenLoadPhase: Equatable {
     case loading
@@ -65,6 +66,9 @@ final class DivoSettingsNode: ASDisplayNode {
     private let profileContainer = UIView()
     private let profileHeader = HeaderSettingsView()
     private let profileShimmerView = HeaderSettingsShimmerView()
+    /// Держит высоту блока профиля под шиммер только во время загрузки; в .ready гасится,
+    /// чтобы контейнер сжимался под контент хедера (без телефона блок короче → таблица выше).
+    private var profileShimmerBottomConstraint: NSLayoutConstraint?
 
     private let usernameContainer = SettingsRowView(icon: DivoImage.settingsSetUsername, title: DivoStrings.settingsSetUsername, isLast: false)
     private let parametersContainer = SettingsRowView(icon: DivoImage.settingsParameters, title: DivoStrings.fillYourParameters, isLast: true)
@@ -199,6 +203,7 @@ final class DivoSettingsNode: ASDisplayNode {
             // а пользователю показывается persistent snackbar с retry (см. DivoSettingsController).
             scrollView.isScrollEnabled = false
 
+            profileShimmerBottomConstraint?.isActive = true
             profileShimmerView.isHidden = false
             profileHeader.isHidden = true
 
@@ -212,11 +217,14 @@ final class DivoSettingsNode: ASDisplayNode {
 
         case .ready:
             profileShimmerView.stopAnimation()
+            // Гасим bottom-пин шиммера → высоту блока задаёт content-sized хедер (без телефона он короче).
+            profileShimmerBottomConstraint?.isActive = false
             UIView.animate(withDuration: 0.3) {
                 self.scrollView.isScrollEnabled = true
                 self.profileShimmerView.isHidden = true
                 self.profileHeader.isHidden = false
                 self.setDimmedSectionsActive(false)
+                self.view.layoutIfNeeded()
             }
         }
     }
@@ -290,9 +298,12 @@ final class DivoSettingsNode: ASDisplayNode {
         profileContainer.addSubview(profileShimmerView)
         profileShimmerView.translatesAutoresizingMaskIntoConstraints = false
 
-        NSLayoutConstraint.activate([
-            profileContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: Layout.profileSectionHeight),
+        // Bottom-пин шиммера держит высоту блока во время загрузки; в .ready гасится (см. applyState),
+        // и тогда высоту задаёт content-sized хедер.
+        let shimmerBottom = profileShimmerView.bottomAnchor.constraint(equalTo: profileContainer.bottomAnchor)
+        self.profileShimmerBottomConstraint = shimmerBottom
 
+        NSLayoutConstraint.activate([
             profileHeader.leadingAnchor.constraint(equalTo: profileContainer.leadingAnchor),
             profileHeader.trailingAnchor.constraint(equalTo: profileContainer.trailingAnchor),
             profileHeader.bottomAnchor.constraint(equalTo: profileContainer.bottomAnchor),
@@ -300,7 +311,7 @@ final class DivoSettingsNode: ASDisplayNode {
 
             profileShimmerView.leadingAnchor.constraint(equalTo: profileContainer.leadingAnchor, constant: Layout.cardHorizontalPadding),
             profileShimmerView.trailingAnchor.constraint(equalTo: profileContainer.trailingAnchor, constant: -Layout.cardHorizontalPadding),
-            profileShimmerView.bottomAnchor.constraint(equalTo: profileContainer.bottomAnchor),
+            shimmerBottom,
             profileShimmerView.topAnchor.constraint(equalTo: profileContainer.topAnchor, constant: Layout.profileShimmerTopInset),
             profileShimmerView.heightAnchor.constraint(equalToConstant: Layout.profileSectionHeight),
         ])
@@ -540,7 +551,7 @@ final class DivoSettingsNode: ASDisplayNode {
         let isAgency = Role(apiRole: user.role) == .agency
         let headerName = isAgency ? user.agency?.title : user.fullName
         let headerAvatar = isAgency ? user.agency?.photo?.fullUrl : user.avatar?.fullUrl
-        profileHeader.configure(fullUrl: headerAvatar, fullName: headerName, phone: user.phone)
+        profileHeader.configure(fullUrl: headerAvatar, fullName: headerName, phone: Self.displayPhone(user.phone))
         applyMeasuringSystem(user.measuringSystem)
 
         parametersContainer.isHidden = isAgency
@@ -549,6 +560,14 @@ final class DivoSettingsNode: ASDisplayNode {
         languageContainer.setSeparatorHidden(isAgency)
 
         screenPhase = .ready
+    }
+
+    /// Реальный номер форматируем; синтетический dummy (соц-вход) не показываем.
+    private static func displayPhone(_ phone: String?) -> String? {
+        guard let phone, !phone.isEmpty else { return nil }
+        let formatted = formatPhoneNumber(phone.filter { $0.isNumber })
+        // Успешный парсинг даёт международный вид с «+»; у dummy код страны несуществующий → не парсится.
+        return formatted.hasPrefix("+") ? formatted : nil
     }
 
     // MARK: - Snackbar
