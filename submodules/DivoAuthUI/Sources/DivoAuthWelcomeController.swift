@@ -53,6 +53,9 @@ public final class DivoAuthWelcomeController: ViewController {
     private let appleButton = WhiteOAuthButton()
     private let termsLabel = UILabel()
     private let snackbar = DivoSnackbar()
+    /// Лоадер на время соц-входа (тап → подмена контроллера headless-флоу): закрывает окно, когда
+    /// шторка Google/Apple уже скрыта, а login-social/dummy_phone ещё идут — иначе велком кликабелен.
+    private var authLoadingOverlay: DivoFullscreenLoadingView?
 
     // MARK: - Init
 
@@ -300,12 +303,40 @@ public final class DivoAuthWelcomeController: ViewController {
     }
 
     public func showError(message: String) {
+        // Любая ошибка соц-входа возвращает управление юзеру — снимаем лоадер,
+        // иначе снек спрячется под оверлеем, а кнопки останутся заблокированными.
+        hideAuthLoading()
         snackbar.show(
             in: view,
             message: message,
             style: .error,
             bottomInset: 24
         )
+    }
+
+    // MARK: - Auth loading overlay
+
+    /// Тот же DivoFullscreenLoadingView, что и в headless-флоу — подмена контроллера без мелькания.
+    public func showAuthLoading() {
+        guard authLoadingOverlay == nil else { return }
+
+        let overlay = DivoFullscreenLoadingView()
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(overlay)
+
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: view.topAnchor),
+            overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+
+        authLoadingOverlay = overlay
+    }
+
+    public func hideAuthLoading() {
+        authLoadingOverlay?.removeFromSuperview()
+        authLoadingOverlay = nil
     }
 }
 

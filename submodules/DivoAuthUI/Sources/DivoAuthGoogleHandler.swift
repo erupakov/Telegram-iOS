@@ -11,6 +11,9 @@ public enum DivoAuthGoogleHandler {
             return nil
         }
 
+        // Ставим до показа шторки Google — к её закрытию лоадер уже на месте, велком не мелькает.
+        // Снимется при ошибке/отмене; при успехе сменится лоадером headless-флоу.
+        controller?.showAuthLoading()
         let anchor = controller?.view.window
         do {
             let result = try await FirebaseAuthClient.shared.signInWithGoogle(presentingFrom: anchor)
@@ -20,6 +23,7 @@ public enum DivoAuthGoogleHandler {
             return outcome
         } catch DivoFirebaseAuthError.userCancelled {
             divoLog("Google sign-in cancelled by user", level: .debug)
+            controller?.hideAuthLoading()
             return nil
         } catch {
             divoLog("Google sign-in failed: \(error)", level: .error)
