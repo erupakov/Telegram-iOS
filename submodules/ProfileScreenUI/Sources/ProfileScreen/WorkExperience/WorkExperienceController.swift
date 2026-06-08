@@ -81,7 +81,7 @@ public final class WorkExperienceController: TelegramBaseController {
         Task {
             do {
                 let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
-                    path: "/model-work-history?userId=\(userId)"
+                    path: "/model-work-history?user_id=\(userId)"
                 )
                 let items = response.data.items
                 if !items.isEmpty {
@@ -91,8 +91,22 @@ public final class WorkExperienceController: TelegramBaseController {
                     return
                 }
             } catch {
+                // Запрос упал (не пустой ответ) — не маскируем устаревшим /user/{id},
+                // даём пользователю повторить.
+                await MainActor.run {
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.failedToLoadWorkHistory,
+                        style: .error,
+                        retryAction: { [weak self] in
+                            self?.getWorkHistory()
+                        },
+                        persistent: true
+                    )
+                }
+                return
             }
 
+            // Новый эндпоинт вернул пусто (200) — пробуем legacy-поле model.workExperience.
             do {
                 let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
                     path: "/user/\(userId)"
