@@ -336,7 +336,8 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             self.contactDataManager = nil
         }
         
-        self._currentPresentationData = Atomic(value: initialPresentationDataAndSettings.presentationData.withDivoActionSheetAccent())
+        let divoChatWallpaper: TelegramWallpaper = .color(DivoColorPalette.chatWallpaperValue)
+        self._currentPresentationData = Atomic(value: initialPresentationDataAndSettings.presentationData.withDivoActionSheetAccent().withDivoChatTheme().withUpdated(chatWallpaper: divoChatWallpaper))
         self.currentAutomaticMediaDownloadSettings = initialPresentationDataAndSettings.automaticMediaDownloadSettings
         self.currentAutodownloadSettings = Atomic(value: initialPresentationDataAndSettings.autodownloadSettings)
         self.currentMediaInputSettings = Atomic(value: initialPresentationDataAndSettings.mediaInputSettings)
@@ -351,10 +352,10 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             self.energyUsageSettings = self.currentAutomaticMediaDownloadSettings.energyUsageSettings
         }
         
-        let presentationData: Signal<PresentationData, NoError> = .single(initialPresentationDataAndSettings.presentationData.withDivoActionSheetAccent())
+        let presentationData: Signal<PresentationData, NoError> = .single(initialPresentationDataAndSettings.presentationData.withDivoActionSheetAccent().withDivoChatTheme().withUpdated(chatWallpaper: divoChatWallpaper))
         |> then(
             updatedPresentationData(accountManager: self.accountManager, applicationInForeground: self.applicationBindings.applicationInForeground, systemUserInterfaceStyle: mainWindow?.systemUserInterfaceStyle ?? .single(.light))
-            |> map { $0.withDivoActionSheetAccent() }
+            |> map { $0.withDivoActionSheetAccent().withDivoChatTheme().withUpdated(chatWallpaper: divoChatWallpaper) }
         )
         self._presentationData.set(presentationData)
         self._automaticMediaDownloadSettings.set(.single(initialPresentationDataAndSettings.automaticMediaDownloadSettings)

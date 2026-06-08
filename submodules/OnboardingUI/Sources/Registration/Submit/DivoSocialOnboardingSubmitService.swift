@@ -167,6 +167,11 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         if let phone, let divoUserId = DivoConfig.currentDivoUserId {
             await Self.linkTelegramBestEffort(phone: phone, divoUserId: divoUserId)
         }
+
+        // Профиль (имя/фото/роль) полностью записан → просим экраны перечитать /user/info. Без этого
+        // DIVO-настройки кешируют профиль, загруженный по раннему tokenDidChange (ДО updateProfile),
+        // и имя/фото проявляются только после перезапуска приложения.
+        NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
     }
 
     /// telegram-link для phone-флоу. `telegramUserId` приходит из `DivoTeamgramSync` (ставит AppDelegate

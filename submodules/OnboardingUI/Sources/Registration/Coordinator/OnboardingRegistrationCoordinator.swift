@@ -1,3 +1,4 @@
+import Foundation
 import UIKit
 import Display
 import DivoCore
@@ -39,6 +40,11 @@ public final class OnboardingRegistrationCoordinator {
 
     private var rawOnboardingCityId: String?
 
+    /// Данные из соц-провайдера (имя/фото) для префилла. Применяются один раз на форму при первом
+    /// показе её шага — только к пустым полям (не затираем правки на резюме).
+    private let socialPrefill: OnboardingSocialPrefill?
+    private var prefilledFormIds: Set<String> = []
+
     // MARK: - Init
 
     public init(
@@ -47,6 +53,7 @@ public final class OnboardingRegistrationCoordinator {
         store: OnboardingProgressStore = OnboardingProgressStore(),
         submitService: OnboardingSubmitService = MockOnboardingSubmitService(),
         forceFresh: Bool,
+        socialPrefill: OnboardingSocialPrefill? = nil,
         onFinish: @escaping (Bool) -> Void
     ) {
         // FormCatalog зависит от registry (берёт оттуда списки ролей для встроенных пикеров),
@@ -58,6 +65,7 @@ public final class OnboardingRegistrationCoordinator {
         self.formCatalog = formCatalog
         self.store = store
         self.submitService = submitService
+        self.socialPrefill = socialPrefill
         self.quizCatalog = OnboardingQuizCatalog(registry: registry)
         self.stateMachine = OnboardingRegistrationStateMachine(
             registry: registry,
@@ -175,6 +183,7 @@ public final class OnboardingRegistrationCoordinator {
             return vc
 
         case .formStep(let formId, let index):
+            applySocialPrefillIfNeeded(formId: formId)
             let schema = formCatalog.schema(for: formId, state: state)
             let safeIndex = max(0, min(index, schema.steps.count - 1))
             let step = schema.steps[safeIndex]
@@ -708,6 +717,80 @@ private extension OnboardingRegistrationCoordinator {
         default:
             return saved
         }
+    }
+}
+
+// MARK: - Social prefill
+
+private extension OnboardingRegistrationCoordinator {
+    /// Засевает в форму данные соц-провайдера (имя/фото). Один раз на форму (`prefilledFormIds`),
+    /// только в ПУСТЫЕ поля — чтобы не затирать введённое юзером при резюме прогресса.
+    func applySocialPrefillIfNeeded(formId: OnboardingFormID) {
+        guard let prefill = socialPrefill, !prefilledFormIds.contains(formId.rawValue) else { return }
+        prefilledFormIds.insert(formId.rawValue)
+
+        let allFields = formCatalog.schema(for: formId, state: state).steps.flatMap { $0.fields }
+        // Имя/фамилия: у агентского контактного лица ключи другие (contact*).
+        seedTextValue(prefill.firstName, intoFieldKeys: ["firstName", "contactFirstName"], fields: allFields, formId: formId)
+        seedTextValue(prefill.lastName, intoFieldKeys: ["lastName", "contactLastName"], fields: allFields, formId: formId)
+
+        guard let photoUrl = prefill.photoUrl, !photoUrl.isEmpty,
+              let photoField = allFields.first(where: { field in
+                  if case .photo = field.kind { return true }
+                  return false
+              }),
+              (state.value(forForm: formId, fieldKey: photoField.key)?.isEmpty ?? true)
+        else { return }
+        downloadAndSeedPhoto(urlString: photoUrl, formId: formId, fieldKey: photoField.key)
+    }
+
+    func seedTextValue(_ value: String?, intoFieldKeys keys: Set<String>, fields: [FormField], formId: OnboardingFormID) {
+        guard let value, !value.isEmpty else { return }
+        for field in fields where keys.contains(field.key) {
+            guard (state.value(forForm: formId, fieldKey: field.key)?.isEmpty ?? true) else { continue }
+            updateState { $0.setValue(.string(value), forForm: formId, fieldKey: field.key) }
+        }
+    }
+
+    /// Скачивает фото провайдера (best-effort) и кладёт в поле как `.asset(localPath)` — тот же
+    /// формат, что у обычного picker'а, поэтому submit-сервис загрузит его в storage без изменений.
+    func downloadAndSeedPhoto(urlString: String, formId: OnboardingFormID, fieldKey: String) {
+        guard let url = URL(string: urlString) else { return }
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            guard let self,
+                  let data, let image = UIImage(data: data),
+                  let path = self.writeTempPhoto(image) else { return }
+            DispatchQueue.main.async {
+                // За время загрузки юзер мог выбрать своё фото — приоритет за ним.
+                guard (self.state.value(forForm: formId, fieldKey: fieldKey)?.isEmpty ?? true) else { return }
+                self.updateState { $0.setValue(.asset(path), forForm: formId, fieldKey: fieldKey) }
+                self.refreshVisibleFormField(formId: formId, fieldKey: fieldKey, value: .asset(path))
+            }
+        }.resume()
+    }
+
+    func writeTempPhoto(_ image: UIImage) -> String? {
+        guard let data = image.jpegData(compressionQuality: 0.9) else { return nil }
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("DivoOnboarding", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let fileURL = directory.appendingPathComponent("photo-\(UUID().uuidString).jpg")
+            try data.write(to: fileURL, options: .atomic)
+            return fileURL.path
+        } catch {
+            divoLog("Social prefill: не удалось сохранить фото во временный файл: \(error)", level: .error)
+            return nil
+        }
+    }
+
+    /// Если шаг с этим полем сейчас на экране — обновляем его сразу; иначе значение уже в state
+    /// и отрисуется при построении шага.
+    func refreshVisibleFormField(formId: OnboardingFormID, fieldKey: String, value: FormFieldValue) {
+        guard case .formStep(let currentFormId, let stepIndex) = state.currentStep, currentFormId == formId,
+              let top = navigationController.topViewController as? OnboardingFormStepViewController else { return }
+        let steps = formCatalog.schema(for: formId, state: state).steps
+        guard let step = steps[safe: stepIndex], step.fields.contains(where: { $0.key == fieldKey }) else { return }
+        top.updateFieldValue(value, forKey: fieldKey)
     }
 }
 

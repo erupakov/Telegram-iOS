@@ -65,10 +65,17 @@ func _internal_createGroup(account: Account, title: String, peerIds: [PeerId], t
             }
             
             account.stateManager.addUpdates(updatesValue)
+            // DIVO ВРЕМЕННАЯ ДИАГНОСТИКА (createGroup висит на teamgram-layer201): снять перед PR.
+            let divoFirstPeerId = updatesValue.messages.first.flatMap(apiMessagePeerId)
+            NotificationCenter.default.post(name: Notification.Name("DivoMTProtoLog"), object: nil, userInfo: ["message": "[MTProto] createGroup parsed: msgs=\(updatesValue.messages.count) firstPeerId=\(String(describing: divoFirstPeerId))"])
             if let message = updatesValue.messages.first, let peerId = apiMessagePeerId(message) {
                 return account.postbox.multiplePeersView([peerId])
                 |> filter { view in
-                    return view.peers[peerId] != nil
+                    let divoPresent = view.peers[peerId] != nil
+                    if divoPresent {
+                        NotificationCenter.default.post(name: Notification.Name("DivoMTProtoLog"), object: nil, userInfo: ["message": "[MTProto] createGroup: peer \(peerId) появился в postbox"])
+                    }
+                    return divoPresent
                 }
                 |> take(1)
                 |> castError(CreateGroupError.self)
@@ -95,6 +102,7 @@ func _internal_createGroup(account: Account, title: String, peerIds: [PeerId], t
                     |> castError(CreateGroupError.self)
                 }
             } else {
+                NotificationCenter.default.post(name: Notification.Name("DivoMTProtoLog"), object: nil, userInfo: ["message": "[MTProto] createGroup: messages.first/peerId == nil → возвращаю nil"])
                 return .single(nil)
             }
         }

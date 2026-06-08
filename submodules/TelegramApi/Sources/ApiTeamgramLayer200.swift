@@ -997,6 +997,41 @@ public extension Api.User {
     }
 }
 
+// Вложенный reply_to в send-методах. Форк сериализует inputReplyToMessage новейшим 222-конструктором
+// 869fbe10 (+monoforum_peer_id@flags.5, +todo_item_id@flags.6), а сервер на layer 201 знает только
+// 22c0f6d5 (биты 0-4) → reply_to не парсится, reply_to_msg_id теряется: ответ уходит с красным «!»
+// или приходит пустым. Пишем 201-конструктор и сбрасываем биты 5/6; остальные поля идентичны.
+// story/monoforum на 201 не дрейфят — сериализуются штатно.
+private func serializeInputReplyTo_teamgram_layer201(_ replyTo: Api.InputReplyTo, _ buffer: Buffer) {
+    guard case let .inputReplyToMessage(data) = replyTo else {
+        replyTo.serialize(buffer, true)
+        return
+    }
+    buffer.appendInt32(583071445)
+    let flags201 = data.flags & ~((Int32(1) << 5) | (Int32(1) << 6))
+    serializeInt32(flags201, buffer: buffer, boxed: false)
+    serializeInt32(data.replyToMsgId, buffer: buffer, boxed: false)
+    if Int(flags201) & Int(1 << 0) != 0 {
+        serializeInt32(data.topMsgId!, buffer: buffer, boxed: false)
+    }
+    if Int(flags201) & Int(1 << 1) != 0 {
+        data.replyToPeerId!.serialize(buffer, true)
+    }
+    if Int(flags201) & Int(1 << 2) != 0 {
+        serializeString(data.quoteText!, buffer: buffer, boxed: false)
+    }
+    if Int(flags201) & Int(1 << 3) != 0 {
+        buffer.appendInt32(481674261)
+        buffer.appendInt32(Int32(data.quoteEntities!.count))
+        for item in data.quoteEntities! {
+            item.serialize(buffer, true)
+        }
+    }
+    if Int(flags201) & Int(1 << 4) != 0 {
+        serializeInt32(data.quoteOffset!, buffer: buffer, boxed: false)
+    }
+}
+
 public extension Api.functions.messages {
     // messages.sendMessage#fbf2340a (layer 201) — DIVO encode-фикс.
     // Форк кодирует sendMessage новым 222-конструктором 545cd15a с полями suggested_post (flags.22)
@@ -1010,7 +1045,7 @@ public extension Api.functions.messages {
         serializeInt32(flags201, buffer: buffer, boxed: false)
         peer.serialize(buffer, true)
         if Int(flags201) & Int(1 << 0) != 0 {
-            replyTo!.serialize(buffer, true)
+            serializeInputReplyTo_teamgram_layer201(replyTo!, buffer)
         }
         serializeString(message, buffer: buffer, boxed: false)
         serializeInt64(randomId, buffer: buffer, boxed: false)
@@ -1058,7 +1093,7 @@ public extension Api.functions.messages {
         serializeInt32(flags201, buffer: buffer, boxed: false)
         peer.serialize(buffer, true)
         if Int(flags201) & Int(1 << 0) != 0 {
-            replyTo!.serialize(buffer, true)
+            serializeInputReplyTo_teamgram_layer201(replyTo!, buffer)
         }
         media.serialize(buffer, true)
         serializeString(message, buffer: buffer, boxed: false)
@@ -1194,7 +1229,7 @@ public extension Api.functions.messages {
         let flags201 = flags & 250
         serializeInt32(flags201, buffer: buffer, boxed: false)
         if Int(flags201) & Int(1 << 4) != 0 {
-            replyTo!.serialize(buffer, true)
+            serializeInputReplyTo_teamgram_layer201(replyTo!, buffer)
         }
         peer.serialize(buffer, true)
         serializeString(message, buffer: buffer, boxed: false)
@@ -1216,6 +1251,169 @@ public extension Api.functions.messages {
             var result: Api.Bool?
             if let signature = reader.readInt32() {
                 result = Api.parse(reader, signature: signature) as? Api.Bool
+            }
+            return result
+        })
+    }
+
+    // messages.readReactions#54aa7f8e (layer 201). 222 (9ec44f93) добавил saved_peer_id@flags.1 — на 201 нет, маскируем.
+    static func readReactions_teamgram_layer201(flags: Int32, peer: Api.InputPeer, topMsgId: Int32?, savedPeerId: Api.InputPeer?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.messages.AffectedHistory>) {
+        let buffer = Buffer()
+        buffer.appendInt32(1420459918)
+        let flags201 = flags & ~(Int32(1) << 1)
+        serializeInt32(flags201, buffer: buffer, boxed: false)
+        peer.serialize(buffer, true)
+        if Int(flags201) & Int(1 << 0) != 0 {
+            serializeInt32(topMsgId!, buffer: buffer, boxed: false)
+        }
+        return (FunctionDescription(name: "messages.readReactions(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.messages.AffectedHistory? in
+            let reader = BufferReader(buffer)
+            var result: Api.messages.AffectedHistory?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.messages.AffectedHistory
+            }
+            return result
+        })
+    }
+
+    // messages.getUnreadReactions#3223495b (layer 201). 222 (bd7f90ac) добавил saved_peer_id@flags.1 — маскируем.
+    static func getUnreadReactions_teamgram_layer201(flags: Int32, peer: Api.InputPeer, topMsgId: Int32?, savedPeerId: Api.InputPeer?, offsetId: Int32, addOffset: Int32, limit: Int32, maxId: Int32, minId: Int32) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.messages.Messages>) {
+        let buffer = Buffer()
+        buffer.appendInt32(841173339)
+        let flags201 = flags & ~(Int32(1) << 1)
+        serializeInt32(flags201, buffer: buffer, boxed: false)
+        peer.serialize(buffer, true)
+        if Int(flags201) & Int(1 << 0) != 0 {
+            serializeInt32(topMsgId!, buffer: buffer, boxed: false)
+        }
+        serializeInt32(offsetId, buffer: buffer, boxed: false)
+        serializeInt32(addOffset, buffer: buffer, boxed: false)
+        serializeInt32(limit, buffer: buffer, boxed: false)
+        serializeInt32(maxId, buffer: buffer, boxed: false)
+        serializeInt32(minId, buffer: buffer, boxed: false)
+        return (FunctionDescription(name: "messages.getUnreadReactions(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.messages.Messages? in
+            let reader = BufferReader(buffer)
+            var result: Api.messages.Messages?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.messages.Messages
+            }
+            return result
+        })
+    }
+
+    // messages.unpinAllMessages#ee22b9a8 (layer 201). 222 (62dd747) добавил saved_peer_id@flags.1 — маскируем.
+    static func unpinAllMessages_teamgram_layer201(flags: Int32, peer: Api.InputPeer, topMsgId: Int32?, savedPeerId: Api.InputPeer?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.messages.AffectedHistory>) {
+        let buffer = Buffer()
+        buffer.appendInt32(-299714136)
+        let flags201 = flags & ~(Int32(1) << 1)
+        serializeInt32(flags201, buffer: buffer, boxed: false)
+        peer.serialize(buffer, true)
+        if Int(flags201) & Int(1 << 0) != 0 {
+            serializeInt32(topMsgId!, buffer: buffer, boxed: false)
+        }
+        return (FunctionDescription(name: "messages.unpinAllMessages(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.messages.AffectedHistory? in
+            let reader = BufferReader(buffer)
+            var result: Api.messages.AffectedHistory?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.messages.AffectedHistory
+            }
+            return result
+        })
+    }
+
+    // messages.markDialogUnread#c286d98f (layer 201). 222 (8c5006f8) добавил parent_peer@flags.1 — маскируем (unread@flags.0 сохраняется).
+    static func markDialogUnread_teamgram_layer201(flags: Int32, parentPeer: Api.InputPeer?, peer: Api.InputDialogPeer) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Bool>) {
+        let buffer = Buffer()
+        buffer.appendInt32(-1031349873)
+        let flags201 = flags & ~(Int32(1) << 1)
+        serializeInt32(flags201, buffer: buffer, boxed: false)
+        peer.serialize(buffer, true)
+        return (FunctionDescription(name: "messages.markDialogUnread(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.Bool? in
+            let reader = BufferReader(buffer)
+            var result: Api.Bool?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.Bool
+            }
+            return result
+        })
+    }
+
+    // messages.deleteSavedHistory#6e98102b (layer 201). 222 (4dc5085f) добавил parent_peer@flags.0 — маскируем (min/max_date@flags.2/3 сохраняются).
+    static func deleteSavedHistory_teamgram_layer201(flags: Int32, parentPeer: Api.InputPeer?, peer: Api.InputPeer, maxId: Int32, minDate: Int32?, maxDate: Int32?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.messages.AffectedHistory>) {
+        let buffer = Buffer()
+        buffer.appendInt32(1855459371)
+        let flags201 = flags & ~(Int32(1) << 0)
+        serializeInt32(flags201, buffer: buffer, boxed: false)
+        peer.serialize(buffer, true)
+        serializeInt32(maxId, buffer: buffer, boxed: false)
+        if Int(flags201) & Int(1 << 2) != 0 {
+            serializeInt32(minDate!, buffer: buffer, boxed: false)
+        }
+        if Int(flags201) & Int(1 << 3) != 0 {
+            serializeInt32(maxDate!, buffer: buffer, boxed: false)
+        }
+        return (FunctionDescription(name: "messages.deleteSavedHistory(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.messages.AffectedHistory? in
+            let reader = BufferReader(buffer)
+            var result: Api.messages.AffectedHistory?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.messages.AffectedHistory
+            }
+            return result
+        })
+    }
+
+    // messages.getDialogUnreadMarks#22e24e22 (layer 201). 222 (21202222) добавил flags+parent_peer — на 201 голый конструктор без аргументов (подтверждено codec teamgram).
+    static func getDialogUnreadMarks_teamgram_layer201(flags: Int32, parentPeer: Api.InputPeer?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<[Api.DialogPeer]>) {
+        let buffer = Buffer()
+        buffer.appendInt32(585256482)
+        return (FunctionDescription(name: "messages.getDialogUnreadMarks(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> [Api.DialogPeer]? in
+            let reader = BufferReader(buffer)
+            var result: [Api.DialogPeer]?
+            if let _ = reader.readInt32() {
+                result = Api.parseVector(reader, elementSignature: 0, elementType: Api.DialogPeer.self)
+            }
+            return result
+        })
+    }
+
+    // messages.setChatTheme#e63be13f (layer 201). 222 заменил emoticon:string → theme:InputChatTheme.
+    // На 201 — только emoticon-строка: inputChatTheme→emoticon, inputChatThemeEmpty→"" (сброс темы);
+    // inputChatThemeUniqueGift на 201 не существует → "" (best-effort). Иначе сервер не понимает метод.
+    static func setChatTheme_teamgram_layer201(peer: Api.InputPeer, theme: Api.InputChatTheme) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Updates>) {
+        let buffer = Buffer()
+        buffer.appendInt32(-432283329)
+        peer.serialize(buffer, true)
+        let emoticon: String
+        switch theme {
+        case let .inputChatTheme(data):
+            emoticon = data.emoticon
+        case .inputChatThemeEmpty, .inputChatThemeUniqueGift:
+            emoticon = ""
+        }
+        serializeString(emoticon, buffer: buffer, boxed: false)
+        return (FunctionDescription(name: "messages.setChatTheme(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.Updates? in
+            let reader = BufferReader(buffer)
+            var result: Api.Updates?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.Updates
+            }
+            return result
+        })
+    }
+}
+
+public extension Api.functions.channels {
+    // channels.toggleForum#a4298b29 (layer 201). 222 (3ff75734) добавил tabs:Bool — на 201 его нет (подтверждено codec teamgram), не пишем.
+    static func toggleForum_teamgram_layer201(channel: Api.InputChannel, enabled: Api.Bool, tabs: Api.Bool) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Updates>) {
+        let buffer = Buffer()
+        buffer.appendInt32(-1540781271)
+        channel.serialize(buffer, true)
+        enabled.serialize(buffer, true)
+        return (FunctionDescription(name: "channels.toggleForum(teamgram_layer201)", parameters: []), buffer, DeserializeFunctionResponse { (buffer: Buffer) -> Api.Updates? in
+            let reader = BufferReader(buffer)
+            var result: Api.Updates?
+            if let signature = reader.readInt32() {
+                result = Api.parse(reader, signature: signature) as? Api.Updates
             }
             return result
         })

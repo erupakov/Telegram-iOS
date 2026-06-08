@@ -168,7 +168,7 @@ func _internal_requestUnpinAllMessages(account: Account, peerId: PeerId, threadI
                 topMsgId = Int32(clamping: threadId)
             }
         }
-        let request: Signal<Never, InternalError> = account.network.request(Api.functions.messages.unpinAllMessages(flags: flags, peer: inputPeer, topMsgId: topMsgId, savedPeerId: savedPeerId))
+        let request: Signal<Never, InternalError> = account.network.request(Api.functions.messages.unpinAllMessages_teamgram_layer201(flags: flags, peer: inputPeer, topMsgId: topMsgId, savedPeerId: savedPeerId))
         |> mapError { error -> InternalError in
             return .error(error.errorDescription)
         }

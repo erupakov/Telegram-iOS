@@ -643,7 +643,12 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
                         __strong MTTcpTransport *strongSelf = weakSelf;
                         if (strongSelf != nil) {
                             transportContext.currentActualizationPingMessageId = preparedMessage.messageId;
-                            
+                            // DIVO ВРЕМЕННАЯ ДИАГНОСТИКА (навбар «Обновление»): снять перед PR.
+                            int64_t divoPingId = preparedMessage.messageId;
+                            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": [NSString stringWithFormat:@"[MTProto] actualization-ping sent: msgId=%lld", divoPingId]}];
+                            });
+
                             id<MTTransportDelegate> delegate = strongSelf.delegate;
                             if ([delegate respondsToSelector:@selector(transportConnectionContextUpdateStateChanged:isUpdatingConnectionContext:)]) {
                                 [delegate transportConnectionContextUpdateStateChanged:strongSelf isUpdatingConnectionContext:true];
@@ -750,7 +755,11 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
         if (transportContext.currentActualizationPingMessageId != 0 && (transportContext.currentActualizationPingMessageId < firstValidMessageId && ![otherValidMessageIds containsObject:@(transportContext.currentActualizationPingMessageId)]))
         {
             [self stopActualizationPingResendTimer];
-            
+            // DIVO ВРЕМЕННАЯ ДИАГНОСТИКА (навбар «Обновление»): снять перед PR.
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": @"[MTProto] actualization cleared via serverDidChangeSession (new_session_created)"}];
+            });
+
             transportContext.currentActualizationPingMessageId = 0;
             
             id<MTTransportDelegate> delegate = self.delegate;
@@ -767,6 +776,12 @@ static const NSTimeInterval MTTcpTransportSleepWatchdogTimeout = 60.0;
         MTTcpTransportContext *transportContext = _transportContext;
         [[MTTcpTransport tcpTransportQueue] dispatchOnQueue:^
         {
+            // DIVO ВРЕМЕННАЯ ДИАГНОСТИКА (навбар «Обновление»): снять перед PR.
+            int64_t divoPongId = ((MTPongMessage *)incomingMessage.body).messageId;
+            int64_t divoExpectedPing = transportContext.currentActualizationPingMessageId;
+            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": [NSString stringWithFormat:@"[MTProto] pong received: pong.msgId=%lld expected=%lld match=%@", divoPongId, divoExpectedPing, (divoExpectedPing != 0 && divoPongId == divoExpectedPing) ? @"YES" : @"NO"]}];
+            });
             if (transportContext.currentActualizationPingMessageId != 0 && ((MTPongMessage *)incomingMessage.body).messageId == transportContext.currentActualizationPingMessageId)
             {
                 [self stopActualizationPingResendTimer];

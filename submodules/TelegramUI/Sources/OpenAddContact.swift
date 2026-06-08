@@ -10,35 +10,25 @@ import PeerInfoUI
 import ShareController
 
 func openAddContactImpl(context: AccountContext, firstName: String = "", lastName: String = "", phoneNumber: String, label: String = "_$!<Mobile>!$_", present: @escaping (ViewController, Any?) -> Void, pushController: @escaping (ViewController) -> Void, completed: @escaping () -> Void = {}) {
-    let _ = (DeviceAccess.authorizationStatus(subject: .contacts)
-    |> take(1)
-    |> deliverOnMainQueue).startStandalone(next: { value in
-        switch value {
-        case .allowed:
-            let controller = context.sharedContext.makeNewContactScreen(
-                context: context,
-                peer: nil,
-                phoneNumber: phoneNumber,
-                shareViaException: false,
-                completion: { peer, stableId, contactData in
-                    if let peer = peer {
-                        if let infoController = context.sharedContext.makePeerInfoController(context: context, updatedPresentationData: nil, peer: peer._asPeer(), mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
-                            pushController(infoController)
-                        }
-                    } else if let stableId, let contactData {
-                        pushController(deviceContactInfoController(context: ShareControllerAppAccountContext(context: context), environment: ShareControllerAppEnvironment(sharedContext: context.sharedContext), subject: .vcard(nil, stableId, contactData), completed: nil, cancelled: nil))
-                    }
-                    completed()
+    // DIVO: ручное добавление контакта идёт через серверный contacts.addContact и НЕ требует доступа
+    // к адресной книге устройства (в DIVO доступ к контактам намеренно не запрашивается — см.
+    // deviceContactPhoneNumbers в ApplicationContext). Сток-гейт по .contacts блокировал экран при
+    // .notDetermined/denied — открываем экран нового контакта независимо от статуса доступа.
+    let controller = context.sharedContext.makeNewContactScreen(
+        context: context,
+        peer: nil,
+        phoneNumber: phoneNumber,
+        shareViaException: false,
+        completion: { peer, stableId, contactData in
+            if let peer = peer {
+                if let infoController = context.sharedContext.makePeerInfoController(context: context, updatedPresentationData: nil, peer: peer._asPeer(), mode: .generic, avatarInitiallyExpanded: false, fromChat: false, requestsContext: nil) {
+                    pushController(infoController)
                 }
-            )
-            pushController(controller)
-        case .notDetermined:
-            DeviceAccess.authorizeAccess(to: .contacts)
-        default:
-            let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-            present(textAlertController(context: context, title: presentationData.strings.AccessDenied_Title, text: presentationData.strings.Contacts_AccessDeniedError, actions: [TextAlertAction(type: .defaultAction, title: presentationData.strings.Common_NotNow, action: {}), TextAlertAction(type: .genericAction, title: presentationData.strings.AccessDenied_Settings, action: {
-                context.sharedContext.applicationBindings.openSettings()
-            })]), nil)
+            } else if let stableId, let contactData {
+                pushController(deviceContactInfoController(context: ShareControllerAppAccountContext(context: context), environment: ShareControllerAppEnvironment(sharedContext: context.sharedContext), subject: .vcard(nil, stableId, contactData), completed: nil, cancelled: nil))
+            }
+            completed()
         }
-    })
+    )
+    pushController(controller)
 }

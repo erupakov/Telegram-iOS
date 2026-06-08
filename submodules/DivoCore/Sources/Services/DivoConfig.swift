@@ -163,9 +163,15 @@ public enum DivoConfig {
     public struct PendingSocialRegistration: Codable, Equatable {
         public let uid: String
         public let providerId: String
-        public init(uid: String, providerId: String) {
+        // Профиль из соц-провайдера для префилла онбординга (имя/фото). Опциональны: Apple фото не
+        // отдаёт, имя — только при первом входе. Старый персист без этих полей читается (nil).
+        public let displayName: String?
+        public let photoUrl: String?
+        public init(uid: String, providerId: String, displayName: String? = nil, photoUrl: String? = nil) {
             self.uid = uid
             self.providerId = providerId
+            self.displayName = displayName
+            self.photoUrl = photoUrl
         }
     }
 
