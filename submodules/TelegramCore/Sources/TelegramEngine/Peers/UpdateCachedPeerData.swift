@@ -274,6 +274,24 @@ func _internal_fetchAndUpdateCachedPeerData(accountPeerId: PeerId, peerId rawPee
                                 let userFullNotifySettings = userFullData.notifySettings
                                 updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: parsedPeers)
                                 transaction.updateCurrentPeerNotificationSettings([peerId: TelegramPeerNotificationSettings(apiSettings: userFullNotifySettings)])
+                                // DIVO: профиль-сторис приходят embedded в users.getFullUser (UserFull.stories),
+                                // как на Android. Трей getAllStories — отдельный серверный стаб, профиль идёт отсюда.
+                                if let peerStories = userFullData.stories, case let .peerStories(peerStoriesData) = peerStories {
+                                    let storyPeerId = peerStoriesData.peer.peerId
+                                    let previousPeerEntries = transaction.getStoryItems(peerId: storyPeerId)
+                                    var updatedPeerEntries: [StoryItemsTableEntry] = []
+                                    for story in peerStoriesData.stories {
+                                        if let storedItem = Stories.StoredItem(apiStoryItem: story, peerId: storyPeerId, transaction: transaction) {
+                                            if case .placeholder = storedItem, let previousEntry = previousPeerEntries.first(where: { $0.id == storedItem.id }) {
+                                                updatedPeerEntries.append(previousEntry)
+                                            } else if let codedEntry = CodableEntry(storedItem) {
+                                                updatedPeerEntries.append(StoryItemsTableEntry(value: codedEntry, id: storedItem.id, expirationTimestamp: storedItem.expirationTimestamp, isCloseFriends: storedItem.isCloseFriends, isLiveStream: storedItem.isLiveStream))
+                                            }
+                                        }
+                                    }
+                                    transaction.setStoryItems(peerId: storyPeerId, items: updatedPeerEntries)
+                                    transaction.setPeerStoryState(peerId: storyPeerId, state: Stories.PeerState(maxReadId: peerStoriesData.maxReadId ?? 0).postboxRepresentation)
+                                }
                             }
                             transaction.updatePeerCachedData(peerIds: [peerId], update: { peerId, current in
                                 let previous: CachedUserData
