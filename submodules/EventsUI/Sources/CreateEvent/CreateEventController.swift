@@ -336,8 +336,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     
                     let successController = EventPublishedSuccessController(context: self.context)
 
-                    // id созданного/обновлённого события — для перехода на него с экрана успеха.
-                    // create: из ответа сервера (data.id); edit: уже известен из mode. nil → старое поведение (назад).
+                    // id события для перехода с экрана успеха: create — из ответа, edit — из mode.
                     let resultEventId: Int? = response.data?.id ?? { if case .edit(let id) = self.mode { return id } else { return nil } }()
 
                     let backToProfile: () -> Void = { [weak self] in
