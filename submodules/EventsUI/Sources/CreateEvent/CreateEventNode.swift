@@ -932,6 +932,8 @@ final class CreateEventNode: ASDisplayNode {
             scrollView.translatesAutoresizingMaskIntoConstraints = false
             scrollView.showsVerticalScrollIndicator = false
             scrollView.keyboardDismissMode = .interactive
+            // Контент шага 1 чуть выше экрана — без этого скролл «дрожит» на границе bounce.
+            scrollView.alwaysBounceVertical = true
             scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInsetForStep(at: index), right: 0)
             
             let stack = stacks[index]
