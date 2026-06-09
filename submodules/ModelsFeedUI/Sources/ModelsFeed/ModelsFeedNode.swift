@@ -54,6 +54,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private var storyItems: [StoryModel] = []
     private var storySubscriptionItems: [EngineStorySubscriptions.Item] = []
     private var storyAvatarCache: [EnginePeer.Id: UIImage] = [:]
+    // Фото, под которое уже грузили аву — для перечитки при смене авы (см. loadStoryAvatars).
+    private var storyAvatarReps: [EnginePeer.Id: TelegramMediaImageRepresentation] = [:]
     private var storySubscriptionsDisposable: Disposable?
     private let storyAvatarDisposables = DisposableSet()
 
@@ -325,7 +327,13 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private func loadStoryAvatars(for items: [EngineStorySubscriptions.Item]) {
         for item in items {
             let peerId = item.peer.id
-            guard self.storyAvatarCache[peerId] == nil else { continue }
+            // Перечитываем и при смене фото (не только при пустом кэше) — иначе трей держит старую
+            // аву до перезапуска (storySubscriptions шлёт свежего пира, но guard «== nil» гасил перечитку).
+            let rep = item.peer.smallProfileImage
+            if self.storyAvatarCache[peerId] != nil, self.storyAvatarReps[peerId] == rep {
+                continue
+            }
+            self.storyAvatarReps[peerId] = rep
             let signal = peerAvatarCompleteImage(account: self.context.account, peer: item.peer, size: CGSize(width: 60.0, height: 60.0))
             let disposable = (signal
             |> deliverOnMainQueue).startStrict(next: { [weak self] image in

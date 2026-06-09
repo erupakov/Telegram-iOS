@@ -11,7 +11,7 @@ public enum DivoBootstrap {
         // доступ к teamgram-аккаунту — TelegramUI ПЕРЕРЕГИСТРИРУЕТ executor с исполнителем имени,
         // когда поднимется авторизованный контекст (см. AppDelegate). До этого момента op
         // .nameUpdate просто лежит в очереди.
-        PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil))
+        PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil, photoUpdate: nil))
 
         // DIVO: на cold-start подтягиваем актуальную роль с сервера (me = /user/info) — если серверная
         // сменилась, клиент подхватывает её (currentUserRole.setter постит roleDidChangeNotification только
@@ -32,8 +32,11 @@ public enum DivoBootstrap {
     /// - phone-link: обрабатывается всегда (cold-start страховка auth-флоу, чистый REST).
     /// - nameUpdate: имя в teamgram после онбординга — требует аккаунт, исполнитель приходит
     ///   из TelegramUI; если `nameUpdate == nil`, op остаётся в очереди до авторизованного контекста.
+    /// - photoUpdate: ава в teamgram — как nameUpdate, требует движок (заливка через MTProto),
+    ///   исполнитель приходит из TelegramUI; если `nil`, op ждёт авторизованного контекста.
     public static func makeExecutor(
-        nameUpdate: ((_ firstName: String, _ lastName: String) async throws -> Void)?
+        nameUpdate: ((_ firstName: String, _ lastName: String) async throws -> Void)?,
+        photoUpdate: (() async throws -> Void)?
     ) -> PendingTelegramOpsQueue.Executor {
         return { op in
             switch op {
@@ -66,6 +69,13 @@ public enum DivoBootstrap {
                 )
                 DivoConfig.accessToken = linked.accessToken
                 divoLog("DivoBootstrap: telegram-link довёл сшивку для divoUserId=\(divoUserId)", level: .info)
+            case .photoUpdate:
+                guard let photoUpdate else {
+                    // Нет исполнителя (ещё не авторизованы) — оставляем op в очереди.
+                    throw DivoBootstrapError.opNotHandled
+                }
+                try await photoUpdate()
+                divoLog("DivoBootstrap: teamgram-ава синхронизирована", level: .info)
             }
         }
     }
