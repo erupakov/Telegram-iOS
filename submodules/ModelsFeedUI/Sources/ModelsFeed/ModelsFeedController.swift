@@ -17,6 +17,7 @@ import ContextUI
 import TelegramBaseController
 import ProfileScreenUI
 import DivoGallery
+import StoryContainerScreen
 
 public final class ModelsFeedController: TelegramBaseController {
     private var controllerNode: ModelsFeedNode {
@@ -54,6 +55,7 @@ public final class ModelsFeedController: TelegramBaseController {
 
     private let createActionDisposable = MetaDisposable()
     private let clearDisposable = MetaDisposable()
+    private let openStoryProgressDisposable = MetaDisposable()
 
     public init(context: AccountContext) {
         self.context = context
@@ -219,11 +221,51 @@ public final class ModelsFeedController: TelegramBaseController {
         }
     }
 
+    // Открытие полноэкранного вьюера сторис пира (тап по аватару в трее).
+    // singlePeer: false — вьюер берёт all-stories контекст (как трей в чатах). Через singlePeer: true
+    // своя сторис не открывалась: per-peer контент сервер не отдаёт, а all-stories уже содержит итемы.
+    private func openStory(peerId: EnginePeer.Id, order: [EnginePeer.Id]) {
+        StoryContainerScreen.openPeerStoriesCustom(
+            context: self.context,
+            peerId: peerId,
+            isHidden: false,
+            initialOrder: order,
+            singlePeer: false,
+            parentController: self,
+            transitionIn: { nil },
+            transitionOut: { _ in nil },
+            setFocusedItem: { _ in },
+            // ВАЖНО: сигнал открытия презентует вьюер только когда его подписали — стартуем здесь.
+            // Пустой setProgress = вьюер не открывается (сигнал не запущен).
+            setProgress: { [weak self] signal in
+                self?.openStoryProgressDisposable.set(signal.startStrict())
+            }
+        )
+    }
+
+    // Открытие камеры/композера сторис (тап по «+»).
+    private func openStoryComposer() {
+        guard let rootController = self.context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface else {
+            return
+        }
+        // animateIn() обязателен — без него камера создаётся, но не показывается (чёрный экран). Как в чат-листе.
+        let coordinator = rootController.openStoryCamera(
+            mode: .photo,
+            customTarget: nil,
+            resumeLiveStream: false,
+            transitionIn: nil,
+            transitionedIn: {},
+            transitionOut: { _, _ in return nil }
+        )
+        coordinator?.animateIn()
+    }
+
     deinit {
         self.createActionDisposable.dispose()
         self.presentationDataDisposable?.dispose()
         self.peerViewDisposable.dispose()
         self.clearDisposable.dispose()
+        self.openStoryProgressDisposable.dispose()
         if let observer = self.tokenChangeObserver {
             NotificationCenter.default.removeObserver(observer)
         }
@@ -255,6 +297,12 @@ public final class ModelsFeedController: TelegramBaseController {
             guard let self = self else { return }
             self.tabStates[self.selectedTabIndex].hasPaginationError = false
             self.loadNextPage()
+        }
+        self.controllerNode.onOpenStory = { [weak self] peerId, order in
+            self?.openStory(peerId: peerId, order: order)
+        }
+        self.controllerNode.onAddStory = { [weak self] in
+            self?.openStoryComposer()
         }
 
         self.displayNodeDidLoad()
