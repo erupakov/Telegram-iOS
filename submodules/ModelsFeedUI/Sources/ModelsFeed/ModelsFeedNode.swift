@@ -538,12 +538,10 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let navBaseX = titleLabel.frame.maxX + 12
         let navY = navigationBarHeight - navSize - 17
 
-        // «+» (индекс 0) всегда долетает до навбара и остаётся видимой — как кнопка добавления в чатах.
-        // За ней — первые до maxNavbarStories пиров сторис.
-        var survivors: Set<Int> = floatingAvatars.isEmpty ? [] : [0]
-        if floatingAvatars.count > 1 {
-            survivors.formUnion((1..<floatingAvatars.count).prefix(maxNavbarStories))
-        }
+        // В навбар улетают только кружки сторис (первые до maxNavbarStories). «+» (индекс 0) остаётся в трее, не уходит.
+        let survivors: Set<Int> = floatingAvatars.count > 1
+            ? Set((1..<floatingAvatars.count).prefix(maxNavbarStories))
+            : []
 
         let floatingVisible = min(max((p - 0.05) * 20, 0), 1.0)  // visible after 5%, full by 10%
 

@@ -198,6 +198,10 @@ public enum DivoColorPalette {
     public static let avatarStrokeQuiet = UIColor(hexString: "#E2E2E2")!
     /// #990000 — верхний стоп градиента AvatarStrokeView.
     public static let avatarStrokeRedDeep = UIColor(hexString: "#990000")!
+    /// #180800 — тёмный стоп градиента кольца сторис (по дизайну).
+    public static let storyRingGradientStart = UIColor(hexString: "#180800")!
+    /// #FF5C02 — оранжевый стоп градиента кольца сторис (по дизайну).
+    public static let storyRingGradientEnd = UIColor(hexString: "#FF5C02")!
 
     // MARK: - Auth
     /// #0A0A0A — текст на OAuth-кнопках (Google / Apple) на Welcome.

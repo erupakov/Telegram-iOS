@@ -37,10 +37,22 @@ public extension PresentationData {
         // DIVO: бейджи списка чатов (непрочитанные «N», упоминания «@», реакции) — на фирменный orange.
         // Галочки статуса отправки/прочтения (дефолт был зелёным) — на accentSecondary, тем же цветом,
         // что и галочки в самом чате (`outgoingCheckColor` в withDivoChatTheme).
+        // Кольца сторис в трее чат-листа — под дизайн DIVO (градиент #180800→#FF5C02 для непросмотренных,
+        // серый для просмотренных), чтобы совпадали с кольцами в ленте.
+        let storyUnseenGradient = self.theme.chatList.storyUnseenColors.withUpdated(
+            topColor: DivoColorPalette.storyRingGradientStart,
+            bottomColor: DivoColorPalette.storyRingGradientEnd
+        )
         let patchedChatList = self.theme.chatList.withUpdated(
             checkmarkColor: DivoColorPalette.accentSecondary,
             unreadBadgeActiveBackgroundColor: accent,
-            reactionBadgeActiveBackgroundColor: accent
+            reactionBadgeActiveBackgroundColor: accent,
+            storyUnseenColors: storyUnseenGradient,
+            storyUnseenPrivateColors: storyUnseenGradient,
+            storySeenColors: self.theme.chatList.storySeenColors.withUpdated(
+                topColor: DivoColorPalette.avatarStrokeQuiet,
+                bottomColor: DivoColorPalette.avatarStrokeQuiet
+            )
         )
 
         let patchedTheme = PresentationTheme(
