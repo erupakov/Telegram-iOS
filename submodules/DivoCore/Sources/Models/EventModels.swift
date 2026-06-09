@@ -496,13 +496,16 @@ public struct EventRangeRequest: Codable {
     }
 }
 
-public struct CreateEventResponse: Codable {
+public struct CreateEventResponse: Decodable {
     public let message: String?
     public let errors: [String]?
+    // Сервер возвращает созданное/обновлённое событие (EventDetailSuccess.data) — нужен id для перехода на него.
+    public let data: EventFullDetailData?
 
-    public init(message: String?, errors: [String]?) {
+    public init(message: String?, errors: [String]?, data: EventFullDetailData? = nil) {
         self.message = message
         self.errors = errors
+        self.data = data
     }
 }
 
