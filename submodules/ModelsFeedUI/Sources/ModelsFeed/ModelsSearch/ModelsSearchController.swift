@@ -702,7 +702,7 @@ public class ModelsSearchController: ViewController {
                     method: "GET"
                 )
 
-                self.preloadedGenders = response.data.map {
+                self.preloadedGenders = DivoGender.pickerOptions(from: response.data).map {
                     FilterOptionItem(id: $0.id, title: $0.title)
                 }
             } catch {

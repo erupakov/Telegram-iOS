@@ -211,15 +211,21 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         }
     }
 
-    /// Маппит выбранный gender-ключ онбординга (male/female/…) на id из `/dictionary/gender`: бэк ждёт
-    /// словарный id, а наш ключ отвергает (422). Сопоставляем по локализованному заголовку (наш title ==
-    /// title словаря, lowercased) — как EditProfile. Нет совпадения / словарь недоступен → nil (вызывающая
-    /// сторона делает эхо с сервера или не шлёт — без регресса). Best-effort.
+    /// Маппит выбранный gender-ключ онбординга на id из `/dictionary/gender`: бэк ждёт словарный id,
+    /// а наш ключ отвергает (422). Ключи мапим напрямую (preferNotToSay → "other"), id сверяем со
+    /// словарём. Нет совпадения / словарь недоступен → nil (вызывающая сторона делает эхо с сервера
+    /// или не шлёт — без регресса). Best-effort.
     private func mappedGenderId(state: OnboardingRegistrationState, registry: OnboardingRoleRegistry) async -> String? {
-        guard let key = formString("gender", state: state, registry: registry),
-              let dict = try? await AuthRestService.shared.genderDictionary() else { return nil }
-        let title = OnboardingStrings.resolve("onboarding.form.gender.option.\(key)").lowercased()
-        return dict.first(where: { $0.title.lowercased() == title })?.id
+        guard let key = formString("gender", state: state, registry: registry) else { return nil }
+        let mapped: String
+        switch key {
+        case "male": mapped = DivoGender.male
+        case "female": mapped = DivoGender.female
+        case "preferNotToSay": mapped = DivoGender.notSpecified
+        default: return nil
+        }
+        guard let dict = try? await AuthRestService.shared.genderDictionary() else { return nil }
+        return dict.contains(where: { $0.id == mapped }) ? mapped : nil
     }
 
     /// Дата из формы (.date) → "yyyy-MM-dd" для бэка (формат `date`).

@@ -438,8 +438,9 @@ final class EditProfileNode: ASDisplayNode {
             self.selectedSkinColorId = app.skinColor?.id
             self.selectedSkinColorTitle = app.skinColor?.title
         }
-        self.selectedGenderId = model?.gender?.id
-        self.selectedGenderTitle = model?.gender?.title
+        let genderDisplay = DivoGender.display(for: model?.gender)
+        self.selectedGenderId = genderDisplay?.id
+        self.selectedGenderTitle = genderDisplay?.title
         self.selectedBirthdayTimestamp = parseBirthday(model?.birthday)
         
         if model?.role != "agency_employee" , let city = model?.city {
@@ -1401,7 +1402,7 @@ final class EditProfileNode: ASDisplayNode {
         self.view.endEditing(true)
         guard let dict = genderDictionaries?.data else { return }
         
-        let options = dict.map { FilterOptionItem(id: String($0.id), title: $0.title) }
+        let options = DivoGender.pickerOptions(from: dict).map { FilterOptionItem(id: $0.id, title: $0.title) }
         let selectedIds = selectedGenderId != nil ? [String(selectedGenderId!)] :[]
         
         let vc = FilterOptionsController(

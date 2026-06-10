@@ -1834,7 +1834,7 @@ final class CreateEventNode: ASDisplayNode {
     func configureGenderDictionaries(_ dict: GenderResponse) {
         self.genderDictionaries = dict
         self.genderOptions.append(FilterOptionItem(id: "all", title: DivoStrings.debugAll))
-        for gender in dict.data {
+        for gender in DivoGender.pickerOptions(from: dict.data) {
             self.genderOptions.append(
                 FilterOptionItem(id: gender.id, title: gender.title)
             )

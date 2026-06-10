@@ -159,7 +159,6 @@ public enum OnboardingStrings {
         // MARK: Gender
         case "onboarding.form.gender.option.female":          return DivoStrings.onboardingGenderFemale
         case "onboarding.form.gender.option.male":            return DivoStrings.onboardingGenderMale
-        case "onboarding.form.gender.option.nonbinary":       return DivoStrings.onboardingGenderNonbinary
         case "onboarding.form.gender.option.preferNotToSay":  return DivoStrings.onboardingGenderPreferNotToSay
 
         // MARK: Form 4.A

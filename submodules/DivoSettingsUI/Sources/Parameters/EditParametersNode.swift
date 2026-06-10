@@ -190,8 +190,9 @@ final class EditParametersNode: ASDisplayNode {
             self.selectedSkinColorId = app.skinColor?.id
             self.selectedSkinColorTitle = app.skinColor?.title
         }
-        self.selectedGenderId = model?.gender?.id
-        self.selectedGenderTitle = model?.gender?.title
+        let genderDisplay = DivoGender.display(for: model?.gender)
+        self.selectedGenderId = genderDisplay?.id
+        self.selectedGenderTitle = genderDisplay?.title
         self.selectedBirthdayTimestamp = parseBirthday(model?.birthday)
 
         self.backgroundColor = DivoColorPalette.screenBackground
@@ -650,7 +651,7 @@ final class EditParametersNode: ASDisplayNode {
         view.endEditing(true)
         guard let dict = genderDictionaries?.data else { return }
 
-        let options = dict.map { FilterOptionItem(id: String($0.id), title: $0.title) }
+        let options = DivoGender.pickerOptions(from: dict).map { FilterOptionItem(id: $0.id, title: $0.title) }
         let selectedIds = selectedGenderId.map { [$0] } ?? []
 
         let vc = FilterOptionsController(

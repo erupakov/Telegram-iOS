@@ -666,7 +666,6 @@ private extension OnboardingFormCatalog {
         return [
             .init(id: "female",      titleKey: "onboarding.form.gender.option.female"),
             .init(id: "male",        titleKey: "onboarding.form.gender.option.male"),
-            .init(id: "nonbinary",   titleKey: "onboarding.form.gender.option.nonbinary"),
             .init(id: "preferNotToSay", titleKey: "onboarding.form.gender.option.preferNotToSay"),
         ]
     }

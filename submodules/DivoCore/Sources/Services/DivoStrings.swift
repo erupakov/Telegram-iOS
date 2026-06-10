@@ -833,7 +833,6 @@ public enum DivoStrings {
 
     public static var onboardingGenderFemale: String { L(en: "Female", ru: "Женский", es: "Femenino", pt: "Feminino", zh: "女性") }
     public static var onboardingGenderMale: String { L(en: "Male", ru: "Мужской", es: "Masculino", pt: "Masculino", zh: "男性") }
-    public static var onboardingGenderNonbinary: String { L(en: "Non-binary", ru: "Небинарный", es: "No binario", pt: "Não-binário", zh: "非二元性别") }
     public static var onboardingGenderPreferNotToSay: String { L(en: "Prefer not to say", ru: "Предпочитаю не указывать", es: "Prefiero no decir", pt: "Prefiro não dizer", zh: "不愿透露") }
 
     public static func onboardingFormProgress(step: Int, of total: Int) -> String {
@@ -1092,6 +1091,7 @@ public enum DivoStrings {
     // MARK: - Event Parameter Titles
 
     public static var paramGender: String { L(en: "Gender", ru: "Пол", es: "Género", pt: "Gênero", zh: "性别") }
+    public static var genderNotSpecified: String { L(en: "Prefer not to say", ru: "Не указывать", es: "Prefiero no decirlo", pt: "Prefiro não dizer", zh: "不愿透露") }
     public static var paramAge: String { L(en: "Age", ru: "Возраст", es: "Edad", pt: "Idade", zh: "年龄") }
     public static var paramHeight: String { L(en: "Height", ru: "Рост", es: "Altura", pt: "Altura", zh: "身高") }
     public static var paramWeight: String { L(en: "Weight", ru: "Вес", es: "Peso", pt: "Peso", zh: "体重") }

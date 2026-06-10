@@ -15,7 +15,7 @@ public enum DivoMockData {
         "data": [
             {"id": "male", "title": "Male"},
             {"id": "female", "title": "Female"},
-            {"id": "non_binary", "title": "Non-binary"}
+            {"id": "other", "title": "Other"}
         ]
     }
     """.data(using: .utf8)!
