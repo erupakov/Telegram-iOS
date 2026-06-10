@@ -1,4 +1,5 @@
 import Foundation
+import DivoCore
 
 /// Превращает заполненное состояние онбординга в JSON-структуру для отправки на бэк.
 ///
@@ -120,7 +121,8 @@ public enum FormSerializer {
         if let phone { out["phone"] = phone }
         if let email { out["email"] = email }
         out["timezone"] = TimeZone.current.identifier
-        out["measuringSystem"] = "metric"
+        // У нового юзера настройки ещё нет — дефолт по локали, как у Android
+        out["measuringSystem"] = DivoMeasuringSystem.localeDefault.rawValue
 
         return out
     }

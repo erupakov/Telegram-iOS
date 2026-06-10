@@ -253,6 +253,7 @@ public final class EventsController: TelegramBaseController {
                     path: "/user/info",
                     method: "GET"
                 )
+                DivoMeasuringSystem.updateCurrent(response.data.measuringSystem)
                 let role = response.data.role ?? ""
 
                 await MainActor.run {

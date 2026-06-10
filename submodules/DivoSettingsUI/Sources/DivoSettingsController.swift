@@ -275,6 +275,7 @@ public final class DivoSettingsController: TelegramBaseController {
         Task { @MainActor in
             do {
                 let response: UserDetailResponse = try await DivoAPIClient.shared.request(path: "/user/info")
+                DivoMeasuringSystem.updateCurrent(response.data.measuringSystem)
                 self.isProfileLoaded = true
                 self.userDetailData = response.data
                 self.controllerNode.updateWithProfile(response.data)
@@ -307,6 +308,7 @@ public final class DivoSettingsController: TelegramBaseController {
                     method: "POST",
                     body: request
                 )
+                DivoMeasuringSystem.updateCurrent(rawData)
                 self.reloadProfile()
             } catch {
                 self.controllerNode.showSnackbar(

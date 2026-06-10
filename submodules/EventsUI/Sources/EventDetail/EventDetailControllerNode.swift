@@ -1621,24 +1621,33 @@ final class EventDetailControllerNode: ASDisplayNode {
             items.append(.init(title: DivoStrings.ageYo, value: str))
         }
 
-        if let height = attributes?.height, let str = rangeString(from: height.from, to: height.to) {
-            items.append(.init(title: DivoStrings.heightCm, value: str))
+        // Числа требований приводим к метрике по маркеру записи, показываем в системе смотрящего
+        func measuredRangeString(_ range: EventFullRange?, _ kind: DivoMeasureKind) -> String? {
+            guard let range = range else { return nil }
+            func metric(_ value: Float?) -> Double? {
+                value.map { DivoMeasuring.normalizedMetric(Double($0), sourceSystem: attributes?.measuringSystem, kind: kind) }
+            }
+            return DivoMeasuring.rangeString(fromMetric: metric(range.from), toMetric: metric(range.to), kind: kind)
         }
 
-        if let weight = attributes?.weight, let str = rangeString(from: weight.from, to: weight.to) {
-            items.append(.init(title: DivoStrings.weightKg, value: str))
+        if let str = measuredRangeString(attributes?.height, .height) {
+            items.append(.init(title: DivoMeasuring.title(kind: .height), value: str))
         }
 
-        if let waist = attributes?.waist, let str = rangeString(from: waist.from, to: waist.to) {
-            items.append(.init(title: DivoStrings.waistCm, value: str))
+        if let str = measuredRangeString(attributes?.weight, .weight) {
+            items.append(.init(title: DivoMeasuring.title(kind: .weight), value: str))
         }
 
-        if let hips = attributes?.hips, let str = rangeString(from: hips.from, to: hips.to) {
-            items.append(.init(title: DivoStrings.hipsCm, value: str))
+        if let str = measuredRangeString(attributes?.waist, .waist) {
+            items.append(.init(title: DivoMeasuring.title(kind: .waist), value: str))
         }
 
-        if let shoesSize = attributes?.shoesSize, let str = rangeString(from: shoesSize.from, to: shoesSize.to) {
-            items.append(.init(title: DivoStrings.shoeSizeEU, value: str))
+        if let str = measuredRangeString(attributes?.hips, .hips) {
+            items.append(.init(title: DivoMeasuring.title(kind: .hips), value: str))
+        }
+
+        if let str = measuredRangeString(attributes?.shoesSize, .shoeSize) {
+            items.append(.init(title: DivoMeasuring.title(kind: .shoeSize), value: str))
         }
 
 
@@ -1959,20 +1968,25 @@ final class EventDetailControllerNode: ASDisplayNode {
         if let age = data.request.age, let str = rangeString(from: age.from, to: age.to) {
             attrs.append(.init(title: DivoStrings.ageYo, value: str))
         }
-        if let height = data.request.height, let str = rangeString(from: height.from, to: height.to) {
-            attrs.append(.init(title: DivoStrings.heightCm, value: str))
+        // Числа превью собраны из внутреннего состояния — всегда метрические, показ в системе смотрящего
+        func previewRangeString(_ range: EventRangeRequest?, _ kind: DivoMeasureKind) -> String? {
+            guard let range = range else { return nil }
+            return DivoMeasuring.rangeString(fromMetric: Double(range.from), toMetric: Double(range.to), kind: kind)
         }
-        if let weight = data.request.weight, let str = rangeString(from: weight.from, to: weight.to) {
-            attrs.append(.init(title: DivoStrings.weightKg, value: str))
+        if let str = previewRangeString(data.request.height, .height) {
+            attrs.append(.init(title: DivoMeasuring.title(kind: .height), value: str))
         }
-        if let waist = data.request.waist, let str = rangeString(from: waist.from, to: waist.to) {
-            attrs.append(.init(title: DivoStrings.waistCm, value: str))
+        if let str = previewRangeString(data.request.weight, .weight) {
+            attrs.append(.init(title: DivoMeasuring.title(kind: .weight), value: str))
         }
-        if let hips = data.request.hips, let str = rangeString(from: hips.from, to: hips.to) {
-            attrs.append(.init(title: DivoStrings.hipsCm, value: str))
+        if let str = previewRangeString(data.request.waist, .waist) {
+            attrs.append(.init(title: DivoMeasuring.title(kind: .waist), value: str))
         }
-        if let shoesSize = data.request.shoesSize, let str = rangeString(from: shoesSize.from, to: shoesSize.to) {
-            attrs.append(.init(title: DivoStrings.shoeSizeEU, value: str))
+        if let str = previewRangeString(data.request.hips, .hips) {
+            attrs.append(.init(title: DivoMeasuring.title(kind: .hips), value: str))
+        }
+        if let str = previewRangeString(data.request.shoesSize, .shoeSize) {
+            attrs.append(.init(title: DivoMeasuring.title(kind: .shoeSize), value: str))
         }
         if let hairColor = data.request.hairColor {
             let hairColorTitles = hairColor.compactMap( { String($0) } ).joined(separator: ", ")

@@ -177,69 +177,72 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 }
             ),
             AppearanceFilterItem(
-                title: DivoStrings.heightCm,
+                title: DivoMeasuring.title(kind: .height),
                 getValues: { [weak self] in
                     guard let range = self?.currentFilters.heightRange else { return [] }
-                    return["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound.doubleValue, toMetric: range.upperBound.doubleValue, kind: .height).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.heightCm,
+                        kind: .height,
                         keyPath: \.heightRange,
-                        min: 150,
-                        max: 200
+                        min: 140,
+                        max: 210
                     )
                 }
             ),
             AppearanceFilterItem(
-                title: DivoStrings.weightKg,
+                title: DivoMeasuring.title(kind: .weight),
                 getValues: { [weak self] in
                     guard let range = self?.currentFilters.weightRange else { return [] }
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound.doubleValue, toMetric: range.upperBound.doubleValue, kind: .weight).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.paramWeight,
+                        kind: .weight,
                         keyPath: \.weightRange,
                         min: 40,
-                        max: 120
+                        max: 130
                     )
                 }
             ),
             AppearanceFilterItem(
-                title: DivoStrings.waistCm,
+                title: DivoMeasuring.title(kind: .waist),
                 getValues: { [weak self] in
                     guard let range = self?.currentFilters.waistRange else { return [] }
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound.doubleValue, toMetric: range.upperBound.doubleValue, kind: .waist).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.paramWaist,
+                        kind: .waist,
                         keyPath: \.waistRange,
                         min: 50,
                         max: 120
                     ) }
             ),
             AppearanceFilterItem(
-                title: DivoStrings.hipsCm,
+                title: DivoMeasuring.title(kind: .hips),
                 getValues: { [weak self] in
                     guard let range = self?.currentFilters.hipsRange else { return []}
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound.doubleValue, toMetric: range.upperBound.doubleValue, kind: .hips).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHips, keyPath: \.hipsRange, min: 70, max: 130) }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramHips, kind: .hips, keyPath: \.hipsRange, min: 70, max: 140) }
             ),
             AppearanceFilterItem(
-                title: DivoStrings.shoeSizeEU,
+                title: DivoMeasuring.title(kind: .shoeSize),
                 getValues: { [weak self] in
                     guard let range = self?.currentFilters.shoeSizeRange else { return []}
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound.doubleValue, toMetric: range.upperBound.doubleValue, kind: .shoeSize).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
-                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramShoeSize, keyPath: \.shoeSizeRange, min: 35, max: 46) }
+                onTap: { [weak self] in self?.showRangeFilter(title: DivoStrings.paramShoeSize, kind: .shoeSize, keyPath: \.shoeSizeRange, min: 34, max: 48) }
             ),
             AppearanceFilterItem(
                 title: DivoStrings.hairLength,
@@ -443,36 +446,49 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         navigationBar.setEnableRightButton(canReset)
     }
 
-    private func showRangeFilter<T>(title: String, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T) where T: RangeFilterable {
+    private func showRangeFilter<T>(title: String, kind: DivoMeasureKind? = nil, keyPath: WritableKeyPath<SearchFilterState, ClosedRange<T>?>, min: T, max: T) where T: RangeFilterable {
+
+        let system = DivoMeasuringSystem.current
+        func toDisplay(_ value: Double) -> Double {
+            kind.map { DivoMeasuring.displayValue(metric: value, kind: $0, system: system) } ?? value
+        }
 
         var currentMin: Double? = nil
         var currentMax: Double? = nil
 
         if let currentRange = self.currentFilters[keyPath: keyPath] {
-            currentMin = currentRange.lowerBound.doubleValue
-            currentMax = currentRange.upperBound.doubleValue
+            currentMin = toDisplay(currentRange.lowerBound.doubleValue)
+            currentMax = toDisplay(currentRange.upperBound.doubleValue)
         }
 
         let vc = RangeFilterController(
-            title: title,
-            min: min.doubleValue,
-            max: max.doubleValue,
+            title: kind.map { DivoMeasuring.inputTitle(kind: $0, system: system) } ?? title,
+            min: toDisplay(min.doubleValue),
+            max: toDisplay(max.doubleValue),
             currentLower: currentMin,
             currentUpper: currentMax
-        ) 
+        )
 
         vc.onSave = { [weak self] firstValue, secondValue in
             guard let self = self else { return }
-            
+
             if let firstValue = firstValue, let secondValue = secondValue {
-                let newClosedRange = T(firstValue)...T(secondValue)
-                self.currentFilters[keyPath: keyPath] = newClosedRange
+                // Не сдвинутый ползунок оставляем в исходной метрике — обратная
+                // конвертация с округлением дрейфовала бы значение на каждом сохранении
+                func toMetric(_ display: Double, original: Double?, originalDisplay: Double?) -> Double {
+                    if display == originalDisplay, let original { return original }
+                    return kind.map { DivoMeasuring.metricValue(display: display, kind: $0, system: system) } ?? display
+                }
+                let original = self.currentFilters[keyPath: keyPath]
+                let lower = toMetric(firstValue, original: original?.lowerBound.doubleValue, originalDisplay: currentMin)
+                let upper = toMetric(secondValue, original: original?.upperBound.doubleValue, originalDisplay: currentMax)
+                self.currentFilters[keyPath: keyPath] = T(lower)...T(upper)
             } else {
                 self.currentFilters[keyPath: keyPath] = nil
             }
             self.updateUI()
         }
-        
+
         navigationController?.pushViewController(vc, animated: true)
     }
     

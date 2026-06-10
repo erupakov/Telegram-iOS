@@ -1264,18 +1264,19 @@ final class CreateEventNode: ASDisplayNode {
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.heightCm,
+                title: DivoMeasuring.title(kind: .height),
                 getValues: { [weak self] in
                     guard let range = self?.selectedHeight else { return [] }
-                    return["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound, toMetric: range.upperBound, kind: .height).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.heightCm,
+                        kind: .height,
                         currentRange: self?.selectedHeight,
-                        min: 100,
-                        max: 250,
+                        min: 140,
+                        max: 210,
                         onUpdate: { newRange in
                             self?.selectedHeight = newRange
                         }
@@ -1283,18 +1284,19 @@ final class CreateEventNode: ASDisplayNode {
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.weightKg,
+                title: DivoMeasuring.title(kind: .weight),
                 getValues: { [weak self] in
                     guard let range = self?.selectedWeight else { return [] }
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound, toMetric: range.upperBound, kind: .weight).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.weightKg,
+                        kind: .weight,
                         currentRange: self?.selectedWeight,
                         min: 40,
-                        max: 120,
+                        max: 130,
                         onUpdate: { newRange in
                             self?.selectedWeight = newRange
                         }
@@ -1302,15 +1304,16 @@ final class CreateEventNode: ASDisplayNode {
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.waistCm,
+                title: DivoMeasuring.title(kind: .waist),
                 getValues: { [weak self] in
                     guard let range = self?.selectedWaist else { return [] }
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound, toMetric: range.upperBound, kind: .waist).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.waistCm,
+                        kind: .waist,
                         currentRange: self?.selectedWaist,
                         min: 50,
                         max: 120,
@@ -1321,18 +1324,19 @@ final class CreateEventNode: ASDisplayNode {
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.hipsCm,
+                title: DivoMeasuring.title(kind: .hips),
                 getValues: { [weak self] in
                     guard let range = self?.selectedHips else { return []}
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound, toMetric: range.upperBound, kind: .hips).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.hipsCm,
+                        kind: .hips,
                         currentRange: self?.selectedHips,
                         min: 70,
-                        max: 130,
+                        max: 140,
                         onUpdate: { newRange in
                             self?.selectedHips = newRange
                         }
@@ -1340,18 +1344,19 @@ final class CreateEventNode: ASDisplayNode {
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.shoeSizeEU,
+                title: DivoMeasuring.title(kind: .shoeSize),
                 getValues: { [weak self] in
                     guard let range = self?.selectedShoeSize else { return []}
-                    return ["\(Int(range.lowerBound))-\(Int(range.upperBound))"]
+                    return DivoMeasuring.rangeString(fromMetric: range.lowerBound, toMetric: range.upperBound, kind: .shoeSize).map { [$0] } ?? []
                 },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
                     self?.showRangeFilter(
                         title: DivoStrings.shoeSizeEU,
+                        kind: .shoeSize,
                         currentRange: self?.selectedShoeSize,
-                        min: 25,
-                        max: 38,
+                        min: 34,
+                        max: 48,
                         onUpdate: { newRange in
                             self?.selectedShoeSize = newRange
                         }
@@ -1363,6 +1368,7 @@ final class CreateEventNode: ASDisplayNode {
     
     private func showRangeFilter<T>(
         title: String,
+        kind: DivoMeasureKind? = nil,
         currentRange: ClosedRange<T>?,
         min: T,
         max: T,
@@ -1371,18 +1377,23 @@ final class CreateEventNode: ASDisplayNode {
 
         self.view.endEditing(true)
 
+        let system = DivoMeasuringSystem.current
+        func toDisplay(_ value: Double) -> Double {
+            kind.map { DivoMeasuring.displayValue(metric: value, kind: $0, system: system) } ?? value
+        }
+
         var currentMin: Double? = nil
         var currentMax: Double? = nil
 
         if let currentRange = currentRange {
-            currentMin = currentRange.lowerBound.doubleValue
-            currentMax = currentRange.upperBound.doubleValue
+            currentMin = toDisplay(currentRange.lowerBound.doubleValue)
+            currentMax = toDisplay(currentRange.upperBound.doubleValue)
         }
 
         let vc = RangeFilterController(
-            title: title,
-            min: min.doubleValue,
-            max: max.doubleValue,
+            title: kind.map { DivoMeasuring.inputTitle(kind: $0, system: system) } ?? title,
+            min: toDisplay(min.doubleValue),
+            max: toDisplay(max.doubleValue),
             currentLower: currentMin,
             currentUpper: currentMax,
             isOpenPresent: true,
@@ -1391,14 +1402,21 @@ final class CreateEventNode: ASDisplayNode {
 
         vc.onSave = { [weak self] firstValue, secondValue in
             guard let self = self else { return }
-            
+
             if let firstValue = firstValue, let secondValue = secondValue {
-                let newClosedRange = T(firstValue)...T(secondValue)
-                onUpdate(newClosedRange)
+                // Не сдвинутый ползунок оставляем в исходной метрике — обратная
+                // конвертация с округлением дрейфовала бы значение на каждом сохранении
+                func toMetric(_ display: Double, original: Double?, originalDisplay: Double?) -> Double {
+                    if display == originalDisplay, let original { return original }
+                    return kind.map { DivoMeasuring.metricValue(display: display, kind: $0, system: system) } ?? display
+                }
+                let lower = toMetric(firstValue, original: currentRange?.lowerBound.doubleValue, originalDisplay: currentMin)
+                let upper = toMetric(secondValue, original: currentRange?.upperBound.doubleValue, originalDisplay: currentMax)
+                onUpdate(T(lower)...T(upper))
             } else {
                 onUpdate(nil)
             }
-            
+
             self.updateAppearanceValues()
         }
         
@@ -1890,11 +1908,11 @@ final class CreateEventNode: ASDisplayNode {
         }
 
         applyDefaultRange(range: &selectedAge, defaultRange: 16...70, overrideExisting: overrideExisting)
-        applyDefaultRange(range: &selectedHeight, defaultRange: 100...250, overrideExisting: overrideExisting)
-        applyDefaultRange(range: &selectedWeight, defaultRange: 40...120, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedHeight, defaultRange: 140...210, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedWeight, defaultRange: 40...130, overrideExisting: overrideExisting)
         applyDefaultRange(range: &selectedWaist, defaultRange: 50...120, overrideExisting: overrideExisting)
-        applyDefaultRange(range: &selectedHips, defaultRange: 70...130, overrideExisting: overrideExisting)
-        applyDefaultRange(range: &selectedShoeSize, defaultRange: 25...38, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedHips, defaultRange: 70...140, overrideExisting: overrideExisting)
+        applyDefaultRange(range: &selectedShoeSize, defaultRange: 34...48, overrideExisting: overrideExisting)
 
         updateDropdownsUI()
         updateAppearanceValues()
@@ -2318,10 +2336,15 @@ final class CreateEventNode: ASDisplayNode {
         skinColorDropdownTitles = detail.modelAttributes?.skinColor?.map(\.title!)
         
         selectedAge = Int(detail.modelAttributes?.age?.from ?? 0)...Int(detail.modelAttributes?.age?.to ?? 0)
-        selectedHeight = Double(detail.modelAttributes?.height?.from ?? 0)...Double(detail.modelAttributes?.height?.to ?? 0)
-        selectedWeight = Double(detail.modelAttributes?.weight?.from ?? 0)...Double(detail.modelAttributes?.weight?.to ?? 0)
-        selectedWaist = Double(detail.modelAttributes?.waist?.from ?? 0)...Double(detail.modelAttributes?.waist?.to ?? 0)
-        selectedHips = Double(detail.modelAttributes?.hips?.from ?? 0)...Double(detail.modelAttributes?.hips?.to ?? 0)
+        // Числа требований приводим к метрике по маркеру записи: эвент мог быть создан в imperial
+        let attrSystem = detail.modelAttributes?.measuringSystem
+        func normalizedBound(_ value: Float?, kind: DivoMeasureKind) -> Double {
+            DivoMeasuring.normalizedMetric(Double(value ?? 0), sourceSystem: attrSystem, kind: kind)
+        }
+        selectedHeight = normalizedBound(detail.modelAttributes?.height?.from, kind: .height)...normalizedBound(detail.modelAttributes?.height?.to, kind: .height)
+        selectedWeight = normalizedBound(detail.modelAttributes?.weight?.from, kind: .weight)...normalizedBound(detail.modelAttributes?.weight?.to, kind: .weight)
+        selectedWaist = normalizedBound(detail.modelAttributes?.waist?.from, kind: .waist)...normalizedBound(detail.modelAttributes?.waist?.to, kind: .waist)
+        selectedHips = normalizedBound(detail.modelAttributes?.hips?.from, kind: .hips)...normalizedBound(detail.modelAttributes?.hips?.to, kind: .hips)
         selectedShoeSize = Double(detail.modelAttributes?.shoesSize?.from ?? 0)...Double(detail.modelAttributes?.shoesSize?.to ?? 0)
         
         ndaSwitch.isOn = detail.ndaRequired ?? false

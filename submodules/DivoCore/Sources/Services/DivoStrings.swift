@@ -280,7 +280,7 @@ public enum DivoStrings {
     public static var unitYo: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }
     public static var unitIn: String { L(en: "in", ru: "дюйм", es: "in", pt: "pol", zh: "英寸") }
     public static var unitLb: String { L(en: "lb", ru: "фунт", es: "lb", pt: "lb", zh: "磅") }
-    public static var unitFtIn: String { "ft/in" }
+    public static var unitFtIn: String { L(en: "ft/in", ru: "фут/дюйм", es: "ft/in", pt: "ft/pol", zh: "英尺/英寸") }
     public static var unitUS: String { "US" }
 
     // MARK: - Appearance Attributes

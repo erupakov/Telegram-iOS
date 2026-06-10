@@ -157,35 +157,55 @@ public final class EventApplyConfirmationController: TelegramBaseController {
             return isInteger ? "\(Int(val))" : String(format: "%.1f", val)
         }
         
-        // Универсальная функция сравнения числовых диапазонов
-        func checkRange(title: String, userValue: Float?, range: EventFullRange?, suffix: String) {
+        // Универсальная функция сравнения числовых диапазонов.
+        // `userValue` приходит уже в метрике; границы требований приводим к метрике
+        // по маркеру эвента — сравнение всегда в одних единицах, показ — в системе смотрящего.
+        func checkRange(title: String, userValue: Float?, range: EventFullRange?, suffix: String, kind: DivoMeasureKind? = nil) {
             guard let range = range else { return } // Если диапазона нет в требованиях события — пропускаем
-            
+
+            func metricBound(_ value: Float?) -> Float? {
+                guard let value = value, let kind = kind else { return value }
+                return Float(DivoMeasuring.normalizedMetric(Double(value), sourceSystem: eventAttrs?.measuringSystem, kind: kind))
+            }
+            let fromBound = metricBound(range.from)
+            let toBound = metricBound(range.to)
+
             let valueStr: String
             let isMatched: Bool
-            
-            let fromStr = formatValue(range.from)
-            let toStr = formatValue(range.to)
-            
+
+            let fromStr: String?
+            let toStr: String?
+            let unitSuffix: String
+            if let kind = kind {
+                fromStr = fromBound.map { DivoMeasuring.valueString(metric: Double($0), kind: kind) }
+                toStr = toBound.map { DivoMeasuring.valueString(metric: Double($0), kind: kind) }
+                // У imperial-роста единица уже в самом значении (5'7")
+                unitSuffix = (DivoMeasuringSystem.current == .imperial && kind == .height) ? "" : DivoMeasuring.unit(kind: kind)
+            } else {
+                fromStr = formatValue(fromBound)
+                toStr = formatValue(toBound)
+                unitSuffix = suffix
+            }
+
             if let f = fromStr, let t = toStr {
-                valueStr = f == t ? "\(f) \(suffix)" : "\(f)-\(t) \(suffix)"
+                valueStr = f == t ? "\(f) \(unitSuffix)" : "\(f)-\(t) \(unitSuffix)"
             } else if let f = fromStr {
-                valueStr = DivoStrings.rangeFrom("\(f) \(suffix)")
+                valueStr = DivoStrings.rangeFrom("\(f) \(unitSuffix)")
             } else if let t = toStr {
-                valueStr = DivoStrings.rangeUpTo("\(t) \(suffix)")
+                valueStr = DivoStrings.rangeUpTo("\(t) \(unitSuffix)")
             } else {
                 valueStr = DivoStrings.tbd
             }
-            
+
             if let userValue = userValue {
-                let from = range.from ?? -Float.infinity
-                let to = range.to ?? Float.infinity
+                let from = fromBound ?? -Float.infinity
+                let to = toBound ?? Float.infinity
                 isMatched = userValue >= from && userValue <= to
             } else {
                 isMatched = false // У пользователя не заполнено, значит не совпадает
             }
-            
-            matches.append(ParameterMatch(title: title, value: valueStr, isMatched: isMatched))
+
+            matches.append(ParameterMatch(title: title, value: valueStr.trimmingCharacters(in: .whitespaces), isMatched: isMatched))
         }
         
         // Универсальная функция сравнения списков опций (цвет волос, глаз, кожи и т.д.)
@@ -281,34 +301,34 @@ public final class EventApplyConfirmationController: TelegramBaseController {
             checkRange(title: DivoStrings.ageYo, userValue: userAge, range: range, suffix: DivoStrings.yearsOld)
         }
         
+        // Значения юзера приводим к метрике по маркеру его записи
+        func userMetric(_ value: Any?, _ kind: DivoMeasureKind) -> Float? {
+            convertToFloat(value).map { Float(DivoMeasuring.normalizedMetric(Double($0), sourceSystem: userApp?.measuringSystem, kind: kind)) }
+        }
+
         // --- 4. Рост (Height) ---
         if let range = eventAttrs?.height {
-            let userHeight = convertToFloat(userApp?.height)
-            checkRange(title: DivoStrings.heightCm, userValue: userHeight, range: range, suffix: DivoStrings.unitCm)
+            checkRange(title: DivoMeasuring.title(kind: .height), userValue: userMetric(userApp?.height, .height), range: range, suffix: "", kind: .height)
         }
-        
+
         // --- 5. Вес (Weight) ---
         if let range = eventAttrs?.weight {
-            let userWeight = convertToFloat(userApp?.weight)
-            checkRange(title: DivoStrings.weightKg, userValue: userWeight, range: range, suffix: DivoStrings.unitKg)
+            checkRange(title: DivoMeasuring.title(kind: .weight), userValue: userMetric(userApp?.weight, .weight), range: range, suffix: "", kind: .weight)
         }
-        
+
         // --- 6. Талия (Waist) ---
         if let range = eventAttrs?.waist {
-            let userWaist = convertToFloat(userApp?.waist)
-            checkRange(title: DivoStrings.waistCm, userValue: userWaist, range: range, suffix: DivoStrings.unitCm)
+            checkRange(title: DivoMeasuring.title(kind: .waist), userValue: userMetric(userApp?.waist, .waist), range: range, suffix: "", kind: .waist)
         }
         
         // --- 7. Бедра (Hips) ---
         if let range = eventAttrs?.hips {
-            let userHips = convertToFloat(userApp?.hips)
-            checkRange(title: DivoStrings.hipsCm, userValue: userHips, range: range, suffix: DivoStrings.unitCm)
+            checkRange(title: DivoMeasuring.title(kind: .hips), userValue: userMetric(userApp?.hips, .hips), range: range, suffix: "", kind: .hips)
         }
         
         // --- 8. Размер обуви (Shoe Size) ---
         if let range = eventAttrs?.shoesSize {
-            let userShoes = convertToFloat(userApp?.shoesSize)
-            checkRange(title: DivoStrings.shoeSizeEU, userValue: userShoes, range: range, suffix: "")
+            checkRange(title: DivoMeasuring.title(kind: .shoeSize), userValue: userMetric(userApp?.shoesSize, .shoeSize), range: range, suffix: "", kind: .shoeSize)
         }
         
         // --- 9. Цвет волос (Hair Color) ---

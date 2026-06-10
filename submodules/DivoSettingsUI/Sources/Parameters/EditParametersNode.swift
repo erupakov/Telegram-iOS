@@ -175,10 +175,11 @@ final class EditParametersNode: ASDisplayNode {
         super.init()
 
         if let app = model?.model?.appearance {
-            self.selectedHeight = app.height
-            self.selectedWeight = app.weight
-            self.selectedWaist = app.waist
-            self.selectedHips = app.hips
+            // Числа с сервера приводим к метрике по маркеру записи: запись могла быть сделана в imperial
+            self.selectedHeight = app.height.map { DivoMeasuring.normalizedMetric($0, sourceSystem: app.measuringSystem, kind: .height) }
+            self.selectedWeight = app.weight.map { DivoMeasuring.normalizedMetric($0, sourceSystem: app.measuringSystem, kind: .weight) }
+            self.selectedWaist = app.waist.map { DivoMeasuring.normalizedMetric($0, sourceSystem: app.measuringSystem, kind: .waist) }
+            self.selectedHips = app.hips.map { DivoMeasuring.normalizedMetric($0, sourceSystem: app.measuringSystem, kind: .hips) }
             self.selectedShoeSize = app.shoesSize
 
             self.selectedHairLengthId = app.hairLength?.id
@@ -443,20 +444,27 @@ final class EditParametersNode: ASDisplayNode {
         presentSheet(vc)
     }
 
-    private func showSingleInput(title: String, min: Double, max: Double, current: Double?, completion: @escaping (Double?) -> Void) {
+    private func showSingleInput(kind: DivoMeasureKind, min: Double, max: Double, current: Double?, completion: @escaping (Double?) -> Void) {
+        let system = DivoMeasuringSystem.current
+        let displayCurrent = current.map { DivoMeasuring.displayValue(metric: $0, kind: kind, system: system) }
         let vc = RangeFilterController(
-            title: title,
-            min: min,
-            max: max,
+            title: DivoMeasuring.inputTitle(kind: kind, system: system),
+            min: DivoMeasuring.displayValue(metric: min, kind: kind, system: system),
+            max: DivoMeasuring.displayValue(metric: max, kind: kind, system: system),
             currentLower: nil,
-            currentUpper: current,
+            currentUpper: displayCurrent,
             isSingleValue: true,
             isOpenPresent: true,
             isResetButton: false
         )
 
         vc.onSave = { [weak self] _, upperVal in
-            completion(upperVal)
+            // Ползунок не двигали — оставляем исходную метрику, иначе обратная
+            // конвертация с округлением сдвигала бы значение на каждом сохранении
+            let metricVal = upperVal == displayCurrent
+                ? current
+                : upperVal.map { DivoMeasuring.metricValue(display: $0, kind: kind, system: system) }
+            completion(metricVal)
             self?.updateAppearanceValues()
             self?.updateSaveButtonState()
         }
@@ -505,51 +513,51 @@ final class EditParametersNode: ASDisplayNode {
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.heightCm,
-                getValues: { [weak self] in self?.selectedHeight.map { ["\(Int($0)) cm"] } ?? [] },
+                title: DivoMeasuring.title(kind: .height),
+                getValues: { [weak self] in self?.selectedHeight.map { [DivoMeasuring.valueWithUnit(metric: $0, kind: .height)] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.heightCm, min: 100, max: 300, current: self?.selectedHeight) { val in
+                    self?.showSingleInput(kind: .height, min: 140, max: 210, current: self?.selectedHeight) { val in
                         self?.selectedHeight = val
                     }
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.weightKg,
-                getValues: { [weak self] in self?.selectedWeight.map { ["\(Int($0)) kg"] } ?? [] },
+                title: DivoMeasuring.title(kind: .weight),
+                getValues: { [weak self] in self?.selectedWeight.map { [DivoMeasuring.valueWithUnit(metric: $0, kind: .weight)] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.weightKg, min: 30, max: 150, current: self?.selectedWeight) { val in
+                    self?.showSingleInput(kind: .weight, min: 40, max: 130, current: self?.selectedWeight) { val in
                         self?.selectedWeight = val
                     }
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.waistCm,
-                getValues: { [weak self] in self?.selectedWaist.map { ["\(Int($0)) cm"] } ?? [] },
+                title: DivoMeasuring.title(kind: .waist),
+                getValues: { [weak self] in self?.selectedWaist.map { [DivoMeasuring.valueWithUnit(metric: $0, kind: .waist)] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.waistCm, min: 40, max: 120, current: self?.selectedWaist) { val in
+                    self?.showSingleInput(kind: .waist, min: 50, max: 120, current: self?.selectedWaist) { val in
                         self?.selectedWaist = val
                     }
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.hipsCm,
-                getValues: { [weak self] in self?.selectedHips.map { ["\(Int($0)) cm"] } ?? [] },
+                title: DivoMeasuring.title(kind: .hips),
+                getValues: { [weak self] in self?.selectedHips.map { [DivoMeasuring.valueWithUnit(metric: $0, kind: .hips)] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.hipsCm, min: 60, max: 150, current: self?.selectedHips) { val in
+                    self?.showSingleInput(kind: .hips, min: 70, max: 140, current: self?.selectedHips) { val in
                         self?.selectedHips = val
                     }
                 }
             ),
             AppearanceEditItem(
-                title: DivoStrings.shoeSizeEU,
-                getValues: { [weak self] in self?.selectedShoeSize.map { ["\(Int($0))"] } ?? [] },
+                title: DivoMeasuring.title(kind: .shoeSize),
+                getValues: { [weak self] in self?.selectedShoeSize.map { [DivoMeasuring.valueString(metric: $0, kind: .shoeSize)] } ?? [] },
                 emptyTitle: DivoStrings.debugAny,
                 onTap: { [weak self] in
-                    self?.showSingleInput(title: DivoStrings.shoeSizeEU, min: 30, max: 50, current: self?.selectedShoeSize) { val in
+                    self?.showSingleInput(kind: .shoeSize, min: 34, max: 48, current: self?.selectedShoeSize) { val in
                         self?.selectedShoeSize = val
                     }
                 }

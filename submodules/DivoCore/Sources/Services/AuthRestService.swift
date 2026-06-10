@@ -274,6 +274,7 @@ public final class AuthRestService {
     /// 422 на обязательных полях структурного профиля (см. DivoOnboardingSubmitService).
     public func userDetail() async throws -> UserDetail {
         let env: UserDetailResponse = try await client.request(path: "/user/info")
+        DivoMeasuringSystem.updateCurrent(env.data.measuringSystem)
         return env.data
     }
 
