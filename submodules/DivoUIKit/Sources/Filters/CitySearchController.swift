@@ -13,9 +13,29 @@ import DivoCore
 public final class CitySearchController: UIViewController, MKLocalSearchCompleterDelegate {
 
     private let completer = MKLocalSearchCompleter()
-    private var currentResults: [MKLocalSearchCompletion] = []
     private var searchDebounceTimer: Foundation.Timer?
-    private var completerErrorText: String?
+    private var throttleRetryTimer: Foundation.Timer?
+
+    // Единственный источник правды для экрана — render() рисует только из state.
+    private enum SearchState {
+        case idle                                        // поле пустое, показываем предвыбор
+        case searching(stale: [MKLocalSearchCompletion]) // ждём комплитер, на экране прошлые результаты
+        case loaded([MKLocalSearchCompletion])
+        case notFound
+        case error(String)
+
+        var visibleResults: [MKLocalSearchCompletion] {
+            switch self {
+            case .searching(let stale): return stale
+            case .loaded(let results): return results
+            case .idle, .notFound, .error: return []
+            }
+        }
+    }
+
+    private var state: SearchState = .idle {
+        didSet { render() }
+    }
 
     private var selectedCities: [String: String] = [:]
     
@@ -189,7 +209,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)), name: UIResponder.keyboardWillHideNotification, object: nil)
 
         // Сразу показываем уже выбранные города (предвыбор) — до первого ввода.
-        reloadOptions()
+        render()
 
         searchTextField.becomeFirstResponder()
     }
@@ -197,6 +217,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     deinit {
         NotificationCenter.default.removeObserver(self)
         searchDebounceTimer?.invalidate()
+        throttleRetryTimer?.invalidate()
     }
 
     @objc private func keyboardWillShow(_ notification: Notification) {
@@ -292,44 +313,53 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         scrollView.contentInset.top = DivoDesignTokens.Spacing.m
     }
     
-    private func reloadOptions() {
+    private func render() {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
 
-        if let errorText = completerErrorText {
-            stackView.addArrangedSubview(makeMessageView(errorText))
-            return
-        }
-
-        if currentResults.isEmpty && !selectedCities.isEmpty {
-            let sortedKeys = Array(selectedCities.keys).sorted()
-            for (index, key) in sortedKeys.enumerated() {
-                if let fullTitle = selectedCities[key] {
-                    let cell = createOptionCell(
-                        title: fullTitle,
-                        isSelected: true,
-                        isLast: index == sortedKeys.count - 1
-                    )
-                    
-                    let tapGesture = UITapGestureRecognizer(target: self, action: #selector(preselectedOptionTapped(_:)))
-                    cell.addGestureRecognizer(tapGesture)
-                    cell.tag = index
-                    cell.addPressState(alpha: DivoDesignTokens.PressState.alphaOnClear)
-                    
-                    stackView.addArrangedSubview(cell)
-                }
-            }
-            return
-        }
-
-        if currentResults.isEmpty {
-            let query = (searchTextField.text ?? "").trimmingCharacters(in: .whitespaces)
-            if !query.isEmpty {
+        switch state {
+        case .error(let text):
+            stackView.addArrangedSubview(makeMessageView(text))
+        case .notFound:
+            // С непустым предвыбором заглушку не показываем — как и раньше, остаётся список выбранного.
+            if selectedCities.isEmpty {
                 stackView.addArrangedSubview(makeMessageView(DivoStrings.cityNotFound))
+            } else {
+                renderPreselectedCities()
             }
-            return
+        case .idle:
+            renderPreselectedCities()
+        case .searching, .loaded:
+            let results = state.visibleResults
+            if results.isEmpty {
+                renderPreselectedCities()
+            } else {
+                renderResults(results)
+            }
         }
+    }
 
-        for (index, completion) in currentResults.enumerated() {
+    private func renderPreselectedCities() {
+        let sortedKeys = Array(selectedCities.keys).sorted()
+        for (index, key) in sortedKeys.enumerated() {
+            if let fullTitle = selectedCities[key] {
+                let cell = createOptionCell(
+                    title: fullTitle,
+                    isSelected: true,
+                    isLast: index == sortedKeys.count - 1
+                )
+                
+                let tapGesture = UITapGestureRecognizer(target: self, action: #selector(preselectedOptionTapped(_:)))
+                cell.addGestureRecognizer(tapGesture)
+                cell.tag = index
+                cell.addPressState(alpha: DivoDesignTokens.PressState.alphaOnClear)
+                
+                stackView.addArrangedSubview(cell)
+            }
+        }
+    }
+
+    private func renderResults(_ results: [MKLocalSearchCompletion]) {
+        for (index, completion) in results.enumerated() {
             let id = completion.title + "|||" + completion.subtitle
             let flag = extractFlag(from: completion.subtitle)
 
@@ -341,7 +371,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
             let cell = createOptionCell(
                 title: fullTitle,
                 isSelected: isSelected,
-                isLast: index == currentResults.count - 1
+                isLast: index == results.count - 1
             )
             
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(optionTapped(_:)))
@@ -447,8 +477,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     // MARK: - MKLocalSearchCompleterDelegate
     
     public func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        self.completerErrorText = nil
-        self.currentResults = completer.results.filter { completion in
+        let filtered = completer.results.filter { completion in
             let subtitle = completion.subtitle.lowercased()
             
             let hasHouseNumber = subtitle.rangeOfCharacter(from: .decimalDigits) != nil
@@ -463,20 +492,66 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
             
             return true
         }
-        reloadOptions()
+
+        if !filtered.isEmpty {
+            state = .loaded(filtered)
+        } else if !completer.isSearching {
+            state = settledEmptyState()
+        }
+        // Промежуточный пустой апдейт (isSearching == true) не показываем — ждём финальный.
     }
-    
+
     public func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
         divoLog("CitySearch completer failed: \(error)", level: .error)
-        completerErrorText = isNoInternet(error) ? DivoStrings.noInternetConnection : DivoStrings.genericError
-        currentResults = []
-        reloadOptions()
+
+        // Запрос отменён сменой текста — результат уже неактуален.
+        if containsURLError(error, codes: [NSURLErrorCancelled]) {
+            return
+        }
+
+        switch (error as? MKError)?.code {
+        case .placemarkNotFound?:
+            // Для комплитера это «ничего не нашлось», а не ошибка.
+            state = settledEmptyState()
+        case .loadingThrottled?:
+            scheduleThrottledRetry()
+        default:
+            state = .error(isNoInternet(error) ? DivoStrings.noInternetConnection : DivoStrings.genericError)
+        }
+    }
+
+    // Троттлинг MapKit — не ошибка: остаёмся на прошлых результатах и повторяем запрос позже.
+    private func scheduleThrottledRetry() {
+        throttleRetryTimer?.invalidate()
+        throttleRetryTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+            guard let self = self, case .searching = self.state else { return }
+            let query = self.trimmedQuery
+            guard !query.isEmpty else { return }
+            self.completer.queryFragment = query
+        }
+    }
+
+    // Поиск завершился пустым: по 1 символу подсказок почти не бывает, «не найдено» не утверждаем.
+    private func settledEmptyState() -> SearchState {
+        trimmedQuery.count >= 2 ? .notFound : .loaded([])
+    }
+
+    private var trimmedQuery: String {
+        (searchTextField.text ?? "").trimmingCharacters(in: .whitespaces)
     }
 
     private func isNoInternet(_ error: Error) -> Bool {
-        let nsError = error as NSError
-        if nsError.domain == NSURLErrorDomain { return true }
-        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? NSError, underlying.domain == NSURLErrorDomain { return true }
+        containsURLError(error, codes: [NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorDataNotAllowed])
+    }
+
+    private func containsURLError(_ error: Error, codes: Set<Int>) -> Bool {
+        var current: NSError? = error as NSError
+        while let nsError = current {
+            if nsError.domain == NSURLErrorDomain && codes.contains(nsError.code) {
+                return true
+            }
+            current = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
         return false
     }
 
@@ -498,13 +573,14 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         } else {
             selectedCities.removeAll()
         }
-        
-        reloadOptions()
+
+        render()
     }
 
     @objc private func optionTapped(_ gesture: UITapGestureRecognizer) {
-        guard let cell = gesture.view, let index = cell.tag as Int?, index < currentResults.count else { return }
-        let selectedCompletion = currentResults[index]
+        let results = state.visibleResults
+        guard let cell = gesture.view, let index = cell.tag as Int?, index < results.count else { return }
+        let selectedCompletion = results[index]
         
         let flag = extractFlag(from: selectedCompletion.subtitle)
         let countryName = selectedCompletion.subtitle.split(separator: ",").last?.trimmingCharacters(in: .whitespaces) ?? ""
@@ -522,21 +598,22 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
             selectedCities.removeAll()
             selectedCities[id] = fullTitle
         }
-        
-        reloadOptions()
+
+        render()
     }
 
     @objc private func searchTextChanged() {
         let text = searchTextField.text ?? ""
 
         searchDebounceTimer?.invalidate()
-        completerErrorText = nil
+        throttleRetryTimer?.invalidate()
 
         if text.isEmpty {
             completer.cancel()
-            currentResults = []
-            reloadOptions()
+            state = .idle
         } else {
+            // Пока идёт новый поиск, держим на экране прошлые результаты — без мигания заглушками.
+            state = .searching(stale: state.visibleResults)
             searchDebounceTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
                 self?.completer.queryFragment = text
             }
