@@ -318,7 +318,7 @@ private final class CameraScreenComponent: CombinedComponent {
         
         fileprivate var sendAsPeerId: EnginePeer.Id?
         fileprivate var isCustomTarget = false
-        fileprivate var canLivestream = true
+        fileprivate var canLivestream = false // DIVO: teamgram не реализует stories.startLive — вкладка «Live» скрыта до серверной поддержки
         
         private var privacy: EngineStoryPrivacy = EngineStoryPrivacy(base: .everyone, additionallyIncludePeers: [])
         private var allowComments = true
