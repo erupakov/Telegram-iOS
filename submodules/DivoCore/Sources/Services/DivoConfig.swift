@@ -155,6 +155,9 @@ public enum DivoConfig {
     public static let shareBaseURL = "https://api.divo.fashion"
     public static let shareHost = "api.divo.fashion"
 
+    public static let eulaURL = "https://www.divo.global/legal-documents/mobile-app-eula"
+    public static let privacyPolicyURL = "https://www.divo.global/legal-documents/privacy-policy"
+
     // MARK: - Pending social registration (ветка D)
 
     /// Соц-юзер прошёл Firebase, но DIVO-аккаунта ещё нет (login-social 422). Запоминаем

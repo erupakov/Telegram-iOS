@@ -196,6 +196,12 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 await DivoAuthAppleHandler.signIn(from: controller)
             }
         }
+        controller.onOpenTerms = { [weak self] in
+            self?.openUrl(DivoConfig.eulaURL)
+        }
+        controller.onOpenPrivacy = { [weak self] in
+            self?.openUrl(DivoConfig.privacyPolicyURL)
+        }
         // Ветки A/B соц-входа: presenter зовёт это с phone из user/info → headless teamgram.
         // DIVO-токен уже выставлен login-social'ом, divoPendingPhone НЕ ставим (phone-link не нужен).
         controller.onAuthenticateTeamgram = { [weak self] phone in
