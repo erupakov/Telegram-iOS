@@ -278,6 +278,10 @@ public enum DivoStrings {
     public static var unitKg: String { L(en: "kg", ru: "кг", es: "kg", pt: "kg", zh: "公斤") }
     public static var unitEU: String { "EU" }
     public static var unitYo: String { L(en: "y.o", ru: "лет", es: "años", pt: "anos", zh: "岁") }
+    public static var unitIn: String { L(en: "in", ru: "дюйм", es: "in", pt: "pol", zh: "英寸") }
+    public static var unitLb: String { L(en: "lb", ru: "фунт", es: "lb", pt: "lb", zh: "磅") }
+    public static var unitFtIn: String { "ft/in" }
+    public static var unitUS: String { "US" }
 
     // MARK: - Appearance Attributes
 
@@ -464,6 +468,12 @@ public enum DivoStrings {
     public static var waistCm: String { L(en: "Waist (cm)", ru: "Талия (см)", es: "Cintura (cm)", pt: "Cintura (cm)", zh: "腰围（厘米）") }
     public static var hipsCm: String { L(en: "Hips (cm)", ru: "Бёдра (см)", es: "Caderas (cm)", pt: "Quadris (cm)", zh: "臀围（厘米）") }
     public static var shoeSizeEU: String { L(en: "Shoe size (EU)", ru: "Размер обуви (EU)", es: "Talla de zapato (EU)", pt: "Tamanho do sapato (EU)", zh: "鞋码（EU）") }
+    public static var heightIn: String { L(en: "Height (in)", ru: "Рост (дюймы)", es: "Altura (in)", pt: "Altura (pol)", zh: "身高（英寸）") }
+    public static var heightFtIn: String { L(en: "Height (ft/in)", ru: "Рост (фут/дюйм)", es: "Altura (ft/in)", pt: "Altura (ft/pol)", zh: "身高（英尺/英寸）") }
+    public static var weightLb: String { L(en: "Weight (lb)", ru: "Вес (фунты)", es: "Peso (lb)", pt: "Peso (lb)", zh: "体重（磅）") }
+    public static var waistIn: String { L(en: "Waist (in)", ru: "Талия (дюймы)", es: "Cintura (in)", pt: "Cintura (pol)", zh: "腰围（英寸）") }
+    public static var hipsIn: String { L(en: "Hips (in)", ru: "Бёдра (дюймы)", es: "Caderas (in)", pt: "Quadris (pol)", zh: "臀围（英寸）") }
+    public static var shoeSizeUS: String { L(en: "Shoe size (US)", ru: "Размер обуви (US)", es: "Talla de zapato (US)", pt: "Tamanho do sapato (US)", zh: "鞋码（US）") }
     public static var hairLength: String { L(en: "Length hair", ru: "Длина волос", es: "Largo del cabello", pt: "Comprimento do cabelo", zh: "头发长度") }
     public static var chooseHairLength: String { L(en: "Choose your length hair", ru: "Выберите длину волос", es: "Elija el largo de su cabello", pt: "Escolha o comprimento do cabelo", zh: "选择头发长度") }
     public static var hairColor: String { L(en: "Hair color", ru: "Цвет волос", es: "Color de cabello", pt: "Cor do cabelo", zh: "发色") }
@@ -653,6 +663,7 @@ public enum DivoStrings {
     public static var profileEmptyEventsSubtitleOther: String { L(en: "This profile hasn't created any events yet", ru: "В этом профиле пока нет событий", es: "Este perfil aún no ha creado eventos", pt: "Este perfil ainda não criou eventos", zh: "该资料尚未创建任何活动") }
     public static var profileEmptyEventsCTA: String { L(en: "Create new event", ru: "Создать событие", es: "Crear evento", pt: "Criar evento", zh: "创建新活动") }
     public static var sendDM: String { L(en: "Send DM", ru: "Написать", es: "Enviar MD", pt: "Enviar MD", zh: "发私信") }
+    public static var failedToOpenChat: String { L(en: "Couldn't open chat", ru: "Не удалось открыть чат", es: "No se pudo abrir el chat", pt: "Não foi possível abrir o chat", zh: "无法打开聊天") }
     public static var loadingModelsList: String { L(en: "LOADING MODELS LIST...", ru: "ЗАГРУЗКА СПИСКА МОДЕЛЕЙ...", es: "CARGANDO LISTA DE MODELOS...", pt: "CARREGANDO LISTA DE MODELOS...", zh: "加载模特列表...") }
     public static var loadingTalentsList: String { L(en: "LOADING TALENTS...", ru: "ЗАГРУЗКА ТАЛАНТОВ...", es: "CARGANDO TALENTOS...", pt: "CARREGANDO TALENTOS...", zh: "加载新人才...") }
     public static var loadingAgenciesList: String { L(en: "LOADING AGENCIES...", ru: "ЗАГРУЗКА АГЕНТСТВ...", es: "CARGANDO AGENCIAS...", pt: "CARREGANDO AGÊNCIAS...", zh: "加载经纪公司...") }

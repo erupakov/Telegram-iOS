@@ -45,6 +45,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private let context: AccountContext
     private let supportPeerDisposable = MetaDisposable()
     private let createWorkExperienceDisposable = MetaDisposable()
+    private let openChatDisposable = MetaDisposable()
+    private var isOpeningChat = false
     
     private var presentationData: PresentationData
     
@@ -129,6 +131,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     deinit {
         self.supportPeerDisposable.dispose()
         self.createWorkExperienceDisposable.dispose()
+        self.openChatDisposable.dispose()
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -373,6 +376,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.handleGridShare(item: item, image: image)
         }
 
+        self.controllerNode.onSendDMTapped = { [weak self] in
+            self?.openDirectMessage()
+        }
+
         self.controllerNode.onFaceScanTapped = { [weak self] in
             self?.openFaceScanForCurrentProfile()
         }
@@ -442,6 +449,41 @@ public final class PublicProfileScreenController: TelegramBaseController {
         super.viewDidLoad()
         // DIVO свёрстан под светлую палитру — форсим .light
         overrideUserInterfaceStyle = .light
+    }
+
+    private func openDirectMessage() {
+        guard !self.isOpeningChat, let telegramId = self.userDetailModel?.telegramId else { return }
+        self.isOpeningChat = true
+
+        let context = self.context
+        let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))
+        let peerSignal: Signal<EnginePeer?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+        |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
+            if let peer = peer {
+                return .single(peer)
+            }
+            // Peer ещё не в Postbox — подтягиваем users.getUsers; teamgram не валидирует access_hash
+            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: 0))
+            |> map { peer -> EnginePeer? in EnginePeer(peer) }
+            |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
+        }
+
+        self.openChatDisposable.set((peerSignal
+        |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
+            guard let self = self else { return }
+            self.isOpeningChat = false
+            guard let peer = peer else {
+                divoLog("openDirectMessage: не удалось получить peer для telegramId=\(telegramId)", level: .error)
+                self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
+                return
+            }
+            guard let navigationController = self.navigationController as? NavigationController else { return }
+            self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(
+                navigationController: navigationController,
+                context: self.context,
+                chatLocation: .peer(peer)
+            ))
+        }))
     }
 
     private func handleGridShare(item: UserDetail?, image: UIImage?) {

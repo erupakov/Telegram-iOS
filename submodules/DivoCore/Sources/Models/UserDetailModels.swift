@@ -14,6 +14,7 @@ public struct UserDetail: Decodable {
     public let city: UserCity?
     public let email: String?
     public let phone: String?
+    public let telegramId: Int?
     public let photo: UserFile?
     public let avatar: UserFile?
     public let role: String?
@@ -35,6 +36,7 @@ public struct UserDetail: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case id, fullName, gender, birthday, city, email, phone
+        case telegramId
         case photo, avatar, role, subrole, roleLabel
         case measuringSystem, pushNotifications
         case isPremium = "is_premium"

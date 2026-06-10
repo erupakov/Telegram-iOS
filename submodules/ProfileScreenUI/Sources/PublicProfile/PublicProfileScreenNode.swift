@@ -753,6 +753,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onEventDeleteButtonTapped: ((Int) -> Void)?
     var onBackTapped: (() -> Void)?
     var onGridShareTapped: ((UserDetail?, UIImage?) -> Void)?
+    var onSendDMTapped: (() -> Void)?
     
     var onFaceScanTapped: (() -> Void)?
     var onReportProfileTapped: (() -> Void)?
@@ -3054,23 +3055,30 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
 
         if let appearance = appearance {
+            // Числа записи приводим к метрике по её маркеру, показываем в системе смотрящего
+            func shownValue(_ value: Double, _ kind: DivoMeasureKind) -> String {
+                DivoMeasuring.valueString(
+                    metric: DivoMeasuring.normalizedMetric(value, sourceSystem: appearance.measuringSystem, kind: kind),
+                    kind: kind
+                )
+            }
             if let height = appearance.height {
-                items.append(.init(title: titleWithUnit(DivoStrings.attrHeight, DivoStrings.unitCm), value: height.clean))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrHeight, DivoMeasuring.unit(kind: .height)), value: shownValue(height, .height)))
             }
             if let waist = appearance.waist {
-                items.append(.init(title: titleWithUnit(DivoStrings.attrWaist, DivoStrings.unitCm), value: waist.clean))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrWaist, DivoMeasuring.unit(kind: .waist)), value: shownValue(waist, .waist)))
             }
             if let weight = appearance.weight {
-                items.append(.init(title: titleWithUnit(DivoStrings.attrWeight, DivoStrings.unitKg), value: weight.clean))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrWeight, DivoMeasuring.unit(kind: .weight)), value: shownValue(weight, .weight)))
             }
             if let bust = appearance.breastSize {
                 items.append(.init(title: DivoStrings.attrBust, value: bust))
             }
             if let hips = appearance.hips {
-                items.append(.init(title: titleWithUnit(DivoStrings.attrHips, DivoStrings.unitCm), value: hips.clean))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrHips, DivoMeasuring.unit(kind: .hips)), value: shownValue(hips, .hips)))
             }
             if let shoesSize = appearance.shoesSize {
-                items.append(.init(title: titleWithUnit(DivoStrings.attrShoes, DivoStrings.unitEU), value: shoesSize.clean))
+                items.append(.init(title: titleWithUnit(DivoStrings.attrShoes, DivoMeasuring.unit(kind: .shoeSize)), value: shownValue(shoesSize, .shoeSize)))
             }
             if let hairColor = appearance.hairColor?.title {
                 items.append(.init(title: DivoStrings.attrHairColor, value: hairColor))
@@ -3536,6 +3544,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             sendShareContainer.isHidden = false
             dmShareStack.isHidden = false
             dmShareShimmerStack.isHidden = true
+            // Send DM только для юзеров со связкой teamgram (POST /auth/telegram-link)
+            dmButton.isHidden = detail.telegramId == nil
             setupDmButtonContent()
             titleEditContainer.removeFromSuperview()
         } else {
@@ -4577,7 +4587,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
     
     @objc private func dmButtonTapped() {
-        // FIXME DIVO: implement send DM action (open chat with user)
+        onSendDMTapped?()
     }
     
     @objc private func handleTouchDown(_ sender: UIControl) {
