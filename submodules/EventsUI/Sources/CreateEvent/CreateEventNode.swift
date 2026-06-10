@@ -753,7 +753,7 @@ final class CreateEventNode: ASDisplayNode {
             buttonConstraint: applyButtonBottomConstraint!,
             overlayConstraint: bottomFadeOverlayBottomConstraint!,
             hostView: self.view,
-            defaultScrollInset: 80,
+            defaultScrollInset: bottomInsetForStep(at: 0),
             scrollToActiveField: { [weak self] in
                 guard let self, self.aboutEventTextField.textView.isFirstResponder else { return }
                 let frame = self.aboutEventTextField.convert(self.aboutEventTextField.bounds, to: self.step1ScrollView)
@@ -767,7 +767,7 @@ final class CreateEventNode: ASDisplayNode {
             buttonConstraint: applyButtonBottomConstraint!,
             overlayConstraint: bottomFadeOverlayBottomConstraint!,
             hostView: self.view,
-            defaultScrollInset: 80,
+            defaultScrollInset: bottomInsetForStep(at: 1),
             scrollToActiveField: { [weak self] in
                 guard let self, self.requirementsTextField.textView.isFirstResponder else { return }
                 let frame = self.requirementsTextField.convert(self.requirementsTextField.bounds, to: self.step2ScrollView)
@@ -901,11 +901,12 @@ final class CreateEventNode: ASDisplayNode {
     /// Шаг 3 обязан полностью очищать кнопочный стек (apply [+ discard в edit] + margin от низа + padding),
     /// иначе последние строки контента уходят под кнопки и сам жест скролла не зацепляется.
     private func bottomInsetForStep(at index: Int) -> CGFloat {
-        guard index == 2 else { return 80 }
         let buttonHeight: CGFloat = 56
         let buttonsBottomMargin: CGFloat = 40
         let buttonsExtraPadding: CGFloat = 32
-        let stackHeight: CGFloat = self.mode.isEdit
+        // Резерв под нижнюю кнопку (видна на всех шагах) — иначе короткий step1 не скроллится.
+        let showsDiscard = (index == 2) && self.mode.isEdit
+        let stackHeight: CGFloat = showsDiscard
             ? (buttonHeight + DivoDesignTokens.Spacing.m + buttonHeight)
             : buttonHeight
         return stackHeight + buttonsBottomMargin + buttonsExtraPadding
@@ -931,6 +932,8 @@ final class CreateEventNode: ASDisplayNode {
             scrollView.translatesAutoresizingMaskIntoConstraints = false
             scrollView.showsVerticalScrollIndicator = false
             scrollView.keyboardDismissMode = .interactive
+            // Контент шага 1 чуть выше экрана — без этого скролл «дрожит» на границе bounce.
+            scrollView.alwaysBounceVertical = true
             scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInsetForStep(at: index), right: 0)
             
             let stack = stacks[index]

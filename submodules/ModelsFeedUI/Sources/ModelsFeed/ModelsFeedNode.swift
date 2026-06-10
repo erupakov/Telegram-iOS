@@ -11,6 +11,8 @@ import ItemListUI
 import PresentationDataUtils
 import AccountContext
 import AppBundle
+import AvatarNode
+import LocalizedPeerData
 
 final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, CardCellDelegate {
     private static let paginationSpinnerHeight: CGFloat = 60
@@ -47,15 +49,18 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private var storiesCollectionView: UICollectionView!
     private var mainCollectionView: UICollectionView!
 
-    private var stories: [StoryModel] {
-        [
-            StoryModel(name: DivoStrings.addStory, avatar: nil, isLive: false, isAdd: true),
-            StoryModel(name: "Jack D.", avatar: DivoImage.storyAvatarStub5, isLive: false, isAdd: false),
-            StoryModel(name: "Joshua", avatar: nil, isLive: false, isAdd: false),
-            StoryModel(name: "waggles", avatar: nil, isLive: true, isAdd: false),
-            StoryModel(name: "steve.loves", avatar: nil, isLive: true, isAdd: false),
-        ]
-    }
+    // Реальная лента сторис через MTProto. Первый элемент всегда — ячейка «+» (всегда видима),
+    // дальше идут пиры из storySubscriptions. Строится в `applyStories()`.
+    private var storyItems: [StoryModel] = []
+    private var storySubscriptionItems: [EngineStorySubscriptions.Item] = []
+    private var storyAvatarCache: [EnginePeer.Id: UIImage] = [:]
+    // Фото, под которое уже грузили аву — для перечитки при смене авы (см. loadStoryAvatars).
+    private var storyAvatarReps: [EnginePeer.Id: TelegramMediaImageRepresentation] = [:]
+    private var storySubscriptionsDisposable: Disposable?
+    private let storyAvatarDisposables = DisposableSet()
+
+    // Сколько аватаров сторис «улетает» в навбар при сворачивании шапки.
+    private let maxNavbarStories = 3
 
     private var cards: [CardModel] = []
 
@@ -165,6 +170,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     var onTabSelected: ((Int) -> Void)?
     var onRetry: (() -> Void)?
     var onPaginationRetry: (() -> Void)?
+    var onOpenStory: ((EnginePeer.Id, [EnginePeer.Id]) -> Void)?
+    var onAddStory: (() -> Void)?
 
     func updateCards(_ newCards: [CardModel], animated: Bool = false) {
         self.cards = newCards
@@ -225,13 +232,13 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         storiesFlowLayout.sectionInset = UIEdgeInsets(top: 0, left: 15, bottom: 0, right: 15)
         storiesFlowLayout.headerReferenceSize = .zero
         storiesFlowLayout.footerReferenceSize = .zero
-        storiesFlowLayout.estimatedItemSize = CGSize(width: 70, height: 90)
 
         self.storiesCollectionView = UICollectionView(frame: .zero, collectionViewLayout: storiesFlowLayout)
         self.storiesCollectionView.backgroundColor = DivoColorPalette.screenBackground
         self.storiesCollectionView.dataSource = self
         self.storiesCollectionView.delegate = self
         self.storiesCollectionView.showsHorizontalScrollIndicator = false
+        self.storiesCollectionView.delaysContentTouches = false
         self.storiesCollectionView.translatesAutoresizingMaskIntoConstraints = false
         if #available(iOS 11.0, *) {
             self.storiesCollectionView.contentInsetAdjustmentBehavior = .never
@@ -257,43 +264,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         self.titleLabel.text = DivoStrings.navModels
 
-        // Create floating avatars + names for ALL stories (animate 5→3→navbar)
-        for i in 0..<stories.count {
-            let story = stories[i]
-
-            let iv = UIImageView()
-            iv.contentMode = .scaleAspectFill
-            iv.layer.masksToBounds = true
-            iv.layer.borderColor = UIColor.white.cgColor
-            iv.layer.borderWidth = 0
-            iv.backgroundColor = DivoColorPalette.avatarPlaceholderCool
-            iv.alpha = 0
-            if let isAdd = story.isAdd, isAdd {
-                iv.backgroundColor = .white
-                iv.contentMode = .center
-                let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-                iv.image = UIImage(systemName: "plus", withConfiguration: config)
-                iv.tintColor = .black
-            } else if let img = story.avatar {
-                iv.image = img
-            }
-            floatingAvatars.append(iv)
-
-            let label = UILabel()
-            label.text = story.name
-            label.font = .systemFont(ofSize: 12)
-            label.textAlignment = .center
-            label.alpha = 0
-            floatingNames.append(label)
-        }
-
         self.view.addSubview(self.mainCollectionView)
         self.view.addSubview(self.navBackgroundView)
         self.view.addSubview(self.storiesCollectionView)
         self.view.addSubview(self.segmentedControlFadeOverlay)
         self.view.addSubview(self.tabsContainerView)
-        for av in floatingAvatars { self.view.addSubview(av) }
-        for lbl in floatingNames { self.view.addSubview(lbl) }
         self.navBackgroundView.addSubview(self.titleLabel)
 
         // Segmented control tabs
@@ -305,11 +280,12 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             self.onTabSelected?(index)
         }
 
-        self.storiesCollectionView.reloadData()
+        self.applyStories()
         self.mainCollectionView.reloadData()
 
         self.didSetReady = true
         self._ready.set(true)
+        self.setupStorySubscription()
         NotificationCenter.default.addObserver(forName: DivoStrings.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self = self else { return }
             self.titleLabel.text = DivoStrings.navModels
@@ -317,9 +293,135 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             if let (layout, navigationBarHeight) = self.containerLayout {
                 self.containerLayoutUpdated(layout, navigationBarHeight: navigationBarHeight, transition: .immediate)
             }
-            self.storiesCollectionView.reloadData()
+            self.applyStories()
             self.mainCollectionView.reloadData()
         }
+    }
+
+    deinit {
+        self.storySubscriptionsDisposable?.dispose()
+        self.storyAvatarDisposables.dispose()
+    }
+
+    // MARK: - Stories (MTProto)
+
+    // Подписка на ленту сторис. Сервер часто отдаёт пусто — тогда в трее остаётся только «+».
+    private func setupStorySubscription() {
+        self.storySubscriptionsDisposable = (self.context.engine.messages.storySubscriptions(isHidden: false)
+        |> deliverOnMainQueue).startStrict(next: { [weak self] subscriptions in
+            guard let self = self else { return }
+            var items: [EngineStorySubscriptions.Item] = []
+            // Свои сторис (если есть) — первым пиром после «+».
+            if let accountItem = subscriptions.accountItem, accountItem.storyCount > 0 {
+                items.append(accountItem)
+            }
+            items.append(contentsOf: subscriptions.items)
+            self.storySubscriptionItems = items
+            self.loadStoryAvatars(for: items)
+            self.applyStories()
+        })
+    }
+
+    // Аватары пиров грузятся через AvatarNode и кладутся в кэш; при готовности — точечное обновление
+    // (без полной перестройки трея, чтобы не мигало при потоковой загрузке).
+    private func loadStoryAvatars(for items: [EngineStorySubscriptions.Item]) {
+        for item in items {
+            let peerId = item.peer.id
+            // Перечитываем и при смене фото (не только при пустом кэше) — иначе трей держит старую
+            // аву до перезапуска (storySubscriptions шлёт свежего пира, но guard «== nil» гасил перечитку).
+            let rep = item.peer.smallProfileImage
+            if self.storyAvatarCache[peerId] != nil, self.storyAvatarReps[peerId] == rep {
+                continue
+            }
+            self.storyAvatarReps[peerId] = rep
+            let signal = peerAvatarCompleteImage(account: self.context.account, peer: item.peer, size: CGSize(width: 60.0, height: 60.0))
+            let disposable = (signal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] image in
+                guard let self = self, let image = image else { return }
+                self.storyAvatarCache[peerId] = image
+                self.updateStoryAvatar(peerId: peerId, image: image)
+            })
+            self.storyAvatarDisposables.add(disposable)
+        }
+    }
+
+    // Обновляет аватар одной ячейки/floating-вью на месте — индексы storyItems и floatingAvatars совпадают.
+    private func updateStoryAvatar(peerId: EnginePeer.Id, image: UIImage) {
+        guard let index = storyItems.firstIndex(where: { $0.peerId == peerId }) else { return }
+        let old = storyItems[index]
+        storyItems[index] = StoryModel(name: old.name, avatar: image, isLive: old.isLive, isAdd: old.isAdd, peerId: old.peerId, hasUnseen: old.hasUnseen)
+        if index < floatingAvatars.count {
+            floatingAvatars[index].image = image
+        }
+        if let cell = storiesCollectionView.cellForItem(at: IndexPath(item: index, section: 0)) as? StoryCollectionViewCell {
+            cell.configure(with: storyItems[index])
+        }
+    }
+
+    // Собирает модель трея: всегда «+» первым, затем пиры сторис. Перестраивает трей и floating-аватары.
+    private func applyStories() {
+        var models: [StoryModel] = [
+            StoryModel(name: DivoStrings.addStory, avatar: nil, isLive: false, isAdd: true)
+        ]
+        let ownPeerId = self.context.account.peerId
+        for item in storySubscriptionItems {
+            let isOwn = item.peer.id == ownPeerId
+            models.append(StoryModel(
+                name: isOwn ? DivoStrings.yourStory : item.peer.compactDisplayTitle,
+                avatar: storyAvatarCache[item.peer.id],
+                isLive: item.hasLiveItems,
+                isAdd: false,
+                peerId: item.peer.id,
+                hasUnseen: item.hasUnseen
+            ))
+        }
+        self.storyItems = models
+        self.storiesCollectionView.reloadData()
+        self.rebuildFloatingViews()
+        self.updateHeaderLayout()
+    }
+
+    // Floating-аватары шапки строятся из актуального storyItems (count динамический).
+    private func rebuildFloatingViews() {
+        for view in floatingAvatars { view.removeFromSuperview() }
+        for view in floatingNames { view.removeFromSuperview() }
+        floatingAvatars.removeAll()
+        floatingNames.removeAll()
+
+        for story in storyItems {
+            let iv = UIImageView()
+            iv.contentMode = .scaleAspectFill
+            iv.layer.masksToBounds = true
+            iv.layer.borderColor = DivoColorPalette.cardBackground.cgColor
+            iv.layer.borderWidth = 0
+            iv.backgroundColor = DivoColorPalette.avatarPlaceholderCool
+            iv.alpha = 0
+            if let isAdd = story.isAdd, isAdd {
+                iv.backgroundColor = DivoColorPalette.cardBackground
+                iv.contentMode = .center
+                let config = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                iv.image = UIImage(systemName: "plus", withConfiguration: config)
+                iv.tintColor = DivoColorPalette.primaryText
+            } else if let img = story.avatar {
+                iv.image = img
+            }
+            floatingAvatars.append(iv)
+
+            let label = UILabel()
+            label.text = story.name
+            label.font = Font.regular(12.0)
+            label.textAlignment = .center
+            label.alpha = 0
+            floatingNames.append(label)
+        }
+
+        for av in floatingAvatars { self.view.addSubview(av) }
+        for lbl in floatingNames { self.view.addSubview(lbl) }
+
+        // Динамические оверлеи должны остаться над floating-аватарами.
+        if let placeholder = loadingPlaceholderView { self.view.bringSubviewToFront(placeholder) }
+        if let error = errorView { self.view.bringSubviewToFront(error) }
+        snackbar.bringToFront()
     }
 
     override func layout() {
@@ -444,8 +546,10 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let navBaseX = titleLabel.frame.maxX + 12
         let navY = navigationBarHeight - navSize - 17
 
-        // Indices that survive to navbar: 1, 2, 3 (Jack D., Joshua, waggles)
-        let survivors: Set<Int> = [1, 2, 3]
+        // В навбар улетают только кружки сторис (первые до maxNavbarStories). «+» (индекс 0) остаётся в трее, не уходит.
+        let survivors: Set<Int> = floatingAvatars.count > 1
+            ? Set((1..<floatingAvatars.count).prefix(maxNavbarStories))
+            : []
 
         let floatingVisible = min(max((p - 0.05) * 20, 0), 1.0)  // visible after 5%, full by 10%
 
@@ -531,7 +635,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         if collectionView === storiesCollectionView {
-            return stories.count
+            return storyItems.count
         } else if collectionView === mainCollectionView {
             return cards.count
         }
@@ -544,7 +648,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "StoryCell", for: indexPath) as? StoryCollectionViewCell else {
                 fatalError("Unable to dequeue StoryCollectionViewCell")
             }
-            cell.configure(with: stories[indexPath.item])
+            cell.configure(with: storyItems[indexPath.item])
             return cell
 
         } else if collectionView === mainCollectionView {
@@ -577,7 +681,13 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView === storiesCollectionView {
-            print("didSelectItemAt Story: \(stories[indexPath.item].name)")
+            guard indexPath.item < storyItems.count else { return }
+            let story = storyItems[indexPath.item]
+            if story.isAdd == true {
+                onAddStory?()
+            } else if let peerId = story.peerId {
+                onOpenStory?(peerId, storySubscriptionItems.map { $0.peer.id })
+            }
         } else if collectionView === mainCollectionView {
             guard indexPath.item < cards.count else { return }
             showProfile?(cards[indexPath.item])

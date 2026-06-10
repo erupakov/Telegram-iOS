@@ -1,4 +1,5 @@
 import UIKit
+import Display
 import DivoUIKit
 
 final class StoryCollectionViewCell: UICollectionViewCell {
@@ -13,7 +14,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.textAlignment = .center
-        label.font = UIFont.systemFont(ofSize: 12)
+        label.font = Font.regular(12.0)
         return label
     }()
     
@@ -26,24 +27,61 @@ final class StoryCollectionViewCell: UICollectionViewCell {
         view.isHidden = true
         return view
     }()
-    
+
+    // Кольцо сторис из дизайна: линейный градиент #180800→#FF5C02 (непросмотрено) либо ровный серый (просмотрено).
+    // Градиент рисуется обводкой-маской; лежит внутри круга аватара (inset в layoutSubviews), чтобы masksToBounds не срезал штрих.
+    private let ringGradientLayer: CAGradientLayer = {
+        let layer = CAGradientLayer()
+        // Вертикальный градиент (верх→низ) — как кольцо сторис в чат-листе.
+        layer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        layer.endPoint = CGPoint(x: 0.5, y: 1.0)
+        layer.isHidden = true
+        return layer
+    }()
+    private let ringMaskLayer: CAShapeLayer = {
+        let layer = CAShapeLayer()
+        layer.fillColor = UIColor.clear.cgColor
+        // Маска: важна только alpha обводки, цвет любой непрозрачный.
+        layer.strokeColor = DivoColorPalette.primaryText.cgColor
+        layer.lineWidth = 2.5
+        return layer
+    }()
+
     override init(frame: CGRect) {
         super.init(frame: frame)
-        
+
         contentView.addSubview(avatarImageView)
+        ringGradientLayer.mask = ringMaskLayer
+        avatarImageView.layer.addSublayer(ringGradientLayer)
         contentView.addSubview(nameLabel)
         contentView.addSubview(statusIndicator)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
+    // Press-state: лёгкий scale + alpha при нажатии (значения из дизайн-системы).
+    override var isHighlighted: Bool {
+        didSet {
+            guard oldValue != isHighlighted else { return }
+            let pressed = isHighlighted
+            UIView.animate(withDuration: pressed ? DivoDesignTokens.PressState.pressDuration : DivoDesignTokens.PressState.releaseDuration) {
+                let scale = DivoDesignTokens.PressState.scale
+                self.contentView.transform = pressed ? CGAffineTransform(scaleX: scale, y: scale) : .identity
+                self.contentView.alpha = pressed ? DivoDesignTokens.PressState.alpha : 1.0
+            }
+        }
+    }
+
     override func prepareForReuse() {
         super.prepareForReuse()
         addOverlay.removeFromSuperview()
         avatarImageView.image = nil
         avatarImageView.backgroundColor = DivoColorPalette.avatarPlaceholderCool
+        ringGradientLayer.isHidden = true
+        contentView.transform = .identity
+        contentView.alpha = 1.0
     }
 
     override func layoutSubviews() {
@@ -55,7 +93,15 @@ final class StoryCollectionViewCell: UICollectionViewCell {
                                        width: avatarSize,
                                        height: avatarSize)
         avatarImageView.layer.cornerRadius = avatarSize / 2
-        
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        ringGradientLayer.frame = avatarImageView.bounds
+        ringMaskLayer.frame = avatarImageView.bounds
+        // inset держит обводку (2.5pt) целиком внутри круглой маски avatarImageView, иначе внешний край срежется.
+        ringMaskLayer.path = UIBezierPath(ovalIn: avatarImageView.bounds.insetBy(dx: 2, dy: 2)).cgPath
+        CATransaction.commit()
+
         nameLabel.frame = CGRect(x: 0,
                                  y: avatarImageView.frame.maxY + 4,
                                  width: contentView.bounds.width,
@@ -71,7 +117,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     
     private lazy var addOverlay: UIView = {
         let circle = UIView()
-        circle.backgroundColor = .white
+        circle.backgroundColor = DivoColorPalette.cardBackground
         circle.layer.applyDivoShadow(
             opacity: DivoDesignTokens.Shadow.opacityMedium,
             radius: DivoDesignTokens.Shadow.thumbRadius,
@@ -80,7 +126,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
         circle.isUserInteractionEnabled = false
 
         let plusIcon = UIImageView()
-        plusIcon.tintColor = .black
+        plusIcon.tintColor = DivoColorPalette.primaryText
         plusIcon.contentMode = .scaleAspectFit
         plusIcon.tag = 100
         circle.addSubview(plusIcon)
@@ -92,6 +138,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
 
         if let isAdd = model.isAdd, isAdd {
             // Programmatic circle + plus
+            ringGradientLayer.isHidden = true
             avatarImageView.image = nil
             avatarImageView.backgroundColor = .clear
             let size: CGFloat = 54
@@ -105,6 +152,14 @@ final class StoryCollectionViewCell: UICollectionViewCell {
             }
             contentView.addSubview(addOverlay)
         } else {
+            // Кольцо у любой сторис-ячейки: градиент — есть непросмотренные, ровный серый — все просмотрены (в т.ч. своя).
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            ringGradientLayer.isHidden = false
+            ringGradientLayer.colors = model.hasUnseen
+                ? [DivoColorPalette.storyRingGradientStart.cgColor, DivoColorPalette.storyRingGradientEnd.cgColor]
+                : [DivoColorPalette.avatarStrokeQuiet.cgColor, DivoColorPalette.avatarStrokeQuiet.cgColor]
+            CATransaction.commit()
             if let image = model.avatar {
                 avatarImageView.image = image
                 avatarImageView.contentMode = .scaleAspectFill

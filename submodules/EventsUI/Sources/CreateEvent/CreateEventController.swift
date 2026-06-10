@@ -335,7 +335,10 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     )
                     
                     let successController = EventPublishedSuccessController(context: self.context)
-                    
+
+                    // id события для перехода с экрана успеха: create — из ответа, edit — из mode.
+                    let resultEventId: Int? = response.data?.id ?? { if case .edit(let id) = self.mode { return id } else { return nil } }()
+
                     let backToProfile: () -> Void = { [weak self] in
                         guard let self = self, let nav = self.navigationController else { return }
                         let controllers = nav.viewControllers
@@ -350,11 +353,21 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                         }
                     }
                     
-                    successController.onViewEventTapped = {
-                        backToProfile()
+                    successController.onViewEventTapped = { [weak self] in
+                        guard let self else { return }
+                        if let id = resultEventId {
+                            self.push(EventDetailController(context: self.context, eventId: id, isMyEvent: true))
+                        } else {
+                            backToProfile()
+                        }
                     }
-                    successController.onManageApplicationsTapped = {
-                        backToProfile()
+                    successController.onManageApplicationsTapped = { [weak self] in
+                        guard let self else { return }
+                        if let id = resultEventId {
+                            self.push(ApplicationsListController(context: self.context, eventId: id))
+                        } else {
+                            backToProfile()
+                        }
                     }
                     previewController?.toggleSaving(active: false)
                     self.push(successController)

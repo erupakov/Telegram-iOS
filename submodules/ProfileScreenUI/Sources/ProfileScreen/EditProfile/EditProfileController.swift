@@ -324,6 +324,10 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
                 // DIVO сохранил имя → синкаем его в teamgram (best-effort, ретрай на сбое).
                 DivoTeamgramName.syncToTeamgram(fullName: rawData.fullName)
+                // Ава менялась в этой сессии → досылаем в teamgram-аву (best-effort).
+                if self.selectedAvatarUUID != nil {
+                    DivoTeamgramPhoto.syncToTeamgram()
+                }
 
                 self.delegate?.didUpdateProfileData()
                 NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
@@ -362,6 +366,10 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
 
                 // DIVO сохранил название агентства → синкаем его в teamgram-имя (best-effort).
                 DivoTeamgramName.syncToTeamgram(fullName: rawData.title)
+                // Лого менялось в этой сессии → досылаем в teamgram-аву (best-effort).
+                if self.selectedAvatarUUID != nil {
+                    DivoTeamgramPhoto.syncToTeamgram()
+                }
 
                 self.delegate?.didUpdateProfileData()
                 NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)

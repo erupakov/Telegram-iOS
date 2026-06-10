@@ -869,8 +869,8 @@ public extension Api.User {
     // stories_max_id на flags2.5 — на 201 это простой int, на 222 это объект RecentStory.
     // Форк-parse_user читает там RecentStory (сигнатура+тело) → на любом юзере СО сторис
     // (flags2.5 выставлен, напр. модель с stories_max_id) буфер съезжает и весь Updates не
-    // парсится → sendMessage/getDifference-ответ = nil. Здесь читаем int и отбрасываем
-    // (сторис в DIVO не используются), storiesMaxId = nil. Остальные поля идентичны 222.
+    // парсится → sendMessage/getDifference-ответ = nil. Здесь читаем int и заворачиваем в
+    // RecentStory(maxId:) для кольца сторис у аватара. Остальные поля идентичны 222.
     static func parse_user_teamgram_layer201(_ reader: BufferReader) -> Api.User? {
         var _1: Int32?
         _1 = reader.readInt32()
@@ -940,9 +940,14 @@ public extension Api.User {
                 _16 = Api.parseVector(reader, elementSignature: 0, elementType: Api.Username.self)
             }
         }
-        // flags2.5: на 201 это int (stories_max_id) — читаем и отбрасываем (на 222 здесь RecentStory).
+        // flags2.5: на 201 это int (stories_max_id) — заворачиваем в RecentStory(maxId:)
+        // (на 222 здесь объект RecentStory). Нужно для кольца сторис у аватара (UpdatePeers).
+        // Читаем тот же один int32, дрейфа буфера нет — форма сверена с getPeerMaxIDs:1522 и Android.
+        var _17: Api.RecentStory?
         if Int(_2!) & Int(1 << 5) != 0 {
-            _ = reader.readInt32()
+            if let storiesMaxIdValue = reader.readInt32() {
+                _17 = Api.RecentStory.recentStory(Api.RecentStory.Cons_recentStory(flags: 1 << 1, maxId: storiesMaxIdValue))
+            }
         }
         var _18: Api.PeerColor?
         if Int(_2!) & Int(1 << 8) != 0 {
@@ -990,7 +995,7 @@ public extension Api.User {
         let _c21 = (Int(_2!) & Int(1 << 14) == 0) || _21 != nil
         let _c22 = (Int(_2!) & Int(1 << 15) == 0) || _22 != nil
         if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 && _c15 && _c16 && _c18 && _c19 && _c20 && _c21 && _c22 {
-            return Api.User.user(Api.User.Cons_user(flags: _1!, flags2: _2!, id: _3!, accessHash: _4, firstName: _5, lastName: _6, username: _7, phone: _8, photo: _9, status: _10, botInfoVersion: _11, restrictionReason: _12, botInlinePlaceholder: _13, langCode: _14, emojiStatus: _15, usernames: _16, storiesMaxId: nil, color: _18, profileColor: _19, botActiveUsers: _20, botVerificationIcon: _21, sendPaidMessagesStars: _22))
+            return Api.User.user(Api.User.Cons_user(flags: _1!, flags2: _2!, id: _3!, accessHash: _4, firstName: _5, lastName: _6, username: _7, phone: _8, photo: _9, status: _10, botInfoVersion: _11, restrictionReason: _12, botInlinePlaceholder: _13, langCode: _14, emojiStatus: _15, usernames: _16, storiesMaxId: _17, color: _18, profileColor: _19, botActiveUsers: _20, botVerificationIcon: _21, sendPaidMessagesStars: _22))
         } else {
             return nil
         }

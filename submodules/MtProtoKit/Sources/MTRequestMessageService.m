@@ -639,9 +639,12 @@
             // DIVO: момент упаковки запроса в outgoing (реально идёт в TCP) — на debug-экран.
             // Если есть "→ <RPC>", но нет потом "OK/ERROR ← <RPC>" — ответ не пришёл (завис/сервер молчит).
             NSString *divoOut = [NSString stringWithFormat:@"[MTProto] → %@", request.metadata];
-            dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
-                [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoOut}];
-            });
+            // DIVO: getAttachMenuBots teamgram не держит (500 ~каждые 2с) — не зашумляем debug-лог.
+            if (![divoOut containsString:@"getAttachMenuBots"]) {
+                dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+                    [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoOut}];
+                });
+            }
             
             id unresolvedDependencyOnRequestInternalId = autoreleasingUnresolvedDependencyOnRequestInternalId;
             if (unresolvedDependencyOnRequestInternalId != nil)
@@ -856,7 +859,7 @@
                         } else if (rpcError != nil && rpcError.errorCode != 444) {
                             divoOutcome = [NSString stringWithFormat:@"[MTProto] RPC ERROR ← %@ | code=%d desc=%@", request.metadata, (int)rpcError.errorCode, rpcError.errorDescription];
                         }
-                        if (divoOutcome != nil) {
+                        if (divoOutcome != nil && ![divoOutcome containsString:@"getAttachMenuBots"]) {
                             dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
                                 [[NSNotificationCenter defaultCenter] postNotificationName:@"DivoMTProtoLog" object:nil userInfo:@{@"message": divoOutcome}];
                             });

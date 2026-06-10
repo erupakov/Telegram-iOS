@@ -1,11 +1,25 @@
 import Foundation
 import UIKit
+import TelegramCore
 
 struct StoryModel {
     let name: String
     let avatar: UIImage?
     let isLive: Bool
     let isAdd: Bool?
+    // Пир сторис из MTProto — nil для ячейки «+». Нужен, чтобы по тапу открыть вьюер.
+    let peerId: EnginePeer.Id?
+    // Непросмотренные сторис → кольцо у аватара.
+    let hasUnseen: Bool
+
+    init(name: String, avatar: UIImage?, isLive: Bool, isAdd: Bool?, peerId: EnginePeer.Id? = nil, hasUnseen: Bool = false) {
+        self.name = name
+        self.avatar = avatar
+        self.isLive = isLive
+        self.isAdd = isAdd
+        self.peerId = peerId
+        self.hasUnseen = hasUnseen
+    }
 }
 
 struct CardModel {

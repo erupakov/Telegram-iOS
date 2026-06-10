@@ -1,18 +1,24 @@
 import Foundation
 import UIKit
 import SwiftSignalKit
+import Postbox
 import TelegramCore
 import AccountContext
 import DivoCore
 import OnboardingUI
+
+private enum DivoPhotoSyncError: Error {
+    case uploadFailed
+}
 
 // DIVO: пост-авторизационная интеграция очереди отложенных операций.
 // Онбординг сам вшит в auth-флоу пушем (см. AuthorizationSequenceController+DivoOnboarding) —
 // здесь его больше нет. Файл отдельный — минимизируем диф в гигантском AppDelegate.
 extension AppDelegate {
     /// Перерегистрирует executor очереди отложенных операций с доступом к авторизованному
-    /// teamgram-аккаунту: добавляет обработку `.nameUpdate` (имя после онбординга) поверх
-    /// phone-link. registerExecutor сам дренит очередь — накопленные op'ы докатываются здесь.
+    /// teamgram-аккаунту: добавляет обработку `.nameUpdate` (имя после онбординга) и `.photoUpdate`
+    /// (ава) поверх phone-link. registerExecutor сам дренит очередь — накопленные op'ы докатываются
+    /// здесь. В конце — reconcile авы: если teamgram-ава пуста, досылаем её из DIVO-профиля.
     func divoRegisterPendingOpsExecutor(context: AuthorizedApplicationContext) {
         // Обновление teamgram-имени через авторизованный движок. Используется и очередью
         // (best-effort), и DivoTeamgramSync (await в атомарной submit-цепочке онбординга).
@@ -24,6 +30,38 @@ extension AppDelegate {
                 })
             }
         }
+        // Заливка авы в teamgram (best-effort): байты из REST в mediaBox → uploadProfilePhoto.
+        // resolveAvatarForSync вернул nil (авы нет) → op снимается без заливки.
+        let photoUpdate: () async throws -> Void = { [weak context] in
+            guard let context = context else { throw DivoTeamgramSync.SyncError.notReady }
+            guard let data = try await DivoTeamgramPhoto.resolveAvatarForSync() else { return }
+            let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
+            context.context.account.postbox.mediaBox.storeResourceData(resource.id, data: data)
+            divoLog("[ava] заливаю аву в teamgram через uploadProfilePhoto…", level: .info)
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                // updateAccountPhoto эмитит .progress, затем .complete (либо ошибку) — резолвим один раз.
+                var finished = false
+                let finish: (Result<Void, Error>) -> Void = { result in
+                    if finished { return }
+                    finished = true
+                    continuation.resume(with: result)
+                }
+                let _ = context.context.engine.accountData.updateAccountPhoto(
+                    resource: resource,
+                    videoResource: nil,
+                    videoStartTimestamp: nil,
+                    markup: nil,
+                    mapResourceToAvatarSizes: { _, _ in .single([:]) }
+                ).start(next: { status in
+                    if case .complete = status { finish(.success(())) }
+                }, error: { _ in
+                    finish(.failure(DivoPhotoSyncError.uploadFailed))
+                }, completed: {
+                    finish(.failure(DivoPhotoSyncError.uploadFailed))
+                })
+            }
+            divoLog("[ava] ава залита в teamgram", level: .info)
+        }
         // DIVO: ВАЖЕН порядок — telegramUserId + nameUpdater ставим ДО registerExecutor, потому что он
         // СРАЗУ дренит очередь. Иначе отложенные .telegramLink/.nameUpdate падают opNotHandled и зависают
         // до следующего enqueue → на cold-start ретрай telegram-link (в т.ч. соц-ветка B) не докатывался.
@@ -32,7 +70,28 @@ extension AppDelegate {
         DivoTeamgramSync.shared.telegramUserId = context.context.account.peerId.id._internalGetInt64Value()
         // Атомарный name-update в submit-цепочке онбординга (await), см. DivoTeamgramSync.
         DivoTeamgramSync.shared.setNameUpdater(nameUpdate)
-        PendingTelegramOpsQueue.shared.registerExecutor(DivoBootstrap.makeExecutor(nameUpdate: nameUpdate))
+        PendingTelegramOpsQueue.shared.registerExecutor(DivoBootstrap.makeExecutor(nameUpdate: nameUpdate, photoUpdate: photoUpdate))
+
+        // reconcile: если teamgram-ава пуста, досылаем из DIVO-профиля. Гейтим по isReady — иначе
+        // self-peer ещё не загружен (getPeer = nil) и заливка тихо пропускается на старте (гонка).
+        let _ = (context.isReady.get()
+        |> filter { $0 }
+        |> take(1)
+        |> deliverOnMainQueue).start(next: { [weak context] _ in
+            guard let context = context else { return }
+            let peerId = context.context.account.peerId
+            let _ = (context.context.account.postbox.transaction { transaction -> Bool in
+                if let user = transaction.getPeer(peerId) as? TelegramUser {
+                    return user.photo.isEmpty
+                }
+                return false
+            }).start(next: { isEmpty in
+                divoLog("[ava] reconcile: teamgram-ава пустая=\(isEmpty)", level: .info)
+                if isEmpty {
+                    DivoTeamgramPhoto.syncToTeamgram()
+                }
+            })
+        })
     }
 
     /// Cold-start resume прерванного онбординга. На холодном старте teamgram-сессия восстановлена → app

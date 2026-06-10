@@ -175,6 +175,11 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         // DIVO-настройки кешируют профиль, загруженный по раннему tokenDidChange (ДО updateProfile),
         // и имя/фото проявляются только после перезапуска приложения.
         NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
+
+        // Фото грузилось при регистрации → досылаем в teamgram-аву (best-effort).
+        if photoUuid != nil {
+            DivoTeamgramPhoto.syncToTeamgram()
+        }
     }
 
     /// telegram-link для phone-флоу. `telegramUserId` приходит из `DivoTeamgramSync` (ставит AppDelegate
