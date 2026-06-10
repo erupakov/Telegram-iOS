@@ -1389,9 +1389,8 @@ final class EditProfileNode: ASDisplayNode {
             agencyId: model?.agency?.id,
             title: trimmedTitle,
             description: self.aboutEventTextField.text,
-            address: UpdateAgencyAddress(
-                cityId: self.selectedCityId
-            )
+            // Без города address не шлём: {"cityId": null} при replace затёр бы город на беке
+            address: self.selectedCityId.map { UpdateAgencyAddress(cityId: $0) }
         )
 
         self.toggleSaving(active: true)

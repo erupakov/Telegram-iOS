@@ -347,13 +347,20 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     private func handleAgencySave(with rawData: UpdateDescriptionAgencyRequest) {
         Task { @MainActor in
             do {
-                let photoUuid = self.selectedAvatarUUID.map {
+                // Бек делает replace: непереданные photo/background затираются в null,
+                // поэтому пересылаем текущие uuid, если новые не выбирались.
+                let agency = self.userDetailData?.agency
+                let photoUuid = (self.selectedAvatarUUID ?? agency?.photo?.fileUuid).map {
+                    UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0)
+                }
+                let backgroundUuid = agency?.background?.fileUuid.map {
                     UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0)
                 }
                 let request = UpdateDescriptionAgencyRequest(
                     agencyId: rawData.agencyId,
                     title: rawData.title,
                     description: rawData.description,
+                    background: backgroundUuid,
                     photo: photoUuid,
                     address: rawData.address
                 )

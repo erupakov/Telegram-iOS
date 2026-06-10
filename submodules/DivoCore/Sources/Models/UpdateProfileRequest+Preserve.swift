@@ -7,7 +7,9 @@ public extension UpdateBiographyPageRequest {
     init(preserving detail: UserDetail, fullName: String) {
         let appearance: Appearance? = detail.model?.appearance.map { app in
             Appearance(
-                measuringSystem: app.measuringSystem ?? detail.measuringSystem,
+                // Маркер единиц appearance-чисел пересылаем как есть; фолбэк на юзерскую
+                // настройку (detail.measuringSystem) пометил бы метрические числа как имперские.
+                measuringSystem: app.measuringSystem,
                 height: app.height,
                 weight: app.weight,
                 breastSize: app.breastSize,
@@ -39,7 +41,11 @@ public extension UpdateDescriptionAgencyRequest {
         self.init(
             agencyId: detail.agency?.id,
             title: title,
-            description: detail.agency?.description
+            description: detail.agency?.description,
+            background: detail.agency?.background?.fileUuid.map { AvatarUuid(uuid: $0) },
+            photo: detail.agency?.photo?.fileUuid.map { AvatarUuid(uuid: $0) },
+            // Без города address не шлём: {"cityId": null} при replace затёр бы город на беке
+            address: (detail.agency?.address?.city?.id).map { UpdateAgencyAddress(cityId: $0) }
         )
     }
 }
