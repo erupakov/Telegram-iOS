@@ -49,6 +49,17 @@ extension PeerVerification {
 }
 
 
+// DIVO: dummy-номер соц-входа (ITU-код 999, `+9995…`) не должен попадать в нативные экраны
+// (peer-info, QR, виджет) — гасим его в единственной точке разбора Api.User → TelegramUser ниже.
+// Зеркало DivoCore.DivoPhone (константа + правило): переиспользовать символ нельзя, т.к. TelegramCore
+// не импортит DivoCore (иначе ребилд всего ядра). Менять синхронно с DivoPhone.dummyCountryCode.
+private let divoDummyCountryCode = "999"
+
+private func isDivoDummyPhone(_ phone: String?) -> Bool {
+    guard let phone else { return false }
+    return phone.filter { $0.isNumber }.hasPrefix(divoDummyCountryCode)
+}
+
 extension TelegramUser {
     convenience init(user: Api.User) {
         switch user {
@@ -173,7 +184,7 @@ extension TelegramUser {
                 }
             }
             
-            self.init(id: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(id)), accessHash: accessHashValue, firstName: firstName, lastName: lastName, username: username, phone: phone, photo: representations, botInfo: botInfo, restrictionInfo: restrictionInfo, flags: userFlags, emojiStatus: emojiStatus.flatMap(PeerEmojiStatus.init(apiStatus:)), usernames: usernames?.map(TelegramPeerUsername.init(apiUsername:)) ?? [], storiesHidden: storiesHidden, nameColor: nameColor, backgroundEmojiId: backgroundEmojiId, profileColor: profileColorIndex.flatMap { PeerNameColor(rawValue: $0) }, profileBackgroundEmojiId: profileBackgroundEmojiId, subscriberCount: subscriberCount, verificationIconFileId: verificationIconFileId)
+            self.init(id: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(id)), accessHash: accessHashValue, firstName: firstName, lastName: lastName, username: username, phone: isDivoDummyPhone(phone) ? nil : phone, photo: representations, botInfo: botInfo, restrictionInfo: restrictionInfo, flags: userFlags, emojiStatus: emojiStatus.flatMap(PeerEmojiStatus.init(apiStatus:)), usernames: usernames?.map(TelegramPeerUsername.init(apiUsername:)) ?? [], storiesHidden: storiesHidden, nameColor: nameColor, backgroundEmojiId: backgroundEmojiId, profileColor: profileColorIndex.flatMap { PeerNameColor(rawValue: $0) }, profileBackgroundEmojiId: profileBackgroundEmojiId, subscriberCount: subscriberCount, verificationIconFileId: verificationIconFileId)
         case let .userEmpty(userEmptyData):
             let id = userEmptyData.id
             self.init(id: PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(id)), accessHash: nil, firstName: nil, lastName: nil, username: nil, phone: nil, photo: [], botInfo: nil, restrictionInfo: nil, flags: [], emojiStatus: nil, usernames: [], storiesHidden: nil, nameColor: nil, backgroundEmojiId: nil, profileColor: nil, profileBackgroundEmojiId: nil, subscriberCount: nil, verificationIconFileId: nil)

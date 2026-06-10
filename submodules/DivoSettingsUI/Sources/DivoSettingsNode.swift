@@ -564,9 +564,9 @@ final class DivoSettingsNode: ASDisplayNode {
 
     /// Реальный номер форматируем; синтетический dummy (соц-вход) не показываем.
     private static func displayPhone(_ phone: String?) -> String? {
-        guard let phone, !phone.isEmpty else { return nil }
+        guard let phone, !phone.isEmpty, !DivoPhone.isDummy(phone) else { return nil }
         let formatted = formatPhoneNumber(phone.filter { $0.isNumber })
-        // Успешный парсинг даёт международный вид с «+»; у dummy код страны несуществующий → не парсится.
+        // Доп. страховка: нераспознанный номер (без «+» после форматирования) тоже не показываем.
         return formatted.hasPrefix("+") ? formatted : nil
     }
 
