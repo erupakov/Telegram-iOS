@@ -65,6 +65,7 @@ public enum DivoImage {
     public static var largecircleFillCircle: UIImage { load("DivoLargecircleFillCircle") }
     public static var link: UIImage { load("DivoLink") }
     public static var logo: UIImage { load("DivoLogo") }
+    public static var logoRound: UIImage { load("DivoLogoRound") }
     public static var moreActionIcon: UIImage { load("DivoMoreActionIcon") }
     public static var moreActionIconBlack: UIImage { load("DivoMoreActionIconBlack") }
     public static var moreIcon: UIImage { load("DivoMoreIcon") }
