@@ -131,7 +131,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     private let websiteField: TextFieldNode
 
     let genderDropdown: DropdownNode
-    private var genderDictionaries: GenderResponse?
+    private var genderPickerOptions: [GenderOption] = []
     private var selectedGenderId: String = ""
 
     let agencyDropdown: DropdownNode
@@ -298,7 +298,7 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
 
         self.genderDropdown.onSelect = { [weak self] value in
             self?.genderDropdown.selectedValue = value
-            if let genderOption = self?.genderDictionaries?.data.first(where: { $0.title == value }) {
+            if let genderOption = self?.genderPickerOptions.first(where: { $0.title == value }) {
                 self?.selectedGenderId = genderOption.id
             }
         }
@@ -386,8 +386,8 @@ final class ChooseRoleControllerNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     func configureGenderDictionaries(_ dict: GenderResponse) {
-        self.genderDictionaries = dict
-        self.genderDropdown.updateOptions(dict.data.map { $0.title })
+        self.genderPickerOptions = DivoGender.pickerOptions(from: dict.data)
+        self.genderDropdown.updateOptions(self.genderPickerOptions.map { $0.title })
     }
     
     func loadAgenciesComplete(_ items: [AgencyItem], totalCount: Int, offset: Int) {
