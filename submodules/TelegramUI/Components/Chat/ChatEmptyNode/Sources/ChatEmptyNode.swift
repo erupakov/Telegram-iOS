@@ -24,6 +24,7 @@ import UndoUI
 import PremiumUI
 import LottieComponent
 import BundleIconComponent
+import DivoUIKit
 
 private protocol ChatEmptyNodeContent {
     func updateLayout(interfaceState: ChatPresentationInterfaceState, subject: ChatEmptyNode.Subject, size: CGSize, leftInset: CGFloat, rightInset: CGFloat, transition: ContainedViewLayoutTransition) -> CGSize
@@ -97,6 +98,7 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
     
     private var stickerItem: ChatMediaInputStickerGridItem?
     public var stickerNode: ChatMediaInputStickerGridItemNode
+    private let logoNode: ASImageNode
     
     private var currentTheme: PresentationTheme?
     private var currentStrings: PresentationStrings?
@@ -125,11 +127,17 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
         
         self.stickerNode = ChatMediaInputStickerGridItemNode()
         
+        self.logoNode = ASImageNode()
+        self.logoNode.displaysAsynchronously = false
+        self.logoNode.contentMode = .scaleAspectFit
+        self.logoNode.image = DivoImage.logoRound
+        
         super.init()
         
         self.addSubnode(self.titleNode)
         self.addSubnode(self.textNode)
         self.addSubnode(self.stickerNode)
+        self.addSubnode(self.logoNode)
     }
     
     override public func didLoad() {
@@ -176,11 +184,16 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
             customStickerFile = businessIntro.stickerFile
         } else {
             self.titleNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_EmptyPlaceholder, font: titleFont, textColor: serviceColor.primaryText)
-            self.textNode.attributedText = NSAttributedString(string: interfaceState.strings.Conversation_GreetingText, font: messageFont, textColor: serviceColor.primaryText)
+            self.textNode.attributedText = nil // DIVO: подсказка «tap on the greeting» не нужна — вместо стикера логотип
         }
         
         let previousCustomStickerFile = self.currentCustomStickerFile
         self.currentCustomStickerFile = customStickerFile
+        
+        // DIVO: вместо случайного гритинг-стикера (утки Telegram) — логотип
+        let showsDivoLogo = customStickerFile == nil
+        self.logoNode.isHidden = !showsDivoLogo
+        self.stickerNode.isHidden = showsDivoLogo
         
         var stickerSize: CGSize
         let inset: CGFloat
@@ -196,9 +209,9 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
             stickerSize = dimensions.aspectFitted(stickerSize)
         }
         
-        if let item = self.stickerItem, previousCustomStickerFile == customStickerFile {
+        if !showsDivoLogo, let item = self.stickerItem, previousCustomStickerFile == customStickerFile {
             self.stickerNode.updateLayout(item: item, size: stickerSize, isVisible: true, synchronousLoads: true)
-        } else if !self.didSetupSticker || previousCustomStickerFile != customStickerFile {
+        } else if !showsDivoLogo, !self.didSetupSticker || previousCustomStickerFile != customStickerFile {
             let sticker: Signal<TelegramMediaFile?, NoError>
             if let customStickerFile {
                 sticker = .single(customStickerFile)
@@ -292,6 +305,7 @@ public final class ChatEmptyNodeGreetingChatContent: ASDisplayNode, ChatEmptyNod
         
         let stickerFrame = CGRect(origin: CGPoint(x: contentRect.minX + floor((contentRect.width - stickerSize.width) / 2.0), y: textFrame.maxY + stickerSpacing), size: stickerSize)
         transition.updateFrame(node: self.stickerNode, frame: stickerFrame)
+        transition.updateFrame(node: self.logoNode, frame: stickerFrame)
         
         return contentRect.insetBy(dx: -insets.left, dy: -insets.top).size
     }

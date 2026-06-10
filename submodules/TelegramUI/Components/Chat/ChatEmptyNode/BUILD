@@ -33,6 +33,7 @@ swift_library(
         "//submodules/PremiumUI",
         "//submodules/TelegramUI/Components/LottieComponent",
         "//submodules/Components/BundleIconComponent",
+        "//submodules/DivoUIKit",
     ],
     visibility = [
         "//visibility:public",
