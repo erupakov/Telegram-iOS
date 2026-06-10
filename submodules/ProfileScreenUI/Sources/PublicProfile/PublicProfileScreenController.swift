@@ -221,7 +221,14 @@ public final class PublicProfileScreenController: TelegramBaseController {
             instagramUrl: self.controllerNode.extractHandle(from: instagram),
             websiteUrl: self.controllerNode.extractHandle(from: website)
         )
-        let socialLinksController = EditSocialLinksController(context: self.context, presentationData: self.presentationData, linksData: linksData)
+        // У агентства соцсети живут в /user-social-network, а не в model.*Url
+        let isAgency = userDetailModel?.role == "agency_employee"
+        let socialLinksController = EditSocialLinksController(
+            context: self.context,
+            presentationData: self.presentationData,
+            linksData: linksData,
+            agencyNetworks: isAgency ? (userDetailModel?.userSocialNetworks ?? []) : nil
+        )
         socialLinksController.delegate = self
         self.push(socialLinksController)
     }

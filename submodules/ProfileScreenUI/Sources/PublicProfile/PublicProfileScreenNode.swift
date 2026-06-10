@@ -3519,6 +3519,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let instagram = detail.model?.instagramUrl, !instagram.isEmpty { socialLinks.append(instagram) }
         if let website = detail.model?.websiteUrl, !website.isEmpty { socialLinks.append(website) }
         
+        // Соцсети из /user-social-network (top-level) — единственный источник для agency;
+        // у model могут дублировать legacy-ссылки из model.*Url, поэтому фильтруем повторы.
+        for network in detail.userSocialNetworks ?? [] {
+            if let link = network.link, !link.isEmpty, !socialLinks.contains(link) {
+                socialLinks.append(link)
+            }
+        }
+
         populateSocialMedia(links: socialLinks)
 
         if !isMyProfile {

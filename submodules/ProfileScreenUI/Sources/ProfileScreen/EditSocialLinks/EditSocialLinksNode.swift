@@ -14,6 +14,15 @@ import AppBundle
 import ItemListUI
 import DivoUIKit
 
+/// Описание одного поля ссылки: model-режим собирает статичный набор,
+/// agency-режим строит поля из справочника /social-network (id = socialNetworkId).
+struct SocialLinkFieldSpec {
+    let id: Int
+    let prefix: String
+    let placeholder: String?
+    let initialText: String
+}
+
 final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     
     private let context: AccountContext
@@ -35,10 +44,9 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
     }
     
     var onBackTapped: (() -> Void)?
-    var saveSocialLinks: ((LinksData) -> Void)?
-    
-    private var linksData: LinksData
-    
+    /// texts: id поля → текст вместе с prefix; changedIds — поля, отличающиеся от исходных
+    var onSave: ((_ texts: [Int: String], _ changedIds: Set<Int>) -> Void)?
+
     private let navigationBar = DivoNavigationBar()
         
     private let scrollView: UIScrollView = {
@@ -57,12 +65,17 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         return stack
     }()
     
-    private let instagramTextField: DivoTextField
-    private let tiktokTextField: DivoTextField
-    private let youtubeTextField: DivoTextField
-    private let websiteTextField: DivoTextField
-    
+    private var fieldEntries: [(spec: SocialLinkFieldSpec, field: DivoTextField)] = []
+    private var pendingSpecs: [SocialLinkFieldSpec]?
+
     private var initialTexts: [String] = []
+
+    private let fieldsSpinner: UIActivityIndicatorView = {
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.hidesWhenStopped = true
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        return spinner
+    }()
 
     private let applyButton = DivoButton()
 
@@ -87,27 +100,10 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
 
     // MARK: - Init
     
-    init(context: AccountContext, presentationData: PresentationData, linksData: LinksData) {
+    init(context: AccountContext, presentationData: PresentationData) {
         self.context = context
-        self.linksData = linksData
         self.presentationData = presentationData
-        
-        let tiktok = linksData.tiktokUrl ?? ""
-        let youtube = linksData.youtubeUrl ?? ""
-        let instagram = linksData.instagramUrl ?? ""
-        let website = linksData.websiteUrl ?? ""
 
-        self.instagramTextField = DivoTextField(title: instagram, prefix: "instagram.com/")
-        self.tiktokTextField = DivoTextField(title: tiktok, prefix: "tiktok.com/")
-        self.youtubeTextField = DivoTextField(title: youtube, prefix: "youtube.com/")
-        
-        self.websiteTextField = DivoTextField(title: website, prefix: "")
-        self.websiteTextField.textField.attributedPlaceholder = NSAttributedString(
-            string: DivoStrings.enterYourWebsite,
-            font: Font.regular(16),
-            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
-        )
-        
         super.init()
         
         self.backgroundColor = DivoColorPalette.screenBackground
@@ -132,37 +128,85 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         setupConstraints()
         setupInteractions()
 
-        let fields = [instagramTextField, tiktokTextField, youtubeTextField, websiteTextField]
-        initialTexts = fields.map { $0.textField.text ?? "" }
         applyButton.isEnabled = false
+        if let specs = pendingSpecs {
+            pendingSpecs = nil
+            buildFields(specs)
+        }
     }
 
     private func updateSaveButtonState() {
-        let fields = [instagramTextField, tiktokTextField, youtubeTextField, websiteTextField]
-        let currentTexts = fields.map { $0.textField.text ?? "" }
-        let hasChanges = currentTexts != initialTexts
-        applyButton.isEnabled = hasChanges
+        let currentTexts = fieldEntries.map { $0.field.textField.text ?? "" }
+        applyButton.isEnabled = currentTexts != initialTexts
     }
-    
-    private func setupUI() {
-        view.addSubview(navigationBar)
-        
-        view.addSubview(scrollView)
-        scrollView.addSubview(contentStackView)
-        
-        let formElements = [
-            instagramTextField,
-            tiktokTextField,
-            youtubeTextField,
-            websiteTextField
-        ]
-        
-        for field in formElements {
+
+    /// Набор полей задаёт контроллер: model — статичный, agency — из справочника.
+    func setFields(_ specs: [SocialLinkFieldSpec]) {
+        if self.isNodeLoaded {
+            buildFields(specs)
+        } else {
+            pendingSpecs = specs
+        }
+    }
+
+    func setFieldsLoading(_ active: Bool) {
+        if active {
+            fieldsSpinner.startAnimating()
+        } else {
+            fieldsSpinner.stopAnimating()
+        }
+    }
+
+    private func buildFields(_ specs: [SocialLinkFieldSpec]) {
+        for entry in fieldEntries {
+            entry.field.view.removeFromSuperview()
+        }
+
+        fieldEntries = specs.map { spec in
+            let field = DivoTextField(title: spec.initialText, prefix: spec.prefix)
+            if let placeholder = spec.placeholder {
+                field.textField.attributedPlaceholder = NSAttributedString(
+                    string: placeholder,
+                    font: Font.regular(16),
+                    textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
+                )
+            }
+            return (spec, field)
+        }
+
+        for (index, entry) in fieldEntries.enumerated() {
+            let field = entry.field
             field.view.translatesAutoresizingMaskIntoConstraints = false
             field.view.heightAnchor.constraint(equalToConstant: 46).isActive = true
             contentStackView.addArrangedSubview(field.view)
+
+            let isLast = index == fieldEntries.count - 1
+            field.textField.returnKeyType = isLast ? .done : .next
+            if !isLast {
+                let nextField = fieldEntries[index + 1].field
+                field.onReturn = { [weak nextField] in
+                    nextField?.textField.becomeFirstResponder()
+                }
+            }
+            field.onBeginEditing = { [weak self, weak field] in
+                guard let self, let field else { return }
+                self.scrollToField(field)
+            }
+            field.textField.addTarget(self, action: #selector(textFieldDidChangeValue), for: .editingChanged)
         }
-        
+
+        initialTexts = fieldEntries.map { $0.field.textField.text ?? "" }
+        applyButton.isEnabled = false
+        hideSnackbar(animated: true)
+    }
+
+    private func setupUI() {
+        view.addSubview(navigationBar)
+
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentStackView)
+
+        view.addSubview(fieldsSpinner)
         view.addSubview(bottomFadeOverlay)
         view.addSubview(applyButton)
     }
@@ -194,6 +238,9 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             
             contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -DivoDesignTokens.Spacing.xl),
             
+            fieldsSpinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            fieldsSpinner.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: 48),
+
             buttonBottomCns,
             applyButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             applyButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
@@ -211,7 +258,6 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         scrollView.addGestureRecognizer(dismissTap)
         scrollView.keyboardDismissMode = .interactive
 
-        let fields = [instagramTextField, tiktokTextField, youtubeTextField, websiteTextField]
         keyboardHandler = DivoKeyboardHandler(
             scrollView: scrollView,
             buttonConstraint: applyButtonBottomConstraint!,
@@ -220,29 +266,12 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
             defaultScrollInset: 0,
             scrollToActiveField: { [weak self] in
                 guard let self else { return }
-                let allFields = [self.instagramTextField, self.tiktokTextField, self.youtubeTextField, self.websiteTextField]
-                if let active = allFields.first(where: { $0.textField.isFirstResponder }) {
+                if let active = self.fieldEntries.first(where: { $0.field.textField.isFirstResponder })?.field {
                     self.scrollToField(active)
                 }
             }
         )
         keyboardHandler?.subscribe()
-
-        for (index, field) in fields.enumerated() {
-            let isLast = index == fields.count - 1
-            field.textField.returnKeyType = isLast ? .done : .next
-            if !isLast {
-                let nextField = fields[index + 1]
-                field.onReturn = { [weak nextField] in
-                    nextField?.textField.becomeFirstResponder()
-                }
-            }
-            field.onBeginEditing = { [weak self, weak field] in
-                guard let self, let field else { return }
-                self.scrollToField(field)
-            }
-            field.textField.addTarget(self, action: #selector(textFieldDidChangeValue), for: .editingChanged)
-        }
 
         applyButton.addTarget(self, action: #selector(applyButtonTapped), for: .touchUpInside)
     }
@@ -262,31 +291,8 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         scrollView.scrollRectToVisible(frame, animated: true)
     }
 
-    private func constructFullURL(from handle: String, with prefix: String) -> String? {
-        let trimmed = handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty { return nil }
-        
-        let plainHandle = trimmed
-            .replacingOccurrences(of: "https://", with: "")
-            .replacingOccurrences(of: "http://", with: "")
-            .replacingOccurrences(of: "www.", with: "")
-        
-        var userPath = plainHandle
-        if !prefix.isEmpty {
-            let cleanPrefix = prefix.replacingOccurrences(of: "/", with: "")
-            userPath = plainHandle.replacingOccurrences(of: cleanPrefix, with: "")
-        }
-        
-        let cleanedPath = userPath.trimmingCharacters(in: CharacterSet(charactersIn: "/ "))
-        if cleanedPath.isEmpty { return nil }
-        
-        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") { return trimmed }
-        return "https://\(trimmed)"
-    }
-    
-    
     // MARK: - Actions
-    
+
     @objc private func textFieldDidChangeValue() {
         updateSaveButtonState()
     }
@@ -295,26 +301,21 @@ final class EditSocialLinksNode: ASDisplayNode, UITextFieldDelegate {
         view.endEditing(true)
     }
 
-
-
     @objc private func applyButtonTapped() {
-        view.endEditing(true) 
+        view.endEditing(true)
 
-        let instagramHandle = self.instagramTextField.textField.text ?? ""
-        let tiktokHandle = self.tiktokTextField.textField.text ?? ""
-        let youtubeHandle = self.youtubeTextField.textField.text ?? ""
-        let websiteHandle = self.websiteTextField.textField.text ?? ""
+        var texts: [Int: String] = [:]
+        var changedIds: Set<Int> = []
+        for (index, entry) in fieldEntries.enumerated() {
+            let text = entry.field.textField.text ?? ""
+            texts[entry.spec.id] = text
+            if index < initialTexts.count, text != initialTexts[index] {
+                changedIds.insert(entry.spec.id)
+            }
+        }
 
-        let linksData = LinksData(
-            tiktokUrl: constructFullURL(from: tiktokHandle, with: "tiktok.com/"),
-            youtubeUrl: constructFullURL(from: youtubeHandle, with: "youtube.com/"),
-            telegramUrl: nil,
-            instagramUrl: constructFullURL(from: instagramHandle, with: "instagram.com/"),
-            websiteUrl: constructFullURL(from: websiteHandle, with: "")
-        )
-        
         self.toggleSaving(active: true)
-        self.saveSocialLinks?(linksData)
+        self.onSave?(texts, changedIds)
     }
     
     // MARK: - Snackbar

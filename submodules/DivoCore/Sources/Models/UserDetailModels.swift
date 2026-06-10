@@ -216,9 +216,38 @@ public struct UserStatistic: Decodable {
 
 public struct UserSocialNetwork: Decodable {
     public let id: Int?
-    public let type: String?
-    public let url: String?
-    public let username: String?
+    public let nickname: String?
+    public let link: String?
+    public let socialNetwork: SocialNetworkItem?
+}
+
+public struct SocialNetworkItem: Decodable {
+    public let id: Int?
+    public let name: String?
+    public let provider: String?
+}
+
+public struct SocialNetworkListResponse: Decodable {
+    public let message: String?
+    public let data: [SocialNetworkItem]?
+    public let errors: [String]?
+}
+
+public struct UserSocialNetworkUpsertRequest: Encodable {
+    public let socialNetworkId: Int
+    public let nickname: String?
+    public let link: String?
+
+    public init(socialNetworkId: Int, nickname: String?, link: String?) {
+        self.socialNetworkId = socialNetworkId
+        self.nickname = nickname
+        self.link = link
+    }
+}
+
+public struct UserSocialNetworkMutationResponse: Decodable {
+    public let message: String?
+    public let errors: [String]?
 }
 
 public extension Double {

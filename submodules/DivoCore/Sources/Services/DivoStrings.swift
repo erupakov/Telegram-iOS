@@ -425,6 +425,7 @@ public enum DivoStrings {
     public static var socialLinksUpdated: String { L(en: "Social links updated", ru: "Ссылки обновлены", es: "Enlaces actualizados", pt: "Links atualizados", zh: "社交链接已更新") }
     public static var parametersUpdated: String { L(en: "Parameters updated", ru: "Параметры обновлены", es: "Parámetros actualizados", pt: "Parâmetros atualizados", zh: "参数已更新") }
     public static var failedLinksUpdated: String { L(en: "Couldn't update social links", ru: "Не удалось обновить ссылки на соцсети", es: "No se pudieron actualizar los enlaces sociales", pt: "Não foi possível atualizar os links sociais", zh: "无法更新社交链接") }
+    public static var failedToLoadSocialNetworks: String { L(en: "Couldn't load social networks", ru: "Не удалось загрузить список соцсетей", es: "No se pudieron cargar las redes sociales", pt: "Não foi possível carregar as redes sociais", zh: "无法加载社交网络列表") }
     public static var profileUpdated: String { L(en: "Profile updated", ru: "Профиль обновлён", es: "Perfil actualizado", pt: "Perfil atualizado", zh: "个人资料已更新") }
     public static var failedProfileUpdated: String { L(en: "Couldn't update profile", ru: "Не удалось обновить профиль", es: "No se pudo actualizar el perfil", pt: "Não foi possível atualizar o perfil", zh: "无法更新个人资料") }
     public static var failedParametersUpdated: String { L(en: "Couldn't update parameters", ru: "Не удалось обновить параметры", es: "No se pudieron actualizar los parámetros", pt: "Não foi possível atualizar os parâmetros", zh: "无法更新参数") }

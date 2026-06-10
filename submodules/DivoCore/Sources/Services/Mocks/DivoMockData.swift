@@ -202,7 +202,7 @@ public enum DivoMockData {
                 "isFollowed": false,
                 "userRatingStatus": null,
                 "userSocialNetworks": [
-                    {"type": "instagram", "url": "https://instagram.com/mockuser\(id)"}
+                    {"id": 1, "nickname": "mockuser\(id)", "link": "https://instagram.com/mockuser\(id)", "socialNetwork": {"id": 2, "name": "Instagram", "provider": "instagram"}}
                 ]
             },
             "errors": []
