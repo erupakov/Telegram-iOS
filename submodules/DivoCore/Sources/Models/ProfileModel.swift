@@ -24,6 +24,9 @@ public struct ProfileModel {
     public let mainImageURL: URL?
     public let avatarImageURL: URL?
 
+    /// id записи фида юзера (feedline) — нужен для жалобы через /feedline/report.
+    public let feedId: Int?
+
     public init(
         name: String,
         lastName: String? = nil,
@@ -40,7 +43,8 @@ public struct ProfileModel {
         userId: Int? = nil,
         role: String? = nil,
         mainImageURL: URL? = nil,
-        avatarImageURL: URL? = nil
+        avatarImageURL: URL? = nil,
+        feedId: Int? = nil
     ) {
         self.name = name
         self.lastName = lastName
@@ -58,5 +62,6 @@ public struct ProfileModel {
         self.role = role
         self.mainImageURL = mainImageURL
         self.avatarImageURL = avatarImageURL
+        self.feedId = feedId
     }
 }

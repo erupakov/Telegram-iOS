@@ -177,7 +177,8 @@ public final class ModelsFeedController: TelegramBaseController {
             userId: model.userId,
             role: model.role,
             mainImageURL: model.mainImageURL,
-            avatarImageURL: model.avatarImageURL
+            avatarImageURL: model.avatarImageURL,
+            feedId: model.feedId
         )
         let detailController = PublicProfileScreenController(context: context, model: profileModel)
         if let nav = self.navigationController as? NavigationController {

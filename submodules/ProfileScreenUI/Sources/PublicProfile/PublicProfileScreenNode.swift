@@ -1330,14 +1330,17 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.onBlockTapped?()
             }
             
-            if modelRole == .agency {
-                let menu = UIMenu(title: "", children: [reportAction, blockAction])
-                moreButton.menu = menu
-            } else {
-                let menu = UIMenu(title: "", children: [faceScanAction, reportAction, blockAction])
-                moreButton.menu = menu
+            var children: [UIMenuElement] = []
+            if modelRole != .agency {
+                children.append(faceScanAction)
             }
-            
+            // Жалоба уходит в /feedline/report по id записи фида — без feedId пункт не показываем.
+            if model.feedId != nil {
+                children.append(reportAction)
+            }
+            children.append(blockAction)
+            moreButton.menu = UIMenu(title: "", children: children)
+
             moreButton.showsMenuAsPrimaryAction = true
         }
     }
@@ -2263,13 +2266,16 @@ final class PublicProfileScreenNode: ASDisplayNode {
             action = { [weak self] in self?.onAddEventTapped?() }
         }
 
+        // Добавление каналов ещё не реализовано (onAddChannelTapped никто не обрабатывает) —
+        // CTA на вкладке каналов временно не показываем даже на своём профиле.
+        let showCTA = isMyProfile && tab != .channels
         emptyView(for: tab).configure(.init(
             style: .smallOnLight(icon: icon),
             title: title,
             subtitle: subtitle,
-            ctaTitle: isMyProfile ? cta : nil,
-            ctaLeadingIcon: isMyProfile ? DivoImage.plus : nil,
-            onCTATapped: isMyProfile ? action : nil
+            ctaTitle: showCTA ? cta : nil,
+            ctaLeadingIcon: showCTA ? DivoImage.plus : nil,
+            onCTATapped: showCTA ? action : nil
         ))
     }
 

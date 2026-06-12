@@ -373,7 +373,8 @@ public class ModelsSearchController: ViewController {
             userId: user.user?.id,
             role: user.user?.role,
             mainImageURL: mainImageURL,
-            avatarImageURL: mainImageURL
+            avatarImageURL: mainImageURL,
+            feedId: user.feedId
         )
         let detailController = PublicProfileScreenController(context: self.context, model: profileModel)
         (self.navigationController as? NavigationController)?.pushViewController(detailController, animated: true)

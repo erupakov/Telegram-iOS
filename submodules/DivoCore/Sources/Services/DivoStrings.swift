@@ -238,6 +238,13 @@ public enum DivoStrings {
     public static var findSimilar: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Encontrar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似资料") }
     public static var reportProfile: String { L(en: "Report this profile", ru: "Пожаловаться на профиль", es: "Reportar este perfil", pt: "Denunciar este perfil", zh: "举报此资料") }
     public static var blockUser: String { L(en: "Block user", ru: "Заблокировать пользователя", es: "Bloquear usuario", pt: "Bloquear usuário", zh: "屏蔽用户") }
+    public static var reportSent: String { L(en: "Report sent", ru: "Жалоба отправлена", es: "Reporte enviado", pt: "Denúncia enviada", zh: "举报已发送") }
+    public static var reportSendFailed: String { L(en: "Failed to send report", ru: "Не удалось отправить жалобу", es: "No se pudo enviar el reporte", pt: "Não foi possível enviar a denúncia", zh: "无法发送举报") }
+    public static var reportReasonsLoadFailed: String { L(en: "Failed to load report reasons", ru: "Не удалось загрузить причины жалобы", es: "No se pudieron cargar los motivos del reporte", pt: "Não foi possível carregar os motivos da denúncia", zh: "无法加载举报原因") }
+    public static var block: String { L(en: "Block", ru: "Заблокировать", es: "Bloquear", pt: "Bloquear", zh: "屏蔽") }
+    public static var blockUserConfirmMessage: String { L(en: "You will no longer see this user's content, and they won't be able to message you.", ru: "Вы больше не увидите контент этого пользователя, и он не сможет вам писать.", es: "Ya no verás el contenido de este usuario y no podrá enviarte mensajes.", pt: "Você não verá mais o conteúdo deste usuário e ele não poderá enviar mensagens para você.", zh: "您将不再看到该用户的内容，对方也无法给您发消息。") }
+    public static var userBlocked: String { L(en: "User blocked", ru: "Пользователь заблокирован", es: "Usuario bloqueado", pt: "Usuário bloqueado", zh: "用户已被屏蔽") }
+    public static var blockUserFailed: String { L(en: "Failed to block user", ru: "Не удалось заблокировать пользователя", es: "No se pudo bloquear al usuario", pt: "Não foi possível bloquear o usuário", zh: "无法屏蔽用户") }
 
     // MARK: - Profile Counters & Actions
 

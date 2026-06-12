@@ -384,9 +384,15 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.openFaceScanForCurrentProfile()
         }
 
-        // FIXME DIVO: implement report profile action
-        // FIXME DIVO: implement block user action
         // FIXME DIVO: implement stories button action
+        self.controllerNode.onReportProfileTapped = { [weak self] in
+            self?.presentReportReasons()
+        }
+
+        self.controllerNode.onBlockTapped = { [weak self] in
+            self?.presentBlockConfirmation()
+        }
+
 
         self.controllerNode.onEditProfileTapped = { [weak self] index in
             self?.navigateToEditProfile(selectedIndex: index)
@@ -892,21 +898,12 @@ extension PublicProfileScreenController {
     }
 }
 
-// Загрузка каналов — TODO: заменить моки на Telegram MTProto API
+// Загрузка каналов — реальных данных пока нет (нужна интеграция с Telegram MTProto API),
+// показываем пустое состояние, как на остальных вкладках.
 extension PublicProfileScreenController {
     func loadTelegramChannels() {
-        let mockChannels: [ProfileChannelItem] = [
-            ProfileChannelItem(peer: "vogue", title: "Vogue Inside", followersCount: 1342, isPremium: false, customAvatarURL: nil),
-            ProfileChannelItem(peer: "capsule", title: "Capsule Wardrobe", followersCount: 500, isPremium: true, customAvatarURL: nil),
-            ProfileChannelItem(peer: "mode_mood", title: "Mode & Mood", followersCount: 34912, isPremium: true, customAvatarURL: nil),
-            ProfileChannelItem(peer: "street_luxe", title: "Street Luxe", followersCount: 176, isPremium: false, customAvatarURL: nil),
-            ProfileChannelItem(peer: "trend_lab", title: "Trend Lab", followersCount: 42, isPremium: false, customAvatarURL: nil),
-            ProfileChannelItem(peer: "haute_daily", title: "Haute Daily", followersCount: 5986, isPremium: false, customAvatarURL: nil),
-            ProfileChannelItem(peer: "minimal_chic", title: "Minimal & Chic", followersCount: 1906, isPremium: false, customAvatarURL: nil),
-            ProfileChannelItem(peer: "fashion_drops", title: "Fashion Drops", followersCount: 3091, isPremium: false, customAvatarURL: nil)
-        ]
         DispatchQueue.main.async { [weak self] in
-            self?.controllerNode.updateChannelsList(mockChannels)
+            self?.controllerNode.updateChannelsList([])
         }
     }
 }
@@ -1746,6 +1743,102 @@ extension PublicProfileScreenController {
                 await MainActor.run {
                     self.similarProfilesIsLoading = false
                     self.controllerNode.setSimilarProfilesLoading(false)
+                }
+            }
+        }
+    }
+}
+
+// Жалоба на профиль и блокировка пользователя (меню «…»)
+extension PublicProfileScreenController {
+
+    func presentReportReasons() {
+        Task { [weak self] in
+            do {
+                let envelope: DivoEnvelope<[FeedReportType]> = try await DivoAPIClient.shared.request(
+                    path: "/dictionary/feed-report-types"
+                )
+                await MainActor.run {
+                    self?.showReportReasonsSheet(types: envelope.data)
+                }
+            } catch {
+                await MainActor.run {
+                    guard let self else { return }
+                    self.controllerNode.showSnackbar(
+                        message: DivoStrings.reportReasonsLoadFailed,
+                        style: .error,
+                        retryAction: { [weak self] in self?.presentReportReasons() }
+                    )
+                }
+            }
+        }
+    }
+
+    private func showReportReasonsSheet(types: [FeedReportType]) {
+        let sheet = UIAlertController(title: DivoStrings.reportProfile, message: nil, preferredStyle: .actionSheet)
+        for type in types {
+            sheet.addAction(UIAlertAction(title: type.title, style: .default) { [weak self] _ in
+                self?.sendReport(reportType: type.id)
+            })
+        }
+        sheet.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        if let popover = sheet.popoverPresentationController {
+            popover.sourceView = self.view
+            popover.sourceRect = CGRect(x: self.view.bounds.midX, y: self.view.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+        }
+        self.present(sheet, animated: true)
+    }
+
+    private func sendReport(reportType: String) {
+        guard let feedId = model.feedId else { return }
+        Task { [weak self] in
+            do {
+                let _: FeedReportResponse = try await DivoAPIClient.shared.request(
+                    path: "/feedline/report",
+                    method: "POST",
+                    body: FeedReportRequest(feedId: feedId, reportType: reportType)
+                )
+                await MainActor.run {
+                    self?.controllerNode.showSnackbar(message: DivoStrings.reportSent, style: .success)
+                }
+            } catch {
+                await MainActor.run {
+                    self?.controllerNode.showSnackbar(message: DivoStrings.reportSendFailed, style: .error)
+                }
+            }
+        }
+    }
+
+    func presentBlockConfirmation() {
+        guard model.userId != nil else { return }
+        let alert = UIAlertController(
+            title: DivoStrings.blockUser,
+            message: DivoStrings.blockUserConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: DivoStrings.block, style: .destructive) { [weak self] _ in
+            self?.blockUser()
+        })
+        self.present(alert, animated: true)
+    }
+
+    private func blockUser() {
+        guard let userId = model.userId else { return }
+        Task { [weak self] in
+            do {
+                let _: BlockUserResponse = try await DivoAPIClient.shared.request(
+                    path: "/messenger/block-user",
+                    method: "POST",
+                    body: BlockUserRequest(recipientId: userId)
+                )
+                await MainActor.run {
+                    self?.controllerNode.showSnackbar(message: DivoStrings.userBlocked, style: .success)
+                }
+            } catch {
+                await MainActor.run {
+                    self?.controllerNode.showSnackbar(message: DivoStrings.blockUserFailed, style: .error)
                 }
             }
         }
