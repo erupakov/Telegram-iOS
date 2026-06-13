@@ -35,6 +35,7 @@ swift_library(
         "//submodules/AttachmentUI",
         "//submodules/TelegramUI/Components/MediaEditorScreen",
         "//submodules/TelegramUI/Components/CameraScreen",
+        "//submodules/TelegramUI/Components/Stories/StoryContainerScreen:StoryContainerScreen",
         "//submodules/Camera:Camera",
         "//submodules/EventsUI:EventsUI",
         "//submodules/FaceSearchUI:FaceSearchUI",

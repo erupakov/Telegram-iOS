@@ -22,6 +22,7 @@ import EventsUI
 import DivoUIKit
 import FaceSearchUI
 import DivoGallery
+import StoryContainerScreen
 
 public final class PublicProfileScreenController: TelegramBaseController {
 
@@ -47,6 +48,12 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private let createWorkExperienceDisposable = MetaDisposable()
     private let openChatDisposable = MetaDisposable()
     private var isOpeningChat = false
+    private let storyStateDisposable = MetaDisposable()
+    private let storyListStateDisposable = MetaDisposable()
+    private let openStoryProgressDisposable = MetaDisposable()
+    // Teamgram-peer экрана: свой — account.peerId, чужой — по telegramId из /user/{id}
+    private var storyPeerId: EnginePeer.Id?
+    private var expiringStoryList: PeerExpiringStoryListContext?
     
     private var presentationData: PresentationData
     
@@ -132,6 +139,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.supportPeerDisposable.dispose()
         self.createWorkExperienceDisposable.dispose()
         self.openChatDisposable.dispose()
+        self.storyStateDisposable.dispose()
+        self.storyListStateDisposable.dispose()
+        self.openStoryProgressDisposable.dispose()
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -384,7 +394,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.openFaceScanForCurrentProfile()
         }
 
-        // FIXME DIVO: implement stories button action
         self.controllerNode.onReportProfileTapped = { [weak self] in
             self?.presentReportReasons()
         }
@@ -393,6 +402,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.presentBlockConfirmation()
         }
 
+        self.controllerNode.storiesButtonTapped = { [weak self] in
+            self?.openStoryComposer()
+        }
+
+        self.controllerNode.onAvatarTapped = { [weak self] in
+            self?.openProfileStories()
+        }
 
         self.controllerNode.onEditProfileTapped = { [weak self] index in
             self?.navigateToEditProfile(selectedIndex: index)
@@ -457,24 +473,28 @@ public final class PublicProfileScreenController: TelegramBaseController {
         overrideUserInterfaceStyle = .light
     }
 
-    private func openDirectMessage() {
-        guard !self.isOpeningChat, let telegramId = self.userDetailModel?.telegramId else { return }
-        self.isOpeningChat = true
-
+    /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers.
+    /// teamgram не валидирует access_hash, поэтому 0 проходит.
+    private func resolveTeamgramPeer(telegramId: Int) -> (peerId: PeerId, peer: Signal<EnginePeer?, NoError>) {
         let context = self.context
         let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))
-        let peerSignal: Signal<EnginePeer?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+        let signal: Signal<EnginePeer?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
         |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
             if let peer = peer {
                 return .single(peer)
             }
-            // Peer ещё не в Postbox — подтягиваем users.getUsers; teamgram не валидирует access_hash
             return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: 0))
             |> map { peer -> EnginePeer? in EnginePeer(peer) }
             |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
         }
+        return (peerId, signal)
+    }
 
-        self.openChatDisposable.set((peerSignal
+    private func openDirectMessage() {
+        guard !self.isOpeningChat, let telegramId = self.userDetailModel?.telegramId else { return }
+        self.isOpeningChat = true
+
+        self.openChatDisposable.set((self.resolveTeamgramPeer(telegramId: telegramId).peer
         |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
             guard let self = self else { return }
             self.isOpeningChat = false
@@ -490,6 +510,82 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 chatLocation: .peer(peer)
             ))
         }))
+    }
+
+    private func openStoryComposer() {
+        guard let rootController = self.context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface else {
+            return
+        }
+        // animateIn() обязателен — без него камера создаётся, но не показывается (чёрный экран). Как в ModelsFeed.
+        // customTarget форсит цель: без него proceedWithStoryUpload подменяет transitionOut на полёт
+        // в трей чат-листа, и кружок «улетает» в координаты экрана под профилем
+        let coordinator = rootController.openStoryCamera(
+            mode: .photo,
+            customTarget: .myStories,
+            resumeLiveStream: false,
+            transitionIn: nil,
+            transitionedIn: {},
+            transitionOut: { [weak self] target, _ in
+                // target == nil — закрытие камеры без постинга, лететь в аватарку не нужно
+                guard target != nil, let targetView = self?.controllerNode.storyTransitionTargetView() else {
+                    return nil
+                }
+                return StoryCameraTransitionOut(
+                    destinationView: targetView,
+                    destinationRect: targetView.bounds,
+                    destinationCornerRadius: targetView.bounds.width / 2.0
+                )
+            }
+        )
+        coordinator?.animateIn()
+    }
+
+    private func openProfileStories() {
+        guard let peerId = self.storyPeerId else { return }
+        StoryContainerScreen.openPeerStoriesCustom(
+            context: self.context,
+            peerId: peerId,
+            isHidden: false,
+            singlePeer: true,
+            parentController: self,
+            transitionIn: { nil },
+            transitionOut: { _ in nil },
+            setFocusedItem: { _ in },
+            // Сигнал открытия презентует вьюер только когда его подписали — пустой setProgress = вьюер не откроется
+            setProgress: { [weak self] signal in
+                self?.openStoryProgressDisposable.set(signal.startStrict())
+            }
+        )
+    }
+
+    private func setupStoryRing() {
+        if self.isMyProfile {
+            self.storyPeerId = self.context.account.peerId
+            // Свои сторис — из accountItem, как трей в ленте (ModelsFeedNode)
+            self.storyStateDisposable.set((self.context.engine.messages.storySubscriptions(isHidden: false)
+            |> deliverOnMainQueue).startStrict(next: { [weak self] subscriptions in
+                guard let self = self else { return }
+                let item = subscriptions.accountItem
+                self.controllerNode.updateStoryRing(hasStories: (item?.storyCount ?? 0) > 0, hasUnseen: item?.hasUnseen ?? false)
+            }))
+        } else if let telegramId = self.userDetailModel?.telegramId {
+            let resolved = self.resolveTeamgramPeer(telegramId: telegramId)
+            let peerId = resolved.peerId
+            self.storyPeerId = peerId
+            self.storyStateDisposable.set((resolved.peer
+            |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
+                guard let self = self, peer != nil else { return }
+                // Кольцо — из реальных сторис (getPeerStories), как PeerInfo. user.stories_max_id
+                // не годится: teamgram не сбрасывает его после истечения сторис, кольцо вело в пустоту
+                let storyList = PeerExpiringStoryListContext(account: self.context.account, peerId: peerId)
+                self.expiringStoryList = storyList
+                self.storyListStateDisposable.set((storyList.state
+                |> deliverOnMainQueue).startStrict(next: { [weak self] state in
+                    guard let self = self else { return }
+                    self.controllerNode.updateStoryRing(hasStories: !state.items.isEmpty, hasUnseen: state.hasUnseen)
+                }))
+            }))
+        }
     }
 
     private func handleGridShare(item: UserDetail?, image: UIImage?) {
@@ -553,6 +649,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.controllerNode.updateWithUserDetail(detail, self.isMyProfile)
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
+                self.setupStoryRing()
                 if let eng = engagement {
                     self.controllerNode.updateEngagementStats(
                         likes: eng.likes,

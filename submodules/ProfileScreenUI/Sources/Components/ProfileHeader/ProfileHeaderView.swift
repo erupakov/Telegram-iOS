@@ -25,8 +25,7 @@ struct UserProfileViewModel {
     let role: Role
     let avatarImage: UIImage?
     let isPremium: Bool
-    let isOnline: Bool
-    
+
     init(
         name: String,
         age: Int?,
@@ -34,8 +33,7 @@ struct UserProfileViewModel {
         countryFlag: String,
         role: Role,
         avatarImage: UIImage?,
-        isPremium: Bool,
-        isOnline: Bool
+        isPremium: Bool
     ) {
         self.name = name
         self.age = age
@@ -44,16 +42,24 @@ struct UserProfileViewModel {
         self.role = role
         self.avatarImage = avatarImage
         self.isPremium = isPremium
-        self.isOnline = isOnline
     }
 }
 
 
 class ProfileHeaderView: UIView {
 
-    private let ringView: AvatarStrokeView = {
-        let view = AvatarStrokeView()
+    var onAvatarTapped: (() -> Void)?
+
+    // Цель анимации «кружок летит в аватарку» при постинге сторис из профиля
+    var avatarTransitionView: UIView {
+        return avatarImageView
+    }
+
+    private let ringView: StoryRingView = {
+        let view = StoryRingView()
         view.translatesAutoresizingMaskIntoConstraints = false
+        // Кольцо появляется только когда у юзера есть сторис (setStoryRing)
+        view.isHidden = true
         return view
     }()
     
@@ -72,15 +78,6 @@ class ProfileHeaderView: UIView {
         avatarImageView.applyAvatarTopCropIfNeeded(image: image)
     }
     
-    private let onlineStatusView: UIView = {
-        let view = UIView()
-        view.backgroundColor = DivoColorPalette.onlineIndicator
-        view.layer.borderColor = DivoColorPalette.avatarStrokeQuiet.cgColor
-        view.layer.borderWidth = 2
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
     private let nameLabel: UILabel = {
         let label = UILabel()
         label.textColor = DivoColorPalette.cardBackground
@@ -92,7 +89,6 @@ class ProfileHeaderView: UIView {
     private static let badgeHeight: CGFloat = 22
     private static let avatarSize: CGFloat = 54
     private static let ringInset: CGFloat = 10
-    private static let onlineDotSize: CGFloat = 12
     private static let premiumIconSize: CGFloat = 20
 
     private var nameLabelHeightConstraint: NSLayoutConstraint!
@@ -147,13 +143,13 @@ class ProfileHeaderView: UIView {
         super.layoutSubviews()
 
         avatarImageView.layer.cornerRadius = Self.avatarSize / 2
-        onlineStatusView.layer.cornerRadius = Self.onlineDotSize / 2
     }
     
     private func setupViews() {
         addSubview(ringView)
         addSubview(avatarImageView)
-        addSubview(onlineStatusView)
+
+        avatarImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(avatarTapped)))
 
         addSubview(nameLabel)
         addSubview(premiumBadgeIcon)
@@ -176,11 +172,6 @@ class ProfileHeaderView: UIView {
             ringView.centerYAnchor.constraint(equalTo: avatarImageView.centerYAnchor),
             ringView.widthAnchor.constraint(equalToConstant: Self.avatarSize + Self.ringInset),
             ringView.heightAnchor.constraint(equalToConstant: Self.avatarSize + Self.ringInset),
-
-            onlineStatusView.trailingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: -DivoDesignTokens.Spacing.xs),
-            onlineStatusView.bottomAnchor.constraint(equalTo: ringView.bottomAnchor, constant: -DivoDesignTokens.Spacing.xs),
-            onlineStatusView.widthAnchor.constraint(equalToConstant: Self.onlineDotSize),
-            onlineStatusView.heightAnchor.constraint(equalToConstant: Self.onlineDotSize),
 
             nameLabel.leadingAnchor.constraint(equalTo: ringView.trailingAnchor, constant: Self.ringInset),
             nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: premiumBadgeIcon.leadingAnchor, constant: -8),
@@ -243,5 +234,16 @@ class ProfileHeaderView: UIView {
     
     func loadAvatar(from url: URL?) {
         avatarImageView.loadImage(from: url, placeholder: DivoImage.emptyBackgroundAvatar, cropAvatarIfNeeded: true)
+    }
+
+    func setStoryRing(hasStories: Bool, hasUnseen: Bool) {
+        ringView.isHidden = !hasStories
+        ringView.hasUnseen = hasUnseen
+        // Тап ведёт в просмотр сторис, поэтому активен только когда они есть
+        avatarImageView.isUserInteractionEnabled = hasStories
+    }
+
+    @objc private func avatarTapped() {
+        onAvatarTapped?()
     }
 }

@@ -770,6 +770,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onAddChannelTapped: (() -> Void)?
 
     var storiesButtonTapped: (() -> Void)?
+    var onAvatarTapped: (() -> Void)?
     var onAddWorkExperienceTapped: (() -> Void)?
     var onSimilarProfileTapped: ((SimilarProfileItem) -> Void)?
     var onModelAgencyTapped: ((ModelItem) -> Void)?
@@ -1559,6 +1560,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // 2. В обертку кладем infoStack
         profileHeaderWrapper.addSubview(infoStack)
         infoStack.addArrangedSubview(profileHeaderView)
+        profileHeaderView.onAvatarTapped = { [weak self] in
+            self?.onAvatarTapped?()
+        }
         
         profileHeaderShimmerView.translatesAutoresizingMaskIntoConstraints = false
         infoStack.addSubview(profileHeaderShimmerView)
@@ -3560,7 +3564,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
             contentViewStack.setCustomSpacing(44, after: profileHeaderWrapper)
         }
         
-        // FIXME DIVO: isOnline захардкожен — API пока не возвращает это поле
         UIView.performWithoutAnimation {
             if self.modelRole == .agency {
                 let viewModel = UserProfileViewModel(
@@ -3570,8 +3573,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     countryFlag: Self.flag(for: detail.agency?.address?.city?.countryCode),
                     role: self.modelRole,
                     avatarImage: nil,
-                    isPremium: detail.isPremium ?? false,
-                    isOnline: true
+                    isPremium: detail.isPremium ?? false
                 )
                 profileHeaderView.configure(with: viewModel)
             } else {
@@ -3583,8 +3585,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     countryFlag: Self.flag(for: detail.city?.countryCode),
                     role: self.modelRole,
                     avatarImage: nil,
-                    isPremium: detail.isPremium ?? false,
-                    isOnline: true
+                    isPremium: detail.isPremium ?? false
                 )
                 profileHeaderView.configure(with: viewModel)
             }
@@ -3593,6 +3594,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // снимет шиммеры (через stopShimmers), активирует scroll/swipe.
         screenPhase = .ready
         activateTitleVisibility()
+    }
+
+    func updateStoryRing(hasStories: Bool, hasUnseen: Bool) {
+        profileHeaderView.setStoryRing(hasStories: hasStories, hasUnseen: hasUnseen)
+    }
+
+    func storyTransitionTargetView() -> UIView? {
+        guard !profileHeaderView.isHidden else { return nil }
+        return profileHeaderView.avatarTransitionView
     }
 
     func updateEngagementStats(likes: Int, views: Int, saves: Int, isLiked: Bool = false, isSaved: Bool = false) {
