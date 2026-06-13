@@ -675,7 +675,8 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         let folders: [Int64] = results.first?.options.folderIds ?? []
 
         if let rootTabController = self.rootTabController {
-            if let index = rootTabController.controllers.firstIndex(where: { $0 is ChatListController}) {
+            // DIVO: при форс-таргете (постинг из DIVO-профиля) не переключаем таббар на чат-лист
+            if !externalState.isForcedTarget, let index = rootTabController.controllers.firstIndex(where: { $0 is ChatListController}) {
                 rootTabController.selectedIndex = index
             }
             if forwardInfo != nil {
