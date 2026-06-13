@@ -120,6 +120,11 @@ telegram_aps_environment = "production"
 
 #### Команда сборки
 
+> **⚠️ ВНИМАНИЕ! Для релиза надо отключить дебаг-экран.**
+> Перед сборкой выставить `DivoConfig.isDebugEnabled = false` в
+> `submodules/DivoCore/Sources/Services/DivoConfig.swift` (сейчас захардкожен в `true`),
+> иначе Debug Menu попадёт в релизный билд.
+
 ```bash
 bazel build //Telegram:Telegram \
   --compilation_mode=opt \
