@@ -403,6 +403,7 @@ public final class StorySubscriptionsContext {
                     var updatedStealthMode: Api.StoriesStealthMode?
                     switch result {
                     case let .allStoriesNotModified(allStoriesNotModifiedData):
+                        divoMTProtoLog("[MTProto] getAllStories ← notModified (isHidden:\(isHidden) isRefresh:\(isRefresh))", level: .info) // DIVO TEMP диагностика ленты сторис
                         let (state, stealthMode) = (allStoriesNotModifiedData.state, allStoriesNotModifiedData.stealthMode)
                         self.loadedStateMark = .value(state)
                         let (currentStateValue, _) = transaction.getAllStorySubscriptions(key: subscriptionsKey)
@@ -424,6 +425,7 @@ public final class StorySubscriptionsContext {
                         }
                     case let .allStories(allStoriesData):
                         let (flags, state, peerStories, chats, users, stealthMode) = (allStoriesData.flags, allStoriesData.state, allStoriesData.peerStories, allStoriesData.chats, allStoriesData.users, allStoriesData.stealthMode)
+                        divoMTProtoLog("[MTProto] getAllStories ← peers:\(peerStories.count) (isHidden:\(isHidden) isRefresh:\(isRefresh))", level: .info) // DIVO TEMP диагностика ленты сторис
                         let parsedPeers = AccumulatedPeers(transaction: transaction, chats: chats, users: users)
                         
                         let hasMore: Bool = (flags & (1 << 0)) != 0
@@ -2611,6 +2613,7 @@ public final class PeerExpiringStoryListContext {
                             case let .peerStories(peerStoriesData):
                                 let (_, peerIdValue, maxReadId, stories) = (peerStoriesData.flags, peerStoriesData.peer, peerStoriesData.maxReadId, peerStoriesData.stories)
                                 let peerId = peerIdValue.peerId
+                                divoMTProtoLog("[MTProto] getPeerStories ← peer:\(peerId.id._internalGetInt64Value()) items:\(stories.count)", level: .info) // DIVO TEMP диагностика ринга профиля
 
                                 let previousPeerEntries: [StoryItemsTableEntry] = transaction.getStoryItems(peerId: peerId)
 
@@ -2632,6 +2635,8 @@ public final class PeerExpiringStoryListContext {
                             }
 
                             updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: parsedPeers)
+                        } else {
+                            divoMTProtoLog("[MTProto] getPeerStories ← peer:\(peerId.id._internalGetInt64Value()) nil (ответ не дошёл / ошибка)", level: .warning) // DIVO TEMP диагностика ринга профиля
                         }
 
                         transaction.setStoryItems(peerId: peerId, items: updatedPeerEntries)
