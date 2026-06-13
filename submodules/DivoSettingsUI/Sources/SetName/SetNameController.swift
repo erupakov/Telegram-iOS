@@ -53,17 +53,16 @@ public final class SetNameController: ViewController {
     }
 
     override public func loadDisplayNode() {
-        let currentName = userDetail?.role == "agency_employee"
-            ? userDetail?.agency?.title
-            : userDetail?.fullName
-        self.displayNode = SetNameNode(currentName: currentName)
+        let isAgency = userDetail?.role == "agency_employee"
+        let currentName = isAgency ? userDetail?.agency?.title : userDetail?.fullName
+        self.displayNode = SetNameNode(currentName: currentName, isAgency: isAgency)
 
         self.setNameNode.onBackTapped = { [weak self] in
             self?.navigationController?.popViewController(animated: true)
         }
 
-        self.setNameNode.onSave = { [weak self] name, action in
-            self?.handleSave(name: name, usernameAction: action)
+        self.setNameNode.onSave = { [weak self] firstName, lastName, action in
+            self?.handleSave(firstName: firstName, lastName: lastName, usernameAction: action)
         }
 
         self.setNameNode.onUsernameChanged = { [weak self] handle in
@@ -79,6 +78,10 @@ public final class SetNameController: ViewController {
             let username = peer?.addressName ?? ""
             self.currentUsername = username
             self.setNameNode.setInitialUsername(username)
+            // Для агентства поле имени = название агентства (из REST), личное teamgram-имя туда не льём.
+            if !isAgency, case let .user(user)? = peer {
+                self.setNameNode.setInitialName(firstName: user.firstName ?? "", lastName: user.lastName ?? "")
+            }
         })
 
         self.displayNodeDidLoad()
@@ -129,12 +132,14 @@ public final class SetNameController: ViewController {
 
     // MARK: - Save
 
-    private func handleSave(name: String, usernameAction: SetNameNode.UsernameAction) {
+    private func handleSave(firstName: String, lastName: String, usernameAction: SetNameNode.UsernameAction) {
+        // DIVO хранит имя одной строкой — склеиваем; в teamgram уйдут first/last раздельно.
+        let fullName = [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ")
         Task { @MainActor in
             do {
-                try await self.saveName(name)
-                // DIVO сохранил имя → синкаем его в teamgram (best-effort, ретрай на сбое).
-                DivoTeamgramName.syncToTeamgram(fullName: name)
+                try await self.saveName(fullName)
+                // DIVO сохранил имя → синкаем в teamgram раздельные имя/фамилию (best-effort, ретрай на сбое).
+                DivoTeamgramName.syncToTeamgram(firstName: firstName, lastName: lastName)
             } catch {
                 self.finishFailure(error)
                 return

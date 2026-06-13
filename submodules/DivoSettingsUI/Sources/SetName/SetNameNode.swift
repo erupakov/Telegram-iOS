@@ -31,7 +31,7 @@ final class SetNameNode: ASDisplayNode {
     }
 
     var onBackTapped: (() -> Void)?
-    var onSave: ((_ name: String, _ usernameAction: UsernameAction) -> Void)?
+    var onSave: ((_ firstName: String, _ lastName: String, _ usernameAction: UsernameAction) -> Void)?
     var onUsernameChanged: ((_ handle: String) -> Void)?
 
     private let navigationBar = DivoNavigationBar()
@@ -55,10 +55,12 @@ final class SetNameNode: ASDisplayNode {
         return stack
     }()
 
-    private let nameSectionLabel = SetNameNode.makeSectionLabel(DivoStrings.name)
+    private let nameSectionLabel = SetNameNode.makeSectionLabel(DivoStrings.firstName)
+    private let lastNameSectionLabel = SetNameNode.makeSectionLabel(DivoStrings.lastName)
     private let usernameSectionLabel = SetNameNode.makeSectionLabel(DivoStrings.usernameSection)
 
     private let nameTextField: DivoTextField
+    private let lastNameTextField = DivoTextField(title: "", prefix: "")
     private let usernameTextField = DivoTextField(title: "", prefix: "@")
 
     private let usernameStatusRow: UIStackView = {
@@ -113,7 +115,9 @@ final class SetNameNode: ASDisplayNode {
 
     private var keyboardHandler: DivoKeyboardHandler?
 
-    private let initialName: String
+    private let isAgency: Bool
+    private var initialFirstName: String
+    private var initialLastName: String = ""
     private var initialUsername: String = ""
     private var usernameState: UsernameState = .neutral {
         didSet {
@@ -125,12 +129,17 @@ final class SetNameNode: ASDisplayNode {
 
     // MARK: - Init
 
-    init(currentName: String?) {
+    init(currentName: String?, isAgency: Bool) {
         let name = (currentName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        self.initialName = name
+        self.isAgency = isAgency
+        self.initialFirstName = name
         self.nameTextField = DivoTextField(title: name, prefix: "")
         super.init()
 
+        // У агентства одно поле — название агентства, не личное имя/фамилия.
+        if isAgency {
+            nameSectionLabel.text = DivoStrings.agencyName
+        }
         self.backgroundColor = DivoColorPalette.screenBackground
 
         navigationBar.makeNavigationBar(
@@ -152,13 +161,26 @@ final class SetNameNode: ASDisplayNode {
         super.didLoad()
 
         nameTextField.textField.attributedPlaceholder = NSAttributedString(
-            string: DivoStrings.name,
+            string: isAgency ? DivoStrings.agencyName : DivoStrings.firstName,
             font: Font.regular(16),
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
         nameTextField.textField.autocapitalizationType = .words
-        nameTextField.textField.returnKeyType = .done
-        nameTextField.onReturn = { [weak self] in self?.view.endEditing(true) }
+        nameTextField.textField.returnKeyType = .next
+        nameTextField.onReturn = { [weak self] in
+            guard let self else { return }
+            let next = self.isAgency ? self.usernameTextField : self.lastNameTextField
+            next.textField.becomeFirstResponder()
+        }
+
+        lastNameTextField.textField.attributedPlaceholder = NSAttributedString(
+            string: DivoStrings.lastName,
+            font: Font.regular(16),
+            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
+        )
+        lastNameTextField.textField.autocapitalizationType = .words
+        lastNameTextField.textField.returnKeyType = .next
+        lastNameTextField.onReturn = { [weak self] in self?.usernameTextField.textField.becomeFirstResponder() }
 
         usernameTextField.textField.autocapitalizationType = .none
         usernameTextField.textField.autocorrectionType = .no
@@ -173,6 +195,7 @@ final class SetNameNode: ASDisplayNode {
         scrollView.scrollIndicatorInsets = scrollView.contentInset
 
         nameTextField.textField.addTarget(self, action: #selector(nameDidChange), for: .editingChanged)
+        lastNameTextField.textField.addTarget(self, action: #selector(nameDidChange), for: .editingChanged)
         usernameTextField.textField.addTarget(self, action: #selector(usernameDidChange), for: .editingChanged)
         applyButton.addTarget(self, action: #selector(saveButtonPressed), for: .touchUpInside)
 
@@ -185,6 +208,12 @@ final class SetNameNode: ASDisplayNode {
         )
         keyboardHandler?.subscribe()
 
+        if !initialFirstName.isEmpty {
+            nameTextField.setText(initialFirstName)
+            if !isAgency {
+                lastNameTextField.setText(initialLastName)
+            }
+        }
         if !initialUsername.isEmpty {
             usernameTextField.setText(initialUsername)
         }
@@ -211,11 +240,18 @@ final class SetNameNode: ASDisplayNode {
 
         formStack.addArrangedSubview(nameSectionLabel)
         formStack.addArrangedSubview(nameTextField.view)
+        if !isAgency {
+            formStack.addArrangedSubview(lastNameSectionLabel)
+            formStack.addArrangedSubview(lastNameTextField.view)
+        }
         formStack.addArrangedSubview(usernameSectionLabel)
         formStack.addArrangedSubview(usernameTextField.view)
         formStack.addArrangedSubview(usernameStatusRow)
         formStack.addArrangedSubview(usernameHintLabel)
         formStack.setCustomSpacing(DivoDesignTokens.Spacing.l, after: nameTextField.view)
+        if !isAgency {
+            formStack.setCustomSpacing(DivoDesignTokens.Spacing.l, after: lastNameTextField.view)
+        }
         formStack.setCustomSpacing(Layout.statusToHintSpacing, after: usernameStatusRow)
 
         scrollView.addSubview(formStack)
@@ -267,6 +303,20 @@ final class SetNameNode: ASDisplayNode {
         applyButton.setSaving(active, in: view)
     }
 
+    /// Прелоад имени/фамилии из Telegram-аккаунта (там они уже разбиты) — приходит асинхронно.
+    /// Если teamgram имя не отдал — оставляем стартовый DIVO fullName в поле имени (выставлен в init).
+    func setInitialName(firstName: String, lastName: String) {
+        let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !first.isEmpty else { return }
+        self.initialFirstName = first
+        self.initialLastName = last
+        guard isNodeLoaded else { return }
+        nameTextField.setText(first)
+        lastNameTextField.setText(last)
+        updateSaveButtonState()
+    }
+
     /// Прелоад текущего ника (из Telegram-аккаунта) — приходит асинхронно.
     func setInitialUsername(_ username: String) {
         self.initialUsername = username
@@ -306,8 +356,12 @@ final class SetNameNode: ASDisplayNode {
         }
     }
 
-    private func currentNameTrimmed() -> String {
+    private func currentFirstNameTrimmed() -> String {
         return (nameTextField.textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func currentLastNameTrimmed() -> String {
+        return (lastNameTextField.textField.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func currentHandle() -> String {
@@ -317,9 +371,10 @@ final class SetNameNode: ASDisplayNode {
     }
 
     private func updateSaveButtonState() {
-        let name = currentNameTrimmed()
+        let first = currentFirstNameTrimmed()
+        let last = currentLastNameTrimmed()
         let handle = currentHandle()
-        let nameChanged = name != initialName
+        let nameChanged = first != initialFirstName || last != initialLastName
         let usernameChanged = handle != initialUsername
         let usernameOK: Bool
         switch usernameState {
@@ -328,7 +383,7 @@ final class SetNameNode: ASDisplayNode {
         case .checking, .error:
             usernameOK = false
         }
-        let canSave = !name.isEmpty && usernameOK && (nameChanged || usernameChanged)
+        let canSave = !first.isEmpty && usernameOK && (nameChanged || usernameChanged)
         applyButton.isEnabled = canSave
         navigationBar.setEnableRightButton(canSave)
     }
@@ -349,8 +404,9 @@ final class SetNameNode: ASDisplayNode {
 
     @objc private func saveButtonPressed() {
         view.endEditing(true)
-        let name = currentNameTrimmed()
-        guard !name.isEmpty else { return }
+        let firstName = currentFirstNameTrimmed()
+        let lastName = currentLastNameTrimmed()
+        guard !firstName.isEmpty else { return }
 
         let handle = currentHandle()
         let action: UsernameAction
@@ -363,7 +419,7 @@ final class SetNameNode: ASDisplayNode {
         }
 
         toggleSaving(active: true)
-        onSave?(name, action)
+        onSave?(firstName, lastName, action)
     }
 
     // MARK: - Snackbar

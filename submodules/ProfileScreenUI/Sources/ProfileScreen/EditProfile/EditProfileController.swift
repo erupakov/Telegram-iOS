@@ -71,8 +71,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             self?.handleAgencySave(with: rawData)
         }
 
-        self.editProfileNode.saveProfile = { [weak self] rawData in
-            self?.handleSave(with: rawData)
+        self.editProfileNode.saveProfile = { [weak self] rawData, firstName, lastName in
+            self?.handleSave(with: rawData, firstName: firstName, lastName: lastName)
         }
         
         self.editProfileNode.onAvatarTap = { [weak self] in
@@ -301,7 +301,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         }
     }
 
-    private func handleSave(with rawData: UpdateBiographyPageRequest) {
+    private func handleSave(with rawData: UpdateBiographyPageRequest, firstName: String, lastName: String) {
         Task { @MainActor in
             do {
                 let avatarUuid = self.selectedAvatarUUID.map {
@@ -322,8 +322,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     body: request
                 )
 
-                // DIVO сохранил имя → синкаем его в teamgram (best-effort, ретрай на сбое).
-                DivoTeamgramName.syncToTeamgram(fullName: rawData.fullName)
+                // DIVO сохранил имя → синкаем в teamgram раздельные имя/фамилию (best-effort, ретрай на сбое).
+                DivoTeamgramName.syncToTeamgram(firstName: firstName, lastName: lastName)
                 // Ава менялась в этой сессии → досылаем в teamgram-аву (best-effort).
                 if self.selectedAvatarUUID != nil {
                     DivoTeamgramPhoto.syncToTeamgram()

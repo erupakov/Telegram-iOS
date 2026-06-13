@@ -91,6 +91,16 @@ extension AppDelegate {
                     DivoTeamgramPhoto.syncToTeamgram()
                 }
             })
+
+            // reconcile имени: teamgram-имя вторично к DIVO (как ава) — если разошлись, досылаем DIVO-имя.
+            let _ = (context.context.account.postbox.transaction { transaction -> (String, String) in
+                if let user = transaction.getPeer(peerId) as? TelegramUser {
+                    return (user.firstName ?? "", user.lastName ?? "")
+                }
+                return ("", "")
+            }).start(next: { names in
+                Task { await DivoTeamgramName.reconcileToTeamgram(teamgramFirstName: names.0, teamgramLastName: names.1) }
+            })
         })
     }
 

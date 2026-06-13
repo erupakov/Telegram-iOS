@@ -48,7 +48,7 @@ final class EditProfileNode: ASDisplayNode {
         return self._ready.get()
     }
     
-    var saveProfile: ((UpdateBiographyPageRequest) -> Void)?
+    var saveProfile: ((UpdateBiographyPageRequest, _ firstName: String, _ lastName: String) -> Void)?
     var saveAgencyProfile: ((UpdateDescriptionAgencyRequest) -> Void)?
     var onAvatarTap: (() -> Void)?
     var onBackTapped: (() -> Void)?
@@ -258,6 +258,7 @@ final class EditProfileNode: ASDisplayNode {
     private let avatarSpinner = DivoSegmentedSpinner()
     
     private let nameTextField: DivoTextField
+    private let lastNameTextField: DivoTextField
     private let aboutEventTextField: DivoTextView
     
     
@@ -308,7 +309,8 @@ final class EditProfileNode: ASDisplayNode {
     private var selectedSkinColorTitle: String?
     
     private struct ProfileSnapshot: Equatable {
-        let name: String
+        let firstName: String
+        let lastName: String
         let bio: String
         let genderId: String?
         let height: Double?
@@ -391,7 +393,9 @@ final class EditProfileNode: ASDisplayNode {
         self.presentationDataPromise = Promise(self.presentationData)
                 
         var name = ""
+        var lastName = ""
         var placeholder = ""
+        var lastNamePlaceholder = ""
         var bioTitle = ""
         var bio = ""
         // Пустые поля оставляем пустыми (плейсхолдер покажет подсказку) — НЕ подставляем «Имя» /
@@ -402,12 +406,17 @@ final class EditProfileNode: ASDisplayNode {
             bioTitle = DivoStrings.descriptionTitle
             bio = model?.agency?.description ?? ""
         } else {
-            name = model?.fullName ?? ""
-            placeholder = "\(DivoStrings.fullName) *"
+            // Имя берём из DIVO fullName (источник правды, как в профиле) и режем на имя/фамилию.
+            // teamgram-имя здесь НЕ читаем — оно вторично и сводится к DIVO через reconcile при старте.
+            let parts = DivoTeamgramName.split(fullName: model?.fullName ?? "")
+            name = parts.firstName
+            lastName = parts.lastName
+            placeholder = "\(DivoStrings.firstName) *"
+            lastNamePlaceholder = DivoStrings.lastName
             bioTitle = DivoStrings.biographyTitle
             bio = model?.model?.description ?? ""
         }
-        
+
         self.nameTextField = DivoTextField(title: name, prefix: "")
         self.nameTextField.textField.attributedPlaceholder = NSAttributedString(
             string: placeholder,
@@ -415,7 +424,15 @@ final class EditProfileNode: ASDisplayNode {
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
         self.nameTextField.isUserInteractionEnabled = true
-        
+
+        self.lastNameTextField = DivoTextField(title: lastName, prefix: "")
+        self.lastNameTextField.textField.attributedPlaceholder = NSAttributedString(
+            string: lastNamePlaceholder,
+            font: Font.regular(16),
+            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
+        )
+        self.lastNameTextField.isUserInteractionEnabled = true
+
         self.aboutEventTextField = DivoTextView(title: bioTitle, initialText: bio)
 
         super.init()
@@ -500,6 +517,10 @@ final class EditProfileNode: ASDisplayNode {
         self.nameTextField.textField.autocapitalizationType = .words
         self.nameTextField.textField.delegate = self
 
+        self.lastNameTextField.textField.returnKeyType = .next
+        self.lastNameTextField.textField.autocapitalizationType = .words
+        self.lastNameTextField.textField.delegate = self
+
         keyboardHandler = DivoKeyboardHandler(
             scrollView: scrollView,
             buttonConstraint: applyButtonBottomConstraint!,
@@ -549,6 +570,7 @@ final class EditProfileNode: ASDisplayNode {
         chancePhotoView.addTarget(self, action: #selector(self.avatarTapped), for: .touchUpInside)
 
         nameTextField.textField.addTarget(self, action: #selector(nameFieldDidChange), for: .editingChanged)
+        lastNameTextField.textField.addTarget(self, action: #selector(nameFieldDidChange), for: .editingChanged)
         aboutEventTextField.onTextChange = { [weak self] _ in
             self?.updateSaveButtonState()
         }
@@ -745,13 +767,20 @@ final class EditProfileNode: ASDisplayNode {
         avatarContainer.widthAnchor.constraint(equalTo: bioStackView.widthAnchor).isActive = true
         
         nameTextField.view.translatesAutoresizingMaskIntoConstraints = false
+        lastNameTextField.view.translatesAutoresizingMaskIntoConstraints = false
         aboutEventTextField.translatesAutoresizingMaskIntoConstraints = false
-        
+
+        let isAgency = model?.role == "agency_employee"
+
         bioStackView.addArrangedSubview(nameTextField.view)
+        // У агентства имя — одно поле (название), у обычного юзера — имя + фамилия раздельно.
+        if !isAgency {
+            bioStackView.addArrangedSubview(lastNameTextField.view)
+        }
         bioStackView.addArrangedSubview(countryRow)
         bioStackView.addArrangedSubview(cityRow)
         bioStackView.addArrangedSubview(aboutEventTextField)
-        
+
         NSLayoutConstraint.activate([
             nameTextField.view.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
             nameTextField.view.heightAnchor.constraint(equalToConstant: 48),
@@ -762,6 +791,13 @@ final class EditProfileNode: ASDisplayNode {
             countryRow.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
             cityRow.widthAnchor.constraint(equalTo: bioStackView.widthAnchor)
         ])
+
+        if !isAgency {
+            NSLayoutConstraint.activate([
+                lastNameTextField.view.widthAnchor.constraint(equalTo: bioStackView.widthAnchor),
+                lastNameTextField.view.heightAnchor.constraint(equalToConstant: 48)
+            ])
+        }
         
         countryRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countryTapped)))
         cityRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cityTapped)))
@@ -1092,7 +1128,8 @@ final class EditProfileNode: ASDisplayNode {
 
     private func makeSnapshot() -> ProfileSnapshot {
         ProfileSnapshot(
-            name: nameTextField.textField.text ?? "",
+            firstName: nameTextField.textField.text ?? "",
+            lastName: lastNameTextField.textField.text ?? "",
             bio: aboutEventTextField.text,
             genderId: selectedGenderId,
             height: selectedHeight,
@@ -1342,12 +1379,17 @@ final class EditProfileNode: ASDisplayNode {
     @objc private func saveButtonPressed() {
         self.view.endEditing(true)
 
-        let trimmedName = (self.nameTextField.textField.text ?? "")
+        let firstName = (self.nameTextField.textField.text ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else { return }
+        let lastName = (self.lastNameTextField.textField.text ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !firstName.isEmpty else { return }
+
+        // DIVO хранит имя одной строкой — склеиваем; в teamgram уйдут first/last раздельно (контроллер).
+        let fullName = [firstName, lastName].filter { !$0.isEmpty }.joined(separator: " ")
 
         let data = UpdateBiographyPageRequest(
-            fullName: trimmedName,
+            fullName: fullName,
             gender: self.selectedGenderId,
             geoCityId: self.selectedCityId,
             birthday: getFormattedBirthdayForAPI(),
@@ -1370,7 +1412,7 @@ final class EditProfileNode: ASDisplayNode {
         )
         
         self.toggleSaving(active: true)
-        self.saveProfile?(data)
+        self.saveProfile?(data, firstName, lastName)
     }
 
     @objc private func mainActionButtonPressed() {
@@ -1596,6 +1638,12 @@ extension EditProfileNode: UITextFieldDelegate {
     
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         if textField === nameTextField.textField {
+            if model?.role == "agency_employee" {
+                aboutEventTextField.textView.becomeFirstResponder()
+            } else {
+                lastNameTextField.textField.becomeFirstResponder()
+            }
+        } else if textField === lastNameTextField.textField {
             aboutEventTextField.textView.becomeFirstResponder()
         }
         return false

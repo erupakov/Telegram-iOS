@@ -446,6 +446,8 @@ public enum DivoStrings {
     public static var similarProfiles: String { L(en: "You may be interested in similar profiles", ru: "Вам могут быть интересны похожие профили", es: "Perfiles similares que podrían interesarle", pt: "Perfis semelhantes que podem interessar", zh: "您可能感兴趣的类似资料") }
     public static var addWorkHistory: String { L(en: "+  Add work history", ru: "+  Добавить опыт работы", es: "+  Agregar experiencia", pt: "+  Adicionar experiência", zh: "+  添加工作经历") }
     public static var fullName: String { L(en: "Full name", ru: "Полное имя", es: "Nombre completo", pt: "Nome completo", zh: "全名") }
+    public static var firstName: String { L(en: "First name", ru: "Имя", es: "Nombre", pt: "Nome", zh: "名字") }
+    public static var lastName: String { L(en: "Last name", ru: "Фамилия", es: "Apellido", pt: "Sobrenome", zh: "姓氏") }
     public static var agencyName: String { L(en: "Agency name", ru: "Название агентства", es: "Nombre de la agencia", pt: "Nome da agência", zh: "经纪公司名称") }
     public static var name: String { L(en: "Name", ru: "Имя", es: "Nombre", pt: "Nome", zh: "姓名") }
     public static var followersCount: String { L(en: "followers", ru: "подписчиков", es: "seguidores", pt: "seguidores", zh: "粉丝") }
