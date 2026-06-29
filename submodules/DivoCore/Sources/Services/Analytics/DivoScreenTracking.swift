@@ -5,9 +5,9 @@ import ObjectiveC
 ///
 /// Авто-репортинг Firebase отключён через Info.plist (`FirebaseAutomaticScreenReportingEnabled = NO`),
 /// иначе в Google Analytics летели бы технические имена классов (TabBarControllerImpl и т.п.).
-/// Единственный источник screen_view — свизл `viewDidAppear(_:)` ниже: для экранов из карты
-/// шлём человеческое имя, для остальных — имя класса (fallback, полное покрытие). Контейнеры,
-/// системные и дебаг-контроллеры не трекаем.
+/// Единственный источник screen_view — свизл `viewDidAppear(_:)` ниже. Работает по whitelist:
+/// трекаем только экраны из карты `names` с человеческим именем, всё незнакомое (контейнеры,
+/// оверлеи, системные/телеграмные контроллеры) — пропускаем, чтобы в отчёте не было мусора.
 public enum DivoScreenTracking {
     private static var installed = false
 
@@ -86,28 +86,9 @@ enum DivoScreenNames {
         "ChatControllerImpl": "Чат"
     ]
 
-    /// Контейнеры/служебное/дебаг — не трекаем вовсе.
-    static let excluded: Set<String> = [
-        "TabBarControllerImpl",
-        "DebugMenuController",
-        "DivoStandaloneLogsViewController"
-    ]
-
     static func track(_ viewController: UIViewController) {
-        // Контейнеры и системные алерты — не экраны.
-        if viewController is UINavigationController
-            || viewController is UITabBarController
-            || viewController is UIAlertController {
-            return
-        }
         let className = String(describing: type(of: viewController))
-        // UIKit-внутренние / приватные системные контроллеры.
-        if className.hasPrefix("UI") || className.hasPrefix("_") {
-            return
-        }
-        if excluded.contains(className) {
-            return
-        }
-        divoTrackScreen(names[className] ?? className)
+        guard let name = names[className] else { return }
+        divoTrackScreen(name)
     }
 }
