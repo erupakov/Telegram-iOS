@@ -4655,6 +4655,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
     @objc private func shareTapped() {
+        if let contentId = modelDetail?.id {
+            divoTrack(.contentShared(contentType: "profile", contentId: Int64(contentId)))
+        }
         onGridShareTapped?(modelDetail, avatarImage)
     }
 
@@ -5123,6 +5126,16 @@ extension PublicProfileScreenNode: ProfileSegmentedBarDelegate {
         isTabSwitching = false
 
         if didChangeTab {
+            let tabName: String
+            switch newTab {
+            case .photo: tabName = "photo"
+            case .video: tabName = "video"
+            case .models: tabName = "models"
+            case .channels: tabName = "channels"
+            case .events: tabName = "events"
+            }
+            divoTrack(.profileTabViewed(tabName: tabName))
+
             updateScreenBackgroundForCurrentTab()
             loadDataForTab(newTab)
         }

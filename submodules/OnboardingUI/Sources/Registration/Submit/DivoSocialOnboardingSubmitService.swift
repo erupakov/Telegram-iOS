@@ -66,6 +66,7 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                 DivoConfig.accessToken = token.accessToken
                 DivoConfig.currentDivoUserId = token.user.id
                 divoLog("Onboarding submit: registration-social OK divoUserId=\(token.user.id)", level: .info)
+                divoTrack(.signUpComplete(method: "social"))
             } else if let phone = DivoConfig.pendingPhoneNumber {
                 // Phone-новый: заводим DIVO-аккаунт по синтетическому email/паролю. Роль + профиль — в additionalInfo.
                 let email = PhoneAuthLinker.syntheticEmail(for: phone)
@@ -77,6 +78,7 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                 DivoConfig.accessToken = token.accessToken
                 DivoConfig.currentDivoUserId = token.user.id
                 divoLog("Onboarding submit: registration OK divoUserId=\(token.user.id)", level: .info)
+                divoTrack(.signUpComplete(method: "phone"))
             } else {
                 // Существующий-не-пройден (соц-C / phone-existing): аккаунт уже есть → МЕНЯЕМ только роль
                 // (атомарно). Имя/фото/gender — структурным блоком ниже (per role, gender через словарь),

@@ -29,6 +29,7 @@ public final class EventApplyConfirmationController: TelegramBaseController {
 
     private let context: AccountContext
     private let eventId: Int
+    private var currentUserId: Int?
     // Сделали данные эвента опциональными и изменяемыми (var)
     private var eventData: EventFullDetailData?
     
@@ -111,6 +112,7 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                 
                 await MainActor.run {
                     self.eventData = finalEventData
+                    self.currentUserId = userResponse.data.id
                     self.controllerNode.update(
                         user: userResponse.data,
                         event: finalEventData,
@@ -388,11 +390,15 @@ public final class EventApplyConfirmationController: TelegramBaseController {
                 await MainActor.run {
                     guard let self else { return }
                     self.controllerNode.toggleSubmitLoading(active: false)
-                    
+
+                    if let userId = self.currentUserId {
+                        divoTrack(.eventApplyConfirmed(eventId: Int64(self.eventId), userId: Int64(userId)))
+                    }
+
                     let deadlineText = self.formatDeadlineDate(self.eventData?.applicationDeadline)
-                    
+
                     self.controllerNode.showSuccessState(deadlineText: deadlineText)
-                    
+
                     self.onApplySuccess?()
                 }
             } catch {

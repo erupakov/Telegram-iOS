@@ -67,6 +67,15 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     private var tabTitles: [String] { [DivoStrings.feedSubscribed, DivoStrings.feedAllUsers, DivoStrings.feedAgencies] }
     private var selectedTabIndex = 0
 
+    private static func tabAnalyticsName(for index: Int) -> String {
+        switch index {
+        case 0: return "subscribed"
+        case 1: return "all_users"
+        case 2: return "agencies"
+        default: return "subscribed"
+        }
+    }
+
     private let tabsContainerView: UIView = {
         let view = UIView()
         view.backgroundColor = DivoColorPalette.screenBackground
@@ -276,6 +285,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         segmentedControl.onTabSelected = { [weak self] index in
             guard let self = self else { return }
             self.selectedTabIndex = index
+            divoTrack(.modelsTabViewed(tabName: Self.tabAnalyticsName(for: index)))
             self.hideEmptyState()
             self.onTabSelected?(index)
         }
@@ -720,6 +730,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
     }
 
     func cardCell(_ cell: CardCollectionViewCell, didTapSaveForUserId userId: Int, isSaved: Bool) {
+        divoTrack(.bookmarkToggled(targetUserId: Int64(userId), isBookmarked: isSaved))
         guard let idx = cardIndex(forUserId: userId) else { return }
 
         let removeFromFeed = !isSaved && self.selectedTabIndex == 0
@@ -765,6 +776,9 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
     func cardCell(_ cell: CardCollectionViewCell, didTapLikeForFeedId feedId: Int, isLiked: Bool) {
         guard let idx = cardIndex(forFeedId: feedId) else { return }
+        if let userId = self.cards[idx].userId {
+            divoTrack(.likeToggled(targetUserId: Int64(userId), isLiked: isLiked))
+        }
         self.cards[idx].isLiked = isLiked
         self.cards[idx].likesCount = max(0, self.cards[idx].likesCount + (isLiked ? 1 : -1))
 
@@ -797,6 +811,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         let idx = indexPath.item
         guard idx < self.cards.count else { return }
         let card = self.cards[idx]
+
+        divoTrack(.contentShared(contentType: "profile", contentId: Int64(userId)))
 
         let shareURL = URL(string: "\(DivoConfig.shareBaseURL)/profile/\(userId)")!
         let shareItem = DivoShareItemSource(

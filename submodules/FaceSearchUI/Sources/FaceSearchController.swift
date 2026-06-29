@@ -169,6 +169,7 @@ public final class FaceSearchController: ViewController {
     // MARK: - Search
 
     private func handleFindPressed() {
+        divoTrack(.faceSearchFindTapped)
         guard detectState.canSearch, !isSearching else { return }
         guard let faceIndex = detectState.selectedFaceIndex else { return }
         guard let imageData = selectedImage.jpegData(compressionQuality: 0.85) else { return }
@@ -176,6 +177,7 @@ public final class FaceSearchController: ViewController {
         isSearching = true
         faceSearchNode?.setSearchLoading(true)
 
+        divoTrack(.faceSearchStarted)
         Task { @MainActor [weak self] in
             do {
                 async let searchResponse: FRSearchResponse = DivoAPIClient.shared.upload(
@@ -194,6 +196,7 @@ public final class FaceSearchController: ViewController {
                 guard let self else { return }
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
+                divoTrack(.faceSearchSuccess(matchesCount: result.results.count))
                 self.showResults(result.results, bbox: result.bbox, imageData: imageData, faceIndex: faceIndex)
             } catch {
                 guard let self else { return }
@@ -235,6 +238,7 @@ public final class FaceSearchController: ViewController {
     }
 
     private func showResults(_ results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int) {
+        divoTrack(.similarProfilesScreenOpened(hasResults: !results.isEmpty))
         var historyEntryId: String?
         if !results.isEmpty {
             historyEntryId = saveFaceSearchHistory(results: results, bbox: bbox, imageData: imageData, faceIndex: faceIndex)

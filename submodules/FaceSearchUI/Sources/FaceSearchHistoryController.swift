@@ -44,6 +44,7 @@ public final class FaceSearchHistoryController: ViewController {
         }
         node.onClearAll = { [weak self] in
             FaceSearchHistoryStorage.shared.clearAll()
+            divoTrack(.faceSearchHistoryCleared)
             self?.historyNode?.updateItems([])
         }
         node.onItemTapped = { [weak self] item in

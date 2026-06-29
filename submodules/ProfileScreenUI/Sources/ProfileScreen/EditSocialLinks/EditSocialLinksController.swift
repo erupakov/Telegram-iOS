@@ -188,6 +188,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                     body: request
                 )
 
+                divoTrack(.socialLinksSaved)
                 self.delegate?.didUpdateSocialLinksData()
                 self.navigationController?.popViewController(animated: true)
 
@@ -226,6 +227,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                     }
                 }
 
+                divoTrack(.socialLinksSaved)
                 self.delegate?.didUpdateSocialLinksData()
                 self.navigationController?.popViewController(animated: true)
 

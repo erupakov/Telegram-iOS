@@ -149,6 +149,7 @@ public final class ModelsFeedController: TelegramBaseController {
     }
 
     @objc private func searchPressed() {
+        divoTrack(.modelsSearchOpened)
         let searchController = ModelsSearchController(context: self.context)
     
         if let navigationController = self.navigationController as? NavigationController {
@@ -189,6 +190,9 @@ public final class ModelsFeedController: TelegramBaseController {
     }
 
     private func openGallery(_ model: CardModel, initialIndex: Int) {
+        if let userId = model.userId {
+            divoTrack(.galleryItemViewed(targetUserId: userId, mediaId: initialIndex, mediaType: "image"))
+        }
         var allURLs: [URL] = []
         if let mainURL = model.mainImageURL {
             allURLs.append(mainURL)
@@ -226,6 +230,7 @@ public final class ModelsFeedController: TelegramBaseController {
     // singlePeer: false — вьюер берёт all-stories контекст (как трей в чатах). Через singlePeer: true
     // своя сторис не открывалась: per-peer контент сервер не отдаёт, а all-stories уже содержит итемы.
     private func openStory(peerId: EnginePeer.Id, order: [EnginePeer.Id]) {
+        divoTrack(.storyOpened(source: "feed"))
         StoryContainerScreen.openPeerStoriesCustom(
             context: self.context,
             peerId: peerId,
@@ -246,6 +251,7 @@ public final class ModelsFeedController: TelegramBaseController {
 
     // Открытие камеры/композера сторис (тап по «+»).
     private func openStoryComposer() {
+        divoTrack(.storyAddClicked)
         guard let rootController = self.context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface else {
             return
         }
@@ -313,6 +319,7 @@ public final class ModelsFeedController: TelegramBaseController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        divoTrack(.modelsFeedOpened)
         let state = tabStates[selectedTabIndex]
         if !state.isLoaded && !state.isLoading {
             loadFeedline(tabIndex: selectedTabIndex, reset: true)

@@ -593,11 +593,13 @@ final class DivoSettingsNode: ASDisplayNode {
 
     @objc private func languageTapped() {
         guard screenPhase == .ready else { return }
+        divoTrack(.settingsOptionTapped(option: "language"))
         onLanguageTapped?()
     }
 
     @objc private func measuringSystemTapped() {
         guard screenPhase == .ready else { return }
+        divoTrack(.settingsOptionTapped(option: "measuring_system"))
 
         let options = measuringSystem.map { FilterOptionItem(id: $0.id, title: $0.title) }
         let selectedIds = selectedMeasuringSystemId.map { [$0] } ?? []
@@ -629,6 +631,7 @@ final class DivoSettingsNode: ASDisplayNode {
 
     @objc private func profileTapped() {
         guard screenPhase == .ready else { return }
+        divoTrack(.settingsOptionTapped(option: "profile"))
         onProfileTapped?()
     }
 
@@ -649,16 +652,19 @@ final class DivoSettingsNode: ASDisplayNode {
 
     @objc private func notificationsTapped() {
         guard screenPhase == .ready else { return }
+        divoTrack(.settingsOptionTapped(option: "notifications"))
         onNotificationsTapped?()
     }
 
     @objc private func privacyTapped() {
         guard screenPhase == .ready else { return }
+        divoTrack(.settingsOptionTapped(option: "privacy"))
         onPrivacyTapped?()
     }
 
     @objc private func dataStorageTapped() {
         guard screenPhase == .ready else { return }
+        divoTrack(.settingsOptionTapped(option: "data_storage"))
         onDataStorageTapped?()
     }
 }

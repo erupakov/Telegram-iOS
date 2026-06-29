@@ -72,6 +72,7 @@ public final class DivoSettingsController: TelegramBaseController {
         super.viewDidLoad()
         // DIVO свёрстан под светлую палитру — форсим .light
         overrideUserInterfaceStyle = .light
+        divoTrack(.settingsOpened)
     }
 
     override public func loadDisplayNode() {
@@ -309,6 +310,9 @@ public final class DivoSettingsController: TelegramBaseController {
                     body: request
                 )
                 DivoMeasuringSystem.updateCurrent(rawData)
+                if let rawData {
+                    divoTrack(.measurementSystemChanged(system: rawData))
+                }
                 self.reloadProfile()
             } catch {
                 self.controllerNode.showSnackbar(

@@ -58,6 +58,7 @@ extension AuthorizationSequenceController {
             case .ready:
                 // Существующий, онбординг пройден (токен уже выставлен) — завершаем, в таббар.
                 divoLog("[Auth UI] phone-link: существующий + онбординг пройден — завершаем", level: .info)
+                divoTrack(.signInComplete(method: "phone"))
                 self.divoFinishWithoutOnboarding(complete: complete)
             case .onboarding:
                 // Новый (регистрация на submit) ИЛИ существующий-не-пройден (update-profile) → онбординг.

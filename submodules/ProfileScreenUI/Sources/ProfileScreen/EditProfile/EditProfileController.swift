@@ -187,6 +187,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
     }
     
     private func openEditWorkExperience(item: WorkHistoryItem) {
+        divoTrack(.workHistoryEditOpened(workId: item.id))
         let controller = AddWorkExperienceController(context: self.context, editItem: item)
         controller.delegate = self
         self.navigationController?.pushViewController(controller, animated: true)
@@ -214,6 +215,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     path: "/model-work-history/\(itemId)",
                     method: "DELETE"
                 )
+                divoTrack(.workHistoryDeleted)
             } catch {
                 await MainActor.run {
                     self.loadingOverlay.hide()
@@ -288,6 +290,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     fileData: imageData
                 )
                 self.selectedAvatarUUID = response.data?.uuid
+                divoTrack(.profileAvatarUploaded)
                 self.editProfileNode.currentPhoto = selectedAvatarImage
                 self.editProfileNode.setAvatarLoading(false)
             } catch {
@@ -321,6 +324,9 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "POST",
                     body: request
                 )
+
+                divoTrack(.profileEditSaved)
+                divoTrack(.parametersUpdated)
 
                 // DIVO сохранил имя → синкаем в teamgram раздельные имя/фамилию (best-effort, ретрай на сбое).
                 DivoTeamgramName.syncToTeamgram(firstName: firstName, lastName: lastName)
@@ -370,6 +376,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     method: "POST",
                     body: request
                 )
+
+                divoTrack(.profileEditSaved)
 
                 // DIVO сохранил название агентства → синкаем его в teamgram-имя (best-effort).
                 DivoTeamgramName.syncToTeamgram(fullName: rawData.title)

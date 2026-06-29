@@ -140,10 +140,13 @@ public final class EventDetailController: TelegramBaseController {
         }
 
         self.displayNodeDidLoad()
-        
+
         if isPreviewMode {
             loadPreview()
         } else {
+            if let eventId = self.eventId {
+                divoTrack(.eventDetailsViewed(eventId: Int64(eventId)))
+            }
             getEvent()
         }
     }
@@ -301,7 +304,9 @@ public final class EventDetailController: TelegramBaseController {
     // Переход на экран редактирования
     private func navigateToEditEvent() {
         guard let eventId = self.eventId else { return }
-        
+
+        divoTrack(.eventEditStarted(eventId: Int64(eventId)))
+
         let editEventController = CreateEventController(context: self.context, mode: .edit(eventId: eventId))
         
         // Обновляем текущий экран после успешного редактирования и возврата
@@ -322,7 +327,9 @@ public final class EventDetailController: TelegramBaseController {
                     path: "/event/\(eventId)",
                     method: "DELETE"
                 )
-                
+
+                divoTrack(.eventDeleted(eventId: Int64(eventId)))
+
                 NotificationCenter.default.post(
                     name: DivoConfig.divoEventDeleted,
                     object: nil,

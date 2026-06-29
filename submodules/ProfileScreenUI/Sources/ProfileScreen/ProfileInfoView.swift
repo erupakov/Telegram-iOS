@@ -418,6 +418,9 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         ])
         
         control.onTabSelected = { [weak self] index in
+            if let tabName = titles[safe: index] {
+                divoTrack(.profileInfoTabViewed(tabName: tabName))
+            }
             self?.setSelectedIndex(index, animated: true)
         }
         

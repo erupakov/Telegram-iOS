@@ -238,6 +238,7 @@ public final class EventsController: TelegramBaseController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        divoTrack(.eventListOpened)
         if !didLoadEvents {
             fetchUserRole()
         }
@@ -591,6 +592,9 @@ public final class EventsController: TelegramBaseController {
     }
 
     @objc private func addPressed() {
+        if let userId = self.userId {
+            divoTrack(.eventCreateStarted(targetUserId: userId))
+        }
         let controller = CreateEventController(context: context)
         controller.delegate = self
         self.push(controller)

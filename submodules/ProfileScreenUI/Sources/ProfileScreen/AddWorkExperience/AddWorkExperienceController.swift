@@ -207,7 +207,9 @@ public class AddWorkExperienceController: ViewController, UINavigationController
                     method: "POST",
                     body: body
                 )
-                
+
+                divoTrack(isEdit ? .workHistoryEdited : .workHistoryCreated)
+
                 self.addWorkExperienceNode.toggleSpinner(active: false)
                 self.delegate?.didUpdateWorkExperience(isEdit: isEdit)
                 self.navigationController?.popViewController(animated: true)

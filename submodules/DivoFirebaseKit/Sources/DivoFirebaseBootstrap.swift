@@ -31,6 +31,8 @@ public enum DivoFirebaseBootstrap {
         DivoAnalyticsRegistry.current = DivoFirebaseAnalytics()
         // Авто-screen_view выключен в Info.plist — экраны трекаем сами, с человеческими именами.
         DivoScreenTracking.install()
+        // Мост чат-событий из Telegram-слоя (он постит NotificationCenter, см. DivoChatAnalyticsBridge).
+        DivoChatAnalyticsBridge.install()
 
         configureRemoteConfig()
 

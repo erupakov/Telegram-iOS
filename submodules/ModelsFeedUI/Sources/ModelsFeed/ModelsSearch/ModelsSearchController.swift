@@ -226,6 +226,7 @@ public class ModelsSearchController: ViewController {
     }
 
     private var pendingFaceSearchSource: FaceSearchSource?
+    private var pendingFaceRecognitionSource: String?
     private weak var activeFaceSearchController: FaceSearchController?
 
     private func handleFaceSearchSource(_ source: FaceSearchSource) {
@@ -251,6 +252,7 @@ public class ModelsSearchController: ViewController {
 
     private func openPhotoPicker(_ source: FaceSearchSource) {
         guard let rootVC = presentingWindow?.rootViewController else { return }
+        pendingFaceRecognitionSource = source == .camera ? "camera" : "gallery"
         switch source {
         case .camera:
             guard UIImagePickerController.isSourceTypeAvailable(.camera) else { return }
@@ -312,6 +314,7 @@ public class ModelsSearchController: ViewController {
     }
 
     private func loadProfilePhotoAndOpenFaceSearch(for user: SearchUserDTO) {
+        pendingFaceRecognitionSource = "profile"
         guard let urlString = user.searchImage?.fullUrl,
               let url = CDNURLHelper.convertToCDNURL(urlString) else {
             self.searchNode.showSnackbar(
@@ -340,6 +343,10 @@ public class ModelsSearchController: ViewController {
     }
 
     private func openFaceSearchScreen(with image: UIImage) {
+        if let source = pendingFaceRecognitionSource {
+            divoTrack(.faceRecognitionOpened(source: source))
+            pendingFaceRecognitionSource = nil
+        }
         if let existing = activeFaceSearchController, existing.navigationController != nil {
             existing.updateImage(image)
         } else {
@@ -357,6 +364,9 @@ public class ModelsSearchController: ViewController {
     }
 
     private func openModelScreen(for user: SearchUserDTO) {
+        if let userId = user.user?.id {
+            divoTrack(.searchModelTapped(targetUserId: userId))
+        }
         let mainImageURL = user.searchImage?.fullUrl
             .flatMap { CDNURLHelper.convertToCDNURL($0) }
 
@@ -397,6 +407,7 @@ public class ModelsSearchController: ViewController {
     }
 
     private func presentFiltersSheet() {
+        divoTrack(.searchFiltersOpened(target: "models"))
         let filterVC = SearchFilterController(currentFilters: self.currentFilters)
         filterVC.genderOptions = self.preloadedGenders
         filterVC.hairLengthOptions = self.preloadedHairLength
@@ -406,6 +417,7 @@ public class ModelsSearchController: ViewController {
 
         filterVC.onApply = { [weak self] newFilters in
             guard let self = self else { return }
+            divoTrack(.searchFiltersApplied(target: "models", activeFilters: String(newFilters.activeFilterCount)))
             self.currentFilters = newFilters
             self.gridOffset = 0
             self.hasMoreGridResults = true
@@ -417,6 +429,7 @@ public class ModelsSearchController: ViewController {
             guard let self = self else { return }
             guard self.currentFilters != newFilters else { return }
 
+            divoTrack(.searchFiltersApplied(target: "models", activeFilters: String(newFilters.activeFilterCount)))
             self.currentFilters = newFilters
             self.gridOffset = 0
             self.hasMoreGridResults = true
@@ -565,6 +578,7 @@ public class ModelsSearchController: ViewController {
     }
 
     private func handleFaceSearchHistorySeeAll() {
+        divoTrack(.faceSearchHistoryOpened)
         let controller = FaceSearchHistoryController(context: self.context)
         controller.onItemTapped = { [weak self] item in
             self?.replayFaceSearch(item)
@@ -784,7 +798,8 @@ public class ModelsSearchController: ViewController {
     
     private func fetchAutocompleteResults(for query: String) {
         self.currentQuery = query
-        
+        divoTrack(.searchQueryEntered(target: "models", queryLength: query.count))
+
         currentSearchTask?.cancel()
         
         currentSearchTask = Task { @MainActor in
@@ -857,6 +872,15 @@ public class ModelsSearchController: ViewController {
 
                     let profileItems = response.data.items.filter { $0.entity == "users" }
                     let totalCount = response.data.pagination.meta.totalCount
+
+                    if isFirst {
+                        divoTrack(.searchPerformed(
+                            target: "models",
+                            hasResults: totalCount > 0,
+                            query: self.currentQuery,
+                            activeFilters: String(self.currentFilters.activeFilterCount)
+                        ))
+                    }
 
                     self.searchNode.updateGrid(
                         results: profileItems,

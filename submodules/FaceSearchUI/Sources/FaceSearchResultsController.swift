@@ -164,11 +164,13 @@ public final class FaceSearchResultsController: ViewController {
                 sheet.preferredCornerRadius = 24
             }
         }
+        divoTrack(.similarProfilesFiltersOpened)
         self.view.window?.rootViewController?.present(navVC, animated: true)
     }
 
     private func applyFilters(_ newFilters: FaceSearchFilterState) {
         self.currentFilters = newFilters
+        divoTrack(.similarProfilesFiltersApplied(activeFilters: String(newFilters.activeFilterCount)))
         resultsNode?.updateFilterBadge(count: newFilters.activeFilterCount)
         reloadSearch()
     }
@@ -408,6 +410,7 @@ public final class FaceSearchResultsController: ViewController {
     }
 
     private func openProfile(for result: FRSearchResult) {
+        divoTrack(.similarProfileOpened)
         onOpenProfile?(result)
     }
 }

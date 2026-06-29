@@ -88,6 +88,8 @@ public final class OnboardingRegistrationCoordinator {
 
         // Запускаем с текущего шага.
         pushController(for: state.currentStep, animated: false)
+
+        divoTrack(.onboardingStarted)
     }
 
     // MARK: - Public entry
@@ -96,6 +98,7 @@ public final class OnboardingRegistrationCoordinator {
     /// Из других мест закрытие не предусмотрено — там есть Back.
     public func cancelFromTopLevel() {
         divoLog("Onboarding cancelled from top-level", level: .info)
+        divoTrack(.onboardingSkipped)
         onFinish(false)
     }
 
@@ -230,6 +233,7 @@ extension OnboardingRegistrationCoordinator: OnboardingQuizViewController.Delega
         switch state.currentStep {
         case .topLevelChoice:
             updateState { $0.topLevelCategory = OnboardingTopLevelCategory(rawValue: optionId) }
+            divoTrack(.signUpIntentSelected(intent: optionId))
         case .industryDoor:
             updateState { $0.industryDoor = OnboardingIndustryDoor(rawValue: optionId) }
         case .talentExperienceQuiz:
@@ -243,6 +247,7 @@ extension OnboardingRegistrationCoordinator: OnboardingQuizViewController.Delega
             }
         case .talentSubRolePicker, .industryProSubRolePicker, .companiesSubRolePicker:
             updateState { $0.selectedRoleId = OnboardingRoleID(optionId) }
+            divoTrack(.signUpRoleSelected(role: optionId))
         default:
             break
         }
@@ -377,6 +382,13 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
     }
 
     public func formStepControllerDidTapPrimary(_ controller: OnboardingFormStepViewController) {
+        if case .formStep(let formId, let index) = state.currentStep {
+            divoTrack(.signUpStepCompleted(
+                stepName: formId.rawValue,
+                stepNumber: index + 1,
+                totalSteps: formCatalog.stepCount(for: formId)
+            ))
+        }
         guard let next = stateMachine.nextStep(from: state) else { return }
         go(to: next)
     }
@@ -654,9 +666,11 @@ extension OnboardingRegistrationCoordinator: OnboardingSubmitViewController.Dele
                 controller.applySuccess()
                 store.clear()
                 divoLog("Onboarding completed successfully", level: .info)
+                divoTrack(.onboardingCompleted)
                 onFinish(true)
             } catch {
                 divoLog("Onboarding submit failed: \(error)", level: .error)
+                divoTrack(.signUpError(errorMessage: "\(error)"))
                 controller.applyFailure(error: error)
             }
         }

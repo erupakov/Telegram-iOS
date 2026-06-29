@@ -19,6 +19,14 @@ public enum DivoAuthAppleHandler {
             let result = try await FirebaseAuthClient.shared.signInWithApple(presentingFrom: anchor)
             divoLog("Apple sign-in OK: uid=\(result.uid) email=\(result.email ?? "nil")", level: .info)
             let outcome = await AuthRestRouter.route(firebaseUid: result.uid, providerId: result.providerId)
+            switch outcome {
+            case .newUser:
+                divoTrack(.signUpStart(method: "apple"))
+            case .divo2Reinstall, .divo1Migration:
+                divoTrack(.signInStart(method: "apple"))
+            case .failed:
+                break
+            }
             DivoAuthOutcomePresenter.present(outcome, on: controller, displayName: result.displayName, photoUrl: result.photoUrl)
             return outcome
         } catch DivoFirebaseAuthError.userCancelled {

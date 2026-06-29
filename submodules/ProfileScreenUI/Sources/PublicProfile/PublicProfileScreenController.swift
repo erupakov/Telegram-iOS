@@ -108,6 +108,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         super.init(context: context, navigationBarPresentationData: nil)
 
+        divoTrack(.profileOpened(
+            targetUserId: Int64(model.userId ?? 0),
+            source: model.isMyProfile ? "my_profile" : "other_profile"
+        ))
+
         // Подписываемся на уведомление о смене статуса отклика
         NotificationCenter.default.addObserver(
             self,
@@ -172,6 +177,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
     @available(iOS 14, *)
     private func navigateToAddPhoto() {
+        divoTrack(.profileMediaUploadTapped(mediaType: "photo", targetUserId: Int(model.userId ?? 0)))
         self.pickerPurpose = .photo
         var configuration = PHPickerConfiguration()
         configuration.filter = .images
@@ -184,6 +190,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
     @available(iOS 14, *)
     private func navigateToAddVideo() {
+        divoTrack(.profileMediaUploadTapped(mediaType: "video", targetUserId: Int(model.userId ?? 0)))
         self.pickerPurpose = .video
         var configuration = PHPickerConfiguration()
         configuration.filter = .videos
@@ -195,6 +202,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToEditProfile(selectedIndex: Int = 0) {
+        divoTrack(.profileEditOpened)
         let editProfileController = EditProfileController(
             context: self.context, 
             presentationData: self.presentationData, 
@@ -206,6 +214,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
     
     private func navigateToChangeBackground() {
+        divoTrack(.profileMediaUploadTapped(mediaType: "background", targetUserId: Int(model.userId ?? 0)))
         self.pickerPurpose = .background
 
         if #available(iOS 14, *) {
@@ -221,7 +230,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
     
     private func navigateToEditSocialLinks() {
-        
+        divoTrack(.socialLinksOpened)
+
         let tiktok = userDetailModel?.model?.tiktokUrl ?? ""
         let youtube = userDetailModel?.model?.youtubeUrl ?? ""
         let instagram = userDetailModel?.model?.instagramUrl ?? ""
@@ -247,11 +257,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
     
     private func navigateToManageExperience() {
+        divoTrack(.workHistoryOpened(targetUserId: Int(model.userId ?? 0)))
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.push(historyController)
     }
-    
+
     private func navigateToAddWorkExperience() {
+        divoTrack(.workHistoryCreateOpened)
         let controller = AddWorkExperienceController(context: self.context)
         controller.delegate = self
         self.push(controller)
@@ -493,6 +505,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private func openDirectMessage() {
         guard !self.isOpeningChat, let telegramId = self.userDetailModel?.telegramId else { return }
         self.isOpeningChat = true
+
+        divoTrack(.directMessageStarted(
+            sourceUserId: DivoConfig.currentDivoUserId ?? 0,
+            targetUserId: Int64(model.userId ?? 0)
+        ))
 
         self.openChatDisposable.set((self.resolveTeamgramPeer(telegramId: telegramId).peer
         |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
@@ -1217,6 +1234,14 @@ extension PublicProfileScreenController {
 extension PublicProfileScreenController {
     
     private func presentInteractionSheet(type: InteractionListType) {
+        let tabName: String
+        switch type {
+        case .likes: tabName = "likes"
+        case .views: tabName = "views"
+        case .saves: tabName = "saves"
+        }
+        divoTrack(.engagementTabViewed(tabName: tabName, targetUserId: Int(model.userId ?? 0)))
+
         let sheetVC = InteractionListViewController(type: type, isMyProfile: isMyProfile)
         sheetVC.onUserTapped = { [weak self] user in
             sheetVC.dismiss(animated: true) {
@@ -1593,6 +1618,8 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                     body: body
                 )
 
+                divoTrack(.profileMediaUploaded(mediaType: "photo", targetUserId: Int(model.userId ?? 0)))
+
                 await MainActor.run {
                     if let newPhoto = addResponse.data {
                         self.controllerNode.finishPhotoUpload(photo: newPhoto)
@@ -1668,7 +1695,9 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                     method: "POST",
                     body: body
                 )
-                
+
+                divoTrack(.profileMediaUploaded(mediaType: "video", targetUserId: Int(model.userId ?? 0)))
+
                 await MainActor.run {
                     if let newVideo = addResponse.data {
                         let video = UserPhoto(
@@ -1774,6 +1803,9 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                 )
 
                 self.debugLog("[DivoAPI] Background updated successfully")
+
+                divoTrack(.profileBackgroundChanged)
+                divoTrack(.profileMediaUploaded(mediaType: "background", targetUserId: Int(model.userId ?? 0)))
 
                 await MainActor.run {
                     self.controllerNode.setBackgroundLoading(false)
@@ -1889,6 +1921,7 @@ extension PublicProfileScreenController {
 
     private func sendReport(reportType: String) {
         guard let feedId = model.feedId else { return }
+        let reportedUserId = Int64(model.userId ?? 0)
         Task { [weak self] in
             do {
                 let _: FeedReportResponse = try await DivoAPIClient.shared.request(
@@ -1896,6 +1929,7 @@ extension PublicProfileScreenController {
                     method: "POST",
                     body: FeedReportRequest(feedId: feedId, reportType: reportType)
                 )
+                divoTrack(.userReported(targetUserId: reportedUserId, reason: reportType))
                 await MainActor.run {
                     self?.controllerNode.showSnackbar(message: DivoStrings.reportSent, style: .success)
                 }
@@ -1930,6 +1964,7 @@ extension PublicProfileScreenController {
                     method: "POST",
                     body: BlockUserRequest(recipientId: userId)
                 )
+                divoTrack(.userBlocked(targetUserId: Int64(userId)))
                 await MainActor.run {
                     self?.controllerNode.showSnackbar(message: DivoStrings.userBlocked, style: .success)
                 }

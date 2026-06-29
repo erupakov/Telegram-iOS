@@ -298,7 +298,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
             previewController.onPublishConfirmed = { [weak self, weak previewController] in
                 self?.performPublishRequest(requestPayload, previewController: previewController)
             }
-            
+
+            divoTrack(.eventCreatePreviewOpened)
             self.push(previewController)
             
         } catch {
@@ -327,6 +328,15 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                 
                 if response.errors == nil || response.errors?.isEmpty == true {
                     self.onEventCreated?()
+
+                    switch self.mode {
+                    case .create:
+                        if let createdId = response.data?.id {
+                            divoTrack(.eventCreateSuccess(eventId: Int64(createdId)))
+                        }
+                    case .edit(let eventId):
+                        divoTrack(.eventEdited(eventId: Int64(eventId)))
+                    }
 
                     NotificationCenter.default.post(
                         name: DivoConfig.divoEventCreated,

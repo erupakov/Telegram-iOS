@@ -242,10 +242,12 @@ public final class DivoAuthWelcomeController: ViewController {
     // MARK: - Actions
 
     @objc private func continueWithPhoneTapped() {
+        divoTrack(.authMethodSelected(method: "phone"))
         onContinueWithPhone?()
     }
 
     @objc private func googleTapped() {
+        divoTrack(.authMethodSelected(method: "google"))
         if let handler = onSignInWithGoogle {
             handler()
         } else {
@@ -254,6 +256,7 @@ public final class DivoAuthWelcomeController: ViewController {
     }
 
     @objc private func appleTapped() {
+        divoTrack(.authMethodSelected(method: "apple"))
         if let handler = onSignInWithApple {
             handler()
         } else {
@@ -269,8 +272,10 @@ public final class DivoAuthWelcomeController: ViewController {
         let nsText = attr.string as NSString
 
         if pointInRange(location, of: nsText.range(of: terms), in: termsLabel) {
+            divoTrack(.termsLinkClicked)
             onOpenTerms?()
         } else if pointInRange(location, of: nsText.range(of: privacy), in: termsLabel) {
+            divoTrack(.privacyPolicyLinkClicked)
             onOpenPrivacy?()
         }
     }

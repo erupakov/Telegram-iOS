@@ -101,6 +101,7 @@ public final class DivoLanguagePickerController: TelegramBaseController {
             case .explicit(let lang):
                 DivoStrings.current = lang
             }
+            divoTrack(.appLanguageChanged(languageCode: resolvedLanguage.telegramCode))
             // popToRoot из TelegramRootController.refreshDivoTabTitles уберёт picker сам.
         }
 
