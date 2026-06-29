@@ -43,6 +43,43 @@ module(
 EOF
 ```
 
+### Provisioning-профайлы (dev / distribution)
+
+Реальные профайлы и сертификаты **в репозиторий не коммитятся** (`.gitignore` исключает
+`provisioning/*.mobileprovision`) — кладёшь их локально.
+
+- **Папка:** `build-input/configuration-repository/provisioning/`
+- **Имя файла:** всегда `Telegram.mobileprovision` (при сборке с `--//Telegram:disableExtensions=true`
+  нужен только он; без флага — ещё и профайлы расширений: `Share`, `Widget`, `NotificationService` и т.д.).
+
+Путь и имя одни и те же — **профайл свопается под тип сборки**, и согласованно меняется
+`telegram_aps_environment` в `variables.bzl`:
+
+| Тип сборки | Профайл (`Telegram.mobileprovision`) | `telegram_aps_environment` |
+|---|---|---|
+| Дев / физ. девайс (§5) | **development** (aps-environment=development) | `development` |
+| TestFlight / App Store (§7) | **distribution** (App Store, aps-environment=production) | `production` |
+
+Симулятор (§3) профайл не требует — там `--define=disableProvisioningProfiles=true`.
+
+#### Откуда брать профайлы
+
+Создаются/скачиваются в Apple Developer Portal
+([developer.apple.com/account](https://developer.apple.com/account) → Certificates,
+Identifiers & Profiles → Profiles) под аккаунтом команды DIVO (App ID `app.divo.fashion`).
+Доступ к Apple Developer-аккаунту — у администратора аккаунта.
+
+- **Development** (§5): тип профиля «iOS App Development» для `app.divo.fashion`,
+  привязан к development-сертификату + UDID зарегистрированных устройств (новый девайс
+  сперва добавить в разделе Devices). Скачать → переименовать в `Telegram.mobileprovision`.
+- **Distribution** (§7): тип «App Store» для `app.divo.fashion`, привязан к
+  distribution-сертификату команды. Скачать → тот же путь и имя (свопаешь файл).
+
+Нужны и **сертификаты** в Keychain (`.p12` с приватным ключом): development — для дева,
+distribution — для релиза; без приватного ключа подпись не пройдёт. Если используется
+**Xcode-managed signing** — есть флаг `telegram_use_xcode_managed_codesigning`, тогда Xcode
+генерит профайлы сам и класть файл вручную не нужно.
+
 ### 3. Сборка (симулятор)
 
 ```bash
