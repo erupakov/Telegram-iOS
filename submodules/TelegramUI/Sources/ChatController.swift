@@ -3191,6 +3191,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         }, presentGlobalOverlayController: { [weak self] controller, arguments in
             self?.presentInGlobalOverlay(controller, with: arguments)
         }, callPeer: { [weak self] peerId, isVideo in
+            NotificationCenter.default.post(name: Notification.Name("DivoAnalyticsChatEvent"), object: nil, userInfo: ["event": "call_started", "target_user_id": peerId.toInt64(), "is_video": isVideo])
             if let strongSelf = self {
                 let _ = strongSelf.presentVoiceMessageDiscardAlert(action: {
                     strongSelf.commitPurposefulAction()
@@ -6899,7 +6900,11 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
     
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
+
+        if let divoPeerId = self.chatLocation.peerId?.toInt64() {
+            NotificationCenter.default.post(name: Notification.Name("DivoAnalyticsChatEvent"), object: nil, userInfo: ["event": "chat_viewed", "target_user_id": divoPeerId, "chat_id": divoPeerId])
+        }
+
         self.didAppear = true
         
         self.chatDisplayNode.historyNode.experimentalSnapScrollToItem = false
@@ -8289,7 +8294,10 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             customChatContents.enqueueMessages(messages: messages)
             return
         }
-        
+        if let divoPeerId = self.chatLocation.peerId?.toInt64() {
+            NotificationCenter.default.post(name: Notification.Name("DivoAnalyticsChatEvent"), object: nil, userInfo: ["event": "message_sent", "target_user_id": divoPeerId, "chat_id": divoPeerId])
+        }
+
         guard let peerId = self.chatLocation.peerId else {
             return
         }

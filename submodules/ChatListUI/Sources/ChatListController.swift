@@ -2310,6 +2310,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
                 
+        NotificationCenter.default.post(name: Notification.Name("DivoAnalyticsChatEvent"), object: nil, userInfo: ["event": "chats_opened"])
         if self.powerSavingMonitoringDisposable == nil {
             self.powerSavingMonitoringDisposable = (self.context.sharedContext.automaticMediaDownloadSettings
             |> mapToSignal { settings -> Signal<Bool, NoError> in

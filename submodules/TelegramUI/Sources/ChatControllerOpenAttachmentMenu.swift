@@ -50,7 +50,10 @@ extension ChatControllerImpl {
         guard self.audioRecorderValue == nil && self.videoRecorderValue == nil else {
             return
         }
-        
+        if let divoPeerId = self.chatLocation.peerId?.toInt64() {
+            NotificationCenter.default.post(name: Notification.Name("DivoAnalyticsChatEvent"), object: nil, userInfo: ["event": "attachment_menu_opened", "target_user_id": divoPeerId])
+        }
+
         let context = self.context
         let inputIsActive = self.presentationInterfaceState.inputMode == .text
         
