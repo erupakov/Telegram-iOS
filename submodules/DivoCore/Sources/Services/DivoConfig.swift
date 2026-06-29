@@ -125,6 +125,7 @@ public enum DivoConfig {
             UserDefaults.standard.set(newValue, forKey: tokenKey)
             if newValue != oldValue {
                 DispatchQueue.main.async {
+                    didSignalSessionExpired = false // новый токен → снова можем сигналить о протухании
                     NotificationCenter.default.post(name: tokenDidChangeNotification, object: nil)
                 }
             }
@@ -133,6 +134,35 @@ public enum DivoConfig {
 
     public static func resetToken() {
         UserDefaults.standard.removeObject(forKey: tokenKey)
+    }
+
+    // MARK: - Session expiry (401)
+
+    /// REST-401 на реальном сохранённом токене = протухшая DIVO-сессия (refresh-эндпоинта у DIVO нет).
+    /// Наблюдатель в TelegramUI делает полный ре-логин (reset + logout teamgram → welcome).
+    public static let sessionExpiredNotification = Notification.Name("DivoConfig.sessionExpired")
+
+    /// true только когда effective-токен — реальный сохранённый из auth-флоу (не fallback `agencyToken`,
+    /// не debug-форс). 401 на нём лечится ре-логином; 401 на fallback/форсе — нет, поэтому не сигналим.
+    public static var isUsingStoredToken: Bool {
+        if isDebugEnabled, forcedTestToken != nil { return false }
+        return UserDefaults.standard.string(forKey: tokenKey) != nil
+    }
+
+    // Дебаунс: десятки параллельных запросов отдают 401 пачкой — сигналим один раз на сессию.
+    // Снимается при записи нового токена (см. accessToken.set) — следующая протухшая сессия снова сигналит.
+    private static var didSignalSessionExpired = false
+
+    /// Зовётся из DivoAPIClient на 401. Постит `sessionExpired` один раз и только если шлём реальный
+    /// сохранённый токен. Реакцию делает наблюдатель в TelegramUI: DivoCore не импортит teamgram-модули,
+    /// поэтому мост через NotificationCenter.
+    public static func handleUnauthorizedResponse() {
+        guard isUsingStoredToken else { return }
+        DispatchQueue.main.async {
+            guard !didSignalSessionExpired else { return }
+            didSignalSessionExpired = true
+            NotificationCenter.default.post(name: sessionExpiredNotification, object: nil)
+        }
     }
 
     public static var simulatedDelay: TimeInterval {

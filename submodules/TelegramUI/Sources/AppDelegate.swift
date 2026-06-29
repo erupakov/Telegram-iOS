@@ -333,7 +333,22 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         precondition(!testIsLaunched)
         testIsLaunched = true
-        
+
+        // DIVO: DivoAPIClient на REST-401 (протухший сохранённый токен — типично после долгого простоя,
+        // refresh-эндпоинта у DIVO нет) постит sessionExpired. Реагируем один раз: reset DIVO-сессии +
+        // logout teamgram → app-gate уведёт в welcome (полный ре-логин). Гейт по contextValue: действуем
+        // только в авторизованном таббаре, не во время самого auth-флоу (там токен — валидный fallback).
+        NotificationCenter.default.addObserver(forName: DivoConfig.sessionExpiredNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self = self, let context = self.contextValue else { return }
+            divoLog("[Auth] REST 401 — DIVO-сессия протухла → reset + logout teamgram (welcome)", level: .error)
+            DivoConfig.resetDivoSessionForRollback()
+            let _ = logoutFromAccount(
+                id: context.context.account.id,
+                accountManager: context.context.sharedContext.accountManager,
+                alreadyLoggedOutRemotely: false
+            ).start()
+        }
+
         let _ = voipTokenPromise.get().start(next: { token in
             self.voipDeviceToken.set(.single(token))
         })

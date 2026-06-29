@@ -78,6 +78,7 @@ public final class DivoAPIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
+                if http.statusCode == 401 { DivoConfig.handleUnauthorizedResponse() }
                 let body = String(data: data, encoding: .utf8) ?? ""
                 logger.log(
                     method: method,
@@ -180,6 +181,7 @@ public final class DivoAPIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
+                if http.statusCode == 401 { DivoConfig.handleUnauthorizedResponse() }
                 let body = String(data: data, encoding: .utf8) ?? ""
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
             }
@@ -259,6 +261,7 @@ public final class DivoAPIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
+                if http.statusCode == 401 { DivoConfig.handleUnauthorizedResponse() }
                 let body = String(data: data, encoding: .utf8) ?? ""
                 divoLog("Upload Error [\(http.statusCode)]: \(body)", level: .error)
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
@@ -353,6 +356,7 @@ public final class DivoAPIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
+                if http.statusCode == 401 { DivoConfig.handleUnauthorizedResponse() }
                 let body = String(data: data, encoding: .utf8) ?? ""
                 divoLog("Upload Error [\(http.statusCode)]: \(body)", level: .error)
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
@@ -442,6 +446,7 @@ public final class DivoAPIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
+                if http.statusCode == 401 { DivoConfig.handleUnauthorizedResponse() }
                 let body = String(data: data, encoding: .utf8) ?? ""
                 throw DivoAPIError.httpError(statusCode: http.statusCode, body: body)
             }
