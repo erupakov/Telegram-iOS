@@ -210,6 +210,7 @@ public final class EventDetailController: TelegramBaseController {
                     self.controllerNode.toggleWithdrawLoading(active: false)
                     self.getEvent()
                     self.onEventModified?()
+                    divoTrack(.eventWithdraw(eventId: Int64(eventId), userId: Int64(DivoConfig.currentDivoUserId ?? 0)))
                 }
             } catch {
                 await MainActor.run {
@@ -371,7 +372,8 @@ public final class EventDetailController: TelegramBaseController {
     private func applyPressed() {
         divoLog("Apply button pressed")
         guard let eventId = self.eventId, let eventData = self.eventData else { return }
-        
+        divoTrack(.eventApplyStarted(eventId: Int64(eventId), userId: Int64(DivoConfig.currentDivoUserId ?? 0)))
+
         // Инициализируем новый контроллер подтверждения параметров
         let confirmationController = EventApplyConfirmationController(
             context: self.context,

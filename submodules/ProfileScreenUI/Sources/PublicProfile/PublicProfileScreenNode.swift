@@ -776,7 +776,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onModelAgencyTapped: ((ModelItem) -> Void)?
     var onEventTapped: ((EventItem) -> Void)?
 
-    var onModelDeleteTapped: ((Int?) -> Void)?
+    var onModelDeleteTapped: ((Int?, Int?) -> Void)?
 
     private var socialLinksMap: [UIButton: String] = [:]
 
@@ -4780,7 +4780,7 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
             let item = modelGalleryItems[indexPath.item]
             cell.configure(with: item, isMyProfile: self.model.isMyProfile)
             cell.onDeleteTapped = { [weak self] recordId in
-                self?.onModelDeleteTapped?(recordId)
+                self?.onModelDeleteTapped?(recordId, item.userId)
             }
             return cell
         } else if collectionView == eventGalleryCollectionView {

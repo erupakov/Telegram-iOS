@@ -42,6 +42,7 @@ final class InteractionListViewController: UIViewController {
     private var isLoadingMore: Bool = false
     private var hasMorePages: Bool = true
     private var isMyProfile: Bool
+    private let targetUserId: Int
     private var searchDebounceTimer: Timer?
     private var activeSearchQuery: String?
     private var searchOffset: Int = 0
@@ -197,9 +198,10 @@ final class InteractionListViewController: UIViewController {
 
     private let footerSpinner: DivoSegmentedSpinner
 
-    init(type: InteractionListType, isMyProfile: Bool) {
+    init(type: InteractionListType, isMyProfile: Bool, targetUserId: Int) {
         self.isMyProfile = isMyProfile
         self.listType = type
+        self.targetUserId = targetUserId
 
         let footerView = UIView(frame: CGRect(x: 0, y: 0, width: tableView.bounds.width, height: 60))
         let spinner = DivoSegmentedSpinner(frame: CGRect(x: 0, y: 0, width: 32, height: 32))
@@ -557,6 +559,13 @@ final class InteractionListViewController: UIViewController {
                     self.searchOffset = self.limit
                     self.tableView.reloadData()
                     self.updateEmptyState()
+                    let tabKey: String
+                    switch self.listType {
+                    case .likes: tabKey = "likes"
+                    case .views: tabKey = "views"
+                    case .saves: tabKey = "saves"
+                    }
+                    divoTrack(.engagementSearchPerformed(tabName: tabKey, targetUserId: self.targetUserId, query: query, hasResults: !page.users.isEmpty))
                 case .failure(let error):
                     self.showSnackbar(
                         message: self.errorMessage(for: error),

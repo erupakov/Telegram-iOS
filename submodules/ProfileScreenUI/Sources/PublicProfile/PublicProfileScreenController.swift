@@ -277,7 +277,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
         
         addRosterController.onModelAdded = { [weak self, weak nav] selectedUser in
             guard let self = self, let nav = nav else { return }
-            
+            divoTrack(.addModelStarted(targetUserId: selectedUser.id))
+
             let confirmationController = RosterApplyConfirmationController(
                 context: self.context,
                 userId: selectedUser.id
@@ -285,6 +286,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
             
             confirmationController.onConfirmSuccess = { [weak self, weak nav] name in
                 guard let self = self else { return }
+                if let agencyId = self.userDetailModel?.agency?.id {
+                    divoTrack(.addModelSuccess(targetUserId: selectedUser.id, agencyId: agencyId))
+                }
                 nav?.dismiss(animated: true)
                 self.loadModels()
                 guard let name = name else { return }
@@ -307,7 +311,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         self.present(nav, animated: true)
     }
 
-    private func deleteModelFromAgency(_ recordId: Int?) {
+    private func deleteModelFromAgency(_ recordId: Int?, userId: Int?) {
         guard let recordId = recordId, let agencyId = self.userDetailModel?.agency?.id else { return }
         Task { [weak self] in
             guard let self = self else { return }
@@ -323,6 +327,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
                         style: .success
                     )
                     self.loadModels()
+                    if let userId = userId {
+                        divoTrack(.removeModelSuccess(targetUserId: userId, agencyId: agencyId))
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -472,8 +479,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.openEventDetailScreen(for: event)
         }
 
-        self.controllerNode.onModelDeleteTapped = { [weak self] recordId in
-            self?.deleteModelFromAgency(recordId)
+        self.controllerNode.onModelDeleteTapped = { [weak self] recordId, userId in
+            self?.deleteModelFromAgency(recordId, userId: userId)
         }
 
         self.displayNodeDidLoad()
@@ -1242,7 +1249,7 @@ extension PublicProfileScreenController {
         }
         divoTrack(.engagementTabViewed(tabName: tabName, targetUserId: Int(model.userId ?? 0)))
 
-        let sheetVC = InteractionListViewController(type: type, isMyProfile: isMyProfile)
+        let sheetVC = InteractionListViewController(type: type, isMyProfile: isMyProfile, targetUserId: Int(model.userId ?? 0))
         sheetVC.onUserTapped = { [weak self] user in
             sheetVC.dismiss(animated: true) {
                 self?.openModelScreen(for: user)

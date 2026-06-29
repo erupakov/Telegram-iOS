@@ -1572,7 +1572,13 @@ final class EventDetailControllerNode: ASDisplayNode {
                 self?.onDeleteTapped?()
             }
 
-            let menu = UIMenu(title: "", children: [editEventAction, closeApplicationsAction, cancelEventAction, deleteAction])
+            let menuOpenProbe = UIDeferredMenuElement(provider: { [weak self] completion in
+                if let eventId = self?.eventData?.id {
+                    divoTrack(.eventDetailsMenuOpened(eventId: Int64(eventId)))
+                }
+                completion([])
+            })
+            let menu = UIMenu(title: "", children: [menuOpenProbe, editEventAction, closeApplicationsAction, cancelEventAction, deleteAction])
             moreButton.menu = menu
             moreButton.showsMenuAsPrimaryAction = true
         }
