@@ -420,7 +420,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
 
         // Динамические оверлеи должны остаться над floating-аватарами.
         if let placeholder = loadingPlaceholderView { self.view.bringSubviewToFront(placeholder) }
-        if let error = errorView { self.view.bringSubviewToFront(error) }
+        // Эррор держим под сегмент-табом (а не bringToFront) — иначе перестройка трея вернёт его поверх сегмента.
+        if let error = errorView { self.view.insertSubview(error, belowSubview: self.segmentedControlFadeOverlay) }
         snackbar.bringToFront()
     }
 
@@ -950,7 +951,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         errorIconCenterYConstraint = iconCenterY
         errorRetryBottomConstraint = retryBottom
 
-        self.view.addSubview(container)
+        // Под сегмент-таб (как empty-state) — иначе непрозрачный фон эррора налезает на сегмент.
+        self.view.insertSubview(container, belowSubview: self.segmentedControlFadeOverlay)
         errorView = container
 
         layoutErrorState()

@@ -20,7 +20,7 @@ final class HeaderSettingsShimmerView: UIView {
 
     private let avatarPlaceholder: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.shimmerDivoBase
         view.layer.cornerRadius = avatarSize / 2
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -29,7 +29,7 @@ final class HeaderSettingsShimmerView: UIView {
 
     private let namePlaceholder: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.shimmerDivoBase
         view.layer.cornerRadius = Layout.nameRadius
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -38,7 +38,7 @@ final class HeaderSettingsShimmerView: UIView {
 
     private let phonePlaceholder: UIView = {
         let view = UIView()
-        view.backgroundColor = DivoColorPalette.cardBackground.withAlphaComponent(0.1)
+        view.backgroundColor = DivoColorPalette.shimmerDivoBase
         view.layer.cornerRadius = Layout.phoneRadius
         view.clipsToBounds = true
         view.translatesAutoresizingMaskIntoConstraints = false
