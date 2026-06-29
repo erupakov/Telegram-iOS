@@ -28,6 +28,9 @@ public enum DivoFirebaseBootstrap {
 
         DivoErrorReporterRegistry.current = DivoFirebaseCrashlyticsReporter()
         DivoFeatureFlagsRegistry.current = DivoFirebaseFeatureFlags()
+        DivoAnalyticsRegistry.current = DivoFirebaseAnalytics()
+        // Авто-screen_view выключен в Info.plist — экраны трекаем сами, с человеческими именами.
+        DivoScreenTracking.install()
 
         configureRemoteConfig()
 
