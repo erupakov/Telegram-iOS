@@ -175,9 +175,15 @@ public enum DivoConfig {
     }
 
     /// Debug доступен если в бандле есть provisioning profile (dev/TF) ИЛИ приложение запущено из Xcode/симулятора.
-    /// Apple удаляет embedded.mobileprovision только при публикации в App Store.
+    /// Apple удаляет embedded.mobileprovision только при публикации в App Store — поэтому в релизе авто-выключается.
     /// disableExtensions при сборке не влияет — profile всё равно встраивается в основной бандл.
-    public static var isDebugEnabled: Bool = true
+    public static var isDebugEnabled: Bool = {
+        #if targetEnvironment(simulator)
+        return true
+        #else
+        return Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") != nil
+        #endif
+    }()
 
     public static let appPlatform = "ios"
     public static let appVersion = "1.1.1 (912)"
