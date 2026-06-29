@@ -1578,6 +1578,8 @@ plist_fragment(
     <string>APPL</string>
     <key>CFBundleSignature</key>
     <string>????</string>
+    <key>FirebaseAutomaticScreenReportingEnabled</key>
+    <false/>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSApplicationQueriesSchemes</key>
