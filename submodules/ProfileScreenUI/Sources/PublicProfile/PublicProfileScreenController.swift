@@ -1915,7 +1915,7 @@ extension PublicProfileScreenController {
         let sheet = UIAlertController(title: DivoStrings.reportProfile, message: nil, preferredStyle: .actionSheet)
         for type in types {
             sheet.addAction(UIAlertAction(title: type.title, style: .default) { [weak self] _ in
-                self?.sendReport(reportType: type.id)
+                self?.sendReport(reportType: type.id, reportTitle: type.title)
             })
         }
         sheet.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
@@ -1927,16 +1927,24 @@ extension PublicProfileScreenController {
         self.present(sheet, animated: true)
     }
 
-    private func sendReport(reportType: String) {
-        guard let feedId = model.feedId else { return }
+    private func sendReport(reportType: String, reportTitle: String) {
+        let feedId = model.feedId
         let reportedUserId = Int64(model.userId ?? 0)
         Task { [weak self] in
             do {
-                let _: FeedReportResponse = try await DivoAPIClient.shared.request(
-                    path: "/feedline/report",
-                    method: "POST",
-                    body: FeedReportRequest(feedId: feedId, reportType: reportType)
-                )
+                if let feedId = feedId {
+                    let _: FeedReportResponse = try await DivoAPIClient.shared.request(
+                        path: "/feedline/report",
+                        method: "POST",
+                        body: FeedReportRequest(feedId: feedId, reportType: reportType)
+                    )
+                } else {
+                    let _: FeedReportResponse = try await DivoAPIClient.shared.request(
+                        path: "/user/report",
+                        method: "POST",
+                        body: UserReportRequest(reportUserId: Int(reportedUserId), reportText: reportTitle)
+                    )
+                }
                 divoTrack(.userReported(targetUserId: reportedUserId, reason: reportType))
                 await MainActor.run {
                     self?.controllerNode.showSnackbar(message: DivoStrings.reportSent, style: .success)

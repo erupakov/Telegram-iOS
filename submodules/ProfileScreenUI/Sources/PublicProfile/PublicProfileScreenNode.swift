@@ -1335,8 +1335,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             if modelRole != .agency {
                 children.append(faceScanAction)
             }
-            // Жалоба уходит в /feedline/report по id записи фида — без feedId пункт не показываем.
-            if model.feedId != nil {
+            // Жалоба доступна на любом профиле с userId: есть feedId → /feedline/report, иначе → /user/report.
+            if model.userId != nil {
                 children.append(reportAction)
             }
             children.append(blockAction)

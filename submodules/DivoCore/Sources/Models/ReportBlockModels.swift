@@ -21,6 +21,22 @@ public struct FeedReportResponse: Decodable {
     public let message: String?
 }
 
+/// POST /user/report — жалоба на профиль по userId (когда нет feedId: поиск/FR/чат).
+public struct UserReportRequest: Encodable {
+    public let reportUserId: Int
+    public let reportText: String
+
+    public init(reportUserId: Int, reportText: String) {
+        self.reportUserId = reportUserId
+        self.reportText = reportText
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case reportUserId = "report_user_id"
+        case reportText = "report_text"
+    }
+}
+
 /// POST /messenger/block-user — блокировка пользователя в мессенджере.
 public struct BlockUserRequest: Encodable {
     public let recipientId: Int
