@@ -3917,17 +3917,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
             let videoFile = item.files.first(where: { MediaFormatValidator.isVideo($0.fileExtension) })
             guard let videoFile else { return nil }
             
-            let previewFile = item.files.first(where: { MediaFormatValidator.isImage($0.fileExtension) })
-            
-            let previewUserFile: UserFile? = previewFile.map {
-                UserFile(
-                    fileName: $0.fileName,
-                    fullUrl: $0.fullUrl,
-                    fileExtension: $0.fileExtension,
-                    fileUuid: $0.fileUuid
-                )
-            }
-            
+            // preview НЕ берём из files: приложенная картинка — несвязанное фото модели, не кадр
+            // видео. Постер = first-frame самого видео (VideoGalleryCell генерит через loadThumbnail).
             return UserPhoto(
                 id: item.id,
                 photo: UserFile(
@@ -3938,7 +3929,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 ),
                 likesCount: item.likesCount,
                 isLikedByUser: item.isLikedByUser,
-                preview: previewUserFile
+                preview: nil
             )
         }
         
@@ -4761,8 +4752,7 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
                 cell.configureUploading(thumbnail: localImage)
             } else if let videoUrlString = videoItem.photo.fullUrl {
                 let cdnVideoUrl = CDNURLHelper.convertToCDN(videoUrlString) ?? ""
-                let previewUrl = videoItem.preview?.fullUrl.flatMap { CDNURLHelper.convertToCDN($0) }
-                cell.configure(with: cdnVideoUrl, previewUrl: previewUrl, title: nil)
+                cell.configure(with: cdnVideoUrl, previewUrl: nil, title: nil)
             }
 
             return cell

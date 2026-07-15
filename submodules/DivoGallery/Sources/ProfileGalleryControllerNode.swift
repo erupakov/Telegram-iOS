@@ -482,11 +482,10 @@ extension ProfileGalleryControllerNode: UICollectionViewDataSource {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PreviewCell", for: indexPath) as! PreviewCell
             if self.isVideoGallery {
                 let video = self.videos[indexPath.item]
-                if let previewFile = video.files.first(where: { MediaFormatValidator.isImage($0.fileExtension) }),
-                   let previewUrl = CDNURLHelper.convertToCDN(previewFile.fullUrl) {
-                    cell.configure(with: previewUrl, isVideo: false)
-                } else if let videoFile = video.files.first(where: { MediaFormatValidator.isVideo($0.fileExtension) }),
-                          let videoUrl = CDNURLHelper.convertToCDN(videoFile.fullUrl) {
+                // Постер — first-frame видео (PreviewCell isVideo:true), НЕ приложенная картинка:
+                // она несвязанное фото модели, а не кадр.
+                if let videoFile = video.files.first(where: { MediaFormatValidator.isVideo($0.fileExtension) }),
+                   let videoUrl = CDNURLHelper.convertToCDN(videoFile.fullUrl) {
                     cell.configure(with: videoUrl, isVideo: true)
                 }
             } else {
