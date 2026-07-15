@@ -145,9 +145,7 @@ final class SetNameNode: ASDisplayNode {
         navigationBar.makeNavigationBar(
             title: DivoStrings.settingsSetUsername.uppercased(),
             backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
-            rightButtonConfiguration: .text(DivoStrings.save),
-            onBackTapped: { [weak self] in self?.onBackTapped?() },
-            onCircleTextTapped: { [weak self] in self?.saveButtonPressed() }
+            onBackTapped: { [weak self] in self?.onBackTapped?() }
         )
 
         applyButton.makeDivoButton(title: DivoStrings.save, loading: DivoStrings.saving)
@@ -385,7 +383,6 @@ final class SetNameNode: ASDisplayNode {
         }
         let canSave = !first.isEmpty && usernameOK && (nameChanged || usernameChanged)
         applyButton.isEnabled = canSave
-        navigationBar.setEnableRightButton(canSave)
     }
 
     // MARK: - Actions
