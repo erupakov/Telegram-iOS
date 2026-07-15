@@ -23,6 +23,8 @@ public enum DivoConfig {
     public static let divoEventDataUpdated = Notification.Name("DivoConfig.divoEventDataUpdated")
     public static let divoEventDeleted = Notification.Name("DivoConfig.divoEventDeleted")
     public static let divoEventCreated = Notification.Name("DivoConfig.divoEventCreated")
+    /// follow/unfollow на любом экране (userInfo: userId Int, isFollowed Bool) — кеширующие ленты синкают флажок между собой.
+    public static let divoFollowStateChanged = Notification.Name("DivoConfig.followStateChanged")
 
     // MARK: - User Roles
 

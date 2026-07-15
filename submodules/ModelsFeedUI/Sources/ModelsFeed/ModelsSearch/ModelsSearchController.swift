@@ -51,6 +51,7 @@ public class ModelsSearchController: ViewController {
     private var pendingFiltersOpen = false
 
     private var currentSearchTask: Task<Void, Never>?
+    private var followObserver: NSObjectProtocol?
 
     public init(context: AccountContext) {
         self.context = context
@@ -64,8 +65,20 @@ public class ModelsSearchController: ViewController {
                 strongSelf.presentationData = presentationData
             }
         }).strict()
+
+        // Подписку могли сменить на другом экране (зашли в профиль из грида и отжали) — синкаем грид при возврате.
+        self.followObserver = NotificationCenter.default.addObserver(
+            forName: DivoConfig.divoFollowStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, self.isNodeLoaded,
+                  let userId = note.userInfo?["userId"] as? Int,
+                  let isFollowed = note.userInfo?["isFollowed"] as? Bool else { return }
+            self.searchNode.applyGridSaveState(userId: userId, isSaved: isFollowed)
+        }
     }
-    
+
     required public init(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -73,6 +86,9 @@ public class ModelsSearchController: ViewController {
     deinit {
         self.presentationDataDisposable?.dispose()
         self.currentSearchTask?.cancel()
+        if let followObserver {
+            NotificationCenter.default.removeObserver(followObserver)
+        }
     }
 
     override public func viewDidLoad() {
@@ -491,6 +507,7 @@ public class ModelsSearchController: ViewController {
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": isSaved])
             } catch {
                 self.searchNode.applyGridSaveState(userId: userId, isSaved: oldIsSaved)
             }

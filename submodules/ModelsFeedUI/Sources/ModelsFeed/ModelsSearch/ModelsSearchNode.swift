@@ -904,8 +904,15 @@ final class ModelsSearchNode: ASDisplayNode {
         }
     }
     
-    func updateGrid(results: [SearchUserDTO], totalCount: Int, isFirstPage: Bool, query: String) {
+    func updateGrid(results rawResults: [SearchUserDTO], totalCount: Int, isFirstPage: Bool, query: String) {
         guard mode == .grid else { return }
+
+        // Флажок = связь follow: залитость берём из user.isFollowed и кладём в мьютабельное isFavoriteByUser (оно держит оптимистичный тоггл и переживает переконфиг ячейки); само isFavoriteByUser — это «избранное», к подписке отношения не имеет.
+        let results = rawResults.map { item -> SearchUserDTO in
+            var seeded = item
+            seeded.isFavoriteByUser = item.user?.isFollowed ?? false
+            return seeded
+        }
 
         gridCenterLoader.stopAnimating()
 

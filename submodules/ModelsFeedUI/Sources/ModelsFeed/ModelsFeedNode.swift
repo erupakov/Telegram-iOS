@@ -733,17 +733,8 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         divoTrack(.bookmarkToggled(targetUserId: Int64(userId), isBookmarked: isSaved))
         guard let idx = cardIndex(forUserId: userId) else { return }
 
-        let removeFromFeed = !isSaved && self.selectedTabIndex == 0
-        var removedCard: CardModel?
-
         self.cards[idx].isFollowed = isSaved
         self.cards[idx].savesCount = max(0, self.cards[idx].savesCount + (isSaved ? 1 : -1))
-
-        if removeFromFeed {
-            removedCard = self.cards[idx]
-            self.cards.remove(at: idx)
-            self.mainCollectionView.deleteItems(at: [IndexPath(item: idx, section: 0)])
-        }
 
         let path = isSaved ? "/follower/follow" : "/follower/unfollow"
         let body = FollowRequest(id: userId)
@@ -755,14 +746,9 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": isSaved])
             } catch {
-                if removeFromFeed, var card = removedCard {
-                    card.isFollowed = true
-                    card.savesCount = max(0, card.savesCount + 1)
-                    let insertIdx = min(idx, self.cards.count)
-                    self.cards.insert(card, at: insertIdx)
-                    self.mainCollectionView.insertItems(at: [IndexPath(item: insertIdx, section: 0)])
-                } else if let currentIdx = self.cardIndex(forUserId: userId) {
+                if let currentIdx = self.cardIndex(forUserId: userId) {
                     self.cards[currentIdx].isFollowed = !isSaved
                     self.cards[currentIdx].savesCount = max(0, self.cards[currentIdx].savesCount + (isSaved ? -1 : 1))
                     let ip = IndexPath(item: currentIdx, section: 0)
@@ -771,6 +757,17 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     }
                 }
             }
+        }
+    }
+
+    /// Точечно синхронизировать флажок карточки при изменении подписки на другом экране (нотификация).
+    func updateFollowState(userId: Int, isFollowed: Bool) {
+        guard let idx = cardIndex(forUserId: userId), cards[idx].isFollowed != isFollowed else { return }
+        cards[idx].isFollowed = isFollowed
+        cards[idx].savesCount = max(0, cards[idx].savesCount + (isFollowed ? 1 : -1))
+        let ip = IndexPath(item: idx, section: 0)
+        if let cell = mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
+            cell.rollbackSave(isSaved: isFollowed, savesCount: cards[idx].savesCount)
         }
     }
 

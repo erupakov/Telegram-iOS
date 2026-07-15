@@ -192,6 +192,7 @@ public struct SearchUserInfo: Decodable {
     public let weight: Double?
     public let emojiCounts: EmojiCounts?
     public let totalEmojisCount: Int?
+    public let isFollowed: Bool?
 }
 
 public struct EmojiCounts: Decodable {

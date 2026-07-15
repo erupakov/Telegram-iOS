@@ -52,6 +52,7 @@ public final class ModelsFeedController: TelegramBaseController {
     private let feedlinePageSize = 16
     private var tokenChangeObserver: NSObjectProtocol?
     private var roleChangeObserver: NSObjectProtocol?
+    private var followObserver: NSObjectProtocol?
 
     private let createActionDisposable = MetaDisposable()
     private let clearDisposable = MetaDisposable()
@@ -104,6 +105,33 @@ public final class ModelsFeedController: TelegramBaseController {
             self.tabBarItem.title = DivoStrings.tabModels
             self.tabStates = [TabState(), TabState(), TabState()]
             self.loadFeedline(tabIndex: self.selectedTabIndex, reset: true)
+        }
+        // Подписку могли сменить на другом экране (поиск/face/профиль) — синкаем флажок в кеше вкладок,
+        // чтобы при возврате в ленту он не показывал устаревшее состояние.
+        self.followObserver = NotificationCenter.default.addObserver(
+            forName: DivoConfig.divoFollowStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self,
+                  let userId = note.userInfo?["userId"] as? Int,
+                  let isFollowed = note.userInfo?["isFollowed"] as? Bool else { return }
+            self.applyFollowChange(userId: userId, isFollowed: isFollowed)
+        }
+    }
+
+    private func applyFollowChange(userId: Int, isFollowed: Bool) {
+        for t in tabStates.indices {
+            if let i = tabStates[t].cards.firstIndex(where: { $0.userId == userId }),
+               tabStates[t].cards[i].isFollowed != isFollowed {
+                tabStates[t].cards[i].isFollowed = isFollowed
+                tabStates[t].cards[i].savesCount = max(0, tabStates[t].cards[i].savesCount + (isFollowed ? 1 : -1))
+            }
+        }
+        // Узел мог быть ещё не загружен (таб ленты не открывали) — кэш вкладок уже поправлен выше,
+        // при первом показе он и так грузится с сервера; трогаем узел только когда он есть.
+        if isNodeLoaded {
+            controllerNode.updateFollowState(userId: userId, isFollowed: isFollowed)
         }
     }
 
@@ -279,6 +307,9 @@ public final class ModelsFeedController: TelegramBaseController {
         if let observer = self.roleChangeObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        if let observer = self.followObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     override public func loadDisplayNode() {
@@ -397,9 +428,8 @@ public final class ModelsFeedController: TelegramBaseController {
                     method: "POST",
                     body: body
                 )
-                let isSubscribedTab = tabIndex == 0
                 let profileItems = response.data.items.filter { $0.entity == "users" }
-                let cards = profileItems.map { Self.mapCard($0, isFollowed: isSubscribedTab) }
+                let cards = profileItems.map { Self.mapCard($0) }
                 await MainActor.run {
                     guard let self else { return }
                     if reset {
@@ -465,7 +495,7 @@ public final class ModelsFeedController: TelegramBaseController {
         }
     }
 
-    private static func mapCard(_ item: FeedlineItem, isFollowed: Bool = false) -> CardModel {
+    private static func mapCard(_ item: FeedlineItem) -> CardModel {
         let mainURL = item.files.first.flatMap { URL(string: $0.fullUrl) }
         let avatarURL = item.searchImage.flatMap { URL(string: $0.fullUrl) }
         let previewURLs = item.files.dropFirst().compactMap { URL(string: $0.fullUrl) }
@@ -479,8 +509,10 @@ public final class ModelsFeedController: TelegramBaseController {
             avatarImageURL: avatarURL,
             previewImageURLs: previewURLs,
             likesCount: item.likesCount,
+            viewsCount: item.user.viewsCount ?? 0,
+            savesCount: item.user.followersCount ?? 0,
             isFavorite: item.isFavoriteByUser,
-            isFollowed: isFollowed,
+            isFollowed: item.user.isFollowed ?? false,
             feedId: item.feedId,
             isLiked: item.isLikedByUser,
             age: item.user.age,

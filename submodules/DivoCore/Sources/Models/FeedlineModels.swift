@@ -100,6 +100,7 @@ public struct FeedlineUser: Codable {
     public let likesCount: Int?
     public let viewsCount: Int?
     public let followersCount: Int?
+    public let isFollowed: Bool?
     public let emojiCounts: FeedlineEmojiCounts?
     public let totalEmojisCount: Int?
 
@@ -108,7 +109,7 @@ public struct FeedlineUser: Codable {
         case city, birthday, age, height, weight
         case countryCode = "country_code"
         case countryName = "country_name"
-        case likesCount, viewsCount, followersCount
+        case likesCount, viewsCount, followersCount, isFollowed
         case emojiCounts, totalEmojisCount
     }
 }

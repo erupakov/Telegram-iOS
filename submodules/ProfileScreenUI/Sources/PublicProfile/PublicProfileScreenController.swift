@@ -829,6 +829,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": isSaved])
                 completion(true)
             } catch {
                 divoLog("[SAVE/FOLLOW] Error toggling save for user \(userId): \(error)", level: .error)

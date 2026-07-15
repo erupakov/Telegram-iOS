@@ -30,6 +30,7 @@ public final class FaceSearchResultsController: ViewController {
     private var currentTask: Task<Void, Never>?
     private var historyEntryId: String?
     private var state: FaceSearchResultsState
+    private var followObserver: NSObjectProtocol?
 
     public var onOpenProfile: ((FRSearchResult) -> Void)?
 
@@ -56,6 +57,17 @@ public final class FaceSearchResultsController: ViewController {
         self.historyEntryId = historyEntryId
         self.state = needsInitialLoad ? .loading : .results(items: results, threshold: initialFilters.similarity)
         super.init(navigationBarPresentationData: nil)
+        // Флажок мог поменяться на другом экране (зашли в профиль из результатов и отжали) — синкаем живой кэш.
+        self.followObserver = NotificationCenter.default.addObserver(
+            forName: DivoConfig.divoFollowStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, self.isNodeLoaded,
+                  let userId = note.userInfo?["userId"] as? Int,
+                  let isFollowed = note.userInfo?["isFollowed"] as? Bool else { return }
+            self.resultsNode?.applyFollowChange(userId: userId, isFollowed: isFollowed)
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -64,6 +76,9 @@ public final class FaceSearchResultsController: ViewController {
 
     deinit {
         currentTask?.cancel()
+        if let followObserver {
+            NotificationCenter.default.removeObserver(followObserver)
+        }
     }
 
     public override func viewDidLoad() {
@@ -390,6 +405,7 @@ public final class FaceSearchResultsController: ViewController {
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": isSaved])
             } catch {
                 // TODO: rollback
             }
@@ -471,7 +487,7 @@ public enum FaceSearchResultsMapper {
         }
     }
 
-    public static func viewModel(from result: FRSearchResult) -> SearchCardViewModel {
+    public static func viewModel(from result: FRSearchResult, isFollowedOverride: Bool? = nil) -> SearchCardViewModel {
         let age = computeAge(from: result.birthday)
         let country = countryText(code: result.countryCode, name: result.countryName)
 
@@ -495,7 +511,7 @@ public enum FaceSearchResultsMapper {
             roleLabel: roleLabel(for: result.role),
             likesCount: 0,
             isLikedByUser: false,
-            isFavoriteByUser: false,
+            isFavoriteByUser: isFollowedOverride ?? (result.isFollowedByUser ?? false),
             imageURL: result.image.flatMap(URL.init(string:))
         )
     }
@@ -515,6 +531,8 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     var onShareTapped: ((FRSearchResult, UIImage?) -> Void)?
 
     private var results: [FRSearchResult]
+    // Оверлей follow-состояния: FRSearchResult неизменяемый, а флажок может меняться (тап тут или на профиле).
+    private var followOverrides: [Int: Bool] = [:]
     private let sourceImage: UIImage?
     private let faceBBox: FRBoundingBox?
     private var threshold: Double
@@ -782,6 +800,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
 
         case let .results(items, threshold):
             self.results = items
+            self.followOverrides.removeAll()
             self.threshold = threshold
             updateHeaderTexts()
             if items.isEmpty {
@@ -810,6 +829,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
 
         case let .fallback(items, originalPercent, actualPercent, _, originalThreshold):
             self.results = items
+            self.followOverrides.removeAll()
             self.threshold = originalThreshold
             updateHeaderTexts()
 
@@ -1092,6 +1112,18 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         }
     }
 
+    // Синхронизация флажка при смене подписки на другом экране (нотификация). Один userId может встретиться
+    // в выдаче несколько раз — обновляем все видимые ячейки; невидимые подхватят оверлей при переиспользовании.
+    func applyFollowChange(userId: Int, isFollowed: Bool) {
+        followOverrides[userId] = isFollowed
+        for (offset, element) in results.enumerated() where element.userId == userId {
+            let ip = IndexPath(item: offset, section: 0)
+            if let cell = collectionView.cellForItem(at: ip) as? SearchResultGridCell {
+                cell.rollbackSave(isSaved: isFollowed)
+            }
+        }
+    }
+
     // MARK: - UICollectionView
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -1106,7 +1138,8 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         }
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FaceMatchCell", for: indexPath) as! SearchResultGridCell
         let result = results[indexPath.item]
-        cell.configure(with: FaceSearchResultsMapper.viewModel(from: result))
+        let followOverride = result.userId.flatMap { followOverrides[$0] }
+        cell.configure(with: FaceSearchResultsMapper.viewModel(from: result, isFollowedOverride: followOverride))
         cell.onLikeTapped = { [weak self] feedId, isLiked in
             self?.onLikeTapped?(feedId, isLiked)
         }

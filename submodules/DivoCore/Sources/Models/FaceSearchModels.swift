@@ -56,6 +56,7 @@ public struct FRSearchResult: Decodable {
     public let subrole: String?
     public let rank: Int?
     public let score: Double
+    public let isFollowedByUser: Bool?
 
     private enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -73,6 +74,7 @@ public struct FRSearchResult: Decodable {
         case subrole
         case rank
         case score
+        case isFollowedByUser
     }
 
     public init(from decoder: Decoder) throws {
@@ -93,5 +95,6 @@ public struct FRSearchResult: Decodable {
         self.subrole = try container.decodeIfPresent(String.self, forKey: .subrole)
         self.rank = try container.decodeIfPresent(Int.self, forKey: .rank)
         self.score = try container.decode(Double.self, forKey: .score)
+        self.isFollowedByUser = try container.decodeIfPresent(Bool.self, forKey: .isFollowedByUser)
     }
 }
