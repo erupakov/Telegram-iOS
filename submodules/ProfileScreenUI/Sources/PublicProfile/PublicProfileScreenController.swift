@@ -1573,7 +1573,8 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
             if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
                 result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
                     guard let self = self, let uiImage = image as? UIImage else { return }
-                    self.uploadAndAddPhoto(uiImage)
+                    let normalized = uiImage.fixedOrientation()
+                    self.uploadAndAddPhoto(normalized)
                 }
             }
         case .video:

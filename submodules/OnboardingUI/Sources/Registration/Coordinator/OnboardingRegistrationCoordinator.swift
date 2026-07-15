@@ -781,7 +781,7 @@ private extension OnboardingRegistrationCoordinator {
     }
 
     func writeTempPhoto(_ image: UIImage) -> String? {
-        guard let data = image.jpegData(compressionQuality: 0.9) else { return nil }
+        guard let data = image.fixedOrientation().jpegData(compressionQuality: 0.9) else { return nil }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("DivoOnboarding", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

@@ -343,6 +343,7 @@ public class ModelsSearchController: ViewController {
     }
 
     private func openFaceSearchScreen(with image: UIImage) {
+        let image = image.fixedOrientation()
         if let source = pendingFaceRecognitionSource {
             divoTrack(.faceRecognitionOpened(source: source))
             pendingFaceRecognitionSource = nil
