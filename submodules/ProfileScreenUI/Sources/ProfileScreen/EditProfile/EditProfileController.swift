@@ -365,6 +365,8 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                 let request = UpdateDescriptionAgencyRequest(
                     agencyId: rawData.agencyId,
                     title: rawData.title,
+                    // Экран правки не содержит поля сайта → бэк-replace затёр бы его: пересылаем текущий.
+                    site: agency?.site,
                     description: rawData.description,
                     background: backgroundUuid,
                     photo: photoUuid,

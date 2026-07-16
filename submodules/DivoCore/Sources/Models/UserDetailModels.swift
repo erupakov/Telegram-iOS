@@ -499,6 +499,7 @@ public struct AgencyModelsListRequest: Encodable {
 public struct UpdateDescriptionAgencyRequest: Encodable {
     public let agencyId: Int?
     public let title: String?
+    public let site: String?
     public let description: String?
     public let background: AvatarUuid?
     public let photo: AvatarUuid?
@@ -509,13 +510,36 @@ public struct UpdateDescriptionAgencyRequest: Encodable {
         public init(uuid: String) { self.uuid = uuid }
     }
 
-    public init(agencyId: Int?, title: String? = nil, description: String? = nil, background: AvatarUuid? = nil, photo: AvatarUuid? = nil, address: UpdateAgencyAddress? = nil) {
+    public init(agencyId: Int?, title: String? = nil, site: String? = nil, description: String? = nil, background: AvatarUuid? = nil, photo: AvatarUuid? = nil, address: UpdateAgencyAddress? = nil) {
         self.agencyId = agencyId
         self.title = title
+        self.site = site
         self.description = description
         self.background = background
         self.photo = photo
         self.address = address
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case agencyId, title, site, description, background, photo, address
+    }
+
+    // Бэк /agency/update 500-ит, если ключа `site` НЕТ в теле (на сервере absent ≠ null). По методике
+    // Eugene site шлётся всегда → пишем его ВСЕГДА, значением или явным null. Остальные поля —
+    // encodeIfPresent: их отсутствие бэк трактует как null, а лишний null при replace затёр бы данные.
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(agencyId, forKey: .agencyId)
+        try container.encodeIfPresent(title, forKey: .title)
+        if let site = site {
+            try container.encode(site, forKey: .site)
+        } else {
+            try container.encodeNil(forKey: .site)
+        }
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encodeIfPresent(background, forKey: .background)
+        try container.encodeIfPresent(photo, forKey: .photo)
+        try container.encodeIfPresent(address, forKey: .address)
     }
 }
 

@@ -41,6 +41,7 @@ public extension UpdateDescriptionAgencyRequest {
         self.init(
             agencyId: detail.agency?.id,
             title: title,
+            site: detail.agency?.site,
             description: detail.agency?.description,
             background: detail.agency?.background?.fileUuid.map { AvatarUuid(uuid: $0) },
             photo: detail.agency?.photo?.fileUuid.map { AvatarUuid(uuid: $0) },

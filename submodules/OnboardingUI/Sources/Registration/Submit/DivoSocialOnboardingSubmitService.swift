@@ -15,7 +15,8 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
     public init() {}
 
     public func submit(state: OnboardingRegistrationState, registry: OnboardingRoleRegistry) async throws {
-        let rawRole = state.selectedRoleId.flatMap { registry.definition(for: $0)?.backendRoleRaw } ?? "model"
+        let roleDef = state.selectedRoleId.flatMap { registry.definition(for: $0) }
+        let rawRole = roleDef?.backendRoleRaw ?? "model"
         // Инвариант: `model` шлём ТОЛЬКО когда есть `agency_id` (бэк требует агентство для модели на
         // /user/update-profile). Онбординг агентство пока НЕ собирает → отправляем `new_face` (Model без
         // агентства = New Talent по квизу). Иначе update-profile даёт 422 по agency_id, имя/фото не лягут.
@@ -123,28 +124,35 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         if shouldUpdateStructuredProfile {
             let fullName = [firstName, lastName].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ")
             let detail = try? await AuthRestService.shared.userDetail()
-            let effectiveRole = detail?.role ?? role
             // ДИАГНОСТИКА (снять позже): реальная серверная роль vs отправленная — ловим случай, когда
             // бэк завёл talent'а как agency_employee (тогда профиль никуда не ложится). agencyId=nil = без агентства.
             divoLog("Onboarding submit: профиль per role — rawRole=\(rawRole) sentRole=\(role) serverRole=\(detail?.role ?? "nil") agencyId=\(detail?.agency?.id.map(String.init) ?? "nil")", level: .info)
             do {
-                if effectiveRole == "agency_employee", let agencyId = detail?.agency?.id {
-                    // Агентство СО своим agency.id: профиль через /agency/update (имя = title, фото = agency photo).
+                if roleDef?.category == .companies {
+                    // Companies & Brands (A-роли) = владелец агентства. Агентство создаётся ИМЕННО тут:
+                    // /agency/update под bearer сам резолвит черновик (resolveForUpdateByUser→createDraw)
+                    // и линкует юзера владельцем (createOwnerByAgency). Сразу после регистрации agency.id ещё
+                    // nil — гейтить по нему нельзя, иначе агентство не заводится вовсе (причина DIVI-84).
+                    // Методика Eugene: title обязателен, site опционален.
                     let title = formString("companyName", state: state, registry: registry)
                         ?? detail?.agency?.title
                         ?? (fullName.isEmpty ? nil : fullName)
+                    let site = formString("websiteUrl", state: state, registry: registry)
+                    let cityId = formString("city", state: state, registry: registry).flatMap { Int($0) }
                     let req = UpdateDescriptionAgencyRequest(
-                        agencyId: agencyId,
+                        agencyId: detail?.agency?.id,
                         title: title,
+                        site: site,
                         description: nil,
-                        photo: photoUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) }
+                        photo: photoUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) },
+                        address: cityId.map { UpdateAgencyAddress(cityId: $0) }
                     )
                     try await AuthRestService.shared.updateAgency(req)
-                    divoLog("Onboarding submit: agency profile OK (title/photo, agencyId=\(agencyId))", level: .info)
+                    divoLog("Onboarding submit: agency create/update OK (agencyId=\(detail?.agency?.id.map(String.init) ?? "draft"), site=\(site ?? "nil"))", level: .info)
                 } else {
-                    // Модель/талант/fan И индивид-специалист (agency_employee БЕЗ своего agency.id):
-                    // имя = fullName, фото = avatar через /user/update-profile. Раньше у индивид-специалиста
-                    // профиль пропускался → имя/фото не подтягивались; теперь шлём best-effort.
+                    // Модель/талант/fan/creative И индустрия-специалист (B, agency_employee без своего
+                    // агентства): имя = fullName, фото = avatar через /user/update-profile. Индивид-специалист
+                    // агентством не владеет → /agency/update ему не шлём (иначе завели бы лишнее агентство).
                     // gender — маппим выбранный вариант на id из /dictionary/gender (бэк ждёт словарный id,
                     // не наш ключ → иначе 422); нет совпадения/словаря → эхо с сервера / не шлём.
                     let genderId = await mappedGenderId(state: state, registry: registry) ?? detail?.gender?.id
