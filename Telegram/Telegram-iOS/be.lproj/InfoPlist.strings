@@ -1,5 +1,8 @@
 /* Localized versions of Info.plist keys */
 
+"CFBundleDisplayName" = "DIVO Global";
+"CFBundleName" = "DIVO Global";
+
 "NSContactsUsageDescription" = "DIVO Global будзе запампоўваць вашы кантакты на свае моцна абароненыя і зашыфраваныя воблачныя серверы, каб вы маглі кантактаваць са сваімі сябрамі з любой вашай прылады.";
 "NSLocationWhenInUseUsageDescription" = "Калі вы адпраўляе месцазнаходжанне сваім сябрам, DIVO Global патрэбны доступ да сэрвісаў геалакацыі, каб размясціць вас на карце.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Калі вы трансліруеце ваша месцазнаходжанне сябрам у чаце, DIVO Global патрэбны доступ у фонавым рэжыме да вашага месцазнаходжання, каб абнаўляць яго падчас трансляцыі.";

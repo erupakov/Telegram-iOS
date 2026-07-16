@@ -1,5 +1,8 @@
 /* Localized versions of Info.plist keys */
 
+"CFBundleDisplayName" = "DIVO Global";
+"CFBundleName" = "DIVO Global";
+
 "NSContactsUsageDescription" = "DIVO Global va synchroniser en continu vos contacts sur ses serveurs chiffrés pour vous permettre de joindre vos amis sur tous vos appareils.";
 "NSLocationWhenInUseUsageDescription" = "Quand vous envoyez votre position à vos amis, DIVO Global doit accéder à votre position pour leur montrer une carte.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Quand vous décidez de partager votre position en temps réel dans un échange, DIVO Global doit y accéder en arrière-plan pour l'actualiser pendant la durée du partage.";

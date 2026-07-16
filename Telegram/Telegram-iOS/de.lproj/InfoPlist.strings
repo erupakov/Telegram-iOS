@@ -1,5 +1,8 @@
 /* Localized versions of Info.plist keys */
 
+"CFBundleDisplayName" = "DIVO Global";
+"CFBundleName" = "DIVO Global";
+
 "NSContactsUsageDescription" = "DIVO Global lädt deine Kontakte durchgehend auf die stark verschlüsselten Cloud Server, damit du dich mit deinen Freunden auf all deinen Geräten verbinden kannst.";
 "NSLocationWhenInUseUsageDescription" = "Wenn du Freunden deinen Standort mitteilen willst, musst du DIVO Global den Zugriff darauf erlauben.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Wenn du deinen Live-Standort mit Freunden im Chat teilen möchtest, benötigt DIVO Global so lange im Hintergrund Zugriff auf deinen Standort, bis du ihn nicht mehr teilen willst.";

@@ -1,5 +1,8 @@
 /* Localized versions of Info.plist keys */
 
+"CFBundleDisplayName" = "DIVO Global";
+"CFBundleName" = "DIVO Global";
+
 "NSContactsUsageDescription" = "DIVO Global akan sentiasa muat naik kenalan anda ke pelayan awan yang berenkripsi tinggi agar anda boleh berhubung dengan rakan anda di semua peranti anda.";
 "NSLocationWhenInUseUsageDescription" = "Bila anda hantar lokasi anda kepada rakan anda, DIVO Global perlukan akses untuk tunjuk peta.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Bila anda pilih untuk kongsi Lokasi Langsung anda dengan rakan dalam chat, DIVO Global perlu akses latar belakang ke lokasi anda agar lokasi anda sentiasa dikemaskini ketika perkongsian.";
