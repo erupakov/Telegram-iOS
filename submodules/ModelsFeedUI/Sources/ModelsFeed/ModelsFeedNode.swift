@@ -771,17 +771,27 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
+    /// Точечно синхронизировать лайк карточки при изменении на другом экране (нотификация).
+    func updateLikeState(userId: Int, isLiked: Bool) {
+        guard let idx = cardIndex(forUserId: userId), cards[idx].isLiked != isLiked else { return }
+        cards[idx].isLiked = isLiked
+        cards[idx].likesCount = max(0, cards[idx].likesCount + (isLiked ? 1 : -1))
+        let ip = IndexPath(item: idx, section: 0)
+        if let cell = mainCollectionView.cellForItem(at: ip) as? CardCollectionViewCell {
+            cell.rollbackLike(isLiked: isLiked, likesCount: cards[idx].likesCount)
+        }
+    }
+
     func cardCell(_ cell: CardCollectionViewCell, didTapLikeForFeedId feedId: Int, isLiked: Bool) {
         guard let idx = cardIndex(forFeedId: feedId) else { return }
-        if let userId = self.cards[idx].userId {
-            divoTrack(.likeToggled(targetUserId: Int64(userId), isLiked: isLiked))
-        }
+        // Лайк теперь по userId (/user/like, DIVI-64). Без userId лайкать нечего — выходим.
+        guard let userId = self.cards[idx].userId else { return }
+        divoTrack(.likeToggled(targetUserId: Int64(userId), isLiked: isLiked))
         self.cards[idx].isLiked = isLiked
         self.cards[idx].likesCount = max(0, self.cards[idx].likesCount + (isLiked ? 1 : -1))
 
-        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
-        // FollowRequest reused: like API expects same {id} body format
-        let body = FollowRequest(id: feedId)
+        let path = isLiked ? "/user/like" : "/user/unlike"
+        let body = UserLikeRequest(userId: userId)
 
         Task { @MainActor in
             do {
@@ -790,6 +800,7 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
             } catch {
                 if let currentIdx = self.cardIndex(forFeedId: feedId) {
                     self.cards[currentIdx].isLiked = !isLiked

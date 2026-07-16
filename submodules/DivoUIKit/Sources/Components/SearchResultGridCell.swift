@@ -185,7 +185,6 @@ public final class SearchResultGridCell: UICollectionViewCell {
 
     // MARK: - State & Callbacks
 
-    private var currentFeedId: Int?
     private var currentUserId: Int?
     private var currentIsLiked: Bool = false
     private var currentIsSaved: Bool = false
@@ -415,7 +414,6 @@ public final class SearchResultGridCell: UICollectionViewCell {
         setNeedsLayout()
         layoutIfNeeded()
 
-        currentFeedId = viewModel.feedId
         currentUserId = viewModel.userId
         currentIsLiked = viewModel.isLikedByUser
         currentIsSaved = viewModel.isFavoriteByUser
@@ -523,13 +521,14 @@ public final class SearchResultGridCell: UICollectionViewCell {
     // MARK: - Actions
 
     @objc private func likeTapped() {
-        guard let feedId = currentFeedId else { return }
+        // Лайк адресуется по userId (/user/like, DIVI-64) — как save. feedId в FR отсутствует, userId есть везде.
+        guard let userId = currentUserId else { return }
         currentIsLiked.toggle()
         currentLikesCount = max(0, currentLikesCount + (currentIsLiked ? 1 : -1))
         updateLikeVisual()
         likesLabel.text = formatLikes(currentLikesCount)
         heartIcon.divoPopAnimate()
-        onLikeTapped?(feedId, currentIsLiked)
+        onLikeTapped?(userId, currentIsLiked)
     }
 
     @objc private func saveTapped() {

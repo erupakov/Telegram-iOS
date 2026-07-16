@@ -1093,6 +1093,18 @@ final class ModelsSearchNode: ASDisplayNode {
         }
     }
 
+    /// Синк лайка по userId (нотификация с другого экрана). Счётчик пересчитываем ±1 от своего кеша.
+    func applyGridLikeState(userId: Int, isLiked: Bool) {
+        guard let idx = currentGridResults.firstIndex(where: { $0.user?.id == userId }),
+              currentGridResults[idx].isLikedByUser != isLiked else { return }
+        let newCount = max(0, (currentGridResults[idx].likesCount ?? 0) + (isLiked ? 1 : -1))
+        currentGridResults[idx].isLikedByUser = isLiked
+        currentGridResults[idx].likesCount = newCount
+        if let cell = gridCollectionView.cellForItem(at: IndexPath(item: idx, section: 0)) as? SearchResultGridCell {
+            cell.rollbackLike(isLiked: isLiked, likesCount: newCount)
+        }
+    }
+
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style
@@ -1204,8 +1216,8 @@ extension ModelsSearchNode: UICollectionViewDelegate, UICollectionViewDataSource
                 county = flag
             }
             cell.configure(with: item, county: county)
-            cell.onLikeTapped = { [weak self] feedId, isLiked in
-                self?.onGridLikeTapped?(feedId, isLiked)
+            cell.onLikeTapped = { [weak self] userId, isLiked in
+                self?.onGridLikeTapped?(userId, isLiked)
             }
             cell.onSaveTapped = { [weak self] userId, isSaved in
                 self?.onGridSaveTapped?(userId, isSaved)

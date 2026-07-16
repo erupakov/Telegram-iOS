@@ -53,6 +53,7 @@ public final class ModelsFeedController: TelegramBaseController {
     private var tokenChangeObserver: NSObjectProtocol?
     private var roleChangeObserver: NSObjectProtocol?
     private var followObserver: NSObjectProtocol?
+    private var likeObserver: NSObjectProtocol?
 
     private let createActionDisposable = MetaDisposable()
     private let clearDisposable = MetaDisposable()
@@ -117,6 +118,30 @@ public final class ModelsFeedController: TelegramBaseController {
                   let userId = note.userInfo?["userId"] as? Int,
                   let isFollowed = note.userInfo?["isFollowed"] as? Bool else { return }
             self.applyFollowChange(userId: userId, isFollowed: isFollowed)
+        }
+        // Лайк могли поменять на другом экране (поиск/профиль) — синкаем в кеше вкладок, как флажок.
+        self.likeObserver = NotificationCenter.default.addObserver(
+            forName: DivoConfig.divoLikeStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self,
+                  let userId = note.userInfo?["userId"] as? Int,
+                  let isLiked = note.userInfo?["isLiked"] as? Bool else { return }
+            self.applyLikeChange(userId: userId, isLiked: isLiked)
+        }
+    }
+
+    private func applyLikeChange(userId: Int, isLiked: Bool) {
+        for t in tabStates.indices {
+            if let i = tabStates[t].cards.firstIndex(where: { $0.userId == userId }),
+               tabStates[t].cards[i].isLiked != isLiked {
+                tabStates[t].cards[i].isLiked = isLiked
+                tabStates[t].cards[i].likesCount = max(0, tabStates[t].cards[i].likesCount + (isLiked ? 1 : -1))
+            }
+        }
+        if isNodeLoaded {
+            controllerNode.updateLikeState(userId: userId, isLiked: isLiked)
         }
     }
 
@@ -308,6 +333,9 @@ public final class ModelsFeedController: TelegramBaseController {
             NotificationCenter.default.removeObserver(observer)
         }
         if let observer = self.followObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = self.likeObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }

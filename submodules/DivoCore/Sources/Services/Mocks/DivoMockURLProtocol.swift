@@ -90,6 +90,7 @@ public final class DivoMockURLProtocol: URLProtocol {
 
         // Action endpoints — generic success
         let actionSuffixes = [
+            "/user/like", "/user/unlike",
             "/feedline/like", "/feedline/unlike",
             "/follower/follow", "/follower/unfollow",
             "/file/upload-file",

@@ -804,8 +804,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
     // Метод для лайка профиля
     func toggleLikeProfile(userId: Int, isLiked: Bool, completion: @escaping (Bool) -> Void) {
-        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
-        let body = FollowRequest(id: userId)
+        let path = isLiked ? "/user/like" : "/user/unlike"
+        let body = UserLikeRequest(userId: userId)
         
         Task { @MainActor in
             do {
@@ -814,6 +814,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
                 completion(true)
             } catch {
                 divoLog("[LIKE] Error toggling like for user \(userId): \(error)", level: .error)

@@ -157,3 +157,14 @@ public struct FollowResponse: Decodable {
     public let message: String?
     public let errors: String?
 }
+
+/// Тело `/user/like` и `/user/unlike` — лайк модели по её userId (миграция с feedId-based
+/// `/feedline/like`, DIVI-64). Бэк ждёт snake_case `user_id`, энкодер дефолтный (без
+/// keyEncodingStrategy) → имя поля задаётся через CodingKeys.
+public struct UserLikeRequest: Encodable {
+    public let userId: Int
+    public init(userId: Int) { self.userId = userId }
+    private enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+    }
+}

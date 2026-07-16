@@ -57,6 +57,9 @@ public struct FRSearchResult: Decodable {
     public let rank: Int?
     public let score: Double
     public let isFollowedByUser: Bool?
+    public let isLikedByUser: Bool?
+    public let likedCount: Int?
+    public let followersCount: Int?
 
     private enum CodingKeys: String, CodingKey {
         case userId = "user_id"
@@ -75,6 +78,9 @@ public struct FRSearchResult: Decodable {
         case rank
         case score
         case isFollowedByUser
+        case isLikedByUser
+        case likedCount
+        case followersCount
     }
 
     public init(from decoder: Decoder) throws {
@@ -96,5 +102,8 @@ public struct FRSearchResult: Decodable {
         self.rank = try container.decodeIfPresent(Int.self, forKey: .rank)
         self.score = try container.decode(Double.self, forKey: .score)
         self.isFollowedByUser = try container.decodeIfPresent(Bool.self, forKey: .isFollowedByUser)
+        self.isLikedByUser = try container.decodeIfPresent(Bool.self, forKey: .isLikedByUser)
+        self.likedCount = try container.decodeIfPresent(Int.self, forKey: .likedCount)
+        self.followersCount = try container.decodeIfPresent(Int.self, forKey: .followersCount)
     }
 }

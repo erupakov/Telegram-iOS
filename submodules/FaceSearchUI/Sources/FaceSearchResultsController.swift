@@ -31,6 +31,7 @@ public final class FaceSearchResultsController: ViewController {
     private var historyEntryId: String?
     private var state: FaceSearchResultsState
     private var followObserver: NSObjectProtocol?
+    private var likeObserver: NSObjectProtocol?
 
     public var onOpenProfile: ((FRSearchResult) -> Void)?
 
@@ -68,6 +69,17 @@ public final class FaceSearchResultsController: ViewController {
                   let isFollowed = note.userInfo?["isFollowed"] as? Bool else { return }
             self.resultsNode?.applyFollowChange(userId: userId, isFollowed: isFollowed)
         }
+        // Лайк мог поменяться на другом экране (зашли в профиль из результатов и отжали) — синкаем живой кэш.
+        self.likeObserver = NotificationCenter.default.addObserver(
+            forName: DivoConfig.divoLikeStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, self.isNodeLoaded,
+                  let userId = note.userInfo?["userId"] as? Int,
+                  let isLiked = note.userInfo?["isLiked"] as? Bool else { return }
+            self.resultsNode?.applyLikeChange(userId: userId, isLiked: isLiked)
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -78,6 +90,9 @@ public final class FaceSearchResultsController: ViewController {
         currentTask?.cancel()
         if let followObserver {
             NotificationCenter.default.removeObserver(followObserver)
+        }
+        if let likeObserver {
+            NotificationCenter.default.removeObserver(likeObserver)
         }
     }
 
@@ -119,8 +134,8 @@ public final class FaceSearchResultsController: ViewController {
         node.onFallbackAccept = { [weak self] similarity in
             self?.acceptFallback(similarity: similarity)
         }
-        node.onLikeTapped = { [weak self] feedId, isLiked in
-            self?.handleLike(feedId: feedId, isLiked: isLiked)
+        node.onLikeTapped = { [weak self] userId, isLiked in
+            self?.handleLike(userId: userId, isLiked: isLiked)
         }
         node.onSaveTapped = { [weak self] userId, isSaved in
             self?.handleSave(userId: userId, isSaved: isSaved)
@@ -379,9 +394,9 @@ public final class FaceSearchResultsController: ViewController {
         )
     }
 
-    private func handleLike(feedId: Int, isLiked: Bool) {
-        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
-        let body = FollowRequest(id: feedId)
+    private func handleLike(userId: Int, isLiked: Bool) {
+        let path = isLiked ? "/user/like" : "/user/unlike"
+        let body = UserLikeRequest(userId: userId)
         Task { @MainActor in
             do {
                 let _: FollowResponse = try await DivoAPIClient.shared.request(
@@ -389,6 +404,7 @@ public final class FaceSearchResultsController: ViewController {
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
             } catch {
                 // TODO: rollback
             }
@@ -487,7 +503,7 @@ public enum FaceSearchResultsMapper {
         }
     }
 
-    public static func viewModel(from result: FRSearchResult, isFollowedOverride: Bool? = nil) -> SearchCardViewModel {
+    public static func viewModel(from result: FRSearchResult, isFollowedOverride: Bool? = nil, isLikedOverride: Bool? = nil) -> SearchCardViewModel {
         let age = computeAge(from: result.birthday)
         let country = countryText(code: result.countryCode, name: result.countryName)
 
@@ -502,6 +518,13 @@ public enum FaceSearchResultsMapper {
             infoText = ""
         }
 
+        // Лайк берём из ответа FR (isLikedByUser/likedCount). Оверрайд — состояние, изменённое на другом
+        // экране; если оно расходится с серверным, счётчик правим на ±1.
+        let serverIsLiked = result.isLikedByUser ?? false
+        let isLiked = isLikedOverride ?? serverIsLiked
+        let baseCount = result.likedCount ?? 0
+        let likesCount = (isLiked == serverIsLiked) ? baseCount : max(0, baseCount + (isLiked ? 1 : -1))
+
         return SearchCardViewModel(
             variant: .faceMatch(percent: result.score),
             feedId: nil,
@@ -509,8 +532,8 @@ public enum FaceSearchResultsMapper {
             name: result.fullName,
             infoText: infoText.isEmpty ? nil : infoText,
             roleLabel: roleLabel(for: result.role),
-            likesCount: 0,
-            isLikedByUser: false,
+            likesCount: likesCount,
+            isLikedByUser: isLiked,
             isFavoriteByUser: isFollowedOverride ?? (result.isFollowedByUser ?? false),
             imageURL: result.image.flatMap(URL.init(string:))
         )
@@ -533,6 +556,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     private var results: [FRSearchResult]
     // Оверлей follow-состояния: FRSearchResult неизменяемый, а флажок может меняться (тап тут или на профиле).
     private var followOverrides: [Int: Bool] = [:]
+    private var likeOverrides: [Int: Bool] = [:]
     private let sourceImage: UIImage?
     private let faceBBox: FRBoundingBox?
     private var threshold: Double
@@ -801,6 +825,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         case let .results(items, threshold):
             self.results = items
             self.followOverrides.removeAll()
+            self.likeOverrides.removeAll()
             self.threshold = threshold
             updateHeaderTexts()
             if items.isEmpty {
@@ -830,6 +855,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         case let .fallback(items, originalPercent, actualPercent, _, originalThreshold):
             self.results = items
             self.followOverrides.removeAll()
+            self.likeOverrides.removeAll()
             self.threshold = originalThreshold
             updateHeaderTexts()
 
@@ -1124,6 +1150,21 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         }
     }
 
+    // Синхронизация лайка при изменении на другом экране (нотификация). Счётчик — от серверного likedCount
+    // с поправкой ±1, если оверрайд расходится с серверным состоянием (как в маппере).
+    func applyLikeChange(userId: Int, isLiked: Bool) {
+        likeOverrides[userId] = isLiked
+        for (offset, element) in results.enumerated() where element.userId == userId {
+            let base = element.likedCount ?? 0
+            let serverIsLiked = element.isLikedByUser ?? false
+            let count = (isLiked == serverIsLiked) ? base : max(0, base + (isLiked ? 1 : -1))
+            let ip = IndexPath(item: offset, section: 0)
+            if let cell = collectionView.cellForItem(at: ip) as? SearchResultGridCell {
+                cell.rollbackLike(isLiked: isLiked, likesCount: count)
+            }
+        }
+    }
+
     // MARK: - UICollectionView
 
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
@@ -1139,9 +1180,10 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "FaceMatchCell", for: indexPath) as! SearchResultGridCell
         let result = results[indexPath.item]
         let followOverride = result.userId.flatMap { followOverrides[$0] }
-        cell.configure(with: FaceSearchResultsMapper.viewModel(from: result, isFollowedOverride: followOverride))
-        cell.onLikeTapped = { [weak self] feedId, isLiked in
-            self?.onLikeTapped?(feedId, isLiked)
+        let likeOverride = result.userId.flatMap { likeOverrides[$0] }
+        cell.configure(with: FaceSearchResultsMapper.viewModel(from: result, isFollowedOverride: followOverride, isLikedOverride: likeOverride))
+        cell.onLikeTapped = { [weak self] userId, isLiked in
+            self?.onLikeTapped?(userId, isLiked)
         }
         cell.onSaveTapped = { [weak self] userId, isSaved in
             self?.onSaveTapped?(userId, isSaved)

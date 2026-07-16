@@ -52,6 +52,7 @@ public class ModelsSearchController: ViewController {
 
     private var currentSearchTask: Task<Void, Never>?
     private var followObserver: NSObjectProtocol?
+    private var likeObserver: NSObjectProtocol?
 
     public init(context: AccountContext) {
         self.context = context
@@ -77,6 +78,17 @@ public class ModelsSearchController: ViewController {
                   let isFollowed = note.userInfo?["isFollowed"] as? Bool else { return }
             self.searchNode.applyGridSaveState(userId: userId, isSaved: isFollowed)
         }
+        // Лайк мог поменяться на другом экране (зашли в профиль из грида и отжали) — синкаем грид при возврате.
+        self.likeObserver = NotificationCenter.default.addObserver(
+            forName: DivoConfig.divoLikeStateChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, self.isNodeLoaded,
+                  let userId = note.userInfo?["userId"] as? Int,
+                  let isLiked = note.userInfo?["isLiked"] as? Bool else { return }
+            self.searchNode.applyGridLikeState(userId: userId, isLiked: isLiked)
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -88,6 +100,9 @@ public class ModelsSearchController: ViewController {
         self.currentSearchTask?.cancel()
         if let followObserver {
             NotificationCenter.default.removeObserver(followObserver)
+        }
+        if let likeObserver {
+            NotificationCenter.default.removeObserver(likeObserver)
         }
     }
 
@@ -149,8 +164,8 @@ public class ModelsSearchController: ViewController {
             }
         }
 
-        self.searchNode.onGridLikeTapped = { [weak self] feedId, isLiked in
-            self?.handleGridLike(feedId: feedId, isLiked: isLiked)
+        self.searchNode.onGridLikeTapped = { [weak self] userId, isLiked in
+            self?.handleGridLike(userId: userId, isLiked: isLiked)
         }
 
         self.searchNode.onGridSaveTapped = { [weak self] userId, isSaved in
@@ -467,16 +482,18 @@ public class ModelsSearchController: ViewController {
     
     // MARK: - Grid Actions
 
-    private func handleGridLike(feedId: Int, isLiked: Bool) {
-        let oldItem = searchNode.gridItem(forFeedId: feedId)
+    private func handleGridLike(userId: Int, isLiked: Bool) {
+        let oldItem = searchNode.gridItem(forUserId: userId)
+        // Лайк по userId (/user/like, DIVI-64); оптимистик грида адресуется по feedId — резолвим из item.
+        guard let feedId = oldItem?.feedId else { return }
         let oldIsLiked = oldItem?.isLikedByUser ?? false
         let oldLikesCount = oldItem?.likesCount ?? 0
         let newLikesCount = max(0, oldLikesCount + (isLiked ? 1 : -1))
 
         searchNode.applyGridLikeState(feedId: feedId, isLiked: isLiked, likesCount: newLikesCount)
 
-        let path = isLiked ? "/feedline/like" : "/feedline/unlike"
-        let body = FollowRequest(id: feedId)
+        let path = isLiked ? "/user/like" : "/user/unlike"
+        let body = UserLikeRequest(userId: userId)
 
         Task { @MainActor in
             do {
@@ -485,6 +502,7 @@ public class ModelsSearchController: ViewController {
                     method: "POST",
                     body: body
                 )
+                NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
             } catch {
                 self.searchNode.applyGridLikeState(feedId: feedId, isLiked: oldIsLiked, likesCount: oldLikesCount)
             }
