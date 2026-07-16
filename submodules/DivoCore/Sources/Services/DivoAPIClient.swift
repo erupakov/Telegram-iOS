@@ -135,6 +135,13 @@ public final class DivoAPIClient {
 
     public func requestRawData(
         path: String,
+        method: String = "GET"
+    ) async throws -> Data {
+        return try await requestRawData(path: path, method: method, body: Optional<EmptyBody>.none)
+    }
+
+    public func requestRawData(
+        path: String,
         method: String = "GET",
         body: (some Encodable)?
     ) async throws -> Data {

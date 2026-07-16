@@ -245,6 +245,9 @@ public enum DivoStrings {
     public static var blockUserConfirmMessage: String { L(en: "You will no longer see this user's content, and they won't be able to message you.", ru: "Вы больше не увидите контент этого пользователя, и он не сможет вам писать.", es: "Ya no verás el contenido de este usuario y no podrá enviarte mensajes.", pt: "Você não verá mais o conteúdo deste usuário e ele não poderá enviar mensagens para você.", zh: "您将不再看到该用户的内容，对方也无法给您发消息。") }
     public static var userBlocked: String { L(en: "User blocked", ru: "Пользователь заблокирован", es: "Usuario bloqueado", pt: "Usuário bloqueado", zh: "用户已被屏蔽") }
     public static var blockUserFailed: String { L(en: "Failed to block user", ru: "Не удалось заблокировать пользователя", es: "No se pudo bloquear al usuario", pt: "Não foi possível bloquear o usuário", zh: "无法屏蔽用户") }
+    public static var deleteProfile: String { L(en: "Delete Profile", ru: "Удалить профиль", es: "Eliminar perfil", pt: "Excluir perfil", zh: "删除资料") }
+    public static var deleteProfileConfirmMessage: String { L(en: "Are you sure you want to delete your profile? This action cannot be undone.", ru: "Вы действительно хотите удалить профиль? Это действие необратимо.", es: "¿Seguro que quieres eliminar tu perfil? Esta acción es irreversible.", pt: "Tem certeza de que deseja excluir seu perfil? Esta ação é irreversível.", zh: "确定要删除您的资料吗？此操作不可撤销。") }
+    public static var deleteProfileFailed: String { L(en: "Failed to delete profile", ru: "Не удалось удалить профиль", es: "No se pudo eliminar el perfil", pt: "Não foi possível excluir o perfil", zh: "无法删除资料") }
 
     // MARK: - Profile Counters & Actions
 

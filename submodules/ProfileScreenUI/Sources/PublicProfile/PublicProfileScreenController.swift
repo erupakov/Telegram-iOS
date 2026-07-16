@@ -61,7 +61,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private let peer: Peer?
     
     private let contextSourceNode = ContextReferenceContentNode()
-    
+    private let deleteLoadingOverlay = DivoLoadingOverlay()
+
     private var galleryLoaded: Bool = false
     private var profileLoaded: Bool = false
 
@@ -443,6 +444,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onManageWorkExperienceTapped = { [weak self] in
             self?.navigateToManageExperience()
+        }
+
+        self.controllerNode.onDeleteProfileTapped = { [weak self] in
+            self?.presentDeleteProfileConfirmation()
         }
 
         self.controllerNode.onAddModelTapped = { [weak self] in
@@ -1988,6 +1993,51 @@ extension PublicProfileScreenController {
             } catch {
                 await MainActor.run {
                     self?.controllerNode.showSnackbar(message: DivoStrings.blockUserFailed, style: .error)
+                }
+            }
+        }
+    }
+
+    func presentDeleteProfileConfirmation() {
+        let alert = UIAlertController(
+            title: DivoStrings.deleteProfile,
+            message: DivoStrings.deleteProfileConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: DivoStrings.delete, style: .destructive) { [weak self] _ in
+            self?.deleteProfile()
+        })
+        self.present(alert, animated: true)
+    }
+
+    private func deleteProfile() {
+        // Блокирующий полноэкранный лоадер — пока идёт удаление, юзер не должен уйти с экрана / тапать.
+        self.deleteLoadingOverlay.show(in: self.displayNode.view, message: DivoStrings.deleting)
+        Task { [weak self] in
+            do {
+                // Деструктивный эндпоинт: успех определяем по HTTP-статусу (2xx), тело не декодим —
+                // на пустом/неожиданном ответе жёсткий decode упал бы уже ПОСЛЕ удаления аккаунта.
+                _ = try await DivoAPIClient.shared.requestRawData(
+                    path: "/user/delete-account",
+                    method: "DELETE"
+                )
+                await MainActor.run {
+                    guard let self = self else { return }
+                    // Аккаунт удалён на бэке — чистим DIVO-токен и разлогиниваем teamgram (уход на welcome).
+                    // Лоадер не прячем: logout уводит с экрана, оверлей уходит вместе с контроллером.
+                    DivoConfig.resetToken()
+                    let _ = logoutFromAccount(
+                        id: self.context.account.id,
+                        accountManager: self.context.sharedContext.accountManager,
+                        alreadyLoggedOutRemotely: false
+                    ).start()
+                }
+            } catch {
+                await MainActor.run {
+                    guard let self = self else { return }
+                    self.deleteLoadingOverlay.hide()
+                    self.controllerNode.showSnackbar(message: DivoStrings.deleteProfileFailed, style: .error)
                 }
             }
         }
