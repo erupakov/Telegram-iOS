@@ -145,15 +145,17 @@ xcrun devicectl device install app \
 
 #### Настройка перед сборкой
 
-1. В файле `build-input/configuration-repository/variables.bzl` установить:
+1. **Отключить дебаг-экран (обязательно, первым делом).** В `submodules/DivoCore/Sources/Services/DivoConfig.swift` выставить `DivoConfig.isDebugEnabled = false` (по умолчанию захардкожен в `true`) — иначе Debug Menu уедет в релизный билд. Команда TF/релизной сборки выдаётся только вместе с этим шагом: спрашиваешь команду для TestFlight — сначала этот пункт.
+
+2. В файле `build-input/configuration-repository/variables.bzl` установить:
 
 ```python
 telegram_aps_environment = "production"
 ```
 
-2. В папке `build-input/configuration-repository/provisioning/` должен лежать файл с именем `Telegram.mobileprovision` — **distribution** профиль (aps-environment=production, App Store / TestFlight).
+3. В папке `build-input/configuration-repository/provisioning/` должен лежать файл с именем `Telegram.mobileprovision` — **distribution** профиль (aps-environment=production, App Store / TestFlight).
 
-3. **Определить номер сборки.** Посмотреть последний `buildNumber` в TestFlight (App Store Connect) и прибавить 1. Например, если последняя сборка `17` — ставим `18`.
+4. **Определить номер сборки.** Посмотреть последний `buildNumber` в TestFlight (App Store Connect) и прибавить 1. Например, если последняя сборка `17` — ставим `18`.
 
 #### Команда сборки
 

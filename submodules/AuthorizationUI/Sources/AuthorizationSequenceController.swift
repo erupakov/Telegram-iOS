@@ -262,7 +262,9 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 self.divoHoldOverlayForOnboarding = true
                 controller?.inProgress = true
                 
-                let disableAuthTokens = self.sharedContext.immediateExperimentalUISettings.disableReloginTokens
+                // DIVO (DIVI-63): всегда спрашиваем SMS-код при входе по номеру — не полагаемся на
+                // fast-relogin по сохранённому future-auth-token (иначе код «пропадает» после логаута).
+                let disableAuthTokens = true
                 let authorizationPushConfiguration = self.sharedContext.authorizationPushConfiguration
                 |> take(1)
                 |> timeout(2.0, queue: .mainQueue(), alternate: .single(nil))
