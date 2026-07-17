@@ -145,7 +145,7 @@ xcrun devicectl device install app \
 
 #### Настройка перед сборкой
 
-1. **Отключить дебаг-экран (обязательно, первым делом).** В `submodules/DivoCore/Sources/Services/DivoConfig.swift` выставить `DivoConfig.isDebugEnabled = false` (по умолчанию захардкожен в `true`) — иначе Debug Menu уедет в релизный билд. Команда TF/релизной сборки выдаётся только вместе с этим шагом: спрашиваешь команду для TestFlight — сначала этот пункт.
+1. **Дебаг-экран отключать вручную НЕ нужно — он выключается сам.** `DivoConfig.isDebugEnabled` в `submodules/DivoCore/Sources/Services/DivoConfig.swift` вычисляется автоматически: на устройстве `true` только если в бандле есть `embedded.mobileprovision`. У сборок из TestFlight/App Store Apple этот профиль вырезает → `isDebugEnabled = false`, Debug Menu в релиз не попадёт. Профиль остаётся только у dev/ad-hoc сборок (там debug и нужен). Правки флага перед сборкой не требуется.
 
 2. В файле `build-input/configuration-repository/variables.bzl` установить:
 
@@ -159,10 +159,9 @@ telegram_aps_environment = "production"
 
 #### Команда сборки
 
-> **⚠️ ВНИМАНИЕ! Для релиза надо отключить дебаг-экран.**
-> Перед сборкой выставить `DivoConfig.isDebugEnabled = false` в
-> `submodules/DivoCore/Sources/Services/DivoConfig.swift` (сейчас захардкожен в `true`),
-> иначе Debug Menu попадёт в релизный билд.
+> **ℹ️ Дебаг-экран.** Отключать вручную не нужно — `DivoConfig.isDebugEnabled`
+> авто-выключается на TestFlight/App Store сборках (профиль `embedded.mobileprovision`
+> вырезается Apple). Подробнее — п. 1 «Настройка перед сборкой» выше.
 
 ```bash
 bazel build //Telegram:Telegram \
