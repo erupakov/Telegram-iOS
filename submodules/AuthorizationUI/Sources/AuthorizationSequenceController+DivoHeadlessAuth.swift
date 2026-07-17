@@ -43,6 +43,12 @@ extension AuthorizationSequenceController {
     func divoHeadlessAuth(phone: String) {
         divoLog("[Auth UI] divoHeadlessAuth — старт по phone=\(phone)", level: .info)
 
+        // DIVI-87: соц-вход не наследует pending-состояние оборванной ручной phone-попытки (номер без
+        // интернета осел в divoPendingPhone и не сбросился) — иначе divoCompleteAuthorizationWithDivoLink
+        // уйдёт в phone-link по этому номеру и покажет ложный онбординг вместо входа в соц-аккаунт.
+        self.divoPendingPhone = nil
+        self.divoHoldOverlayForOnboarding = false
+
         // DIVO: удерживаем overlay ДО завершения teamgram (без гонки с teardown), пока на нём предстоит
         // доп. работа: онбординг (D новый) ИЛИ telegram-link+синк имени (B — аккаунт есть, teamgram не
         // связан). Ветка A (reinstall, уже связан) ничего не ставит → overlay снимется штатно.
@@ -83,6 +89,9 @@ extension AuthorizationSequenceController {
                 pushNotificationConfiguration: pushConfiguration,
                 firebaseSecretStream: firebaseSecretStream,
                 syncContacts: true,
+                // DIVI-87: не подмешиваем сохранённые future-auth-токены — иначе fast-relogin
+                // утащит в чужой номер прошлой попытки вместо dummy (симметрично ручному, DIVI-63).
+                disableAuthTokens: true,
                 forcedPasswordSetupNotice: forcedPasswordSetupNotice
             )
             |> mapError { DivoHeadlessAuthError.sendCode($0) }

@@ -132,6 +132,11 @@ extension AuthorizationSequenceController {
             )
         }
 
+        // DIVI-87: future-auth-токен переживает логаут — чистим локальный токен-стор явно, иначе
+        // хвост неудачной попытки утащит следующий соц-вход в этот номер. iCloud не трогаем (кросс-девайс).
+        let _ = (self.sharedContext.accountManager.transaction { transaction -> Void in
+            transaction.setStoredLoginTokens([])
+        }).startStandalone()
         let _ = logoutFromAccount(
             id: self.account.id,
             accountManager: self.sharedContext.accountManager,
