@@ -815,6 +815,7 @@ public class ModelsSearchController: ViewController {
             query: query,
             role: role,
             withoutNfts: true,
+            countryCode: self.currentFilters.countryIds.first,
             modelParameters: hasModelParams ? ModelSearchParameters(
                 gender: gender,
                 geoCityId: self.currentFilters.cityId,

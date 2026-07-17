@@ -19,6 +19,8 @@ public struct ModelsSearchRequest: Encodable {
     public let withoutNfts: Bool?
     public let subscribedOnly: Bool?
     public let modelsOnly: Bool?
+    /// ISO-код страны автора; бэк принимает его только top-level (в modelParameters игнорируется).
+    public let countryCode: String?
     public let modelParameters: ModelSearchParameters?
     
     public init(
@@ -33,6 +35,7 @@ public struct ModelsSearchRequest: Encodable {
         withoutNfts: Bool? = nil,
         subscribedOnly: Bool? = nil,
         modelsOnly: Bool? = nil,
+        countryCode: String? = nil,
         modelParameters: ModelSearchParameters? = nil
     ) {
         self.offset = offset
@@ -46,6 +49,7 @@ public struct ModelsSearchRequest: Encodable {
         self.withoutNfts = withoutNfts
         self.subscribedOnly = subscribedOnly
         self.modelsOnly = modelsOnly
+        self.countryCode = countryCode
         self.modelParameters = modelParameters
     }
 }

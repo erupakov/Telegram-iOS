@@ -422,19 +422,12 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         countryRow.setItems(currentFilters.countryTitles, emptyTitle: DivoStrings.feedSearchAllCountries)
 
         let hasCountry = !currentFilters.countryIds.isEmpty
-        let hasCity = currentFilters.cityId != nil
         
         cityRow.isHidden = !hasCountry
         cityRow.setItems(currentFilters.cityTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.chooseCity)
-        
-        let isApplyEnabled: Bool
-        if hasCountry {
-            isApplyEnabled = hasCity
-        } else {
-            isApplyEnabled = true
-        }
 
-        applyButton.isEnabled = isApplyEnabled
+        // Город необязателен: страна фильтрует сама (top-level countryCode).
+        applyButton.isEnabled = true
 
         updateAppearanceValues()
         updateResetButtonState()
