@@ -768,6 +768,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 return
             }
             let controller = FaceSearchController(context: self.context, image: image)
+            controller.onChangePhoto = { [weak self, weak controller] in
+                guard let self, let controller else { return }
+                self.presentGalleryPhotoPicker(over: controller)
+            }
             controller.onOpenProfile = { [weak self] result in
                 guard let self else { return }
                 let next = PublicProfileScreenController(context: self.context, model: ProfileModel(faceSearchResult: result))
@@ -775,6 +779,53 @@ public final class PublicProfileScreenController: TelegramBaseController {
             }
             (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
         }
+    }
+
+    private let faceSearchPhotoSnackbar = DivoSnackbar()
+
+    /// Открывает грид фото профиля модели поверх экрана поиска по лицу; выбранное фото
+    /// уходит в `updateImage`, что перезапускает детект и поиск (DIVI-70).
+    private func presentGalleryPhotoPicker(over faceSearchController: FaceSearchController) {
+        let picker = DivoGalleryPhotoPickerSheetController(userId: self.userID)
+        picker.onPhotoSelected = { [weak self, weak picker, weak faceSearchController] photo in
+            guard let self, let faceSearchController else { return }
+            // Шторку закрываем сразу — свап ощущается мгновенным; лоадер/ошибка уходят
+            // на экран поиска, где и появится новое фото (не на закрывающейся шторке).
+            picker?.dismiss(animated: true)
+            self.loadFaceSearchPhoto(photo, into: faceSearchController)
+        }
+        faceSearchController.view.window?.rootViewController?.present(picker, animated: true)
+    }
+
+    private func loadFaceSearchPhoto(_ photo: UserPhoto, into faceSearchController: FaceSearchController) {
+        guard let url = CDNURLHelper.convertToCDNURL(photo.photo.fullUrl) else {
+            self.showFaceSearchPhotoError(nil, in: faceSearchController)
+            return
+        }
+        FaceSearchPhotoLoader.loadProfilePhoto(url: url, host: faceSearchController.view) { [weak self, weak faceSearchController] image in
+            guard let faceSearchController else { return }
+            guard let image else {
+                self?.showFaceSearchPhotoError(photo, in: faceSearchController)
+                return
+            }
+            faceSearchController.updateImage(image)
+        }
+    }
+
+    private func showFaceSearchPhotoError(_ retryPhoto: UserPhoto?, in faceSearchController: FaceSearchController) {
+        faceSearchPhotoSnackbar.show(
+            in: faceSearchController.view,
+            message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
+            style: .error,
+            bottomInset: DivoDesignTokens.Spacing.m,
+            bottomAnchor: faceSearchController.view.safeAreaLayoutGuide.bottomAnchor,
+            retryTitle: retryPhoto != nil ? DivoStrings.retry : nil,
+            retryAction: retryPhoto.map { photo in { [weak self, weak faceSearchController] in
+                guard let self, let faceSearchController else { return }
+                self.loadFaceSearchPhoto(photo, into: faceSearchController)
+            } },
+            persistent: retryPhoto != nil
+        )
     }
 
     private func openSocialLink(_ urlString: String) {

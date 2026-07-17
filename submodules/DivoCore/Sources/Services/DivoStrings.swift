@@ -163,6 +163,8 @@ public enum DivoStrings {
     public static var faceSearchInfoButton: String { L(en: "Got it, let's search", ru: "Понятно, начать поиск", es: "Entendido, buscar", pt: "Entendi, vamos buscar", zh: "明白了，开始搜索") }
     public static var faceSearchScreenTitle: String { L(en: "FACE SEARCH", ru: "ПОИСК ПО ФОТО", es: "BÚSQUEDA FACIAL", pt: "BUSCA FACIAL", zh: "人脸搜索") }
     public static var faceSearchChangePhoto: String { L(en: "Change photo", ru: "Изменить фото", es: "Cambiar foto", pt: "Alterar foto", zh: "更换照片") }
+    public static var faceSearchPickPhotoTitle: String { L(en: "Choose a photo", ru: "Выбрать фото", es: "Elegir una foto", pt: "Escolher uma foto", zh: "选择照片") }
+    public static var faceSearchGalleryLoadFailed: String { L(en: "Couldn't load photos", ru: "Не удалось загрузить фото", es: "No se pudieron cargar las fotos", pt: "Não foi possível carregar as fotos", zh: "无法加载照片") }
     public static var faceSearchTryDifferentPhoto: String { L(en: "Try a different photo", ru: "Попробовать другое фото", es: "Probar con otra foto", pt: "Tentar outra foto", zh: "尝试其他照片") }
     public static var faceSearchBrowseAllProfiles: String { L(en: "Browse all profiles", ru: "Смотреть все профили", es: "Ver todos los perfiles", pt: "Ver todos os perfis", zh: "浏览所有档案") }
     public static var faceSearchFindProfiles: String { L(en: "Find similar profiles", ru: "Найти похожие профили", es: "Buscar perfiles similares", pt: "Encontrar perfis semelhantes", zh: "查找相似档案") }
