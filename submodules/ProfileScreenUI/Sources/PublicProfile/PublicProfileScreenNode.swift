@@ -776,6 +776,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onSimilarProfileTapped: ((SimilarProfileItem) -> Void)?
     var onModelAgencyTapped: ((ModelItem) -> Void)?
     var onEventTapped: ((EventItem) -> Void)?
+    var onChannelTapped: ((ProfileChannelItem) -> Void)?
 
     var onModelDeleteTapped: ((Int?, Int?) -> Void)?
 
@@ -4771,7 +4772,7 @@ extension PublicProfileScreenNode: UICollectionViewDataSource {
                 return UICollectionViewCell()
             }
             let item = channelGalleryItems[indexPath.item]
-            cell.configure(with: item, context: self.context)
+            cell.configure(with: item)
             return cell
         } else if collectionView == modelGalleryCollectionView {
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ModelListCell.reuseIdentifier, for: indexPath) as? ModelListCell else {
@@ -4821,6 +4822,10 @@ extension PublicProfileScreenNode: UICollectionViewDelegate {
             guard !eventGalleryItems.isEmpty else { return }
             let event = eventGalleryItems[indexPath.item]
             onEventTapped?(event)
+        } else if collectionView == channelGalleryCollectionView {
+            guard !channelGalleryItems.isEmpty else { return }
+            let item = channelGalleryItems[indexPath.item]
+            onChannelTapped?(item)
         }
     }
 

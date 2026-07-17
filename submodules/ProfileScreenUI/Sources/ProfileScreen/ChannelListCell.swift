@@ -1,23 +1,19 @@
 import UIKit
 import Display
-import TelegramCore
-import DivoCore
-import AccountContext
 import DivoUIKit
 
 struct ProfileChannelItem {
-    let peer: String
     let title: String
-    let followersCount: Int
-    let isPremium: Bool
-    let customAvatarURL: String?
+    let subtitle: String?
+    let username: String?
+    let inviteLink: String?
+    let isVerified: Bool
 }
 
 final class ChannelListCell: UICollectionViewCell {
     static let reuseIdentifier = "ChannelListCell"
 
     private static let avatarSize: CGFloat = 52
-    private static let badgeHeight: CGFloat = 22
 
     private let avatarImageView: UIImageView = {
         let iv = UIImageView()
@@ -38,33 +34,12 @@ final class ChannelListCell: UICollectionViewCell {
         return label
     }()
 
-    private let premiumBadgeContainer: UIView = {
-        let view = UIView()
-        view.backgroundColor = DivoColorPalette.cardBackground
-        view.layer.cornerRadius = badgeHeight / 2
-        view.layer.borderWidth = 1
-        view.layer.borderColor = DivoColorPalette.primaryText.withAlphaComponent(0.1).cgColor
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
-    private let premiumBadgeIcon: UIImageView = {
-        let iv = UIImageView()
-        iv.image = DivoImage.premiumIcon
+    private let verifiedIconView: UIImageView = {
+        let iv = UIImageView(image: DivoImage.verified)
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
+        iv.isHidden = true
         return iv
-    }()
-
-    private let premiumBadgeLabel: UILabel = {
-        let label = UILabel()
-        label.font = Font.medium(11)
-        label.textColor = DivoColorPalette.accent
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = DivoStrings.premiumLabel
-        label.numberOfLines = 1
-        return label
     }()
 
     private let subtitleLabel: UILabel = {
@@ -75,6 +50,11 @@ final class ChannelListCell: UICollectionViewCell {
         label.heightAnchor.constraint(greaterThanOrEqualToConstant: 24).isActive = true
         return label
     }()
+
+    // Заголовок стоит над центром, когда есть подпись; при отсутствии подписи —
+    // центрируется по вертикали (одна строка не должна «висеть» в верхней половине).
+    private lazy var titleAboveCenterConstraint = titleLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor)
+    private lazy var titleCenteredConstraint = titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -90,9 +70,7 @@ final class ChannelListCell: UICollectionViewCell {
 
         contentView.addSubview(avatarImageView)
         contentView.addSubview(titleLabel)
-        contentView.addSubview(premiumBadgeContainer)
-        premiumBadgeContainer.addSubview(premiumBadgeIcon)
-        premiumBadgeContainer.addSubview(premiumBadgeLabel)
+        contentView.addSubview(verifiedIconView)
         contentView.addSubview(subtitleLabel)
 
         NSLayoutConstraint.activate([
@@ -102,25 +80,17 @@ final class ChannelListCell: UICollectionViewCell {
             avatarImageView.heightAnchor.constraint(equalToConstant: Self.avatarSize),
 
             titleLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 10),
-            titleLabel.bottomAnchor.constraint(equalTo: contentView.centerYAnchor),
 
-            premiumBadgeContainer.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
-            premiumBadgeContainer.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            premiumBadgeContainer.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            premiumBadgeContainer.heightAnchor.constraint(equalToConstant: Self.badgeHeight),
-
-            premiumBadgeIcon.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
-            premiumBadgeIcon.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
-            premiumBadgeIcon.leadingAnchor.constraint(equalTo: premiumBadgeContainer.leadingAnchor, constant: 6),
-
-            premiumBadgeLabel.bottomAnchor.constraint(equalTo: premiumBadgeContainer.bottomAnchor, constant: -5),
-            premiumBadgeLabel.topAnchor.constraint(equalTo: premiumBadgeContainer.topAnchor, constant: 5),
-            premiumBadgeLabel.leadingAnchor.constraint(equalTo: premiumBadgeIcon.trailingAnchor, constant: 2),
-            premiumBadgeLabel.trailingAnchor.constraint(equalTo: premiumBadgeContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.s),
+            verifiedIconView.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 6),
+            verifiedIconView.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            verifiedIconView.widthAnchor.constraint(equalToConstant: 16),
+            verifiedIconView.heightAnchor.constraint(equalToConstant: 16),
+            verifiedIconView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
 
             subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
             subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2)
         ])
+        titleAboveCenterConstraint.isActive = true
     }
 
     override func prepareForReuse() {
@@ -129,16 +99,17 @@ final class ChannelListCell: UICollectionViewCell {
         avatarImageView.image = nil
     }
 
-    func configure(with item: ProfileChannelItem, context: AccountContext) {
+    func configure(with item: ProfileChannelItem) {
         titleLabel.text = item.title
-        subtitleLabel.text = DivoStrings.followersString(item.followersCount)
-        premiumBadgeContainer.isHidden = !item.isPremium
-        let placeholder = DivoImage.emptyBackgroundAvatar
-        if let urlString = item.customAvatarURL, let url = URL(string: urlString) {
-            avatarImageView.loadImage(from: url, placeholder: placeholder)
-        } else {
-            avatarImageView.image = placeholder
-        }
+        verifiedIconView.isHidden = !item.isVerified
+
+        let hasSubtitle = !(item.subtitle?.isEmpty ?? true)
+        subtitleLabel.text = item.subtitle
+        subtitleLabel.isHidden = !hasSubtitle
+        titleAboveCenterConstraint.isActive = hasSubtitle
+        titleCenteredConstraint.isActive = !hasSubtitle
+
+        // Аватар канала бэк не отдаёт; загрузка через MTProto media-pipeline — отдельный шаг.
+        avatarImageView.image = DivoImage.emptyBackgroundAvatar
     }
 }
-
