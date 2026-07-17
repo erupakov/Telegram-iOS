@@ -13,6 +13,9 @@ public struct WorkHistoryData: Decodable {
 public struct WorkHistoryItem: Decodable {
     public let id: Int
     public let agencyId: Int?
+    /// userId пользователя-агентства для перехода в его публичный профиль. nil — у агентства нет
+    /// привязанного аккаунта, строка не кликабельна.
+    public let agencyUserId: Int?
     public let agencyName: String?
     public let agencyDisplayName: String?
     public let agencyAvatarLink: String?
@@ -23,6 +26,7 @@ public struct WorkHistoryItem: Decodable {
     public init(
         id: Int,
         agencyId: Int?,
+        agencyUserId: Int? = nil,
         agencyName: String?,
         agencyDisplayName: String?,
         agencyAvatarLink: String? = nil,
@@ -32,6 +36,7 @@ public struct WorkHistoryItem: Decodable {
     ) {
         self.id = id
         self.agencyId = agencyId
+        self.agencyUserId = agencyUserId
         self.agencyName = agencyName
         self.agencyDisplayName = agencyDisplayName
         self.agencyAvatarLink = agencyAvatarLink

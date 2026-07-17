@@ -3,10 +3,11 @@ import Display
 import DivoUIKit
 import DivoCore
 
-final class ExperienceView: UIView {
+final class ExperienceView: UIView, UIGestureRecognizerDelegate {
     
     var onEditTapped: (() -> Void)?
     var onDeleteTapped: (() -> Void)?
+    var onRowTapped: (() -> Void)?
     
     private let logoImageView: UIImageView = {
         let iv = UIImageView()
@@ -61,6 +62,10 @@ final class ExperienceView: UIView {
         super.init(frame: frame)
         setupUI()
         setupMenu()
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(rowTapped))
+        tap.delegate = self
+        addGestureRecognizer(tap)
     }
     
     required init?(coder: NSCoder) { fatalError() }
@@ -167,6 +172,15 @@ final class ExperienceView: UIView {
         periodLabel.clipsToBounds = true
     }
     
+    @objc private func rowTapped() {
+        onRowTapped?()
+    }
+
+    // Тап по кнопке меню ⋮ не должен уводить в профиль агентства — отдаём его кнопке.
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        return !(touch.view?.isDescendant(of: optionsButton) ?? false)
+    }
+
     private func setupMenu() {
         optionsButton.adjustsImageWhenHighlighted = false
         optionsButton.addDivoPressState(.pill)

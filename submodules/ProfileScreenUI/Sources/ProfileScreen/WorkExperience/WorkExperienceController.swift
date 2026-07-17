@@ -83,36 +83,11 @@ public final class WorkExperienceController: TelegramBaseController {
                 let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(
                     path: "/model-work-history?user_id=\(userId)"
                 )
-                let items = response.data.items
-                if !items.isEmpty {
-                    await MainActor.run {
-                        self.controllerNode.reloadWorkHistory(items: items)
-                    }
-                    return
-                }
-            } catch {
-                // Запрос упал (не пустой ответ) — не маскируем устаревшим /user/{id},
-                // даём пользователю повторить.
+                // /model-work-history — источник правды. Пустой ответ = пустая история (empty state),
+                // без фолбэка на legacy /user/{id}: устаревшее строковое поле workExperience рисовало
+                // заглушечную ячейку при реально пустой истории.
                 await MainActor.run {
-                    self.controllerNode.showSnackbar(
-                        message: DivoStrings.failedToLoadWorkHistory,
-                        style: .error,
-                        retryAction: { [weak self] in
-                            self?.getWorkHistory()
-                        },
-                        persistent: true
-                    )
-                }
-                return
-            }
-
-            // Новый эндпоинт вернул пусто (200) — пробуем legacy-поле model.workExperience.
-            do {
-                let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
-                    path: "/user/\(userId)"
-                )
-                await MainActor.run {
-                    self.controllerNode.reloadLegacyWorkHistory(model: userResponse.data)
+                    self.controllerNode.reloadWorkHistory(items: response.data.items)
                 }
             } catch {
                 await MainActor.run {
@@ -171,6 +146,10 @@ public final class WorkExperienceController: TelegramBaseController {
             self?.deleteWorkHistory(item: item)
         }
 
+        self.controllerNode.onOpenAgency = { [weak self] item in
+            self?.openAgencyProfile(item)
+        }
+
         self.controllerNode.openAddWorkExperience = { [weak self] in
             self?.addWorkExperience()
         }
@@ -187,6 +166,28 @@ public final class WorkExperienceController: TelegramBaseController {
         super.viewDidLoad()
         // DIVO свёрстан под светлую палитру — форсим .light
         overrideUserInterfaceStyle = .light
+    }
+
+    private func openAgencyProfile(_ item: WorkHistoryItem) {
+        guard let agencyUserId = item.agencyUserId else { return }
+        let avatarURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+        let profileModel = ProfileModel(
+            name: item.agencyDisplayName ?? item.agencyName ?? "",
+            age: nil,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: agencyUserId,
+            role: DivoConfig.UserRole.agency.rawValue,
+            mainImageURL: avatarURL,
+            avatarImageURL: avatarURL
+        )
+        let controller = PublicProfileScreenController(context: self.context, model: profileModel)
+        self.push(controller)
     }
 
     private func editWorkExperience(_ item: WorkHistoryItem) {

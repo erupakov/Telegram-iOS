@@ -99,6 +99,10 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
             self?.deleteWorkExperience(itemId: itemId)
         }
 
+        self.editProfileNode.onOpenAgency = { [weak self] item in
+            self?.openAgencyProfile(item)
+        }
+
         self.editProfileNode.onCityChosen = { [weak self] cityName in
             self?.resolveProfileCityOnBackend(cityName: cityName)
         }
@@ -190,6 +194,28 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         divoTrack(.workHistoryEditOpened(workId: item.id))
         let controller = AddWorkExperienceController(context: self.context, editItem: item)
         controller.delegate = self
+        self.navigationController?.pushViewController(controller, animated: true)
+    }
+
+    private func openAgencyProfile(_ item: WorkHistoryItem) {
+        guard let agencyUserId = item.agencyUserId else { return }
+        let avatarURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+        let profileModel = ProfileModel(
+            name: item.agencyDisplayName ?? item.agencyName ?? "",
+            age: nil,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            userId: agencyUserId,
+            role: DivoConfig.UserRole.agency.rawValue,
+            mainImageURL: avatarURL,
+            avatarImageURL: avatarURL
+        )
+        let controller = PublicProfileScreenController(context: self.context, model: profileModel)
         self.navigationController?.pushViewController(controller, animated: true)
     }
 

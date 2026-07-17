@@ -210,6 +210,7 @@ final class EditProfileNode: ASDisplayNode {
     var onEditWorkExperience: ((WorkHistoryItem) -> Void)?
     var onDeleteWorkExperience: ((Int) -> Void)?
     var onAddWorkExperience: (() -> Void)?
+    var onOpenAgency: ((WorkHistoryItem) -> Void)?
     
     
     // MARK: - Biography UI
@@ -1207,6 +1208,13 @@ final class EditProfileNode: ASDisplayNode {
                     self?.onDeleteWorkExperience?(item.id)
                 }
                 
+                // Строка кликабельна только если у агентства есть привязанный аккаунт.
+                if item.agencyUserId != nil {
+                    cell.onRowTapped = { [weak self] in
+                        self?.onOpenAgency?(item)
+                    }
+                }
+
                 workExperienceCells[item.id] = cell
                 
                 workListStackView.addArrangedSubview(cell)

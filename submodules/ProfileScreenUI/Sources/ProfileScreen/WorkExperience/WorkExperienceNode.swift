@@ -25,6 +25,7 @@ final class WorkExperience: ASDisplayNode {
     
     var onEditItem: ((WorkHistoryItem) -> Void)?
     var onDeleteItem: ((WorkHistoryItem) -> Void)?
+    var onOpenAgency: ((WorkHistoryItem) -> Void)?
 
     private let navigationBar = DivoNavigationBar()
 
@@ -88,7 +89,6 @@ final class WorkExperience: ASDisplayNode {
     private let addExperienceButton = DivoButton()
     
     private var rawItems: [WorkHistoryItem] = []
-    private var hasStructuredData = false
     private var isLoading = true
     private let shimmerCount = 4
     private var experienceCells:[Int: ExperienceView] = [:]
@@ -202,40 +202,11 @@ final class WorkExperience: ASDisplayNode {
     func reloadWorkHistory(items: [WorkHistoryItem]) {
         self.isLoading = false
         self.rawItems = items
-        self.hasStructuredData = true
         
         updateEmptyState()
         renderList()
     }
 
-    func reloadLegacyWorkHistory(model: UserDetail) {
-        self.isLoading = false
-        self.rawItems = []
-        self.hasStructuredData = false
-        
-        let experienceString = model.model?.workExperience ?? ""
-        let experienceNames = experienceString
-            .split(separator: ",")
-            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-
-        self.rawItems = experienceNames.map { name in
-            WorkHistoryItem(
-                id: 0,
-                agencyId: nil,
-                agencyName: name,
-                agencyDisplayName: name,
-                agencyAvatarLink: nil,
-                startDate: nil,
-                endDate: nil,
-                isCurrent: false
-            )
-        }
-        
-        updateEmptyState()
-        renderList()
-    }
-    
     func indexOfItem(id: Int) -> Int {
         return rawItems.firstIndex(where: { $0.id == id }) ?? rawItems.count
     }
@@ -282,7 +253,7 @@ final class WorkExperience: ASDisplayNode {
 
                 let cell = ExperienceView()
 
-                let showOptions = model.isMyProfile && hasStructuredData
+                let showOptions = model.isMyProfile
                 let shouldLoadImmediately = logoURL != nil || item.agencyId == nil
                 cell.configure(with: wItem, showOptions: showOptions, loadImage: shouldLoadImmediately)
                 
@@ -296,6 +267,13 @@ final class WorkExperience: ASDisplayNode {
                     }
                 }
                 
+                // Строка кликабельна только если у агентства есть привязанный аккаунт.
+                if item.agencyUserId != nil {
+                    cell.onRowTapped = { [weak self] in
+                        self?.onOpenAgency?(item)
+                    }
+                }
+
                 experienceCells[item.id] = cell
                 
                 listStackView.addArrangedSubview(cell)
