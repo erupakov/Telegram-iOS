@@ -6,7 +6,6 @@ struct ProfileChannelItem {
     let title: String
     let subtitle: String?
     let username: String?
-    let inviteLink: String?
     let isVerified: Bool
 }
 

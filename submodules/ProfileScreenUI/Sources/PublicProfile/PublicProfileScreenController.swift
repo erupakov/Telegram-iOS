@@ -1034,8 +1034,9 @@ extension PublicProfileScreenController {
     }
 }
 
-// Загрузка каналов модели через REST (/channels/list). Бэк отдаёт только идентификаторы;
-// название/подписчиков/verified подтягиваем из MTProto по invite-ссылке (checkChatInvite).
+// Загрузка каналов модели через REST (/channels/list). В публичном профиле показываем
+// только публичные каналы (с username); приватные не выводим. Название/подписчиков/verified
+// подтягиваем из MTProto резолвом по username.
 extension PublicProfileScreenController {
     func loadTelegramChannels() {
         guard let userId = model.userId else {
@@ -1054,29 +1055,16 @@ extension PublicProfileScreenController {
                     path: "/channels/list?user_id=\(userId)",
                     method: "GET"
                 )
+                // Приватные каналы (без username) в публичном профиле не показываем.
                 let base = (response.data?.items ?? []).compactMap { channel -> ProfileChannelItem? in
-                    let username = channel.username?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let link = channel.inviteLink?.trimmingCharacters(in: .whitespacesAndNewlines)
-
-                    let title: String
-                    let subtitle: String?
-                    if let username, !username.isEmpty {
-                        title = username
-                        subtitle = "@\(username)"
-                    } else if let link, !link.isEmpty {
-                        // Приватный канал: пока метаданные из MTProto не пришли, показываем ссылку.
-                        title = link
-                        subtitle = nil
-                    } else {
-                        // Нет ни username, ни ссылки — показывать нечего и вести некуда.
+                    guard let username = channel.username?.trimmingCharacters(in: .whitespacesAndNewlines),
+                          !username.isEmpty else {
                         return nil
                     }
-
                     return ProfileChannelItem(
-                        title: title,
-                        subtitle: subtitle,
+                        title: username,
+                        subtitle: "@\(username)",
                         username: username,
-                        inviteLink: link,
                         isVerified: false
                     )
                 }
@@ -1092,60 +1080,13 @@ extension PublicProfileScreenController {
         }
     }
 
-    // Название/подписчиков/verified тянем из MTProto по invite-хэшу (checkChatInvite — без вступления в канал).
+    // Реальное название/verified и число подписчиков берём из MTProto резолвом по username.
+    // Подписчики — best-effort: если ещё не в кэше, оставляем @username как подпись.
     private func enrichChannelsFromMTProto() {
         for (index, item) in self.channelItems.enumerated() {
-            guard let link = item.inviteLink, let hash = Self.inviteHash(from: link) else { continue }
+            guard let username = item.username, !username.isEmpty else { continue }
 
-            self.channelInfoDisposables.add((self.context.engine.peers.joinLinkInformation(hash)
-            |> take(1)
-            |> deliverOnMainQueue).startStrict(next: { [weak self] state in
-                self?.applyChannelInfo(state, at: index)
-            }))
-        }
-    }
-
-    private func applyChannelInfo(_ state: ExternalJoiningChatState, at index: Int) {
-        guard index < self.channelItems.count else { return }
-        let current = self.channelItems[index]
-
-        let title: String
-        let subtitle: String?
-        let isVerified: Bool
-        switch state {
-        case let .invite(invite):
-            title = invite.title
-            subtitle = DivoStrings.followersString(Int(invite.participantsCount))
-            isVerified = invite.flags.isVerified
-        case let .alreadyJoined(peer):
-            title = peer.debugDisplayTitle
-            subtitle = current.subtitle
-            isVerified = false
-        case let .peek(peer, _):
-            title = peer.debugDisplayTitle
-            subtitle = current.subtitle
-            isVerified = false
-        case .invalidHash:
-            // Ссылка невалидна — оставляем базовый показ (ссылку) как есть.
-            return
-        }
-
-        self.channelItems[index] = ProfileChannelItem(
-            title: title,
-            subtitle: subtitle,
-            username: current.username,
-            inviteLink: current.inviteLink,
-            isVerified: isVerified
-        )
-        self.controllerNode.updateChannelsList(self.channelItems)
-    }
-
-    func openChannel(_ item: ProfileChannelItem) {
-        guard let navigationController = self.navigationController as? NavigationController else { return }
-
-        // Публичный канал — резолвим по username и открываем как обычный peer.
-        if let username = self.channelUsername(from: item) {
-            self.openChatDisposable.set((self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
+            let signal = self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
             |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
                 switch result {
                 case .progress:
@@ -1155,92 +1096,62 @@ extension PublicProfileScreenController {
                 }
             }
             |> take(1)
-            |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
-                guard let self = self else { return }
-                guard let peer = peer else {
-                    self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
-                    return
-                }
-                self.navigateToChannel(peer, navigationController: navigationController)
-            }))
-            return
-        }
+            |> mapToSignal { [weak self] peer -> Signal<(EnginePeer, Int?)?, NoError> in
+                guard let self = self, let peer = peer else { return .single(nil) }
+                return self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.ParticipantCount(id: peer.id))
+                |> map { count in (peer, count) }
+            }
 
-        // Приватный канал — открываем по invite-ссылке.
-        guard let link = item.inviteLink, let hash = Self.inviteHash(from: link) else {
+            self.channelInfoDisposables.add((signal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] pair in
+                guard let self = self, let (peer, count) = pair else { return }
+                self.applyChannelInfo(peer: peer, participantsCount: count, at: index)
+            }))
+        }
+    }
+
+    private func applyChannelInfo(peer: EnginePeer, participantsCount: Int?, at index: Int) {
+        guard index < self.channelItems.count else { return }
+        let current = self.channelItems[index]
+
+        self.channelItems[index] = ProfileChannelItem(
+            title: peer.debugDisplayTitle,
+            subtitle: participantsCount.map { DivoStrings.followersString($0) } ?? current.subtitle,
+            username: current.username,
+            isVerified: peer.isVerified
+        )
+        self.controllerNode.updateChannelsList(self.channelItems)
+    }
+
+    func openChannel(_ item: ProfileChannelItem) {
+        guard let navigationController = self.navigationController as? NavigationController else { return }
+        guard let username = item.username, !username.isEmpty else {
             self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
             return
         }
-        self.openPrivateChannel(hash: hash, navigationController: navigationController)
-    }
 
-    private func openPrivateChannel(hash: String, navigationController: NavigationController) {
-        self.openChatDisposable.set((self.context.engine.peers.joinLinkInformation(hash)
-        |> take(1)
-        |> deliverOnMainQueue).startStrict(next: { [weak self] state in
-            guard let self = self else { return }
-            switch state {
-            case let .alreadyJoined(peer):
-                self.navigateToChannel(peer, navigationController: navigationController)
-            case let .peek(peer, _):
-                self.navigateToChannel(peer, navigationController: navigationController)
-            case .invite:
-                // Ещё не участник — вступаем по ссылке и открываем.
-                self.joinAndOpenChannel(hash: hash, navigationController: navigationController)
-            case .invalidHash:
-                self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
+        self.openChatDisposable.set((self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
+        |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
+            switch result {
+            case .progress:
+                return .complete()
+            case let .result(peer):
+                return .single(peer)
             }
-        }, error: { [weak self] _ in
-            self?.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
-        }))
-    }
-
-    private func joinAndOpenChannel(hash: String, navigationController: NavigationController) {
-        self.openChatDisposable.set((self.context.engine.peers.joinChatInteractively(with: hash)
+        }
+        |> take(1)
         |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
             guard let self = self else { return }
             guard let peer = peer else {
                 self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
                 return
             }
-            self.navigateToChannel(peer, navigationController: navigationController)
-        }, error: { [weak self] _ in
-            self?.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
+            self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(
+                navigationController: navigationController,
+                context: self.context,
+                chatLocation: .peer(peer)
+            ))
         }))
-    }
-
-    private func navigateToChannel(_ peer: EnginePeer, navigationController: NavigationController) {
-        self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(
-            navigationController: navigationController,
-            context: self.context,
-            chatLocation: .peer(peer)
-        ))
-    }
-
-    private func channelUsername(from item: ProfileChannelItem) -> String? {
-        if let username = item.username, !username.isEmpty {
-            return username
-        }
-        guard let link = item.inviteLink, let url = URL(string: link) else { return nil }
-        // Приватная invite-ссылка (t.me/+hash, .../joinchat/hash) — публичного username нет.
-        if Self.inviteHash(from: link) != nil { return nil }
-        let name = url.lastPathComponent
-        guard !name.isEmpty, !name.hasPrefix("+") else { return nil }
-        return name
-    }
-
-    // Хэш приглашения из ссылки вида https://<host>/+HASH или https://<host>/joinchat/HASH.
-    private static func inviteHash(from link: String) -> String? {
-        guard let url = URL(string: link) else { return nil }
-        let last = url.lastPathComponent
-        if last.hasPrefix("+") {
-            return String(last.dropFirst())
-        }
-        let parts = url.pathComponents.filter { $0 != "/" }
-        if parts.count >= 2, parts[parts.count - 2].lowercased() == "joinchat" {
-            return last
-        }
-        return nil
     }
 }
 

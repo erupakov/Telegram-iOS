@@ -434,6 +434,9 @@ public func createChannelController(context: AccountContext, mode: CreateChannel
                         }
                     }
                 }).start(next: { peerId in
+                    // DIVO: регистрируем созданный канал в REST (/channels/add), иначе он не попадёт в /channels/list профиля.
+                    divoRegisterCreatedChannel(context: context, peerId: peerId)
+
                     let updatingAvatar = stateValue.with {
                         return $0.avatar
                     }

@@ -17,3 +17,21 @@ public struct DivoChannel: Decodable {
     public let username: String?
     public let inviteLink: String?
 }
+
+// Регистрация созданного канала: POST /channels/add. telegramChatId + inviteLink обязательны,
+// username — только для публичных каналов (на момент создания обычно ещё не задан).
+public struct ChannelAddRequest: Encodable {
+    public let telegramChatId: Int64
+    public let username: String?
+    public let inviteLink: String
+
+    public init(telegramChatId: Int64, username: String?, inviteLink: String) {
+        self.telegramChatId = telegramChatId
+        self.username = username
+        self.inviteLink = inviteLink
+    }
+}
+
+public struct ChannelAddResponse: Decodable {
+    public let message: String?
+}
