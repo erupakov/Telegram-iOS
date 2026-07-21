@@ -184,6 +184,7 @@ public final class DivoShakeGestureHandler {
     }
 
     private static func presentLogsViewer() {
+        guard DivoConfig.isDebugEnabled else { return }
         guard let topVC = topmostViewController() else { return }
         if topVC is DivoStandaloneLogsViewController { return }
         let vc = DivoStandaloneLogsViewController()
