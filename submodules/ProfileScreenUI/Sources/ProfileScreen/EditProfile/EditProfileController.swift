@@ -300,6 +300,16 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
         }
     }
 
+    private func presentAvatarCrop(_ image: UIImage) {
+        let cropController = DivoAvatarCropController(image: image, onComplete: { [weak self] cropped in
+            guard let self = self else { return }
+            self.editProfileNode.setAvatarLoading(true)
+            self.editProfileNode.currentPhoto = cropped
+            self.uploadAvatar(image: cropped)
+        })
+        self.present(cropController, animated: true)
+    }
+
     private func uploadAvatar(image: UIImage) {
         self.selectedAvatarImage = image
         self.selectedAvatarUUID = nil
@@ -497,9 +507,8 @@ extension EditProfileController {
             }
             let normalized = uiImage.fixedOrientation()
             DispatchQueue.main.async {
-                self.editProfileNode.setAvatarLoading(true)
+                self.presentAvatarCrop(normalized)
             }
-            self.uploadAvatar(image: normalized)
         }
     }
 }
@@ -509,24 +518,16 @@ extension EditProfileController {
 
 extension EditProfileController: UIImagePickerControllerDelegate {
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true)
-        
-        if let editedImage = info[.editedImage] as? UIImage {
-            handleSelectedImage(editedImage)
-        } else if let originalImage = info[.originalImage] as? UIImage {
-            handleSelectedImage(originalImage)
+        let picked = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
+        // Кроп презентуем в completion dismiss — иначе конфликт с ещё идущим закрытием пикера.
+        picker.dismiss(animated: true) { [weak self] in
+            guard let self = self, let picked = picked else { return }
+            self.presentAvatarCrop(picked.fixedOrientation())
         }
     }
-    
+
     public func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
-    }
-    
-    private func handleSelectedImage(_ image: UIImage) {
-        let normalized = image.fixedOrientation()
-        self.editProfileNode.setAvatarLoading(true)
-        self.editProfileNode.currentPhoto = normalized
-        self.uploadAvatar(image: normalized)
     }
 }
 
