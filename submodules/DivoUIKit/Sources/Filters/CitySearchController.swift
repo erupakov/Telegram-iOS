@@ -111,23 +111,34 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
 
     private lazy var countryNameToCodeMap: [String: String] = {
         var map: [String: String] = [:]
-        let preferredLocale = Locale(identifier: DivoStrings.current.rawValue)
-        let enLocale = Locale(identifier: "en")
-        
-        for code in Locale.isoRegionCodes {
-            if let countryName = preferredLocale.localizedString(forRegionCode: code) {
-                map[countryName.lowercased()] = code
-            }
-            if let enCountryName = enLocale.localizedString(forRegionCode: code) {
-                map[enCountryName.lowercased()] = code
+        // MapKit и Foundation дают разные формы одной страны — собираем из нескольких локалей.
+        for locale in matchLocales {
+            for code in Locale.isoRegionCodes {
+                if let countryName = locale.localizedString(forRegionCode: code) {
+                    map[countryName.lowercased()] = code
+                }
             }
         }
         return map
     }()
 
+    // Не static (язык меняется в сессии) и без Locale.current — раннее чтение системной
+    // локали фиксирует язык MapKit до применения языка приложения (первый показ на системном).
+    private var matchLocales: [Locale] {
+        [
+            Locale(identifier: DivoStrings.current.rawValue),
+            Locale(identifier: "en"),
+        ]
+    }
+
     private var filterCountryCode: String?
     private var allowedCountryNames: Set<String> = []
-    
+
+    // Имя от MapKit («ОАЭ») ≠ форма Foundation → неоднозначные дорешиваем по ISO-коду, с кэшем.
+    private var resolvedCountryCodeCache: [String: String] = [:]
+    private var activeCountrySearches: [MKLocalSearch] = []
+    private var resolveGeneration = 0
+
 
     // MARK: - Init
 
@@ -148,14 +159,10 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         }
         
         if let countryCode = filterCountryCode {
-            let preferredLocale = Locale(identifier: DivoStrings.current.rawValue)
-            let enLocale = Locale(identifier: "en")
-            
-            if let name = preferredLocale.localizedString(forRegionCode: countryCode) {
-                self.allowedCountryNames.insert(name.lowercased())
-            }
-            if let enName = enLocale.localizedString(forRegionCode: countryCode) {
-                self.allowedCountryNames.insert(enName.lowercased())
+            for locale in matchLocales {
+                if let name = locale.localizedString(forRegionCode: countryCode) {
+                    self.allowedCountryNames.insert(name.lowercased())
+                }
             }
         }
 
@@ -218,6 +225,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         NotificationCenter.default.removeObserver(self)
         searchDebounceTimer?.invalidate()
         throttleRetryTimer?.invalidate()
+        cancelActiveCountrySearches()
     }
 
     @objc private func keyboardWillShow(_ notification: Notification) {
@@ -361,7 +369,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     private func renderResults(_ results: [MKLocalSearchCompletion]) {
         for (index, completion) in results.enumerated() {
             let id = completion.title + "|||" + completion.subtitle
-            let flag = extractFlag(from: completion.subtitle)
+            let flag = countryFlag(for: completion)
 
             let countryName = completion.subtitle.split(separator: ",").last?.trimmingCharacters(in: .whitespaces) ?? ""
             let fullTitle = countryName.isEmpty ? "\(flag) \(completion.title)" : "\(flag) \(completion.title), \(countryName)"
@@ -456,6 +464,17 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         return cell
     }
 
+    // При фильтре по стране флаг берём по коду — матч по имени на «ОАЭ» даёт 🌍.
+    private func countryFlag(for completion: MKLocalSearchCompletion) -> String {
+        if let countryCode = filterCountryCode {
+            let flag = CountryHelper.emojiFlag(for: countryCode)
+            if !flag.isEmpty {
+                return flag
+            }
+        }
+        return extractFlag(from: completion.subtitle)
+    }
+
     private func extractFlag(from subtitle: String) -> String {
         let components = subtitle.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
         guard let countryName = components.last?.lowercased() else { return "🌍" }
@@ -477,28 +496,112 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     // MARK: - MKLocalSearchCompleterDelegate
     
     public func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        let filtered = completer.results.filter { completion in
-            let subtitle = completion.subtitle.lowercased()
-            
-            let hasHouseNumber = subtitle.rangeOfCharacter(from: .decimalDigits) != nil
-            guard !hasHouseNumber else { return false }
-            
-            if !allowedCountryNames.isEmpty {
-                let matchesCountry = allowedCountryNames.contains { countryName in
-                    subtitle.contains(countryName)
-                }
-                return matchesCountry
-            }
-            
-            return true
+        let base = completer.results.filter { !hasHouseNumber($0) }
+
+        // Без привязки к стране показываем всё — как раньше.
+        guard let countryCode = filterCountryCode else {
+            present(base, settled: !completer.isSearching)
+            return
         }
 
-        if !filtered.isEmpty {
-            state = .loaded(filtered)
-        } else if !completer.isSearching {
+        // Кандидаты, чью страну имя не подтвердило и по кому ещё нет resolve'а.
+        let needsResolve = base.filter { !matchesCountryByName($0) && cachedCountryCode(for: $0) == nil }
+
+        // Всё решается по имени/кэшу — отдаём сразу, без сети.
+        if needsResolve.isEmpty {
+            present(base.filter { accepts($0, countryCode: countryCode) }, settled: !completer.isSearching)
+            return
+        }
+
+        // Пока идёт resolve, держим на экране уже подтверждённое именем — без мигания заглушками.
+        let confirmedByName = base.filter { matchesCountryByName($0) }
+
+        // resolve (сеть) только на финальном апдейте — иначе пачка запросов на каждый символ.
+        guard !completer.isSearching else {
+            if !confirmedByName.isEmpty {
+                state = .loaded(confirmedByName)
+            }
+            return
+        }
+
+        resolveGeneration += 1
+        let generation = resolveGeneration
+        if !confirmedByName.isEmpty {
+            state = .loaded(confirmedByName)
+        } else {
+            state = .searching(stale: state.visibleResults)
+        }
+
+        resolveCountryCodes(for: needsResolve, generation: generation) { [weak self] in
+            guard let self = self, generation == self.resolveGeneration else { return }
+            self.present(base.filter { self.accepts($0, countryCode: countryCode) }, settled: true)
+        }
+    }
+
+    private func present(_ results: [MKLocalSearchCompletion], settled: Bool) {
+        if !results.isEmpty {
+            state = .loaded(results)
+        } else if settled {
             state = settledEmptyState()
         }
-        // Промежуточный пустой апдейт (isSearching == true) не показываем — ждём финальный.
+        // Промежуточный пустой апдейт (settled == false) не показываем — ждём финальный.
+    }
+
+    private func completionKey(_ completion: MKLocalSearchCompletion) -> String {
+        completion.title + "|||" + completion.subtitle
+    }
+
+    private func hasHouseNumber(_ completion: MKLocalSearchCompletion) -> Bool {
+        completion.subtitle.rangeOfCharacter(from: .decimalDigits) != nil
+    }
+
+    private func matchesCountryByName(_ completion: MKLocalSearchCompletion) -> Bool {
+        guard !allowedCountryNames.isEmpty else { return false }
+        let subtitle = completion.subtitle.lowercased()
+        return allowedCountryNames.contains { subtitle.contains($0) }
+    }
+
+    private func cachedCountryCode(for completion: MKLocalSearchCompletion) -> String? {
+        resolvedCountryCodeCache[completionKey(completion)]
+    }
+
+    private func accepts(_ completion: MKLocalSearchCompletion, countryCode: String) -> Bool {
+        if matchesCountryByName(completion) { return true }
+        if let code = cachedCountryCode(for: completion) {
+            return code.caseInsensitiveCompare(countryCode) == .orderedSame
+        }
+        return false
+    }
+
+    // completer даёт только строки — ISO-код узнаём resolve'ом; кэшируем, старые отменяем.
+    private func resolveCountryCodes(for completions: [MKLocalSearchCompletion],
+                                     generation: Int,
+                                     onComplete: @escaping () -> Void) {
+        cancelActiveCountrySearches()
+
+        let group = DispatchGroup()
+        for completion in completions {
+            let key = completionKey(completion)
+            let search = MKLocalSearch(request: MKLocalSearch.Request(completion: completion))
+            activeCountrySearches.append(search)
+            group.enter()
+            search.start { [weak self] response, _ in
+                defer { group.leave() }
+                guard let self = self else { return }
+                if let code = response?.mapItems.first?.placemark.isoCountryCode {
+                    self.resolvedCountryCodeCache[key] = code
+                }
+            }
+        }
+
+        group.notify(queue: .main) {
+            onComplete()
+        }
+    }
+
+    private func cancelActiveCountrySearches() {
+        activeCountrySearches.forEach { $0.cancel() }
+        activeCountrySearches.removeAll()
     }
 
     public func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
@@ -582,7 +685,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         guard let cell = gesture.view, let index = cell.tag as Int?, index < results.count else { return }
         let selectedCompletion = results[index]
         
-        let flag = extractFlag(from: selectedCompletion.subtitle)
+        let flag = countryFlag(for: selectedCompletion)
         let countryName = selectedCompletion.subtitle.split(separator: ",").last?.trimmingCharacters(in: .whitespaces) ?? ""
         let fullTitle = countryName.isEmpty ? "\(flag) \(selectedCompletion.title)" : "\(flag) \(selectedCompletion.title), \(countryName)"
         
@@ -607,6 +710,9 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
 
         searchDebounceTimer?.invalidate()
         throttleRetryTimer?.invalidate()
+        cancelActiveCountrySearches()
+        // Сдвигаем поколение: результат отменённого resolve не должен примениться к новому тексту.
+        resolveGeneration += 1
 
         if text.isEmpty {
             completer.cancel()
