@@ -10,6 +10,12 @@ import DivoCore
 /// ни `update-profile` для новых не нужны (и обходим 422-валидацию `update-profile`).
 /// Затем для всех: teamgram name-update (ФАТАЛЬНО, ждём). Любой шаг упал → постим
 /// `onboardingChainFailedNotification` + throw → откат (logout teamgram). Частичного входа нет.
+/// DIVO-аккаунт создан по REST, но authorized-контекст teamgram не поднялся (напр. недоступен teamgram /
+/// нет VPN) → вход в таббар невозможен. Показываем ошибку + Retry на экране сабмита, а не молча выброс.
+private struct OnboardingTeamgramUnreachableError: LocalizedError {
+    var errorDescription: String? { DivoStrings.genericError }
+}
+
 public final class DivoOnboardingSubmitService: OnboardingSubmitService {
 
     public init() {}
@@ -95,18 +101,9 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
             // Аккаунт создан → снимаем pending СРАЗУ: kill на дальнейших шагах не должен оставить флаг (иначе cold-start заново покажет онбординг и пере-регистрирует существующий аккаунт).
             DivoConfig.clearPendingOnboardingFlags()
 
-            // Имя в teamgram (placeholder "User" → настоящее) — ФАТАЛЬНО и ДОЖИДАЕМСЯ
-            // (часть атомарной цепочки: не прошло → throw → откат teamgram). Не best-effort.
-            // Роли без firstName (компания/индустрия) — берём companyName/contactName, иначе teamgram-имя
-            // осталось бы "User" навсегда (онбординг помечается пройденным → не переспросит).
-            let teamgramFirstName = (firstName?.isEmpty == false ? firstName : nil)
-                ?? formString("companyName", state: state, registry: registry)
-                ?? formString("contactName", state: state, registry: registry)
-            if let teamgramFirstName, !teamgramFirstName.isEmpty {
-                try await DivoTeamgramSync.shared.updateName(firstName: teamgramFirstName, lastName: lastName ?? "")
-                divoLog("Onboarding submit: teamgram name update OK", level: .info)
-            }
-
+            // teamgram-имя вынесено в best-effort хвост (см. ниже): раньше фатальный await вешал весь
+            // онбординг при флаки teamgram (пустой профиль + вечный спиннер). Атомарно теперь только
+            // заведение DIVO-аккаунта — его фейл по-прежнему throw → откат.
             divoLog("Onboarding submit OK: role=\(role)", level: .info)
         } catch {
             // Цепочка не прошла целиком → откат (logout teamgram + welcome). Никакого частичного входа.
@@ -187,9 +184,31 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         // и имя/фото проявляются только после перезапуска приложения.
         NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
 
-        // Фото грузилось при регистрации → досылаем в teamgram-аву (best-effort).
+        // teamgram-имя и фото — best-effort в очередь: пробует сразу, при сбое докатывает на следующем
+        // старте + reconcile при запуске. НЕ блокирует онбординг и не откатывает при флаки teamgram.
+        // Роли без firstName (компания/индустрия) — companyName/contactName, иначе имя осталось бы "User".
+        let teamgramFirstName = (firstName?.isEmpty == false ? firstName : nil)
+            ?? formString("companyName", state: state, registry: registry)
+            ?? formString("contactName", state: state, registry: registry)
+        if let teamgramFirstName, !teamgramFirstName.isEmpty {
+            DivoTeamgramName.syncToTeamgram(firstName: teamgramFirstName, lastName: lastName ?? "")
+        }
         if photoUuid != nil {
             DivoTeamgramPhoto.syncToTeamgram()
+        }
+
+        // Гейт готовности ПЕРЕД таббаром: teamgram недоступен → контекст не поднят (telegramUserId nil),
+        // раньше молча выбрасывало на авторизацию. Ждём ограниченно; не поднялся → ошибка + Retry
+        // (аккаунт уже создан, повтор не пере-регистрирует).
+        let gateTimeoutMs = 10_000, pollStepMs = 200
+        var waitedMs = 0
+        while DivoTeamgramSync.shared.telegramUserId == nil && waitedMs < gateTimeoutMs {
+            try? await Task.sleep(nanoseconds: UInt64(pollStepMs) * 1_000_000)
+            waitedMs += pollStepMs
+        }
+        if DivoTeamgramSync.shared.telegramUserId == nil {
+            divoLog("Onboarding submit: teamgram-контекст не поднялся за \(gateTimeoutMs / 1000)с → ошибка + Retry", level: .error)
+            throw OnboardingTeamgramUnreachableError()
         }
     }
 
