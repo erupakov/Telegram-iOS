@@ -2,6 +2,7 @@ import Foundation
 import Postbox
 import TelegramApi
 import SwiftSignalKit
+import MtProtoKit // DIVO DIVI-75: для MTRpcError в per-request catch (см. savedMusicPrivacy)
 
 func _internal_updateGlobalPrivacySettings(account: Account) -> Signal<Never, NoError> {
     return account.network.request(Api.functions.account.getGlobalPrivacySettings())
@@ -68,8 +69,14 @@ func _internal_requestAccountPrivacySettings(account: Account) -> Signal<Account
     let birthdayPrivacy = account.network.request(Api.functions.account.getPrivacy(key: .inputPrivacyKeyBirthday))
     let giftsAutoSavePrivacy = account.network.request(Api.functions.account.getPrivacy(key: .inputPrivacyKeyStarGiftsAutoSave))
     let noPaidMessagesPrivacy = account.network.request(Api.functions.account.getPrivacy(key: .inputPrivacyKeyNoPaidMessages))
+    // DIVO DIVI-75: teamgram на layer-201 не знает inputPrivacyKeySavedMusic (отбивает PRIVACY_KEY_INVALID);
+    // без Optional-обёртки одна эта ошибка роняет весь экран приватности (combineLatest + catch→complete)
     let savedMusicPrivacy = account.network.request(Api.functions.account.getPrivacy(key: .inputPrivacyKeySavedMusic))
-    
+    |> map(Optional.init)
+    |> `catch` { _ -> Signal<Api.account.PrivacyRules?, MTRpcError> in
+        return .single(nil)
+    }
+
     let autoremoveTimeout = account.network.request(Api.functions.account.getAccountTTL())
     let globalPrivacySettings = account.network.request(Api.functions.account.getGlobalPrivacySettings())
     let messageAutoremoveTimeout = account.network.request(Api.functions.messages.getDefaultHistoryTTL())
@@ -220,12 +227,17 @@ func _internal_requestAccountPrivacySettings(account: Account) -> Signal<Account
                 apiChats.append(contentsOf: chats)
                 noPaidMessagesRules = rules
         }
-        switch savedMusicPrivacy {
-        case let .privacyRules(privacyRulesData):
-            let (rules, chats, users) = (privacyRulesData.rules, privacyRulesData.chats, privacyRulesData.users)
-            apiUsers.append(contentsOf: users)
-            apiChats.append(contentsOf: chats)
-            savedMusicRules = rules
+        if let savedMusicPrivacy {
+            switch savedMusicPrivacy {
+            case let .privacyRules(privacyRulesData):
+                let (rules, chats, users) = (privacyRulesData.rules, privacyRulesData.chats, privacyRulesData.users)
+                apiUsers.append(contentsOf: users)
+                apiChats.append(contentsOf: chats)
+                savedMusicRules = rules
+            }
+        } else {
+            // DIVO DIVI-75: SavedMusic не поддержан на 201 — пустые правила, чтобы экран загрузился
+            savedMusicRules = []
         }
         
         var peers: [SelectivePrivacyPeer] = []
