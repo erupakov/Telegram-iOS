@@ -128,13 +128,14 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
             // бэк завёл talent'а как agency_employee (тогда профиль никуда не ложится). agencyId=nil = без агентства.
             divoLog("Onboarding submit: профиль per role — rawRole=\(rawRole) sentRole=\(role) serverRole=\(detail?.role ?? "nil") agencyId=\(detail?.agency?.id.map(String.init) ?? "nil")", level: .info)
             do {
-                if roleDef?.category == .companies {
-                    // Companies & Brands (A-роли) = владелец агентства. Агентство создаётся ИМЕННО тут:
-                    // /agency/update под bearer сам резолвит черновик (resolveForUpdateByUser→createDraw)
-                    // и линкует юзера владельцем (createOwnerByAgency). Сразу после регистрации agency.id ещё
-                    // nil — гейтить по нему нельзя, иначе агентство не заводится вовсе (причина DIVI-84).
-                    // Методика Eugene: title обязателен, site опционален.
+                if role == "agency_employee" {
+                    // Гейт по бэк-роли, а НЕ по категории онбординга: agency_employee — это companies,
+                    // industry-pro и studio/location разом, и UI рендерит их всех как агентство (шапка/ава
+                    // из agency.title/photo, Role(apiRole:) == .agency). Личный avatar через update-profile
+                    // сервер для этой роли не сохраняет → имя+фото шлём в /agency/update (заводит черновик
+                    // агентства). По agency.id гейтить нельзя — после регистрации он ещё nil (DIVI-84).
                     let title = formString("companyName", state: state, registry: registry)
+                        ?? formString("studioName", state: state, registry: registry)
                         ?? detail?.agency?.title
                         ?? (fullName.isEmpty ? nil : fullName)
                     let site = formString("websiteUrl", state: state, registry: registry)

@@ -50,9 +50,12 @@ public enum FormValidator {
             if case .string(let s) = value {
                 let isValid: Bool
                 switch scheme {
-                case .instagram:
+                case .instagram, .anyLink:
+                    // Поля «ссылка ИЛИ инстаграм-хэндл» (websiteOrInstagram у студии, instagramOrCasting):
+                    // принимаем любой непустой ввод — хэндл вроде @studio/имя без точки валиден.
+                    // Строгий разбор формата — на бэке (иначе UI режет корректные хэндлы).
                     isValid = isValidInstagramHandle(s)
-                case .anyHttp, .anyLink:
+                case .anyHttp:
                     isValid = isProbablyValidURL(s)
                 }
                 if !isValid {
