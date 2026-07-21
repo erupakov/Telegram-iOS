@@ -57,6 +57,17 @@ public final class PendingTelegramOpsQueue {
         removeOpSync(op)
     }
 
+    /// Полный сброс на логауте/сбросе DIVO-сессии: снимаем персист + in-flight + исполнителя. Иначе
+    /// опы прошлого аккаунта (напр. .telegramLink) переживают выход и дренятся против НОВОГО teamgram-
+    /// аккаунта → 409 "already linked". Зовётся из DivoConfig.resetDivoSessionForRollback (teardown-путь).
+    public func clear() {
+        lock.lock()
+        storage.removeObject(forKey: storageKey)
+        inFlight.removeAll()
+        executor = nil
+        lock.unlock()
+    }
+
     public func drain() {
         Task { await drainAsync() }
     }

@@ -36,6 +36,16 @@ public final class DivoTeamgramSync {
         lock.unlock()
     }
 
+    /// Сброс на логауте: мост прошлого аккаунта не должен пережить выход — `telegramUserId` и
+    /// `nameUpdater` захватывают движок предыдущего аккаунта. Заново ставятся при подъёме
+    /// authorized-контекста следующего входа (см. AppDelegate.divoRegisterPendingOpsExecutor).
+    public func reset() {
+        lock.lock()
+        self._telegramUserId = nil
+        self.nameUpdater = nil
+        lock.unlock()
+    }
+
     /// Обновить имя в teamgram-контуре и ДОЖДАТЬСЯ завершения. Бросает, если движок ещё не
     /// готов — цепочка онбординга трактует это как фейл и откатывает (logout teamgram).
     public func updateName(firstName: String, lastName: String) async throws {

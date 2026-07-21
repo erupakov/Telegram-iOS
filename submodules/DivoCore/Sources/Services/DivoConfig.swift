@@ -298,6 +298,11 @@ public enum DivoConfig {
         resetRole() // роль → дефолт (model); на следующем входе перезапишется с сервера
         currentDivoUserId = nil
         clearPendingOnboardingFlags()
+        // Полный teardown моста в teamgram: очередь отложенных опов + telegramUserId/nameUpdater НЕ
+        // должны пережить логаут. Иначе опы прошлого аккаунта (telegramLink) дренятся против нового
+        // teamgram-аккаунта → 409 "already linked" (ловилось на тестах через разлогины).
+        PendingTelegramOpsQueue.shared.clear()
+        DivoTeamgramSync.shared.reset()
     }
 
     // MARK: - DIVO session user id
