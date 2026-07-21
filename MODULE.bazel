@@ -66,6 +66,16 @@ http_archive(
     build_file = "//submodules/DivoFirebaseSDK:firebase.BUILD",
 )
 
+# DIVO (DIVI-62): Facebook (Meta) iOS SDK static xcframeworks — трекинг рекламных кампаний.
+# BUILD targets see //submodules/DivoFacebookSDK:facebook.BUILD. To bump: change version + sha256.
+http_archive(
+    name = "facebook_ios_sdk",
+    urls = ["https://github.com/facebook/facebook-ios-sdk/releases/download/v18.1.0/FacebookSDK-Static_XCFramework.zip"],
+    sha256 = "14ff3d3b835e7e842a575b1f833673f7602564d368b260c9e319f2627a2ef542",
+    strip_prefix = "XCFrameworks",
+    build_file = "//submodules/DivoFacebookSDK:facebook.BUILD",
+)
+
 provisioning_profile_repository = use_extension("@build_bazel_rules_apple//apple:apple.bzl", "provisioning_profile_repository_extension")
 #provisioning_profile_repository.setup(
 #    fallback_profiles = "//path/to/some:filegroup", # Profiles to use if one isn't found locally

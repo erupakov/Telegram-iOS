@@ -22,7 +22,9 @@ public final class DivoConsoleLogger {
 
     private var entries: [DivoConsoleLogEntry] = []
     private let queue = DispatchQueue(label: "com.divo.consoleLogger")
-    private let maxEntries = 200
+    // Буфер держим большим: MTProto-мост сыпет сотни строк, и при малом лимите редкие
+    // события (напр. [Meta] по DIVI-62) вытесняются потоком раньше, чем их успеешь открыть.
+    private let maxEntries = 2000
 
     private init() {
         // Lazy-register shake gesture observer — открывает logs viewer на любом экране.

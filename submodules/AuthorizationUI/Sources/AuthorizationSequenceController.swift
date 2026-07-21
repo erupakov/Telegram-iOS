@@ -255,6 +255,9 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                     return
                 }
                 divoLog("[Auth UI] loginWithNumber — Continue tapped, phone=\(number), syncContacts=\(syncContacts). Дальше уходит запрос sendCode на MTProto.", level: .info)
+                // DIVO (DIVI-62): старт воронки регистрации по телефону — на вводе номера ещё
+                // неизвестно new/existing, sign-in-ветку различаем позже (см. sign_in_start TODO).
+                divoTrack(.signUpStart(method: "phone"))
                 self.divoPendingPhone = number
                 // DIVO: phone-вход может вести к онбордингу (решается в phone-link, уже ПОСЛЕ авторизации
                 // teamgram). Удерживаем auth-overlay превентивно — снимем сами после phone-link

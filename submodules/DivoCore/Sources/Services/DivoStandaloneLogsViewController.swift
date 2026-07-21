@@ -5,7 +5,9 @@ import UIKit
 /// Открывается по shake gesture (см. DivoShakeGestureHandler).
 public final class DivoStandaloneLogsViewController: UIViewController {
     private let tableView = UITableView(frame: .zero, style: .plain)
+    private let searchField = UITextField()
     private var entries: [DivoConsoleLogEntry] = []
+    private var filterText: String = ""
     private var observer: Any?
     private weak var titleLabel: UILabel?
 
@@ -71,6 +73,25 @@ public final class DivoStandaloneLogsViewController: UIViewController {
         toolbar.addSubview(clearButton)
         toolbar.addSubview(shareButton)
 
+        searchField.backgroundColor = UIColor(white: 0.12, alpha: 1)
+        searchField.textColor = .white
+        searchField.tintColor = .systemOrange
+        searchField.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        searchField.attributedPlaceholder = NSAttributedString(
+            string: "Фильтр (напр. Meta)",
+            attributes: [.foregroundColor: UIColor(white: 0.5, alpha: 1)]
+        )
+        searchField.autocapitalizationType = .none
+        searchField.autocorrectionType = .no
+        searchField.clearButtonMode = .whileEditing
+        searchField.returnKeyType = .done
+        searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 1))
+        searchField.leftViewMode = .always
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+        searchField.addTarget(self, action: #selector(filterChanged), for: .editingChanged)
+        searchField.addTarget(self, action: #selector(dismissKeyboard), for: .editingDidEndOnExit)
+        view.addSubview(searchField)
+
         tableView.backgroundColor = .black
         tableView.separatorColor = UIColor(white: 0.2, alpha: 1)
         tableView.dataSource = self
@@ -97,7 +118,12 @@ public final class DivoStandaloneLogsViewController: UIViewController {
             clearButton.trailingAnchor.constraint(equalTo: shareButton.leadingAnchor, constant: -16),
             clearButton.centerYAnchor.constraint(equalTo: toolbar.centerYAnchor),
 
-            tableView.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            searchField.topAnchor.constraint(equalTo: toolbar.bottomAnchor),
+            searchField.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchField.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            searchField.heightAnchor.constraint(equalToConstant: 36),
+
+            tableView.topAnchor.constraint(equalTo: searchField.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -112,7 +138,32 @@ public final class DivoStandaloneLogsViewController: UIViewController {
     private func reload() {
         entries = DivoConsoleLogger.shared.getEntries()
         tableView.reloadData()
-        titleLabel?.text = "Console Logs (\(entries.count))"
+        updateTitle()
+    }
+
+    /// Записи с учётом фильтра — совпадение по тексту сообщения или имени файла (без регистра).
+    private var displayed: [DivoConsoleLogEntry] {
+        guard !filterText.isEmpty else { return entries }
+        let q = filterText.lowercased()
+        return entries.filter { $0.message.lowercased().contains(q) || $0.file.lowercased().contains(q) }
+    }
+
+    private func updateTitle() {
+        if filterText.isEmpty {
+            titleLabel?.text = "Console Logs (\(entries.count))"
+        } else {
+            titleLabel?.text = "Logs (\(displayed.count)/\(entries.count))"
+        }
+    }
+
+    @objc private func filterChanged() {
+        filterText = searchField.text ?? ""
+        tableView.reloadData()
+        updateTitle()
+    }
+
+    @objc private func dismissKeyboard() {
+        searchField.resignFirstResponder()
     }
 
     @objc private func closeTapped() {
@@ -125,9 +176,10 @@ public final class DivoStandaloneLogsViewController: UIViewController {
     }
 
     @objc private func shareTapped() {
-        guard !entries.isEmpty else { return }
-        let header = "Console Logs — \(entries.count) entries (latest first)\n\n"
-        let body = entries.map { e in
+        let shared = displayed
+        guard !shared.isEmpty else { return }
+        let header = "Console Logs — \(shared.count) entries (latest first)\n\n"
+        let body = shared.map { e in
             "[\(Self.timeFormatter.string(from: e.timestamp))] [\(e.level.rawValue)] \(e.file):\(e.line)\n\(e.message)"
         }.joined(separator: "\n\n")
         let ac = UIActivityViewController(activityItems: [header + body + "\n"], applicationActivities: nil)
@@ -137,14 +189,14 @@ public final class DivoStandaloneLogsViewController: UIViewController {
 
 extension DivoStandaloneLogsViewController: UITableViewDataSource, UITableViewDelegate {
     public func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return entries.count
+        return displayed.count
     }
 
     public func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "C", for: indexPath)
         cell.backgroundColor = .black
         cell.selectionStyle = .none
-        let entry = entries[indexPath.row]
+        let entry = displayed[indexPath.row]
         let timeStr = Self.timeFormatter.string(from: entry.timestamp)
         cell.textLabel?.numberOfLines = 0
         cell.textLabel?.font = .monospacedSystemFont(ofSize: 11, weight: .regular)

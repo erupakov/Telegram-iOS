@@ -163,6 +163,7 @@ swift_library(
         "//submodules/ProfileScreenUI:ProfileScreenUI",
         "//submodules/DebugScreenUI:DebugScreenUI",
         "//submodules/DivoCore:DivoCore",
+        "//submodules/DivoFacebookKit:DivoFacebookKit",
         "//submodules/DivoUIKit:DivoUIKit",
         "//submodules/DivoSettingsUI:DivoSettingsUI",
         "//submodules/OnboardingUI:OnboardingUI",

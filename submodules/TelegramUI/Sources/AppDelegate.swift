@@ -47,6 +47,7 @@ import ContextUI
 import ContextControllerImpl
 import DivoCore
 import DivoFirebaseKit
+import DivoFacebookKit
 import DivoUIKit
 import OnboardingUI
 
@@ -779,6 +780,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         // DIVO: онбординг вшит в auth-флоу пушем (см. AuthorizationSequenceController+DivoOnboarding) —
         // и сам обрабатывает откат при фейле цепочки. Никаких post-auth модальных observer'ов здесь.
         DivoFirebaseBootstrap.configure()
+        // DIVO (DIVI-62): Meta SDK вешается вторым приёмником поверх Firebase — строго после него.
+        DivoFacebookBootstrap.configure(application: application, launchOptions: launchOptions)
         setContextMenuControllerProvider { arguments in
             return ContextMenuControllerImpl(arguments)
         }
