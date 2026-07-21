@@ -90,13 +90,12 @@ public final class FaceSearchController: ViewController {
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationBar?.isHidden = true
-        faceSearchNode?.applyState(detectState)
-    }
-
-    override public func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
+        // Детект стартуем до первого кадра, чтобы шиммер был виден сразу,
+        // а не мелькало фото во время анимации пуша
         if case .idle = detectState {
             runDetect()
+        } else {
+            faceSearchNode?.applyState(detectState)
         }
     }
 
@@ -355,6 +354,15 @@ private final class FaceSearchNode: ASDisplayNode {
         return v
     }()
 
+    // На время детекта лиц фото закрывается серым шиммером (skeleton) —
+    // пользователю важно не само фото, а найденные на нём лица
+    private let photoShimmerView: ShimmerView = {
+        let v = ShimmerView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.isHidden = true
+        return v
+    }()
+
     private let faceBanner: UIView = {
         let banner = UIView()
         banner.backgroundColor = DivoColorPalette.cardBackground
@@ -539,6 +547,7 @@ private final class FaceSearchNode: ASDisplayNode {
         photoContainer.addSubview(photoImageView)
         photoContainer.addSubview(faceOverlayView)
         photoContainer.addSubview(scanLineView)
+        photoContainer.addSubview(photoShimmerView)
 
         faceBanner.addSubview(faceBannerLabel)
 
@@ -584,6 +593,11 @@ private final class FaceSearchNode: ASDisplayNode {
             scanLineView.leadingAnchor.constraint(equalTo: photoContainer.leadingAnchor),
             scanLineView.trailingAnchor.constraint(equalTo: photoContainer.trailingAnchor),
             scanLineView.bottomAnchor.constraint(equalTo: photoContainer.bottomAnchor),
+
+            photoShimmerView.topAnchor.constraint(equalTo: photoContainer.topAnchor),
+            photoShimmerView.leadingAnchor.constraint(equalTo: photoContainer.leadingAnchor),
+            photoShimmerView.trailingAnchor.constraint(equalTo: photoContainer.trailingAnchor),
+            photoShimmerView.bottomAnchor.constraint(equalTo: photoContainer.bottomAnchor),
 
             faceBanner.topAnchor.constraint(equalTo: photoContainer.bottomAnchor, constant: 10),
             faceBanner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
@@ -677,6 +691,7 @@ private final class FaceSearchNode: ASDisplayNode {
 
     func applyState(_ state: FaceDetectState) {
         clearErrorIfNeeded()
+        setDetectShimmerVisible(false)
         findButton.isHidden = false
         changePhotoButton.isHidden = false
         hintLabel.isHidden = false
@@ -697,7 +712,8 @@ private final class FaceSearchNode: ASDisplayNode {
             faceOverlayView.configure(faces: [], imageSize: .zero, selectedIndex: nil)
 
         case .scanning:
-            setScanningVisible(true)
+            setScanningVisible(false)
+            setDetectShimmerVisible(true)
             setBannerVisible(false, animated: true)
             statusLabel.alpha = 0
             findButton.isEnabled = false
@@ -821,6 +837,7 @@ private final class FaceSearchNode: ASDisplayNode {
         retrySearchButton.setTitle(retryTitle, for: .normal)
 
         setScanningVisible(false)
+        setDetectShimmerVisible(false)
         setBannerVisible(false, animated: false)
         setSearchCenteredLayout(false)
 
@@ -879,6 +896,16 @@ private final class FaceSearchNode: ASDisplayNode {
         } else {
             scanLineView.stopAnimating()
             scanLineView.isHidden = true
+        }
+    }
+
+    private func setDetectShimmerVisible(_ visible: Bool) {
+        if visible {
+            photoShimmerView.isHidden = false
+            photoShimmerView.startShimmer()
+        } else {
+            photoShimmerView.stopShimmer()
+            photoShimmerView.isHidden = true
         }
     }
 
