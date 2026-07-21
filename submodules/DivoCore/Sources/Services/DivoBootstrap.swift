@@ -7,6 +7,15 @@ private enum DivoBootstrapError: Error {
 public enum DivoBootstrap {
     public static func start() {
         divoLog("DivoBootstrap.start()", level: .info)
+
+        // Легаси-очистка (однократно): прежний хак поиска города писал AppleLanguages,
+        // подменяя язык всего приложения. Хак удалён — один раз снимаем залипшее значение;
+        // дальше не трогаем, чтобы не стирать per-app язык из настроек iOS.
+        let appleLanguagesCleanupKey = "DivoBootstrap.appleLanguagesLegacyCleared"
+        if !UserDefaults.standard.bool(forKey: appleLanguagesCleanupKey) {
+            UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+            UserDefaults.standard.set(true, forKey: appleLanguagesCleanupKey)
+        }
         // Ранний executor: обрабатывает только phone-link (чистый REST). nameUpdate требует
         // доступ к teamgram-аккаунту — TelegramUI ПЕРЕРЕГИСТРИРУЕТ executor с исполнителем имени,
         // когда поднимется авторизованный контекст (см. AppDelegate). До этого момента op

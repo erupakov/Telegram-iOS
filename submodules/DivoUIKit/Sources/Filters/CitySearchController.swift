@@ -195,8 +195,6 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
 
         view.backgroundColor = DivoColorPalette.screenBackground
 
-        syncSystemLanguageWithAppLanguage()
-
         setupCustomNavBar()
         setupScrollView()
         setupSearchField()
@@ -240,12 +238,6 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     @objc private func keyboardWillHide(_ notification: Notification) {
         scrollView.contentInset.bottom = 0
         scrollView.verticalScrollIndicatorInsets.bottom = 0
-    }
-
-    private func syncSystemLanguageWithAppLanguage() {
-        let currentAppLang = DivoStrings.current.rawValue
-        UserDefaults.standard.set([currentAppLang], forKey: "AppleLanguages")
-        UserDefaults.standard.synchronize()
     }
 
     private func setupCustomNavBar() {
@@ -688,7 +680,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
         let flag = countryFlag(for: selectedCompletion)
         let countryName = selectedCompletion.subtitle.split(separator: ",").last?.trimmingCharacters(in: .whitespaces) ?? ""
         let fullTitle = countryName.isEmpty ? "\(flag) \(selectedCompletion.title)" : "\(flag) \(selectedCompletion.title), \(countryName)"
-        
+
         let id = selectedCompletion.title + "|||" + selectedCompletion.subtitle
         
         if isMultiSelect {
