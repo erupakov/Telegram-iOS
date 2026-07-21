@@ -6627,50 +6627,7 @@ public final class StoryItemSetContainerComponent: Component {
                     
                     items.append(.separator)
                     
-                    items.append(.action(ContextMenuActionItem(text: component.slice.item.storyItem.isPinned ? component.strings.Story_Context_RemoveFromProfile : component.strings.Story_Context_SaveToProfile, icon: { theme in
-                        return generateTintedImage(image: UIImage(bundleImageName: component.slice.item.storyItem.isPinned ? "Stories/Context Menu/Unpin" : "Stories/Context Menu/Pin"), color: theme.contextMenu.primaryColor)
-                    }, action: { [weak self] _, a in
-                        a(.default)
-                        
-                        guard let self, let component = self.component else {
-                            return
-                        }
-                        
-                        let _ = component.context.engine.messages.updateStoriesArePinned(peerId: component.slice.effectivePeer.id, ids: [component.slice.item.storyItem.id: component.slice.item.storyItem], isPinned: !component.slice.item.storyItem.isPinned).startStandalone()
-                        
-                        let presentationData = component.context.sharedContext.currentPresentationData.with({ $0 }).withUpdated(theme: component.theme)
-                        if component.slice.item.storyItem.isPinned {
-                            self.component?.presentController(UndoOverlayController(
-                                presentationData: presentationData,
-                                content: .info(title: nil, text: component.strings.Story_ToastRemovedFromProfileText, timeout: nil, customUndoText: nil),
-                                elevatedLayout: false,
-                                animateInAsReplacement: false,
-                                appearance: UndoOverlayController.Appearance(isBlurred: true),
-                                action: { _ in return false }
-                            ), nil)
-                        } else {
-                            self.component?.presentController(UndoOverlayController(
-                                presentationData: presentationData,
-                                content: .info(title: component.strings.Story_ToastSavedToProfileTitle, text: component.strings.Story_ToastSavedToProfileText, timeout: nil, customUndoText: nil),
-                                elevatedLayout: false,
-                                animateInAsReplacement: false,
-                                appearance: UndoOverlayController.Appearance(isBlurred: true),
-                                action: { _ in return false }
-                            ), nil)
-                        }
-                    })))
-                    
-                    let saveText: String = component.strings.Story_Context_SaveToGallery
-                    items.append(.action(ContextMenuActionItem(text: saveText, icon: { theme in
-                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.contextMenu.primaryColor)
-                    }, action: { [weak self] _, a in
-                        a(.default)
-                        
-                        guard let self else {
-                            return
-                        }
-                        self.requestSave()
-                    })))
+                    // DIVO DIVI-75: пункты «Сохранить в профиле» и «Сохранить в галерею» скрыты — не поддерживаем
                     
                     if case let .user(accountUser) = component.slice.effectivePeer, !isLiveStream {
                         items.append(.action(ContextMenuActionItem(text: component.strings.Story_ContextStealthMode, icon: { theme in
@@ -6933,17 +6890,7 @@ public final class StoryItemSetContainerComponent: Component {
                         self.beginPictureInPicture()
                     })))
                 } else {
-                    let saveText: String = component.strings.Story_Context_SaveToGallery
-                    items.append(.action(ContextMenuActionItem(text: saveText, icon: { theme in
-                        return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Save"), color: theme.contextMenu.primaryColor)
-                    }, action: { [weak self] _, a in
-                        a(.default)
-                        
-                        guard let self else {
-                            return
-                        }
-                        self.requestSave()
-                    })))
+                    // DIVO DIVI-75: пункт «Сохранить в галерею» скрыт — не поддерживаем
                 }
                 
                 if component.slice.item.storyItem.isPublic && (component.slice.effectivePeer.addressName != nil || !component.slice.effectivePeer._asPeer().usernames.isEmpty) && (component.slice.item.storyItem.expirationTimestamp > Int32(Date().timeIntervalSince1970) || component.slice.item.storyItem.isPinned) {
@@ -7416,22 +7363,7 @@ public final class StoryItemSetContainerComponent: Component {
                             self.beginPictureInPicture()
                         })))
                     } else if !component.slice.item.storyItem.isForwardingDisabled {
-                        let saveText: String = component.strings.Story_Context_SaveToGallery
-                        items.append(.action(ContextMenuActionItem(text: saveText, icon: { theme in
-                            return generateTintedImage(image: UIImage(bundleImageName: accountUser.isPremium ? "Chat/Context Menu/Download" : "Chat/Context Menu/DownloadLocked"), color: theme.contextMenu.primaryColor)
-                        }, action: { [weak self] _, a in
-                            a(.default)
-                            
-                            guard let self else {
-                                return
-                            }
-                            
-                            if accountUser.isPremium {
-                                self.requestSave()
-                            } else {
-                                self.presentSaveUpgradeScreen()
-                            }
-                        })))
+                        // DIVO DIVI-75: пункт «Сохранить в галерею» скрыт — не поддерживаем
                     }
                     
                     if case .user = component.slice.effectivePeer, !isLiveStream {

@@ -1448,12 +1448,8 @@ final class MediaEditorScreenComponent: Component {
                                 }
                             }
                         },
-                        timeoutAction: isEditingStory ? nil : { [weak controller] view, gesture in
-                            guard let controller else {
-                                return
-                            }
-                            controller.presentTimeoutSetup(sourceView: view, gesture: gesture)
-                        },
+                        // DIVO DIVI-75: значок срока хранения («24») в редакторе сторис скрыт — не поддерживаем
+                        timeoutAction: nil,
                         forwardAction: nil,
                         paidMessageAction: nil,
                         moreAction: nil,

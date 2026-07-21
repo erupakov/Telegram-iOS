@@ -648,29 +648,8 @@ private func privacyAndSecurityControllerEntries(
         entries.append(.activeSessions(presentationData.theme, presentationData.strings.PrivacySettings_WebSessions, activeWebsitesCount == 0 ? "" : "\(activeWebsitesCount)"))
     }
     
-    let passcodeValue: String
-    switch accessChallengeData {
-        case .none:
-            passcodeValue = presentationData.strings.PrivacySettings_PasscodeOff
-        default:
-            passcodeValue = presentationData.strings.PrivacySettings_PasscodeOn
-    }
-    
-    if let biometricAuthentication = LocalAuth.biometricAuthentication {
-        switch biometricAuthentication {
-            case .touchId:
-                entries.append(.passcode(presentationData.theme, presentationData.strings.PrivacySettings_PasscodeAndTouchId, false, passcodeValue))
-            case .faceId:
-                entries.append(.passcode(presentationData.theme, presentationData.strings.PrivacySettings_PasscodeAndFaceId, true, passcodeValue))
-        }
-    } else {
-        entries.append(.passcode(presentationData.theme, presentationData.strings.PrivacySettings_Passcode, false, passcodeValue))
-    }
-    var twoStepAuthString = ""
-    if let hasTwoStepAuth = hasTwoStepAuth {
-        twoStepAuthString = hasTwoStepAuth ? presentationData.strings.PrivacySettings_PasscodeOn : presentationData.strings.PrivacySettings_PasscodeOff
-    }
-    entries.append(.twoStepVerification(presentationData.theme, presentationData.strings.PrivacySettings_TwoStepAuth, twoStepAuthString, twoStepAuthData))
+    // DIVO DIVI-75: пункт «Код-пароль и Face ID / Touch ID» скрыт — не поддерживаем
+    // DIVO DIVI-75: пункт «Облачный пароль» (Two-Step Verification) скрыт — не поддерживаем
     
     if displayPasskeys {
         var passkeysString = ""
@@ -699,22 +678,7 @@ private func privacyAndSecurityControllerEntries(
     }
     entries.append(.messageAutoremoveInfo(presentationData.theme, presentationData.strings.Settings_AutoDeleteInfo))
     
-    var showLoginEmail = false
-    if let _ = loginEmail {
-        showLoginEmail = true
-    } else if case let .user(user) = accountPeer, let phone = user.phone, phone.hasPrefix("7") {
-        showLoginEmail = true
-    } else if presentationData.strings.baseLanguageCode == "ru" {
-        showLoginEmail = true
-    }
-    if showLoginEmail {
-        var hasLoginEmail = false
-        if let loginEmail {
-            hasLoginEmail = !loginEmail.contains(" ")
-        }
-        entries.append(.loginEmail(presentationData.theme, presentationData.strings.PrivacySettings_LoginEmail, loginEmail))
-        entries.append(.loginEmailInfo(presentationData.theme, !hasLoginEmail ? presentationData.strings.PrivacySettings_LoginEmailSetupInfo : presentationData.strings.PrivacySettings_LoginEmailInfo))
-    }
+    // DIVO DIVI-75: пункт «Почта для входа» скрыт — не поддерживаем
     
     entries.append(.privacyHeader(presentationData.theme, presentationData.strings.PrivacySettings_PrivacyTitle))
     if let privacySettings = privacySettings {
@@ -722,7 +686,7 @@ private func privacyAndSecurityControllerEntries(
         entries.append(.lastSeenPrivacy(presentationData.theme, presentationData.strings.PrivacySettings_LastSeen, stringForSelectiveSettings(strings: presentationData.strings, settings: privacySettings.presence)))
         entries.append(.profilePhotoPrivacy(presentationData.theme, presentationData.strings.Privacy_ProfilePhoto, stringForSelectiveSettings(strings: presentationData.strings, settings: privacySettings.profilePhoto)))
         entries.append(.bioPrivacy(presentationData.theme, presentationData.strings.Privacy_Bio, stringForSelectiveSettings(strings: presentationData.strings, settings: privacySettings.bio)))
-        entries.append(.giftsAutoSavePrivacy(presentationData.theme, presentationData.strings.Privacy_Gifts, stringForSelectiveSettings(strings: presentationData.strings, settings: privacySettings.giftsAutoSave)))
+        // DIVO DIVI-75: пункт «Подарки» (кто может дарить подарки) скрыт — не поддерживаем
         entries.append(.birthdayPrivacy(presentationData.theme, presentationData.strings.Privacy_Birthday, stringForSelectiveSettings(strings: presentationData.strings, settings: privacySettings.birthday)))
         entries.append(.savedMusicPrivacy(presentationData.theme, presentationData.strings.Privacy_SavedMusic, stringForSelectiveSettings(strings: presentationData.strings, settings: privacySettings.savedMusic)))
         entries.append(.forwardPrivacy(presentationData.theme, presentationData.strings.Privacy_Forwards, stringForSelectiveSettings(strings: presentationData.strings, settings: privacySettings.forwards)))
@@ -738,7 +702,7 @@ private func privacyAndSecurityControllerEntries(
         entries.append(.lastSeenPrivacy(presentationData.theme, presentationData.strings.PrivacySettings_LastSeen, presentationData.strings.Channel_NotificationLoading))
         entries.append(.profilePhotoPrivacy(presentationData.theme, presentationData.strings.Privacy_ProfilePhoto, presentationData.strings.Channel_NotificationLoading))
         entries.append(.bioPrivacy(presentationData.theme, presentationData.strings.Privacy_GroupsAndChannels, presentationData.strings.Channel_NotificationLoading))
-        entries.append(.giftsAutoSavePrivacy(presentationData.theme, presentationData.strings.Privacy_Gifts, presentationData.strings.Channel_NotificationLoading))
+        // DIVO DIVI-75: пункт «Подарки» (кто может дарить подарки) скрыт — не поддерживаем
         entries.append(.birthdayPrivacy(presentationData.theme, presentationData.strings.Privacy_Birthday, presentationData.strings.Channel_NotificationLoading))
         entries.append(.savedMusicPrivacy(presentationData.theme, presentationData.strings.Privacy_SavedMusic, presentationData.strings.Channel_NotificationLoading))
         entries.append(.forwardPrivacy(presentationData.theme, presentationData.strings.Privacy_Forwards, presentationData.strings.Channel_NotificationLoading))

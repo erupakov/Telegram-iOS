@@ -132,7 +132,8 @@ extension ChatControllerImpl {
         }
         
         if canSendTodos {
-            availableButtons.insert(.todo, at: max(0, availableButtons.count - 1))
+            // DIVO DIVI-75: премиум-пункт «Checklist» (.todo) в attach-меню скрыт — не поддерживаем
+            // availableButtons.insert(.todo, at: max(0, availableButtons.count - 1))
         }
         
         let presentationData = self.presentationData
@@ -257,9 +258,11 @@ extension ChatControllerImpl {
                 return
             }
             
-            var (buttons, allButtons, initialButton) = buttonsAndInitialButton
+            // DIVO DIVI-75: было `var` — стало `let`, т.к. единственная мутация (вставка .gift) убрана
+            let (buttons, allButtons, initialButton) = buttonsAndInitialButton
             if !premiumGiftOptions.isEmpty {
-                buttons.insert(.gift, at: 1)
+                // DIVO DIVI-75: пункт «Подарок» (.gift) в attach-меню скрыт — не поддерживаем
+                // buttons.insert(.gift, at: 1)
             }
         
             guard let initialButton = initialButton else {
