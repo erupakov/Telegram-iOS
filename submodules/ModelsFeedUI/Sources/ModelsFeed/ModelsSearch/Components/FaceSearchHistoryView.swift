@@ -208,6 +208,7 @@ private final class FaceSearchHistoryRow: UIView {
         case .es: return "EEEE, d MMM 'a las' HH:mm"
         case .pt: return "EEEE, d MMM 'às' HH:mm"
         case .zh: return "EEEE, M月d日 HH:mm"
+        case .fr: return "EEEE, d MMM 'à' HH:mm"
         }
     }
 }

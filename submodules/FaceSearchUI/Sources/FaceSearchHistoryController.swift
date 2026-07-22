@@ -411,6 +411,7 @@ private final class FaceSearchHistoryFullCell: UITableViewCell {
         case .es: formatter.dateFormat = "EEEE, d MMM 'a las' HH:mm"
         case .pt: formatter.dateFormat = "EEEE, d MMM 'às' HH:mm"
         case .zh: formatter.dateFormat = "EEEE, M月d日 HH:mm"
+        case .fr: formatter.dateFormat = "EEEE, d MMM 'à' HH:mm"
         }
         return formatter.string(from: date)
     }

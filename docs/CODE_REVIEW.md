@@ -10,7 +10,7 @@
 
 Подробный гайд — [LOCALIZATION.md](LOCALIZATION.md).
 
-- [ ] Все UI-строки проходят через `DivoStrings.L(en:ru:es:pt:zh:)` — **5 языков**.
+- [ ] Все UI-строки проходят через `DivoStrings.L(en:ru:es:pt:zh:fr:)` — **6 языков** (fr добавлен в DIVI-89).
 - [ ] Нет hardcoded-строк в UI-коде (`"Not set"`, `"Loading..."`, `"Save"` и т.п.). Поиск: `grep -rn '"[A-Z]' Sources/` в затронутых модулях.
 - [ ] Новые строки добавлены в правильную MARK-секцию `DivoStrings.swift`.
 - [ ] Если строка содержит `Font.helveticaNeue()` — есть `heightAnchor.constraint(greaterThanOrEqualToConstant:)` для CJK (таблица минимальных высот в [LOCALIZATION.md](LOCALIZATION.md)).

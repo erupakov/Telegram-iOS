@@ -212,6 +212,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     private func refreshDivoTabTitles() {
         self.modelsFeedNode?.tabBarItem.title = DivoStrings.tabModels
         self.eventsController?.tabBarItem.title = DivoStrings.tabEvents
+        self.chatListController?.tabBarItem.title = DivoStrings.tabChats
         self.divoSettingsController?.tabBarItem.title = DivoStrings.tabSettings
         if let tabController = self.rootTabController as? TabBarControllerImpl {
             tabController.setControllers(tabController.controllers, selectedIndex: nil)
@@ -283,6 +284,9 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         if let sharedContext = self.context.sharedContext as? SharedAccountContextImpl {
             chatListController.tabBarItem.badgeValue = sharedContext.switchingData.chatListBadge
         }
+        // Заголовок вкладки чатов ведём через DivoStrings, а не Telegram-пак (DialogList_Title):
+        // teamgram не отдаёт langpack, поэтому нативная строка не переключается на выбранный язык.
+        chatListController.tabBarItem.title = DivoStrings.tabChats
         let eventsController = EventsController(context: self.context)
         let modelsFeedNode = ModelsFeedController(context: self.context)
 
