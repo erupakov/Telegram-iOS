@@ -1250,10 +1250,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return shadow
     }
 
-    // Тени навбар-pill гасятся при скролле — иначе на белом sticky-навбаре
-    // остаётся тёмное пятно (как прячется и рамка кнопок).
-    private var navBarPillShadows: [PillShadowView] = []
-
+    // Прозрачно-матовое светлое стекло, как в дизайне. Тень-подложка снизу
+    // отделяет пилюлю от фона (её на светлом фото не хватало).
     private func addPillBlur(to view: UIView) {
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
         blur.translatesAutoresizingMaskIntoConstraints = false
@@ -1265,6 +1263,21 @@ final class PublicProfileScreenNode: ASDisplayNode {
             blur.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             blur.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+
+        // Тонкий белый слой поверх blur — осветляет матовое стекло, чтобы
+        // ultraThin (прозрачноватый) не серел от фона. Не доводит до плотного белого.
+        let lighten = UIView()
+        lighten.backgroundColor = DivoColorPalette.statPillLighten
+        lighten.isUserInteractionEnabled = false
+        lighten.translatesAutoresizingMaskIntoConstraints = false
+        view.insertSubview(lighten, aboveSubview: blur)
+        NSLayoutConstraint.activate([
+            lighten.topAnchor.constraint(equalTo: view.topAnchor),
+            lighten.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            lighten.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            lighten.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
         if let button = view as? UIButton, let imageView = button.imageView {
             button.bringSubviewToFront(imageView)
         }
@@ -1279,10 +1292,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         addPillBlur(to: closeButton)
         addPillBlur(to: rightButtonContainer)
 
-        navBarPillShadows = [
-            addPillShadow(under: closeButton, in: customNavBar),
-            addPillShadow(under: rightButtonContainer, in: customNavBar)
-        ]
+        addPillShadow(under: closeButton, in: customNavBar)
+        addPillShadow(under: rightButtonContainer, in: customNavBar)
 
         rightButtonContainer.addSubview(rightButtonsStack)
         rightButtonsStack.addArrangedSubview(storiesButton)
@@ -3314,10 +3325,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let borderEndColor = UIColor.clear.cgColor
         closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
         rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
-
-        // Тень pill'ов навбара исчезает по мере скролла (на белом навбаре не нужна).
-        let shadowAlpha = 1 - maxProgress
-        navBarPillShadows.forEach { $0.alpha = shadowAlpha }
 
         // 5. Fade-out stat pills — relative от точки покоя (с учётом
         // contentInset.top). При scrolled > 0 (любой скролл вверх от rest)

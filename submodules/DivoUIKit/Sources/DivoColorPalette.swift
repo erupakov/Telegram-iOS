@@ -134,6 +134,8 @@ public enum DivoColorPalette {
 
     // MARK: - Stat pills (на карточках моделей)
     public static let statPillBackground = UIColor.white.withAlphaComponent(0.2)
+    /// Осветляющий слой поверх матового стекла пилюль профиля (DIVI-80).
+    public static let statPillLighten = UIColor.white.withAlphaComponent(0.3)
     public static let statPillBorder = UIColor.white.withAlphaComponent(0.4)
     public static let statPillForeground = UIColor.white
     public static let statPillActiveBackground = UIColor.white
