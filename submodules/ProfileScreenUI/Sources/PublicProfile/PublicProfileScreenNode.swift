@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import CoreImage
 import AsyncDisplayKit
 import Display
 import TelegramCore
@@ -163,6 +164,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return iv
     }()
 
+    // Светлое фото → верхние элементы (навбар, счётчики) тёмные (DIVI-80).
+    private var isLightHeaderPhoto = false
+
 
     private let headerSpinner: DivoSegmentedSpinner = {
         let spinner = DivoSegmentedSpinner(color: DivoColorPalette.cardBackground)
@@ -252,11 +256,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         button.setImage(image, for: .normal)
         button.tintColor = DivoColorPalette.cardBackground
 
-        button.backgroundColor = DivoColorPalette.statPillBackground
+        // Тёмное стекло вместо белого: на светлом фото белые пилюли тонули (DIVI-80).
+        button.backgroundColor = DivoColorPalette.imageScrimMedium
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         button.layer.masksToBounds = true
-        button.layer.borderWidth = 0.5
-        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -271,11 +274,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     private let dmButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor = DivoColorPalette.statPillBackground
+        // Тёмное стекло вместо белого: на светлом фото белые пилюли тонули (DIVI-80).
+        button.backgroundColor = DivoColorPalette.imageScrimMedium
         button.layer.cornerRadius = DivoDesignTokens.Radius.pill
         button.layer.masksToBounds = true
-        button.layer.borderWidth = 0.5
-        button.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -1232,6 +1234,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
     }
 
 
+    // Тень-подложка под pill: на светлом фоне белая рамка сливается, тень
+    // отделяет кнопку (как в дизайне). Отдельный слой — не трогаем обрезку blur.
+    @discardableResult
+    private func addPillShadow(under view: UIView, in parent: UIView) -> PillShadowView {
+        let shadow = PillShadowView()
+        shadow.translatesAutoresizingMaskIntoConstraints = false
+        parent.insertSubview(shadow, at: 0)
+        NSLayoutConstraint.activate([
+            shadow.topAnchor.constraint(equalTo: view.topAnchor),
+            shadow.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            shadow.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            shadow.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+        return shadow
+    }
+
+    // Тени навбар-pill гасятся при скролле — иначе на белом sticky-навбаре
+    // остаётся тёмное пятно (как прячется и рамка кнопок).
+    private var navBarPillShadows: [PillShadowView] = []
+
     private func addPillBlur(to view: UIView) {
         let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialLight))
         blur.translatesAutoresizingMaskIntoConstraints = false
@@ -1256,6 +1278,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         addPillBlur(to: closeButton)
         addPillBlur(to: rightButtonContainer)
+
+        navBarPillShadows = [
+            addPillShadow(under: closeButton, in: customNavBar),
+            addPillShadow(under: rightButtonContainer, in: customNavBar)
+        ]
 
         rightButtonContainer.addSubview(rightButtonsStack)
         rightButtonsStack.addArrangedSubview(storiesButton)
@@ -1511,6 +1538,8 @@ final class PublicProfileScreenNode: ASDisplayNode {
         for pill in [likesView, viewsView, savesView] {
             pill.backgroundColor = .clear
             addPillBlur(to: pill)
+            // Тень кладём в сам стек — так она гаснет вместе со счётчиками при скролле.
+            addPillShadow(under: pill, in: counterActionsStack)
         }
 
         likesView.widthAnchor.constraint(equalToConstant: 70).isActive = true
@@ -1612,6 +1641,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
         shareButton.addDivoPressState(.pill)
 
         shareButton.addTarget(self, action: #selector(shareTapped), for: .touchUpInside)
+
+        addPillShadow(under: dmButton, in: sendShareContainer)
+        addPillShadow(under: shareButton, in: sendShareContainer)
 
         sendShareContainer.addSubview(dmShareShimmerStack)
         dmShareShimmerStack.addArrangedSubview(dmShimmerButton)
@@ -3259,7 +3291,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
         // 2. Иконки кнопок
         let maxProgress = titleAlpha
-        let iconColor = DivoColorPalette.primaryTextOnDark.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
+        // Базовый цвет в покое зависит от яркости фото; при скролле blend к тёмному.
+        let restIconColor = isLightHeaderPhoto ? DivoColorPalette.primaryText : DivoColorPalette.primaryTextOnDark
+        let iconColor = restIconColor.blend(with: DivoColorPalette.primaryText, alpha: maxProgress)
         closeButton.tintColor = iconColor
         storiesButton.tintColor = iconColor
         editButton.tintColor = iconColor
@@ -3280,6 +3314,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         let borderEndColor = UIColor.clear.cgColor
         closeButton.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
         rightButtonContainer.layer.borderColor = maxProgress > 0.5 ? borderEndColor : borderStartColor
+
+        // Тень pill'ов навбара исчезает по мере скролла (на белом навбаре не нужна).
+        let shadowAlpha = 1 - maxProgress
+        navBarPillShadows.forEach { $0.alpha = shadowAlpha }
 
         // 5. Fade-out stat pills — relative от точки покоя (с учётом
         // contentInset.top). При scrolled > 0 (любой скролл вверх от rest)
@@ -3438,7 +3476,54 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func updateBackgroundImage(_ image: UIImage?) {
         if let image = image {
             headerImageView.image = image
+            updateOverlayContrast(for: image)
         }
+    }
+
+    // MARK: - Overlay contrast (DIVI-80)
+
+    /// Перекрашивает верхние элементы под яркость верхней трети фото (DIVI-80).
+    private func updateOverlayContrast(for image: UIImage?) {
+        let luminance = image.flatMap { averageTopLuminance(of: $0, topFraction: 0.35) }
+        // Порог эмпирический, подстраивается на устройстве.
+        isLightHeaderPhoto = (luminance ?? 0) > 0.68
+
+        let contentColor = isLightHeaderPhoto ? DivoColorPalette.primaryText : DivoColorPalette.primaryTextOnDark
+        for pill in [likesView, viewsView, savesView] {
+            pill.setInactiveContentColor(contentColor)
+        }
+        // Напрямую: метод ниже рано выходит, пока titleVisibility не активирован.
+        [closeButton, storiesButton, editButton, moreButton].forEach { $0.tintColor = contentColor }
+        updateNavigationBarTitleVisibility()
+    }
+
+    /// Средняя яркость верхней `topFraction` кадра (0…1) через CIAreaAverage.
+    private func averageTopLuminance(of image: UIImage, topFraction: CGFloat) -> CGFloat? {
+        guard let cgImage = image.cgImage else { return nil }
+        let ciImage = CIImage(cgImage: cgImage)
+        let fullExtent = ciImage.extent
+        guard fullExtent.width > 0, fullExtent.height > 0 else { return nil }
+
+        // CIImage: origin внизу-слева, поэтому верх кадра — максимальные y.
+        let regionHeight = fullExtent.height * max(0, min(1, topFraction))
+        let topRegion = CGRect(x: fullExtent.origin.x, y: fullExtent.maxY - regionHeight,
+                               width: fullExtent.width, height: regionHeight)
+
+        guard let filter = CIFilter(name: "CIAreaAverage", parameters: [
+            kCIInputImageKey: ciImage,
+            kCIInputExtentKey: CIVector(cgRect: topRegion)
+        ]), let output = filter.outputImage else { return nil }
+
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = CIContext(options: [.workingColorSpace: NSNull()])
+        context.render(output, toBitmap: &pixel, rowBytes: 4,
+                       bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+                       format: .RGBA8, colorSpace: nil)
+
+        let r = CGFloat(pixel[0]) / 255.0
+        let g = CGFloat(pixel[1]) / 255.0
+        let b = CGFloat(pixel[2]) / 255.0
+        return 0.299 * r + 0.587 * g + 0.114 * b
     }
 
     func faceSearchSeedImage() -> UIImage? {
@@ -3467,9 +3552,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
             let placeholder = DivoImage.emptyBackgroundAgencyProfile
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-                headerImageView.loadImage(from: photoURL, placeholder: placeholder)
+                headerImageView.loadImage(from: photoURL, placeholder: placeholder) { [weak self] image in
+                    self?.updateOverlayContrast(for: image ?? placeholder)
+                }
             } else {
                 headerImageView.image = placeholder
+                updateOverlayContrast(for: placeholder)
             }
 
             bio = (detail.agency?.description?.isEmpty == false)
@@ -3500,9 +3588,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
             let placeholder = DivoImage.emptyBackgroundModelProfile
             if let photoURLString = detail.photo?.fullUrl, let photoURL = CDNURLHelper.convertToCDNURL(photoURLString) {
-                headerImageView.loadImage(from: photoURL, placeholder: placeholder)
+                headerImageView.loadImage(from: photoURL, placeholder: placeholder) { [weak self] image in
+                    self?.updateOverlayContrast(for: image ?? placeholder)
+                }
             } else {
                 headerImageView.image = placeholder
+                updateOverlayContrast(for: placeholder)
             }
 
             bio = (detail.model?.description?.isEmpty == false)

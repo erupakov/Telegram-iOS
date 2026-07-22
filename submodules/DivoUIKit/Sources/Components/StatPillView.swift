@@ -33,6 +33,10 @@ public final class StatPillView: UIControl {
     private let normalIcon: UIImage?
     private let filledIcon: UIImage?
 
+    private var isActiveState = false
+    // По умолчанию белый; на профиле поверх светлого фото → тёмный (DIVI-80).
+    private var inactiveContentColor: UIColor = DivoColorPalette.statPillForeground
+
     // MARK: - Init
     
     public init(icon: UIImage, filledIcon: UIImage? = nil) {
@@ -67,6 +71,7 @@ public final class StatPillView: UIControl {
     }
 
     public func setActive(_ active: Bool, animated: Bool = false) {
+        isActiveState = active
         let change = {
             if active {
                 self.backgroundColor = DivoColorPalette.statPillActiveBackground
@@ -79,8 +84,8 @@ public final class StatPillView: UIControl {
             } else {
                 self.backgroundColor = DivoColorPalette.statPillBackground
                 self.layer.borderColor = DivoColorPalette.statPillBorder.cgColor
-                self.iconView.tintColor = DivoColorPalette.statPillForeground
-                self.countLabel.textColor = DivoColorPalette.statPillForeground
+                self.iconView.tintColor = self.inactiveContentColor
+                self.countLabel.textColor = self.inactiveContentColor
                 self.iconView.image = self.normalIcon
             }
         }
@@ -89,6 +94,14 @@ public final class StatPillView: UIControl {
         } else {
             change()
         }
+    }
+
+    /// Цвет иконки/счётчика в неактивном состоянии (активная пилюля не трогается).
+    public func setInactiveContentColor(_ color: UIColor) {
+        inactiveContentColor = color
+        guard !isActiveState else { return }
+        iconView.tintColor = color
+        countLabel.textColor = color
     }
 
     public func popIcon() {
