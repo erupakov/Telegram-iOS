@@ -3489,11 +3489,23 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
     // MARK: - Overlay contrast (DIVI-80)
 
-    /// Перекрашивает верхние элементы под яркость верхней трети фото (DIVI-80).
+    // Углы/края верха, где реально лежат элементы (← слева, ⋯ справа, счётчики
+    // справа). Центр не берём — там лицо/волосы, из-за которых среднее по всей
+    // зоне занижалось на контрастных ч/б фото (навбар оставался белым). DIVI-80.
+    private static let overlayEdgeRegions: [CGRect] = [
+        CGRect(x: 0.0,  y: 0.0,  width: 0.28, height: 0.14),  // угол под «назад»
+        CGRect(x: 0.72, y: 0.0,  width: 0.28, height: 0.14),  // угол под «⋯»
+        CGRect(x: 0.72, y: 0.14, width: 0.28, height: 0.22)   // полоса под счётчиками
+    ]
+
+    /// Перекрашивает верхние элементы под яркость фото у краёв (DIVI-80).
     private func updateOverlayContrast(for image: UIImage?) {
-        let luminance = image.flatMap { averageTopLuminance(of: $0, topFraction: 0.35) }
+        let luminances = image.map { img in
+            Self.overlayEdgeRegions.compactMap { averageLuminance(of: img, in: $0) }
+        } ?? []
+        let avgLuminance = luminances.isEmpty ? 0 : luminances.reduce(0, +) / CGFloat(luminances.count)
         // Порог эмпирический, подстраивается на устройстве.
-        isLightHeaderPhoto = (luminance ?? 0) > 0.68
+        isLightHeaderPhoto = avgLuminance > 0.68
 
         let contentColor = isLightHeaderPhoto ? DivoColorPalette.primaryText : DivoColorPalette.primaryTextOnDark
         for pill in [likesView, viewsView, savesView] {
@@ -3504,21 +3516,25 @@ final class PublicProfileScreenNode: ASDisplayNode {
         updateNavigationBarTitleVisibility()
     }
 
-    /// Средняя яркость верхней `topFraction` кадра (0…1) через CIAreaAverage.
-    private func averageTopLuminance(of image: UIImage, topFraction: CGFloat) -> CGFloat? {
+    /// Средняя яркость (0…1) прямоугольника `normalizedRect` (доли кадра, origin
+    /// сверху-слева как в UIKit) через CIAreaAverage — один проход по региону.
+    private func averageLuminance(of image: UIImage, in normalizedRect: CGRect) -> CGFloat? {
         guard let cgImage = image.cgImage else { return nil }
         let ciImage = CIImage(cgImage: cgImage)
-        let fullExtent = ciImage.extent
-        guard fullExtent.width > 0, fullExtent.height > 0 else { return nil }
+        let extent = ciImage.extent
+        guard extent.width > 0, extent.height > 0 else { return nil }
 
-        // CIImage: origin внизу-слева, поэтому верх кадра — максимальные y.
-        let regionHeight = fullExtent.height * max(0, min(1, topFraction))
-        let topRegion = CGRect(x: fullExtent.origin.x, y: fullExtent.maxY - regionHeight,
-                               width: fullExtent.width, height: regionHeight)
+        // CIImage: origin внизу-слева → инвертируем Y относительно UIKit-нормали.
+        let region = CGRect(
+            x: extent.origin.x + normalizedRect.minX * extent.width,
+            y: extent.maxY - (normalizedRect.minY + normalizedRect.height) * extent.height,
+            width: normalizedRect.width * extent.width,
+            height: normalizedRect.height * extent.height
+        )
 
         guard let filter = CIFilter(name: "CIAreaAverage", parameters: [
             kCIInputImageKey: ciImage,
-            kCIInputExtentKey: CIVector(cgRect: topRegion)
+            kCIInputExtentKey: CIVector(cgRect: region)
         ]), let output = filter.outputImage else { return nil }
 
         var pixel = [UInt8](repeating: 0, count: 4)
