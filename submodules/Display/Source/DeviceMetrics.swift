@@ -410,9 +410,7 @@ public enum DeviceMetrics: CaseIterable, Equatable {
     }
     
     public var showAppBadge: Bool {
-        if case .iPhoneX = self {
-            return false
-        }
-        return self.hasTopNotch
+        // Вотемарк мессенджера за чёлкой (badgeView в WindowContent) — DIVO его не показывает
+        return false
     }
 }
