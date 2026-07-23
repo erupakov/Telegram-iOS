@@ -213,6 +213,7 @@ public enum DivoStrings {
     public static func faceSearchFallbackMessage(original: Int, actual: Int) -> String { L(en: "No results at \(original)% similarity — showing results at \(actual)% instead.", ru: "Нет результатов при \(original)% сходства — показываем результаты при \(actual)%.", es: "Sin resultados al \(original)% de similitud — mostrando resultados al \(actual)%.", pt: "Sem resultados com \(original)% de similaridade — mostrando resultados com \(actual)%.", zh: "在 \(original)% 相似度下无结果 — 改为显示 \(actual)% 的结果。", fr: "Aucun résultat à \(original)% de similarité — affichage des résultats à \(actual)%.") }
     public static var faceSearchAdjustFilters: String { L(en: "Adjust filters", ru: "Настроить", es: "Ajustar filtros", pt: "Ajustar filtros", zh: "调整筛选", fr: "Ajuster les filtres") }
     public static var faceSearchNoResultsWithFilters: String { L(en: "No results found — try adjusting your filters", ru: "Ничего не найдено — попробуйте изменить фильтры", es: "Sin resultados — intenta ajustar los filtros", pt: "Sem resultados — tente ajustar os filtros", zh: "未找到结果 — 请尝试调整筛选条件", fr: "Aucun résultat — essayez d’ajuster vos filtres") }
+    public static var faceSearchBackToHome: String { L(en: "Back to Home", ru: "На главную", es: "Volver al inicio", pt: "Voltar ao início", zh: "返回首页", fr: "Retour à l’accueil") }
 
     // MARK: - Face Search History
 

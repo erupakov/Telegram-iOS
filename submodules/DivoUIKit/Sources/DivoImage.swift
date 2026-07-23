@@ -18,6 +18,7 @@ public enum DivoImage {
     public static var associatedModels: UIImage { load("DivoAssociatedModels") }
     public static var authAppleLogo: UIImage { load("DivoAuthAppleLogo") }
     public static var authGoogleLogo: UIImage { load("DivoAuthGoogleLogo") }
+    public static var backArrow: UIImage { load("DivoBackArrow") }
     public static var badgeBaseWork: UIImage { load("DivoBadgeBaseWork") }
     public static var badgeCalendar: UIImage { load("DivoBadgeCalendar") }
     public static var basket: UIImage { load("DivoBasket") }

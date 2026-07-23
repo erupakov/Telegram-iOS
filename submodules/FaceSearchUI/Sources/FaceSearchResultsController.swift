@@ -122,6 +122,12 @@ public final class FaceSearchResultsController: ViewController {
             guard let self, let nav = self.navigationController as? NavigationController else { return }
             nav.popToRoot(animated: true)
         }
+        node.onBackToFeed = { [weak self] in
+            guard let self, let nav = self.navigationController as? NavigationController else { return }
+            // На главный экран — лента на первом табе (индекс 0), затем свернуть весь FR-флоу.
+            (nav.viewControllers.first as? TabBarController)?.selectedIndex = 0
+            nav.popToRoot(animated: true)
+        }
         node.onResultTapped = { [weak self] result in
             self?.openProfile(for: result)
         }
@@ -543,6 +549,15 @@ public enum FaceSearchResultsMapper {
 // MARK: - Node
 
 private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    // Нижняя кнопка «На главную» и её fade-подложка (DIVI-100).
+    private enum BottomBar {
+        static let buttonBottomInset: CGFloat = 40
+        static let buttonHeight: CGFloat = 56
+        static let fadeHeight: CGFloat = 140
+        /// Запас между последней карточкой списка и кнопкой.
+        static let listReserve: CGFloat = 20
+    }
+
     var onBackPressed: (() -> Void)?
     var onBrowseAllProfiles: (() -> Void)?
     var onResultTapped: ((FRSearchResult) -> Void)?
@@ -552,6 +567,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     var onLikeTapped: ((Int, Bool) -> Void)?
     var onSaveTapped: ((Int, Bool) -> Void)?
     var onShareTapped: ((FRSearchResult, UIImage?) -> Void)?
+    var onBackToFeed: (() -> Void)?
 
     private var results: [FRSearchResult]
     // Оверлей follow-состояния: FRSearchResult неизменяемый, а флажок может меняться (тап тут или на профиле).
@@ -586,6 +602,11 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
+
+    // MARK: Bottom «На главную» button (DIVI-100)
+
+    private let backHomeButton = DivoButton()
+    private let bottomFadeOverlay = FaceSearchBottomFadeView()
 
 
     private let titleLabel: UILabel = {
@@ -747,6 +768,9 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         let cv = UICollectionView(frame: .zero, collectionViewLayout: layout)
         cv.backgroundColor = .clear
         cv.alwaysBounceVertical = true
+        // Иначе system добавляет нижний safe-area к contentInset.bottom и зазор до кнопки
+        // раздувается на высоту home-indicator (как на экранах «Сохранить»).
+        cv.contentInsetAdjustmentBehavior = .never
         cv.showsVerticalScrollIndicator = false
         cv.showsHorizontalScrollIndicator = false
         cv.register(SearchResultGridCell.self, forCellWithReuseIdentifier: "FaceMatchCell")
@@ -842,6 +866,8 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
             collectionView.isHidden = true
             profilesFoundLabel.isHidden = true
             sortedByLabel.isHidden = true
+            backHomeButton.isHidden = true
+            bottomFadeOverlay.isHidden = true
             reloadErrorView.isHidden = false
             reloadErrorView.configure(DivoEmptyStateView.Configuration(
                 style: .largeIcon(icon: DivoImage.faceSearchError),
@@ -910,6 +936,11 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         fallbackBanner.isHidden = true
         avatarImageView.isHidden = false
 
+        // Кнопка «На главную» — поверх списочных состояний; в empty/error её прячем
+        // (там свои нижние CTA в DivoEmptyStateView), см. applyEmptyLayout / .error.
+        backHomeButton.isHidden = false
+        bottomFadeOverlay.isHidden = false
+
         collectionTopToBanner?.isActive = false
         collectionTopToFilters?.isActive = false
         collectionTopToShimmer?.isActive = false
@@ -925,6 +956,8 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         sortedByLabel.isHidden = true
         activeFiltersContainer.isHidden = true
         emptyStateView.isHidden = false
+        backHomeButton.isHidden = true
+        bottomFadeOverlay.isHidden = true
 
         emptyStateView.configure(DivoEmptyStateView.Configuration(
             style: .smallOnTinted(icon: DivoImage.faceSearchEmpty),
@@ -965,6 +998,8 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         view.addSubview(collectionView)
         view.addSubview(emptyStateView)
         view.addSubview(reloadErrorView)
+        view.addSubview(bottomFadeOverlay)
+        view.addSubview(backHomeButton)
 
         NSLayoutConstraint.activate([
             backButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: DivoDesignTokens.Spacing.s),
@@ -1040,7 +1075,16 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
             reloadErrorView.topAnchor.constraint(equalTo: profilesFoundLabel.bottomAnchor),
             reloadErrorView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             reloadErrorView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            reloadErrorView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            reloadErrorView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            bottomFadeOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomFadeOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomFadeOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            bottomFadeOverlay.heightAnchor.constraint(equalToConstant: BottomBar.fadeHeight),
+
+            backHomeButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            backHomeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            backHomeButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -BottomBar.buttonBottomInset)
         ])
 
         let topToSubheader = collectionView.topAnchor.constraint(equalTo: profilesFoundLabel.bottomAnchor, constant: DivoDesignTokens.Spacing.m)
@@ -1059,15 +1103,19 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         topToBanner.isActive = false
         self.collectionTopToBanner = topToBanner
 
+        // Низ: список полностью выходит из-под кнопки «На главную» + запас 16px (DIVI-100).
         collectionView.contentInset = UIEdgeInsets(
             top: 0,
             left: DivoDesignTokens.Spacing.m,
-            bottom: DivoDesignTokens.Spacing.m,
+            bottom: BottomBar.buttonBottomInset + BottomBar.buttonHeight + BottomBar.listReserve,
             right: DivoDesignTokens.Spacing.m
         )
 
+        backHomeButton.makeDivoButton(title: DivoStrings.faceSearchBackToHome, leadingIcon: DivoImage.backArrow)
+
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         filterButton.addTarget(self, action: #selector(filterTapped), for: .touchUpInside)
+        backHomeButton.addTarget(self, action: #selector(backToFeedTapped), for: .touchUpInside)
     }
 
     private func updateHeaderTexts() {
@@ -1128,6 +1176,7 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
     }
 
     @objc private func backTapped() { onBackPressed?() }
+    @objc private func backToFeedTapped() { onBackToFeed?() }
     @objc private func filterTapped() { onFilterPressed?() }
     @objc private func filtersClearTapped() { onFiltersClear?() }
     @objc private func fallbackAcceptTapped() {
@@ -1207,4 +1256,26 @@ private final class FaceSearchResultsNode: ASDisplayNode, UICollectionViewDataSo
         onResultTapped?(results[indexPath.item])
     }
 
+}
+
+/// Fade-подложка под нижней кнопкой «На главную» (DIVI-100): прозрачный сверху →
+/// screenBackground снизу, переход на 45% высоты — тот же паттерн, что на экранах
+/// редактирования (см. EditParametersNode.bottomFadeOverlay).
+private final class FaceSearchBottomFadeView: UIView {
+    override class var layerClass: AnyClass { CAGradientLayer.self }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        translatesAutoresizingMaskIntoConstraints = false
+        if let gradient = layer as? CAGradientLayer {
+            gradient.colors = [
+                DivoColorPalette.screenBackground.withAlphaComponent(0).cgColor,
+                DivoColorPalette.screenBackground.cgColor,
+            ]
+            gradient.locations = [0, 0.45]
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) not implemented") }
 }
