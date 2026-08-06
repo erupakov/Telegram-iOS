@@ -87,8 +87,8 @@ public final class DivoSettingsController: TelegramBaseController {
         self.controllerNode.onFillParametersTapped = { [weak self] in
             self?.openMyParameters()
         }
-        self.controllerNode.onSavedMessagesTapped = { [weak self] in
-            self?.openSavedMessages()
+        self.controllerNode.onSavedProfilesTapped = { [weak self] in
+            self?.openSavedProfiles()
         }
         self.controllerNode.onNotificationsTapped = { [weak self] in
             self?.openNotifications()
@@ -231,14 +231,29 @@ public final class DivoSettingsController: TelegramBaseController {
         }
     }
 
-    private func openSavedMessages() {
+    private func openSavedProfiles() {
         guard let navigationController = self.navigationController as? NavigationController else { return }
-        // Saved Messages = чат с самим собой; тянем self-peer и открываем нативный чат.
-        let _ = (context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId))
-        |> deliverOnMainQueue).start(next: { [weak self] peer in
-            guard let self, let peer else { return }
-            self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: self.context, chatLocation: .peer(peer)))
-        })
+        let sheet = DivoSavedProfilesSheetController()
+        sheet.onProfileSelected = { [weak self, weak navigationController] user in
+            guard let self, let navigationController else { return }
+            let profileModel = ProfileModel(
+                name: user.fullName ?? "",
+                age: nil,
+                location: "",
+                isVerified: false,
+                likesCount: "0",
+                viewsCount: "0",
+                savesCount: "0",
+                biography: "",
+                socialMediaHandles: [],
+                userId: user.id,
+                role: user.role,
+                avatarImageURL: CDNURLHelper.convertToCDNURL(user.avatarURLString)
+            )
+            let profileController = PublicProfileScreenController(context: self.context, model: profileModel)
+            navigationController.pushViewController(profileController, animated: true)
+        }
+        self.view.window?.rootViewController?.present(sheet, animated: true)
     }
 
     private func openNotifications() {
