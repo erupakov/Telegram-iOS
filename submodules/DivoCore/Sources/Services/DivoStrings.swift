@@ -113,6 +113,7 @@ public enum DivoStrings {
     public static var tabModels: String { L(en: "Models", ru: "Модели", es: "Modelos", pt: "Modelos", zh: "模特", fr: "Mannequins") }
     public static var tabEvents: String { L(en: "Events", ru: "События", es: "Eventos", pt: "Eventos", zh: "活动", fr: "Événements") }
     public static var tabChats: String { L(en: "Chats", ru: "Чаты", es: "Chats", pt: "Chats", zh: "聊天", fr: "Discussions") }
+    public static var tabProfile: String { L(en: "Profile", ru: "Профиль", es: "Perfil", pt: "Perfil", zh: "个人资料", fr: "Profil") }
     public static var tabSettings: String { L(en: "Settings", ru: "Настройки", es: "Ajustes", pt: "Configurações", zh: "设置", fr: "Paramètres") }
 
     // MARK: - Nav Titles

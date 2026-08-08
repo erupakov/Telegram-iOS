@@ -76,6 +76,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private var isMyProfile: Bool
     private var isMyRoleAgency: Bool
 
+    // Экран используется как вкладка «Профиль»: иконка таба берётся из аватарки,
+    // кнопка «назад» скрыта.
+    private var isProfileTab = false
+
     private enum PickerPurpose {
         case photo
         case video
@@ -356,6 +360,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             isMyRoleAgency: self.isMyRoleAgency
         )
 
+        self.controllerNode.hidesBackButton = self.isProfileTab
+
         self.controllerNode.onLikesTapped = {[weak self] in
             self?.presentInteractionSheet(type: .likes)
         }
@@ -503,6 +509,49 @@ public final class PublicProfileScreenController: TelegramBaseController {
         super.viewDidLoad()
         // DIVO свёрстан под светлую палитру — форсим .light
         overrideUserInterfaceStyle = .light
+    }
+
+    // MARK: - Profile tab
+
+    /// Настраивает контроллер как таб «Профиль» (заголовок + иконка-аватар).
+    /// До загрузки /user/info иконка — плейсхолдер, после — круглая аватарка.
+    public func configureAsProfileTab() {
+        self.isProfileTab = true
+        self.tabBarItem.title = DivoStrings.tabProfile
+        self.applyTabBarIcon(avatar: nil)
+    }
+
+    private func updateTabBarAvatarIcon(from detail: UserDetail) {
+        guard let url = CDNURLHelper.convertToCDNURL(detail.avatar?.fullUrl) else {
+            self.applyTabBarIcon(avatar: nil)
+            return
+        }
+        ImageLoader.shared.load(url: url) { [weak self] image in
+            guard let self, self.isProfileTab else { return }
+            self.applyTabBarIcon(avatar: image)
+        }
+    }
+
+    private func applyTabBarIcon(avatar: UIImage?) {
+        self.tabBarItem.image = Self.makeProfileTabIcon(avatar: avatar, tint: DivoColorPalette.tabInactiveIcon)
+        self.tabBarItem.selectedImage = Self.makeProfileTabIcon(avatar: avatar, tint: DivoColorPalette.tabActiveIcon)
+    }
+
+    private static func makeProfileTabIcon(avatar: UIImage?, tint: UIColor) -> UIImage? {
+        guard let avatar = avatar else {
+            let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .regular)
+            return UIImage(systemName: "person.crop.circle.fill", withConfiguration: config)?
+                .withTintColor(tint, renderingMode: .alwaysOriginal)
+        }
+        let size = CGSize(width: 28, height: 28)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).addClip()
+            let scale = max(size.width / avatar.size.width, size.height / avatar.size.height)
+            let drawSize = CGSize(width: avatar.size.width * scale, height: avatar.size.height * scale)
+            let origin = CGPoint(x: (size.width - drawSize.width) / 2, y: (size.height - drawSize.height) / 2)
+            avatar.draw(in: CGRect(origin: origin, size: drawSize))
+        }.withRenderingMode(.alwaysOriginal)
     }
 
     /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers.
@@ -683,6 +732,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
                     return
                 }
                 self.userDetailModel = detail
+                if self.isProfileTab {
+                    self.updateTabBarAvatarIcon(from: detail)
+                }
                 self.controllerNode.updateWithUserDetail(detail, self.isMyProfile)
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)

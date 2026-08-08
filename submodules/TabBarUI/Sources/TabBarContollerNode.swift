@@ -66,6 +66,7 @@ final class TabBarControllerNode: ASDisplayNode {
     private(set) var selectedIndex: Int = 0
 
     private weak var currentController: ViewController?
+    private weak var transitionSnapshot: UIView?
     
     private var layoutResult: LayoutResult?
     private var isUpdateRequested: Bool = false
@@ -93,6 +94,18 @@ final class TabBarControllerNode: ASDisplayNode {
             if previousNode !== self?.currentController?.displayNode {
                 previousNode?.removeFromSupernode()
             }
+        }
+    }
+
+    /// Снимок уходящей вкладки для кроссфейда: поверх экранов, но под таб-баром,
+    /// иначе бар моргал бы вместе с содержимым. Прошлый снимок убираем сразу —
+    /// при быстром переключении они иначе накладываются друг на друга.
+    func addTransitionSnapshot(_ snapshot: UIView) {
+        self.transitionSnapshot?.removeFromSuperview()
+        self.transitionSnapshot = snapshot
+        self.view.addSubview(snapshot)
+        if let tabBarView = self.tabBarView.view {
+            self.view.bringSubviewToFront(tabBarView)
         }
     }
 

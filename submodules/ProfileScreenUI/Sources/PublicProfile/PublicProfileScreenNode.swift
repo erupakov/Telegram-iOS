@@ -100,6 +100,9 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private var navigationBarTitleView: ProfileNavigationBarTitleView?
     private var navigationBarTitleHeightConstraint: NSLayoutConstraint!
+    private var customNavBarBottomConstraint: NSLayoutConstraint!
+    private var navBarBlurBottomConstraint: NSLayoutConstraint!
+    private var closeButtonShadow: PillShadowView?
     
     // Управление моментом, когда начинаем анимировать title в навбаре
     private var titleVisibilityActivated = false
@@ -754,6 +757,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onEventButtonTapped: ((Int) -> Void)?
     var onEventDeleteButtonTapped: ((Int) -> Void)?
     var onBackTapped: (() -> Void)?
+    /// Экран открыт как вкладка таб-бара — возвращаться некуда, кнопку «назад» прячем.
+    /// Тень-подложка лежит в customNavBar, а не внутри кнопки, поэтому гасим и её.
+    var hidesBackButton: Bool = false {
+        didSet {
+            closeButton.isHidden = hidesBackButton
+            closeButtonShadow?.isHidden = hidesBackButton
+        }
+    }
     var onGridShareTapped: ((UserDetail?, UIImage?) -> Void)?
     var onSendDMTapped: (() -> Void)?
     
@@ -1174,11 +1185,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupTopBlur() {
         view.addSubview(navBarBlurView)
         
+        // Высота задаётся от статус-бара (см. customNavBar): от неё считаются доли
+        // белого градиента, и на нулевой safe area белая часть наползала на шапку.
+        navBarBlurBottomConstraint = navBarBlurView.bottomAnchor.constraint(equalTo: view.topAnchor, constant: 280)
+
         NSLayoutConstraint.activate([
             navBarBlurView.topAnchor.constraint(equalTo: view.topAnchor),
             navBarBlurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             navBarBlurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navBarBlurView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 280)
+            navBarBlurBottomConstraint
         ])
     }
     
@@ -1292,7 +1307,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         addPillBlur(to: closeButton)
         addPillBlur(to: rightButtonContainer)
 
-        addPillShadow(under: closeButton, in: customNavBar)
+        closeButtonShadow = addPillShadow(under: closeButton, in: customNavBar)
         addPillShadow(under: rightButtonContainer, in: customNavBar)
 
         rightButtonContainer.addSubview(rightButtonsStack)
@@ -1306,11 +1321,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
         storiesButton.addTarget(self, action: #selector(storiesTapped), for: .touchUpInside)
         storiesButton.addDivoPressState(.pill)
         
+        // Как вкладка таб-бара экран не получает UIKit safe area (её ведёт Display),
+        // поэтому верхний отступ задаём константой из containerLayoutUpdated.
+        customNavBarBottomConstraint = customNavBar.bottomAnchor.constraint(equalTo: view.topAnchor, constant: 52)
+
         NSLayoutConstraint.activate([
             customNavBar.topAnchor.constraint(equalTo: view.topAnchor),
             customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            customNavBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 52),
+            customNavBarBottomConstraint,
             
             closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
@@ -3422,6 +3441,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
     // Обновляем Layout после загрузки контроллера
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
+
+        // Во вкладке таб-бара view.safeAreaInsets.top == 0, поэтому берём максимум
+        // из UIKit-инсета и статус-бара из Display — в push-режиме значение не меняется.
+        let topInset = max(view.safeAreaInsets.top, layout.statusBarHeight ?? 0)
+        customNavBarBottomConstraint.constant = topInset + 52
+        navBarBlurBottomConstraint.constant = topInset + 280
 
         navigationBarTitleHeightConstraint.isActive = false
         // scrollView.top = view.top (рамка во весь экран), но contentInset.top

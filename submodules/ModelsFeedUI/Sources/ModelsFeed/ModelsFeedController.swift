@@ -71,6 +71,8 @@ public final class ModelsFeedController: TelegramBaseController {
         self.tabBarItem.image = icon
         self.tabBarItem.selectedImage = icon
 
+        self.updateTabBarSearchState(ViewController.TabBarSearchState(isActive: false), transition: .immediate)
+
         updateNavigation()
 
         self.presentationDataDisposable = (context.sharedContext.presentationData
@@ -168,32 +170,9 @@ public final class ModelsFeedController: TelegramBaseController {
 
     private func updateNavigation() {
         self.statusBar.statusBarStyle = self.presentationData.theme.rootController.statusBarStyle.style
-
-        let searchImage = Self.makeCircleIcon(systemName: "magnifyingglass")
-        let searchButton = UIBarButtonItem(image: searchImage, style: .plain, target: self, action: #selector(self.searchPressed))
-        self.navigationItem.rightBarButtonItems = [searchButton]
-
+        // Поиск переехал в круглую кнопку таб-бара (DIVI-108).
+        self.navigationItem.rightBarButtonItems = []
         self.navigationItem.titleView = UIView()
-    }
-
-    private static func makeCircleIcon(systemName: String) -> UIImage? {
-        let circleSize: CGFloat = 40
-        let padding: CGFloat = 8 // for shadow
-        let total = circleSize + padding * 2
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: total, height: total))
-        return renderer.image { ctx in
-            let gc = ctx.cgContext
-            gc.setShadow(offset: CGSize(width: 0, height: 2), blur: 4, color: DivoColorPalette.shadow.withAlphaComponent(0.1).cgColor)
-            gc.setFillColor(UIColor.white.cgColor)
-            gc.fillEllipse(in: CGRect(x: padding, y: padding, width: circleSize, height: circleSize))
-            gc.setShadow(offset: .zero, blur: 0)
-            let config = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-            if let icon = UIImage(systemName: systemName, withConfiguration: config)?.withTintColor(.black, renderingMode: .alwaysOriginal) {
-                let iconX = padding + (circleSize - icon.size.width) / 2
-                let iconY = padding + (circleSize - icon.size.height) / 2
-                icon.draw(at: CGPoint(x: iconX, y: iconY))
-            }
-        }.withRenderingMode(.alwaysOriginal)
     }
 
     private var lastContentOffset: CGPoint = .zero
@@ -201,7 +180,9 @@ public final class ModelsFeedController: TelegramBaseController {
     public func updateContentOffset(offset: CGPoint) {
     }
 
-    @objc private func searchPressed() {
+    // Круглая кнопка-поиск в таб-баре: заявляем неактивное состояние, инлайн-поиск в баре
+    // не используем — по тапу пушим полноценный экран поиска моделей.
+    public override func tabBarActivateSearch() {
         divoTrack(.modelsSearchOpened)
         let searchController = ModelsSearchController(context: self.context)
     

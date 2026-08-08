@@ -80,9 +80,27 @@ open class TabBarControllerImpl: ViewController, TabBarController {
                 self._selectedIndex = index
                 
                 self.updateSelectedIndex(animated: true)
+                self.selectedIndexUpdated?(index)
             }
         }
     }
+    
+    // DIVO: уведомление о смене активной вкладки. TelegramRootController по нему показывает
+    // и прячет таб Настройки. Вызывается только на реальное изменение индекса.
+    public var selectedIndexUpdated: ((Int) -> Void)?
+
+    public enum TransitionStyle {
+        /// Штатный переход Telegram: новый экран проявляется из прозрачности и растёт из 0.998.
+        /// Предыдущий экран живёт до конца анимации, поэтому просвечивает в зазоре от сжатия.
+        case scaleAndFade
+        /// Новая вкладка показывается сразу целиком, поверх неё растворяется снимок прошлой —
+        /// зазорам и просветам взяться неоткуда, каким бы ни был фон экранов.
+        case crossFade
+        case none
+    }
+
+    // DIVO: на тёмной шапке профиля штатный переход ловил белую полоску от предыдущей вкладки.
+    public var transitionStyle: TransitionStyle = .scaleAndFade
     
     public var currentController: ViewController?
     
@@ -265,6 +283,19 @@ open class TabBarControllerImpl: ViewController, TabBarController {
         if let layout = self.validLayout, case .regular = layout.metrics.widthClass {
             animated = false
         }
+
+        // Снимок снимаем до перестановки контроллеров — потом уходящий экран уже вне иерархии.
+        var crossFadeSnapshot: UIView?
+        if animated, case .crossFade = self.transitionStyle {
+            if let previousView = self.currentController?.view, let snapshot = previousView.snapshotView(afterScreenUpdates: false) {
+                snapshot.frame = previousView.frame
+                snapshot.isUserInteractionEnabled = false
+                crossFadeSnapshot = snapshot
+            }
+            animated = false
+        } else if case .none = self.transitionStyle {
+            animated = false
+        }
         
         let tabBarSelectedIndex = self.selectedIndex
         self.tabBarControllerNode.updateSelectedIndex(index: tabBarSelectedIndex)
@@ -336,6 +367,13 @@ open class TabBarControllerImpl: ViewController, TabBarController {
         
         if let layout = self.validLayout {
             self.containerLayoutUpdated(layout, transition: .immediate)
+        }
+
+        if let snapshot = crossFadeSnapshot {
+            self.tabBarControllerNode.addTransitionSnapshot(snapshot)
+            snapshot.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak snapshot] _ in
+                snapshot?.removeFromSuperview()
+            })
         }
     }
     
