@@ -13,6 +13,9 @@ public enum DivoPendingTelegramOp: Codable, Equatable, Hashable {
     // teamgram-ава (best-effort): исполнитель тянет свежую аву из DIVO REST и заливает в MTProto.
     // Без payload — актуальная ава берётся на момент дренажа (см. DivoTeamgramPhoto).
     case photoUpdate
+    // DIVI-103: follow должен заводить человека в контакты Telegram. Payload — только DIVO userId;
+    // telegramId и имя исполнитель дотягивает из /user/{id} на момент дренажа (best-effort).
+    case addContact(divoUserId: Int)
 }
 
 public final class PendingTelegramOpsQueue {

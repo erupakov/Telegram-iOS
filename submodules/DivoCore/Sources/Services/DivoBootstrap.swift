@@ -20,7 +20,10 @@ public enum DivoBootstrap {
         // доступ к teamgram-аккаунту — TelegramUI ПЕРЕРЕГИСТРИРУЕТ executor с исполнителем имени,
         // когда поднимется авторизованный контекст (см. AppDelegate). До этого момента op
         // .nameUpdate просто лежит в очереди.
-        PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil, photoUpdate: nil))
+        PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil, photoUpdate: nil, addContact: nil))
+
+        // DIVI-103: follow → контакт Telegram. Наблюдатель ловит divoFollowStateChanged со всех экранов.
+        DivoFollowContactSync.shared.start()
 
         // DIVO: на cold-start подтягиваем актуальную роль с сервера (me = /user/info) — если серверная
         // сменилась, клиент подхватывает её (currentUserRole.setter постит roleDidChangeNotification только
@@ -43,9 +46,12 @@ public enum DivoBootstrap {
     ///   из TelegramUI; если `nameUpdate == nil`, op остаётся в очереди до авторизованного контекста.
     /// - photoUpdate: ава в teamgram — как nameUpdate, требует движок (заливка через MTProto),
     ///   исполнитель приходит из TelegramUI; если `nil`, op ждёт авторизованного контекста.
+    /// - addContact: follow→контакт (DIVI-103) — резолв teamgram-пира + addContactInteractively,
+    ///   требует движок; исполнитель приходит из TelegramUI; если `nil`, op ждёт контекста.
     public static func makeExecutor(
         nameUpdate: ((_ firstName: String, _ lastName: String) async throws -> Void)?,
-        photoUpdate: (() async throws -> Void)?
+        photoUpdate: (() async throws -> Void)?,
+        addContact: ((_ divoUserId: Int) async throws -> Void)?
     ) -> PendingTelegramOpsQueue.Executor {
         return { op in
             switch op {
@@ -85,6 +91,13 @@ public enum DivoBootstrap {
                 }
                 try await photoUpdate()
                 divoLog("DivoBootstrap: teamgram-ава синхронизирована", level: .info)
+            case let .addContact(divoUserId):
+                guard let addContact else {
+                    // Нет исполнителя (движок недоступен) — оставляем op в очереди до контекста.
+                    throw DivoBootstrapError.opNotHandled
+                }
+                try await addContact(divoUserId)
+                divoLog("DivoBootstrap: контакт заведён для divoUserId=\(divoUserId)", level: .info)
             }
         }
     }

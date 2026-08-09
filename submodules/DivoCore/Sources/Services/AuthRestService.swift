@@ -278,6 +278,14 @@ public final class AuthRestService {
         return env.data
     }
 
+    /// Полный профиль произвольного юзера (`/user/{id}`). В отличие от `userDetail()` не трогает
+    /// `measuringSystem` — это чужой профиль. Нужен для follow→контакт (DIVI-103): берём
+    /// `telegramId`/`phone`/`fullName`.
+    public func userDetail(id: Int) async throws -> UserDetail {
+        let env: UserDetailResponse = try await client.request(path: "/user/\(id)")
+        return env.data
+    }
+
     /// Агентский профиль (роль `agency_employee`): имя/фото = `title`/agency-photo. Нужен `agencyId`
     /// (берём из `userDetail().agency?.id` после регистрации). Зеркалит EditProfile `/agency/update`.
     public func updateAgency(_ req: UpdateDescriptionAgencyRequest) async throws {

@@ -11,6 +11,12 @@ private enum DivoPhotoSyncError: Error {
     case uploadFailed
 }
 
+// AddContactError (TelegramCore) не конформит к Error — оборачиваем, чтобы бросить в continuation
+// и оставить op на ретрай очередью.
+private enum DivoAddContactError: Error {
+    case failed
+}
+
 // DIVO: пост-авторизационная интеграция очереди отложенных операций.
 // Онбординг сам вшит в auth-флоу пушем (см. AuthorizationSequenceController+DivoOnboarding) —
 // здесь его больше нет. Файл отдельный — минимизируем диф в гигантском AppDelegate.
@@ -62,6 +68,63 @@ extension AppDelegate {
             }
             divoLog("[ava] ава залита в teamgram", level: .info)
         }
+        // DIVI-103: follow → контакт Telegram. По DIVO userId тянем /user/{id}, резолвим teamgram-пира
+        // по telegramId (нет telegramId → штатно выходим, op снимается) и заводим контакт через движок.
+        let addContact: (Int) async throws -> Void = { [weak context] divoUserId in
+            guard let context = context else { throw DivoTeamgramSync.SyncError.notReady }
+            let detail = try await AuthRestService.shared.userDetail(id: divoUserId)
+            guard let telegramId = detail.telegramId else {
+                divoLog("[contact] divoUserId=\(divoUserId) без telegramId — пропускаю", level: .info)
+                return
+            }
+            let (firstName, lastName) = DivoTeamgramName.split(fullName: detail.fullName ?? "")
+            let engine = context.context.engine
+            let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))
+
+            // teamgram-пир может быть не в Postbox → дорезолвим с сервера (access_hash 0 проходит).
+            let resolved: EnginePeer? = try await withCheckedThrowingContinuation { continuation in
+                var done = false
+                let signal = engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+                |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
+                    if let peer = peer { return .single(peer) }
+                    return engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: 0))
+                    |> map { peer -> EnginePeer? in EnginePeer(peer) }
+                    |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
+                }
+                let _ = signal.start(next: { peer in
+                    if done { return }
+                    done = true
+                    continuation.resume(returning: peer)
+                })
+            }
+            guard resolved != nil else {
+                // Пир не резолвится (нет сети / сервер) — оставляем op на ретрай.
+                throw DivoTeamgramSync.SyncError.notReady
+            }
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                var finished = false
+                let _ = engine.contacts.addContactInteractively(
+                    peerId: peerId,
+                    firstName: firstName,
+                    lastName: lastName,
+                    // Номер не шлём: пир определяется по telegramId, а телефон из DIVO-профиля
+                    // может быть реальным — подписка не должна раздавать чужой номер.
+                    phoneNumber: "",
+                    noteText: "",
+                    noteEntities: [],
+                    addToPrivacyExceptions: false
+                ).start(error: { _ in
+                    if finished { return }
+                    finished = true
+                    continuation.resume(throwing: DivoAddContactError.failed)
+                }, completed: {
+                    if finished { return }
+                    finished = true
+                    continuation.resume(returning: ())
+                })
+            }
+            divoLog("[contact] заведён контакт telegramId=\(telegramId) для divoUserId=\(divoUserId)", level: .info)
+        }
         // DIVO: ВАЖЕН порядок — telegramUserId + nameUpdater ставим ДО registerExecutor, потому что он
         // СРАЗУ дренит очередь. Иначе отложенные .telegramLink/.nameUpdate падают opNotHandled и зависают
         // до следующего enqueue → на cold-start ретрай telegram-link (в т.ч. соц-ветка B) не докатывался.
@@ -70,7 +133,7 @@ extension AppDelegate {
         DivoTeamgramSync.shared.telegramUserId = context.context.account.peerId.id._internalGetInt64Value()
         // Атомарный name-update в submit-цепочке онбординга (await), см. DivoTeamgramSync.
         DivoTeamgramSync.shared.setNameUpdater(nameUpdate)
-        PendingTelegramOpsQueue.shared.registerExecutor(DivoBootstrap.makeExecutor(nameUpdate: nameUpdate, photoUpdate: photoUpdate))
+        PendingTelegramOpsQueue.shared.registerExecutor(DivoBootstrap.makeExecutor(nameUpdate: nameUpdate, photoUpdate: photoUpdate, addContact: addContact))
 
         // reconcile: если teamgram-ава пуста, досылаем из DIVO-профиля. Гейтим по isReady — иначе
         // self-peer ещё не загружен (getPeer = nil) и заливка тихо пропускается на старте (гонка).
