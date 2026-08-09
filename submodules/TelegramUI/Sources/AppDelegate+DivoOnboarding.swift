@@ -7,6 +7,10 @@ import AccountContext
 import DivoCore
 import OnboardingUI
 
+// DIVI-109: удерживаем подписку на штатный foreground-сигнал — по нему очередь отложенных операций
+// гейтит запись в Postbox по фону (фоновая SQLite-запись под suspend держит лок → 0xdead10cc).
+private var divoPendingOpsForegroundDisposable: Disposable?
+
 private enum DivoPhotoSyncError: Error {
     case uploadFailed
 }
@@ -133,6 +137,14 @@ extension AppDelegate {
         DivoTeamgramSync.shared.telegramUserId = context.context.account.peerId.id._internalGetInt64Value()
         // Атомарный name-update в submit-цепочке онбординга (await), см. DivoTeamgramSync.
         DivoTeamgramSync.shared.setNameUpdater(nameUpdate)
+        // DIVI-109: очередь пишет в Postbox только на переднем плане (фоновая SQLite-транзакция под
+        // suspend держит лок в app-group контейнере → 0xdead10cc). applicationInForeground — тот же
+        // сигнал, что гейтит стоковые транзакции; setForeground(true) сам докатит отложенное.
+        divoPendingOpsForegroundDisposable?.dispose()
+        divoPendingOpsForegroundDisposable = (context.context.sharedContext.applicationBindings.applicationInForeground
+        |> deliverOnMainQueue).start(next: { inForeground in
+            PendingTelegramOpsQueue.shared.setForeground(inForeground)
+        })
         PendingTelegramOpsQueue.shared.registerExecutor(DivoBootstrap.makeExecutor(nameUpdate: nameUpdate, photoUpdate: photoUpdate, addContact: addContact))
 
         // reconcile: если teamgram-ава пуста, досылаем из DIVO-профиля. Гейтим по isReady — иначе
