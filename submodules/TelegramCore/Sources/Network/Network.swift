@@ -527,20 +527,27 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             }
             
             let seedAddressList: [Int: [String]]
-            
+
+            // DIVO teamgram-IP по окружению сборки. Ключ `DivoEnvironment` вшивается в Info.plist
+            // (флаг --define=divoEnv=prod, см. Telegram/BUILD). Читаем из Bundle.main напрямую: этот
+            // модуль (TelegramCore) не импортит DivoCore — держать значение в синхроне с DivoEnvironment.
+            // Дефолт (ключа нет / плист расширения без него) — stage: безопаснее уйти на отладочный контур.
+            let isDivoProduction = (Bundle.main.object(forInfoDictionaryKey: "DivoEnvironment") as? String) == "prod"
+            let divoTeamgramIP = isDivoProduction ? "18.185.234.86" : "34.44.72.74"
+
             if testingEnvironment {
                 seedAddressList = [
-                    1: ["34.44.72.74"],
-                    2: ["34.44.72.74"],
-                    3: ["34.44.72.74"]
+                    1: [divoTeamgramIP],
+                    2: [divoTeamgramIP],
+                    3: [divoTeamgramIP]
                 ]
             } else {
                 seedAddressList = [
-                    1: ["34.44.72.74"],
-                    2: ["34.44.72.74"],
-                    3: ["34.44.72.74"],
-                    4: ["34.44.72.74"],
-                    5: ["34.44.72.74"]
+                    1: [divoTeamgramIP],
+                    2: [divoTeamgramIP],
+                    3: [divoTeamgramIP],
+                    4: [divoTeamgramIP],
+                    5: [divoTeamgramIP]
                 ]
             }
             

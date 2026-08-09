@@ -81,7 +81,8 @@ Telegram.LSP.json
 spm-files
 xcode-files
 .bsp/**
-/.claude/
+/.claude/*
+!/.claude/skills/
 /buildbox/*
 configuration_cerf/appstore-configuration.json
 provisioning_cerf/fake-codesigning/dev cert sends/development (1).cer

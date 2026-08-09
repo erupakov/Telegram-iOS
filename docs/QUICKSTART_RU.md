@@ -163,16 +163,42 @@ telegram_aps_environment = "production"
 > авто-выключается на TestFlight/App Store сборках (профиль `embedded.mobileprovision`
 > вырезается Apple). Подробнее — п. 1 «Настройка перед сборкой» выше.
 
+**Выбор окружения (DIVI-111).** В TF можно залить дебажную или продовую сборку — отличие ровно
+в одном флаге `--define=divoEnv`. Подпись у обеих одинаковая (дистрибуционная). Проще всего собирать
+через скилл `/divo-tf debug` / `/divo-tf prod` — он подставит всё сам.
+
+| Окружение | Флаг | REST API | teamgram IP | Firebase | Иконка |
+|---|---|---|---|---|---|
+| debug/stage | *(не нужен, дефолт)* | `api-stage.divo.fashion/api` | `34.44.72.74` | `divo-2-stage` | ленточка **DEBUG** |
+| prod | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `18.185.234.86` | `divodev-62848` | чистая |
+
+**debug (stage + ленточка):**
+
 ```bash
 bazel build //Telegram:Telegram \
   --compilation_mode=opt \
   --cpu=ios_arm64 \
   --define=buildNumber=18 \
-  --define=telegramVersion=11.8.1 \
+  --define=telegramVersion=2.0.0 \
+  --//Telegram:disableExtensions=true
+```
+
+**prod (боевой контур + чистая иконка):**
+
+```bash
+bazel build //Telegram:Telegram \
+  --compilation_mode=opt \
+  --cpu=ios_arm64 \
+  --define=buildNumber=18 \
+  --define=telegramVersion=2.0.0 \
+  --define=divoEnv=prod \
   --//Telegram:disableExtensions=true
 ```
 
 > **Важно:** `buildNumber` должен быть строго больше предыдущей сборки в TestFlight, иначе загрузка завершится ошибкой.
+>
+> **Ленточка DEBUG** на дебажной иконке генерится скриптом `scripts/divo/generate_debug_appicon.py`
+> (иконки закоммичены). Перегенерить нужно только если менялась базовая иконка `DefaultAppIcon.xcassets`.
 
 #### Загрузка в TestFlight
 

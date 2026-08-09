@@ -1,7 +1,16 @@
 import Foundation
 
 public enum DivoConfig {
-    public static let baseURL = URL(string: "https://api-stage.divo.fashion/api")!
+    /// REST-хост по окружению сборки (см. [[DivoEnvironment]]). stage — отладочный контур, prod — боевой.
+    /// Пути намеренно разные: stage на `/api`, prod на `/v2` — так задал бэкенд.
+    public static var baseURL: URL {
+        switch DivoEnvironment.current {
+        case .stage:
+            return URL(string: "https://api-stage.divo.fashion/api")!
+        case .prod:
+            return URL(string: "https://api.divo.fashion/v2")!
+        }
+    }
 
     public static let agencyToken = "Ccw5cQAMFzxCttzgpUu69NuJARelHshG78LOAHiPQEjKeMSP93OWsbc110MKc6mf"
     public static let modelToken = "GxelyeqTBVrPAJLWXRXUH4XktoUhu2QLTFfxIvgnvDD9jKBLolF6GDVQQsSzChSF"
@@ -181,7 +190,12 @@ public enum DivoConfig {
     /// Debug доступен если в бандле есть provisioning profile (dev/TF) ИЛИ приложение запущено из Xcode/симулятора.
     /// Apple удаляет embedded.mobileprovision только при публикации в App Store — поэтому в релизе авто-выключается.
     /// disableExtensions при сборке не влияет — profile всё равно встраивается в основной бандл.
+    /// В prod-сборке (divoEnv=prod, см. [[DivoEnvironment]]) дебаг-экран выключен ЖЁСТКО — не полагаемся
+    /// на то, что Apple вырежет профиль: боевая сборка не покажет Debug Menu ни при каких условиях.
     public static var isDebugEnabled: Bool = {
+        if DivoEnvironment.current == .prod {
+            return false
+        }
         #if targetEnvironment(simulator)
         return true
         #else
@@ -190,7 +204,15 @@ public enum DivoConfig {
     }()
 
     public static let appPlatform = "ios"
-    public static let appVersion = "1.1.1 (912)"
+
+    /// REST-заголовок `app-version`. Берётся из бандла (CFBundleShortVersionString + CFBundleVersion),
+    /// чтобы версия не жила в двух местах — единственный источник правды это `--define=telegramVersion`
+    /// на сборке. Формат сохранён прежним: «2.0.0 (buildNumber)».
+    public static var appVersion: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.0.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        return build.isEmpty ? short : "\(short) (\(build))"
+    }
 
     public static let shareBaseURL = "https://api.divo.fashion"
     public static let shareHost = "api.divo.fashion"
