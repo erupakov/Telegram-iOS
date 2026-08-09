@@ -303,6 +303,8 @@ public enum DivoConfig {
         // teamgram-аккаунта → 409 "already linked" (ловилось на тестах через разлогины).
         PendingTelegramOpsQueue.shared.clear()
         DivoTeamgramSync.shared.reset()
+        // История поиска по лицу — per-device кэш (фото лиц на диске), не должна утечь следующему аккаунту.
+        FaceSearchHistoryStorage.shared.clearAll()
     }
 
     // MARK: - DIVO session user id
