@@ -18,6 +18,8 @@ public final class DivoTeamgramSync {
     private let lock = NSLock()
     private var nameUpdater: NameUpdater?
     private var _telegramUserId: Int64?
+    private var _telegramAccessHash: Int64?
+    private var _telegramSelfPhone: String?
 
     private init() {}
 
@@ -27,6 +29,20 @@ public final class DivoTeamgramSync {
     public var telegramUserId: Int64? {
         get { lock.lock(); defer { lock.unlock() }; return _telegramUserId }
         set { lock.lock(); _telegramUserId = newValue; lock.unlock() }
+    }
+
+    /// access_hash self-пира teamgram. Кладём в `additionalInfo` при регистрации (как Android/Саша),
+    /// чтобы бэк мог сослаться на юзера в teamgram-контуре. Ставится из AppDelegate по готовности self-пира.
+    public var telegramAccessHash: Int64? {
+        get { lock.lock(); defer { lock.unlock() }; return _telegramAccessHash }
+        set { lock.lock(); _telegramAccessHash = newValue; lock.unlock() }
+    }
+
+    /// Номер, под которым teamgram зарегал self-пира (для соц-ветки D — dummy). Соц-юзер реального
+    /// номера не вводит, но telegram-link идёт надёжнее с ним (проверенная комбинация с phone), чем с nil.
+    public var telegramSelfPhone: String? {
+        get { lock.lock(); defer { lock.unlock() }; return _telegramSelfPhone }
+        set { lock.lock(); _telegramSelfPhone = newValue; lock.unlock() }
     }
 
     /// Регистрируется из AppDelegate при готовности authorized-контекста (захватывает движок).
@@ -42,6 +58,8 @@ public final class DivoTeamgramSync {
     public func reset() {
         lock.lock()
         self._telegramUserId = nil
+        self._telegramAccessHash = nil
+        self._telegramSelfPhone = nil
         self.nameUpdater = nil
         lock.unlock()
     }

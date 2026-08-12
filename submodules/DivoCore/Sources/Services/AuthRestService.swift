@@ -194,12 +194,15 @@ public final class AuthRestService {
         uid: String,
         providerId: String,
         role: String,
+        email: String? = nil,
         additionalInfo: [String: DivoJSONValue]? = nil
     ) async throws -> AuthTokenWithUserData {
+        // email — реальная почта из Google/Apple. Без неё бэк ставит синтетику `<uid>@social-reg.divo.io`.
         let req = AuthRegistrationSocialRequest(
             uid: uid,
             providerId: providerId,
             role: role,
+            email: email,
             deviceId: divoDeviceId,
             additionalInfo: additionalInfo
         )

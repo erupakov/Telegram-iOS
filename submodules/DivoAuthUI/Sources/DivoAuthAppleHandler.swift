@@ -27,7 +27,7 @@ public enum DivoAuthAppleHandler {
             case .failed:
                 break
             }
-            DivoAuthOutcomePresenter.present(outcome, on: controller, displayName: result.displayName, photoUrl: result.photoUrl)
+            DivoAuthOutcomePresenter.present(outcome, on: controller, email: result.email, displayName: result.displayName, photoUrl: result.photoUrl)
             return outcome
         } catch DivoFirebaseAuthError.userCancelled {
             divoLog("Apple sign-in cancelled by user", level: .debug)

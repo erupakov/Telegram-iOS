@@ -29,7 +29,9 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         // Когда добавим сбор агентства в model-путь (беклог Option B) — слать `model` + agency_id.
         let role = rawRole == "model" ? "new_face" : rawRole
         let phone = DivoConfig.pendingPhoneNumber
-        let email = phone.map { PhoneAuthLinker.syntheticEmail(for: $0) }
+        let socialCreds = DivoConfig.pendingSocialRegistration
+        // email для профиля: соц — реальный из Google/Apple, phone — синтетический из номера.
+        let email = socialCreds?.email ?? phone.map { PhoneAuthLinker.syntheticEmail(for: $0) }
         let firstName = formString("firstName", state: state, registry: registry)
         let lastName = formString("lastName", state: state, registry: registry)
 
@@ -54,21 +56,25 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         }
 
         // Плоский профиль под контракт бэка (ключи как у Android) — все поля онбординга в additionalInfo.
-        let profile = FormSerializer.registrationProfile(
+        var profile = FormSerializer.registrationProfile(
             state: state, registry: registry, phone: phone, email: email,
             photoUuid: photoUuid, photoUrl: photoUrl
         )
+        // telegramId/telegramAccessHash — как кладёт Android: сшивка DIVO↔teamgram в additionalInfo.
+        // Int, не Int64: DivoJSONValue.from не ловит Int64 в боксе Any; на iOS Int==Int64, переполнения нет.
+        if let telegramId = DivoTeamgramSync.shared.telegramUserId { profile["telegramId"] = Int(telegramId) }
+        if let telegramAccessHash = DivoTeamgramSync.shared.telegramAccessHash { profile["telegramAccessHash"] = Int(telegramAccessHash) }
         let additionalInfo = DivoJSONValue.object(from: profile)
 
         // Что уходит в профиль (ключи без значений — без PII): удобно сверять маппинг по ролям.
         divoLog("Onboarding submit: profile fields=[\(profile.keys.sorted().joined(separator: ","))]", level: .info)
 
         do {
-            if let creds = DivoConfig.pendingSocialRegistration {
+            if let creds = socialCreds {
                 // Соц-новый (ветка D): заводим DIVO-аккаунт. Роль + профиль — в additionalInfo.
                 divoLog("Onboarding submit: registration-social role=\(role) uid=\(creds.uid)", level: .info)
                 let token = try await AuthRestService.shared.registerSocial(
-                    uid: creds.uid, providerId: creds.providerId, role: role, additionalInfo: additionalInfo
+                    uid: creds.uid, providerId: creds.providerId, role: role, email: creds.email, additionalInfo: additionalInfo
                 )
                 DivoConfig.accessToken = token.accessToken
                 DivoConfig.currentDivoUserId = token.user.id
@@ -171,12 +177,15 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
             }
         }
 
-        // telegram-link (phone-флоу) — ВНЕ атомарной цепочки, BEST-EFFORT: бэк ставит структурное
-        // user.phone (его читают DIVO-настройки) + сшивает DIVO↔teamgram. НЕ блокирует вход и НЕ
-        // откатывает — DIVO-аккаунт уже создан (откат был бы иллюзорным, на бэке он не удаляется).
-        // Фейл → оп в очередь ретраев (.telegramLink), дренится на старте.
-        if let phone, let divoUserId = DivoConfig.currentDivoUserId {
-            await Self.linkTelegramBestEffort(phone: phone, divoUserId: divoUserId)
+        // telegram-link (phone-флоу И соц-ветка D) — ВНЕ атомарной цепочки, BEST-EFFORT: бэк ставит
+        // структурное user.phone (его читают DIVO-настройки) + сшивает DIVO↔teamgram (ставит
+        // telegram_user_id). НЕ блокирует вход и НЕ откатывает — DIVO-аккаунт уже создан (откат был бы
+        // иллюзорным, на бэке он не удаляется). Фейл → оп в очередь ретраев (.telegramLink), дренится на старте.
+        // Соц-юзер реального номера не вводит → берём dummy, под которым teamgram зарегал self-пира:
+        // telegram-link идёт проверенной комбинацией (telegramUserId+phone+divoUserId), а не с phone=nil.
+        if socialCreds != nil || phone != nil, let divoUserId = DivoConfig.currentDivoUserId {
+            let linkPhone = phone ?? DivoTeamgramSync.shared.telegramSelfPhone
+            await Self.linkTelegramBestEffort(phone: linkPhone, divoUserId: divoUserId)
         }
 
         // Профиль (имя/фото/роль) полностью записан → просим экраны перечитать /user/info. Без этого
@@ -214,7 +223,7 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
 
     /// telegram-link для phone-флоу. `telegramUserId` приходит из `DivoTeamgramSync` (ставит AppDelegate
     /// при поднятии authorized-контекста). Успех → новый токен; фейл/нет id → оп в очередь ретраев.
-    private static func linkTelegramBestEffort(phone: String, divoUserId: Int) async {
+    private static func linkTelegramBestEffort(phone: String?, divoUserId: Int) async {
         guard let telegramUserId = DivoTeamgramSync.shared.telegramUserId else {
             divoLog("Onboarding submit: telegram-link — нет telegramUserId → в очередь ретраев", level: .warning)
             PendingTelegramOpsQueue.shared.enqueue(.telegramLink(phone: phone, divoUserId: divoUserId))

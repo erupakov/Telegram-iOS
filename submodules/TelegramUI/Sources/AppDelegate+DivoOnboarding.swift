@@ -157,6 +157,10 @@ extension AppDelegate {
             let peerId = context.context.account.peerId
             let _ = (context.context.account.postbox.transaction { transaction -> Bool in
                 if let user = transaction.getPeer(peerId) as? TelegramUser {
+                    // access_hash self-пира → в additionalInfo при регистрации (сшивка DIVO↔teamgram, как Android).
+                    DivoTeamgramSync.shared.telegramAccessHash = user.accessHash?.value
+                    // Номер self-пира (для соц-ветки D — dummy) → telegram-link на submit идёт с ним, а не с nil.
+                    DivoTeamgramSync.shared.telegramSelfPhone = user.phone
                     return user.photo.isEmpty
                 }
                 return false

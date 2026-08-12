@@ -8,8 +8,9 @@ public enum DivoPendingTelegramOp: Codable, Equatable, Hashable {
     case phoneLink(phone: String)
     // telegram-link после регистрации (best-effort): бэк ставит структурное user.phone +
     // сшивает DIVO↔teamgram. Если упал на submit — дотягиваем ретраем (telegramUserId берётся
-    // из DivoTeamgramSync на момент дренажа).
-    case telegramLink(phone: String, divoUserId: Int)
+    // из DivoTeamgramSync на момент дренажа). phone опционален: соц-ветка D линкует без номера
+    // (dummy в user.phone не пишем). Старый персист со String читается (decodeIfPresent).
+    case telegramLink(phone: String?, divoUserId: Int)
     // teamgram-ава (best-effort): исполнитель тянет свежую аву из DIVO REST и заливает в MTProto.
     // Без payload — актуальная ава берётся на момент дренажа (см. DivoTeamgramPhoto).
     case photoUpdate
