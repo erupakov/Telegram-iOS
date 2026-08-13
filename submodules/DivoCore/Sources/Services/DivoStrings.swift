@@ -116,6 +116,11 @@ public enum DivoStrings {
     public static var tabProfile: String { L(en: "Profile", ru: "Профиль", es: "Perfil", pt: "Perfil", zh: "个人资料", fr: "Profil") }
     public static var tabSettings: String { L(en: "Settings", ru: "Настройки", es: "Ajustes", pt: "Configurações", zh: "设置", fr: "Paramètres") }
 
+    // MARK: - Peer Info (нативный Telegram-профиль)
+
+    /// Заголовок строки-ссылки на публичный DIVO-профиль — заменяет «мобильный» в нативном профиле.
+    public static var peerInfoPublicProfileLabel: String { L(en: "public profile", ru: "публичный профиль", es: "perfil público", pt: "perfil público", zh: "公开资料", fr: "profil public") }
+
     // MARK: - Nav Titles
 
     public static var navModels: String { L(en: "MODELS", ru: "МОДЕЛИ", es: "MODELOS", pt: "MODELOS", zh: "模特", fr: "MANNEQUINS") }

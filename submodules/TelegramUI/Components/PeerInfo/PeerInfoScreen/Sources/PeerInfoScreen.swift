@@ -18,6 +18,8 @@ import NotificationSoundSelectionUI
 import OverlayStatusController
 import ShareController
 import PhotoResources
+import DivoCore
+import ProfileScreenUI
 import PeerAvatarGalleryUI
 import TelegramIntents
 import PeerInfoUI
@@ -346,7 +348,11 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         return self._ready
     }
     private var didSetReady = false
-    
+
+    private var divoPublicProfile: DivoPublicProfileInfo?
+    private var divoPublicProfilePending = false
+    private var divoPublicProfileDisposable: Disposable?
+
     init(controller: PeerInfoScreenImpl, context: AccountContext, peerId: PeerId, avatarInitiallyExpanded: Bool, isOpenedFromChat: Bool, nearbyPeerDistance: Int32?, reactionSourceMessageId: MessageId?, callMessages: [Message], isSettings: Bool, isMyProfile: Bool, hintGroupInCommon: PeerId?, requestsContext: PeerInvitationImportersContext?, profileGiftsContext: ProfileGiftsContext?, starsContext: StarsContext?, tonContext: StarsContext?, chatLocation: ChatLocation, chatLocationContextHolder: Atomic<ChatLocationContextHolder?>, switchToGiftsTarget: PeerInfoSwitchToGiftsTarget?, switchToStoryFolder: Int64?, switchToMediaTarget: PeerInfoSwitchToMediaTarget?, initialPaneKey: PeerInfoPaneKey?, sharedMediaFromForumTopic: (EnginePeer.Id, Int64)?) {
         self.controller = controller
         self.context = context
@@ -2449,7 +2455,33 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             strongSelf.updateData(data)
             strongSelf.cachedDataPromise.set(.single(data.cachedData))
         })
-        
+
+        if !self.isSettings && !self.isMyProfile && peerId.namespace == Namespaces.Peer.CloudUser {
+            let telegramId = peerId.id._internalGetInt64Value()
+            self.divoPublicProfilePending = true
+            let profileSignal = Signal<DivoPublicProfileInfo?, NoError> { subscriber in
+                let task = Task {
+                    let info = await resolveDivoPublicProfile(telegramId: telegramId)
+                    subscriber.putNext(info)
+                    subscriber.putCompletion()
+                }
+                return ActionDisposable {
+                    task.cancel()
+                }
+            }
+            self.divoPublicProfileDisposable = (profileSignal
+            |> deliverOnMainQueue).startStrict(next: { [weak self] info in
+                guard let strongSelf = self else {
+                    return
+                }
+                strongSelf.divoPublicProfile = info
+                strongSelf.divoPublicProfilePending = false
+                if let (layout, navigationHeight) = strongSelf.validLayout {
+                    strongSelf.containerLayoutUpdated(layout: layout, navigationHeight: navigationHeight, transition: .immediate)
+                }
+            })
+        }
+
         if let _ = nearbyPeerDistance {
             self.preloadHistoryDisposable.set(self.context.account.addAdditionalPreloadHistoryPeerId(peerId: peerId))
             
@@ -2578,6 +2610,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     
     deinit {
         self.dataDisposable?.dispose()
+        self.divoPublicProfileDisposable?.dispose()
         self.hiddenMediaDisposable?.dispose()
         self.activeActionDisposable.dispose()
         self.resolveUrlDisposable.dispose()
@@ -5330,7 +5363,12 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             insets.left += sectionInset
             insets.right += sectionInset
             
-            let items = self.isSettings ? settingsItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, isExpanded: self.headerNode.isAvatarExpanded) : infoItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, nearbyPeerDistance: self.nearbyPeerDistance, reactionSourceMessageId: self.reactionSourceMessageId, callMessages: self.callMessages, chatLocation: self.chatLocation, isOpenedFromChat: self.isOpenedFromChat, isMyProfile: self.isMyProfile)
+            let items = self.isSettings ? settingsItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, isExpanded: self.headerNode.isAvatarExpanded) : infoItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, nearbyPeerDistance: self.nearbyPeerDistance, reactionSourceMessageId: self.reactionSourceMessageId, callMessages: self.callMessages, chatLocation: self.chatLocation, isOpenedFromChat: self.isOpenedFromChat, isMyProfile: self.isMyProfile, divoPublicProfile: self.divoPublicProfile, divoPublicProfilePending: self.divoPublicProfilePending, openDivoProfile: { [weak self] userId in
+                guard let self else {
+                    return
+                }
+                self.controller?.push(PublicProfileScreenController(context: self.context, model: ProfileModel(userId: userId)))
+            })
             
             contentHeight += headerHeight
             if !((self.isSettings || self.isMyProfile) && self.state.isEditing) {

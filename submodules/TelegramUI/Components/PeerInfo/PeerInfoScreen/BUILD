@@ -176,6 +176,7 @@ swift_library(
         "//submodules/TelegramUI/Components/HorizontalTabsComponent",
         "//submodules/TelegramUI/Components/PeerInfo/AccountPeerContextItem",
         "//submodules/ProfileScreenUI:ProfileScreenUI",
+        "//submodules/DivoCore:DivoCore",
     ],
     visibility = [
         "//visibility:public",

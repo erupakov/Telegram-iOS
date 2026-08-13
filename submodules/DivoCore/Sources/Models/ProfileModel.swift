@@ -64,4 +64,9 @@ public struct ProfileModel {
         self.avatarImageURL = avatarImageURL
         self.feedId = feedId
     }
+
+    /// Открытие чужого публичного профиля по DIVO user_id — остальные поля экран подтянет из /user/{id}.
+    public init(userId: Int) {
+        self.init(name: "", age: nil, location: "", isVerified: false, likesCount: "0", viewsCount: "0", savesCount: "0", biography: "", socialMediaHandles: [], userId: userId)
+    }
 }
