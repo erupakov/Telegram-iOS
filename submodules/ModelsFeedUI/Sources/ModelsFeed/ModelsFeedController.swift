@@ -290,9 +290,11 @@ public final class ModelsFeedController: TelegramBaseController {
             return
         }
         // animateIn() обязателен — без него камера создаётся, но не показывается (чёрный экран). Как в чат-листе.
+        // customTarget: .myStories форсит цель (isForcedTarget) — иначе после постинга нативный код уводит
+        // на вкладку чатов (там нативный трей сторис). В DIVO трей — в ленте, остаёмся здесь. Как в профиле.
         let coordinator = rootController.openStoryCamera(
             mode: .photo,
-            customTarget: nil,
+            customTarget: .myStories,
             resumeLiveStream: false,
             transitionIn: nil,
             transitionedIn: {},
