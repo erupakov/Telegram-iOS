@@ -102,6 +102,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private var navigationBarTitleHeightConstraint: NSLayoutConstraint!
     private var customNavBarBottomConstraint: NSLayoutConstraint!
     private var navBarBlurBottomConstraint: NSLayoutConstraint!
+    private var floatingAddButtonBottomConstraint: NSLayoutConstraint!
     private var closeButtonShadow: PillShadowView?
     
     // Управление моментом, когда начинаем анимировать title в навбаре
@@ -2419,8 +2420,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupFloatingButton() {
         self.view.addSubview(floatingAddButton)
         
+        // Низ считаем от края view: как вкладка таб-бара экран не получает UIKit
+        // safe area (её ведёт Display), а высоту таб-панели несёт intrinsicInsets.bottom.
+        // containerLayoutUpdated подставляет туда актуальный отступ.
+        floatingAddButtonBottomConstraint = floatingAddButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
+
         NSLayoutConstraint.activate([
-            floatingAddButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            floatingAddButtonBottomConstraint,
             floatingAddButton.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
             floatingAddButton.heightAnchor.constraint(equalToConstant: 40),
         ])
@@ -3470,6 +3476,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // последний элемент стоял чуть над home indicator. layout() добавит
         // больше для короткого контента.
         bottomSpacerHeightConstraint.constant = layout.intrinsicInsets.bottom + 4
+
+        // В таб-режиме intrinsicInsets.bottom несёт высоту таб-панели — поднимаем
+        // над ней плавающую кнопку; в push это равно home indicator (как было).
+        floatingAddButtonBottomConstraint.constant = -(layout.intrinsicInsets.bottom + DivoDesignTokens.Spacing.m)
 
         applyGradientBlurMask()
         updateNavBarBlurMask()
@@ -4818,12 +4828,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private let snackbar = DivoSnackbar()
 
     func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        // От края view + intrinsicInsets.bottom: в таб-режиме UIKit safe area == 0,
+        // и по safeAreaLayoutGuide снек уходил под таб-панель; push не меняется.
         snackbar.show(
             in: self.view,
             message: message,
             style: style,
-            bottomInset: DivoDesignTokens.Spacing.m,
-            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            bottomInset: DivoDesignTokens.Spacing.m + (self.containerLayout?.0.intrinsicInsets.bottom ?? 0),
+            bottomAnchor: view.bottomAnchor,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
             persistent: persistent
