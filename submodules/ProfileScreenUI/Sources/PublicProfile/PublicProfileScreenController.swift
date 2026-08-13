@@ -2247,14 +2247,33 @@ extension PublicProfileScreenController {
                 )
                 await MainActor.run {
                     guard let self = self else { return }
-                    // Аккаунт удалён на бэке — чистим DIVO-токен и разлогиниваем teamgram (уход на welcome).
+                    // DIVO-аккаунт удалён. Бэк не каскадит на teamgram — сам удаляем и Telegram-аккаунт
+                    // (MTProto account.deleteAccount), иначе осиротевшая teamgram-учётка переживёт удаление.
                     // Лоадер не прячем: logout уводит с экрана, оверлей уходит вместе с контроллером.
-                    DivoConfig.resetToken()
-                    let _ = logoutFromAccount(
-                        id: self.context.account.id,
-                        accountManager: self.context.sharedContext.accountManager,
-                        alreadyLoggedOutRemotely: false
-                    ).start()
+                    let accountId = self.context.account.id
+                    let accountManager = self.context.sharedContext.accountManager
+                    // Полная чистка локальной DIVO-сессии (токен, роль, userId, pending-опы, teamgram-sync,
+                    // история поиска по лицу) + снятие записи аккаунта. alreadyLoggedOutRemotely=true — когда
+                    // Telegram-аккаунт реально удалён на сервере; false — fallback-разлогин, если не вышло.
+                    let finishLogout: (Bool) -> Void = { alreadyLoggedOutRemotely in
+                        DivoConfig.resetDivoSessionForRollback()
+                        let _ = logoutFromAccount(
+                            id: accountId,
+                            accountManager: accountManager,
+                            alreadyLoggedOutRemotely: alreadyLoggedOutRemotely
+                        ).start()
+                    }
+                    // Таймаут страхует от зависшего ответа teamgram — иначе блокирующий оверлей завис бы навсегда.
+                    let _ = (self.context.engine.auth.deleteAccount(reason: "DIVO", password: nil)
+                    |> timeout(15.0, queue: Queue.mainQueue(), alternate: .fail(.generic))
+                    |> deliverOnMainQueue).start(error: { _ in
+                        // teamgram не подтвердил удаление — DIVO уже удалён, юзера не бросаем: обычный разлогин.
+                        divoLog("[DELETE ACCOUNT] MTProto account.deleteAccount не подтверждён (ошибка/таймаут) — fallback-разлогин", level: .error)
+                        finishLogout(false)
+                    }, completed: {
+                        divoLog("[DELETE ACCOUNT] Telegram-аккаунт удалён через MTProto account.deleteAccount")
+                        finishLogout(true)
+                    })
                 }
             } catch {
                 await MainActor.run {
