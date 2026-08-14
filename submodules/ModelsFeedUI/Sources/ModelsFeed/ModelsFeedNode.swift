@@ -721,6 +721,37 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         }
     }
 
+    // Шапка со сторис имеет только два устойчивых состояния — раскрытое и свёрнутое (как в Telegram).
+    // Без этого «+» застревает в промежуточном кадре, где реальный трей уже погас и стал некликабельным (DIVI-104).
+    private var headerExpandedOffset: CGFloat { -feedTopInset }   // p = 0
+    private var headerCollapsedOffset: CGFloat { storiesHeight }  // p = 1
+
+    private func headerSnapTarget(for offset: CGFloat, velocity: CGFloat) -> CGFloat? {
+        guard offset > headerExpandedOffset, offset < headerCollapsedOffset else { return nil }
+        // Мало карточек — до полного коллапса не долистать, единственное устойчивое состояние — раскрытое.
+        let maxReachable = mainCollectionView.contentSize.height - mainCollectionView.bounds.height + mainCollectionView.contentInset.bottom
+        if maxReachable < headerCollapsedOffset { return headerExpandedOffset }
+        if velocity > 0.1 { return headerCollapsedOffset }
+        if velocity < -0.1 { return headerExpandedOffset }
+        let midpoint = (headerExpandedOffset + headerCollapsedOffset) / 2
+        return offset < midpoint ? headerExpandedOffset : headerCollapsedOffset
+    }
+
+    func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
+        guard scrollView === mainCollectionView else { return }
+        if let target = headerSnapTarget(for: targetContentOffset.pointee.y, velocity: velocity.y) {
+            targetContentOffset.pointee.y = target
+        }
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        guard scrollView === mainCollectionView, !decelerate else { return }
+        // Медленное отпускание без инерции — targetContentOffset не сработает, доводим вручную.
+        if let target = headerSnapTarget(for: scrollView.contentOffset.y, velocity: 0) {
+            scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: target), animated: true)
+        }
+    }
+
     private func cardIndex(forUserId userId: Int) -> Int? {
         cards.firstIndex(where: { $0.userId == userId })
     }
