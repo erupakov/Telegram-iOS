@@ -31,17 +31,14 @@ public enum DivoFirebaseConfig {
         databaseURL: "https://divo-2-stage-default-rtdb.europe-west1.firebasedatabase.app"
     )
 
-    // Прод-набор из GoogleService-Info.plist (проект divodev-62848).
-    // ВНИМАНИЕ: bundleID в прод-плисте — `fashion.divo.app`, а бандл приложения — `app.divo.fashion`.
-    // Значение оставлено как в плисте; если Firebase/Google Sign-In в prod отвалятся по несовпадению
-    // bundle-id — правится здесь одной строкой (нужен корректный прод-плист под app.divo.fashion).
+    // Прод-набор из GoogleService-Info.plist (проект divodev-62848, iOS-приложение app.divo.fashion).
     private static let prod = Values(
         apiKey: "AIzaSyDZ8G_C8kxiGd5_tWeSTn14UHg-vvRO66A",
-        bundleID: "fashion.divo.app",
-        clientID: "432665781659-3vnd3a2po7ki83qdq1n4rknfc51i6345.apps.googleusercontent.com",
-        reversedClientID: "com.googleusercontent.apps.432665781659-3vnd3a2po7ki83qdq1n4rknfc51i6345",
+        bundleID: "app.divo.fashion",
+        clientID: "432665781659-col2pcdjpsreehlpoc0thoufe8sgf79l.apps.googleusercontent.com",
+        reversedClientID: "com.googleusercontent.apps.432665781659-col2pcdjpsreehlpoc0thoufe8sgf79l",
         gcmSenderID: "432665781659",
-        googleAppID: "1:432665781659:ios:32700930b15cd756a8ad3e",
+        googleAppID: "1:432665781659:ios:eb45d00e916fe609a8ad3e",
         projectID: "divodev-62848",
         storageBucket: "divodev-62848.firebasestorage.app",
         databaseURL: "https://divodev-62848-default-rtdb.firebaseio.com"

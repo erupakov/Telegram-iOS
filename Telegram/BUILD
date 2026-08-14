@@ -352,6 +352,12 @@ composer_icon_folders = ["Telegram"]
 ]
 
 filegroup(
+    name = "PrivacyManifest",
+    srcs = [
+        "PrivacyInfo.xcprivacy",
+    ],
+)
+filegroup(
     name = "LaunchScreen",
     srcs = glob([
         "Telegram-iOS/Base.lproj/LaunchScreen.xib",
@@ -1687,7 +1693,7 @@ plist_fragment(
         <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>We need this so that you can take and share photos and videos.</string>
+    <string>We need this so that you can take and share photos and videos, make video calls, and take a photo to search for profiles by face.</string>
     <key>NSContactsUsageDescription</key>
     <string>DIVO Global stores your contacts heavily encrypted in the cloud to let you connect with your friends across all your devices.</string>
     <key>NSFaceIDUsageDescription</key>
@@ -1701,7 +1707,7 @@ plist_fragment(
     <key>NSMicrophoneUsageDescription</key>
     <string>We need this so that you can record and share voice messages and videos with sound.</string>
     <key>NSMotionUsageDescription</key>
-    <string>When you send your location to your friends, DIVO Global needs access to show them a map.</string>
+    <string>DIVO uses device motion data so interactive mini apps can respond to how you move your device.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>We need this so that you can share photos and videos from your photo library.</string>
     <key>NSPhotoLibraryUsageDescription</key>
@@ -1830,6 +1836,7 @@ ios_application(
     }),
     alternate_icons = [],
     resources = [
+        ":PrivacyManifest",
         ":LaunchScreen",
         ":HelveticaNeue",
         #":AdditionalIcons",
