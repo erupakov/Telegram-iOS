@@ -81,6 +81,8 @@ extension AppDelegate {
                 divoLog("[contact] divoUserId=\(divoUserId) без telegramId — пропускаю", level: .info)
                 return
             }
+            // teamgram требует непустое имя контакта (пустое → CONTACT_NAME_EMPTY), поэтому заводим
+            // с именем на момент follow (снапшот). Живое имя контакта на клиенте недостижимо.
             let (firstName, lastName) = DivoTeamgramName.split(fullName: detail.fullName ?? "")
             let engine = context.context.engine
             let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))

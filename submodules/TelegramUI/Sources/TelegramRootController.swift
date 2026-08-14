@@ -217,10 +217,30 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.modelsFeedNode?.tabBarItem.title = DivoStrings.tabModels
         self.eventsController?.tabBarItem.title = DivoStrings.tabEvents
         self.chatListController?.tabBarItem.title = DivoStrings.tabChats
-        self.profileTabController?.tabBarItem.title = DivoStrings.tabProfile
         self.divoSettingsController?.tabBarItem.title = DivoStrings.tabSettings
         if let tabController = self.rootTabController as? TabBarControllerImpl {
-            tabController.setControllers(tabController.controllers, selectedIndex: nil)
+            var controllers = tabController.controllers
+            // Профиль-таб пересоздаём: DivoStrings вычисляются лениво, но статичные лейблы ноды
+            // выставлены при построении и без пересоздания остаются на старом языке.
+            if let old = self.profileTabController, let idx = controllers.firstIndex(where: { $0 === old }) {
+                let fresh = PublicProfileScreenController(context: self.context, model: ProfileModel(
+                    name: "",
+                    age: nil,
+                    location: "",
+                    isVerified: false,
+                    likesCount: "0",
+                    viewsCount: "0",
+                    savesCount: "0",
+                    biography: "",
+                    socialMediaHandles: [],
+                    isMyProfile: true
+                ))
+                fresh.configureAsProfileTab()
+                controllers[idx] = fresh
+                self.profileTabController = fresh
+            }
+            self.profileTabController?.tabBarItem.title = DivoStrings.tabProfile
+            tabController.setControllers(controllers, selectedIndex: nil)
         }
         // animated:true — иначе pop из DivoLanguagePickerController в Settings идёт резко;
         // в других местах (token change, logout) popToRoot оставлен без анимации намеренно.

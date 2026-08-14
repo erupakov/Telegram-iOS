@@ -7,12 +7,54 @@ import Foundation
 /// REST-сохранения имени в DIVO.
 public enum DivoTeamgramName {
     /// Имя и фамилия пришли уже раздельными (экран редактирования с двумя полями) — шлём в teamgram
-    /// как есть, без угадывания границы слов.
+    /// как есть, без угадывания границы слов. Одновременно запоминаем два поля локально: teamgram и
+    /// DIVO хранят имя по-разному (два поля vs одна строка), а reconcile при старте пере-режет DIVO
+    /// fullName наивным split'ом — поэтому граница слов достоверно живёт только здесь. Экраны правки
+    /// префиллят два поля из этого стора (см. [[localName]]).
     public static func syncToTeamgram(firstName: String, lastName: String) {
         let first = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let last = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !first.isEmpty else { return }
+        storeLocalName(firstName: first, lastName: last)
         PendingTelegramOpsQueue.shared.enqueue(.nameUpdate(firstName: first, lastName: last))
+    }
+
+    private static let localFirstNameKey = "divo.selfName.first"
+    private static let localLastNameKey = "divo.selfName.last"
+
+    /// Запомнить последние введённые имя/фамилию (точная граница слов) для префилла экранов правки.
+    public static func storeLocalName(firstName: String, lastName: String) {
+        UserDefaults.standard.set(firstName, forKey: localFirstNameKey)
+        UserDefaults.standard.set(lastName, forKey: localLastNameKey)
+    }
+
+    /// Локально сохранённые имя/фамилия (nil, если ещё не сохраняли на этом устройстве).
+    public static func localName() -> (firstName: String, lastName: String)? {
+        guard let first = UserDefaults.standard.string(forKey: localFirstNameKey) else { return nil }
+        return (first, UserDefaults.standard.string(forKey: localLastNameKey) ?? "")
+    }
+
+    /// Снять локальное имя на логауте/сбросе сессии — иначе следующий аккаунт префиллит чужое имя.
+    public static func clearLocalName() {
+        UserDefaults.standard.removeObject(forKey: localFirstNameKey)
+        UserDefaults.standard.removeObject(forKey: localLastNameKey)
+    }
+
+    /// Разбить единое DIVO `fullName` на имя/фамилию, но с приоритетом локально сохранённых двух полей:
+    /// если их склейка совпадает с `fullName` — берём их (точная граница), иначе честный naive split
+    /// актуального `fullName`. Используется для префилла экранов правки (EditProfile / SetName).
+    public static func splitPreservingLocal(fullName: String) -> (firstName: String, lastName: String) {
+        let full = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let local = localName() {
+            let joined = [local.firstName, local.lastName]
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            if !local.firstName.isEmpty, joined == full {
+                return (local.firstName, local.lastName)
+            }
+        }
+        return split(fullName: full)
     }
 
     public static func syncToTeamgram(fullName: String?) {

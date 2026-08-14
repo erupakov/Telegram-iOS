@@ -329,6 +329,9 @@ public enum DivoConfig {
         // teamgram-аккаунта → 409 "already linked" (ловилось на тестах через разлогины).
         PendingTelegramOpsQueue.shared.clear()
         DivoTeamgramSync.shared.reset()
+        // Локально сохранённые имя/фамилия (для префилла экранов правки) — per-device, не должны
+        // пережить логаут, иначе следующий аккаунт префиллит чужое имя.
+        DivoTeamgramName.clearLocalName()
         // История поиска по лицу — per-device кэш (фото лиц на диске), не должна утечь следующему аккаунту.
         FaceSearchHistoryStorage.shared.clearAll()
     }
