@@ -745,50 +745,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
         controllerNode.retryVisibleVideoThumbnails()
     }
 
-    /// «Догоняющее» живое имя контакта (#4): при открытии профиля друга из ленты, если он уже в
-    /// контактах и его текущее имя (из REST) разошлось с записанным в контакте — тихо перезаписываем
-    /// контактное имя на актуальное. Реалтайма (мгновенно у всех) на клиенте нет — только через сервер.
-    private func refreshContactNameIfNeeded(_ detail: UserDetail) {
-        guard !isMyProfile, let telegramId = detail.telegramId else { return }
-        let fullName = (detail.fullName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !fullName.isEmpty else { return }
-        let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))
-        let engine = context.engine
-        let _ = (engine.data.get(
-            TelegramEngine.EngineData.Item.Peer.Peer(id: peerId),
-            TelegramEngine.EngineData.Item.Peer.IsContact(id: peerId)
-        )
-        |> take(1)
-        |> deliverOnMainQueue).start(next: { peerAndIsContact in
-            let (peer, isContact) = peerAndIsContact
-            // Только если человек УЖЕ в контактах — иначе открытие профиля молча добавляло бы его.
-            guard isContact, case let .user(user)? = peer else { return }
-            let contactName = [user.firstName ?? "", user.lastName ?? ""]
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-                .joined(separator: " ")
-            guard contactName != fullName else { return }
-            // Имя/фамилия контакта показываются склеенными — наивный split границу не портит.
-            let parts = DivoTeamgramName.split(fullName: fullName)
-            let telegramIdValue = Int64(telegramId)
-            let accessHashValue = user.accessHash?.value ?? 0
-            let _ = engine.contacts.addContactInteractively(
-                peerId: peerId,
-                firstName: parts.firstName,
-                lastName: parts.lastName,
-                phoneNumber: "",
-                noteText: "",
-                noteEntities: [],
-                addToPrivacyExceptions: false
-            ).start(completed: {
-                // Ответ addContact не всегда приносит переименованного пира — список чатов/заголовок
-                // держат старое имя до следующего события. Принудительно перечитываем пира с сервера,
-                // чтобы UI перерисовался сразу.
-                let _ = engine.peers.updatedRemotePeer(peer: .user(id: telegramIdValue, accessHash: accessHashValue)).start()
-            })
-        })
-    }
-
     private func loadInitialData() {
         profileLoaded = true
         Task {
@@ -824,7 +780,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 self.setupStoryRing()
-                self.refreshContactNameIfNeeded(detail)
                 if let eng = engagement {
                     self.controllerNode.updateEngagementStats(
                         likes: eng.likes,
