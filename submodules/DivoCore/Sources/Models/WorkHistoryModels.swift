@@ -3,7 +3,7 @@ import Foundation
 public struct WorkHistoryResponse: Decodable {
     public let message: String?
     public let data: WorkHistoryData
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct WorkHistoryData: Decodable {
@@ -94,7 +94,7 @@ extension WorkHistoryItem {
 
 public struct WorkHistoryDeleteResponse: Decodable {
     public let message: String?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct CreateWorkHistoryRequest: Encodable {
@@ -115,5 +115,5 @@ public struct CreateWorkHistoryRequest: Encodable {
 
 public struct WorkHistorySaveResponse: Decodable {
     public let message: String?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }

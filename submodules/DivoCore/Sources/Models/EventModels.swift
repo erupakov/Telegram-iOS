@@ -114,7 +114,7 @@ public struct EventFile: Decodable {
 public struct EventFullDetailResponse: Decodable {
     public let message: String?
     public let data: EventFullDetailData?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct EventFullDetailData: Decodable {
@@ -498,11 +498,11 @@ public struct EventRangeRequest: Codable {
 
 public struct CreateEventResponse: Decodable {
     public let message: String?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
     // Созданное событие — нужен id для перехода с экрана успеха.
     public let data: EventFullDetailData?
 
-    public init(message: String?, errors: [String]?, data: EventFullDetailData? = nil) {
+    public init(message: String?, errors: DivoResponseErrors?, data: EventFullDetailData? = nil) {
         self.message = message
         self.errors = errors
         self.data = data
@@ -511,9 +511,9 @@ public struct CreateEventResponse: Decodable {
 
 public struct DeleteEventResponse: Codable {
     public let message: String?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 
-    public init(message: String?, errors: [String]?) {
+    public init(message: String?, errors: DivoResponseErrors?) {
         self.message = message
         self.errors = errors
     }
