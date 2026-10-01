@@ -64,7 +64,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private let peer: Peer?
     
     private let contextSourceNode = ContextReferenceContentNode()
-    private let deleteLoadingOverlay = DivoLoadingOverlay()
 
     private var galleryLoaded: Bool = false
     private var profileLoaded: Bool = false
@@ -454,10 +453,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onManageWorkExperienceTapped = { [weak self] in
             self?.navigateToManageExperience()
-        }
-
-        self.controllerNode.onDeleteProfileTapped = { [weak self] in
-            self?.presentDeleteProfileConfirmation()
         }
 
         self.controllerNode.onAddModelTapped = { [weak self] in
@@ -2262,79 +2257,4 @@ extension PublicProfileScreenController {
         }
     }
 
-    func presentDeleteProfileConfirmation() {
-        let alert = UIAlertController(
-            title: DivoStrings.deleteProfile,
-            message: DivoStrings.deleteProfileConfirmMessage,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
-        alert.addAction(UIAlertAction(title: DivoStrings.delete, style: .destructive) { [weak self] _ in
-            self?.deleteProfile()
-        })
-        self.present(alert, animated: true)
-    }
-
-    private func deleteProfile() {
-        // Блокирующий полноэкранный лоадер — пока идёт удаление, юзер не должен уйти с экрана / тапать.
-        self.deleteLoadingOverlay.show(in: self.displayNode.view, message: DivoStrings.deleting)
-        Task { [weak self] in
-            do {
-                // Деструктивный эндпоинт: успех определяем по HTTP-статусу (2xx), тело не декодим —
-                // на пустом/неожиданном ответе жёсткий decode упал бы уже ПОСЛЕ удаления аккаунта.
-                _ = try await DivoAPIClient.shared.requestRawData(
-                    path: "/user/delete-account",
-                    method: "DELETE"
-                )
-                await MainActor.run {
-                    guard let self = self else { return }
-                    // DIVO-аккаунт удалён. Бэк не каскадит на teamgram — сам удаляем и Telegram-аккаунт
-                    // (MTProto account.deleteAccount), иначе осиротевшая teamgram-учётка переживёт удаление.
-                    // Лоадер не прячем: logout уводит с экрана, оверлей уходит вместе с контроллером.
-                    let accountId = self.context.account.id
-                    let accountManager = self.context.sharedContext.accountManager
-                    // Полная чистка локальной DIVO-сессии (токен, роль, userId, pending-опы, teamgram-sync,
-                    // история поиска по лицу) + снятие записи аккаунта. alreadyLoggedOutRemotely=true — когда
-                    // Telegram-аккаунт реально удалён на сервере; false — fallback-разлогин, если не вышло.
-                    let finishLogout: (Bool) -> Void = { alreadyLoggedOutRemotely in
-                        DivoConfig.resetDivoSessionForRollback()
-                        // Future-auth-токены удалённого аккаунта переживают логаут (DIVI-87) — чистим, чтобы
-                        // следующий вход по этому номеру не делал fast-relogin в старую teamgram-учётку.
-                        let _ = (accountManager.transaction { transaction -> Void in
-                            transaction.setStoredLoginTokens([])
-                        }).startStandalone()
-                        let _ = logoutFromAccount(
-                            id: accountId,
-                            accountManager: accountManager,
-                            alreadyLoggedOutRemotely: alreadyLoggedOutRemotely
-                        ).start()
-                    }
-                    // Таймаут страхует от зависшего ответа teamgram — иначе блокирующий оверлей завис бы навсегда.
-                    // Один повтор: если teamgram-удаление не пройдёт, осиротевшая teamgram-учётка (старые
-                    // ава/имя/истории) подцепится при следующем входе по этому номеру.
-                    let deleteTeamgram = self.context.engine.auth.deleteAccount(reason: "DIVO", password: nil)
-                    |> timeout(15.0, queue: Queue.mainQueue(), alternate: .fail(.generic))
-                    let _ = (deleteTeamgram
-                    |> `catch` { _ -> Signal<Never, DeleteAccountError> in
-                        divoLog("[DELETE ACCOUNT] MTProto account.deleteAccount: первая попытка не прошла — повтор", level: .warning)
-                        return deleteTeamgram
-                    }
-                    |> deliverOnMainQueue).start(error: { _ in
-                        // teamgram не подтвердил удаление — DIVO уже удалён, юзера не бросаем: обычный разлогин.
-                        divoLog("[DELETE ACCOUNT] MTProto account.deleteAccount не подтверждён (ошибка/таймаут) — fallback-разлогин", level: .error)
-                        finishLogout(false)
-                    }, completed: {
-                        divoLog("[DELETE ACCOUNT] Telegram-аккаунт удалён через MTProto account.deleteAccount")
-                        finishLogout(true)
-                    })
-                }
-            } catch {
-                await MainActor.run {
-                    guard let self = self else { return }
-                    self.deleteLoadingOverlay.hide()
-                    self.controllerNode.showSnackbar(message: DivoStrings.deleteProfileFailed, style: .error)
-                }
-            }
-        }
-    }
 }
