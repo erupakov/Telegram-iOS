@@ -10,7 +10,10 @@ import UIKit
 
 public enum RosterUserStatus: Equatable {
     case available(handle: String, role: String)
-    case alreadyAdded(agencyName: String)
+    /// Модель уже в ростере НАШЕГО агентства (подтверждено списком `/agency/{id}/models/list`).
+    case inYourRoster
+    /// Модель представлена другим агентством — добавить нельзя.
+    case representedByAnother(agencyName: String)
 }
 
 public struct RosterSearchUser: Equatable {
