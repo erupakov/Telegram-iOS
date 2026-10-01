@@ -84,6 +84,9 @@ public extension TelegramEngineUnauthorized {
 
 public enum DeleteAccountError {
     case generic
+    /// DIVO: сессия уже отвязана (401 AUTH_KEY_UNREGISTERED / SESSION_REVOKED). teamgram отвязывает
+    /// auth key сразу после удаления — так отвечает повтор, если ответ на первый вызов потерялся.
+    case alreadyDeleted
 }
 
 public extension TelegramEngine {
@@ -132,7 +135,10 @@ public extension TelegramEngine {
                     flags |= (1 << 0)
                 }
                 return self.account.network.request(Api.functions.account.deleteAccount(flags: flags, reason: reason, password: password))
-                |> mapError { _ -> DeleteAccountError in
+                |> mapError { error -> DeleteAccountError in
+                    if error.errorCode == 401 || error.errorDescription == "AUTH_KEY_UNREGISTERED" || error.errorDescription == "SESSION_REVOKED" {
+                        return .alreadyDeleted
+                    }
                     return .generic
                 }
                 |> ignoreValues

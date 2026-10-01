@@ -79,11 +79,20 @@ private func divoDeleteProfile(context: AccountContext, hostController: UIViewCo
         let deleteTeamgram = context.engine.auth.deleteAccount(reason: "DIVO", password: nil)
         |> timeout(15.0, queue: Queue.mainQueue(), alternate: .fail(.generic))
         let _ = (deleteTeamgram
-        |> `catch` { _ -> Signal<Never, DeleteAccountError> in
+        |> `catch` { error -> Signal<Never, DeleteAccountError> in
+            if case .alreadyDeleted = error {
+                return .fail(error)
+            }
             divoLog("[DELETE ACCOUNT] MTProto account.deleteAccount: первая попытка не прошла — повтор", level: .warning)
             return deleteTeamgram
         }
-        |> deliverOnMainQueue).start(error: { _ in
+        |> deliverOnMainQueue).start(error: { error in
+            if case .alreadyDeleted = error {
+                // 401: сессия уже отвязана — первый вызов на самом деле удалил аккаунт (ответ потерялся).
+                divoLog("[DELETE ACCOUNT] MTProto: сессия уже отвязана (401) — аккаунт удалён")
+                finishLogout(true)
+                return
+            }
             // teamgram не подтвердил удаление — DIVO уже удалён, юзера не бросаем: обычный разлогин.
             divoLog("[DELETE ACCOUNT] MTProto account.deleteAccount не подтверждён (ошибка/таймаут) — fallback-разлогин", level: .error)
             finishLogout(false)
