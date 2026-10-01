@@ -92,22 +92,60 @@ func _internal_channelMembers(postbox: Postbox, network: Network, accountPeerId:
                 guard let result else {
                     return .single(nil)
                 }
-                return postbox.transaction { transaction -> [RenderedChannelParticipant]? in
-                    var items: [RenderedChannelParticipant] = []
+                // DIVO: teamgram может отдать участников без (части) объектов в `users`. Раньше такой
+                // участник молча выкидывался — список был пустым при ненулевом счётчике. Теперь берём
+                // пира из локальной базы, а совсем неизвестных догружаем через users.getUsers.
+                let parsed: Signal<(participants: [ChannelParticipant], peerIds: Set<PeerId>, missingUsers: [Api.InputUser])?, NoError> = postbox.transaction { transaction -> (participants: [ChannelParticipant], peerIds: Set<PeerId>, missingUsers: [Api.InputUser])? in
                     switch result {
                         case let .channelParticipants(channelParticipantsData):
                             let (participants, chats, users) = (channelParticipantsData.participants, channelParticipantsData.chats, channelParticipantsData.users)
                             let parsedPeers = AccumulatedPeers(transaction: transaction, chats: chats, users: users)
                             updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: parsedPeers)
+                            let channelParticipants = CachedChannelParticipants(apiParticipants: participants).participants
+                            var peerIds = parsedPeers.allIds
+                            var missingUsers: [Api.InputUser] = []
+                            for participant in channelParticipants {
+                                peerIds.insert(participant.peerId)
+                                if parsedPeers.get(participant.peerId) == nil, transaction.getPeer(participant.peerId) == nil, participant.peerId.namespace == Namespaces.Peer.CloudUser {
+                                    missingUsers.append(.inputUser(.init(userId: participant.peerId.id._internalGetInt64Value(), accessHash: 0)))
+                                }
+                            }
+                            return (channelParticipants, peerIds, missingUsers)
+                        case .channelParticipantsNotModified:
+                            return nil
+                    }
+                }
+                return parsed
+                |> mapToSignal { parsed -> Signal<[RenderedChannelParticipant]?, NoError> in
+                    guard let parsed else {
+                        return .single(nil)
+                    }
+                    let resolveMissingUsers: Signal<Void, NoError>
+                    if !parsed.missingUsers.isEmpty {
+                        resolveMissingUsers = network.request(Api.functions.users.getUsers(id: parsed.missingUsers))
+                        |> `catch` { _ -> Signal<[Api.User], NoError> in
+                            return .single([])
+                        }
+                        |> mapToSignal { users -> Signal<Void, NoError> in
+                            return postbox.transaction { transaction -> Void in
+                                updatePeers(transaction: transaction, accountPeerId: accountPeerId, peers: AccumulatedPeers(users: users))
+                            }
+                        }
+                    } else {
+                        resolveMissingUsers = .single(Void())
+                    }
+                    return resolveMissingUsers
+                    |> mapToSignal { _ -> Signal<[RenderedChannelParticipant]?, NoError> in
+                        return postbox.transaction { transaction -> [RenderedChannelParticipant]? in
                             var peers: [PeerId: Peer] = [:]
-                            for id in parsedPeers.allIds {
+                            for id in parsed.peerIds {
                                 if let peer = transaction.getPeer(id) {
                                     peers[peer.id] = peer
                                 }
                             }
-                            
-                            for participant in CachedChannelParticipants(apiParticipants: participants).participants {
-                                if let peer = parsedPeers.get(participant.peerId) {
+                            var items: [RenderedChannelParticipant] = []
+                            for participant in parsed.participants {
+                                if let peer = peers[participant.peerId] {
                                     var renderedPresences: [PeerId: PeerPresence] = [:]
                                     if let presence = transaction.getPeerPresence(peerId: participant.peerId) {
                                         renderedPresences[participant.peerId] = presence
@@ -115,10 +153,9 @@ func _internal_channelMembers(postbox: Postbox, network: Network, accountPeerId:
                                     items.append(RenderedChannelParticipant(participant: participant, peer: peer, peers: peers, presences: renderedPresences))
                                 }
                             }
-                        case .channelParticipantsNotModified:
-                            return nil
+                            return items
+                        }
                     }
-                    return items
                 }
             }
         } else {
