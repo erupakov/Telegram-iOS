@@ -22,6 +22,10 @@ public enum DivoConfig {
     public static let tokenDidChangeNotification = Notification.Name("DivoConfig.tokenDidChange")
     public static let roleDidChangeNotification = Notification.Name("DivoConfig.roleDidChange")
     public static let profileDidUpdateNotification = Notification.Name("DivoConfig.profileDidUpdate")
+    /// Канал зарегистрирован в REST (/channels/add) → профиль перечитывает /channels/list.
+    /// Регистрация асинхронна (ждёт username после создания), поэтому без нотификации свежий канал
+    /// не появлялся в профиле до перезахода.
+    public static let channelsDidChangeNotification = Notification.Name("DivoConfig.channelsDidChange")
     /// Статус заявки на событие изменился (apply/unapply) → перерисовать ячейки эвентов в табе/профиле.
     public static let divoEventAppliedStatusChanged = Notification.Name("DivoConfig.eventAppliedStatusChanged")
     /// Выставлен pending-онбординг (соц/phone). Нужно перепроверить app-gate: на первом входе

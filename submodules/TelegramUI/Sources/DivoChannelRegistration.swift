@@ -47,6 +47,9 @@ func divoRegisterCreatedChannel(context: AccountContext, peerId: PeerId) {
                     body: ChannelAddRequest(telegramChatId: telegramChatId, username: username, inviteLink: inviteLink)
                 )
                 divoLog("[CHANNELS] публичный канал @\(username) (\(telegramChatId)) зарегистрирован в REST")
+                await MainActor.run {
+                    NotificationCenter.default.post(name: DivoConfig.channelsDidChangeNotification, object: nil)
+                }
             } catch {
                 divoLog("[CHANNELS] add failed для \(telegramChatId): \(error)", level: .error)
             }

@@ -146,6 +146,20 @@ public final class PublicProfileScreenController: TelegramBaseController {
             name: DivoConfig.divoEventCreated,
             object: nil
         )
+        // Свой канал зарегистрирован в REST → перечитываем список каналов профиля.
+        if model.isMyProfile {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(self.handleChannelsDidChange),
+                name: DivoConfig.channelsDidChangeNotification,
+                object: nil
+            )
+        }
+    }
+
+    @objc private func handleChannelsDidChange() {
+        guard self.isNodeLoaded else { return }
+        self.controllerNode.reloadChannelGalleryIfLoaded()
     }
     
     deinit {
