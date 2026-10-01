@@ -4534,7 +4534,10 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
 
         transition.updateFrame(node: self.contextGestureContainerNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: size.width, height: size.height)))
         
-        if case let .peer(_, _, isArchived) = self.scope, let items = self.items, items.items.isEmpty, items.count == 0 {
+        if case let .peer(scopePeerId, _, isArchived) = self.scope, let items = self.items, items.items.isEmpty, items.count == 0 {
+            // DIVO: истории каналов не поддерживаем — в пустом состоянии вкладки историй канала
+            // кнопку «добавить историю» не показываем (как и в шапке профиля канала).
+            let divoCanAddStory = self.canManageStories && scopePeerId.namespace != Namespaces.Peer.CloudChannel
             if self.canManageStories, self.isProfileEmbedded, self.currentStoryFolder != nil {
                 let emptyStateView: ComponentView<Empty>
                 var emptyStateTransition = ComponentTransition(transition)
@@ -4621,7 +4624,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                         animationName: "StoryListEmpty",
                         title: isArchived ? presentationData.strings.StoryList_ArchivedEmptyState_Title : presentationData.strings.StoryList_SavedEmptyPosts_Title,
                         text: isArchived ? presentationData.strings.StoryList_ArchivedEmptyState_Text : presentationData.strings.StoryList_SavedEmptyPosts_Text,
-                        actionTitle: (isArchived || !self.canManageStories) ? nil : presentationData.strings.StoryList_SavedAddAction,
+                        actionTitle: (isArchived || !divoCanAddStory) ? nil : presentationData.strings.StoryList_SavedAddAction,
                         action: { [weak self] in
                             guard let self else {
                                 return
