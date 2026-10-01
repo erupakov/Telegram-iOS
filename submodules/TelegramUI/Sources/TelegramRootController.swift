@@ -761,7 +761,8 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             targetPeerId = nil
         }
         
-        let folders: [Int64] = results.first?.options.folderIds ?? []
+        // DIVO: альбомы историй не поддерживаем — публикуем без привязки к альбомам.
+        let folders: [Int64] = []
 
         if let rootTabController = self.rootTabController {
             // DIVO: при форс-таргете (постинг из DIVO-профиля) не переключаем таббар на чат-лист
