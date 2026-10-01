@@ -379,12 +379,12 @@ public final class StorySubscriptionsContext {
                 if !isRefresh {
                     flags |= 1 << 1
                 } else {
-                    #if DEBUG
-                    if "".isEmpty {
-                        state = nil
-                        flags &= ~(1 << 0)
-                    }
-                    #endif
+                    // DIVO: рефреш всегда полный (без state) — и в релизе, не только в DEBUG, как в апстриме.
+                    // teamgram на инкрементальный getAllStories со state отвечает allStoriesNotModified и
+                    // не отдаёт новые истории контактов: лента сторис в чатах и на главной застревала на
+                    // первом снимке (в DEBUG-сборке всё работало — там state уже сбрасывался).
+                    state = nil
+                    flags &= ~(1 << 0)
                 }
             }
             
