@@ -259,7 +259,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             context: self.context,
             presentationData: self.presentationData,
             linksData: linksData,
-            agencyNetworks: isAgency ? (userDetailModel?.userSocialNetworks ?? []) : nil
+            agencyNetworks: isAgency ? (userDetailModel?.userSocialNetworks ?? []) : nil,
+            agencyDetail: isAgency ? userDetailModel : nil
         )
         socialLinksController.delegate = self
         self.push(socialLinksController)

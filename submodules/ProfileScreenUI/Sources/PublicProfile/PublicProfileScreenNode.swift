@@ -3697,7 +3697,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         if let instagram = detail.model?.instagramUrl, !instagram.isEmpty { socialLinks.append(instagram) }
         if let website = detail.model?.websiteUrl, !website.isEmpty { socialLinks.append(website) }
         
-        // Соцсети из /user-social-network (top-level) — единственный источник для agency;
+        // Сайт агентства живёт в agency.site (onboarding/`/agency/update`), а не в model.websiteUrl.
+        if let site = detail.agency?.site, !site.isEmpty, !socialLinks.contains(site) {
+            socialLinks.append(site)
+        }
+
+        // Соцсети из /user-social-network (top-level) — основной источник соцсетей для agency;
         // у model могут дублировать legacy-ссылки из model.*Url, поэтому фильтруем повторы.
         for network in detail.userSocialNetworks ?? [] {
             if let link = network.link, !link.isEmpty, !socialLinks.contains(link) {

@@ -35,6 +35,10 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
     // не nil — режим agency: поля из справочника /social-network, запись в /user-social-network
     private let agencyNetworks: [UserSocialNetwork]?
     private var socialNetworksDictionary: [SocialNetworkItem] = []
+    // Профиль агентства: сайт живёт в agency.site и пишется через /agency/update (не /user-social-network)
+    private let agencyDetail: UserDetail?
+    // id поля «Сайт» агентства — отрицательный, не пересекается с socialNetworkId справочника
+    private static let agencySiteFieldId = -100
 
     // Отрицательные id model-полей, чтобы не пересекаться с socialNetworkId справочника
     private enum ModelField: Int {
@@ -46,10 +50,11 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
     weak var delegate: EditSocialLinksDelegate?
 
-    public init(context: AccountContext, presentationData: PresentationData, linksData: LinksData, agencyNetworks: [UserSocialNetwork]? = nil) {
+    public init(context: AccountContext, presentationData: PresentationData, linksData: LinksData, agencyNetworks: [UserSocialNetwork]? = nil, agencyDetail: UserDetail? = nil) {
         self.context = context
         self.linksData = linksData
         self.agencyNetworks = agencyNetworks
+        self.agencyDetail = agencyDetail
 
         self.presentationData = presentationData
 
@@ -116,8 +121,29 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         ]
     }
 
+    /// Сети для полей агентства: справочник /social-network + уже сохранённые соцсети, которых в справочнике
+    /// нет (иначе добавленная ссылка пропадала с экрана правки и её нельзя было ни увидеть, ни удалить).
+    private var agencyNetworkItems: [SocialNetworkItem] {
+        var items = socialNetworksDictionary
+        var knownIds = Set(items.compactMap { $0.id })
+        for saved in agencyNetworks ?? [] {
+            guard let network = saved.socialNetwork, let id = network.id, !knownIds.contains(id) else { continue }
+            knownIds.insert(id)
+            items.append(network)
+        }
+        return items
+    }
+
     private func agencyFieldSpecs() -> [SocialLinkFieldSpec] {
-        return socialNetworksDictionary.compactMap { network in
+        var specs: [SocialLinkFieldSpec] = [
+            SocialLinkFieldSpec(
+                id: Self.agencySiteFieldId,
+                prefix: "",
+                placeholder: DivoStrings.enterYourWebsite,
+                initialText: agencyDetail?.agency?.site ?? ""
+            )
+        ]
+        specs += agencyNetworkItems.compactMap { network in
             guard let networkId = network.id else { return nil }
             let prefix = Self.urlPrefix(for: network.provider)
             let existing = self.existingNetwork(forId: networkId)
@@ -134,6 +160,7 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                 initialText: initialText
             )
         }
+        return specs
     }
 
     private func existingNetwork(forId networkId: Int) -> UserSocialNetwork? {
@@ -201,7 +228,10 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
     private func saveAgencySocialLinks(texts: [Int: String], changedIds: Set<Int>) {
         Task { @MainActor in
             do {
-                for network in self.socialNetworksDictionary {
+                if changedIds.contains(Self.agencySiteFieldId) {
+                    try await self.saveAgencySite(text: texts[Self.agencySiteFieldId] ?? "")
+                }
+                for network in self.agencyNetworkItems {
                     guard let networkId = network.id, changedIds.contains(networkId) else { continue }
 
                     let text = texts[networkId] ?? ""
@@ -235,6 +265,27 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                 self.handleSaveError(error)
             }
         }
+    }
+
+    /// Сайт агентства → /agency/update. Бэк делает replace, поэтому остальные поля агентства пересылаем
+    /// из текущего профиля (как EditProfileController); пустой сайт уходит явным null.
+    private func saveAgencySite(text: String) async throws {
+        let agency = self.agencyDetail?.agency
+        let request = UpdateDescriptionAgencyRequest(
+            agencyId: agency?.id,
+            title: agency?.title,
+            site: Self.constructFullURL(from: text, with: ""),
+            description: agency?.description,
+            background: agency?.background?.fileUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) },
+            photo: agency?.photo?.fileUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) },
+            // Без города address не шлём: {"cityId": null} при replace затёр бы город на беке
+            address: (agency?.address?.city?.id).map { UpdateAgencyAddress(cityId: $0) }
+        )
+        let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
+            path: "/agency/update",
+            method: "POST",
+            body: request
+        )
     }
 
     private func handleSaveError(_ error: Error) {
