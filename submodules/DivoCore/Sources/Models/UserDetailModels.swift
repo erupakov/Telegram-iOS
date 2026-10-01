@@ -3,7 +3,7 @@ import Foundation
 public struct UserDetailResponse: Decodable {
     public let message: String?
     public let data: UserDetail
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct UserDetail: Decodable {
@@ -125,9 +125,9 @@ public struct UpdateSocialLinksRequest: Encodable {
 public struct UpdateSocialLinksResponse: Decodable {
     public let message: String?
     public let data: UserDetail?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 
-    public init(message: String?, data: UserDetail?, errors: [String]?) {
+    public init(message: String?, data: UserDetail?, errors: DivoResponseErrors?) {
         self.message = message
         self.data = data
         self.errors = errors
@@ -232,7 +232,7 @@ public struct SocialNetworkItem: Decodable {
 public struct SocialNetworkListResponse: Decodable {
     public let message: String?
     public let data: [SocialNetworkItem]?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct UserSocialNetworkUpsertRequest: Encodable {
@@ -249,7 +249,7 @@ public struct UserSocialNetworkUpsertRequest: Encodable {
 
 public struct UserSocialNetworkMutationResponse: Decodable {
     public let message: String?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public extension Double {
@@ -303,9 +303,9 @@ public struct UpdateBiographyPageRequest: Encodable {
 public struct UpdateBiographyPageResponse: Decodable {
     public let message: String?
     public let data: UserDetail?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 
-    public init(message: String?, data: UserDetail?, errors: [String]?) {
+    public init(message: String?, data: UserDetail?, errors: DivoResponseErrors?) {
         self.message = message
         self.data = data
         self.errors = errors
@@ -336,7 +336,7 @@ public struct AgencyListRequest: Encodable {
 public struct AgencyListResponse: Decodable {
     public let message: String?
     public let data: AgencyListData
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct AgencyListData: Decodable {
@@ -413,7 +413,7 @@ public struct FileUploadRequest: Codable {
 public struct FileUploadResponse: Decodable {
     public let message: String?
     public let data: FileUploadData?
-    public let errors: String?
+    public let errors: DivoResponseErrors?
 }
 
 public struct FileUploadData: Decodable {
@@ -441,7 +441,7 @@ public struct AddGalleryRequest: Codable {
 public struct AddGalleryResponse: Decodable {
     public let message: String?
     public let data: UserPhoto?
-    public let errors: String?
+    public let errors: DivoResponseErrors?
 }
 
 // MARK: - Agency
@@ -554,9 +554,9 @@ public struct UpdateAgencyAddress: Encodable {
 public struct UpdateDescriptionAgencyResponse: Decodable {
     public let message: String?
     public let data: String?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 
-    public init(message: String?, data: String?, errors: [String]?) {
+    public init(message: String?, data: String?, errors: DivoResponseErrors?) {
         self.message = message
         self.data = data
         self.errors = errors
