@@ -78,13 +78,17 @@ public final class SetNameController: ViewController {
             let username = peer?.addressName ?? ""
             self.currentUsername = username
             self.setNameNode.setInitialUsername(username)
-            // Для агентства поле имени = название агентства (из REST), личное teamgram-имя туда не льём.
-            if !isAgency, case let .user(user)? = peer {
-                self.setNameNode.setInitialName(firstName: user.firstName ?? "", lastName: user.lastName ?? "")
-            }
         })
 
         self.displayNodeDidLoad()
+
+        // Имя/фамилию префиллим из локально сохранённых двух полей (точная граница слов), сверяя с
+        // DIVO fullName; иначе naive split. teamgram-пир для имени НЕ читаем — reconcile при старте
+        // теряет там границу. У агентства поле имени = название агентства (из REST), не трогаем.
+        if !isAgency {
+            let parts = DivoTeamgramName.splitPreservingLocal(fullName: currentName ?? "")
+            self.setNameNode.setInitialName(firstName: parts.firstName, lastName: parts.lastName)
+        }
     }
 
     // MARK: - Username validation
@@ -140,6 +144,8 @@ public final class SetNameController: ViewController {
                 try await self.saveName(fullName)
                 // DIVO сохранил имя → синкаем в teamgram раздельные имя/фамилию (best-effort, ретрай на сбое).
                 DivoTeamgramName.syncToTeamgram(firstName: firstName, lastName: lastName)
+                // Уведомляем экраны о правке своего профиля (профиль-таб рефрешит себя без перезахода).
+                NotificationCenter.default.post(name: DivoConfig.profileDidUpdateNotification, object: nil)
             } catch {
                 self.finishFailure(error)
                 return

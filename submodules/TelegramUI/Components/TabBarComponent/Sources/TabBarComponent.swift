@@ -566,6 +566,15 @@ public final class TabBarComponent: Component {
             let previousComponent = self.component
             self.component = component
             self.state = state
+
+            // DIVO: override выделения (ставится на тап, пока контроллер вкладки грузится) раньше жил
+            // вечно — подсветка переставала следовать за selectedId, и программная смена вкладки
+            // (напр. переход в «Чаты» после публикации истории) оставляла подсвеченной старую.
+            // Снимаем, как только реальное выделение догнало тап или сменилось извне.
+            if let overrideSelectedItemId = self.overrideSelectedItemId,
+               component.selectedId == overrideSelectedItemId || previousComponent?.selectedId != component.selectedId {
+                self.overrideSelectedItemId = nil
+            }
             
             self.overrideUserInterfaceStyle = component.theme.overallDarkAppearance ? .dark : .light
 

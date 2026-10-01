@@ -45,6 +45,8 @@ private final class PrivacyAndSecurityControllerArguments {
     let openEmailSettings: (String?) -> Void
     let openMessagePrivacy: () -> Void
     let openGiftsPrivacy: () -> Void
+    // DIVO: удаление профиля (DIVO + teamgram) — перенесено сюда из меню своего профиля.
+    var divoDeleteProfile: () -> Void = {}
     
     init(account: Account, openBlockedUsers: @escaping () -> Void, openLastSeenPrivacy: @escaping () -> Void, openGroupsPrivacy: @escaping () -> Void, openVoiceCallPrivacy: @escaping () -> Void, openProfilePhotoPrivacy: @escaping () -> Void, openForwardPrivacy: @escaping () -> Void, openPhoneNumberPrivacy: @escaping () -> Void, openVoiceMessagePrivacy: @escaping () -> Void, openBioPrivacy: @escaping () -> Void, openBirthdayPrivacy: @escaping () -> Void, openSavedMusicPrivacy: @escaping () -> Void, openPasscode: @escaping () -> Void, openTwoStepVerification: @escaping (TwoStepVerificationAccessConfiguration?) -> Void, openPasskeys: @escaping () -> Void, openActiveSessions: @escaping () -> Void, toggleArchiveAndMuteNonContacts: @escaping (Bool) -> Void, setupAccountAutoremove: @escaping () -> Void, setupMessageAutoremove: @escaping () -> Void, openDataSettings: @escaping () -> Void, openEmailSettings: @escaping (String?) -> Void, openMessagePrivacy: @escaping () -> Void, openGiftsPrivacy: @escaping () -> Void) {
         self.account = account
@@ -126,6 +128,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
     case accountHeader(PresentationTheme, String)
     case accountTimeout(PresentationTheme, String, String)
     case accountInfo(PresentationTheme, String)
+    case divoDeleteProfile(PresentationTheme, String)
     case messageAutoremoveTimeout(PresentationTheme, String, String)
     case messageAutoremoveInfo(PresentationTheme, String)
     case dataSettings(PresentationTheme, String)
@@ -141,7 +144,7 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
             return PrivacyAndSecuritySection.privacy.rawValue
         case .autoArchiveHeader, .autoArchive, .autoArchiveInfo:
             return PrivacyAndSecuritySection.autoArchive.rawValue
-        case .accountHeader, .accountTimeout, .accountInfo:
+        case .accountHeader, .accountTimeout, .accountInfo, .divoDeleteProfile:
             return PrivacyAndSecuritySection.account.rawValue
         case .dataSettings, .dataSettingsInfo:
             return PrivacyAndSecuritySection.dataSettings.rawValue
@@ -210,10 +213,12 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 return 29
             case .accountInfo:
                 return 30
-            case .dataSettings:
+            case .divoDeleteProfile:
                 return 31
-            case .dataSettingsInfo:
+            case .dataSettings:
                 return 32
+            case .dataSettingsInfo:
+                return 33
         }
     }
     
@@ -387,6 +392,12 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 } else {
                     return false
                 }
+            case let .divoDeleteProfile(lhsTheme, lhsText):
+                if case let .divoDeleteProfile(rhsTheme, rhsText) = rhs, lhsTheme === rhsTheme, lhsText == rhsText {
+                    return true
+                } else {
+                    return false
+                }
             case let .messageAutoremoveTimeout(lhsTheme, lhsText, lhsValue):
                 if case let .messageAutoremoveTimeout(rhsTheme, rhsText, rhsValue) = rhs, lhsTheme === rhsTheme, lhsText == rhsText, lhsValue == rhsValue {
                     return true
@@ -536,6 +547,10 @@ private enum PrivacyAndSecurityEntry: ItemListNodeEntry {
                 }, tag: PrivacyAndSecurityEntryTag.accountTimeout)
             case let .accountInfo(_, text):
                 return ItemListTextItem(presentationData: presentationData, text: .plain(text), sectionId: self.section)
+            case let .divoDeleteProfile(_, text):
+                return ItemListActionItem(presentationData: presentationData, systemStyle: .glass, title: text, kind: .destructive, alignment: .natural, sectionId: self.section, style: .blocks, action: {
+                    arguments.divoDeleteProfile()
+                })
             case let .dataSettings(_, text):
                 return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: text, label: "", sectionId: self.section, style: .blocks, action: {
                     arguments.openDataSettings()
@@ -746,6 +761,8 @@ private func privacyAndSecurityControllerEntries(
         entries.append(.accountTimeout(presentationData.theme, presentationData.strings.PrivacySettings_DeleteAccountIfAwayFor, presentationData.strings.Channel_NotificationLoading))
     }
     entries.append(.accountInfo(presentationData.theme, presentationData.strings.PrivacySettings_DeleteAccountHelp))
+    // DIVO: удаление профиля (DIVO + teamgram) — последним пунктом секции «Удаление аккаунта».
+    entries.append(.divoDeleteProfile(presentationData.theme, divoDeleteProfileTitle()))
     
     entries.append(.dataSettings(presentationData.theme, presentationData.strings.PrivacySettings_DataSettings))
     entries.append(.dataSettingsInfo(presentationData.theme, presentationData.strings.PrivacySettings_DataSettingsHelp))
@@ -799,6 +816,7 @@ public func privacyAndSecurityController(
     var replaceTopControllerImpl: ((ViewController) -> Void)?
     var presentControllerImpl: ((ViewController) -> Void)?
     var getNavigationControllerImpl: (() -> NavigationController?)?
+    var divoDeleteProfileImpl: (() -> Void)?
     
     let actionsDisposable = DisposableSet()
     
@@ -1323,17 +1341,9 @@ public func privacyAndSecurityController(
                 }
                 timeoutItems.append(ActionSheetButtonItem(title: presentationData.strings.PrivacySettings_DeleteAccountNow, color: .destructive, action: {
                     dismissAction()
-                    
-                    guard let navigationController = getNavigationControllerImpl?() else {
-                        return
-                    }
-                    
-                    let _ = (combineLatest(twoStepAuth.get(), twoStepAuthDataValue.get())
-                    |> take(1)
-                    |> deliverOnMainQueue).start(next: { hasTwoStepAuth, twoStepAuthData in
-                        let optionsController = deleteAccountOptionsController(context: context, navigationController: navigationController, hasTwoStepAuth: hasTwoStepAuth ?? false, twoStepAuthData: twoStepAuthData)
-                        pushControllerImpl?(optionsController, true)
-                    })
+                    // DIVO: нативное удаление снесло бы только teamgram и оставило DIVO-аккаунт сиротой —
+                    // ведём в общее DIVO-удаление (DIVO REST + MTProto account.deleteAccount).
+                    divoDeleteProfileImpl?()
                 }))
                 controller.setItemGroups([
                     ActionSheetItemGroup(items: timeoutItems),
@@ -1537,6 +1547,13 @@ public func privacyAndSecurityController(
     }
     getNavigationControllerImpl = {  [weak controller] in
         return (controller?.navigationController as? NavigationController)
+    }
+    divoDeleteProfileImpl = { [weak controller] in
+        guard let controller else { return }
+        divoPresentDeleteProfileConfirmation(context: context, hostController: controller)
+    }
+    arguments.divoDeleteProfile = {
+        divoDeleteProfileImpl?()
     }
 
     controller.didAppear = { _ in

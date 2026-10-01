@@ -1,7 +1,16 @@
 import Foundation
 
 public enum DivoConfig {
-    public static let baseURL = URL(string: "https://api-stage.divo.fashion/api")!
+    /// REST-хост по окружению сборки (см. [[DivoEnvironment]]). stage — отладочный контур, prod — боевой.
+    /// Пути намеренно разные: stage на `/api`, prod на `/v2` — так задал бэкенд.
+    public static var baseURL: URL {
+        switch DivoEnvironment.current {
+        case .stage:
+            return URL(string: "https://api-stage.divo.fashion/api")!
+        case .prod:
+            return URL(string: "https://api.divo.fashion/v2")!
+        }
+    }
 
     public static let agencyToken = "Ccw5cQAMFzxCttzgpUu69NuJARelHshG78LOAHiPQEjKeMSP93OWsbc110MKc6mf"
     public static let modelToken = "GxelyeqTBVrPAJLWXRXUH4XktoUhu2QLTFfxIvgnvDD9jKBLolF6GDVQQsSzChSF"
@@ -13,6 +22,10 @@ public enum DivoConfig {
     public static let tokenDidChangeNotification = Notification.Name("DivoConfig.tokenDidChange")
     public static let roleDidChangeNotification = Notification.Name("DivoConfig.roleDidChange")
     public static let profileDidUpdateNotification = Notification.Name("DivoConfig.profileDidUpdate")
+    /// Канал зарегистрирован в REST (/channels/add) → профиль перечитывает /channels/list.
+    /// Регистрация асинхронна (сразу после создания и повторно при появлении username), поэтому без
+    /// нотификации свежий канал не появлялся в профиле до перезахода.
+    public static let channelsDidChangeNotification = Notification.Name("DivoConfig.channelsDidChange")
     /// Статус заявки на событие изменился (apply/unapply) → перерисовать ячейки эвентов в табе/профиле.
     public static let divoEventAppliedStatusChanged = Notification.Name("DivoConfig.eventAppliedStatusChanged")
     /// Выставлен pending-онбординг (соц/phone). Нужно перепроверить app-gate: на первом входе
@@ -153,6 +166,14 @@ public enum DivoConfig {
         return UserDefaults.standard.string(forKey: tokenKey) != nil
     }
 
+    /// Есть настоящая DIVO-сессия (сохранённый токен из auth-флоу или debug-форс). Без неё запросы идут по
+    /// fallback `agencyToken` и `/user/info` отдаёт ЧУЖОЙ профиль — синк авы/имени в teamgram на нём
+    /// заливал бы чужие данные в свежий teamgram-аккаунт (окно phone-онбординга до регистрации).
+    public static var hasDivoSession: Bool {
+        if isDebugEnabled, forcedTestToken != nil { return true }
+        return UserDefaults.standard.string(forKey: tokenKey) != nil
+    }
+
     // Дебаунс: десятки параллельных запросов отдают 401 пачкой — сигналим один раз на сессию.
     // Снимается при записи нового токена (см. accessToken.set) — следующая протухшая сессия снова сигналит.
     private static var didSignalSessionExpired = false
@@ -181,7 +202,12 @@ public enum DivoConfig {
     /// Debug доступен если в бандле есть provisioning profile (dev/TF) ИЛИ приложение запущено из Xcode/симулятора.
     /// Apple удаляет embedded.mobileprovision только при публикации в App Store — поэтому в релизе авто-выключается.
     /// disableExtensions при сборке не влияет — profile всё равно встраивается в основной бандл.
+    /// В prod-сборке (divoEnv=prod, см. [[DivoEnvironment]]) дебаг-экран выключен ЖЁСТКО — не полагаемся
+    /// на то, что Apple вырежет профиль: боевая сборка не покажет Debug Menu ни при каких условиях.
     public static var isDebugEnabled: Bool = {
+        if DivoEnvironment.current == .prod {
+            return false
+        }
         #if targetEnvironment(simulator)
         return true
         #else
@@ -190,7 +216,15 @@ public enum DivoConfig {
     }()
 
     public static let appPlatform = "ios"
-    public static let appVersion = "1.1.1 (912)"
+
+    /// REST-заголовок `app-version`. Берётся из бандла (CFBundleShortVersionString + CFBundleVersion),
+    /// чтобы версия не жила в двух местах — единственный источник правды это `--define=telegramVersion`
+    /// на сборке. Формат сохранён прежним: «2.0.0 (buildNumber)».
+    public static var appVersion: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.0.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        return build.isEmpty ? short : "\(short) (\(build))"
+    }
 
     public static let shareBaseURL = "https://api.divo.fashion"
     public static let shareHost = "api.divo.fashion"
@@ -206,13 +240,17 @@ public enum DivoConfig {
     public struct PendingSocialRegistration: Codable, Equatable {
         public let uid: String
         public let providerId: String
+        // Реальная почта из соц-провайдера → в registration-social вместо синтетики из uid. Опциональна:
+        // Apple при повторном входе email не отдаёт. Старый персист без поля читается (decodeIfPresent → nil).
+        public let email: String?
         // Профиль из соц-провайдера для префилла онбординга (имя/фото). Опциональны: Apple фото не
         // отдаёт, имя — только при первом входе. Старый персист без этих полей читается (nil).
         public let displayName: String?
         public let photoUrl: String?
-        public init(uid: String, providerId: String, displayName: String? = nil, photoUrl: String? = nil) {
+        public init(uid: String, providerId: String, email: String? = nil, displayName: String? = nil, photoUrl: String? = nil) {
             self.uid = uid
             self.providerId = providerId
+            self.email = email
             self.displayName = displayName
             self.photoUrl = photoUrl
         }
@@ -280,6 +318,24 @@ public enum DivoConfig {
         }
     }
 
+    private static let pendingTeamgramProfileResetKey = "DivoConfig.pendingTeamgramProfileReset"
+
+    /// Phone-вход попал в УЖЕ существующий teamgram-аккаунт, а DIVO-аккаунта у него нет (осиротевший
+    /// teamgram — напр. после удаления DIVO-профиля, когда MTProto-удаление не прошло). Новый DIVO-аккаунт
+    /// не должен унаследовать старые ава/имя: после регистрации чистим teamgram-фото и ставим DIVO-аву
+    /// (см. photoUpdate в AppDelegate+DivoOnboarding). НЕ входит в clearPendingOnboardingFlags — флаг нужен
+    /// ПОСЛЕ submit'а, до дренажа photoUpdate; снимается исполнителем либо на сбросе сессии.
+    public static var pendingTeamgramProfileReset: Bool {
+        get { UserDefaults.standard.bool(forKey: pendingTeamgramProfileResetKey) }
+        set {
+            if newValue {
+                UserDefaults.standard.set(true, forKey: pendingTeamgramProfileResetKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: pendingTeamgramProfileResetKey)
+            }
+        }
+    }
+
     /// Снять ВСЕ pending-флаги онбординга разом (вход завершён / откат / cold-start). Один источник
     /// правды: эти флаги чистились вручную в нескольких местах — легко было забыть один и оставить
     /// залипший флаг, который заново триггерит онбординг или cold-start resume.
@@ -298,11 +354,17 @@ public enum DivoConfig {
         resetRole() // роль → дефолт (model); на следующем входе перезапишется с сервера
         currentDivoUserId = nil
         clearPendingOnboardingFlags()
+        pendingTeamgramProfileReset = false
         // Полный teardown моста в teamgram: очередь отложенных опов + telegramUserId/nameUpdater НЕ
         // должны пережить логаут. Иначе опы прошлого аккаунта (telegramLink) дренятся против нового
         // teamgram-аккаунта → 409 "already linked" (ловилось на тестах через разлогины).
         PendingTelegramOpsQueue.shared.clear()
         DivoTeamgramSync.shared.reset()
+        // Локально сохранённые имя/фамилия (для префилла экранов правки) — per-device, не должны
+        // пережить логаут, иначе следующий аккаунт префиллит чужое имя.
+        DivoTeamgramName.clearLocalName()
+        // История поиска по лицу — per-device кэш (фото лиц на диске), не должна утечь следующему аккаунту.
+        FaceSearchHistoryStorage.shared.clearAll()
     }
 
     // MARK: - DIVO session user id

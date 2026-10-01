@@ -20,7 +20,10 @@ public enum DivoBootstrap {
         // доступ к teamgram-аккаунту — TelegramUI ПЕРЕРЕГИСТРИРУЕТ executor с исполнителем имени,
         // когда поднимется авторизованный контекст (см. AppDelegate). До этого момента op
         // .nameUpdate просто лежит в очереди.
-        PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil, photoUpdate: nil))
+        PendingTelegramOpsQueue.shared.registerExecutor(makeExecutor(nameUpdate: nil, photoUpdate: nil, addContact: nil))
+
+        // DIVI-103: follow → контакт Telegram. Наблюдатель ловит divoFollowStateChanged со всех экранов.
+        DivoFollowContactSync.shared.start()
 
         // DIVO: на cold-start подтягиваем актуальную роль с сервера (me = /user/info) — если серверная
         // сменилась, клиент подхватывает её (currentUserRole.setter постит roleDidChangeNotification только
@@ -43,9 +46,12 @@ public enum DivoBootstrap {
     ///   из TelegramUI; если `nameUpdate == nil`, op остаётся в очереди до авторизованного контекста.
     /// - photoUpdate: ава в teamgram — как nameUpdate, требует движок (заливка через MTProto),
     ///   исполнитель приходит из TelegramUI; если `nil`, op ждёт авторизованного контекста.
+    /// - addContact: follow→контакт (DIVI-103) — резолв teamgram-пира + addContactInteractively,
+    ///   требует движок; исполнитель приходит из TelegramUI; если `nil`, op ждёт контекста.
     public static func makeExecutor(
         nameUpdate: ((_ firstName: String, _ lastName: String) async throws -> Void)?,
-        photoUpdate: (() async throws -> Void)?
+        photoUpdate: (() async throws -> Void)?,
+        addContact: ((_ divoUserId: Int) async throws -> Void)?
     ) -> PendingTelegramOpsQueue.Executor {
         return { op in
             switch op {
@@ -73,11 +79,18 @@ public enum DivoBootstrap {
                 guard let telegramUserId = DivoTeamgramSync.shared.telegramUserId else {
                     throw DivoBootstrapError.opNotHandled
                 }
-                let linked = try await AuthRestService.shared.telegramLink(
-                    telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId
-                )
-                DivoConfig.accessToken = linked.accessToken
-                divoLog("DivoBootstrap: telegram-link довёл сшивку для divoUserId=\(divoUserId)", level: .info)
+                do {
+                    let linked = try await AuthRestService.shared.telegramLink(
+                        telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId
+                    )
+                    DivoConfig.accessToken = linked.accessToken
+                    divoLog("DivoBootstrap: telegram-link довёл сшивку для divoUserId=\(divoUserId)", level: .info)
+                } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 409 || statusCode == 403 {
+                    // 409 — уже связан (с другим telegramUserId / занят другим); 403 — proof отвергнут, хотя
+                    // взят свежим прямо перед запросом (или teamgram его не выдал). Повтор не поможет: снимаем
+                    // op, иначе он ретраится вечно.
+                    divoLog("DivoBootstrap: telegram-link \(statusCode) для divoUserId=\(divoUserId) — окончательно, снимаю op", level: .warning)
+                }
             case .photoUpdate:
                 guard let photoUpdate else {
                     // Нет исполнителя (ещё не авторизованы) — оставляем op в очереди.
@@ -85,6 +98,13 @@ public enum DivoBootstrap {
                 }
                 try await photoUpdate()
                 divoLog("DivoBootstrap: teamgram-ава синхронизирована", level: .info)
+            case let .addContact(divoUserId):
+                guard let addContact else {
+                    // Нет исполнителя (движок недоступен) — оставляем op в очереди до контекста.
+                    throw DivoBootstrapError.opNotHandled
+                }
+                try await addContact(divoUserId)
+                divoLog("DivoBootstrap: контакт заведён для divoUserId=\(divoUserId)", level: .info)
             }
         }
     }

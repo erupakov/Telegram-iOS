@@ -135,6 +135,9 @@ public struct AuthTelegramLinkRequest: Encodable {
     public let divoUserId: Int?
     public let telegramUserId: Int64
     public let phone: String?
+    /// Подпись teamgram (`divo_link_proof`). nil → поле не уходит (синтезированный encodeIfPresent) —
+    /// так клиент работает со старым бэкендом, пока proof не выкатили.
+    public let proof: String?
     public let deviceId: String?
     public let deviceType: String?
 
@@ -142,12 +145,14 @@ public struct AuthTelegramLinkRequest: Encodable {
         telegramUserId: Int64,
         divoUserId: Int? = nil,
         phone: String? = nil,
+        proof: String? = nil,
         deviceId: String? = nil,
         deviceType: String? = "ios"
     ) {
         self.telegramUserId = telegramUserId
         self.divoUserId = divoUserId
         self.phone = phone
+        self.proof = proof
         self.deviceId = deviceId
         self.deviceType = deviceType
     }
@@ -194,12 +199,15 @@ public final class AuthRestService {
         uid: String,
         providerId: String,
         role: String,
+        email: String? = nil,
         additionalInfo: [String: DivoJSONValue]? = nil
     ) async throws -> AuthTokenWithUserData {
+        // email — реальная почта из Google/Apple. Без неё бэк ставит синтетику `<uid>@social-reg.divo.io`.
         let req = AuthRegistrationSocialRequest(
             uid: uid,
             providerId: providerId,
             role: role,
+            email: email,
             deviceId: divoDeviceId,
             additionalInfo: additionalInfo
         )
@@ -218,13 +226,31 @@ public final class AuthRestService {
         return env.data
     }
 
+    /// `POST /auth/telegram-link`. Бэкенд требует подпись teamgram (`proof`) + номер, под который она
+    /// сделана (`divo_link_phone`): берём свежие прямо перед запросом — proof живёт 10 минут, в очереди
+    /// ретраев не хранится. teamgram proof не выдал (старый сервер / 2FA / нет номера) → шлём как раньше,
+    /// с переданным `phone` и без `proof`; новый бэкенд ответит 403.
+    /// `Authorization` — только при своей DIVO-сессии (после registration / login / login-social): без
+    /// неё `accessToken` = зашитый токен агентства, чужой для этого запроса.
     public func telegramLink(
         telegramUserId: Int64,
         phone: String? = nil,
         divoUserId: Int? = nil
     ) async throws -> AuthTokenWithUserData {
-        let req = AuthTelegramLinkRequest(telegramUserId: telegramUserId, divoUserId: divoUserId, phone: phone, deviceId: divoDeviceId)
-        let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/telegram-link", method: "POST", body: req)
+        let linkProof = await DivoTeamgramSync.shared.freshLinkProof()
+        let req = AuthTelegramLinkRequest(
+            telegramUserId: telegramUserId,
+            divoUserId: divoUserId,
+            phone: linkProof?.phone ?? phone,
+            proof: linkProof?.proof,
+            deviceId: divoDeviceId
+        )
+        let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(
+            path: "/auth/telegram-link",
+            method: "POST",
+            body: req,
+            includeAuthorization: DivoConfig.hasDivoSession
+        )
         return env.data
     }
 
@@ -275,6 +301,22 @@ public final class AuthRestService {
     public func userDetail() async throws -> UserDetail {
         let env: UserDetailResponse = try await client.request(path: "/user/info")
         DivoMeasuringSystem.updateCurrent(env.data.measuringSystem)
+        return env.data
+    }
+
+    /// Полный профиль произвольного юзера (`/user/{id}`). В отличие от `userDetail()` не трогает
+    /// `measuringSystem` — это чужой профиль. Нужен для follow→контакт (DIVI-103): берём
+    /// `telegramId`/`phone`/`fullName`.
+    public func userDetail(id: Int) async throws -> UserDetail {
+        let env: UserDetailResponse = try await client.request(path: "/user/\(id)")
+        return env.data
+    }
+
+    /// DIVO-юзер, привязанный к teamgram-пользователю (`/user/by-telegram`). Нужен phone-входу: teamgram-
+    /// аккаунт по номеру уже есть, а по email/phone DIVO-аккаунт не нашёлся — ищем по связке telegramId,
+    /// чтобы подтянуть существующий DIVO-аккаунт, а не заводить второй поверх старого teamgram.
+    public func userByTelegram(telegramId: Int64) async throws -> UserDetail {
+        let env: UserDetailResponse = try await client.request(path: "/user/by-telegram?telegramId=\(telegramId)")
         return env.data
     }
 

@@ -407,9 +407,10 @@ final class EditProfileNode: ASDisplayNode {
             bioTitle = DivoStrings.descriptionTitle
             bio = model?.agency?.description ?? ""
         } else {
-            // Имя берём из DIVO fullName (источник правды, как в профиле) и режем на имя/фамилию.
-            // teamgram-имя здесь НЕ читаем — оно вторично и сводится к DIVO через reconcile при старте.
-            let parts = DivoTeamgramName.split(fullName: model?.fullName ?? "")
+            // Два поля префиллим из локально сохранённых имени/фамилии (точная граница слов), если
+            // они соответствуют текущему DIVO fullName; иначе — naive split. teamgram-пир НЕ читаем:
+            // reconcile при старте пере-режет там границу, из него prefill был бы неверным.
+            let parts = DivoTeamgramName.splitPreservingLocal(fullName: model?.fullName ?? "")
             name = parts.firstName
             lastName = parts.lastName
             placeholder = "\(DivoStrings.firstName) *"
@@ -1360,6 +1361,7 @@ final class EditProfileNode: ASDisplayNode {
         self.updateDropdownsUI()
         self.updateSaveButtonState()
     }
+
 
     @objc private func appearanceCellTapped(_ gesture: UITapGestureRecognizer) {
         guard let view = gesture.view, view.tag < appearanceEditItems.count else { return }

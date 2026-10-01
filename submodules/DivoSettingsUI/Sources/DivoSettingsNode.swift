@@ -74,8 +74,8 @@ final class DivoSettingsNode: ASDisplayNode {
     private let parametersContainer = SettingsRowView(icon: DivoImage.settingsParameters, title: DivoStrings.fillYourParameters, isLast: true)
     private let parametersUsernameStackContainer = UIView()
 
-    private let savedMessagesStackContainer = UIView()
-    private let savedMessagesContainer = SettingsRowView(icon: DivoImage.settingsSavedMessages, title: DivoStrings.savedMessages, isLast: true)
+    private let savedProfilesStackContainer = UIView()
+    private let savedProfilesContainer = SettingsRowView(icon: DivoImage.settingsSavedMessages, title: DivoStrings.savedProfiles, isLast: true)
 
     private let mainSettingsStackContainer = UIView()
     private let notificationsSoundsContainer = SettingsRowView(icon: DivoImage.settingsNotifications, title: DivoStrings.notificationsSounds, isLast: false)
@@ -105,7 +105,7 @@ final class DivoSettingsNode: ASDisplayNode {
     var onOnboardingEntryTapped: (() -> Void)?
     var onSetUsernameTapped: (() -> Void)?
     var onFillParametersTapped: (() -> Void)?
-    var onSavedMessagesTapped: (() -> Void)?
+    var onSavedProfilesTapped: (() -> Void)?
     var onNotificationsTapped: (() -> Void)?
     var onPrivacyTapped: (() -> Void)?
     var onDataStorageTapped: (() -> Void)?
@@ -182,7 +182,7 @@ final class DivoSettingsNode: ASDisplayNode {
         navigationBar.setRightButtonTitle(DivoStrings.settingsEdit)
         usernameContainer.setTitle(DivoStrings.settingsSetUsername)
         parametersContainer.setTitle(DivoStrings.fillYourParameters)
-        savedMessagesContainer.setTitle(DivoStrings.savedMessages)
+        savedProfilesContainer.setTitle(DivoStrings.savedProfiles)
         notificationsSoundsContainer.setTitle(DivoStrings.notificationsSounds)
         privacySecurityContainer.setTitle(DivoStrings.privacySecurity)
         dataStorageContainer.setTitle(DivoStrings.dataStorage)
@@ -232,7 +232,7 @@ final class DivoSettingsNode: ASDisplayNode {
     private func setDimmedSectionsActive(_ dimmed: Bool) {
         let alpha: CGFloat = dimmed ? Layout.dimmedAlpha : 1.0
         let interactive = !dimmed
-        for view in [parametersUsernameStackContainer, savedMessagesStackContainer, mainSettingsStackContainer, logOutStackContainer, onboardingEntryStackContainer] {
+        for view in [parametersUsernameStackContainer, savedProfilesStackContainer, mainSettingsStackContainer, logOutStackContainer, onboardingEntryStackContainer] {
             view.alpha = alpha
             view.isUserInteractionEnabled = interactive
         }
@@ -274,7 +274,7 @@ final class DivoSettingsNode: ASDisplayNode {
 
         setupProfileSection()
         setupUsernameParametersSection()
-        setupSavedMessagesSection()
+        setupSavedProfilesSection()
         setupMainSection()
         setupLogOutSection()
         setupOnboardingEntrySection()
@@ -348,27 +348,27 @@ final class DivoSettingsNode: ASDisplayNode {
         contentViewStack.addArrangedSubview(parametersUsernameStackContainer)
     }
 
-    private func setupSavedMessagesSection() {
+    private func setupSavedProfilesSection() {
         let stackContainer = UIStackView()
         stackContainer.translatesAutoresizingMaskIntoConstraints = false
         stackContainer.axis = .vertical
-        stackContainer.addArrangedSubview(savedMessagesContainer)
+        stackContainer.addArrangedSubview(savedProfilesContainer)
 
         let whiteContainer = makeCardContainer()
         whiteContainer.addSubview(stackContainer)
 
-        savedMessagesStackContainer.translatesAutoresizingMaskIntoConstraints = false
-        savedMessagesStackContainer.addSubview(whiteContainer)
+        savedProfilesStackContainer.translatesAutoresizingMaskIntoConstraints = false
+        savedProfilesStackContainer.addSubview(whiteContainer)
 
-        NSLayoutConstraint.activate(cardLayoutConstraints(card: whiteContainer, stack: stackContainer, container: savedMessagesStackContainer))
+        NSLayoutConstraint.activate(cardLayoutConstraints(card: whiteContainer, stack: stackContainer, container: savedProfilesStackContainer))
 
         NSLayoutConstraint.activate([
-            savedMessagesContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
+            savedProfilesContainer.heightAnchor.constraint(equalToConstant: Layout.rowHeight),
         ])
 
-        savedMessagesContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(savedMessagesTapped)))
+        savedProfilesContainer.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(savedProfilesTapped)))
 
-        contentViewStack.addArrangedSubview(savedMessagesStackContainer)
+        contentViewStack.addArrangedSubview(savedProfilesStackContainer)
     }
 
     private func setupMainSection() {
@@ -645,9 +645,9 @@ final class DivoSettingsNode: ASDisplayNode {
         onFillParametersTapped?()
     }
 
-    @objc private func savedMessagesTapped() {
+    @objc private func savedProfilesTapped() {
         guard screenPhase == .ready else { return }
-        onSavedMessagesTapped?()
+        onSavedProfilesTapped?()
     }
 
     @objc private func notificationsTapped() {

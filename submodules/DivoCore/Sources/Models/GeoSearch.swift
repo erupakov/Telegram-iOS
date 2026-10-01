@@ -10,7 +10,7 @@ import Foundation
 public struct GeoSearchResponse: Decodable {
     public let message: String?
     public let data: [GeoAddressItem]?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct GeoAddressItem: Decodable {

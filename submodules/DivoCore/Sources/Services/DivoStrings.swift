@@ -113,7 +113,13 @@ public enum DivoStrings {
     public static var tabModels: String { L(en: "Models", ru: "Модели", es: "Modelos", pt: "Modelos", zh: "模特", fr: "Mannequins") }
     public static var tabEvents: String { L(en: "Events", ru: "События", es: "Eventos", pt: "Eventos", zh: "活动", fr: "Événements") }
     public static var tabChats: String { L(en: "Chats", ru: "Чаты", es: "Chats", pt: "Chats", zh: "聊天", fr: "Discussions") }
+    public static var tabProfile: String { L(en: "Profile", ru: "Профиль", es: "Perfil", pt: "Perfil", zh: "个人资料", fr: "Profil") }
     public static var tabSettings: String { L(en: "Settings", ru: "Настройки", es: "Ajustes", pt: "Configurações", zh: "设置", fr: "Paramètres") }
+
+    // MARK: - Peer Info (нативный Telegram-профиль)
+
+    /// Заголовок строки-ссылки на публичный DIVO-профиль — заменяет «мобильный» в нативном профиле.
+    public static var peerInfoPublicProfileLabel: String { L(en: "public profile", ru: "публичный профиль", es: "perfil público", pt: "perfil público", zh: "公开资料", fr: "profil public") }
 
     // MARK: - Nav Titles
 
@@ -213,7 +219,6 @@ public enum DivoStrings {
     public static func faceSearchFallbackMessage(original: Int, actual: Int) -> String { L(en: "No results at \(original)% similarity — showing results at \(actual)% instead.", ru: "Нет результатов при \(original)% сходства — показываем результаты при \(actual)%.", es: "Sin resultados al \(original)% de similitud — mostrando resultados al \(actual)%.", pt: "Sem resultados com \(original)% de similaridade — mostrando resultados com \(actual)%.", zh: "在 \(original)% 相似度下无结果 — 改为显示 \(actual)% 的结果。", fr: "Aucun résultat à \(original)% de similarité — affichage des résultats à \(actual)%.") }
     public static var faceSearchAdjustFilters: String { L(en: "Adjust filters", ru: "Настроить", es: "Ajustar filtros", pt: "Ajustar filtros", zh: "调整筛选", fr: "Ajuster les filtres") }
     public static var faceSearchNoResultsWithFilters: String { L(en: "No results found — try adjusting your filters", ru: "Ничего не найдено — попробуйте изменить фильтры", es: "Sin resultados — intenta ajustar los filtros", pt: "Sem resultados — tente ajustar os filtros", zh: "未找到结果 — 请尝试调整筛选条件", fr: "Aucun résultat — essayez d’ajuster vos filtres") }
-    public static var faceSearchBackToHome: String { L(en: "Back to Home", ru: "На главную", es: "Volver al inicio", pt: "Voltar ao início", zh: "返回首页", fr: "Retour à l’accueil") }
 
     // MARK: - Face Search History
 
@@ -340,7 +345,9 @@ public enum DivoStrings {
     public static var settingsBannerDescription: String { L(en: "Publish your profile as a model, join castings or add events as agency — be part of the global fashion network.", ru: "Опубликуйте профиль модели, участвуйте в кастингах или добавляйте события — станьте частью мировой fashion-сети.", es: "Publica tu perfil como modelo, únete a castings o añade eventos como agencia — forma parte de la red global de moda.", pt: "Publique seu perfil como modelo, participe de castings ou adicione eventos como agência — faça parte da rede global de moda.", zh: "发布您的模特资料，参加选角或作为经纪公司添加活动——成为全球时尚网络的一部分。", fr: "Publiez votre profil de mannequin, participez à des castings ou ajoutez des événements en tant qu’agence — faites partie du réseau mondial de la mode.") }
     public static var settingsLearnMore: String { L(en: "Learn More", ru: "Узнать больше", es: "Más información", pt: "Saiba mais", zh: "了解更多", fr: "En savoir plus") }
     public static var fillYourParameters: String { L(en: "Fill your parameters", ru: "Заполните параметры", es: "Completa tus parámetros", pt: "Preencha seus parâmetros", zh: "填写您的参数", fr: "Renseignez vos paramètres") }
-    public static var savedMessages: String { L(en: "Saved Messages", ru: "Сохранённые сообщения", es: "Mensajes guardados", pt: "Mensagens salvas", zh: "已保存的消息", fr: "Messages enregistrés") }
+    public static var savedProfiles: String { L(en: "Saved Profiles", ru: "Сохранённые профили", es: "Perfiles guardados", pt: "Perfis salvos", zh: "已保存的资料", fr: "Profils enregistrés") }
+    public static var savedProfilesEmpty: String { L(en: "No saved profiles yet", ru: "Пока нет сохранённых профилей", es: "Aún no hay perfiles guardados", pt: "Ainda não há perfis salvos", zh: "暂无已保存的资料", fr: "Aucun profil enregistré pour l’instant") }
+    public static var savedProfilesLoadFailed: String { L(en: "Failed to load profiles", ru: "Не удалось загрузить профили", es: "Error al cargar perfiles", pt: "Falha ao carregar perfis", zh: "加载资料失败", fr: "Échec du chargement des profils") }
     public static var notificationsSounds: String { L(en: "Notifications and Sounds", ru: "Уведомления и звуки", es: "Notificaciones y sonidos", pt: "Notificações e sons", zh: "通知和声音", fr: "Notifications et sons") }
     public static var privacySecurity: String { L(en: "Privacy and Security", ru: "Конфиденциальность и безопасность", es: "Privacidad y seguridad", pt: "Privacidade e segurança", zh: "隐私与安全", fr: "Confidentialité et sécurité") }
     public static var dataStorage: String { L(en: "Data and Storage", ru: "Данные и хранилище", es: "Datos y almacenamiento", pt: "Dados e armazenamento", zh: "数据和存储", fr: "Données et stockage") }
@@ -1175,6 +1182,8 @@ public enum DivoStrings {
     public static var addModelSearchNoFoundTitle: String { L(en: "No Results Found", ru: "Результатов не найдено", es: "No se encontraron resultados", pt: "Nenhum resultado encontrado", zh: "未找到结果", fr: "Aucun résultat trouvé") }
     public static var addModelSearchNoFoundSubtitle: String { L(en: "Try a different search query", ru: "Попробуйте другой поисковый запрос", es: "Prueba una consulta de búsqueda diferente", pt: "Tente uma consulta de busca diferente", zh: "尝试不同的搜索词", fr: "Essayez une autre recherche") }
     public static var addModelSearchAlreadyAdded: String { L(en: "Already added", ru: "Уже добавлен", es: "Ya agregado", pt: "Já adicionado", zh: "已添加", fr: "Déjà ajouté") }
+    public static func addModelSearchInOtherAgency(_ name: String) -> String { L(en: "Represented by \(name)", ru: "В агентстве \(name)", es: "Representado por \(name)", pt: "Representado por \(name)", zh: "已由 \(name) 代理", fr: "Représenté par \(name)") }
+    public static var addModelNotConfirmed: String { L(en: "The model was not added to the agency. Please try again.", ru: "Модель не добавилась в агентство. Попробуйте ещё раз.", es: "El modelo no se agregó a la agencia. Inténtalo de nuevo.", pt: "O modelo não foi adicionado à agência. Tente novamente.", zh: "模特未添加到经纪公司，请重试。", fr: "Le modèle n’a pas été ajouté à l’agence. Veuillez réessayer.") }
     public static var addModelConfirm: String { L(en: "Confirm", ru: "Подтвердить", es: "Confirmar", pt: "Confirmar", zh: "确认", fr: "Confirmer") }
     public static var addModelNote: String { L(en: "Note: Adding this model to your roster allows your agency to send them exclusive private casting calls, manage their bookings, and officially represent them on Divo.", ru: "Примечание: Добавление этой модели в список позволяет вашему агентству отправлять ей эксклюзивные частные приглашения на кастинги, управлять её бронированиями и официально представлять её на Divo.", es: "Nota: Agregar este modelo a tu lista permite que tu agencia le envíe convocatorias de casting privadas exclusivas, gestione sus reservas y la represente oficialmente en Divo.", pt: "Nota: Adicionar este modelo à sua lista permite que sua agência envie convites exclusivos privados para elenco, gerencie suas reservas e a represente oficialmente no Divo.", zh: "注意：将此模特添加到您的名单中后，您的经纪公司可以向其发送独家私人试镜邀请、管理其预订，并在 Divo 上正式代表该模特。", fr: "Remarque : ajouter ce mannequin à votre liste permet à votre agence de lui envoyer des invitations privées et exclusives à des castings, de gérer ses réservations et de le représenter officiellement sur Divo.") }
     public static var addModelConfirming: String { L(en: "Confirming...", ru: "Подтверждение...", es: "Confirmando...", pt: "Confirmando...", zh: "确认中...", fr: "Confirmation...") }

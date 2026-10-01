@@ -151,6 +151,10 @@ private final class PeerInfoMembersContextImpl {
     private let disposable = MetaDisposable()
     private let peerDisposable = MetaDisposable()
     private var channelMembersControl: PeerChannelMemberCategoryControl?
+    // DIVO: участники legacy-группы, чьих пиров нет в базе (teamgram не вернул users в getFullChat),
+    // догружаем один раз — иначе они молча выпадали из списка.
+    private var requestedMissingPeerIds = Set<PeerId>()
+    private let missingPeersDisposable = DisposableSet()
     
     init(queue: Queue, context: AccountContext, peerId: PeerId) {
         self.queue = queue
@@ -228,7 +232,11 @@ private final class PeerInfoMembersContextImpl {
                     return
                 }
                 var unsortedMembers: [PeerInfoMember] = []
+                var missingPeerIds: [PeerId] = []
                 for participant in participantsData.participants {
+                    if view.peers[participant.peerId] == nil, participant.peerId.namespace == Namespaces.Peer.CloudUser, !strongSelf.requestedMissingPeerIds.contains(participant.peerId) {
+                        missingPeerIds.append(participant.peerId)
+                    }
                     if let peer = view.peers[participant.peerId] {
                         let role: PeerInfoMemberRole
                         let invitedBy: PeerId?
@@ -264,6 +272,12 @@ private final class PeerInfoMembersContextImpl {
                 strongSelf.members = membersSortedByPresence(unsortedMembers, accountPeerId: strongSelf.context.account.peerId)
                 strongSelf.dataState = .ready(canLoadMore: false)
                 strongSelf.pushState()
+                
+                // Догруженный пир попадает в Postbox → peerView этой группы переэмитит, участник появится.
+                for missingPeerId in missingPeerIds {
+                    strongSelf.requestedMissingPeerIds.insert(missingPeerId)
+                    strongSelf.missingPeersDisposable.add(strongSelf.context.engine.peers.updatedRemotePeer(peer: .user(id: missingPeerId.id._internalGetInt64Value(), accessHash: 0)).startStrict())
+                }
             }))
         } else {
             self.dataState = .ready(canLoadMore: false)
@@ -274,6 +288,7 @@ private final class PeerInfoMembersContextImpl {
     deinit {
         self.disposable.dispose()
         self.peerDisposable.dispose()
+        self.missingPeersDisposable.dispose()
         for (_, disposable) in self.removingMemberIds {
             disposable.dispose()
         }

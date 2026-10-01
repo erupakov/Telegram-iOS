@@ -8,11 +8,15 @@ public enum DivoPendingTelegramOp: Codable, Equatable, Hashable {
     case phoneLink(phone: String)
     // telegram-link после регистрации (best-effort): бэк ставит структурное user.phone +
     // сшивает DIVO↔teamgram. Если упал на submit — дотягиваем ретраем (telegramUserId берётся
-    // из DivoTeamgramSync на момент дренажа).
-    case telegramLink(phone: String, divoUserId: Int)
+    // из DivoTeamgramSync на момент дренажа). phone опционален: соц-ветка D линкует без номера
+    // (dummy в user.phone не пишем). Старый персист со String читается (decodeIfPresent).
+    case telegramLink(phone: String?, divoUserId: Int)
     // teamgram-ава (best-effort): исполнитель тянет свежую аву из DIVO REST и заливает в MTProto.
     // Без payload — актуальная ава берётся на момент дренажа (см. DivoTeamgramPhoto).
     case photoUpdate
+    // DIVI-103: follow должен заводить человека в контакты Telegram. Payload — только DIVO userId;
+    // telegramId и имя исполнитель дотягивает из /user/{id} на момент дренажа (best-effort).
+    case addContact(divoUserId: Int)
 }
 
 public final class PendingTelegramOpsQueue {
@@ -28,6 +32,11 @@ public final class PendingTelegramOpsQueue {
     /// могут стартовать поверх одного снапшота — без этого один и тот же op (напр. .telegramLink) уходил
     /// бы на сервер 2-3 раза параллельно (двойной POST + гонка токена). Дедуп только на enqueue не спасал.
     private var inFlight: Set<DivoPendingTelegramOp> = []
+    /// DIVI-109: очередь пишет в Postbox только на переднем плане. В фоне незавершённая SQLite-запись
+    /// держит лок в общем app-group контейнере под suspend → iOS убивает процесс (RUNNINGBOARD
+    /// 0xdead10cc). Флаг ведёт AppDelegate штатным applicationInForeground; op'ы best-effort —
+    /// ждут в сторе и докатываются при возврате на передний план.
+    private var isForeground = true
 
     private init() {}
 
@@ -68,6 +77,18 @@ public final class PendingTelegramOpsQueue {
         lock.unlock()
     }
 
+    /// Обновить foreground-состояние (ведёт AppDelegate через штатный applicationInForeground).
+    /// Возврат на передний план сам докатывает отложенное в фоне. Тред-безопасно (тот же lock).
+    public func setForeground(_ value: Bool) {
+        lock.lock()
+        let resumed = value && !isForeground
+        isForeground = value
+        lock.unlock()
+        if resumed {
+            drain()
+        }
+    }
+
     public func drain() {
         Task { await drainAsync() }
     }
@@ -76,9 +97,19 @@ public final class PendingTelegramOpsQueue {
         let (snapshot, currentExecutor) = readSnapshotSync()
 
         guard let exec = currentExecutor, !snapshot.isEmpty else { return }
+        // DIVI-109: в фоне не начинаем — иначе запись в Postbox под suspend держит лок → 0xdead10cc.
+        guard isForegroundSync() else {
+            divoLog("PendingTelegramOps drain отложен: приложение в фоне", level: .info)
+            return
+        }
         divoLog("PendingTelegramOps drain: \(snapshot.count) op(s)", level: .info)
 
         for op in snapshot {
+            // Ушли в фон посреди дренажа — стоп, остаток докатим при возврате на передний план (DIVI-109).
+            guard isForegroundSync() else {
+                divoLog("PendingTelegramOps drain прерван: ушли в фон", level: .info)
+                break
+            }
             // Занять op (синхронно — NSLock нельзя в async-контексте). false = уже исполняется
             // параллельным drain'ом ИЛИ уже снят из стора (снапшот устарел) → пропускаем, иначе двойное
             // исполнение (напр. .telegramLink ушёл бы на сервер дважды).
@@ -108,6 +139,12 @@ public final class PendingTelegramOpsQueue {
         lock.lock()
         defer { lock.unlock() }
         inFlight.remove(op)
+    }
+
+    private func isForegroundSync() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return isForeground
     }
 
     private func appendOpSync(_ op: DivoPendingTelegramOp) {

@@ -152,9 +152,15 @@ final class RosterUserView: UIView {
             statusLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
             avatarImageView.alpha = 1.0
 
-        case .alreadyAdded:
+        case .inYourRoster:
             statusIconView.isHidden = true
             statusLabel.text = DivoStrings.addModelSearchAlreadyAdded
+            statusLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
+            avatarImageView.alpha = 0.5
+
+        case .representedByAnother(let agencyName):
+            statusIconView.isHidden = true
+            statusLabel.text = DivoStrings.addModelSearchInOtherAgency(agencyName)
             statusLabel.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
             avatarImageView.alpha = 0.5
         }

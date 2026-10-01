@@ -64,7 +64,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private let peer: Peer?
     
     private let contextSourceNode = ContextReferenceContentNode()
-    private let deleteLoadingOverlay = DivoLoadingOverlay()
 
     private var galleryLoaded: Bool = false
     private var profileLoaded: Bool = false
@@ -75,6 +74,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
     private var isMyProfile: Bool
     private var isMyRoleAgency: Bool
+
+    // Экран используется как вкладка «Профиль»: иконка таба берётся из аватарки,
+    // кнопка «назад» скрыта.
+    private var isProfileTab = false
 
     private enum PickerPurpose {
         case photo
@@ -142,6 +145,20 @@ public final class PublicProfileScreenController: TelegramBaseController {
             name: DivoConfig.divoEventCreated,
             object: nil
         )
+        // Свой канал зарегистрирован в REST → перечитываем список каналов профиля.
+        if model.isMyProfile {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(self.handleChannelsDidChange),
+                name: DivoConfig.channelsDidChangeNotification,
+                object: nil
+            )
+        }
+    }
+
+    @objc private func handleChannelsDidChange() {
+        guard self.isNodeLoaded else { return }
+        self.controllerNode.reloadChannelGalleryIfLoaded()
     }
     
     deinit {
@@ -249,13 +266,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
             instagramUrl: self.controllerNode.extractHandle(from: instagram),
             websiteUrl: self.controllerNode.extractHandle(from: website)
         )
-        // У агентства соцсети живут в /user-social-network, а не в model.*Url
+        // У агентства ссылки — плоские поля агентства (/agency/{id}), а не model.*Url
         let isAgency = userDetailModel?.role == "agency_employee"
         let socialLinksController = EditSocialLinksController(
             context: self.context,
             presentationData: self.presentationData,
             linksData: linksData,
-            agencyNetworks: isAgency ? (userDetailModel?.userSocialNetworks ?? []) : nil
+            agencyId: isAgency ? userDetailModel?.agency?.id : nil
         )
         socialLinksController.delegate = self
         self.push(socialLinksController)
@@ -275,7 +292,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToAddModel() {
-        let addRosterController = AddRosterModelController(context: self.context)
+        let addRosterController = AddRosterModelController(context: self.context, agencyId: self.userDetailModel?.agency?.id)
         
         let nav = UINavigationController(rootViewController: addRosterController)
         nav.setNavigationBarHidden(true, animated: false)
@@ -291,16 +308,39 @@ public final class PublicProfileScreenController: TelegramBaseController {
             
             confirmationController.onConfirmSuccess = { [weak self, weak nav] name in
                 guard let self = self else { return }
-                if let agencyId = self.userDetailModel?.agency?.id {
-                    divoTrack(.addModelSuccess(targetUserId: selectedUser.id, agencyId: agencyId))
-                }
                 nav?.dismiss(animated: true)
                 self.loadModels()
-                guard let name = name else { return }
-                self.controllerNode.showSnackbar(
-                    message: DivoStrings.addModelSuccess(name),
-                    style: .success
-                )
+                let agencyId = self.userDetailModel?.agency?.id
+                // 2xx на POST ещё не значит, что модель в ростере (рассинхрон). Успех показываем,
+                // только когда модель реально появилась в списке агентства.
+                Task { @MainActor [weak self] in
+                    var isConfirmed = true
+                    if let agencyId {
+                        do {
+                            isConfirmed = try await AgencyRoster.fetchUserIds(agencyId: agencyId).contains(selectedUser.id)
+                        } catch {
+                            // Сверить не удалось (сеть) — доверяем 2xx на добавлении.
+                            divoLog("[ROSTER] сверка после добавления не удалась: \(error)", level: .error)
+                        }
+                    }
+                    guard let self else { return }
+                    if isConfirmed {
+                        if let agencyId {
+                            divoTrack(.addModelSuccess(targetUserId: selectedUser.id, agencyId: agencyId))
+                        }
+                        guard let name = name else { return }
+                        self.controllerNode.showSnackbar(
+                            message: DivoStrings.addModelSuccess(name),
+                            style: .success
+                        )
+                    } else {
+                        divoLog("[ROSTER] POST добавления вернул 2xx, но userId=\(selectedUser.id) нет в ростере", level: .error)
+                        self.controllerNode.showSnackbar(
+                            message: DivoStrings.addModelNotConfirmed,
+                            style: .error
+                        )
+                    }
+                }
             }
             nav.pushViewController(confirmationController, animated: true)
         }
@@ -355,6 +395,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             model: model,
             isMyRoleAgency: self.isMyRoleAgency
         )
+
+        self.controllerNode.hidesBackButton = self.isProfileTab
 
         self.controllerNode.onLikesTapped = {[weak self] in
             self?.presentInteractionSheet(type: .likes)
@@ -450,10 +492,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.navigateToManageExperience()
         }
 
-        self.controllerNode.onDeleteProfileTapped = { [weak self] in
-            self?.presentDeleteProfileConfirmation()
-        }
-
         self.controllerNode.onAddModelTapped = { [weak self] in
             self?.navigateToAddModel()
         }
@@ -503,6 +541,91 @@ public final class PublicProfileScreenController: TelegramBaseController {
         super.viewDidLoad()
         // DIVO свёрстан под светлую палитру — форсим .light
         overrideUserInterfaceStyle = .light
+    }
+
+    // MARK: - Profile tab
+
+    /// Настраивает контроллер как таб «Профиль» (заголовок + иконка-аватар).
+    /// До загрузки /user/info иконка — плейсхолдер, после — круглая аватарка.
+    public func configureAsProfileTab() {
+        self.isProfileTab = true
+        self.tabBarItem.title = DivoStrings.tabProfile
+        self.applyTabBarIcon(avatar: nil)
+        // Свой профиль отредактировали (имя/ава/поля) на другом экране → тихо перечитываем себя,
+        // иначе таб держит устаревшие данные до перезахода в приложение.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleOwnProfileDidUpdate),
+            name: DivoConfig.profileDidUpdateNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleOwnProfileDidUpdate() {
+        guard self.isProfileTab, self.profileLoaded else { return }
+        self.refreshProfileTabSilently()
+    }
+
+    /// Тихий рефреш профиль-таба (без шиммера/сброса скролла): перечитываем /user/info и
+    /// engagement, обновляем шапку и иконку таба. Полный loadInitialData тут не зовём — он
+    /// возвращает экран в loading-стейт, что на фоновой правке имени выглядело бы миганием.
+    private func refreshProfileTabSilently() {
+        Task {
+            async let profileResult = fetchUserProfile()
+            async let engagementResult = fetchEngagementTotals()
+            let (profile, engagement) = await (profileResult, engagementResult)
+            await MainActor.run {
+                guard let detail = profile else { return }
+                self.userDetailModel = detail
+                self.updateTabBarAvatarIcon(from: detail)
+                self.controllerNode.updateWithUserDetail(detail, self.isMyProfile)
+                self.loadAgencyLinks(for: detail)
+                self.userID = detail.id
+                self.userRole = Role(apiRole: detail.role)
+                if let eng = engagement {
+                    self.controllerNode.updateEngagementStats(
+                        likes: eng.likes,
+                        views: eng.views,
+                        saves: eng.saves,
+                        isLiked: detail.isLikedByUser ?? false,
+                        isSaved: detail.isFollowed ?? false
+                    )
+                }
+            }
+        }
+    }
+
+    private func updateTabBarAvatarIcon(from detail: UserDetail) {
+        guard let url = CDNURLHelper.convertToCDNURL(detail.avatar?.fullUrl) else {
+            self.applyTabBarIcon(avatar: nil)
+            return
+        }
+        ImageLoader.shared.load(url: url) { [weak self] image in
+            guard let self, self.isProfileTab else { return }
+            self.applyTabBarIcon(avatar: image)
+        }
+    }
+
+    private func applyTabBarIcon(avatar: UIImage?) {
+        self.tabBarItem.image = Self.makeProfileTabIcon(avatar: avatar, tint: DivoColorPalette.tabInactiveIcon)
+        self.tabBarItem.selectedImage = Self.makeProfileTabIcon(avatar: avatar, tint: DivoColorPalette.tabActiveIcon)
+    }
+
+    private static func makeProfileTabIcon(avatar: UIImage?, tint: UIColor) -> UIImage? {
+        guard let avatar = avatar else {
+            let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .regular)
+            return UIImage(systemName: "person.crop.circle.fill", withConfiguration: config)?
+                .withTintColor(tint, renderingMode: .alwaysOriginal)
+        }
+        let size = CGSize(width: 28, height: 28)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            UIBezierPath(ovalIn: CGRect(origin: .zero, size: size)).addClip()
+            let scale = max(size.width / avatar.size.width, size.height / avatar.size.height)
+            let drawSize = CGSize(width: avatar.size.width * scale, height: avatar.size.height * scale)
+            let origin = CGPoint(x: (size.width - drawSize.width) / 2, y: (size.height - drawSize.height) / 2)
+            avatar.draw(in: CGRect(origin: origin, size: drawSize))
+        }.withRenderingMode(.alwaysOriginal)
     }
 
     /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers.
@@ -683,7 +806,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
                     return
                 }
                 self.userDetailModel = detail
+                if self.isProfileTab {
+                    self.updateTabBarAvatarIcon(from: detail)
+                }
                 self.controllerNode.updateWithUserDetail(detail, self.isMyProfile)
+                self.loadAgencyLinks(for: detail)
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 self.setupStoryRing()
@@ -1203,6 +1330,28 @@ extension PublicProfileScreenController {
                 chatLocation: .peer(peer)
             ))
         }))
+    }
+}
+
+// Ссылки агентства — плоские поля агентства (`/agency/{id}`: instagramUrl, tiktokUrl, youtubeUrl,
+// telegramUrl, websiteUrl ?? site); в /user/info их нет. Догружаем и докладываем в блок соцсетей.
+extension PublicProfileScreenController {
+    func loadAgencyLinks(for detail: UserDetail) {
+        guard detail.role == "agency_employee", let agencyId = detail.agency?.id else {
+            self.controllerNode.updateAgencyLinks([])
+            return
+        }
+        Task { @MainActor [weak self] in
+            do {
+                let response: AgencyDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/agency/\(agencyId)"
+                )
+                self?.controllerNode.updateAgencyLinks(response.data.links)
+            } catch {
+                // Best-effort: без ссылок агентства блок покажет то, что есть в профиле.
+                divoLog("[AGENCY LINKS] Error: \(error)", level: .error)
+            }
+        }
     }
 }
 
@@ -2169,48 +2318,4 @@ extension PublicProfileScreenController {
         }
     }
 
-    func presentDeleteProfileConfirmation() {
-        let alert = UIAlertController(
-            title: DivoStrings.deleteProfile,
-            message: DivoStrings.deleteProfileConfirmMessage,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
-        alert.addAction(UIAlertAction(title: DivoStrings.delete, style: .destructive) { [weak self] _ in
-            self?.deleteProfile()
-        })
-        self.present(alert, animated: true)
-    }
-
-    private func deleteProfile() {
-        // Блокирующий полноэкранный лоадер — пока идёт удаление, юзер не должен уйти с экрана / тапать.
-        self.deleteLoadingOverlay.show(in: self.displayNode.view, message: DivoStrings.deleting)
-        Task { [weak self] in
-            do {
-                // Деструктивный эндпоинт: успех определяем по HTTP-статусу (2xx), тело не декодим —
-                // на пустом/неожиданном ответе жёсткий decode упал бы уже ПОСЛЕ удаления аккаунта.
-                _ = try await DivoAPIClient.shared.requestRawData(
-                    path: "/user/delete-account",
-                    method: "DELETE"
-                )
-                await MainActor.run {
-                    guard let self = self else { return }
-                    // Аккаунт удалён на бэке — чистим DIVO-токен и разлогиниваем teamgram (уход на welcome).
-                    // Лоадер не прячем: logout уводит с экрана, оверлей уходит вместе с контроллером.
-                    DivoConfig.resetToken()
-                    let _ = logoutFromAccount(
-                        id: self.context.account.id,
-                        accountManager: self.context.sharedContext.accountManager,
-                        alreadyLoggedOutRemotely: false
-                    ).start()
-                }
-            } catch {
-                await MainActor.run {
-                    guard let self = self else { return }
-                    self.deleteLoadingOverlay.hide()
-                    self.controllerNode.showSnackbar(message: DivoStrings.deleteProfileFailed, style: .error)
-                }
-            }
-        }
-    }
 }

@@ -155,7 +155,7 @@ public struct FollowRequest: Encodable {
 
 public struct FollowResponse: Decodable {
     public let message: String?
-    public let errors: String?
+    public let errors: DivoResponseErrors?
 }
 
 /// Тело `/user/like` и `/user/unlike` — лайк модели по её userId (миграция с feedId-based

@@ -17,6 +17,7 @@ import WebUI
 import AvatarNode
 import PeerNameColorItem
 import BoostLevelIconComponent
+import DivoCore
 
 private let enabledPublicBioEntities: EnabledEntityTypes = [.allUrl, .mention, .hashtag]
 private let enabledPrivateBioEntities: EnabledEntityTypes = [.internalUrl, .mention, .hashtag]
@@ -35,7 +36,7 @@ enum InfoSection: Int, CaseIterable {
     case botAffiliateProgram
 }
 
-func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationData: PresentationData, interaction: PeerInfoInteraction, nearbyPeerDistance: Int32?, reactionSourceMessageId: MessageId?, callMessages: [Message], chatLocation: ChatLocation, isOpenedFromChat: Bool, isMyProfile: Bool) -> [(AnyHashable, [PeerInfoScreenItem])] {
+func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationData: PresentationData, interaction: PeerInfoInteraction, nearbyPeerDistance: Int32?, reactionSourceMessageId: MessageId?, callMessages: [Message], chatLocation: ChatLocation, isOpenedFromChat: Bool, isMyProfile: Bool, divoPublicProfile: DivoPublicProfileInfo? = nil, divoPublicProfilePending: Bool = false, openDivoProfile: ((Int) -> Void)? = nil) -> [(AnyHashable, [PeerInfoScreenItem])] {
     guard let data = data else {
         return []
     }
@@ -71,6 +72,7 @@ func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationD
         let ItemPersonalChannelHeader = 2000
         let ItemPersonalChannel = 2001
         let ItemPhoneNumber = 3000
+        let ItemDivoPublicProfile = 3006
         let ItemUsername = 3001
         let ItemBirthdate = 3002
         let ItemAbout = 3003
@@ -122,7 +124,19 @@ func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationD
             }))
         }
         
-        if let phone = user.phone {
+        if divoPublicProfile != nil || divoPublicProfilePending {
+            // Имя показываем сразу из синкнутого Telegram-имени (DIVA-45), пока не приедет
+            // авторитетный full_name — так строка появляется без щели и мелькания.
+            let profileName = divoPublicProfile?.fullName ?? EnginePeer(user).displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder)
+            let divoUserId = divoPublicProfile?.userId
+            items[currentPeerInfoSection]!.append(PeerInfoScreenLabeledValueItem(id: ItemDivoPublicProfile, label: DivoStrings.peerInfoPublicProfileLabel, text: profileName, textColor: .accent, action: { _, _ in
+                if let divoUserId {
+                    openDivoProfile?(divoUserId)
+                }
+            }, requestLayout: { animated in
+                interaction.requestLayout(animated)
+            }))
+        } else if let phone = user.phone {
             let formattedPhone = formatPhoneNumber(context: context, number: phone)
             let label: String
             if formattedPhone.hasPrefix("+888 ") {

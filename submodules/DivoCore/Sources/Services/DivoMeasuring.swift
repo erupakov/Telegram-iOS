@@ -56,7 +56,11 @@ public enum DivoMeasuring {
 
     /// Метрическое значение → число в единицах `system` (целое — под слайдеры и поля ввода).
     public static func displayValue(metric: Double, kind: DivoMeasureKind, system: DivoMeasuringSystem = .current) -> Double {
-        guard system == .imperial else { return metric }
+        guard system == .imperial else {
+            // Дробный мусор старых серверных записей не показываем: рост/вес/талия/бёдра —
+            // целые (как их и вводит пикер), обувь оставляем с полуразмером
+            return kind == .shoeSize ? metric : metric.rounded()
+        }
         switch kind {
         case .height, .waist, .hips: return (metric / cmPerInch).rounded()
         case .weight: return (metric * lbPerKg).rounded()
@@ -68,7 +72,11 @@ public enum DivoMeasuring {
 
     /// Число из UI в единицах `system` → целое метрическое (для отправки и хранения).
     public static func metricValue(display: Double, kind: DivoMeasureKind, system: DivoMeasuringSystem = .current) -> Double {
-        guard system == .imperial else { return display }
+        guard system == .imperial else {
+            // Метрический ввод тоже к целому: слайдер отдаёт сырой Double, без этого
+            // дробь ушла бы на сервер. Обувь — полуразмер, не трогаем
+            return kind == .shoeSize ? display : display.rounded()
+        }
         switch kind {
         case .height, .waist, .hips: return (display * cmPerInch).rounded()
         case .weight: return (display / lbPerKg).rounded()
@@ -82,6 +90,8 @@ public enum DivoMeasuring {
         // Обувь на проводе всегда в EU независимо от маркера — US-шкала живёт только на показе
         guard kind != .shoeSize else { return value }
         let source = sourceSystem.flatMap(DivoMeasuringSystem.init(rawValue:)) ?? .metric
+        // metricValue округляет и metric-ветку — дробный мусор старых записей
+        // нормализуется до целого уже на входе и не уходит обратно на сервер
         return metricValue(display: value, kind: kind, system: source)
     }
 

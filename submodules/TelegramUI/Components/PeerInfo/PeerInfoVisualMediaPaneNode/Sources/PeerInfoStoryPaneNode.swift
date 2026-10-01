@@ -1659,7 +1659,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
     public var tabBarOffset: CGFloat {
         if case .botPreview = self.scope {
             return 0.0
-        } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived) || !self.currentStoryFolders.isEmpty || self.initialStoryFolderId != nil), self.isProfileEmbedded {
+        } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived && self.divoStoryAlbumsEnabled) || !self.currentStoryFolders.isEmpty || self.initialStoryFolderId != nil), self.isProfileEmbedded {
             return 0.0
         } else {
             return self.itemGrid.coveringInsetOffset
@@ -1675,6 +1675,9 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
     private var removedBotPreviewLanguages = Set<String>()
     
     private var currentStoryFolders: [StoryListContext.State.Folder] = []
+    /// DIVO: альбомы историй не поддерживаем — ни таба альбомов, ни «Создать альбом»,
+    /// ни «Добавить в альбом»; серверные альбомы игнорируем.
+    private let divoStoryAlbumsEnabled = false
     private var removedStoryFolders = Set<Int64>()
     
     private let maxStoryFolders: Int
@@ -1761,7 +1764,8 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
         self.isProfileEmbedded = isProfileEmbedded
         self.canManageStories = canManageStories
         self.excludeIds = Set(excludeIds)
-        self.initialStoryFolderId = initialStoryFolderId
+        // DIVO: альбомов нет — открытие сразу в альбом (initialStoryFolderId) не поддерживаем.
+        self.initialStoryFolderId = nil
         
         switch scope {
         case let .peer(_, _, isArchived):
@@ -2512,7 +2516,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
         var items: [ContextMenuItem] = []
         
         if canManage, case let .peer(peerId, _, isArchived) = self.scope {
-            if !isArchived && self.canManageStories && self.isProfileEmbedded {
+            if !isArchived && self.canManageStories && self.isProfileEmbedded && self.divoStoryAlbumsEnabled {
                 items.append(.action(ContextMenuActionItem(text: self.presentationData.strings.Stories_MenuAddToAlbum, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AddToFolder"), color: theme.contextMenu.primaryColor) }, action: { [weak self] c, f in
                     guard let self, let c else {
                         f(.default)
@@ -2976,7 +2980,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                 botPreviewLanguages.sort(by: { $0.name < $1.name })
                 
                 var storyFolders = self.currentStoryFolders
-                for folder in state.availableFolders {
+                for folder in (self.divoStoryAlbumsEnabled ? state.availableFolders : []) {
                     if !storyFolders.contains(where: { $0.id == folder.id }) && !self.removedStoryFolders.contains(folder.id) {
                         storyFolders.append(folder)
                     }
@@ -3195,7 +3199,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
             } else {
                 if case .botPreview = self.scope {
                 } else if !self.currentStoryFolders.isEmpty {
-                } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived) || !self.currentStoryFolders.isEmpty || self.initialStoryFolderId != nil) {
+                } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived && self.divoStoryAlbumsEnabled) || !self.currentStoryFolders.isEmpty || self.initialStoryFolderId != nil) {
                 } else if reloadAtTop {
                     gridSnapshot = self.itemGrid.view.snapshotView(afterScreenUpdates: false)
                 }
@@ -3675,7 +3679,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
             if let _ = self.mapNode {
                 self.updateMapLayout(size: currentParams.size, topInset: currentParams.topInset, bottomInset: currentParams.bottomInset, deviceMetrics: currentParams.deviceMetrics, transition: transition)
             }
-            if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived) || !self.currentStoryFolders.isEmpty), self.isProfileEmbedded {
+            if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived && self.divoStoryAlbumsEnabled) || !self.currentStoryFolders.isEmpty), self.isProfileEmbedded {
                 self.updateFolderTab(size: currentParams.size, topInset: currentParams.topInset, transition: transition)
             } else if case .botPreview = self.scope, self.canManageStories {
                 self.updateFolderTab(size: currentParams.size, topInset: currentParams.topInset, transition: transition)
@@ -3839,7 +3843,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
         var displayFolderTab = false
         if case .botPreview = self.scope, self.canManageStories {
             displayFolderTab = true
-        } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived) || !self.currentStoryFolders.isEmpty), self.isProfileEmbedded {
+        } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived && self.divoStoryAlbumsEnabled) || !self.currentStoryFolders.isEmpty), self.isProfileEmbedded {
             displayFolderTab = true
         }
         
@@ -4245,7 +4249,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
         if self.isProfileEmbedded && !"".isEmpty {
             if case .botPreview = self.scope {
                 hasBarBackground = true
-            } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived) || !self.currentStoryFolders.isEmpty) {
+            } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived && self.divoStoryAlbumsEnabled) || !self.currentStoryFolders.isEmpty) {
                 hasBarBackground = true
             }
         }
@@ -4268,7 +4272,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
         var displayFolderTab = false
         if case .botPreview = self.scope, self.canManageStories {
             displayFolderTab = true
-        } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived) || !self.currentStoryFolders.isEmpty || self.initialStoryFolderId != nil), self.isProfileEmbedded {
+        } else if case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived && self.divoStoryAlbumsEnabled) || !self.currentStoryFolders.isEmpty || self.initialStoryFolderId != nil), self.isProfileEmbedded {
             displayFolderTab = true
         }
         
@@ -4534,7 +4538,10 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
 
         transition.updateFrame(node: self.contextGestureContainerNode, frame: CGRect(origin: CGPoint(x: 0.0, y: 0.0), size: CGSize(width: size.width, height: size.height)))
         
-        if case let .peer(_, _, isArchived) = self.scope, let items = self.items, items.items.isEmpty, items.count == 0 {
+        if case let .peer(scopePeerId, _, isArchived) = self.scope, let items = self.items, items.items.isEmpty, items.count == 0 {
+            // DIVO: истории каналов не поддерживаем — в пустом состоянии вкладки историй канала
+            // кнопку «добавить историю» не показываем (как и в шапке профиля канала).
+            let divoCanAddStory = self.canManageStories && scopePeerId.namespace != Namespaces.Peer.CloudChannel
             if self.canManageStories, self.isProfileEmbedded, self.currentStoryFolder != nil {
                 let emptyStateView: ComponentView<Empty>
                 var emptyStateTransition = ComponentTransition(transition)
@@ -4621,7 +4628,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                         animationName: "StoryListEmpty",
                         title: isArchived ? presentationData.strings.StoryList_ArchivedEmptyState_Title : presentationData.strings.StoryList_SavedEmptyPosts_Title,
                         text: isArchived ? presentationData.strings.StoryList_ArchivedEmptyState_Text : presentationData.strings.StoryList_SavedEmptyPosts_Text,
-                        actionTitle: (isArchived || !self.canManageStories) ? nil : presentationData.strings.StoryList_SavedAddAction,
+                        actionTitle: (isArchived || !divoCanAddStory) ? nil : presentationData.strings.StoryList_SavedAddAction,
                         action: { [weak self] in
                             guard let self else {
                                 return
@@ -4855,7 +4862,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
                 
                 /*if self.isProfileEmbedded, case .botPreview = self.scope {
                     subTransition.setBackgroundColor(view: self.view, color: presentationData.theme.list.blocksBackgroundColor)
-                } else if self.isProfileEmbedded, case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived) || !self.currentStoryFolders.isEmpty), self.isProfileEmbedded {
+                } else if self.isProfileEmbedded, case let .peer(_, _, isArchived) = self.scope, ((self.canManageStories && !isArchived && self.divoStoryAlbumsEnabled) || !self.currentStoryFolders.isEmpty), self.isProfileEmbedded {
                     subTransition.setBackgroundColor(view: self.view, color: presentationData.theme.list.blocksBackgroundColor)
                 } else if self.isProfileEmbedded {
                     subTransition.setBackgroundColor(view: self.view, color: presentationData.theme.list.blocksBackgroundColor)

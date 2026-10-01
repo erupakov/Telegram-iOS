@@ -88,6 +88,10 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     public var chatListController: ChatListController?
     public var accountSettingsController: PeerInfoScreen?
     public var divoSettingsController: DivoSettingsController?
+    public var profileTabController: PublicProfileScreenController?
+    
+    // Защита от рекурсии: перестройка бара сама меняет selectedIndex → снова дёргает хук.
+    private var isUpdatingTabBarLayout = false
     
     private var permissionsDisposable: Disposable?
     private var presentationDataDisposable: Disposable?
@@ -215,7 +219,28 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         self.chatListController?.tabBarItem.title = DivoStrings.tabChats
         self.divoSettingsController?.tabBarItem.title = DivoStrings.tabSettings
         if let tabController = self.rootTabController as? TabBarControllerImpl {
-            tabController.setControllers(tabController.controllers, selectedIndex: nil)
+            var controllers = tabController.controllers
+            // Профиль-таб пересоздаём: DivoStrings вычисляются лениво, но статичные лейблы ноды
+            // выставлены при построении и без пересоздания остаются на старом языке.
+            if let old = self.profileTabController, let idx = controllers.firstIndex(where: { $0 === old }) {
+                let fresh = PublicProfileScreenController(context: self.context, model: ProfileModel(
+                    name: "",
+                    age: nil,
+                    location: "",
+                    isVerified: false,
+                    likesCount: "0",
+                    viewsCount: "0",
+                    savesCount: "0",
+                    biography: "",
+                    socialMediaHandles: [],
+                    isMyProfile: true
+                ))
+                fresh.configureAsProfileTab()
+                controllers[idx] = fresh
+                self.profileTabController = fresh
+            }
+            self.profileTabController?.tabBarItem.title = DivoStrings.tabProfile
+            tabController.setControllers(controllers, selectedIndex: nil)
         }
         // animated:true — иначе pop из DivoLanguagePickerController в Settings идёт резко;
         // в других местах (token change, logout) popToRoot оставлен без анимации намеренно.
@@ -280,6 +305,7 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
     public func addRootControllers(showCallsTab: Bool) {
         let tabBarController = TabBarControllerImpl(theme: self.presentationData.theme, strings: self.presentationData.strings)
         tabBarController.navigationPresentation = .master
+        tabBarController.transitionStyle = .crossFade
         let chatListController = self.context.sharedContext.makeChatListController(context: self.context, location: .chatList(groupId: .root), controlsHistoryPreload: true, hideNetworkActivityStatus: false, previewing: false, enableDebugActions: !GlobalExperimentalSettings.isAppStoreBuild)
         if let sharedContext = self.context.sharedContext as? SharedAccountContextImpl {
             chatListController.tabBarItem.badgeValue = sharedContext.switchingData.chatListBadge
@@ -296,14 +322,28 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         contactsController.switchToChatsController = {  [weak self] in
             self?.openChatsController(activateSearch: false)
         }
-        // controllers.append(contactsController)
+        
+        let profileTabController = PublicProfileScreenController(context: self.context, model: ProfileModel(
+            name: "",
+            age: nil,
+            location: "",
+            isVerified: false,
+            likesCount: "0",
+            viewsCount: "0",
+            savesCount: "0",
+            biography: "",
+            socialMediaHandles: [],
+            isMyProfile: true
+        ))
+        profileTabController.configureAsProfileTab()
+
+        // Базовый бар: Модели · События · Чаты · Профиль. Настройки — условный 5-й таб
+        // (только на Профиле/Настройках); кнопку-поиск бар рисует сам по tabBarSearchState экрана.
         controllers.append(modelsFeedNode)
         controllers.append(eventsController)
         
-        // if showCallsTab {
-        //     controllers.append(callListController)
-        // }
         controllers.append(chatListController)
+        controllers.append(profileTabController)
         
         var restoreSettignsController: (ViewController & SettingsController)?
         if let sharedContext = self.context.sharedContext as? SharedAccountContextImpl {
@@ -315,17 +355,29 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         }
         
         let divoSettingsController = DivoSettingsController(context: self.context)
-        controllers.append(divoSettingsController)
+        // При восстановлении после переключения аккаунта стартуем сразу на Настройках.
+        let restoringSettings = restoreSettignsController != nil
+        if restoringSettings {
+            controllers.append(divoSettingsController)
+        }
 
-        tabBarController.setControllers(controllers, selectedIndex: restoreSettignsController != nil ? (controllers.count - 1) : 0)
-
+        tabBarController.setControllers(controllers, selectedIndex: restoringSettings ? (controllers.count - 1) : 0)
+        
         self.contactsController = contactsController
         self.modelsFeedNode = modelsFeedNode
         self.eventsController = eventsController
         self.chatListController = chatListController
+        self.profileTabController = profileTabController
         self.divoSettingsController = divoSettingsController
         self.rootTabController = tabBarController
+
+        tabBarController.selectedIndexUpdated = { [weak self] index in
+            self?.updateTabBarForSelection(index)
+        }
+
         self.pushViewController(tabBarController, animated: false)
+
+        self.updateTabBarForSelection(tabBarController.selectedIndex)
 
         if DivoConfig.isDebugEnabled {
             DivoNetworkOverlay.shared.restoreIfNeeded()
@@ -333,21 +385,54 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         }
     }
         
-    public func updateRootControllers(showCallsTab: Bool) {
-        guard let rootTabController = self.rootTabController as? TabBarControllerImpl else {
+    // Перестраивает 5-й слот бара под активную вкладку: Настройки видны только на Профиле
+    // и на самих Настройках. Кнопка-поиск появляется/исчезает сама — её ведёт tabBarSearchState.
+    private func updateTabBarForSelection(_ index: Int) {
+        guard !self.isUpdatingTabBarLayout,
+              let tabBarController = self.rootTabController as? TabBarControllerImpl,
+              let profileTab = self.profileTabController,
+              let settings = self.divoSettingsController,
+              tabBarController.controllers.indices.contains(index) else {
             return
         }
-        var controllers: [ViewController] = []
-        controllers.append(self.contactsController!)
-        // if showCallsTab {
-        //     controllers.append(self.callListController!)
-        // }
-        controllers.append(self.chatListController!)
-        if let divoSettings = self.divoSettingsController {
-            controllers.append(divoSettings)
+        let selected = tabBarController.controllers[index]
+        let isProfileOrSettings = (selected === profileTab) || (selected === settings)
+
+        let hasSettings = tabBarController.controllers.contains(where: { $0 === settings })
+        if isProfileOrSettings == hasSettings {
+            return
+        }
+
+        self.isUpdatingTabBarLayout = true
+        var controllers = tabBarController.controllers.filter { $0 !== settings }
+        if isProfileOrSettings {
+            controllers.append(settings)
+        }
+        let newIndex = controllers.firstIndex(where: { $0 === selected }) ?? 0
+        tabBarController.setControllers(controllers, selectedIndex: newIndex)
+        self.isUpdatingTabBarLayout = false
+    }
+
+    public func updateRootControllers(showCallsTab: Bool) {
+        // DIVO без вкладки звонков — просто пересобираем базу, сохраняя наличие Настроек и выбор.
+        guard let rootTabController = self.rootTabController as? TabBarControllerImpl,
+              let models = self.modelsFeedNode,
+              let events = self.eventsController,
+              let chats = self.chatListController,
+              let profile = self.profileTabController else {
+            return
+        }
+        var controllers: [ViewController] = [models, events, chats, profile]
+        if let settings = self.divoSettingsController,
+           rootTabController.controllers.contains(where: { $0 === settings }) {
+            controllers.append(settings)
         }
         
-        rootTabController.setControllers(controllers, selectedIndex: nil)
+        let currentIndex = rootTabController.selectedIndex
+        let selected = rootTabController.controllers.indices.contains(currentIndex) ? rootTabController.controllers[currentIndex] : nil
+        let newIndex = selected.flatMap { s in controllers.firstIndex(where: { $0 === s }) } ?? 0
+
+        rootTabController.setControllers(controllers, selectedIndex: newIndex)
     }
     
     public func openChatsController(activateSearch: Bool, filter: ChatListSearchFilter = .chats, query: String? = nil) {
@@ -676,7 +761,8 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
             targetPeerId = nil
         }
         
-        let folders: [Int64] = results.first?.options.folderIds ?? []
+        // DIVO: альбомы историй не поддерживаем — публикуем без привязки к альбомам.
+        let folders: [Int64] = []
 
         if let rootTabController = self.rootTabController {
             // DIVO: при форс-таргете (постинг из DIVO-профиля) не переключаем таббар на чат-лист

@@ -100,6 +100,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private var navigationBarTitleView: ProfileNavigationBarTitleView?
     private var navigationBarTitleHeightConstraint: NSLayoutConstraint!
+    private var customNavBarBottomConstraint: NSLayoutConstraint!
+    private var navBarBlurBottomConstraint: NSLayoutConstraint!
+    private var floatingAddButtonBottomConstraint: NSLayoutConstraint!
+    private var closeButtonShadow: PillShadowView?
     
     // Управление моментом, когда начинаем анимировать title в навбаре
     private var titleVisibilityActivated = false
@@ -609,6 +613,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private var channelGalleryItems: [ProfileChannelItem] = []
     private var channelGalleryInitialized: Bool = false
+    // Блок соцсетей: ссылки профиля + ссылки агентства (догружаются отдельно).
+    private var baseSocialLinks: [String] = []
+    private var agencySocialLinks: [String] = []
+    private var socialLinksIsMyProfile = false
     
     private lazy var channelGalleryCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -754,6 +762,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onEventButtonTapped: ((Int) -> Void)?
     var onEventDeleteButtonTapped: ((Int) -> Void)?
     var onBackTapped: (() -> Void)?
+    /// Экран открыт как вкладка таб-бара — возвращаться некуда, кнопку «назад» прячем.
+    /// Тень-подложка лежит в customNavBar, а не внутри кнопки, поэтому гасим и её.
+    var hidesBackButton: Bool = false {
+        didSet {
+            closeButton.isHidden = hidesBackButton
+            closeButtonShadow?.isHidden = hidesBackButton
+        }
+    }
     var onGridShareTapped: ((UserDetail?, UIImage?) -> Void)?
     var onSendDMTapped: (() -> Void)?
     
@@ -765,7 +781,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onChangeBackgroundTapped: (() -> Void)?
     var onEditSocialLinksTapped: (() -> Void)?
     var onManageWorkExperienceTapped: (() -> Void)?
-    var onDeleteProfileTapped: (() -> Void)?
     var onAddModelTapped: (() -> Void)?
     var onCreateEventTapped: (() -> Void)?
     var onAddVideoTapped: ((Bool) -> Void)?
@@ -1174,11 +1189,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupTopBlur() {
         view.addSubview(navBarBlurView)
         
+        // Высота задаётся от статус-бара (см. customNavBar): от неё считаются доли
+        // белого градиента, и на нулевой safe area белая часть наползала на шапку.
+        navBarBlurBottomConstraint = navBarBlurView.bottomAnchor.constraint(equalTo: view.topAnchor, constant: 280)
+
         NSLayoutConstraint.activate([
             navBarBlurView.topAnchor.constraint(equalTo: view.topAnchor),
             navBarBlurView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             navBarBlurView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            navBarBlurView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 280)
+            navBarBlurBottomConstraint
         ])
     }
     
@@ -1292,7 +1311,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         addPillBlur(to: closeButton)
         addPillBlur(to: rightButtonContainer)
 
-        addPillShadow(under: closeButton, in: customNavBar)
+        closeButtonShadow = addPillShadow(under: closeButton, in: customNavBar)
         addPillShadow(under: rightButtonContainer, in: customNavBar)
 
         rightButtonContainer.addSubview(rightButtonsStack)
@@ -1306,11 +1325,15 @@ final class PublicProfileScreenNode: ASDisplayNode {
         storiesButton.addTarget(self, action: #selector(storiesTapped), for: .touchUpInside)
         storiesButton.addDivoPressState(.pill)
         
+        // Как вкладка таб-бара экран не получает UIKit safe area (её ведёт Display),
+        // поэтому верхний отступ задаём константой из containerLayoutUpdated.
+        customNavBarBottomConstraint = customNavBar.bottomAnchor.constraint(equalTo: view.topAnchor, constant: 52)
+
         NSLayoutConstraint.activate([
             customNavBar.topAnchor.constraint(equalTo: view.topAnchor),
             customNavBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             customNavBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            customNavBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 52),
+            customNavBarBottomConstraint,
             
             closeButton.leadingAnchor.constraint(equalTo: customNavBar.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             closeButton.centerYAnchor.constraint(equalTo: customNavBar.bottomAnchor, constant: -25),
@@ -1421,20 +1444,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
             guard isMyProfile else { return }
 
-            // Удаление аккаунта самоприменимо — пункт только на своём профиле (за guard isMyProfile).
-            let deleteProfileAction = UIAction(
-                title: DivoStrings.deleteProfile,
-                image: nil,
-                attributes: .destructive
-            ) { [weak self] _ in
-                self?.onDeleteProfileTapped?()
-            }
-
             if modelRole == .agency {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, deleteProfileAction])
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction])
                 editButton.menu = menu
             } else {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction, deleteProfileAction])
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
                 editButton.menu = menu
             }
 
@@ -2400,8 +2414,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupFloatingButton() {
         self.view.addSubview(floatingAddButton)
         
+        // Низ считаем от края view: как вкладка таб-бара экран не получает UIKit
+        // safe area (её ведёт Display), а высоту таб-панели несёт intrinsicInsets.bottom.
+        // containerLayoutUpdated подставляет туда актуальный отступ.
+        floatingAddButtonBottomConstraint = floatingAddButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: -DivoDesignTokens.Spacing.m)
+
         NSLayoutConstraint.activate([
-            floatingAddButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m),
+            floatingAddButtonBottomConstraint,
             floatingAddButton.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
             floatingAddButton.heightAnchor.constraint(equalToConstant: 40),
         ])
@@ -3161,6 +3180,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return items
     }
     
+    /// Ссылки агентства (плоские поля `/agency/{id}`) — приходят отдельным запросом после профиля.
+    func updateAgencyLinks(_ links: [String]) {
+        guard links != self.agencySocialLinks else { return }
+        self.agencySocialLinks = links
+        let merged = self.mergedSocialLinks
+        populateSocialMedia(links: merged)
+        if socialLinksIsMyProfile, titleEditContainer.superview != nil {
+            titleEditContainer.isHidden = merged.isEmpty
+        }
+    }
+
+    /// Ссылки агентства первыми, затем ссылки профиля без повторов.
+    private var mergedSocialLinks: [String] {
+        var result = agencySocialLinks
+        for link in baseSocialLinks where !result.contains(link) {
+            result.append(link)
+        }
+        return result
+    }
+
     // Создаем все кнопки социальный сетей
     private func populateSocialMedia(links: [String]) {
         
@@ -3423,6 +3462,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
         self.containerLayout = (layout, navigationBarHeight)
 
+        // Во вкладке таб-бара view.safeAreaInsets.top == 0, поэтому берём максимум
+        // из UIKit-инсета и статус-бара из Display — в push-режиме значение не меняется.
+        let topInset = max(view.safeAreaInsets.top, layout.statusBarHeight ?? 0)
+        customNavBarBottomConstraint.constant = topInset + 52
+        navBarBlurBottomConstraint.constant = topInset + 280
+
         navigationBarTitleHeightConstraint.isActive = false
         // scrollView.top = view.top (рамка во весь экран), но contentInset.top
         // = navigationBarHeight — контент изначально стоит под navbar (как
@@ -3445,6 +3490,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
         // последний элемент стоял чуть над home indicator. layout() добавит
         // больше для короткого контента.
         bottomSpacerHeightConstraint.constant = layout.intrinsicInsets.bottom + 4
+
+        // В таб-режиме intrinsicInsets.bottom несёт высоту таб-панели — поднимаем
+        // над ней плавающую кнопку; в push это равно home indicator (как было).
+        floatingAddButtonBottomConstraint.constant = -(layout.intrinsicInsets.bottom + DivoDesignTokens.Spacing.m)
 
         applyGradientBlurMask()
         updateNavBarBlurMask()
@@ -3654,22 +3703,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupMoreMenu()
         setupEditMenu(isMyProfile: isMyProfile)
 
-        var socialLinks: [String] = []
+        var baseLinks: [String] = []
 
         // Собираем все непустые ссылки в один массив
-        if let tiktok = detail.model?.tiktokUrl, !tiktok.isEmpty { socialLinks.append(tiktok) }
-        if let youtube = detail.model?.youtubeUrl, !youtube.isEmpty { socialLinks.append(youtube) }
-        if let instagram = detail.model?.instagramUrl, !instagram.isEmpty { socialLinks.append(instagram) }
-        if let website = detail.model?.websiteUrl, !website.isEmpty { socialLinks.append(website) }
-        
-        // Соцсети из /user-social-network (top-level) — единственный источник для agency;
-        // у model могут дублировать legacy-ссылки из model.*Url, поэтому фильтруем повторы.
+        if let tiktok = detail.model?.tiktokUrl, !tiktok.isEmpty { baseLinks.append(tiktok) }
+        if let youtube = detail.model?.youtubeUrl, !youtube.isEmpty { baseLinks.append(youtube) }
+        if let instagram = detail.model?.instagramUrl, !instagram.isEmpty { baseLinks.append(instagram) }
+        if let website = detail.model?.websiteUrl, !website.isEmpty { baseLinks.append(website) }
+
+        // Соцсети из /user-social-network (top-level); у model могут дублировать legacy-ссылки из
+        // model.*Url, поэтому фильтруем повторы. Ссылки агентства (плоские поля /agency/{id}) докладывает
+        // контроллер отдельно — updateAgencyLinks.
         for network in detail.userSocialNetworks ?? [] {
-            if let link = network.link, !link.isEmpty, !socialLinks.contains(link) {
-                socialLinks.append(link)
+            if let link = network.link, !link.isEmpty, !baseLinks.contains(link) {
+                baseLinks.append(link)
             }
         }
 
+        self.baseSocialLinks = baseLinks
+        self.socialLinksIsMyProfile = isMyProfile
+        let socialLinks = self.mergedSocialLinks
         populateSocialMedia(links: socialLinks)
 
         if !isMyProfile {
@@ -4311,6 +4364,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
     
+    /// Перечитать каналы, если вкладка уже загружалась (иначе загрузятся при первом открытии вкладки).
+    func reloadChannelGalleryIfLoaded() {
+        guard channelGalleryInitialized else { return }
+        loadChannelGallery()
+    }
+
     // Обновление галереи каналов
     func updateChannelsList(_ items: [ProfileChannelItem]) {
         self.channelGalleryItems = items
@@ -4793,12 +4852,14 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private let snackbar = DivoSnackbar()
 
     func showSnackbar(message: String, style: SnackbarStyle, retryAction: (() -> Void)? = nil, persistent: Bool = false) {
+        // От края view + intrinsicInsets.bottom: в таб-режиме UIKit safe area == 0,
+        // и по safeAreaLayoutGuide снек уходил под таб-панель; push не меняется.
         snackbar.show(
             in: self.view,
             message: message,
             style: style,
-            bottomInset: DivoDesignTokens.Spacing.m,
-            bottomAnchor: view.safeAreaLayoutGuide.bottomAnchor,
+            bottomInset: DivoDesignTokens.Spacing.m + (self.containerLayout?.0.intrinsicInsets.bottom ?? 0),
+            bottomAnchor: view.bottomAnchor,
             retryTitle: retryAction != nil ? DivoStrings.retry : nil,
             retryAction: retryAction,
             persistent: persistent

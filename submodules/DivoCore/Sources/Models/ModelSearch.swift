@@ -125,7 +125,7 @@ public struct RangeParamInt: Encodable {
 public struct ModelsSearchResponse: Decodable {
     public let message: String?
     public let data: SearchDataContainer
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct SearchDataContainer: Decodable {

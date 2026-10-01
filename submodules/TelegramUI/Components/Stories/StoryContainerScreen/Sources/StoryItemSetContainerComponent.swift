@@ -3574,10 +3574,9 @@ public final class StoryItemSetContainerComponent: Component {
                     var safeInsets = component.safeInsets
                     safeInsets.bottom = max(safeInsets.bottom, component.inputHeight)
                     
-                    var hasPremium = false
-                    if case let .user(user) = component.slice.effectivePeer {
-                        hasPremium = user.isPremium
-                    }
+                    // DIVO: Telegram Premium в DIVO нет — список просмотревших (в т.ч. после истечения истории,
+                    // поиск/фильтры/сортировка) доступен всем без апселла Premium.
+                    let hasPremium = true
                     
                     viewList.view.parentState = state
                     let viewListSize = viewList.view.update(
@@ -6430,7 +6429,8 @@ public final class StoryItemSetContainerComponent: Component {
                 
                 var items: [ContextMenuItem] = []
                 
-                if !isLiveStream {
+                // DIVO: альбомы историй не поддерживаем — пункта «Добавить в альбом» нет.
+                if !isLiveStream && !"".isEmpty {
                     items.append(.action(ContextMenuActionItem(text: component.strings.Stories_MenuAddToAlbum, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AddToFolder"), color: theme.contextMenu.primaryColor) }, action: { [weak self] c, f in
                         guard let self, let c else {
                             f(.default)

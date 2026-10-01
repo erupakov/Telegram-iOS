@@ -46,6 +46,11 @@ import BundleIconComponent
 import MarqueeComponent
 import EdgeEffect
 
+// DIVI-117: звонки, видеозвонки и «Отправить подарок» ещё не реализованы в DIVO — кнопки
+// звонок/видео показываем неактивными, а пункт подарка убираем до следующего релиза.
+// Единственная точка возврата на весь модуль: поставить true, когда фичи включат.
+let divoTelephonyAndGiftsEnabled = false
+
 final class PeerInfoHeaderNavigationTransition {
     let sourceNavigationBar: NavigationBar
     let sourceTitleView: ChatTitleView
@@ -2388,7 +2393,14 @@ final class PeerInfoHeaderNode: ASDisplayNode {
             if let highlightedButton = state.highlightedButton {
                 isActive = buttonKey == highlightedButton
             }
-            
+
+            // DIVI-117: звонок/видео пока не реализованы — гасим и делаем нереагирующими.
+            let divoDisabled = !divoTelephonyAndGiftsEnabled && (buttonKey == .call || buttonKey == .videoCall)
+            if divoDisabled {
+                isActive = false
+            }
+            buttonNode.isUserInteractionEnabled = !divoDisabled
+
             buttonNode.update(size: buttonFrame.size, text: buttonText, icon: buttonIcon, isActive: isActive, presentationData: presentationData, backgroundColor: contentButtonBackgroundColor, foregroundColor: contentButtonForegroundColor, fraction: 1.0 - innerButtonsTransitionFraction, transition: buttonTransition)
             
             if wasAdded {

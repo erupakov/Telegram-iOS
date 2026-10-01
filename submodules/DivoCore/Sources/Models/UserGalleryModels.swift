@@ -22,7 +22,7 @@ public struct GalleryListRequest: Encodable {
 public struct UserGalleryResponse: Decodable {
     public let message: String?
     public let data: UserPhotos
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct UserPhotos: Decodable {
@@ -51,7 +51,7 @@ public struct UserPhoto: Decodable {
 public struct UserVideoGalleryResponse: Decodable {
     public let message: String?
     public let data: UserVideoItems
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }
 
 public struct UserVideoItems: Decodable {
@@ -139,7 +139,7 @@ public struct VideoFileData: Codable {
 public struct AddPublicationResponse: Decodable {
     public let message: String?
     public let data: UserPublication?
-    public let errors: String?
+    public let errors: DivoResponseErrors?
 }
 
 public struct UserPublication: Decodable {
@@ -169,5 +169,5 @@ public struct UserPublicationFiles: Decodable {
 public struct DeletePublicationResponse: Decodable {
     public let message: String?
     public let data: String?
-    public let errors: [String]?
+    public let errors: DivoResponseErrors?
 }

@@ -95,6 +95,15 @@ config_setting(
     },
 )
 
+# DIVO: окружение сборки. --define=divoEnv=prod → боевой контур (prod API/teamgram/Firebase,
+# чистая иконка). Без флага (дефолт) → stage: отладочный контур + иконка с ленточкой DEBUG.
+config_setting(
+    name = "divoEnvProdSetting",
+    define_values = {
+        "divoEnv": "prod",
+    },
+)
+
 config_setting(
     name = "projectIncludeReleaseSetting",
     flag_values = {
@@ -290,6 +299,16 @@ filegroup(
     ], exclude = ["Telegram-iOS/DefaultAppIcon.xcassets/**/.*"]),
 )
 
+# Иконка с ленточкой DEBUG для отладочных (stage) сборок. Набор называется так же (AppIconLLC),
+# поэтому CFBundleIconName в Info.plist менять не нужно — выбор между чистой/ленточной идёт через
+# select() в resources ниже. PNG генерятся скриптом scripts/divo/generate_debug_appicon.py.
+filegroup(
+    name = "DebugAppIcon",
+    srcs = glob([
+        "Telegram-iOS/DebugAppIcon.xcassets/**/*",
+    ], exclude = ["Telegram-iOS/DebugAppIcon.xcassets/**/.*"]),
+)
+
 # filegroup(
 #     name = "DefaultIcon",
 #     srcs = glob([
@@ -332,6 +351,12 @@ composer_icon_folders = ["Telegram"]
     ) for name in composer_icon_folders
 ]
 
+filegroup(
+    name = "PrivacyManifest",
+    srcs = [
+        "PrivacyInfo.xcprivacy",
+    ],
+)
 filegroup(
     name = "LaunchScreen",
     srcs = glob([
@@ -390,6 +415,29 @@ plist_fragment(
     """
     <key>CFBundleVersion</key>
     <string>{buildNumber}</string>
+    """
+)
+
+# DIVO: окружение вшивается в Info.plist. Два статических фрагмента (без {define}-подстановки, чтобы
+# сборка без флага не падала) выбираются через select() по :divoEnvProdSetting. Swift-слой и
+# Network.swift читают ключ из Bundle.main. Дефолт (нет флага) — stage.
+plist_fragment(
+    name = "DivoEnvironmentStageInfoPlist",
+    extension = "plist",
+    template =
+    """
+    <key>DivoEnvironment</key>
+    <string>stage</string>
+    """
+)
+
+plist_fragment(
+    name = "DivoEnvironmentProdInfoPlist",
+    extension = "plist",
+    template =
+    """
+    <key>DivoEnvironment</key>
+    <string>prod</string>
     """
 )
 
@@ -1034,7 +1082,10 @@ ios_extension(
         ":RequiredDeviceCapabilitiesPlist",
         ":BuildNumberInfoPlist",
         ":AppNameInfoPlist",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DivoEnvironmentProdInfoPlist"],
+        "//conditions:default": [":DivoEnvironmentStageInfoPlist"],
+    }),
     minimum_os_version = minimum_os_version,
     provisioning_profile = select({
         ":disableProvisioningProfilesSetting": None,
@@ -1140,7 +1191,10 @@ ios_extension(
         ":RequiredDeviceCapabilitiesPlist",
         ":BuildNumberInfoPlist",
         ":AppNameInfoPlist",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DivoEnvironmentProdInfoPlist"],
+        "//conditions:default": [":DivoEnvironmentStageInfoPlist"],
+    }),
     minimum_os_version = minimum_os_version, # maintain the same minimum OS version across extensions
     #ipa_post_processor = ":SetMinOsVersionNotificationContentExtension",
     provisioning_profile = select({
@@ -1245,7 +1299,10 @@ ios_extension(
         ":RequiredDeviceCapabilitiesPlist",
         ":BuildNumberInfoPlist",
         ":AppNameInfoPlist",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DivoEnvironmentProdInfoPlist"],
+        "//conditions:default": [":DivoEnvironmentStageInfoPlist"],
+    }),
     minimum_os_version = minimum_os_version, # maintain the same minimum OS version across extensions
     ipa_post_processor = ":SetMinOsVersionWidgetExtension",
     #provides_main = True,
@@ -1382,7 +1439,10 @@ ios_extension(
         ":RequiredDeviceCapabilitiesPlist",
         ":BuildNumberInfoPlist",
         ":AppNameInfoPlist",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DivoEnvironmentProdInfoPlist"],
+        "//conditions:default": [":DivoEnvironmentStageInfoPlist"],
+    }),
     minimum_os_version = minimum_os_version, # maintain the same minimum OS version across extensions
     #ipa_post_processor = ":SetMinOsVersionIntentsExtension",
     provisioning_profile = select({
@@ -1477,7 +1537,10 @@ ios_extension(
         ":RequiredDeviceCapabilitiesPlist",
         ":BuildNumberInfoPlist",
         ":AppNameInfoPlist",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DivoEnvironmentProdInfoPlist"],
+        "//conditions:default": [":DivoEnvironmentStageInfoPlist"],
+    }),
     minimum_os_version = minimum_os_version, # maintain the same minimum OS version across extensions
     #ipa_post_processor = ":SetMinOsVersionBroadcastUploadExtension",
     provisioning_profile = select({
@@ -1538,7 +1601,10 @@ ios_extension(
         ":RequiredDeviceCapabilitiesPlist",
         ":BuildNumberInfoPlist",
         ":AppNameInfoPlist",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DivoEnvironmentProdInfoPlist"],
+        "//conditions:default": [":DivoEnvironmentStageInfoPlist"],
+    }),
     minimum_os_version = minimum_os_version, # maintain the same minimum OS version across extensions
     provisioning_profile = select({
         ":disableProvisioningProfilesSetting": None,
@@ -1627,7 +1693,7 @@ plist_fragment(
         <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>We need this so that you can take and share photos and videos.</string>
+    <string>We need this so that you can take and share photos and videos, make video calls, and take a photo to search for profiles by face.</string>
     <key>NSContactsUsageDescription</key>
     <string>DIVO Global stores your contacts heavily encrypted in the cloud to let you connect with your friends across all your devices.</string>
     <key>NSFaceIDUsageDescription</key>
@@ -1641,7 +1707,7 @@ plist_fragment(
     <key>NSMicrophoneUsageDescription</key>
     <string>We need this so that you can record and share voice messages and videos with sound.</string>
     <key>NSMotionUsageDescription</key>
-    <string>When you send your location to your friends, DIVO Global needs access to show them a map.</string>
+    <string>DIVO uses device motion data so interactive mini apps can respond to how you move your device.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
     <string>We need this so that you can share photos and videos from your photo library.</string>
     <key>NSPhotoLibraryUsageDescription</key>
@@ -1764,14 +1830,20 @@ ios_application(
         ":VersionInfoPlist",
         ":RequiredDeviceCapabilitiesPlist",
         ":UrlTypesInfoPlist",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DivoEnvironmentProdInfoPlist"],
+        "//conditions:default": [":DivoEnvironmentStageInfoPlist"],
+    }),
     alternate_icons = [],
     resources = [
+        ":PrivacyManifest",
         ":LaunchScreen",
         ":HelveticaNeue",
-        ":DefaultAppIcon",
         #":AdditionalIcons",
-    ],
+    ] + select({
+        ":divoEnvProdSetting": [":DefaultAppIcon"],
+        "//conditions:default": [":DebugAppIcon"],
+    }),
     frameworks = [
         ":MtProtoKitFramework",
         ":SwiftSignalKitFramework",
