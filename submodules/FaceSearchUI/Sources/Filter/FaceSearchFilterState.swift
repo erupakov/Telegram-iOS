@@ -6,6 +6,25 @@ public struct FaceSearchFilterState: Equatable {
     public static let similaritySteps: [Double] = [0.30, 0.45, 0.60, 0.75, 0.85, 1.00]
     public static let defaultSimilarity: Double = 0.30
 
+    private static let savedSimilarityKey = "FaceSearch.savedSimilarity"
+
+    /// Процент совпадения, который человек последний раз выставил слайдером фильтра. С него стартует
+    /// каждый новый поиск по фото; переживает перезапуск. Меняется ТОЛЬКО применённым изменением
+    /// слайдера (см. FaceSearchResultsController.applyFilters) — авто-понижение при пустой выдаче
+    /// (fallback) его не трогает. Невалидное/отсутствующее значение → `defaultSimilarity`.
+    public static var savedSimilarity: Double {
+        get {
+            guard let value = UserDefaults.standard.object(forKey: savedSimilarityKey) as? Double,
+                  similaritySteps.contains(value) else {
+                return defaultSimilarity
+            }
+            return value
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: savedSimilarityKey)
+        }
+    }
+
     public var similarity: Double = FaceSearchFilterState.defaultSimilarity
 
     public var roleIds: [String] = []

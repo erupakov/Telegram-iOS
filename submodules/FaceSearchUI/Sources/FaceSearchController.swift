@@ -36,8 +36,6 @@ enum FaceDetectState {
 // MARK: - Controller
 
 public final class FaceSearchController: ViewController {
-    private static let searchThreshold: Double = 0.3
-
     private let context: AccountContext
     private var presentationData: PresentationData
     private var selectedImage: UIImage
@@ -175,6 +173,8 @@ public final class FaceSearchController: ViewController {
 
         isSearching = true
         faceSearchNode?.setSearchLoading(true)
+        // Порог — последний выставленный человеком слайдером (переживает перезапуск).
+        let similarity = FaceSearchFilterState.savedSimilarity
 
         divoTrack(.faceSearchStarted)
         Task { @MainActor [weak self] in
@@ -185,7 +185,7 @@ public final class FaceSearchController: ViewController {
                     fields: [
                         "face_index": "\(faceIndex)",
                         "top_k": "20",
-                        "k_ratio": "\(Self.searchThreshold)"
+                        "k_ratio": "\(similarity)"
                     ]
                 )
                 async let minimumDelay: Void = Task.sleep(nanoseconds: 1_300_000_000)
@@ -196,7 +196,7 @@ public final class FaceSearchController: ViewController {
                 self.isSearching = false
                 self.faceSearchNode?.setSearchLoading(false)
                 divoTrack(.faceSearchSuccess(matchesCount: result.results.count))
-                self.showResults(result.results, bbox: result.bbox, imageData: imageData, faceIndex: faceIndex)
+                self.showResults(result.results, bbox: result.bbox, imageData: imageData, faceIndex: faceIndex, similarity: similarity)
             } catch {
                 guard let self else { return }
                 self.isSearching = false
@@ -236,15 +236,18 @@ public final class FaceSearchController: ViewController {
         )
     }
 
-    private func showResults(_ results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int) {
+    private func showResults(_ results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int, similarity: Double) {
         divoTrack(.similarProfilesScreenOpened(hasResults: !results.isEmpty))
         var historyEntryId: String?
         if !results.isEmpty {
-            historyEntryId = saveFaceSearchHistory(results: results, bbox: bbox, imageData: imageData, faceIndex: faceIndex)
+            historyEntryId = saveFaceSearchHistory(results: results, bbox: bbox, imageData: imageData, faceIndex: faceIndex, similarity: similarity)
         }
 
         var initialFilters = FaceSearchFilterState()
-        initialFilters.similarity = Self.searchThreshold
+        initialFilters.similarity = similarity
+        // Пусто при пороге выше минимального — экран результатов сам перезапросит с авто-понижением
+        // (fallback «нет результатов при X% — показываем при Y%»), как при смене фильтра.
+        let needsInitialLoad = results.isEmpty && similarity > (FaceSearchFilterState.similaritySteps.first ?? similarity)
         let controller = FaceSearchResultsController(
             context: self.context,
             imageData: imageData,
@@ -253,7 +256,8 @@ public final class FaceSearchController: ViewController {
             faceBBox: bbox,
             faceIndex: faceIndex,
             initialFilters: initialFilters,
-            historyEntryId: historyEntryId
+            historyEntryId: historyEntryId,
+            needsInitialLoad: needsInitialLoad
         )
         controller.onOpenProfile = { [weak self] result in
             self?.onOpenProfile?(result)
@@ -264,7 +268,7 @@ public final class FaceSearchController: ViewController {
     }
 
     @discardableResult
-    private func saveFaceSearchHistory(results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int) -> String {
+    private func saveFaceSearchHistory(results: [FRSearchResult], bbox: FRBoundingBox?, imageData: Data, faceIndex: Int, similarity: Double) -> String {
         let faceImage: UIImage
         if let bbox {
             faceImage = FaceSearchResultsMapper.cropFaceSquare(from: selectedImage, bbox: bbox, padding: 16)
@@ -274,7 +278,7 @@ public final class FaceSearchController: ViewController {
         let fields: [String: String] = [
             "face_index": "\(faceIndex)",
             "top_k": "20",
-            "k_ratio": "\(Self.searchThreshold)"
+            "k_ratio": "\(similarity)"
         ]
         return FaceSearchHistoryStorage.shared.save(
             faceImage: faceImage,
@@ -282,6 +286,7 @@ public final class FaceSearchController: ViewController {
             resultsCount: results.count,
             faceIndex: faceIndex,
             faceBBox: bbox,
+            similarityPercent: Int((similarity * 100).rounded()),
             searchFields: fields
         )
     }
