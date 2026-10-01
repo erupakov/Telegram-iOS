@@ -85,9 +85,11 @@ public enum DivoBootstrap {
                     )
                     DivoConfig.accessToken = linked.accessToken
                     divoLog("DivoBootstrap: telegram-link довёл сшивку для divoUserId=\(divoUserId)", level: .info)
-                } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 409 {
-                    // «already linked» — повтор не поможет: снимаем op, иначе он ретраится вечно.
-                    divoLog("DivoBootstrap: telegram-link 409 (уже связан) для divoUserId=\(divoUserId) — снимаю op", level: .warning)
+                } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 409 || statusCode == 403 {
+                    // 409 — уже связан (с другим telegramUserId / занят другим); 403 — proof отвергнут, хотя
+                    // взят свежим прямо перед запросом (или teamgram его не выдал). Повтор не поможет: снимаем
+                    // op, иначе он ретраится вечно.
+                    divoLog("DivoBootstrap: telegram-link \(statusCode) для divoUserId=\(divoUserId) — окончательно, снимаю op", level: .warning)
                 }
             case .photoUpdate:
                 guard let photoUpdate else {

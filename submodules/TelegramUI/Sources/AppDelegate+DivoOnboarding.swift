@@ -183,6 +183,25 @@ extension AppDelegate {
         DivoTeamgramSync.shared.telegramUserId = context.context.account.peerId.id._internalGetInt64Value()
         // Атомарный name-update в submit-цепочке онбординга (await), см. DivoTeamgramSync.
         DivoTeamgramSync.shared.setNameUpdater(nameUpdate)
+        // Подпись teamgram для POST /auth/telegram-link: свежий help.getAppConfig (hash 0) этого аккаунта.
+        DivoTeamgramSync.shared.setLinkProofProvider({ [weak context] in
+            guard let context = context else { return nil }
+            let proof: DivoLinkProof? = await withCheckedContinuation { continuation in
+                var finished = false
+                let _ = (context.context.engine.accountData.divoLinkProof()
+                |> take(1)
+                |> timeout(10.0, queue: Queue.concurrentDefaultQueue(), alternate: .single(nil))).start(next: { value in
+                    if finished { return }
+                    finished = true
+                    continuation.resume(returning: value)
+                }, completed: {
+                    if finished { return }
+                    finished = true
+                    continuation.resume(returning: nil)
+                })
+            }
+            return proof.map { DivoTeamgramSync.LinkProof(proof: $0.proof, phone: $0.phone) }
+        })
         // DIVI-109: очередь пишет в Postbox только на переднем плане (фоновая SQLite-транзакция под
         // suspend держит лок в app-group контейнере → 0xdead10cc). applicationInForeground — тот же
         // сигнал, что гейтит стоковые транзакции; setForeground(true) сам докатит отложенное.
