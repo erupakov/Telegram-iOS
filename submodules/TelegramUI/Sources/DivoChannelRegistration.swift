@@ -49,12 +49,16 @@ func divoRegisterCreatedChannel(context: AccountContext, peerId: PeerId) {
             return
         }
         chain.enqueue {
+            let request = ChannelAddRequest(telegramChatId: telegramChatId, username: username, inviteLink: link)
             do {
-                let _: ChannelAddResponse = try await DivoAPIClient.shared.request(
-                    path: "/channels/add",
-                    method: "POST",
-                    body: ChannelAddRequest(telegramChatId: telegramChatId, username: username, inviteLink: link)
-                )
+                do {
+                    let _: ChannelAddResponse = try await DivoAPIClient.shared.request(path: "/channels/add", method: "POST", body: request)
+                } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 422 && username != nil {
+                    // Бэк без app-backend !2: повторный add того же канала → 422 (пара user + chat уникальна).
+                    // Обходной путь от бэка: удалить запись и зарегистрировать заново уже с username.
+                    guard try await divoDeleteRegisteredChannel(telegramChatId: telegramChatId) else { throw DivoAPIError.httpError(statusCode: statusCode, body: "") }
+                    let _: ChannelAddResponse = try await DivoAPIClient.shared.request(path: "/channels/add", method: "POST", body: request)
+                }
                 divoLog("[CHANNELS] канал \(telegramChatId) зарегистрирован в REST (username: \(username ?? "нет"))")
                 await MainActor.run {
                     NotificationCenter.default.post(name: DivoConfig.channelsDidChangeNotification, object: nil)
@@ -67,6 +71,17 @@ func divoRegisterCreatedChannel(context: AccountContext, peerId: PeerId) {
     Queue.mainQueue().after(600.0) {
         disposable.dispose()
     }
+}
+
+/// Удаляет запись канала текущего пользователя (по telegramChatId) из /channels/list.
+/// false — записи нет (удалять нечего) или неизвестен divoUserId.
+private func divoDeleteRegisteredChannel(telegramChatId: Int64) async throws -> Bool {
+    guard let divoUserId = DivoConfig.currentDivoUserId else { return false }
+    let list: ChannelsListResponse = try await DivoAPIClient.shared.request(path: "/channels/list?user_id=\(divoUserId)", method: "GET")
+    guard let channel = list.data?.items?.first(where: { $0.telegramChatId == telegramChatId }) else { return false }
+    _ = try await DivoAPIClient.shared.requestRawData(path: "/channels/\(channel.id)", method: "DELETE")
+    divoLog("[CHANNELS] старая запись канала \(telegramChatId) удалена для перерегистрации с username")
+    return true
 }
 
 /// Последовательное выполнение async-шагов: каждый следующий ждёт завершения предыдущего.
