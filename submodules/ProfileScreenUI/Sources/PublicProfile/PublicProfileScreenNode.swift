@@ -781,7 +781,6 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onChangeBackgroundTapped: (() -> Void)?
     var onEditSocialLinksTapped: (() -> Void)?
     var onManageWorkExperienceTapped: (() -> Void)?
-    var onDeleteProfileTapped: (() -> Void)?
     var onAddModelTapped: (() -> Void)?
     var onCreateEventTapped: (() -> Void)?
     var onAddVideoTapped: ((Bool) -> Void)?
@@ -1445,20 +1444,11 @@ final class PublicProfileScreenNode: ASDisplayNode {
 
             guard isMyProfile else { return }
 
-            // Удаление аккаунта самоприменимо — пункт только на своём профиле (за guard isMyProfile).
-            let deleteProfileAction = UIAction(
-                title: DivoStrings.deleteProfile,
-                image: nil,
-                attributes: .destructive
-            ) { [weak self] _ in
-                self?.onDeleteProfileTapped?()
-            }
-
             if modelRole == .agency {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, deleteProfileAction])
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction])
                 editButton.menu = menu
             } else {
-                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction, deleteProfileAction])
+                let menu = UIMenu(title: "", children: [editProfileAction, changeBackgroundAction, editSocialLinksAction, manageWorkExperienceAction])
                 editButton.menu = menu
             }
 

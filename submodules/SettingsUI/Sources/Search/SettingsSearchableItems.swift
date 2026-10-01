@@ -4539,10 +4539,11 @@ func settingsSearchableItems(
             alternate: synonyms(strings.SettingsSearch_DeleteAccount_DeleteMyAccount),
             icon: .deleteAccount,
             breadcrumbs: [],
-            present: { context, navigationController, present in
+            present: { context, navigationController, _ in
+                // DIVO: нативное удаление снесло бы только teamgram — ведём в общее DIVO-удаление.
                 if let navigationController = navigationController {
-                    let controller = deleteAccountOptionsController(context: context, navigationController: navigationController, hasTwoStepAuth: hasTwoStepAuth ?? false, twoStepAuthData: twoStepAuthData)
-                    present(.push, controller)
+                    let host: UIViewController = navigationController.topViewController ?? navigationController
+                    divoPresentDeleteProfileConfirmation(context: context, hostController: host)
                 }
             }
         )
