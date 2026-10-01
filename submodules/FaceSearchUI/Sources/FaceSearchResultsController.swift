@@ -205,6 +205,11 @@ public final class FaceSearchResultsController: ViewController {
     }
 
     private func applyFilters(_ newFilters: FaceSearchFilterState) {
+        // Процент совпадения в фильтре меняет только человек (слайдер/сброс) — запоминаем его для
+        // следующих поисков, в т.ч. после перезапуска.
+        if newFilters.similarity != self.currentFilters.similarity {
+            FaceSearchFilterState.savedSimilarity = newFilters.similarity
+        }
         self.currentFilters = newFilters
         divoTrack(.similarProfilesFiltersApplied(activeFilters: String(newFilters.activeFilterCount)))
         resultsNode?.updateFilterBadge(count: newFilters.activeFilterCount)
@@ -214,9 +219,12 @@ public final class FaceSearchResultsController: ViewController {
     private func clearFilters() {
         currentTask?.cancel()
         currentFilters.reset()
+        // Сброс возвращает слайдер к дефолту — это тоже выбор человека, запоминаем.
+        FaceSearchFilterState.savedSimilarity = currentFilters.similarity
         resultsNode?.updateFilterBadge(count: 0)
 
-        if initialResults.isEmpty {
+        // Начальная выдача получена при initialSimilarity — показываем её, только если порог совпадает.
+        if initialResults.isEmpty || initialSimilarity != currentFilters.similarity {
             reloadSearch()
         } else {
             self.results = initialResults
