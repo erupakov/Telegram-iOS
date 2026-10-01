@@ -1675,14 +1675,9 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
     private var removedBotPreviewLanguages = Set<String>()
     
     private var currentStoryFolders: [StoryListContext.State.Folder] = []
-    /// DIVO: альбомы историй у каналов не поддерживаем — ни таба альбомов, ни «Создать альбом»,
-    /// ни «Добавить в альбом»; серверные альбомы канала игнорируем.
-    private var divoStoryAlbumsEnabled: Bool {
-        if case let .peer(id, _, _) = self.scope, id.namespace == Namespaces.Peer.CloudChannel {
-            return false
-        }
-        return true
-    }
+    /// DIVO: альбомы историй не поддерживаем — ни таба альбомов, ни «Создать альбом»,
+    /// ни «Добавить в альбом»; серверные альбомы игнорируем.
+    private let divoStoryAlbumsEnabled = false
     private var removedStoryFolders = Set<Int64>()
     
     private let maxStoryFolders: Int
@@ -1769,12 +1764,8 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
         self.isProfileEmbedded = isProfileEmbedded
         self.canManageStories = canManageStories
         self.excludeIds = Set(excludeIds)
-        // DIVO: у каналов альбомов нет — открытие сразу в альбом (initialStoryFolderId) не поддерживаем.
-        if case let .peer(id, _, _) = scope, id.namespace == Namespaces.Peer.CloudChannel {
-            self.initialStoryFolderId = nil
-        } else {
-            self.initialStoryFolderId = initialStoryFolderId
-        }
+        // DIVO: альбомов нет — открытие сразу в альбом (initialStoryFolderId) не поддерживаем.
+        self.initialStoryFolderId = nil
         
         switch scope {
         case let .peer(_, _, isArchived):

@@ -6430,7 +6430,8 @@ public final class StoryItemSetContainerComponent: Component {
                 
                 var items: [ContextMenuItem] = []
                 
-                if !isLiveStream {
+                // DIVO: альбомы историй не поддерживаем — пункта «Добавить в альбом» нет.
+                if !isLiveStream && !"".isEmpty {
                     items.append(.action(ContextMenuActionItem(text: component.strings.Stories_MenuAddToAlbum, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AddToFolder"), color: theme.contextMenu.primaryColor) }, action: { [weak self] c, f in
                         guard let self, let c else {
                             f(.default)
