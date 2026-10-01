@@ -294,8 +294,14 @@ final class RosterApplyConfirmationNode: ASDisplayNode {
         noteContainer.addSubview(noteTitleShimmer)
         contentViewStack.addArrangedSubview(noteContainer)
 
+        // Высота блока примечания — по тексту (раньше жёсткие 160pt обрезали его многоточием).
+        // Не меньше 160pt — под шиммер на загрузке; низкоприоритетная 160 прижимает к минимуму.
+        let noteMinHeight = noteContainer.heightAnchor.constraint(equalToConstant: 160)
+        noteMinHeight.priority = .defaultLow
+
         NSLayoutConstraint.activate([
-            noteContainer.heightAnchor.constraint(equalToConstant: 160),
+            noteMinHeight,
+            noteContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 160),
             
             noteTitleLabel.topAnchor.constraint(equalTo: noteContainer.topAnchor),
             noteTitleLabel.leadingAnchor.constraint(equalTo: noteContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
