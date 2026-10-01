@@ -111,6 +111,12 @@ private final class FaceSearchHistoryScreenNode: ASDisplayNode, UITableViewDataS
             ]
         )
         label.textAlignment = .center
+        // Длинный заголовок не должен залезать под «Очистить»: в одну строку, ужимаем шрифт, затем обрезка.
+        label.numberOfLines = 1
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+        label.lineBreakMode = .byTruncatingTail
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -121,6 +127,9 @@ private final class FaceSearchHistoryScreenNode: ASDisplayNode, UITableViewDataS
         button.setTitleColor(DivoColorPalette.accent, for: .normal)
         button.titleLabel?.font = UIFont(name: "HelveticaNeue", size: 15) ?? UIFont.systemFont(ofSize: 15)
         button.addDivoPressState(.text)
+        // Кнопка не сжимается заголовком — места уступает он.
+        button.setContentCompressionResistancePriority(.required, for: .horizontal)
+        button.setContentHuggingPriority(.required, for: .horizontal)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -186,6 +195,11 @@ private final class FaceSearchHistoryScreenNode: ASDisplayNode, UITableViewDataS
         tableView.delegate = self
         tableView.register(FaceSearchHistoryFullCell.self, forCellReuseIdentifier: FaceSearchHistoryFullCell.reuseId)
 
+        // Центр по экрану — пожелание (не обязателен): если заголовок не помещается симметрично, он
+        // сдвигается, но остаётся строго между «назад» и «Очистить».
+        let titleCenterX = titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        titleCenterX.priority = .defaultHigh
+
         NSLayoutConstraint.activate([
             backButton.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: DivoDesignTokens.Spacing.s),
             backButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: sidePadding),
@@ -193,7 +207,9 @@ private final class FaceSearchHistoryScreenNode: ASDisplayNode, UITableViewDataS
             backButton.heightAnchor.constraint(equalToConstant: 40),
 
             titleLabel.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
-            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleCenterX,
+            titleLabel.leadingAnchor.constraint(greaterThanOrEqualTo: backButton.trailingAnchor, constant: DivoDesignTokens.Spacing.s),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: clearAllButton.leadingAnchor, constant: -DivoDesignTokens.Spacing.s),
 
             clearAllButton.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
             clearAllButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -sidePadding),
