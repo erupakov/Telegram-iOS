@@ -452,6 +452,64 @@ public struct AgencyDetailResponse: Decodable {
 
 public struct AgencyDetailData: Decodable {
     public let photo: UserFile?
+    public let site: String?
+    // Ссылки агентства — отдельные поля `agencies` (миграция 2026_06_02_120000), не /user-social-network.
+    public let instagramUrl: String?
+    public let tiktokUrl: String?
+    public let youtubeUrl: String?
+    public let telegramUrl: String?
+    public let websiteUrl: String?
+
+    /// Сайт: основной `websiteUrl`, `site` — устаревшее поле (договорённость с бэком).
+    public var effectiveWebsite: String? {
+        if let websiteUrl, !websiteUrl.isEmpty { return websiteUrl }
+        if let site, !site.isEmpty { return site }
+        return nil
+    }
+
+    /// Непустые ссылки агентства в порядке показа: соцсети, затем сайт.
+    public var links: [String] {
+        return [instagramUrl, tiktokUrl, youtubeUrl, telegramUrl, effectiveWebsite]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+}
+
+/// Частичное обновление ссылок агентства через `/agency/update`: уходят только изменённые поля
+/// (значение — полный URL со схемой, `nil` — очистить). Отсутствующие поля бэк не трогает.
+public struct AgencyLinksUpdateRequest: Encodable {
+    public enum Field: String, CaseIterable {
+        case instagramUrl, tiktokUrl, youtubeUrl, telegramUrl, websiteUrl, site
+    }
+
+    public let agencyId: Int?
+    public let values: [Field: String?]
+
+    public init(agencyId: Int?, values: [Field: String?]) {
+        self.agencyId = agencyId
+        self.values = values
+    }
+
+    private struct Key: CodingKey {
+        let stringValue: String
+        var intValue: Int? { nil }
+        init(_ string: String) { self.stringValue = string }
+        init?(stringValue: String) { self.stringValue = stringValue }
+        init?(intValue: Int) { nil }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: Key.self)
+        try container.encodeIfPresent(agencyId, forKey: Key("agencyId"))
+        for field in Field.allCases {
+            guard let value = values[field] else { continue }
+            if let value {
+                try container.encode(value, forKey: Key(field.rawValue))
+            } else {
+                try container.encodeNil(forKey: Key(field.rawValue))
+            }
+        }
+    }
 }
 
 // MARK: - Agency Models List

@@ -253,13 +253,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
             instagramUrl: self.controllerNode.extractHandle(from: instagram),
             websiteUrl: self.controllerNode.extractHandle(from: website)
         )
-        // У агентства соцсети живут в /user-social-network, а не в model.*Url
+        // У агентства ссылки — плоские поля агентства (/agency/{id}), а не model.*Url
         let isAgency = userDetailModel?.role == "agency_employee"
         let socialLinksController = EditSocialLinksController(
             context: self.context,
             presentationData: self.presentationData,
             linksData: linksData,
-            agencyNetworks: isAgency ? (userDetailModel?.userSocialNetworks ?? []) : nil
+            agencyId: isAgency ? userDetailModel?.agency?.id : nil
         )
         socialLinksController.delegate = self
         self.push(socialLinksController)
@@ -547,6 +547,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.userDetailModel = detail
                 self.updateTabBarAvatarIcon(from: detail)
                 self.controllerNode.updateWithUserDetail(detail, self.isMyProfile)
+                self.loadAgencyLinks(for: detail)
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 if let eng = engagement {
@@ -777,6 +778,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                     self.updateTabBarAvatarIcon(from: detail)
                 }
                 self.controllerNode.updateWithUserDetail(detail, self.isMyProfile)
+                self.loadAgencyLinks(for: detail)
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 self.setupStoryRing()
@@ -1296,6 +1298,28 @@ extension PublicProfileScreenController {
                 chatLocation: .peer(peer)
             ))
         }))
+    }
+}
+
+// Ссылки агентства — плоские поля агентства (`/agency/{id}`: instagramUrl, tiktokUrl, youtubeUrl,
+// telegramUrl, websiteUrl ?? site); в /user/info их нет. Догружаем и докладываем в блок соцсетей.
+extension PublicProfileScreenController {
+    func loadAgencyLinks(for detail: UserDetail) {
+        guard detail.role == "agency_employee", let agencyId = detail.agency?.id else {
+            self.controllerNode.updateAgencyLinks([])
+            return
+        }
+        Task { @MainActor [weak self] in
+            do {
+                let response: AgencyDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/agency/\(agencyId)"
+                )
+                self?.controllerNode.updateAgencyLinks(response.data.links)
+            } catch {
+                // Best-effort: без ссылок агентства блок покажет то, что есть в профиле.
+                divoLog("[AGENCY LINKS] Error: \(error)", level: .error)
+            }
+        }
     }
 }
 

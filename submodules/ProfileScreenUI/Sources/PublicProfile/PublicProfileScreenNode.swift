@@ -613,6 +613,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     private var channelGalleryItems: [ProfileChannelItem] = []
     private var channelGalleryInitialized: Bool = false
+    // Блок соцсетей: ссылки профиля + ссылки агентства (догружаются отдельно).
+    private var baseSocialLinks: [String] = []
+    private var agencySocialLinks: [String] = []
+    private var socialLinksIsMyProfile = false
     
     private lazy var channelGalleryCollectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
@@ -3186,6 +3190,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return items
     }
     
+    /// Ссылки агентства (плоские поля `/agency/{id}`) — приходят отдельным запросом после профиля.
+    func updateAgencyLinks(_ links: [String]) {
+        guard links != self.agencySocialLinks else { return }
+        self.agencySocialLinks = links
+        let merged = self.mergedSocialLinks
+        populateSocialMedia(links: merged)
+        if socialLinksIsMyProfile, titleEditContainer.superview != nil {
+            titleEditContainer.isHidden = merged.isEmpty
+        }
+    }
+
+    /// Ссылки агентства первыми, затем ссылки профиля без повторов.
+    private var mergedSocialLinks: [String] {
+        var result = agencySocialLinks
+        for link in baseSocialLinks where !result.contains(link) {
+            result.append(link)
+        }
+        return result
+    }
+
     // Создаем все кнопки социальный сетей
     private func populateSocialMedia(links: [String]) {
         
@@ -3689,22 +3713,26 @@ final class PublicProfileScreenNode: ASDisplayNode {
         setupMoreMenu()
         setupEditMenu(isMyProfile: isMyProfile)
 
-        var socialLinks: [String] = []
+        var baseLinks: [String] = []
 
         // Собираем все непустые ссылки в один массив
-        if let tiktok = detail.model?.tiktokUrl, !tiktok.isEmpty { socialLinks.append(tiktok) }
-        if let youtube = detail.model?.youtubeUrl, !youtube.isEmpty { socialLinks.append(youtube) }
-        if let instagram = detail.model?.instagramUrl, !instagram.isEmpty { socialLinks.append(instagram) }
-        if let website = detail.model?.websiteUrl, !website.isEmpty { socialLinks.append(website) }
-        
-        // Соцсети из /user-social-network (top-level) — единственный источник для agency;
-        // у model могут дублировать legacy-ссылки из model.*Url, поэтому фильтруем повторы.
+        if let tiktok = detail.model?.tiktokUrl, !tiktok.isEmpty { baseLinks.append(tiktok) }
+        if let youtube = detail.model?.youtubeUrl, !youtube.isEmpty { baseLinks.append(youtube) }
+        if let instagram = detail.model?.instagramUrl, !instagram.isEmpty { baseLinks.append(instagram) }
+        if let website = detail.model?.websiteUrl, !website.isEmpty { baseLinks.append(website) }
+
+        // Соцсети из /user-social-network (top-level); у model могут дублировать legacy-ссылки из
+        // model.*Url, поэтому фильтруем повторы. Ссылки агентства (плоские поля /agency/{id}) докладывает
+        // контроллер отдельно — updateAgencyLinks.
         for network in detail.userSocialNetworks ?? [] {
-            if let link = network.link, !link.isEmpty, !socialLinks.contains(link) {
-                socialLinks.append(link)
+            if let link = network.link, !link.isEmpty, !baseLinks.contains(link) {
+                baseLinks.append(link)
             }
         }
 
+        self.baseSocialLinks = baseLinks
+        self.socialLinksIsMyProfile = isMyProfile
+        let socialLinks = self.mergedSocialLinks
         populateSocialMedia(links: socialLinks)
 
         if !isMyProfile {
