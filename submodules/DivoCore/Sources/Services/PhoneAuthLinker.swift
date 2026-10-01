@@ -123,6 +123,11 @@ public enum PhoneAuthLinker {
             DivoConfig.currentDivoUserId = linked.user.id
             divoLog("phone-auth: by-telegram + telegram-link OK (recovery) divoUserId=\(linked.user.id)", level: .info)
             return await finishExisting(divoUserId: linked.user.id)
+        } catch let DivoAPIError.httpError(statusCode, body) where statusCode == 403 {
+            // Аккаунт DIVO у этого teamgram ЕСТЬ, но привязку не подтвердили (нет/неверный proof, номер в
+            // профиле не совпал). Регистрировать новый нельзя — это дубль: пробрасываем → .failed (ошибка).
+            divoLog("phone-auth: by-telegram нашёл divoUserId=\(found.id), telegram-link 403 (proof) → ошибка входа", level: .error)
+            throw DivoAPIError.httpError(statusCode: statusCode, body: body)
         } catch let DivoAPIError.httpError(statusCode, _) where (400..<500).contains(statusCode) {
             divoLog("phone-auth: by-telegram нашёл divoUserId=\(found.id), но telegram-link отказал (\(statusCode))", level: .warning)
             return nil
@@ -149,6 +154,9 @@ public enum PhoneAuthLinker {
         do {
             let linked = try await AuthRestService.shared.telegramLink(telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId)
             DivoConfig.accessToken = linked.accessToken
+        } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 403 || statusCode == 409 {
+            // 403 со свежим proof / 409 (занят другим) — повтор не поможет, в очередь не кладём.
+            divoLog("phone-auth: relink \(statusCode) — окончательно, без ретрая", level: .error)
         } catch {
             divoLog("phone-auth: relink FAILED → очередь ретраев: \(error)", level: .error)
             PendingTelegramOpsQueue.shared.enqueue(.telegramLink(phone: phone, divoUserId: divoUserId))

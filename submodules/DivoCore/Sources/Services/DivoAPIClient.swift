@@ -29,10 +29,14 @@ public final class DivoAPIClient {
         return try await request(path: path, method: method, body: Optional<EmptyBody>.none)
     }
 
+    /// `includeAuthorization: false` — запрос без `Authorization`. Нужен эндпоинтам, где чужой токен
+    /// вреден: без своей DIVO-сессии `accessToken` отдаёт зашитый fallback-токен агентства
+    /// (напр. `/auth/telegram-link` до входа — см. AuthRestService.telegramLink).
     public func request<T: Decodable>(
         path: String,
         method: String = "GET",
-        body: (some Encodable)?
+        body: (some Encodable)?,
+        includeAuthorization: Bool = true
     ) async throws -> T {
         try checkConnectivity()
         let url = URL(string: baseURL.absoluteString + path)!
@@ -40,7 +44,9 @@ public final class DivoAPIClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
+        if includeAuthorization {
+            request.setValue("Bearer \(DivoConfig.accessToken)", forHTTPHeaderField: "Authorization")
+        }
         request.setValue(DivoConfig.appPlatform, forHTTPHeaderField: "app-platform")
         request.setValue(DivoConfig.appVersion, forHTTPHeaderField: "app-version")
         request.setValue(DivoStrings.current.rawValue, forHTTPHeaderField: "Accept-Language")
@@ -78,7 +84,8 @@ public final class DivoAPIClient {
             }
 
             guard (200...299).contains(http.statusCode) else {
-                if http.statusCode == 401 { DivoConfig.handleUnauthorizedResponse() }
+                // Без Authorization 401 — не про протухшую сессию: не сигналим ре-логин.
+                if http.statusCode == 401 && includeAuthorization { DivoConfig.handleUnauthorizedResponse() }
                 let body = String(data: data, encoding: .utf8) ?? ""
                 logger.log(
                     method: method,

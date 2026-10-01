@@ -63,6 +63,11 @@ public extension TelegramEngine {
             return _internal_updatePeerPhotoExisting(network: self.account.network, reference: reference)
         }
 
+        /// DIVO: свежий proof для `POST /auth/telegram-link` (см. DivoLinkProof.swift).
+        public func divoLinkProof() -> Signal<DivoLinkProof?, NoError> {
+            return _internal_divoLinkProof(network: self.account.network)
+        }
+
         public func removeAccountPhoto(reference: TelegramMediaImageReference?) -> Signal<Void, NoError> {
             return _internal_removeAccountPhoto(account: self.account, reference: reference, fallback: false)
         }
