@@ -33,12 +33,34 @@ public class AddRosterModelController: TelegramBaseController {
     
     public var onModelAdded: ((RosterSearchUser) -> Void)?
 
+    /// Наше агентство. «Уже добавлен» показываем только для моделей из ЕГО ростера — `currentAgency`
+    /// из поиска не гарантирует, что модель реально в ростере (рассинхрон статуса).
+    private let agencyId: Int?
+    /// userId моделей нашего ростера; nil — не загрузился (тогда фолбэк на сверку currentAgency.id).
+    private var rosterUserIdsTask: Task<Set<Int>?, Never>?
+
     // MARK: - Init
-    public init(context: AccountContext) {
+    public init(context: AccountContext, agencyId: Int?) {
         self.context = context
+        self.agencyId = agencyId
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         
         super.init(context: context, navigationBarPresentationData: nil)
+
+        if let agencyId {
+            self.rosterUserIdsTask = Task {
+                do {
+                    return try await AgencyRoster.fetchUserIds(agencyId: agencyId)
+                } catch {
+                    divoLog("[ROSTER] не удалось загрузить ростер агентства: \(error)", level: .error)
+                    return nil
+                }
+            }
+        }
+    }
+
+    deinit {
+        self.rosterUserIdsTask?.cancel()
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -76,9 +98,14 @@ public class AddRosterModelController: TelegramBaseController {
         self.controllerNode.onUserSelected = { [weak self] user in
             guard let self = self else { return }
             
-            if case .alreadyAdded(let agencyName) = user.status {
+            switch user.status {
+            case .representedByAnother(let agencyName):
                 self.showRepresentedByAnotherAlert(agencyName: agencyName)
                 return
+            case .inYourRoster:
+                return
+            case .available:
+                break
             }
             
             self.onModelAdded?(user)
@@ -130,8 +157,9 @@ public class AddRosterModelController: TelegramBaseController {
                 guard !Task.isCancelled else { return }
                 
                 let profileItems = response.data.items
+                let rosterUserIds: Set<Int>? = await self?.rosterUserIdsTask?.value
                 
-                let mappedUsers = self?.mapToRosterUsers(profileItems) ?? []
+                let mappedUsers = self?.mapToRosterUsers(profileItems, rosterUserIds: rosterUserIds) ?? []
                
                 await MainActor.run {
                     guard let self = self else { return }
@@ -164,14 +192,22 @@ public class AddRosterModelController: TelegramBaseController {
         }
     }
 
-    private func mapToRosterUsers(_ items: [AgencySearchUserDTO]) -> [RosterSearchUser] {
+    private func mapToRosterUsers(_ items: [AgencySearchUserDTO], rosterUserIds: Set<Int>?) -> [RosterSearchUser] {
         return items.compactMap { item -> RosterSearchUser? in
             guard let userId = item.userId else { return nil }
             let avatarUrl = item.photo?.fullUrl
             let status: RosterUserStatus
-            if let agencyName = item.currentAgency?.title {
-                status = .alreadyAdded(agencyName: agencyName)
+            let currentAgencyIsOurs = item.currentAgency?.id != nil && item.currentAgency?.id == self.agencyId
+            if let rosterUserIds, rosterUserIds.contains(userId) {
+                // Реально в нашем ростере.
+                status = .inYourRoster
+            } else if rosterUserIds == nil, currentAgencyIsOurs {
+                // Ростер не загрузился — фолбэк на currentAgency нашего агентства.
+                status = .inYourRoster
+            } else if let agencyName = item.currentAgency?.title, !currentAgencyIsOurs {
+                status = .representedByAnother(agencyName: agencyName)
             } else {
+                // currentAgency указывает на нас, но в ростере модели нет — рассинхрон: даём добавить.
                 // FIXME DIVO: handle приходит как имя — ждём отдельное поле от бэка
                 status = .available(handle: item.name ?? "", role: Role(apiRole: item.role).title)
             }

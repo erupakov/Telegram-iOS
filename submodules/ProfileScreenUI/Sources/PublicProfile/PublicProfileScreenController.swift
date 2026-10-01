@@ -279,7 +279,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToAddModel() {
-        let addRosterController = AddRosterModelController(context: self.context)
+        let addRosterController = AddRosterModelController(context: self.context, agencyId: self.userDetailModel?.agency?.id)
         
         let nav = UINavigationController(rootViewController: addRosterController)
         nav.setNavigationBarHidden(true, animated: false)
@@ -295,16 +295,39 @@ public final class PublicProfileScreenController: TelegramBaseController {
             
             confirmationController.onConfirmSuccess = { [weak self, weak nav] name in
                 guard let self = self else { return }
-                if let agencyId = self.userDetailModel?.agency?.id {
-                    divoTrack(.addModelSuccess(targetUserId: selectedUser.id, agencyId: agencyId))
-                }
                 nav?.dismiss(animated: true)
                 self.loadModels()
-                guard let name = name else { return }
-                self.controllerNode.showSnackbar(
-                    message: DivoStrings.addModelSuccess(name),
-                    style: .success
-                )
+                let agencyId = self.userDetailModel?.agency?.id
+                // 2xx на POST ещё не значит, что модель в ростере (рассинхрон). Успех показываем,
+                // только когда модель реально появилась в списке агентства.
+                Task { @MainActor [weak self] in
+                    var isConfirmed = true
+                    if let agencyId {
+                        do {
+                            isConfirmed = try await AgencyRoster.fetchUserIds(agencyId: agencyId).contains(selectedUser.id)
+                        } catch {
+                            // Сверить не удалось (сеть) — доверяем 2xx на добавлении.
+                            divoLog("[ROSTER] сверка после добавления не удалась: \(error)", level: .error)
+                        }
+                    }
+                    guard let self else { return }
+                    if isConfirmed {
+                        if let agencyId {
+                            divoTrack(.addModelSuccess(targetUserId: selectedUser.id, agencyId: agencyId))
+                        }
+                        guard let name = name else { return }
+                        self.controllerNode.showSnackbar(
+                            message: DivoStrings.addModelSuccess(name),
+                            style: .success
+                        )
+                    } else {
+                        divoLog("[ROSTER] POST добавления вернул 2xx, но userId=\(selectedUser.id) нет в ростере", level: .error)
+                        self.controllerNode.showSnackbar(
+                            message: DivoStrings.addModelNotConfirmed,
+                            style: .error
+                        )
+                    }
+                }
             }
             nav.pushViewController(confirmationController, animated: true)
         }
