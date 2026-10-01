@@ -4364,6 +4364,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
     
+    /// Перечитать каналы, если вкладка уже загружалась (иначе загрузятся при первом открытии вкладки).
+    func reloadChannelGalleryIfLoaded() {
+        guard channelGalleryInitialized else { return }
+        loadChannelGallery()
+    }
+
     // Обновление галереи каналов
     func updateChannelsList(_ items: [ProfileChannelItem]) {
         self.channelGalleryItems = items
