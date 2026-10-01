@@ -3574,10 +3574,9 @@ public final class StoryItemSetContainerComponent: Component {
                     var safeInsets = component.safeInsets
                     safeInsets.bottom = max(safeInsets.bottom, component.inputHeight)
                     
-                    var hasPremium = false
-                    if case let .user(user) = component.slice.effectivePeer {
-                        hasPremium = user.isPremium
-                    }
+                    // DIVO: Telegram Premium в DIVO нет — список просмотревших (в т.ч. после истечения истории,
+                    // поиск/фильтры/сортировка) доступен всем без апселла Premium.
+                    let hasPremium = true
                     
                     viewList.view.parentState = state
                     let viewListSize = viewList.view.update(
