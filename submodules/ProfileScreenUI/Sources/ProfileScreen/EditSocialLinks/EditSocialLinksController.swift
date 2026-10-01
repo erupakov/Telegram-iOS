@@ -32,13 +32,38 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
     private var presentationDataDisposable: Any?
     private var linksData: LinksData
     // nil — режим model (legacy model.*Url через /user/update-profile);
-    // не nil — режим agency: поля из справочника /social-network, запись в /user-social-network
-    private let agencyNetworks: [UserSocialNetwork]?
-    private var socialNetworksDictionary: [SocialNetworkItem] = []
-    // Профиль агентства: сайт живёт в agency.site и пишется через /agency/update (не /user-social-network)
-    private let agencyDetail: UserDetail?
-    // id поля «Сайт» агентства — отрицательный, не пересекается с socialNetworkId справочника
-    private static let agencySiteFieldId = -100
+    // не nil — режим agency: ссылки — плоские поля агентства (/agency/{id}), запись — /agency/update.
+    private let agencyId: Int?
+    private var agencyDetail: AgencyDetailData?
+
+    // Поля агентства. Отрицательные id — не пересекаются с model-полями.
+    private enum AgencyField: Int, CaseIterable {
+        case instagram = -11
+        case tiktok = -12
+        case youtube = -13
+        case telegram = -14
+        case website = -15
+
+        var prefix: String {
+            switch self {
+            case .instagram: return "instagram.com/"
+            case .tiktok: return "tiktok.com/"
+            case .youtube: return "youtube.com/"
+            case .telegram: return "t.me/"
+            case .website: return ""
+            }
+        }
+
+        var requestField: AgencyLinksUpdateRequest.Field {
+            switch self {
+            case .instagram: return .instagramUrl
+            case .tiktok: return .tiktokUrl
+            case .youtube: return .youtubeUrl
+            case .telegram: return .telegramUrl
+            case .website: return .websiteUrl
+            }
+        }
+    }
 
     // Отрицательные id model-полей, чтобы не пересекаться с socialNetworkId справочника
     private enum ModelField: Int {
@@ -50,11 +75,10 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
     weak var delegate: EditSocialLinksDelegate?
 
-    public init(context: AccountContext, presentationData: PresentationData, linksData: LinksData, agencyNetworks: [UserSocialNetwork]? = nil, agencyDetail: UserDetail? = nil) {
+    public init(context: AccountContext, presentationData: PresentationData, linksData: LinksData, agencyId: Int? = nil) {
         self.context = context
         self.linksData = linksData
-        self.agencyNetworks = agencyNetworks
-        self.agencyDetail = agencyDetail
+        self.agencyId = agencyId
 
         self.presentationData = presentationData
 
@@ -84,8 +108,8 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
         self.editSocialLinksNode.onSave = { [weak self] texts, changedIds in
             guard let self else { return }
-            if self.agencyNetworks != nil {
-                self.saveAgencySocialLinks(texts: texts, changedIds: changedIds)
+            if self.agencyId != nil {
+                self.saveAgencyLinks(texts: texts, changedIds: changedIds)
             } else {
                 self.saveModelSocialLinks(texts: texts)
             }
@@ -97,8 +121,8 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
         self.displayNodeDidLoad()
 
-        if self.agencyNetworks != nil {
-            self.loadSocialNetworksDictionary()
+        if self.agencyId != nil {
+            self.loadAgencyLinks()
         } else {
             self.editSocialLinksNode.setFields(self.modelFieldSpecs())
         }
@@ -121,72 +145,47 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         ]
     }
 
-    /// Сети для полей агентства: справочник /social-network + уже сохранённые соцсети, которых в справочнике
-    /// нет (иначе добавленная ссылка пропадала с экрана правки и её нельзя было ни увидеть, ни удалить).
-    private var agencyNetworkItems: [SocialNetworkItem] {
-        var items = socialNetworksDictionary
-        var knownIds = Set(items.compactMap { $0.id })
-        for saved in agencyNetworks ?? [] {
-            guard let network = saved.socialNetwork, let id = network.id, !knownIds.contains(id) else { continue }
-            knownIds.insert(id)
-            items.append(network)
-        }
-        return items
-    }
-
     private func agencyFieldSpecs() -> [SocialLinkFieldSpec] {
-        var specs: [SocialLinkFieldSpec] = [
-            SocialLinkFieldSpec(
-                id: Self.agencySiteFieldId,
-                prefix: "",
-                placeholder: DivoStrings.enterYourWebsite,
-                initialText: agencyDetail?.agency?.site ?? ""
-            )
-        ]
-        specs += agencyNetworkItems.compactMap { network in
-            guard let networkId = network.id else { return nil }
-            let prefix = Self.urlPrefix(for: network.provider)
-            let existing = self.existingNetwork(forId: networkId)
-            let initialText: String
-            if prefix.isEmpty {
-                initialText = existing?.link ?? existing?.nickname ?? ""
-            } else {
-                initialText = existing?.nickname ?? Self.lastPathComponent(of: existing?.link)
+        let detail = self.agencyDetail
+        return AgencyField.allCases.map { field in
+            let current: String?
+            switch field {
+            case .instagram: current = detail?.instagramUrl
+            case .tiktok: current = detail?.tiktokUrl
+            case .youtube: current = detail?.youtubeUrl
+            case .telegram: current = detail?.telegramUrl
+            case .website: current = detail?.effectiveWebsite
             }
             return SocialLinkFieldSpec(
-                id: networkId,
-                prefix: prefix,
-                placeholder: prefix.isEmpty ? network.name : nil,
-                initialText: initialText
+                id: field.rawValue,
+                prefix: field.prefix,
+                placeholder: field == .website ? DivoStrings.enterYourWebsite : nil,
+                initialText: Self.handle(from: current, prefix: field.prefix)
             )
         }
-        return specs
     }
 
-    private func existingNetwork(forId networkId: Int) -> UserSocialNetwork? {
-        return agencyNetworks?.first { $0.socialNetwork?.id == networkId }
-    }
-
-    private func loadSocialNetworksDictionary() {
+    private func loadAgencyLinks() {
+        guard let agencyId = self.agencyId else { return }
         self.editSocialLinksNode.setFieldsLoading(true)
         Task { @MainActor in
             do {
-                let response: SocialNetworkListResponse = try await DivoAPIClient.shared.request(
-                    path: "/social-network",
+                let response: AgencyDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/agency/\(agencyId)",
                     method: "GET"
                 )
-                self.socialNetworksDictionary = response.data ?? []
+                self.agencyDetail = response.data
                 self.editSocialLinksNode.setFieldsLoading(false)
                 self.editSocialLinksNode.setFields(self.agencyFieldSpecs())
             } catch {
-                // Hardcoded-список сетей не подставляем: без справочника поля не строим, даём Retry
+                // Без текущих значений поля не строим (иначе сохранение затёрло бы ссылки) — даём Retry.
                 self.editSocialLinksNode.setFieldsLoading(false)
                 let userMsg = (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.failedToLoadSocialNetworks
                 self.editSocialLinksNode.showSnackbar(
                     message: userMsg,
                     style: .error,
                     retryAction: { [weak self] in
-                        self?.loadSocialNetworksDictionary()
+                        self?.loadAgencyLinks()
                     },
                     persistent: true
                 )
@@ -225,37 +224,30 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
         }
     }
 
-    private func saveAgencySocialLinks(texts: [Int: String], changedIds: Set<Int>) {
+    /// Частичный `/agency/update`: только изменённые ссылки (полный URL со схемой — бэк валидирует URL,
+    /// `null` — очистить). Сайт пишется и в `websiteUrl` (основное поле), и в устаревший `site` —
+    /// иначе показ `websiteUrl ?? site` вернул бы очищенный сайт из старого поля.
+    private func saveAgencyLinks(texts: [Int: String], changedIds: Set<Int>) {
+        guard let agencyId = self.agencyId else { return }
+        var values: [AgencyLinksUpdateRequest.Field: String?] = [:]
+        for field in AgencyField.allCases where changedIds.contains(field.rawValue) {
+            let url = Self.constructFullURL(from: texts[field.rawValue] ?? "", with: field.prefix)
+            values[field.requestField] = .some(url)
+            if field == .website {
+                values[.site] = .some(url)
+            }
+        }
+        guard !values.isEmpty else {
+            self.navigationController?.popViewController(animated: true)
+            return
+        }
         Task { @MainActor in
             do {
-                if changedIds.contains(Self.agencySiteFieldId) {
-                    try await self.saveAgencySite(text: texts[Self.agencySiteFieldId] ?? "")
-                }
-                for network in self.agencyNetworkItems {
-                    guard let networkId = network.id, changedIds.contains(networkId) else { continue }
-
-                    let text = texts[networkId] ?? ""
-                    let prefix = Self.urlPrefix(for: network.provider)
-
-                    if let link = Self.constructFullURL(from: text, with: prefix) {
-                        let request = UserSocialNetworkUpsertRequest(
-                            socialNetworkId: networkId,
-                            nickname: Self.lastPathComponent(of: link),
-                            link: link
-                        )
-                        let _: UserSocialNetworkMutationResponse = try await DivoAPIClient.shared.request(
-                            path: "/user-social-network/upsert",
-                            method: "POST",
-                            body: request
-                        )
-                    } else if let recordId = self.existingNetwork(forId: networkId)?.id {
-                        // Поле очистили — удаляем сохранённую соцсеть
-                        let _: UserSocialNetworkMutationResponse = try await DivoAPIClient.shared.request(
-                            path: "/user-social-network/\(recordId)",
-                            method: "DELETE"
-                        )
-                    }
-                }
+                let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
+                    path: "/agency/update",
+                    method: "POST",
+                    body: AgencyLinksUpdateRequest(agencyId: agencyId, values: values)
+                )
 
                 divoTrack(.socialLinksSaved)
                 self.delegate?.didUpdateSocialLinksData()
@@ -265,27 +257,6 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
                 self.handleSaveError(error)
             }
         }
-    }
-
-    /// Сайт агентства → /agency/update. Бэк делает replace, поэтому остальные поля агентства пересылаем
-    /// из текущего профиля (как EditProfileController); пустой сайт уходит явным null.
-    private func saveAgencySite(text: String) async throws {
-        let agency = self.agencyDetail?.agency
-        let request = UpdateDescriptionAgencyRequest(
-            agencyId: agency?.id,
-            title: agency?.title,
-            site: Self.constructFullURL(from: text, with: ""),
-            description: agency?.description,
-            background: agency?.background?.fileUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) },
-            photo: agency?.photo?.fileUuid.map { UpdateDescriptionAgencyRequest.AvatarUuid(uuid: $0) },
-            // Без города address не шлём: {"cityId": null} при replace затёр бы город на беке
-            address: (agency?.address?.city?.id).map { UpdateAgencyAddress(cityId: $0) }
-        )
-        let _: UpdateDescriptionAgencyResponse = try await DivoAPIClient.shared.request(
-            path: "/agency/update",
-            method: "POST",
-            body: request
-        )
     }
 
     private func handleSaveError(_ error: Error) {
@@ -300,19 +271,22 @@ public class EditSocialLinksController: ViewController, UINavigationControllerDe
 
     // MARK: - URL helpers
 
-    private static func urlPrefix(for provider: String?) -> String {
-        switch provider {
-        case "instagram": return "instagram.com/"
-        case "facebook": return "facebook.com/"
-        case "tiktok": return "tiktok.com/"
-        case "youtube": return "youtube.com/"
-        default: return ""
+    /// Часть ссылки после префикса поля (`https://www.instagram.com/x` → `x`). Сайт (пустой префикс) —
+    /// ссылка целиком, как сохранена.
+    private static func handle(from link: String?, prefix: String) -> String {
+        guard let link = link?.trimmingCharacters(in: .whitespacesAndNewlines), !link.isEmpty else { return "" }
+        if prefix.isEmpty { return link }
+        var stripped = link
+        for scheme in ["https://", "http://"] where stripped.lowercased().hasPrefix(scheme) {
+            stripped = String(stripped.dropFirst(scheme.count))
         }
-    }
-
-    private static func lastPathComponent(of link: String?) -> String {
-        guard let link, !link.isEmpty else { return "" }
-        return link.split(separator: "/").last.map(String.init) ?? ""
+        if stripped.lowercased().hasPrefix("www.") {
+            stripped = String(stripped.dropFirst(4))
+        }
+        if stripped.lowercased().hasPrefix(prefix) {
+            return String(stripped.dropFirst(prefix.count))
+        }
+        return stripped
     }
 
     private static func constructFullURL(from handle: String, with prefix: String) -> String? {
