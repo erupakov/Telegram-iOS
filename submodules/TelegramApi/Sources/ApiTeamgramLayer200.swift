@@ -1453,9 +1453,11 @@ public extension Api.functions.contacts {
 
 public extension Api.functions.stories {
     // Форк кодирует sendStory 222-конструктором 737fc2ec с полем albums (flags.8?Vector<int>),
-    // которого на layer 201 нет → teamgram-сервер не декодирует метод и молча дропает (постинг
-    // сторис не доходит, клиент висит на «Uploading…»). Кодируем под 201: constructor e4e6694b,
-    // сбрасываем бит 8, albums не пишем. Поля и биты 0-7 идентичны 222
+    // которого на layer 201 нет. Сервер до divo-server MR !3 его не декодировал и молча дропал
+    // (постинг висел на «Uploading…»); с MR !3 сервер принимает 737fc2ec как расширение к 201,
+    // и Stories.swift шлёт его, когда выбраны альбомы. Эта обёртка — для сторис без альбомов
+    // (её понимает любой сервер): constructor e4e6694b, бит 8 сброшен, albums не пишем.
+    // Поля и биты 0-7 идентичны 222
     // (caption.0/entities.1/pinned.2/period.3/noforwards.4/mediaAreas.5/fwdFrom.6/fwdModified.7).
     static func sendStory_teamgram_layer201(flags: Int32, peer: Api.InputPeer, media: Api.InputMedia, mediaAreas: [Api.MediaArea]?, caption: String?, entities: [Api.MessageEntity]?, privacyRules: [Api.InputPrivacyRule], randomId: Int64, period: Int32?, fwdFromId: Api.InputPeer?, fwdFromStory: Int32?, albums: [Int32]?) -> (FunctionDescription, Buffer, DeserializeFunctionResponse<Api.Updates>) {
         let buffer = Buffer()
