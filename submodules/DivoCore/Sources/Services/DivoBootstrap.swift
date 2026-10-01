@@ -79,11 +79,16 @@ public enum DivoBootstrap {
                 guard let telegramUserId = DivoTeamgramSync.shared.telegramUserId else {
                     throw DivoBootstrapError.opNotHandled
                 }
-                let linked = try await AuthRestService.shared.telegramLink(
-                    telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId
-                )
-                DivoConfig.accessToken = linked.accessToken
-                divoLog("DivoBootstrap: telegram-link довёл сшивку для divoUserId=\(divoUserId)", level: .info)
+                do {
+                    let linked = try await AuthRestService.shared.telegramLink(
+                        telegramUserId: telegramUserId, phone: phone, divoUserId: divoUserId
+                    )
+                    DivoConfig.accessToken = linked.accessToken
+                    divoLog("DivoBootstrap: telegram-link довёл сшивку для divoUserId=\(divoUserId)", level: .info)
+                } catch let DivoAPIError.httpError(statusCode, _) where statusCode == 409 {
+                    // «already linked» — повтор не поможет: снимаем op, иначе он ретраится вечно.
+                    divoLog("DivoBootstrap: telegram-link 409 (уже связан) для divoUserId=\(divoUserId) — снимаю op", level: .warning)
+                }
             case .photoUpdate:
                 guard let photoUpdate else {
                     // Нет исполнителя (ещё не авторизованы) — оставляем op в очереди.

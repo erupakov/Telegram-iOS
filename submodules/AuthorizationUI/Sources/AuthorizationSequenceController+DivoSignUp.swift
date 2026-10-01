@@ -56,6 +56,8 @@ final class DivoSignUpLoadingController: ViewController {
 // в AuthorizationSequenceController.swift остаётся только однострочный вызов в case .signUp.
 extension AuthorizationSequenceController {
     func divoHandleAutoSignUp(firstName: String, lastName: String) {
+        // teamgram-аккаунта по номеру не было — phone-link трактует вход как чистую регистрацию.
+        self.divoTeamgramSignedUp = true
         // Лоадинг-экран (светлый + спиннер) на время signUp. Он же сигналит ready стартовому
         // DivoSplashOverlayView (cold-start в signUp), и не оставляет пустого экрана в обычном флоу.
         var controllers: [ViewController] = []

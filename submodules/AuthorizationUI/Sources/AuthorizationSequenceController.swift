@@ -53,6 +53,10 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
     let authorizationCompleted: () -> Void
     // DIVO: телефон, введённый на phone-entry — нужен после teamgram-входа для привязки DIVO-аккаунта.
     var divoPendingPhone: String?
+    /// DIVO: teamgram в этом phone-входе завёл НОВЫЙ аккаунт (state .signUp → auto-signUp). false — signIn
+    /// в уже существующий teamgram-аккаунт по номеру: тогда DIVO-аккаунт ищем и по связке telegramId,
+    /// а не регистрируем «чистый» поверх старого teamgram (см. PhoneAuthLinker).
+    var divoTeamgramSignedUp = false
     /// Во время headless-входа (соц-ветки) подавляем пуш экранов ввода номера/кода из observer'а
     /// состояния — иначе они мелькают поверх лоадера. Сбрасывается по завершении/ошибке headless.
     var divoSuppressAuthScreens = false
@@ -259,6 +263,7 @@ public final class AuthorizationSequenceController: NavigationController, ASAuth
                 // неизвестно new/existing, sign-in-ветку различаем позже (см. sign_in_start TODO).
                 divoTrack(.signUpStart(method: "phone"))
                 self.divoPendingPhone = number
+                self.divoTeamgramSignedUp = false
                 // DIVO: phone-вход может вести к онбордингу (решается в phone-link, уже ПОСЛЕ авторизации
                 // teamgram). Удерживаем auth-overlay превентивно — снимем сами после phone-link
                 // (онбординг → push; без онбординга → divoFinishWithoutOnboarding). Без гонки с teardown.

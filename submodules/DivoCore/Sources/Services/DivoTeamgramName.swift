@@ -78,6 +78,11 @@ public enum DivoTeamgramName {
     /// правды, teamgram-имя вторично. Если текущее teamgram-имя разошлось с DIVO — досылаем DIVO-имя.
     /// teamgram-имя читает вызывающий (postbox, есть только в TelegramUI), DIVO — тянем из REST.
     public static func reconcileToTeamgram(teamgramFirstName: String, teamgramLastName: String) async {
+        // Без своей сессии `/user/info` отдаёт профиль fallback-токена — чужое имя в teamgram не шлём.
+        guard DivoConfig.hasDivoSession else {
+            divoLog("[name] reconcile: нет DIVO-сессии — пропускаю", level: .info)
+            return
+        }
         guard let detail = try? await AuthRestService.shared.userDetail() else {
             divoLog("[name] reconcile: /user/info недоступен — пропускаю", level: .info)
             return

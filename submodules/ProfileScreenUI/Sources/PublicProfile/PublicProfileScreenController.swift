@@ -2298,6 +2298,11 @@ extension PublicProfileScreenController {
                     // Telegram-аккаунт реально удалён на сервере; false — fallback-разлогин, если не вышло.
                     let finishLogout: (Bool) -> Void = { alreadyLoggedOutRemotely in
                         DivoConfig.resetDivoSessionForRollback()
+                        // Future-auth-токены удалённого аккаунта переживают логаут (DIVI-87) — чистим, чтобы
+                        // следующий вход по этому номеру не делал fast-relogin в старую teamgram-учётку.
+                        let _ = (accountManager.transaction { transaction -> Void in
+                            transaction.setStoredLoginTokens([])
+                        }).startStandalone()
                         let _ = logoutFromAccount(
                             id: accountId,
                             accountManager: accountManager,
@@ -2305,8 +2310,15 @@ extension PublicProfileScreenController {
                         ).start()
                     }
                     // Таймаут страхует от зависшего ответа teamgram — иначе блокирующий оверлей завис бы навсегда.
-                    let _ = (self.context.engine.auth.deleteAccount(reason: "DIVO", password: nil)
+                    // Один повтор: если teamgram-удаление не пройдёт, осиротевшая teamgram-учётка (старые
+                    // ава/имя/истории) подцепится при следующем входе по этому номеру.
+                    let deleteTeamgram = self.context.engine.auth.deleteAccount(reason: "DIVO", password: nil)
                     |> timeout(15.0, queue: Queue.mainQueue(), alternate: .fail(.generic))
+                    let _ = (deleteTeamgram
+                    |> `catch` { _ -> Signal<Never, DeleteAccountError> in
+                        divoLog("[DELETE ACCOUNT] MTProto account.deleteAccount: первая попытка не прошла — повтор", level: .warning)
+                        return deleteTeamgram
+                    }
                     |> deliverOnMainQueue).start(error: { _ in
                         // teamgram не подтвердил удаление — DIVO уже удалён, юзера не бросаем: обычный разлогин.
                         divoLog("[DELETE ACCOUNT] MTProto account.deleteAccount не подтверждён (ошибка/таймаут) — fallback-разлогин", level: .error)

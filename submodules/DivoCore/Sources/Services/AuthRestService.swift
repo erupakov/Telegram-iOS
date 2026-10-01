@@ -289,6 +289,14 @@ public final class AuthRestService {
         return env.data
     }
 
+    /// DIVO-юзер, привязанный к teamgram-пользователю (`/user/by-telegram`). Нужен phone-входу: teamgram-
+    /// аккаунт по номеру уже есть, а по email/phone DIVO-аккаунт не нашёлся — ищем по связке telegramId,
+    /// чтобы подтянуть существующий DIVO-аккаунт, а не заводить второй поверх старого teamgram.
+    public func userByTelegram(telegramId: Int64) async throws -> UserDetail {
+        let env: UserDetailResponse = try await client.request(path: "/user/by-telegram?telegramId=\(telegramId)")
+        return env.data
+    }
+
     /// Агентский профиль (роль `agency_employee`): имя/фото = `title`/agency-photo. Нужен `agencyId`
     /// (берём из `userDetail().agency?.id` после регистрации). Зеркалит EditProfile `/agency/update`.
     public func updateAgency(_ req: UpdateDescriptionAgencyRequest) async throws {

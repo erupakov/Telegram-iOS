@@ -42,18 +42,20 @@ extension AuthorizationSequenceController {
             return
         }
         self.divoPendingPhone = nil
+        let teamgramAccountExisted = !self.divoTeamgramSignedUp
+        self.divoTeamgramSignedUp = false
 
         let role = DivoConfig.currentUserRole.rawValue
-        divoLog("[Auth UI] phone-link ДО завершения авторизации, phone=\(phone) role=\(role)", level: .info)
+        divoLog("[Auth UI] phone-link ДО завершения авторизации, phone=\(phone) role=\(role) teamgramExisted=\(teamgramAccountExisted)", level: .info)
 
-        self.divoRunPhoneLink(phone: phone, role: role, complete: complete)
+        self.divoRunPhoneLink(phone: phone, role: role, teamgramAccountExisted: teamgramAccountExisted, complete: complete)
     }
 
     /// Линк DIVO-аккаунта. На время работы остаётся лоадинг-экран (из divoHandleAutoSignUp).
     /// Успех → завершаем авторизацию; фейл → разлогин teamgram (правило отката).
-    private func divoRunPhoneLink(phone: String, role: String, complete: @escaping () -> Void) {
+    private func divoRunPhoneLink(phone: String, role: String, teamgramAccountExisted: Bool, complete: @escaping () -> Void) {
         Task { @MainActor in
-            let outcome = await PhoneAuthLinker.linkAfterTeamgram(phone: phone, telegramUserId: nil, role: role)
+            let outcome = await PhoneAuthLinker.linkAfterTeamgram(phone: phone, telegramUserId: nil, role: role, teamgramAccountExisted: teamgramAccountExisted)
             switch outcome {
             case .ready:
                 // Существующий, онбординг пройден (токен уже выставлен) — завершаем, в таббар.

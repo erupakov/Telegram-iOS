@@ -202,7 +202,9 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         if let teamgramFirstName, !teamgramFirstName.isEmpty {
             DivoTeamgramName.syncToTeamgram(firstName: teamgramFirstName, lastName: lastName ?? "")
         }
-        if photoUuid != nil {
+        // Осиротевший teamgram (pendingTeamgramProfileReset): даже без нового фото гоняем photoUpdate —
+        // исполнитель вычистит старые teamgram-ава/фото, чтобы новый профиль их не унаследовал.
+        if photoUuid != nil || DivoConfig.pendingTeamgramProfileReset {
             DivoTeamgramPhoto.syncToTeamgram()
         }
 

@@ -162,6 +162,14 @@ public enum DivoConfig {
         return UserDefaults.standard.string(forKey: tokenKey) != nil
     }
 
+    /// Есть настоящая DIVO-сессия (сохранённый токен из auth-флоу или debug-форс). Без неё запросы идут по
+    /// fallback `agencyToken` и `/user/info` отдаёт ЧУЖОЙ профиль — синк авы/имени в teamgram на нём
+    /// заливал бы чужие данные в свежий teamgram-аккаунт (окно phone-онбординга до регистрации).
+    public static var hasDivoSession: Bool {
+        if isDebugEnabled, forcedTestToken != nil { return true }
+        return UserDefaults.standard.string(forKey: tokenKey) != nil
+    }
+
     // Дебаунс: десятки параллельных запросов отдают 401 пачкой — сигналим один раз на сессию.
     // Снимается при записи нового токена (см. accessToken.set) — следующая протухшая сессия снова сигналит.
     private static var didSignalSessionExpired = false
@@ -306,6 +314,24 @@ public enum DivoConfig {
         }
     }
 
+    private static let pendingTeamgramProfileResetKey = "DivoConfig.pendingTeamgramProfileReset"
+
+    /// Phone-вход попал в УЖЕ существующий teamgram-аккаунт, а DIVO-аккаунта у него нет (осиротевший
+    /// teamgram — напр. после удаления DIVO-профиля, когда MTProto-удаление не прошло). Новый DIVO-аккаунт
+    /// не должен унаследовать старые ава/имя: после регистрации чистим teamgram-фото и ставим DIVO-аву
+    /// (см. photoUpdate в AppDelegate+DivoOnboarding). НЕ входит в clearPendingOnboardingFlags — флаг нужен
+    /// ПОСЛЕ submit'а, до дренажа photoUpdate; снимается исполнителем либо на сбросе сессии.
+    public static var pendingTeamgramProfileReset: Bool {
+        get { UserDefaults.standard.bool(forKey: pendingTeamgramProfileResetKey) }
+        set {
+            if newValue {
+                UserDefaults.standard.set(true, forKey: pendingTeamgramProfileResetKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: pendingTeamgramProfileResetKey)
+            }
+        }
+    }
+
     /// Снять ВСЕ pending-флаги онбординга разом (вход завершён / откат / cold-start). Один источник
     /// правды: эти флаги чистились вручную в нескольких местах — легко было забыть один и оставить
     /// залипший флаг, который заново триггерит онбординг или cold-start resume.
@@ -324,6 +350,7 @@ public enum DivoConfig {
         resetRole() // роль → дефолт (model); на следующем входе перезапишется с сервера
         currentDivoUserId = nil
         clearPendingOnboardingFlags()
+        pendingTeamgramProfileReset = false
         // Полный teardown моста в teamgram: очередь отложенных опов + telegramUserId/nameUpdater НЕ
         // должны пережить логаут. Иначе опы прошлого аккаунта (telegramLink) дренятся против нового
         // teamgram-аккаунта → 409 "already linked" (ловилось на тестах через разлогины).

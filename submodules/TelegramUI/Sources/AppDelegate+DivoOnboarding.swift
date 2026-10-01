@@ -21,6 +21,43 @@ private enum DivoAddContactError: Error {
     case failed
 }
 
+/// Удаляет ВСЕ фото профиля teamgram-аккаунта (история + текущая ава). Best-effort: ошибки глотаются
+/// в TelegramCore (`removeAccountPhoto` — Signal<Void, NoError>), зависание режем таймаутом — иначе
+/// op `.photoUpdate` навсегда застрял бы in-flight.
+private func divoRemoveAllTeamgramPhotos(context: AccountContext) async {
+    let engine = context.engine
+    let photos: [TelegramPeerPhoto] = await withCheckedContinuation { continuation in
+        var finished = false
+        let _ = (engine.peers.requestPeerPhotos(peerId: context.account.peerId)
+        |> take(1)
+        |> timeout(15.0, queue: Queue.concurrentDefaultQueue(), alternate: .single([]))).start(next: { photos in
+            if finished { return }
+            finished = true
+            continuation.resume(returning: photos)
+        }, completed: {
+            if finished { return }
+            finished = true
+            continuation.resume(returning: [])
+        })
+    }
+    divoLog("[ava] reset: удаляю \(photos.count) старых teamgram-фото", level: .info)
+    for photo in photos {
+        guard let reference = photo.reference else { continue }
+        await divoAwaitCompletion(engine.accountData.removeAccountPhoto(reference: reference))
+    }
+    // Текущая ава → пустая (на случай, если её не было в выдаче getUserPhotos).
+    await divoAwaitCompletion(engine.accountData.removeAccountPhoto(reference: nil))
+}
+
+private func divoAwaitCompletion(_ signal: Signal<Void, NoError>) async {
+    await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+        let _ = (signal
+        |> timeout(15.0, queue: Queue.concurrentDefaultQueue(), alternate: .complete())).start(completed: {
+            continuation.resume()
+        })
+    }
+}
+
 // DIVO: пост-авторизационная интеграция очереди отложенных операций.
 // Онбординг сам вшит в auth-флоу пушем (см. AuthorizationSequenceController+DivoOnboarding) —
 // здесь его больше нет. Файл отдельный — минимизируем диф в гигантском AppDelegate.
@@ -44,6 +81,13 @@ extension AppDelegate {
         // resolveAvatarForSync вернул nil (авы нет) → op снимается без заливки.
         let photoUpdate: () async throws -> Void = { [weak context] in
             guard let context = context else { throw DivoTeamgramSync.SyncError.notReady }
+            // Осиротевший teamgram (phone-вход в существующий teamgram без DIVO-аккаунта): старые
+            // ава/фото не должны перейти в новый профиль. Чистим ДО заливки новой авы — только при
+            // DIVO-сессии (флаг ставится до регистрации, а сброс нужен уже под новым аккаунтом).
+            if DivoConfig.pendingTeamgramProfileReset && DivoConfig.hasDivoSession {
+                await divoRemoveAllTeamgramPhotos(context: context.context)
+                DivoConfig.pendingTeamgramProfileReset = false
+            }
             guard let data = try await DivoTeamgramPhoto.resolveAvatarForSync() else { return }
             let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
             context.context.account.postbox.mediaBox.storeResourceData(resource.id, data: data)
