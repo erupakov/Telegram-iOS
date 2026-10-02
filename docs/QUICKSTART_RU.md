@@ -18,6 +18,12 @@
 
 # Установить Bazelisk (менеджер версий Bazel) и CMake
 brew install bazelisk cmake
+
+# Xcode 26+: компилятор Metal ставится отдельным компонентом — без него сборка падает
+# на шейдерах (CallScreenShaders: «missing Metal Toolchain»)
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer   # активен полный Xcode, не Command Line Tools
+xcodebuild -downloadComponent MetalToolchain                      # ~700 МБ; или Xcode → Settings → Components
+xcrun metal --version                                             # проверка: должна вывестись версия
 ```
 
 ## Сборка и запуск
@@ -25,22 +31,38 @@ brew install bazelisk cmake
 ### 1. Клонирование
 
 ```bash
-git clone --recursive -j8 https://github.com/ShagMichail/TelegramApp.git
-cd TelegramApp
+git clone --recursive -j8 https://github.com/erupakov/Telegram-iOS.git
+cd Telegram-iOS
+git checkout dev
+```
+
+Сборке нужны git-сабмодули (`build-system/bazel-rules/*`, `third-party/*`, всего несколько ГБ).
+Если клонировали без `--recursive` или загрузка оборвалась — докачать и проверить:
+
+```bash
+git submodule sync --recursive
+git submodule update --init --recursive --jobs 8
+git submodule status --recursive   # ни одна строка не должна начинаться с «-»
 ```
 
 ### 2. Настройка конфигурации
 
-```bash
-mkdir -p build-input/configuration-repository
-cp -r build-system/example-configuration/* build-input/configuration-repository/
+Конфигурация DIVO уже лежит в репозитории — `build-input/configuration-repository/`
+(`variables.bzl` с bundle id `app.divo.fashion`, team id DIVO, `telegram_bazel_path` и т.д.).
+**Копировать `build-system/example-configuration` не нужно:** это пример стандартного Telegram,
+он перезапишет `variables.bzl`, и сборка упадёт.
 
-cat > build-input/configuration-repository/MODULE.bazel << 'EOF'
-module(
-    name = "build_configuration",
-    version = "1.0.0",
-)
-EOF
+Проверить только путь к Bazel — `telegram_bazel_path` в `variables.bzl` (по умолчанию
+`/opt/homebrew/bin/bazel`, Apple Silicon + Homebrew):
+
+```bash
+which bazel   # если путь другой (например, /usr/local/bin/bazel на Intel) — поправить у себя локально
+```
+
+Если конфигурацию уже перезаписали — вернуть закоммиченную:
+
+```bash
+git checkout -- build-input/configuration-repository
 ```
 
 ### Provisioning-профайлы (dev / distribution)
@@ -229,6 +251,15 @@ git push origin v0.32
   встанет на текущий `HEAD`).
 - Тег указывает на уже опубликованный коммит, поэтому пуш отправляет только сам
   тег — историю/ветки он не трогает.
+
+## Типичные ошибки
+
+| Ошибка | Причина | Что сделать |
+|---|---|---|
+| `fetching_local_repository rule //:apple_support+: … No MODULE.bazel, REPO.bazel or WORKSPACE file found` | Не скачаны git-сабмодули | `git submodule update --init --recursive` (см. §1) |
+| `file '@build_configuration//:variables.bzl' does not contain symbol 'telegram_bazel_path'`, затем `no such target '//Telegram:Telegram'` | `variables.bzl` перезаписан примером из `build-system/example-configuration` | `git checkout -- build-input/configuration-repository` (см. §2) |
+| `MetalCompile … cannot execute tool 'metal' due to missing Metal Toolchain` | Xcode 26 без компонента Metal Toolchain | `xcodebuild -downloadComponent MetalToolchain`, затем `bazel shutdown` и повторить сборку |
+| `WARNING: … root module requires module version rules_cc@… but got …` | Bazel подтянул более новые версии зависимостей | Безвредно, ничего делать не нужно |
 
 ## Часто используемые команды
 
