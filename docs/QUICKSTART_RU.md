@@ -259,6 +259,7 @@ git push origin v0.32
 | `fetching_local_repository rule //:apple_support+: … No MODULE.bazel, REPO.bazel or WORKSPACE file found` | Не скачаны git-сабмодули | `git submodule update --init --recursive` (см. §1) |
 | `file '@build_configuration//:variables.bzl' does not contain symbol 'telegram_bazel_path'`, затем `no such target '//Telegram:Telegram'` | `variables.bzl` перезаписан примером из `build-system/example-configuration` | `git checkout -- build-input/configuration-repository` (см. §2) |
 | `MetalCompile … cannot execute tool 'metal' due to missing Metal Toolchain` | Xcode 26 без компонента Metal Toolchain | `xcodebuild -downloadComponent MetalToolchain`, затем `bazel shutdown` и повторить сборку |
+| `Compiling tools/worker/worker_main.cc [for tool] failed: absolute path inclusion(s) found … SDKSettings.json` (или `…/usr/include/c++/v1/…`) | Хост-утилиты собирал тулчейн `rules_cc`, а не `apple_support` (исправлено порядком в `MODULE.bazel`); пути `…/c++/v1/…` — тулчейн определён под другой Xcode (после смены `xcode-select`) | Обновить `dev`, затем `bazel clean --expunge` и повторить сборку |
 | `WARNING: … root module requires module version rules_cc@… but got …` | Bazel подтянул более новые версии зависимостей | Безвредно, ничего делать не нужно |
 
 ## Часто используемые команды
