@@ -187,7 +187,7 @@ func divoBlockedUsersController(context: AccountContext) -> ViewController {
         updateState { $0.unblockingIds.insert(user.id) }
         Task {
             do {
-                try await DivoBlockedUsers.unblock(userId: user.id)
+                try await DivoBlockedUsers.unblock(userId: user.id, telegramId: user.telegramId)
                 await MainActor.run {
                     updateState { state in
                         state.unblockingIds.remove(user.id)

@@ -68,17 +68,20 @@ public struct DivoBlockedUser: Decodable, Equatable {
     public let id: Int
     public let fullName: String?
     public let roleLabel: String?
+    /// id в teamgram — по нему обновляем чат с заблокированным; `nil`, если связки нет или аккаунт удалён.
+    public let telegramId: Int64?
     /// `avatar ?? photo` (у `avatar` бэк уже подставляет фото / фото агентства).
     public let imageUrl: String?
 
     private enum CodingKeys: String, CodingKey {
-        case id, fullName, roleLabel, avatar, photo
+        case id, fullName, roleLabel, telegramId, avatar, photo
     }
 
-    public init(id: Int, fullName: String?, roleLabel: String?, imageUrl: String?) {
+    public init(id: Int, fullName: String?, roleLabel: String?, telegramId: Int64?, imageUrl: String?) {
         self.id = id
         self.fullName = fullName
         self.roleLabel = roleLabel
+        self.telegramId = telegramId
         self.imageUrl = imageUrl
     }
 
@@ -87,6 +90,7 @@ public struct DivoBlockedUser: Decodable, Equatable {
         self.id = try container.decode(Int.self, forKey: .id)
         self.fullName = try container.decodeIfPresent(String.self, forKey: .fullName)
         self.roleLabel = try container.decodeIfPresent(String.self, forKey: .roleLabel)
+        self.telegramId = try? container.decodeIfPresent(Int64.self, forKey: .telegramId)
         let avatar = try? container.decodeIfPresent(UserFile.self, forKey: .avatar)
         let photo = try? container.decodeIfPresent(UserFile.self, forKey: .photo)
         self.imageUrl = (avatar ?? photo)?.fullUrl

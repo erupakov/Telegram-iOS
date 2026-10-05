@@ -13,6 +13,11 @@ public extension TelegramEngine {
             return _internal_requestUpdatePeerIsBlocked(account: self.account, peerId: peerId, isBlocked: isBlocked)
         }
 
+        /// DIVO: локальный `isBlocked` по teamgram-id (без MTProto) — см. `_internal_divoSetLocalIsBlocked`.
+        public func divoSetLocalIsBlocked(telegramUserId: Int64, isBlocked: Bool) -> Signal<Never, NoError> {
+            return _internal_divoSetLocalIsBlocked(account: self.account, telegramUserId: telegramUserId, isBlocked: isBlocked)
+        }
+
         public func requestUpdatePeerIsBlockedFromStories(peerId: PeerId, isBlocked: Bool) -> Signal<Void, NoError> {
             return _internal_requestUpdatePeerIsBlockedFromStories(account: self.account, peerId: peerId, isBlocked: isBlocked)
         }
