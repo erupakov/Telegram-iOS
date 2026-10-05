@@ -2220,7 +2220,7 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
             icon: icon,
             breadcrumbs: [strings.Settings_PrivacySettings],
             present: { context, _, present in
-                // DIVO: список заблокированных — REST GET /user/blocked.
+                // DIVO: список заблокированных — REST POST /user/blocked.
                 present(.push, divoBlockedUsersController(context: context))
             }
         )

@@ -37,7 +37,8 @@ public struct UserReportRequest: Encodable {
     }
 }
 
-/// POST /user/block и POST /user/unblock — блокировка / разблокировка пользователя по его DIVO userId.
+/// POST /user/block и POST /user/unblock — блокировка / разблокировка по DIVO userId
+/// (`users.id`, не id в teamgram). Контракт: docs/divo-api-user-block.md.
 public struct UserBlockRequest: Encodable {
     public let userId: Int
 
@@ -46,89 +47,75 @@ public struct UserBlockRequest: Encodable {
     }
 }
 
+/// Ответ block / unblock: `data` всегда `null`, решение — по HTTP-коду.
 public struct UserBlockResponse: Decodable {
     public let message: String?
 }
 
-/// Элемент GET /user/blocked. Бэк может отдать пользователя плоско или обёрткой
-/// (`user` / `blockedUser`) — разбираем оба варианта.
+/// POST /user/blocked — страница списка заблокированных (`limit` 1…100).
+public struct BlockedUsersRequest: Encodable {
+    public let offset: Int
+    public let limit: Int
+
+    public init(offset: Int, limit: Int) {
+        self.offset = offset
+        self.limit = limit
+    }
+}
+
+/// Элемент списка заблокированных. В список попадают и удалённые пользователи — признака у них нет.
 public struct DivoBlockedUser: Decodable, Equatable {
     public let id: Int
     public let fullName: String?
-    public let nickname: String?
-    public let avatarUrl: String?
+    public let roleLabel: String?
+    /// `avatar ?? photo` (у `avatar` бэк уже подставляет фото / фото агентства).
+    public let imageUrl: String?
 
     private enum CodingKeys: String, CodingKey {
-        case id, userId, fullName, nickname, avatar, photo
-        case user, blockedUser
-        case blockedUserSnake = "blocked_user"
-        case userIdSnake = "user_id"
-        case fullNameSnake = "full_name"
+        case id, fullName, roleLabel, avatar, photo
     }
 
-    public init(id: Int, fullName: String?, nickname: String?, avatarUrl: String?) {
+    public init(id: Int, fullName: String?, roleLabel: String?, imageUrl: String?) {
         self.id = id
         self.fullName = fullName
-        self.nickname = nickname
-        self.avatarUrl = avatarUrl
+        self.roleLabel = roleLabel
+        self.imageUrl = imageUrl
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        for key in [CodingKeys.user, .blockedUser, .blockedUserSnake] {
-            if let nested = try? container.decodeIfPresent(DivoBlockedUser.self, forKey: key) {
-                self = nested
-                return
-            }
-        }
-        if let id = try? container.decode(Int.self, forKey: .id) {
-            self.id = id
-        } else if let id = try? container.decode(Int.self, forKey: .userId) {
-            self.id = id
-        } else {
-            self.id = try container.decode(Int.self, forKey: .userIdSnake)
-        }
-        self.fullName = (try? container.decodeIfPresent(String.self, forKey: .fullName))
-            ?? (try? container.decodeIfPresent(String.self, forKey: .fullNameSnake))
-        self.nickname = try? container.decodeIfPresent(String.self, forKey: .nickname)
-        let avatar = (try? container.decodeIfPresent(UserFile.self, forKey: .avatar))
-            ?? (try? container.decodeIfPresent(UserFile.self, forKey: .photo))
-        self.avatarUrl = avatar?.fullUrl
+        self.id = try container.decode(Int.self, forKey: .id)
+        self.fullName = try container.decodeIfPresent(String.self, forKey: .fullName)
+        self.roleLabel = try container.decodeIfPresent(String.self, forKey: .roleLabel)
+        let avatar = try? container.decodeIfPresent(UserFile.self, forKey: .avatar)
+        let photo = try? container.decodeIfPresent(UserFile.self, forKey: .photo)
+        self.imageUrl = (avatar ?? photo)?.fullUrl
     }
 
-    /// Имя для списка: ФИО → никнейм → «#id».
+    /// Имя для списка: ФИО → «#id» (у удалённых имени может не быть).
     public var displayName: String {
         if let fullName, !fullName.isEmpty { return fullName }
-        if let nickname, !nickname.isEmpty { return nickname }
         return "#\(id)"
     }
 }
 
-/// GET /user/blocked. `data` — массив или пагинированный объект (`items` / `list` / `data` / `users`).
 public struct BlockedUsersResponse: Decodable {
-    public let users: [DivoBlockedUser]
+    public let message: String?
+    public let data: BlockedUsersPage?
+}
 
-    private enum CodingKeys: String, CodingKey {
-        case data
+public struct BlockedUsersPage: Decodable {
+    public let items: [DivoBlockedUser]
+    public let pagination: Pagination?
+
+    public struct Pagination: Decodable {
+        public let meta: Meta?
     }
 
-    private enum PageKeys: String, CodingKey {
-        case items, list, data, users
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        if let list = try? container.decode([DivoBlockedUser].self, forKey: .data) {
-            self.users = list
-            return
-        }
-        let page = try container.nestedContainer(keyedBy: PageKeys.self, forKey: .data)
-        for key in [PageKeys.items, .list, .data, .users] {
-            if let list = try? page.decode([DivoBlockedUser].self, forKey: key) {
-                self.users = list
-                return
-            }
-        }
-        self.users = []
+    /// `currentOffset` = offset + число элементов страницы — его и передаём следующим offset.
+    public struct Meta: Decodable {
+        public let limit: Int?
+        public let currentOffset: Int?
+        public let totalCount: Int?
     }
 }

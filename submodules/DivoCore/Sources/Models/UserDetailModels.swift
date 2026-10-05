@@ -33,6 +33,9 @@ public struct UserDetail: Decodable {
     public let isLikedByUser: Bool?
     public let userRatingStatus: String?
     public let userSocialNetworks: [UserSocialNetwork]?
+    /// Заглушка вместо профиля, если между текущим пользователем и этим есть блокировка (в любую
+    /// сторону): `{ "id": 42, "isUnavailable": true }` без остальных полей. Проверять до разбора профиля.
+    public let isUnavailable: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, fullName, gender, birthday, city, email, phone
@@ -43,6 +46,7 @@ public struct UserDetail: Decodable {
         case model, customer, agency, agencyEmployee
         case statistic, isFavorite, isFollowed, isLikedByUser
         case userRatingStatus, userSocialNetworks
+        case isUnavailable
     }
 }
 

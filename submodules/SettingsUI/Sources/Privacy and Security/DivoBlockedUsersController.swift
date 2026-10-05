@@ -9,7 +9,7 @@ import PresentationDataUtils
 import AccountContext
 import DivoCore
 
-// DIVO: «Настройки → Конфиденциальность и безопасность → Заблокированные» — список из GET /user/blocked
+// DIVO: «Настройки → Конфиденциальность и безопасность → Заблокированные» — список из POST /user/blocked
 // с разблокировкой через POST /user/unblock (вместо MTProto-блоклиста Telegram). Отдельный файл —
 // минимизируем диф в апстрим-контроллере.
 
@@ -29,7 +29,7 @@ func divoBlockedUsersCountSignal() -> Signal<Int?, NoError> {
             do {
                 try await DivoBlockedUsers.fetch()
             } catch {
-                divoLog("[BLOCK] GET /user/blocked failed: \(error)", level: .warning)
+                divoLog("[BLOCK] POST /user/blocked failed: \(error)", level: .warning)
             }
         }
         return ActionDisposable {
@@ -175,7 +175,7 @@ func divoBlockedUsersController(context: AccountContext) -> ViewController {
                     updateState { $0.load = .loaded(users) }
                 }
             } catch {
-                divoLog("[BLOCK] GET /user/blocked failed: \(error)", level: .warning)
+                divoLog("[BLOCK] POST /user/blocked failed: \(error)", level: .warning)
                 await MainActor.run {
                     updateState { $0.load = .failed }
                 }

@@ -487,7 +487,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         if !model.isMyProfile, let userId = model.userId {
             self.controllerNode.isUserBlocked = DivoBlockedUsers.isBlocked(userId: userId) ?? false
-            // Статус блокировки берём из GET /user/blocked (один раз за сессию); после загрузки
+            // Статус блокировки берём из POST /user/blocked (один раз за сессию); после загрузки
             // меню обновится через didChangeNotification.
             Task {
                 await DivoBlockedUsers.fetchIfNeeded()
@@ -829,6 +829,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
                         },
                         persistent: true
                     )
+                    return
+                }
+                // Блокировка в любую сторону: вместо профиля — заглушка `isUnavailable` без полей.
+                if detail.isUnavailable == true {
+                    self.controllerNode.showProfileUnavailable()
                     return
                 }
                 self.userDetailModel = detail
@@ -2353,8 +2358,12 @@ extension PublicProfileScreenController {
                 try await DivoBlockedUsers.block(userId: userId)
                 divoTrack(.userBlocked(targetUserId: Int64(userId)))
                 await MainActor.run {
-                    self?.controllerNode.isUserBlocked = true
-                    self?.controllerNode.showSnackbar(message: DivoStrings.userBlocked, style: .success)
+                    guard let self else { return }
+                    self.controllerNode.isUserBlocked = true
+                    // После блока сервер отдаёт профиль заглушкой и отписывает в обе стороны —
+                    // перерисовываем экран как недоступный (разблокировать можно из «⋯»).
+                    self.controllerNode.showProfileUnavailable()
+                    self.controllerNode.showSnackbar(message: DivoStrings.userBlocked, style: .success)
                 }
             } catch {
                 await MainActor.run {
@@ -2384,8 +2393,17 @@ extension PublicProfileScreenController {
             do {
                 try await DivoBlockedUsers.unblock(userId: userId)
                 await MainActor.run {
-                    self?.controllerNode.isUserBlocked = false
-                    self?.controllerNode.showSnackbar(message: DivoStrings.userUnblocked, style: .success)
+                    guard let self else { return }
+                    self.controllerNode.isUserBlocked = false
+                    self.controllerNode.showSnackbar(message: DivoStrings.userUnblocked, style: .success)
+                    // Профиль был заглушкой — перечитываем. Если блок есть и с другой стороны,
+                    // сервер снова отдаст заглушку.
+                    if self.controllerNode.isProfileUnavailable {
+                        self.controllerNode.hideProfileUnavailable()
+                        self.controllerNode.resetToInitialLoading()
+                        self.profileLoaded = false
+                        self.loadInitialData()
+                    }
                 }
             } catch {
                 await MainActor.run {

@@ -944,7 +944,7 @@ public func privacyAndSecurityController(
     var showPrivacySuggestionImpl: (() -> Void)?
 
     let arguments = PrivacyAndSecurityControllerArguments(account: context.account, openBlockedUsers: {
-        // DIVO: список заблокированных — REST GET /user/blocked, а не MTProto-блоклист.
+        // DIVO: список заблокированных — REST POST /user/blocked, а не MTProto-блоклист.
         pushControllerImpl?(divoBlockedUsersController(context: context), true)
     }, openLastSeenPrivacy: {
         let signal = privacySettingsPromise.get()
