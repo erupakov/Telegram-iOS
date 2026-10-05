@@ -153,7 +153,15 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 name: DivoConfig.channelsDidChangeNotification,
                 object: nil
             )
-        } else if model.userId != nil {
+        }
+        // Заблокировали кого-то (из «Похожих», ростера или чата) — убираем его из этих секций.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleUserBlocked(_:)),
+            name: DivoBlockedUsers.userBlockedNotification,
+            object: nil
+        )
+        if !model.isMyProfile, model.userId != nil {
             // Блок/разблок этого пользователя (здесь или на экране «Заблокированные») → обновляем меню «⋯».
             NotificationCenter.default.addObserver(
                 self,
@@ -162,6 +170,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 object: nil
             )
         }
+    }
+
+    @objc private func handleUserBlocked(_ notification: Notification) {
+        guard self.isNodeLoaded, let userId = notification.userInfo?["userId"] as? Int, userId != model.userId else { return }
+        self.controllerNode.removeBlockedUser(userId: userId)
     }
 
     @objc private func handleBlockedUsersDidChange() {

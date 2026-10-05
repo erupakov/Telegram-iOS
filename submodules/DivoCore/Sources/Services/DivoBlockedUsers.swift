@@ -18,6 +18,11 @@ public enum DivoBlockedUsers {
     /// Список / множество заблокированных изменились (блок, разблок, перезагрузка списка).
     public static let didChangeNotification = Notification.Name("DivoBlockedUsersDidChange")
 
+    /// Пользователь только что заблокирован (userInfo: `userId` Int — DIVO id). Ленты, поиск,
+    /// Face Match, события и профили убирают его из уже загруженного: сервер перестаёт отдавать
+    /// его контент, но закэшированные в памяти экраны чистим сами (docs/divo-api-user-block.md).
+    public static let userBlockedNotification = Notification.Name("DivoBlockedUsersUserBlocked")
+
     /// Максимальный размер страницы POST /user/blocked (больше — 422).
     private static let pageLimit = 100
 
@@ -133,6 +138,11 @@ public enum DivoBlockedUsers {
             var set = ids ?? []
             set.insert(userId)
             ids = set
+        }
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: userBlockedNotification, object: nil, userInfo: ["userId": userId])
+            // Сервер отписывает в обе стороны — синкаем флажок подписки на экранах, которые его держат.
+            NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": false])
         }
         if let telegramId {
             lock.lock()

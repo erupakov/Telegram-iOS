@@ -136,6 +136,13 @@ public final class EventsController: TelegramBaseController {
             name: DivoConfig.divoEventCreated,
             object: nil
         )
+        // Заблокировали автора — его кастинги сервер больше не отдаёт (event/{id} → 404); чистим кэш вкладок.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleUserBlocked(_:)),
+            name: DivoBlockedUsers.userBlockedNotification,
+            object: nil
+        )
     }
 
     public override func viewDidLoad() {
@@ -657,6 +664,21 @@ public final class EventsController: TelegramBaseController {
         }
         
         self.controllerNode.removeEventLocally(eventId: eventId)
+    }
+
+    @objc private func handleUserBlocked(_ notification: Notification) {
+        guard let userId = notification.userInfo?["userId"] as? Int else { return }
+        var eventIds = Set<Int>()
+        for tabIndex in 0..<self.tabStates.count {
+            for event in self.tabStates[tabIndex].events where event.creatorId == userId {
+                eventIds.insert(event.id)
+            }
+            self.tabStates[tabIndex].events.removeAll(where: { $0.creatorId == userId })
+        }
+        guard self.isNodeLoaded else { return }
+        for eventId in eventIds {
+            self.controllerNode.removeEventLocally(eventId: eventId)
+        }
     }
 
     @objc private func handleGlobalEventCreated() {
