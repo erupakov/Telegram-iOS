@@ -449,7 +449,10 @@ public final class FaceSearchResultsController: ViewController {
                 )
                 NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
             } catch {
-                // TODO: rollback
+                // Откат оптимистичного тоггла ячейки: сеть, 5xx или 422 «Действие недоступно»
+                // (блокировка в любую сторону, docs/divo-api-user-block.md).
+                divoLog("[LIKE] Face Match: ошибка like/unlike для user \(userId): \(error)", level: .error)
+                self.resultsNode?.applyLikeChange(userId: userId, isLiked: !isLiked)
             }
         }
     }
@@ -466,7 +469,9 @@ public final class FaceSearchResultsController: ViewController {
                 )
                 NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": isSaved])
             } catch {
-                // TODO: rollback
+                // Откат оптимистичного тоггла ячейки (в т.ч. 422 «Действие недоступно» при блокировке).
+                divoLog("[SAVE/FOLLOW] Face Match: ошибка follow/unfollow для user \(userId): \(error)", level: .error)
+                self.resultsNode?.applyFollowChange(userId: userId, isFollowed: !isSaved)
             }
         }
     }
