@@ -944,7 +944,8 @@ public func privacyAndSecurityController(
     var showPrivacySuggestionImpl: (() -> Void)?
 
     let arguments = PrivacyAndSecurityControllerArguments(account: context.account, openBlockedUsers: {
-        pushControllerImpl?(blockedPeersController(context: context, blockedPeersContext: blockedPeersContext), true)
+        // DIVO: список заблокированных — REST POST /user/blocked, а не MTProto-блоклист.
+        pushControllerImpl?(divoBlockedUsersController(context: context), true)
     }, openLastSeenPrivacy: {
         let signal = privacySettingsPromise.get()
         |> take(1)
@@ -1502,7 +1503,7 @@ public func privacyAndSecurityController(
         context.sharedContext.accountManager.noticeEntry(key: ApplicationSpecificNotice.secretChatLinkPreviewsKey()),
         context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.contactSynchronizationSettings]),
         context.engine.peers.recentPeers(),
-        blockedPeersState.get(),
+        divoBlockedUsersCountSignal(),
         webSessionsContext.state,
         context.sharedContext.accountManager.accessChallengeData(),
         combineLatest(twoStepAuth.get(), twoStepAuthDataValue.get()),
@@ -1511,7 +1512,7 @@ public func privacyAndSecurityController(
         context.engine.data.subscribe(TelegramEngine.EngineData.Item.Peer.Peer(id: context.account.peerId)),
         loginEmail
     )
-    |> map { presentationData, state, privacySettings, noticeView, sharedData, recentPeers, blockedPeersState, activeWebsitesState, accessChallengeData, twoStepAuth, passkeys, appConfiguration, accountPeer, loginEmail -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, state, privacySettings, noticeView, sharedData, recentPeers, divoBlockedCount, activeWebsitesState, accessChallengeData, twoStepAuth, passkeys, appConfiguration, accountPeer, loginEmail -> (ItemListControllerState, (ItemListNodeState, Any)) in
         var canAutoarchive = false
         if let data = appConfiguration.data, let hasAutoarchive = data["autoarchive_setting_available"] as? Bool {
             canAutoarchive = hasAutoarchive
@@ -1527,7 +1528,7 @@ public func privacyAndSecurityController(
         let isPremium = accountPeer?.isPremium ?? false
         let isPremiumDisabled = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 }).isPremiumDisabled
         
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: privacyAndSecurityControllerEntries(presentationData: presentationData, state: state, privacySettings: privacySettings, accessChallengeData: accessChallengeData.data, blockedPeerCount: blockedPeersState.totalCount, activeWebsitesCount: activeWebsitesState.sessions.count, hasTwoStepAuth: twoStepAuth.0, twoStepAuthData: twoStepAuth.1, hasPasskeys: passkeys.0, displayPasskeys: displayPasskeys, canAutoarchive: canAutoarchive, isPremiumDisabled: isPremiumDisabled, isPremium: isPremium, loginEmail: loginEmail, accountPeer: accountPeer), style: .blocks, ensureVisibleItemTag: focusOnItemTag, animateChanges: false)
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: privacyAndSecurityControllerEntries(presentationData: presentationData, state: state, privacySettings: privacySettings, accessChallengeData: accessChallengeData.data, blockedPeerCount: divoBlockedCount, activeWebsitesCount: activeWebsitesState.sessions.count, hasTwoStepAuth: twoStepAuth.0, twoStepAuthData: twoStepAuth.1, hasPasskeys: passkeys.0, displayPasskeys: displayPasskeys, canAutoarchive: canAutoarchive, isPremiumDisabled: isPremiumDisabled, isPremium: isPremium, loginEmail: loginEmail, accountPeer: accountPeer), style: .blocks, ensureVisibleItemTag: focusOnItemTag, animateChanges: false)
         
         return (controllerState, (listState, arguments))
     }
