@@ -204,6 +204,11 @@ extension AppDelegate {
         })
         // Блок / разблок из чата, профиля Telegram, историй: через DIVO REST (/user/by-telegram →
         // /user/block), teamgram синхронизирует сервер. contacts.block — только без DIVO-аккаунта.
+        // Обратное направление: блок / разблок в DIVO-экранах → локальный isBlocked в чате.
+        DivoBlockedUsers.telegramBlockStateUpdater = { [weak context] telegramUserId, isBlocked in
+            guard let context = context else { return }
+            let _ = context.context.engine.privacy.divoSetLocalIsBlocked(telegramUserId: telegramUserId, isBlocked: isBlocked).startStandalone()
+        }
         DivoChatBlockBridge.handler = { telegramUserId, isBlocked in
             return Signal { subscriber in
                 let task = Task {

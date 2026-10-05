@@ -21,11 +21,18 @@ public enum DivoBlockedUsers {
     /// Максимальный размер страницы POST /user/blocked (больше — 422).
     private static let pageLimit = 100
 
+    /// Локальный статус блокировки в Telegram (CachedUserData.isBlocked) по teamgram-id. Ставит
+    /// приложение: DivoCore не видит Postbox. Без него плашка «Разблокировать» в чате жила бы до
+    /// перечитывания данных собеседника — teamgram синхронизирует сервер, но локальный кэш нет.
+    public static var telegramBlockStateUpdater: ((_ telegramUserId: Int64, _ isBlocked: Bool) -> Void)?
+
     private static let lock = NSLock()
     private static var storedIds: Set<Int>?
     /// Чей это список (`DivoConfig.currentDivoUserId` на момент загрузки) — после смены аккаунта
     /// без явного reset() чужой кэш не используется.
     private static var storedOwnerId: Int?
+    /// DIVO id → teamgram id заблокированных (из списка и из блокировок); под `lock`.
+    private static var telegramIds: [Int: Int64] = [:]
 
     /// Кэш текущего аккаунта; вызывать под `lock`.
     private static var blockedIds: Set<Int>? {
@@ -41,6 +48,14 @@ public enum DivoBlockedUsers {
         lock.lock()
         defer { lock.unlock() }
         return blockedIds.map { $0.contains(userId) }
+    }
+
+    /// teamgram-id заблокированного по последним известным данным: профиль заблокированного —
+    /// заглушка без `telegramId`, а для разблокировки в чате он нужен.
+    public static func telegramId(userId: Int) -> Int64? {
+        lock.lock()
+        defer { lock.unlock() }
+        return telegramIds[userId]
     }
 
     /// Сколько пользователей заблокировано по последним известным данным; `nil` — список ещё не загружался.
@@ -78,7 +93,16 @@ public enum DivoBlockedUsers {
             }
             offset = nextOffset
         }
+        lock.lock()
+        telegramIds = Dictionary(users.compactMap { user in user.telegramId.map { (user.id, $0) } }, uniquingKeysWith: { first, _ in first })
+        lock.unlock()
         update { $0 = Set(users.map(\.id)) }
+        // Сверка с чатами: все из списка заблокированы и в teamgram (источник правды — этот метод).
+        if let updater = telegramBlockStateUpdater {
+            for telegramId in users.compactMap(\.telegramId) {
+                updater(telegramId, true)
+            }
+        }
         return users
     }
 
@@ -97,7 +121,8 @@ public enum DivoBlockedUsers {
     }
 
     /// Идемпотентен: повторная блокировка отвечает 200. Взаимную отписку делает сервер.
-    public static func block(userId: Int) async throws {
+    /// `telegramId` — id собеседника в teamgram, если известен: обновим статус и в чате.
+    public static func block(userId: Int, telegramId: Int64? = nil) async throws {
         guard DivoConfig.hasDivoSession else { throw BlockError.noSession }
         let _: UserBlockResponse = try await DivoAPIClient.shared.request(
             path: "/user/block",
@@ -109,10 +134,16 @@ public enum DivoBlockedUsers {
             set.insert(userId)
             ids = set
         }
+        if let telegramId {
+            lock.lock()
+            telegramIds[userId] = telegramId
+            lock.unlock()
+            telegramBlockStateUpdater?(telegramId, true)
+        }
     }
 
     /// Идемпотентен; работает и для удалённых пользователей. Подписки не восстанавливаются.
-    public static func unblock(userId: Int) async throws {
+    public static func unblock(userId: Int, telegramId: Int64? = nil) async throws {
         guard DivoConfig.hasDivoSession else { throw BlockError.noSession }
         let _: UserBlockResponse = try await DivoAPIClient.shared.request(
             path: "/user/unblock",
@@ -124,6 +155,12 @@ public enum DivoBlockedUsers {
                 set.remove(userId)
                 ids = set
             }
+        }
+        lock.lock()
+        telegramIds[userId] = nil
+        lock.unlock()
+        if let telegramId {
+            telegramBlockStateUpdater?(telegramId, false)
         }
     }
 
@@ -157,10 +194,12 @@ public enum DivoBlockedUsers {
             return .failed
         }
         do {
+            // telegramId запоминаем для последующей разблокировки из DIVO-профиля; локальный
+            // isBlocked в чате TelegramCore проставит и сам — повторное обновление безвредно.
             if isBlocked {
-                try await block(userId: divoUserId)
+                try await block(userId: divoUserId, telegramId: telegramUserId)
             } else {
-                try await unblock(userId: divoUserId)
+                try await unblock(userId: divoUserId, telegramId: telegramUserId)
             }
             return .done
         } catch {
@@ -171,6 +210,9 @@ public enum DivoBlockedUsers {
 
     /// Сброс кэша — при выходе из аккаунта, чтобы следующий пользователь не унаследовал список.
     public static func reset() {
+        lock.lock()
+        telegramIds = [:]
+        lock.unlock()
         update { $0 = nil }
     }
 
