@@ -153,7 +153,20 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 name: DivoConfig.channelsDidChangeNotification,
                 object: nil
             )
+        } else if model.userId != nil {
+            // Блок/разблок этого пользователя (здесь или на экране «Заблокированные») → обновляем меню «⋯».
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(self.handleBlockedUsersDidChange),
+                name: DivoBlockedUsers.didChangeNotification,
+                object: nil
+            )
         }
+    }
+
+    @objc private func handleBlockedUsersDidChange() {
+        guard self.isNodeLoaded, let userId = model.userId else { return }
+        self.controllerNode.isUserBlocked = DivoBlockedUsers.isBlocked(userId: userId) ?? false
     }
 
     @objc private func handleChannelsDidChange() {
@@ -466,6 +479,19 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
         self.controllerNode.onBlockTapped = { [weak self] in
             self?.presentBlockConfirmation()
+        }
+
+        self.controllerNode.onUnblockTapped = { [weak self] in
+            self?.presentUnblockConfirmation()
+        }
+
+        if !model.isMyProfile, let userId = model.userId {
+            self.controllerNode.isUserBlocked = DivoBlockedUsers.isBlocked(userId: userId) ?? false
+            // Статус блокировки берём из GET /user/blocked (один раз за сессию); после загрузки
+            // меню обновится через didChangeNotification.
+            Task {
+                await DivoBlockedUsers.fetchIfNeeded()
+            }
         }
 
         self.controllerNode.storiesButtonTapped = { [weak self] in
@@ -2324,18 +2350,46 @@ extension PublicProfileScreenController {
         guard let userId = model.userId else { return }
         Task { [weak self] in
             do {
-                let _: BlockUserResponse = try await DivoAPIClient.shared.request(
-                    path: "/messenger/block-user",
-                    method: "POST",
-                    body: BlockUserRequest(recipientId: userId)
-                )
+                try await DivoBlockedUsers.block(userId: userId)
                 divoTrack(.userBlocked(targetUserId: Int64(userId)))
                 await MainActor.run {
+                    self?.controllerNode.isUserBlocked = true
                     self?.controllerNode.showSnackbar(message: DivoStrings.userBlocked, style: .success)
                 }
             } catch {
                 await MainActor.run {
                     self?.controllerNode.showSnackbar(message: DivoStrings.blockUserFailed, style: .error)
+                }
+            }
+        }
+    }
+
+    func presentUnblockConfirmation() {
+        guard model.userId != nil else { return }
+        let alert = UIAlertController(
+            title: DivoStrings.unblockUser,
+            message: DivoStrings.unblockUserConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: DivoStrings.unblock, style: .default) { [weak self] _ in
+            self?.unblockUser()
+        })
+        self.present(alert, animated: true)
+    }
+
+    private func unblockUser() {
+        guard let userId = model.userId else { return }
+        Task { [weak self] in
+            do {
+                try await DivoBlockedUsers.unblock(userId: userId)
+                await MainActor.run {
+                    self?.controllerNode.isUserBlocked = false
+                    self?.controllerNode.showSnackbar(message: DivoStrings.userUnblocked, style: .success)
+                }
+            } catch {
+                await MainActor.run {
+                    self?.controllerNode.showSnackbar(message: DivoStrings.unblockUserFailed, style: .error)
                 }
             }
         }

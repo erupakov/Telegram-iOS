@@ -776,6 +776,16 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onFaceScanTapped: (() -> Void)?
     var onReportProfileTapped: (() -> Void)?
     var onBlockTapped: (() -> Void)?
+    var onUnblockTapped: (() -> Void)?
+
+    /// Пользователь в списке заблокированных (GET /user/blocked) — в меню «⋯» вместо
+    /// «Заблокировать» показываем «Разблокировать».
+    var isUserBlocked = false {
+        didSet {
+            guard oldValue != isUserBlocked else { return }
+            rebuildMoreMenu()
+        }
+    }
 
     var onEditProfileTapped: ((Int) -> Void)?
     var onChangeBackgroundTapped: (() -> Void)?
@@ -1370,7 +1380,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupMoreMenu() {
         moreButton.adjustsImageWhenHighlighted = false
         moreButton.addDivoPressState(.pill)
+        rebuildMoreMenu()
+    }
 
+    private func rebuildMoreMenu() {
         if #available(iOS 14.0, *) {
             let faceScanAction = UIAction(
                 title: DivoStrings.findSimilar,
@@ -1386,12 +1399,22 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.onReportProfileTapped?()
             }
             
-            let blockAction = UIAction(
-                title: DivoStrings.blockUser,
-                image: DivoImage.block,
-                attributes: .destructive
-            ) { [weak self] _ in
-                self?.onBlockTapped?()
+            let blockAction: UIAction
+            if isUserBlocked {
+                blockAction = UIAction(
+                    title: DivoStrings.unblockUser,
+                    image: DivoImage.block
+                ) { [weak self] _ in
+                    self?.onUnblockTapped?()
+                }
+            } else {
+                blockAction = UIAction(
+                    title: DivoStrings.blockUser,
+                    image: DivoImage.block,
+                    attributes: .destructive
+                ) { [weak self] _ in
+                    self?.onBlockTapped?()
+                }
             }
             
             var children: [UIMenuElement] = []
