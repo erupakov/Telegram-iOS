@@ -127,6 +127,48 @@ public enum DivoBlockedUsers {
         }
     }
 
+    /// Результат блокировки из чата (по teamgram-id собеседника).
+    public enum ChatBlockOutcome {
+        /// Блок / разблок прошёл через DIVO; в teamgram его синхронизирует сервер.
+        case done
+        /// У собеседника нет DIVO-аккаунта (бот, чужой teamgram-пользователь) или нет своей
+        /// DIVO-сессии — блокировать в DIVO некого, остаётся обычный `contacts.block`.
+        case notDivoUser
+        /// DIVO-запрос не прошёл. `contacts.block` не вызываем — иначе teamgram разъедется с DIVO.
+        case failed
+    }
+
+    /// Блок / разблок из чата: в чате известен только teamgram-id, поэтому сначала
+    /// GET /user/by-telegram (заглушка `isUnavailable` тоже содержит `id`), затем block / unblock.
+    public static func setBlocked(telegramUserId: Int64, isBlocked: Bool) async -> ChatBlockOutcome {
+        guard DivoConfig.hasDivoSession else { return .notDivoUser }
+        let divoUserId: Int
+        do {
+            let response: UserDetailResponse = try await DivoAPIClient.shared.request(
+                path: "/user/by-telegram?telegramId=\(telegramUserId)"
+            )
+            divoUserId = response.data.id
+        } catch DivoAPIError.httpError(let statusCode, _) where statusCode == 404 || statusCode == 422 {
+            // 404 — связки с teamgram нет, 422 — связанный DIVO-аккаунт неактивен.
+            divoLog("[BLOCK] by-telegram \(statusCode) для telegramId=\(telegramUserId) — нет DIVO-аккаунта", level: .info)
+            return .notDivoUser
+        } catch {
+            divoLog("[BLOCK] by-telegram failed для telegramId=\(telegramUserId): \(error)", level: .warning)
+            return .failed
+        }
+        do {
+            if isBlocked {
+                try await block(userId: divoUserId)
+            } else {
+                try await unblock(userId: divoUserId)
+            }
+            return .done
+        } catch {
+            divoLog("[BLOCK] \(isBlocked ? "block" : "unblock") из чата failed (divoUserId=\(divoUserId)): \(error)", level: .warning)
+            return .failed
+        }
+    }
+
     /// Сброс кэша — при выходе из аккаунта, чтобы следующий пользователь не унаследовал список.
     public static func reset() {
         update { $0 = nil }

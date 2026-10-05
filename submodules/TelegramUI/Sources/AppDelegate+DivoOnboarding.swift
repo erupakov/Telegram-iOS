@@ -202,6 +202,27 @@ extension AppDelegate {
             }
             return proof.map { DivoTeamgramSync.LinkProof(proof: $0.proof, phone: $0.phone) }
         })
+        // Блок / разблок из чата, профиля Telegram, историй: через DIVO REST (/user/by-telegram →
+        // /user/block), teamgram синхронизирует сервер. contacts.block — только без DIVO-аккаунта.
+        DivoChatBlockBridge.handler = { telegramUserId, isBlocked in
+            return Signal { subscriber in
+                let task = Task {
+                    let outcome = await DivoBlockedUsers.setBlocked(telegramUserId: telegramUserId, isBlocked: isBlocked)
+                    switch outcome {
+                    case .done:
+                        subscriber.putNext(.done)
+                    case .notDivoUser:
+                        subscriber.putNext(.notDivoUser)
+                    case .failed:
+                        subscriber.putNext(.failed)
+                    }
+                    subscriber.putCompletion()
+                }
+                return ActionDisposable {
+                    task.cancel()
+                }
+            }
+        }
         // DIVI-109: очередь пишет в Postbox только на переднем плане (фоновая SQLite-транзакция под
         // suspend держит лок в app-group контейнере → 0xdead10cc). applicationInForeground — тот же
         // сигнал, что гейтит стоковые транзакции; setForeground(true) сам докатит отложенное.
