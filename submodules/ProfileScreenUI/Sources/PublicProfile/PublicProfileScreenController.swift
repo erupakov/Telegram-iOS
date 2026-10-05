@@ -1884,10 +1884,8 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                     guard let self = self, let uiImage = image as? UIImage else { return }
                     let normalized = uiImage.fixedOrientation()
                     DispatchQueue.main.async {
-                        self.controllerNode.updateBackgroundImage(normalized)
-                        self.controllerNode.setBackgroundLoading(true)
+                        self.presentBackgroundCrop(normalized)
                     }
-                    self.uploadAndSetBackground(normalized)
                 }
             }
         case .photo:
@@ -2104,6 +2102,31 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
         let time = CMTime(seconds: 0.1, preferredTimescale: 600)
         guard let cgImage = try? generator.copyCGImage(at: time, actualTime: nil) else { return nil }
         return UIImage(cgImage: cgImage)
+    }
+
+    /// Кадрирование фона: прямоугольная рамка с aspect экрана — фон в шапке растянут на весь
+    /// экран профиля (aspect fill), поэтому пользователь сразу видит, какая часть фото попадёт в кадр.
+    private func presentBackgroundCrop(_ image: UIImage) {
+        let bounds = self.view.bounds
+        let aspectRatio = bounds.height > 0 ? bounds.width / bounds.height : 9.0 / 16.0
+        let cropController = DivoAvatarCropController(
+            image: image,
+            shape: .rectangle(aspectRatio: aspectRatio),
+            onComplete: { [weak self] cropped in
+                guard let self = self else { return }
+                self.controllerNode.updateBackgroundImage(cropped)
+                self.controllerNode.setBackgroundLoading(true)
+                self.uploadAndSetBackground(cropped)
+            }
+        )
+        // PHPicker ещё может закрываться — показываем кроп после окончания анимации.
+        if let coordinator = self.transitionCoordinator ?? self.presentedViewController?.transitionCoordinator {
+            coordinator.animate(alongsideTransition: nil, completion: { [weak self] _ in
+                self?.present(cropController, animated: true)
+            })
+        } else {
+            self.present(cropController, animated: true)
+        }
     }
 
     private func uploadAndSetBackground(_ image: UIImage) {
