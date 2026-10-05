@@ -1093,6 +1093,21 @@ final class ModelsSearchNode: ASDisplayNode {
         }
     }
 
+    /// Пользователя заблокировали — убираем его из грида и автодополнения (сервер его больше не отдаёт,
+    /// а уже загруженные результаты держим в памяти).
+    func removeUser(userId: Int) {
+        let gridBefore = currentGridResults.count
+        currentGridResults.removeAll(where: { $0.user?.id == userId })
+        if currentGridResults.count != gridBefore {
+            gridCollectionView.reloadData()
+        }
+        let autocompleteBefore = currentAutocompleteResults.count
+        currentAutocompleteResults.removeAll(where: { $0.user?.id == userId })
+        if currentAutocompleteResults.count != autocompleteBefore {
+            resultsTableView.reloadData()
+        }
+    }
+
     /// Синк лайка по userId (нотификация с другого экрана). Счётчик пересчитываем ±1 от своего кеша.
     func applyGridLikeState(userId: Int, isLiked: Bool) {
         guard let idx = currentGridResults.firstIndex(where: { $0.user?.id == userId }),

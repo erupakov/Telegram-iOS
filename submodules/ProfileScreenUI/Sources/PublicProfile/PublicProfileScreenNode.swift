@@ -3165,6 +3165,19 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
     
+    /// Пользователя заблокировали на другом экране — убираем его из «Похожих профилей» и ростера.
+    func removeBlockedUser(userId: Int) {
+        let similarBefore = similarProfiles.count
+        similarProfiles.removeAll(where: { $0.id == userId })
+        if similarProfiles.count != similarBefore {
+            similarProfilesCollectionView.reloadData()
+            similarPhase = similarProfiles.isEmpty ? .hidden : .visible
+        }
+        if modelGalleryItems.contains(where: { $0.userId == userId }) {
+            updateModelsList(modelGalleryItems.filter { $0.userId != userId })
+        }
+    }
+
     // Заполняет коллекцию реальными данными
     func appendSimilarProfiles(_ profiles: [SimilarProfileItem]) {
         let previousCount = self.similarProfiles.count

@@ -68,6 +68,13 @@ public final class EventsSearchController: ViewController {
             name: DivoConfig.divoEventDeleted,
             object: nil
         )
+        // Заблокировали автора — убираем его кастинги из результатов поиска.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleUserBlocked(_:)),
+            name: DivoBlockedUsers.userBlockedNotification,
+            object: nil
+        )
     }
     
     required public init(coder aDecoder: NSCoder) {
@@ -718,6 +725,11 @@ public final class EventsSearchController: ViewController {
         self.searchNode.updateEventLocally(updatedEvent)
     }
     
+    @objc private func handleUserBlocked(_ notification: Notification) {
+        guard let userId = notification.userInfo?["userId"] as? Int, self.isNodeLoaded else { return }
+        self.searchNode.removeEvents(createdBy: userId)
+    }
+
     @objc private func handleEventDeleted(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let eventId = userInfo["eventId"] as? Int else { return }

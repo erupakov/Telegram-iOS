@@ -32,6 +32,7 @@ public final class FaceSearchResultsController: ViewController {
     private var state: FaceSearchResultsState
     private var followObserver: NSObjectProtocol?
     private var likeObserver: NSObjectProtocol?
+    private var blockObserver: NSObjectProtocol?
 
     public var onOpenProfile: ((FRSearchResult) -> Void)?
 
@@ -80,6 +81,31 @@ public final class FaceSearchResultsController: ViewController {
                   let isLiked = note.userInfo?["isLiked"] as? Bool else { return }
             self.resultsNode?.applyLikeChange(userId: userId, isLiked: isLiked)
         }
+        // Заблокировали (зашли в профиль из результатов) — убираем его из выдачи.
+        self.blockObserver = NotificationCenter.default.addObserver(
+            forName: DivoBlockedUsers.userBlockedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, let userId = note.userInfo?["userId"] as? Int else { return }
+            self.removeBlockedUser(userId: userId)
+        }
+    }
+
+    private func removeBlockedUser(userId: Int) {
+        self.results.removeAll(where: { $0.userId == userId })
+        switch self.state {
+        case let .results(items, threshold):
+            let filtered = items.filter { $0.userId != userId }
+            guard filtered.count != items.count else { return }
+            self.transition(to: filtered.isEmpty ? .empty : .results(items: filtered, threshold: threshold))
+        case let .fallback(items, originalPercent, actualPercent, similarity, originalThreshold):
+            let filtered = items.filter { $0.userId != userId }
+            guard filtered.count != items.count else { return }
+            self.transition(to: filtered.isEmpty ? .empty : .fallback(items: filtered, originalPercent: originalPercent, actualPercent: actualPercent, similarity: similarity, originalThreshold: originalThreshold))
+        case .loading, .empty, .error, .noResultsWithFilters:
+            break
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -90,6 +116,9 @@ public final class FaceSearchResultsController: ViewController {
         currentTask?.cancel()
         if let followObserver {
             NotificationCenter.default.removeObserver(followObserver)
+        }
+        if let blockObserver {
+            NotificationCenter.default.removeObserver(blockObserver)
         }
         if let likeObserver {
             NotificationCenter.default.removeObserver(likeObserver)
