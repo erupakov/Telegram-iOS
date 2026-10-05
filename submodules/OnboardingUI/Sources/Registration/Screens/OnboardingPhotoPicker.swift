@@ -2,6 +2,7 @@ import UIKit
 import PhotosUI
 import Display
 import DivoCore
+import DivoUIKit
 
 /// Тонкая обёртка над `PHPickerViewController` для выбора фото на полях `.photo`.
 ///
@@ -29,12 +30,17 @@ public final class OnboardingPhotoPicker: NSObject, PHPickerViewControllerDelega
     }
 
     private var completion: ((Swift.Result<String, Error>) -> Void)?
+    private weak var host: UIViewController?
+    private var pendingPicker: PHPickerViewController?
+    private var isPickerDismissed = false
+    private var loadResult: Swift.Result<UIImage, Error>?
 
     /// Показывает PHPicker на указанном контроллере. `completion` дёргается после выбора /
     /// отмены / ошибки. На этапе скелета результат — путь к временному файлу,
     /// которым coordinator кладёт значение в `FormFieldValue.asset(...)`.
     public func present(on host: UIViewController, completion: @escaping (Swift.Result<String, Error>) -> Void) {
         self.completion = completion
+        self.host = host
 
         var config = PHPickerConfiguration(photoLibrary: .shared())
         config.filter = .images
@@ -52,50 +58,91 @@ public final class OnboardingPhotoPicker: NSObject, PHPickerViewControllerDelega
 
     public func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         divoLog("PHPicker didFinishPicking: results.count=\(results.count)", level: .info)
-        picker.dismiss(animated: true)
 
         guard let provider = results.first?.itemProvider, provider.canLoadObject(ofClass: UIImage.self) else {
             divoLog("PHPicker: no image provider in results — treat as cancel", level: .info)
-            completion?(.failure(PickerError.nothingPicked))
-            completion = nil
-            objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            picker.dismiss(animated: true)
+            finish(.failure(PickerError.nothingPicked), releasing: picker)
             return
         }
 
-        // ВАЖНО: associated object (retain self'а на picker'е) освобождаем только ПОСЛЕ
-        // того как loadObject callback завершится — иначе self deinit'ится до того,
-        // как мы успеем дёрнуть completion с path'ом.
+        // Кроп показываем, когда и PHPicker закрылся, и картинка загрузилась: present поверх
+        // ещё закрывающегося пикера UIKit молча проигнорирует. `self` удерживается associated
+        // object'ом на picker'е до finish(...) — см. present(on:).
+        pendingPicker = picker
+        picker.dismiss(animated: true) { [weak self] in
+            self?.isPickerDismissed = true
+            self?.presentCropIfReady()
+        }
         provider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+            let image = object as? UIImage
             DispatchQueue.main.async {
-                guard let self = self else {
-                    divoLog("PHPicker loadObject callback: self already nil", level: .error)
-                    objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-                    return
-                }
-                defer {
-                    self.completion = nil
-                    objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-                }
+                guard let self = self else { return }
                 if let error = error {
-                    divoLog("PHPicker loadObject failed: \(error)", level: .error)
-                    self.completion?(.failure(error))
-                    return
+                    self.loadResult = .failure(error)
+                } else if let image = image {
+                    self.loadResult = .success(image)
+                } else {
+                    self.loadResult = .failure(PickerError.failedToLoadImage)
                 }
-                guard let image = object as? UIImage else {
-                    divoLog("PHPicker loadObject: object is not UIImage (object=\(String(describing: object)))", level: .error)
-                    self.completion?(.failure(PickerError.failedToLoadImage))
-                    return
-                }
-                do {
-                    let path = try self.writeTempFile(image)
-                    divoLog("PHPicker loadObject: image saved to \(path)", level: .info)
-                    self.completion?(.success(path))
-                } catch {
-                    divoLog("PHPicker writeTempFile failed: \(error)", level: .error)
-                    self.completion?(.failure(error))
-                }
+                self.presentCropIfReady()
             }
         }
+    }
+
+    private func presentCropIfReady() {
+        guard isPickerDismissed, let loadResult = loadResult, let picker = pendingPicker else { return }
+        self.loadResult = nil
+
+        let image: UIImage
+        switch loadResult {
+        case let .failure(error):
+            divoLog("PHPicker loadObject failed: \(error)", level: .error)
+            finish(.failure(error), releasing: picker)
+            return
+        case let .success(value):
+            image = value
+        }
+        guard let host = self.host, host.presentedViewController == nil else {
+            // Хост пропал/занят — не теряем выбор: сохраняем без кадрирования.
+            saveAndFinish(image, releasing: picker)
+            return
+        }
+        // Фото в онбординге — это аватар (или лого агентства), в UI он круглый:
+        // даём выбрать зону кружком, как в «Редактировать профиль» (DIVI-68).
+        let cropController = DivoAvatarCropController(
+            image: image,
+            shape: .circle,
+            onComplete: { [weak self] cropped in
+                self?.saveAndFinish(cropped, releasing: picker)
+            },
+            onCancel: { [weak self] in
+                divoLog("Avatar crop cancelled — treat as cancel", level: .info)
+                self?.finish(.failure(PickerError.nothingPicked), releasing: picker)
+            }
+        )
+        host.present(cropController, animated: true)
+    }
+
+    private func saveAndFinish(_ image: UIImage, releasing picker: PHPickerViewController) {
+        do {
+            let path = try writeTempFile(image)
+            divoLog("PHPicker: image saved to \(path)", level: .info)
+            finish(.success(path), releasing: picker)
+        } catch {
+            divoLog("PHPicker writeTempFile failed: \(error)", level: .error)
+            finish(.failure(error), releasing: picker)
+        }
+    }
+
+    /// Отдаёт результат и отпускает удержание `self` на picker'е (последним — иначе self
+    /// может деинициализироваться раньше вызова completion).
+    private func finish(_ result: Swift.Result<String, Error>, releasing picker: PHPickerViewController) {
+        completion?(result)
+        completion = nil
+        host = nil
+        pendingPicker = nil
+        objc_setAssociatedObject(picker, &Self.retainKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
 
     // MARK: - Helpers
