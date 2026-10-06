@@ -3,7 +3,9 @@ import Foundation
 public final class DivoAPIClient {
     public static let shared = DivoAPIClient()
 
-    private let session: URLSession
+    private var session: URLSession
+    /// Только для unit-тестов: без предчека сети (NWPathMonitor в xctest-процессе ненадёжен).
+    private var skipsConnectivityCheck = false
     private let baseURL: URL
     private let logger = DivoRequestLogger.shared
 
@@ -16,8 +18,19 @@ public final class DivoAPIClient {
         _ = DivoNetworkMonitor.shared
     }
 
+    // MARK: - Testing
+
+    /// Только для unit-тестов (`//submodules/DivoCore:DivoCoreTests`): весь трафик клиента идёт через
+    /// переданные URLProtocol-заглушки, предчек сети отключается. В приложении не вызывается.
+    func installTestTransport(protocolClasses: [AnyClass]) {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = protocolClasses
+        self.session = URLSession(configuration: configuration)
+        self.skipsConnectivityCheck = true
+    }
+
     private func checkConnectivity() throws {
-        guard DivoNetworkMonitor.shared.isConnected else {
+        guard skipsConnectivityCheck || DivoNetworkMonitor.shared.isConnected else {
             throw DivoAPIError.noInternetConnection
         }
     }
