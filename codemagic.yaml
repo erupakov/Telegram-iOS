@@ -101,7 +101,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 120
     integrations:
-      app_store_connect: Marina distribution profile
+      app_store_connect: CodeMagic key
     environment:
       <<: *environment
       vars:
@@ -136,7 +136,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 120
     integrations:
-      app_store_connect: Marina Z. cert
+      app_store_connect: Upload
     environment:
       <<: *environment
       vars:
