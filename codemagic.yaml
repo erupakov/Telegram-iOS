@@ -1,0 +1,167 @@
+# DIVO iOS — сборка в TestFlight на Codemagic.
+#
+# Два workflow с одинаковой подписью (App Store distribution), отличие ровно в --define=divoEnv
+# (см. .claude/skills/divo-tf/SKILL.md):
+#   ios-testflight-stage — stage-контур (api-stage.divo.fashion), иконка с ленточкой DEBUG;
+#   ios-testflight-prod  — боевой контур (api.divo.fashion/v2), чистая иконка.
+#
+# Перед первым запуском в Codemagic (Team settings → Integrations / Environment variables):
+#   1. Интеграция App Store Connect (API key) с именем из integrations.app_store_connect ниже.
+#      Через неё Codemagic скачивает сертификат + App Store-профиль (ios_signing), узнаёт последний
+#      номер сборки в TestFlight и загружает IPA.
+#   2. Группа переменных `divo_app_store` с переменной APP_STORE_APPLE_ID — Apple ID приложения
+#      (число из App Store Connect → App Information).
+#   3. Если в аккаунте ещё нет distribution-сертификата с приватным ключом, который Codemagic может
+#      использовать, — добавить его в Code signing identities (или переменную CERTIFICATE_PRIVATE_KEY).
+#
+# Сборка ~60–90 мин с холодным кэшем: собирается весь Telegram (без расширений, как в divo-tf).
+
+definitions:
+  environment: &environment
+    xcode: "26.2"           # = versions.json; Xcode 27 SDK не собирает проект (libc++ vs iOS 13).
+                           # Bazel берёт Xcode, выбранный Codemagic через xcode-select.
+    groups:
+      - divo_app_store
+    ios_signing:
+      distribution_type: app_store
+      bundle_identifier: app.divo.fashion
+    vars: &vars
+      DIVO_TEAM_ID: 9DTLH63S7N
+      DIVO_BUNDLE_ID: app.divo.fashion
+      DIVO_APP_VERSION: 2.0.0          # --define=telegramVersion; уходит и в REST-заголовок app-version
+
+  cache: &cache
+    cache_paths:
+      - $HOME/bazel-disk-cache
+      - $HOME/bazel-repository-cache
+      - $HOME/Library/Caches/bazelisk
+
+  scripts:
+    - &submodules
+      name: Git submodules
+      script: |
+        git submodule sync --recursive
+        git submodule update --init --recursive --jobs 8
+        if git submodule status --recursive | grep -q '^-'; then
+          echo "error: не все сабмодули скачаны" >&2
+          git submodule status --recursive | grep '^-' >&2
+          exit 1
+        fi
+
+    - &toolchain
+      name: Bazel + Metal Toolchain
+      script: |
+        # Bazelisk ставит версию из .bazelversion (8.4.2); путь /opt/homebrew/bin/bazel совпадает
+        # с telegram_bazel_path в build-input/configuration-repository/variables.bzl.
+        brew install bazelisk
+        bazel --version
+        xcodebuild -version
+        # Xcode 26+: компилятор Metal — отдельный компонент (CallScreenShaders без него не соберутся).
+        xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
+        xcrun metal --version
+
+    - &signing
+      name: Code signing (App Store profile + aps-environment=production)
+      script: |
+        # Сертификат и профиль Codemagic скачал по environment.ios_signing; Bazel берёт профиль
+        # только из configuration-repository/provisioning.
+        ./scripts/divo/ci_install_profile.sh "$DIVO_TEAM_ID" "$DIVO_BUNDLE_ID"
+        # TestFlight = push production (в репозитории — development для локального дева).
+        sed -i '' 's/^telegram_aps_environment = .*/telegram_aps_environment = "production"/' \
+          build-input/configuration-repository/variables.bzl
+        grep telegram_aps_environment build-input/configuration-repository/variables.bzl
+
+    - &build_number
+      name: Build number
+      script: |
+        # buildNumber должен быть строго больше последнего в TestFlight.
+        LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+        NEXT=$((LATEST + 1))
+        echo "Latest TestFlight build: $LATEST → building $NEXT"
+        echo "DIVO_BUILD_NUMBER=$NEXT" >> "$CM_ENV"
+
+    - &collect_ipa
+      name: Collect IPA
+      script: |
+        mkdir -p "$CM_BUILD_DIR/artifacts"
+        cp -L bazel-bin/Telegram/Telegram.ipa \
+          "$CM_BUILD_DIR/artifacts/DIVO-${DIVO_ENV_NAME}-${DIVO_APP_VERSION}-${DIVO_BUILD_NUMBER}.ipa"
+        ls -la "$CM_BUILD_DIR/artifacts"
+
+  publishing: &publishing
+    app_store_connect:
+      auth: integration
+      # Внутренние тестировщики получают сборку после обработки в App Store Connect.
+      # Для внешних групп (beta review) — submit_to_testflight: true + beta_groups.
+      submit_to_testflight: false
+
+workflows:
+  ios-testflight-stage:
+    name: iOS TestFlight — stage (DEBUG)
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    integrations:
+      app_store_connect: DIVO App Store Connect
+    environment:
+      <<: *environment
+      vars:
+        <<: *vars
+        DIVO_ENV_NAME: stage
+    cache: *cache
+    scripts:
+      - *submodules
+      - *toolchain
+      - *signing
+      - *build_number
+      - name: Bazel build (stage)
+        script: |
+          # Ленточная иконка коммитится (scripts/divo/generate_debug_appicon.py) — сборка герметична.
+          bazel build //Telegram:Telegram \
+            --compilation_mode=opt \
+            --cpu=ios_arm64 \
+            --define=buildNumber="$DIVO_BUILD_NUMBER" \
+            --define=telegramVersion="$DIVO_APP_VERSION" \
+            --//Telegram:disableExtensions=true \
+            --disk_cache="$HOME/bazel-disk-cache" \
+            --repository_cache="$HOME/bazel-repository-cache" \
+            --verbose_failures
+      - *collect_ipa
+    artifacts:
+      - artifacts/*.ipa
+    publishing:
+      <<: *publishing
+
+  ios-testflight-prod:
+    name: iOS TestFlight — prod
+    instance_type: mac_mini_m2
+    max_build_duration: 120
+    integrations:
+      app_store_connect: DIVO App Store Connect
+    environment:
+      <<: *environment
+      vars:
+        <<: *vars
+        DIVO_ENV_NAME: prod
+    cache: *cache
+    scripts:
+      - *submodules
+      - *toolchain
+      - *signing
+      - *build_number
+      - name: Bazel build (prod)
+        script: |
+          bazel build //Telegram:Telegram \
+            --compilation_mode=opt \
+            --cpu=ios_arm64 \
+            --define=buildNumber="$DIVO_BUILD_NUMBER" \
+            --define=telegramVersion="$DIVO_APP_VERSION" \
+            --define=divoEnv=prod \
+            --//Telegram:disableExtensions=true \
+            --disk_cache="$HOME/bazel-disk-cache" \
+            --repository_cache="$HOME/bazel-repository-cache" \
+            --verbose_failures
+      - *collect_ipa
+    artifacts:
+      - artifacts/*.ipa
+    publishing:
+      <<: *publishing
