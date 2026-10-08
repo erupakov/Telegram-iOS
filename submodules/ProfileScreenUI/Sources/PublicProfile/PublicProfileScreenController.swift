@@ -884,8 +884,22 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
     // MARK: - Face Scan
 
+    /// Фото для «Найти похожие»: из загруженного профиля (основное фото, затем аватар), запасной —
+    /// URL, переданный экраном, который открыл профиль. Профиль, открытый из чата / настроек / по
+    /// диплинку (`ProfileModel(userId:)`), mainImageURL не несёт — раньше там всегда была ошибка.
+    private func faceScanPhotoURLs() -> [URL] {
+        var urls: [URL] = []
+        let detailURLs = [userDetailModel?.photo?.fullUrl, userDetailModel?.avatar?.fullUrl]
+            .compactMap { CDNURLHelper.convertToCDNURL($0) }
+        for url in detailURLs + [self.model.mainImageURL].compactMap({ $0 }) where !urls.contains(url) {
+            urls.append(url)
+        }
+        return urls
+    }
+
     private func openFaceScanForCurrentProfile() {
-        guard let url = self.model.mainImageURL else {
+        let urls = faceScanPhotoURLs()
+        guard !urls.isEmpty else {
             self.controllerNode.showSnackbar(
                 message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
                 style: .error
@@ -894,7 +908,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
 
         FaceSearchPhotoLoader.loadProfilePhoto(
-            url: url,
+            urls: urls,
             host: self.view.window?.rootViewController?.view
         ) { [weak self] image in
             guard let self else { return }
