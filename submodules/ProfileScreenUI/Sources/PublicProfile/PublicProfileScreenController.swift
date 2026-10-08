@@ -2367,7 +2367,7 @@ extension PublicProfileScreenController {
     private func blockUser() {
         guard let userId = model.userId else { return }
         // teamgram-id собеседника — чтобы плашка блокировки в чате обновилась сразу.
-        let telegramId = userDetailModel?.telegramId.map(Int64.init)
+        let telegramId = userDetailModel?.telegramId.map { Int64($0) }
         Task { [weak self] in
             do {
                 try await DivoBlockedUsers.block(userId: userId, telegramId: telegramId)
@@ -2405,7 +2405,7 @@ extension PublicProfileScreenController {
     private func unblockUser() {
         guard let userId = model.userId else { return }
         // Профиль заблокированного — заглушка без telegramId; тогда берём его из списка заблокированных.
-        let telegramId = userDetailModel?.telegramId.map(Int64.init) ?? DivoBlockedUsers.telegramId(userId: userId)
+        let telegramId = userDetailModel?.telegramId.map { Int64($0) } ?? DivoBlockedUsers.telegramId(userId: userId)
         Task { [weak self] in
             do {
                 try await DivoBlockedUsers.unblock(userId: userId, telegramId: telegramId)
