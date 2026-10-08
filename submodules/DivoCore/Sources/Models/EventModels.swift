@@ -509,7 +509,7 @@ public struct CreateEventResponse: Decodable {
     }
 }
 
-public struct DeleteEventResponse: Codable {
+public struct DeleteEventResponse: Decodable {
     public let message: String?
     public let errors: DivoResponseErrors?
 

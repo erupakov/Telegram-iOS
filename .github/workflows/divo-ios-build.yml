@@ -17,6 +17,10 @@ name: DIVO iOS Build
 #   ASC_PRIVATE_KEY               — содержимое AuthKey_<ASC_KEY_ID>.p8
 # Переменные (необязательные):
 #   DIVO_MACOS_RUNNER             — раннер (по умолчанию macos-26; можно self-hosted)
+#   APP_STORE_APPLE_ID            — Apple ID приложения: номер сборки сверяется с App Store Connect
+#   DIVO_MIN_BUILD_NUMBER         — нижняя граница номера сборки
+# Номера сборок: testflight (stage) — чётные, release (prod) — нечётные, всегда больше максимума
+# уже загруженных (scripts/divo/ci_next_build_number.sh).
 
 on:
   workflow_dispatch:
@@ -36,7 +40,7 @@ on:
         required: true
         default: "2.0.0"
       build_number:
-        description: "Номер сборки (пусто = последний тег v0.<N> + 1)"
+        description: "Номер сборки (пусто = авто: testflight — следующий чётный, release — нечётный)"
         type: string
         required: false
         default: ""
@@ -93,33 +97,53 @@ jobs:
           command -v bazel >/dev/null || brew install bazelisk
           bazel --version
           # Xcode 26+: компилятор Metal — отдельный компонент (без него не собираются CallScreenShaders).
-          xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
-          xcrun metal --version
+          # На CI одной загрузки мало: компонент не регистрируется — см. обходные пути в скрипте.
+          ./scripts/divo/ci_install_metal_toolchain.sh
 
       - name: Build number
         id: meta
         env:
           INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
           INPUT_VERSION: ${{ inputs.version }}
+          TARGET: ${{ inputs.target }}
+          APP_STORE_APPLE_ID: ${{ vars.APP_STORE_APPLE_ID }}
+          DIVO_MIN_BUILD_NUMBER: ${{ vars.DIVO_MIN_BUILD_NUMBER }}
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
         run: |
+          # Схема номеров DIVO: stage (testflight) — чётные, prod (release) — нечётные; номер строго
+          # больше МАКСИМУМА всех загруженных сборок (App Store Connect отклоняет номер <= предыдущего).
+          case "$TARGET" in
+            release) ENV_NAME=prod ;;
+            *)       ENV_NAME=stage ;;
+          esac
           if [ -n "$INPUT_BUILD_NUMBER" ]; then
             BUILD_NUMBER="$INPUT_BUILD_NUMBER"
           else
-            # Номер сборки живёт только в тегах v0.<N> (QUICKSTART §7) — берём следующий.
-            LAST=$(git tag -l 'v0.*' | sed 's/^v0\.//' | grep -E '^[0-9]+$' | sort -n | tail -1)
-            BUILD_NUMBER=$(( ${LAST:-0} + 1 ))
+            KNOWN=()
+            # Уже загруженные сборки из App Store Connect (если задан Apple ID приложения и ключ ASC).
+            if [ -n "$APP_STORE_APPLE_ID" ] && [ -n "$APP_STORE_CONNECT_PRIVATE_KEY" ]; then
+              pip3 install --quiet --disable-pip-version-check codemagic-cli-tools || true
+              KNOWN+=("$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null | tail -1 || true)")
+              KNOWN+=("$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" 2>/dev/null | tail -1 || true)")
+            else
+              echo "::warning::APP_STORE_APPLE_ID / ключ ASC не заданы — номер считается только по тегам v0.<N>"
+            fi
+            KNOWN+=("$DIVO_MIN_BUILD_NUMBER")
+            BUILD_NUMBER=$(./scripts/divo/ci_next_build_number.sh "$ENV_NAME" "${KNOWN[@]}")
           fi
           if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
             echo "::error::buildNumber должен быть целым числом: '$BUILD_NUMBER'"
             exit 1
           fi
-          if [[ "${{ inputs.target }}" != "simulator" ]] && git rev-parse -q --verify "refs/tags/v0.$BUILD_NUMBER" >/dev/null; then
+          if [[ "$TARGET" != "simulator" ]] && git rev-parse -q --verify "refs/tags/v0.$BUILD_NUMBER" >/dev/null; then
             echo "::error::Тег v0.$BUILD_NUMBER уже есть — сборка с этим номером уже уходила в TestFlight"
             exit 1
           fi
           echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           echo "APP_VERSION=$INPUT_VERSION" >> "$GITHUB_ENV"
-          echo "Сборка ${{ inputs.target }}: $INPUT_VERSION ($BUILD_NUMBER), коммит $(git rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Сборка $TARGET ($ENV_NAME): $INPUT_VERSION ($BUILD_NUMBER), коммит $(git rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Restore Bazel cache
         uses: actions/cache@v4

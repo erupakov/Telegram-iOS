@@ -98,9 +98,8 @@ public enum DivoBlockedUsers {
             }
             offset = nextOffset
         }
-        lock.lock()
-        telegramIds = Dictionary(users.compactMap { user in user.telegramId.map { (user.id, $0) } }, uniquingKeysWith: { first, _ in first })
-        lock.unlock()
+        let listedTelegramIds = Dictionary(users.compactMap { user in user.telegramId.map { (user.id, $0) } }, uniquingKeysWith: { first, _ in first })
+        withLock { telegramIds = listedTelegramIds }
         update { $0 = Set(users.map(\.id)) }
         // Сверка с чатами: все из списка заблокированы и в teamgram (источник правды — этот метод).
         if let updater = telegramBlockStateUpdater {
@@ -114,9 +113,7 @@ public enum DivoBlockedUsers {
     /// Загружает список, только если он ещё не загружался в этой сессии. Ошибки глотает:
     /// профиль в этом случае показывает «Заблокировать» (как до появления списка).
     public static func fetchIfNeeded() async {
-        lock.lock()
-        let isLoaded = blockedIds != nil
-        lock.unlock()
+        let isLoaded = withLock { blockedIds != nil }
         guard !isLoaded, DivoConfig.hasDivoSession else { return }
         do {
             try await fetch()
@@ -145,9 +142,7 @@ public enum DivoBlockedUsers {
             NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": false])
         }
         if let telegramId {
-            lock.lock()
-            telegramIds[userId] = telegramId
-            lock.unlock()
+            withLock { telegramIds[userId] = telegramId }
             telegramBlockStateUpdater?(telegramId, true)
         }
     }
@@ -166,9 +161,7 @@ public enum DivoBlockedUsers {
                 ids = set
             }
         }
-        lock.lock()
-        telegramIds[userId] = nil
-        lock.unlock()
+        withLock { telegramIds[userId] = nil }
         if let telegramId {
             telegramBlockStateUpdater?(telegramId, false)
         }
@@ -224,6 +217,14 @@ public enum DivoBlockedUsers {
         telegramIds = [:]
         lock.unlock()
         update { $0 = nil }
+    }
+
+    /// Синхронная секция под `lock`. NSLock.lock()/unlock() нельзя звать прямо из async-функций
+    /// (ошибка в Swift 6 / warnings-as-errors) — async-методы ходят в кэш только через этот хелпер.
+    private static func withLock<T>(_ body: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return body()
     }
 
     private static func update(_ mutate: (inout Set<Int>?) -> Void) {

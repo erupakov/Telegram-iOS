@@ -46,9 +46,11 @@ description: Собрать сборку для TestFlight в нужном ок�
    - `build-input/configuration-repository/provisioning/Telegram.mobileprovision` — **distribution**
      профиль (App Store / TestFlight).
 
-4. **Номер сборки.** Попросить Marina посмотреть последний `buildNumber` в TestFlight (App Store
-   Connect) или последний тег `v0.<N>` — и взять `N+1`. `buildNumber` должен быть строго больше
-   предыдущего в TF, иначе загрузка отклонится.
+4. **Номер сборки.** Схема: **debug (stage) — чётные, prod — нечётные** (46 — debug, 47 — prod).
+   Попросить Marina посмотреть **максимальный** `buildNumber` в App Store Connect (по обоим окружениям)
+   или последний тег `v0.<N>` и взять следующее число нужной чётности (макс. 47 → debug 48, prod 49).
+   `buildNumber` должен быть строго больше любой ранее загруженной сборки, иначе загрузка отклонится.
+   Тот же расчёт — `scripts/divo/ci_next_build_number.sh <stage|prod> [известные номера…]`.
 
 5. **Версия.** `--define=telegramVersion=2.0.0` (или актуальная версия релиза). Она же уходит в
    REST-заголовок `app-version` (читается из бандла).

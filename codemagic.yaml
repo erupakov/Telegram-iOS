@@ -28,6 +28,8 @@ definitions:
     vars: &vars
       DIVO_TEAM_ID: 9DTLH63S7N
       DIVO_BUNDLE_ID: app.divo.fashion
+      # Необязательно: нижняя граница номера сборки (если App Store Connect не отдал свежие номера):
+      # DIVO_MIN_BUILD_NUMBER: 47
       DIVO_APP_VERSION: 2.0.0          # --define=telegramVersion; уходит и в REST-заголовок app-version
 
   cache: &cache
@@ -57,8 +59,8 @@ definitions:
         bazel --version
         xcodebuild -version
         # Xcode 26+: компилятор Metal — отдельный компонент (CallScreenShaders без него не соберутся).
-        xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
-        xcrun metal --version
+        # На CI одной загрузки мало: компонент не регистрируется — см. обходные пути в скрипте.
+        ./scripts/divo/ci_install_metal_toolchain.sh
 
     - &signing
       name: Code signing (App Store profile + aps-environment=production)
@@ -74,10 +76,29 @@ definitions:
     - &build_number
       name: Build number
       script: |
-        # buildNumber должен быть строго больше последнего в TestFlight.
-        LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
-        NEXT=$((LATEST + 1))
-        echo "Latest TestFlight build: $LATEST → building $NEXT"
+        # Схема номеров DIVO: stage (debug) — чётные, prod (release) — нечётные; номер строго больше
+        # МАКСИМУМА всех загруженных сборок (App Store Connect отклоняет номер <= предыдущего,
+        # независимо от окружения). get-latest-testflight-build-number сам по себе ненадёжен
+        # (вернул 41 при загруженной 47) — берём максимум по нескольким источникам.
+        git fetch --tags --quiet || true
+        TF=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
+        AS=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
+        # Полный список сборок приложения (все версии) — максимум по attributes.version.
+        ALL=$( (app-store-connect builds list --app-id "$APP_STORE_APPLE_ID" --json 2>/dev/null \
+                || app-store-connect list-builds --app-id "$APP_STORE_APPLE_ID" --json 2>/dev/null || true) \
+              | python3 -c '
+        import json, sys
+        try:
+            data = json.load(sys.stdin)
+        except Exception:
+            sys.exit(0)
+        items = data if isinstance(data, list) else data.get("data", [])
+        versions = [int(b.get("attributes", {}).get("version", "")) for b in items
+                    if str(b.get("attributes", {}).get("version", "")).isdigit()]
+        print(max(versions) if versions else "")
+        ' || true)
+        NEXT=$(./scripts/divo/ci_next_build_number.sh "$DIVO_ENV_NAME" \
+          "$(echo "$TF" | tail -1)" "$(echo "$AS" | tail -1)" "$ALL" "${DIVO_MIN_BUILD_NUMBER:-}")
         echo "DIVO_BUILD_NUMBER=$NEXT" >> "$CM_ENV"
 
     - &collect_ipa

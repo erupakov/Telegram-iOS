@@ -12,6 +12,16 @@ public struct DivoResponseErrors: Decodable, Equatable {
         self.fields = fields
     }
 
+    /// Ошибок нет (`null`, `{}`, `[]`, пустая строка).
+    public var isEmpty: Bool {
+        return fields.values.allSatisfy { $0.isEmpty }
+    }
+
+    /// Все тексты ошибок одним списком (порядок полей — по ключу, чтобы сообщение было стабильным).
+    public var messages: [String] {
+        return fields.keys.sorted().flatMap { fields[$0] ?? [] }
+    }
+
     /// Первый текст ошибки (для логов / запасного сообщения).
     public var firstMessage: String? {
         return fields.values.lazy.compactMap { $0.first }.first

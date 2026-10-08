@@ -382,7 +382,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     previewController?.toggleSaving(active: false)
                     self.push(successController)
                 } else {
-                    let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
+                    let errorLines = response.errors?.messages ?? []
+                    let errorMsg = errorLines.isEmpty ? DivoStrings.unknownError : errorLines.joined(separator: "\n")
                     previewController?.toggleSaving(active: false)
                     previewController?.showSnackbar(message: DivoStrings.errorCreateUpdateEvent)
                     self.createEventNode.showSnackbar(message: errorMsg, style: .error)
