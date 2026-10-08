@@ -548,7 +548,8 @@ public final class ModelsFeedController: TelegramBaseController {
             mainImageURL: mainURL,
             avatarImageURL: avatarURL,
             previewImageURLs: previewURLs,
-            likesCount: item.likesCount,
+            // Лайки человека — уникальные люди по всем его записям (как в профиле), а не лайки одной карточки
+            likesCount: item.user.likesCount ?? item.likesCount,
             viewsCount: item.user.viewsCount ?? 0,
             savesCount: item.user.followersCount ?? 0,
             isFavorite: item.isFavoriteByUser,
