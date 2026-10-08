@@ -216,6 +216,7 @@ public struct UserStatistic: Decodable {
     public let followersCount: Int?
     public let followingCount: Int?
     public let viewsCount: Int?
+    public let likesCount: Int?
     public let sentToAgenciesCount: Int?
     public let modelsCount: Int?
 }

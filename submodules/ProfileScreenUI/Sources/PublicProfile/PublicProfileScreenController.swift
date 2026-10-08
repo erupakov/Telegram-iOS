@@ -99,12 +99,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
     private var similarProfilesIsLoading: Bool = false
 
-    private struct EngagementTotals {
-        let likes: Int
-        let views: Int
-        let saves: Int
-    }
-    
     public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
         self.model = model
@@ -610,9 +604,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     /// возвращает экран в loading-стейт, что на фоновой правке имени выглядело бы миганием.
     private func refreshProfileTabSilently() {
         Task {
-            async let profileResult = fetchUserProfile()
-            async let engagementResult = fetchEngagementTotals()
-            let (profile, engagement) = await (profileResult, engagementResult)
+            let profile = await fetchUserProfile()
             await MainActor.run {
                 guard let detail = profile else { return }
                 self.userDetailModel = detail
@@ -621,15 +613,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.loadAgencyLinks(for: detail)
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
-                if let eng = engagement {
-                    self.controllerNode.updateEngagementStats(
-                        likes: eng.likes,
-                        views: eng.views,
-                        saves: eng.saves,
-                        isLiked: detail.isLikedByUser ?? false,
-                        isSaved: detail.isFollowed ?? false
-                    )
-                }
+                self.applyEngagementStats(from: detail)
             }
         }
     }
@@ -820,9 +804,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private func loadInitialData() {
         profileLoaded = true
         Task {
-            async let profileResult = fetchUserProfile()
-            async let engagementResult = fetchEngagementTotals()
-            let (profile, engagement) = await (profileResult, engagementResult)
+            let profile = await fetchUserProfile()
             await MainActor.run {
                 guard let detail = profile else {
                     self.profileLoaded = false
@@ -858,15 +840,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 self.setupStoryRing()
-                if let eng = engagement {
-                    self.controllerNode.updateEngagementStats(
-                        likes: eng.likes,
-                        views: eng.views,
-                        saves: eng.saves,
-                        isLiked: detail.isLikedByUser ?? false,
-                        isSaved: detail.isFollowed ?? false
-                    )
-                }
+                self.applyEngagementStats(from: detail)
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
                 if !isMyProfile && userRole != .agency {
@@ -895,22 +869,17 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
     }
 
-    private func fetchEngagementTotals() async -> EngagementTotals? {
-        guard isMyProfile || model.userId != nil else { return nil }
-        do {
-            let path = isMyProfile ? "/user/engagement?offset=0&limit=1" : "/user/engagement?offset=0&limit=1&userId=\(model.userId!)"
-            let response: UserEngagementResponse = try await DivoAPIClient.shared.request(
-                path: path,
-                method: "GET"
-            )
-            let likes = response.data?.liked?.pagination?.meta?.totalCount ?? response.data?.liked?.pagination?.total ?? 0
-            let views = response.data?.viewed?.pagination?.meta?.totalCount ?? response.data?.viewed?.pagination?.total ?? 0
-            let saves = response.data?.followed?.pagination?.meta?.totalCount ?? response.data?.followed?.pagination?.total ?? 0
-            return EngagementTotals(likes: likes, views: views, saves: saves)
-        } catch {
-            divoLog("[ENGAGEMENT TOTALS] Error: \(error)", level: .error)
-            return nil
-        }
+    /// Счётчики шапки — из `statistic` профиля, тот же источник, что `user` в ленте:
+    /// просмотры — все события просмотра, лайки — уникальные люди, сохранения — подписчики.
+    /// Итоги `/user/engagement` для этого не годятся: `viewed` там — уникальные зрители.
+    private func applyEngagementStats(from detail: UserDetail) {
+        self.controllerNode.updateEngagementStats(
+            likes: detail.statistic?.likesCount ?? 0,
+            views: detail.statistic?.viewsCount ?? 0,
+            saves: detail.statistic?.followersCount ?? 0,
+            isLiked: detail.isLikedByUser ?? false,
+            isSaved: detail.isFollowed ?? false
+        )
     }
 
     // MARK: - Face Scan
