@@ -128,15 +128,15 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
 
     private func setupMenu() -> UIMenu {
         if #available(iOS 14.0, *) {
-            let blockAction = UIAction(
-                title: DivoStrings.deletePhoto,
+            let deleteAction = UIAction(
+                title: self.isVideoGallery ? DivoStrings.deleteVideo : DivoStrings.deletePhoto,
                 image: nil,
                 attributes: .destructive
             ) { [weak self] _ in
                 self?.onMenuTapped?()
             }
             
-            return UIMenu(title: "", children: [blockAction])
+            return UIMenu(title: "", children: [deleteAction])
         } else {
             return UIMenu()
         }
