@@ -302,6 +302,7 @@ public enum DivoStrings {
     public static var errorUpdateBackground: String { L(en: "Couldn't update profile background", ru: "Не удалось обновить фон профиля", es: "No se pudo actualizar el fondo del perfil", pt: "Não foi possível atualizar o fundo do perfil", zh: "无法更新个人资料背景", fr: "Impossible de mettre à jour l’arrière-plan du profil") }
     public static var errorLoadingSimilarProfiles: String { L(en: "Couldn't find similar profiles", ru: "Не удалось найти похожие профили", es: "No se pudieron encontrar perfiles similares", pt: "Não foi possível encontrar perfis semelhantes", zh: "无法找到相似的个人资料", fr: "Impossible de trouver des profils similaires") }
     public static var deletePhoto: String { L(en: "Delete photo", ru: "Удалить фото", es: "Eliminar foto", pt: "Deletar foto", zh: "删除照片", fr: "Supprimer la photo") }
+    public static var deleteVideo: String { L(en: "Delete video", ru: "Удалить видео", es: "Eliminar video", pt: "Deletar vídeo", zh: "删除视频", fr: "Supprimer la vidéo") }
 
     // MARK: - Units
 
