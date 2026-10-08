@@ -1,0 +1,283 @@
+name: DIVO iOS Build
+
+# Ручная сборка DIVO iOS (Actions → DIVO iOS Build → Run workflow). Три цели:
+#   simulator  — stage-контур, без подписи (--define=disableProvisioningProfiles=true), ios_sim_arm64.
+#                Артефакт: IPA для `xcrun simctl install booted Telegram.ipa`.
+#   testflight — stage-контур, иконка с ленточкой DEBUG, подпись App Store → загрузка в TestFlight,
+#                тег v0.<buildNumber> (как в QUICKSTART §7).
+#   release    — боевой контур (--define=divoEnv=prod), чистая иконка, подпись App Store → загрузка
+#                в App Store Connect, теги v0.<buildNumber> и v<version>, GitHub Release с IPA и dSYM.
+# Флаги сборки — как в .claude/skills/divo-tf/SKILL.md.
+#
+# Секреты репозитория (Settings → Secrets and variables → Actions), нужны для testflight/release:
+#   IOS_DIST_CERT_P12_BASE64      — distribution-сертификат команды с приватным ключом (.p12, base64)
+#   IOS_DIST_CERT_PASSWORD        — пароль от .p12
+#   IOS_APPSTORE_PROFILE_BASE64   — App Store-профиль для app.divo.fashion (.mobileprovision, base64)
+#   ASC_KEY_ID, ASC_ISSUER_ID     — ключ App Store Connect API (роль App Manager или выше)
+#   ASC_PRIVATE_KEY               — содержимое AuthKey_<ASC_KEY_ID>.p8
+# Переменные (необязательные):
+#   DIVO_MACOS_RUNNER             — раннер (по умолчанию macos-26; можно self-hosted)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Цель сборки"
+        type: choice
+        required: true
+        default: simulator
+        options:
+          - simulator
+          - testflight
+          - release
+      version:
+        description: "Версия приложения (telegramVersion / CFBundleShortVersionString)"
+        type: string
+        required: true
+        default: "2.0.0"
+      build_number:
+        description: "Номер сборки (пусто = последний тег v0.<N> + 1)"
+        type: string
+        required: false
+        default: ""
+
+# Две подписанные сборки параллельно взяли бы один и тот же buildNumber.
+concurrency:
+  group: divo-ios-${{ inputs.target == 'simulator' && 'simulator' || 'signed' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # теги и GitHub Release
+
+env:
+  DIVO_TEAM_ID: 9DTLH63S7N
+  DIVO_BUNDLE_ID: app.divo.fashion
+
+jobs:
+  build:
+    name: ${{ inputs.target }} ${{ inputs.version }}
+    runs-on: ${{ vars.DIVO_MACOS_RUNNER || 'macos-26' }}
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout (с сабмодулями и тегами)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Check submodules
+        run: |
+          if git submodule status --recursive | grep -q '^-'; then
+            echo "::error::Не все сабмодули скачаны"
+            git submodule status --recursive | grep '^-'
+            exit 1
+          fi
+
+      - name: Select Xcode (versions.json)
+        run: |
+          XCODE_VERSION=$(python3 -c 'import json;print(json.load(open("versions.json"))["xcode"])')
+          XCODE_APP="/Applications/Xcode_${XCODE_VERSION}.app"
+          if [ ! -d "$XCODE_APP" ]; then
+            echo "::error::Нет $XCODE_APP на раннере (Xcode 27 SDK проект не собирает). Доступно:"
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+
+      - name: Bazel + Metal Toolchain
+        run: |
+          # Bazelisk ставит версию из .bazelversion (8.4.2).
+          command -v bazel >/dev/null || brew install bazelisk
+          bazel --version
+          # Xcode 26+: компилятор Metal — отдельный компонент (без него не собираются CallScreenShaders).
+          xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
+          xcrun metal --version
+
+      - name: Build number
+        id: meta
+        env:
+          INPUT_BUILD_NUMBER: ${{ inputs.build_number }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_BUILD_NUMBER" ]; then
+            BUILD_NUMBER="$INPUT_BUILD_NUMBER"
+          else
+            # Номер сборки живёт только в тегах v0.<N> (QUICKSTART §7) — берём следующий.
+            LAST=$(git tag -l 'v0.*' | sed 's/^v0\.//' | grep -E '^[0-9]+$' | sort -n | tail -1)
+            BUILD_NUMBER=$(( ${LAST:-0} + 1 ))
+          fi
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "::error::buildNumber должен быть целым числом: '$BUILD_NUMBER'"
+            exit 1
+          fi
+          if [[ "${{ inputs.target }}" != "simulator" ]] && git rev-parse -q --verify "refs/tags/v0.$BUILD_NUMBER" >/dev/null; then
+            echo "::error::Тег v0.$BUILD_NUMBER уже есть — сборка с этим номером уже уходила в TestFlight"
+            exit 1
+          fi
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$INPUT_VERSION" >> "$GITHUB_ENV"
+          echo "Сборка ${{ inputs.target }}: $INPUT_VERSION ($BUILD_NUMBER), коммит $(git rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Restore Bazel cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/bazel-disk-cache
+            ~/bazel-repository-cache
+          key: bazel-${{ inputs.target == 'simulator' && 'sim' || 'device' }}-${{ hashFiles('MODULE.bazel.lock', 'versions.json') }}-${{ github.sha }}
+          restore-keys: |
+            bazel-${{ inputs.target == 'simulator' && 'sim' || 'device' }}-${{ hashFiles('MODULE.bazel.lock', 'versions.json') }}-
+            bazel-${{ inputs.target == 'simulator' && 'sim' || 'device' }}-
+
+      # ---------- Подпись (testflight / release) ----------
+
+      - name: Code signing (keychain + App Store profile)
+        if: inputs.target != 'simulator'
+        env:
+          CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.IOS_APPSTORE_PROFILE_BASE64 }}
+        run: |
+          for name in CERT_P12_BASE64 CERT_PASSWORD PROFILE_BASE64; do
+            if [ -z "${!name}" ]; then echo "::error::Не задан секрет для $name"; exit 1; fi
+          done
+
+          # Временный keychain с distribution-сертификатом (удаляется в конце job).
+          KEYCHAIN="$RUNNER_TEMP/divo-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "$CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/dist.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/dist.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/dist.p12"
+          security find-identity -v -p codesigning "$KEYCHAIN"
+
+          # Профиль — туда, где его ждёт Bazel (@build_configuration//provisioning:Telegram.mobileprovision).
+          PROFILE="build-input/configuration-repository/provisioning/Telegram.mobileprovision"
+          echo "$PROFILE_BASE64" | base64 --decode > "$PROFILE"
+          security cms -D -i "$PROFILE" > "$RUNNER_TEMP/profile.plist"
+          APP_ID=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/profile.plist")
+          APS=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$RUNNER_TEMP/profile.plist" 2>/dev/null || echo "-")
+          GET_TASK_ALLOW=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$RUNNER_TEMP/profile.plist" 2>/dev/null || echo false)
+          echo "Профиль: $(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/profile.plist"), $APP_ID, aps=$APS"
+          if [ "$APP_ID" != "$DIVO_TEAM_ID.$DIVO_BUNDLE_ID" ] || [ "$GET_TASK_ALLOW" = "true" ] \
+             || /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$RUNNER_TEMP/profile.plist" >/dev/null 2>&1; then
+            echo "::error::Нужен App Store-профиль для $DIVO_TEAM_ID.$DIVO_BUNDLE_ID (не development / ad-hoc)"
+            exit 1
+          fi
+
+          # TestFlight / App Store = push production (в репозитории — development для локального дева).
+          sed -i '' 's/^telegram_aps_environment = .*/telegram_aps_environment = "production"/' \
+            build-input/configuration-repository/variables.bzl
+          grep telegram_aps_environment build-input/configuration-repository/variables.bzl
+
+      # ---------- Сборка ----------
+
+      - name: Bazel build
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          FLAGS=(
+            --define=buildNumber="$BUILD_NUMBER"
+            --define=telegramVersion="$APP_VERSION"
+            --disk_cache="$HOME/bazel-disk-cache"
+            --repository_cache="$HOME/bazel-repository-cache"
+            --verbose_failures
+          )
+          case "$TARGET" in
+            simulator)
+              FLAGS+=(--cpu=ios_sim_arm64 --define=disableProvisioningProfiles=true)
+              ;;
+            testflight)
+              FLAGS+=(--compilation_mode=opt --cpu=ios_arm64 --//Telegram:disableExtensions=true --apple_generate_dsym)
+              ;;
+            release)
+              FLAGS+=(--compilation_mode=opt --cpu=ios_arm64 --//Telegram:disableExtensions=true --apple_generate_dsym --define=divoEnv=prod)
+              ;;
+          esac
+          echo "bazel build //Telegram:Telegram ${FLAGS[*]}"
+          bazel build //Telegram:Telegram "${FLAGS[@]}"
+
+      - name: Collect artifacts
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          OUT="$RUNNER_TEMP/artifacts"
+          mkdir -p "$OUT"
+          NAME="DIVO-${TARGET}-${APP_VERSION}-${BUILD_NUMBER}"
+          cp -L bazel-bin/Telegram/Telegram.ipa "$OUT/$NAME.ipa"
+          if ls -d bazel-bin/Telegram/*.dSYM >/dev/null 2>&1; then
+            (cd bazel-bin/Telegram && zip -qry "$OUT/$NAME.dSYM.zip" *.dSYM)
+          fi
+          ls -la "$OUT"
+          echo "ARTIFACTS_DIR=$OUT" >> "$GITHUB_ENV"
+          echo "ARTIFACT_NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACTS_DIR }}
+          retention-days: ${{ inputs.target == 'simulator' && 7 || 30 }}
+          if-no-files-found: error
+
+      # ---------- Загрузка в App Store Connect (testflight / release) ----------
+
+      - name: Upload to App Store Connect
+        if: inputs.target != 'simulator'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY; do
+            if [ -z "${!name}" ]; then echo "::error::Не задан секрет $name"; exit 1; fi
+          done
+          # altool ищет ключ в ~/.appstoreconnect/private_keys/AuthKey_<id>.p8
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s' "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          xcrun altool --upload-app --type ios \
+            --file "$ARTIFACTS_DIR/$ARTIFACT_NAME.ipa" \
+            --apiKey "$ASC_KEY_ID" \
+            --apiIssuer "$ASC_ISSUER_ID"
+          echo "Загружено в App Store Connect: $APP_VERSION ($BUILD_NUMBER). Сборка появится в TestFlight после обработки." >> "$GITHUB_STEP_SUMMARY"
+
+      # ---------- Теги и релиз ----------
+
+      - name: Tag build (v0.<buildNumber>)
+        if: inputs.target != 'simulator'
+        run: |
+          # Единственная привязка TestFlight-сборки к исходникам (QUICKSTART §7).
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v0.$BUILD_NUMBER" -m "${{ inputs.target == 'release' && 'Release' || 'TestFlight' }} build $BUILD_NUMBER ($APP_VERSION)"
+          git push origin "v0.$BUILD_NUMBER"
+
+      - name: GitHub Release
+        if: inputs.target == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v$APP_VERSION"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            # Повторный релиз той же версии (новая сборка) — отдельным тегом с номером сборки.
+            TAG="v$APP_VERSION-$BUILD_NUMBER"
+          fi
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "DIVO $APP_VERSION ($BUILD_NUMBER)" \
+            --notes "Prod-сборка DIVO $APP_VERSION ($BUILD_NUMBER), коммит $GITHUB_SHA. Загружена в App Store Connect; отправка на ревью — вручную в App Store Connect." \
+            "$ARTIFACTS_DIR"/*
+
+      - name: Cleanup signing
+        if: always() && inputs.target != 'simulator'
+        run: |
+          security delete-keychain "$RUNNER_TEMP/divo-signing.keychain-db" 2>/dev/null || true
+          rm -f build-input/configuration-repository/provisioning/Telegram.mobileprovision
+          rm -rf ~/.appstoreconnect/private_keys
