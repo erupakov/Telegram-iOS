@@ -177,7 +177,7 @@ telegram_aps_environment = "production"
 
 3. В папке `build-input/configuration-repository/provisioning/` должен лежать файл с именем `Telegram.mobileprovision` — **distribution** профиль (aps-environment=production, App Store / TestFlight).
 
-4. **Определить номер сборки.** Посмотреть последний `buildNumber` в TestFlight (App Store Connect) и прибавить 1. Например, если последняя сборка `17` — ставим `18`.
+4. **Определить номер сборки.** Схема: **debug (stage) — чётные, prod — нечётные**. Посмотреть максимальный `buildNumber` в App Store Connect (среди всех сборок обоих окружений) и взять следующее число нужной чётности: например, максимум `47` → debug `48`, prod `49`. Скрипт `scripts/divo/ci_next_build_number.sh <stage|prod> [номера…]` считает так же (CI использует его).
 
 #### Команда сборки
 
