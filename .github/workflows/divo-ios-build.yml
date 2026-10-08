@@ -93,8 +93,8 @@ jobs:
           command -v bazel >/dev/null || brew install bazelisk
           bazel --version
           # Xcode 26+: компилятор Metal — отдельный компонент (без него не собираются CallScreenShaders).
-          xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
-          xcrun metal --version
+          # На CI одной загрузки мало: компонент не регистрируется — см. обходные пути в скрипте.
+          ./scripts/divo/ci_install_metal_toolchain.sh
 
       - name: Build number
         id: meta

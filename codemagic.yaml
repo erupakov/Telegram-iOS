@@ -57,8 +57,8 @@ definitions:
         bazel --version
         xcodebuild -version
         # Xcode 26+: компилятор Metal — отдельный компонент (CallScreenShaders без него не соберутся).
-        xcrun metal --version >/dev/null 2>&1 || xcodebuild -downloadComponent MetalToolchain
-        xcrun metal --version
+        # На CI одной загрузки мало: компонент не регистрируется — см. обходные пути в скрипте.
+        ./scripts/divo/ci_install_metal_toolchain.sh
 
     - &signing
       name: Code signing (App Store profile + aps-environment=production)
