@@ -15,7 +15,7 @@ name: DIVO iOS Build
 #   IOS_APPSTORE_PROFILE_BASE64   — App Store-профиль для app.divo.fashion (.mobileprovision, base64)
 #   ASC_KEY_ID, ASC_ISSUER_ID     — ключ App Store Connect API (роль App Manager или выше)
 #   ASC_PRIVATE_KEY               — содержимое AuthKey_<ASC_KEY_ID>.p8
-# Переменные (необязательные):
+# Переменные (необязательные но полезные):
 #   DIVO_MACOS_RUNNER             — раннер (по умолчанию macos-26; можно self-hosted)
 #   APP_STORE_APPLE_ID            — Apple ID приложения: номер сборки сверяется с App Store Connect
 #   DIVO_MIN_BUILD_NUMBER         — нижняя граница номера сборки
