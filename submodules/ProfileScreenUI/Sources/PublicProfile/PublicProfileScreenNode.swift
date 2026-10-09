@@ -3690,6 +3690,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return avatarImage ?? headerImageView.image
     }
     
+    /// Подпись по подроли (AI creator, Photographer…): бэкенд строит roleLabel по subrole. Без подроли —
+    /// nil, остаётся клиентский `Role.title`, как раньше.
+    private static func subroleTitle(for detail: UserDetail) -> String? {
+        guard let subrole = detail.subrole, !subrole.isEmpty else { return nil }
+        return detail.roleLabel ?? Role.subroleTitle(subrole)
+    }
+
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
         self.modelDetail = detail
@@ -3739,7 +3746,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             setupNavigationBarTitle(
                 name: detail.fullName ?? DivoStrings.noName,
                 info: Self.navbarInfo(
-                    rolePrefix: self.modelRole.title,
+                    rolePrefix: Self.subroleTitle(for: detail) ?? self.modelRole.title,
                     middle: age.map { DivoStrings.ageString($0) },
                     cityName: detail.city?.name,
                     countryCode: detail.city?.countryCode
@@ -3850,6 +3857,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     location: detail.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.city?.countryCode),
                     role: self.modelRole,
+                    roleTitle: Self.subroleTitle(for: detail),
                     avatarImage: nil,
                     isPremium: detail.isPremium ?? false
                 )

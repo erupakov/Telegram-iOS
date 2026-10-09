@@ -199,6 +199,7 @@ public final class AuthRestService {
         uid: String,
         providerId: String,
         role: String,
+        subrole: String? = nil,
         email: String? = nil,
         additionalInfo: [String: DivoJSONValue]? = nil
     ) async throws -> AuthTokenWithUserData {
@@ -208,6 +209,7 @@ public final class AuthRestService {
             providerId: providerId,
             role: role,
             email: email,
+            subrole: subrole,
             deviceId: divoDeviceId,
             additionalInfo: additionalInfo
         )
@@ -217,11 +219,12 @@ public final class AuthRestService {
 
     public func register(
         role: String,
+        subrole: String? = nil,
         email: String? = nil,
         password: String? = nil,
         additionalInfo: [String: DivoJSONValue]? = nil
     ) async throws -> AuthTokenWithUserData {
-        let req = AuthRegistrationRequest(role: role, email: email, password: password, deviceId: divoDeviceId, additionalInfo: additionalInfo)
+        let req = AuthRegistrationRequest(role: role, email: email, password: password, subrole: subrole, deviceId: divoDeviceId, additionalInfo: additionalInfo)
         let env: DivoEnvelope<AuthTokenWithUserData> = try await client.request(path: "/auth/registration", method: "POST", body: req)
         return env.data
     }

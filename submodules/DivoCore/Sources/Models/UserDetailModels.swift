@@ -279,6 +279,8 @@ public struct UpdateBiographyPageRequest: Encodable {
     public let model: ModelData?
     public let avatar: AvatarUuid?
     public let photo: AvatarUuid?
+    /// Подроль new_face (`ai_creator`…). nil не кодируется — бэк оставляет текущую подроль.
+    public let subrole: String?
 
     public struct AvatarUuid: Encodable {
         public let uuid: String
@@ -294,7 +296,7 @@ public struct UpdateBiographyPageRequest: Encodable {
         }
     }
 
-    public init(fullName: String? = nil, gender: String? = nil, geoCityId: Int? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
+    public init(fullName: String? = nil, gender: String? = nil, geoCityId: Int? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil, subrole: String? = nil) {
         self.fullName = fullName
         self.gender = gender
         self.geoCityId = geoCityId
@@ -302,6 +304,7 @@ public struct UpdateBiographyPageRequest: Encodable {
         self.model = model
         self.avatar = avatar
         self.photo = photo
+        self.subrole = subrole
     }
 }
 
