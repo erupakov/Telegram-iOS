@@ -482,7 +482,7 @@ public final class FaceSearchResultsController: ViewController {
         let shareItem = DivoShareItemSource(
             url: shareURL,
             title: result.fullName ?? "",
-            subtitle: FaceSearchResultsMapper.roleLabel(for: result.role) ?? "",
+            subtitle: FaceSearchResultsMapper.roleLabel(for: result.role, subrole: result.subrole) ?? "",
             image: image
         )
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
@@ -514,7 +514,10 @@ public enum FaceSearchResultsMapper {
         return "\(flag) \(name)"
     }
 
-    public static func roleLabel(for role: String?) -> String? {
+    public static func roleLabel(for role: String?, subrole: String? = nil) -> String? {
+        if let subroleTitle = Role.subroleTitle(subrole) {
+            return subroleTitle
+        }
         switch role {
         case "model": return DivoStrings.debugModel
         case "new_face": return DivoStrings.debugNewTalent
@@ -579,7 +582,7 @@ public enum FaceSearchResultsMapper {
             userId: result.userId,
             name: result.fullName,
             infoText: infoText.isEmpty ? nil : infoText,
-            roleLabel: roleLabel(for: result.role),
+            roleLabel: roleLabel(for: result.role, subrole: result.subrole),
             likesCount: likesCount,
             isLikedByUser: isLiked,
             isFavoriteByUser: isFollowedOverride ?? (result.isFollowedByUser ?? false),
