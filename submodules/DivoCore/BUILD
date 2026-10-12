@@ -58,7 +58,7 @@ ios_test_runner(
 
 ios_unit_test(
     name = "DivoCoreTests",
-    minimum_os_version = "13.0",
+    minimum_os_version = "15.0",
     runner = ":iPhone-17__26.2",
     deps = [
         ":DivoCoreTestsLib",
