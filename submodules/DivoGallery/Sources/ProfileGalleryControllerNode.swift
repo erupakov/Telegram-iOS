@@ -18,6 +18,25 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
     private let initialIndex: Int
     private let isVideoGallery: Bool
     private let isOwnProfile: Bool
+    /// Локальная галерея (ещё не загружена на сервер): лайки и просмотры не отправляем.
+    private let isLocalOnly: Bool
+
+    /// Лайки/просмотры элемента: изначально из `photos`/`videos`, дальше — оптимистичные правки этого экрана.
+    private struct MediaEngagement {
+        var isLiked: Bool
+        var likesCount: Int
+        var viewsCount: Int
+    }
+    private var engagementOverrides: [Int: MediaEngagement] = [:]
+    /// Просмотр засчитываем один раз за открытие просмотрщика: перелистывание туда-обратно не накручивает.
+    private var viewedIds = Set<Int>()
+    private var likeRequestsInFlight = Set<Int>()
+
+    private let engagementStack = UIStackView()
+    private let likeButton = UIButton(type: .custom)
+    private let likesLabel = UILabel()
+    private let viewsIconView = UIImageView()
+    private let viewsLabel = UILabel()
     
     private weak var controller: ViewController?
     
@@ -28,7 +47,11 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
     private var isSyncingScroll = false
     private var isFirstLayout = true
     private var panGesture: UIPanGestureRecognizer!
-    private var _currentIndex: Int
+    private var _currentIndex: Int {
+        didSet {
+            if oldValue != _currentIndex { currentItemDidChange() }
+        }
+    }
     
     private var isLoadingMore = false
     
@@ -52,6 +75,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         initialIndex: Int,
         isVideoGallery: Bool,
         isOwnProfile: Bool,
+        isLocalOnly: Bool,
         controller: ViewController
     ) {
         self.context = context
@@ -61,6 +85,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         self.initialIndex = initialIndex
         self.isVideoGallery = isVideoGallery
         self.isOwnProfile = isOwnProfile
+        self.isLocalOnly = isLocalOnly
         self.controller = controller
         self._currentIndex = initialIndex
         
@@ -82,6 +107,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         
         self.setupMainCollectionView()
         self.setupPreviewCollectionView()
+        self.setupEngagementPanel()
         
         self.view.addSubview(navigationBar)
         NSLayoutConstraint.activate([
@@ -183,6 +209,8 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
                 self.updatePreviewSelection()
                 self.updatePreviewCellsScale()
                 self.playVideo(at: self.currentIndex)
+                // didSet у _currentIndex на старте не срабатывает — первый показанный элемент обрабатываем явно
+                self.currentItemDidChange()
             }
         }
         
@@ -268,6 +296,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
                 self.mainCollectionView.setContentOffset(targetOffset, animated: true)
                 self.updatePreviewSelection()
                 self.playVideo(at: self._currentIndex)
+                self.currentItemDidChange()
             }
         })
     }
@@ -393,6 +422,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
                 self.backgroundColor = .black
                 self.mainCollectionView.transform = CGAffineTransform(translationX: 0, y: translation.y)
                 self.previewCollectionView.transform = CGAffineTransform(translationX: 0, y: translation.y)
+                self.engagementStack.transform = CGAffineTransform(translationX: 0, y: translation.y)
             }
         case .ended, .cancelled:
             if translation.y > 150 || velocity.y > 500 {
@@ -407,6 +437,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
                 UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseOut) {
                     self.mainCollectionView.transform = .identity
                     self.previewCollectionView.transform = .identity
+                    self.engagementStack.transform = .identity
                 }
             }
         default:
@@ -414,7 +445,162 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         }
     }
 
-        
+
+    // MARK: - Likes and views
+
+    private func setupEngagementPanel() {
+        engagementStack.axis = .vertical
+        engagementStack.alignment = .center
+        engagementStack.spacing = 16
+        engagementStack.translatesAutoresizingMaskIntoConstraints = false
+
+        likeButton.tintColor = .white
+        likeButton.addTarget(self, action: #selector(likeTapped), for: .touchUpInside)
+        likeButton.isUserInteractionEnabled = !isOwnProfile && !isLocalOnly
+        viewsIconView.image = DivoImage.statView.withRenderingMode(.alwaysTemplate)
+        viewsIconView.tintColor = .white
+        viewsIconView.contentMode = .scaleAspectFit
+
+        for label in [likesLabel, viewsLabel] {
+            label.font = .systemFont(ofSize: 13, weight: .semibold)
+            label.textColor = .white
+            label.textAlignment = .center
+            label.layer.shadowColor = UIColor.black.cgColor
+            label.layer.shadowOpacity = 0.5
+            label.layer.shadowRadius = 2
+            label.layer.shadowOffset = .zero
+        }
+
+        engagementStack.addArrangedSubview(Self.counterColumn(icon: likeButton, label: likesLabel))
+        engagementStack.addArrangedSubview(Self.counterColumn(icon: viewsIconView, label: viewsLabel))
+
+        self.view.addSubview(engagementStack)
+        NSLayoutConstraint.activate([
+            engagementStack.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -16),
+            engagementStack.bottomAnchor.constraint(equalTo: self.previewCollectionView.topAnchor, constant: -24),
+            likeButton.widthAnchor.constraint(equalToConstant: 32),
+            likeButton.heightAnchor.constraint(equalToConstant: 32),
+            viewsIconView.widthAnchor.constraint(equalToConstant: 28),
+            viewsIconView.heightAnchor.constraint(equalToConstant: 28)
+        ])
+    }
+
+    private static func counterColumn(icon: UIView, label: UILabel) -> UIStackView {
+        let column = UIStackView(arrangedSubviews: [icon, label])
+        column.axis = .vertical
+        column.alignment = .center
+        column.spacing = 4
+        return column
+    }
+
+    /// Новый элемент на экране: обновить панель и засчитать просмотр.
+    private func currentItemDidChange() {
+        updateEngagementPanel()
+        markCurrentItemViewed()
+    }
+
+    private func currentEngagement() -> (id: Int, value: MediaEngagement)? {
+        let index = self._currentIndex
+        let base: (Int, MediaEngagement)
+        if isVideoGallery {
+            guard index >= 0 && index < videos.count else { return nil }
+            let video = videos[index]
+            base = (video.id, MediaEngagement(isLiked: video.isLikedByUser, likesCount: video.likesCount, viewsCount: video.viewsCount ?? 0))
+        } else {
+            guard index >= 0 && index < photos.count else { return nil }
+            let photo = photos[index]
+            base = (photo.id, MediaEngagement(isLiked: photo.isLikedByUser, likesCount: photo.likesCount ?? 0, viewsCount: photo.viewsCount ?? 0))
+        }
+        return (base.0, engagementOverrides[base.0] ?? base.1)
+    }
+
+    private func updateEngagementPanel() {
+        guard let current = currentEngagement() else {
+            engagementStack.isHidden = true
+            return
+        }
+        engagementStack.isHidden = false
+        let icon = current.value.isLiked
+            ? DivoImage.statLikeFilled
+            : DivoImage.statLike.withRenderingMode(.alwaysTemplate)
+        likeButton.setImage(icon, for: .normal)
+        likesLabel.text = Self.formatCount(current.value.likesCount)
+        viewsLabel.text = Self.formatCount(current.value.viewsCount)
+    }
+
+    @objc private func likeTapped() {
+        guard !isOwnProfile, !isLocalOnly, let current = currentEngagement() else { return }
+        let id = current.id
+        guard !likeRequestsInFlight.contains(id) else { return }
+        likeRequestsInFlight.insert(id)
+
+        let previous = current.value
+        let isLiked = !previous.isLiked
+        var updated = previous
+        updated.isLiked = isLiked
+        updated.likesCount = max(0, previous.likesCount + (isLiked ? 1 : -1))
+        engagementOverrides[id] = updated
+        updateEngagementPanel()
+
+        let base = isVideoGallery ? "/publication" : "/user-gallery"
+        let path = base + (isLiked ? "/like" : "/unlike")
+        Task { @MainActor [weak self] in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: MediaItemIdRequest(id: id)
+                )
+            } catch {
+                divoLog("[GALLERY] \(path) id=\(id) failed: \(error)", level: .error)
+                self?.engagementOverrides[id] = previous
+                self?.updateEngagementPanel()
+            }
+            self?.likeRequestsInFlight.remove(id)
+        }
+    }
+
+    /// Просмотр чужого фото/видео: сразу +1 на экране, при ошибке — откат. Сервер считает уникальных
+    /// зрителей, так что повторный просмотр в другой сессии на экране даст +1 до следующей загрузки списка.
+    private func markCurrentItemViewed() {
+        guard !isOwnProfile, !isLocalOnly, let current = currentEngagement() else { return }
+        let id = current.id
+        guard viewedIds.insert(id).inserted else { return }
+
+        var updated = current.value
+        updated.viewsCount += 1
+        engagementOverrides[id] = updated
+        updateEngagementPanel()
+
+        let path = isVideoGallery ? "/publication/view" : "/user-gallery/view"
+        Task { @MainActor [weak self] in
+            do {
+                let _: FollowResponse = try await DivoAPIClient.shared.request(
+                    path: path,
+                    method: "POST",
+                    body: MediaItemIdRequest(id: id)
+                )
+            } catch {
+                divoLog("[GALLERY] \(path) id=\(id) failed: \(error)", level: .error)
+                guard let self, var reverted = self.engagementOverrides[id] else { return }
+                reverted.viewsCount = max(0, reverted.viewsCount - 1)
+                self.engagementOverrides[id] = reverted
+                self.updateEngagementPanel()
+            }
+        }
+    }
+
+    private static func formatCount(_ count: Int) -> String {
+        func compact(_ value: Double, _ suffix: String) -> String {
+            if value >= 10 { return "\(Int(value))\(suffix)" }
+            let formatted = String(format: "%.1f", value)
+            return formatted.hasSuffix(".0") ? "\(Int(value))\(suffix)" : "\(formatted)\(suffix)"
+        }
+        if count >= 1_000_000 { return compact(Double(count) / 1_000_000.0, "M") }
+        if count >= 1_000 { return compact(Double(count) / 1_000.0, "K") }
+        return "\(count)"
+    }
+
     // MARK: - Snackbar
 
     typealias SnackbarStyle = DivoSnackbar.Style
