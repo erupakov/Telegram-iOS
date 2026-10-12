@@ -87,6 +87,7 @@ public class ProfileGalleryController: TelegramBaseController {
             initialIndex: self.initialIndex,
             isVideoGallery: self.isVideoGallery,
             isOwnProfile: self.isOwnProfile,
+            isLocalOnly: self.isLocalOnly,
             controller: self
         )
         self.displayNode.backgroundColor = .black

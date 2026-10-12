@@ -36,14 +36,23 @@ public struct UserPhoto: Decodable {
     public let likesCount: Int?
     public let isLikedByUser: Bool
     public let preview: UserFile?
+    /// Уникальные зрители фото (без владельца); нет поля — показываем 0.
+    public let viewsCount: Int?
 
-    public init(id: Int, photo: UserFile, likesCount: Int?, isLikedByUser: Bool, preview: UserFile?) {
+    public init(id: Int, photo: UserFile, likesCount: Int?, isLikedByUser: Bool, preview: UserFile?, viewsCount: Int? = nil) {
         self.id = id
         self.photo = photo
         self.likesCount = likesCount
         self.isLikedByUser = isLikedByUser
         self.preview = preview
+        self.viewsCount = viewsCount
     }
+}
+
+/// Тело `/user-gallery/like|unlike|view` и `/publication/like|unlike|view`: id фото галереи или публикации.
+public struct MediaItemIdRequest: Encodable {
+    public let id: Int
+    public init(id: Int) { self.id = id }
 }
 
 // MARK: - Video Gallery Models (New API)
@@ -67,8 +76,10 @@ public struct UserVideoItem: Decodable {
     public let likesCount: Int
     public let isLikedByUser: Bool
     public let files: [UserVideoFile]
+    /// Уникальные зрители публикации целиком (без владельца); нет поля — показываем 0.
+    public let viewsCount: Int?
 
-    public init(id: Int, title: String?, description: String?, type: String?, likesCount: Int, isLikedByUser: Bool, files: [UserVideoFile]) {
+    public init(id: Int, title: String?, description: String?, type: String?, likesCount: Int, isLikedByUser: Bool, files: [UserVideoFile], viewsCount: Int? = nil) {
         self.id = id
         self.title = title
         self.description = description
@@ -76,6 +87,7 @@ public struct UserVideoItem: Decodable {
         self.likesCount = likesCount
         self.isLikedByUser = isLikedByUser
         self.files = files
+        self.viewsCount = viewsCount
     }
 }
 
