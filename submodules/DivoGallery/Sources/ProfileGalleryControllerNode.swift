@@ -33,6 +33,15 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
     private var likeRequestsInFlight = Set<Int>()
 
     private let engagementStack = UIStackView()
+    /// Тёмное матовое стекло под счётчиками: белые иконки/цифры читаются и на светлом фото.
+    private let engagementBackground: UIVisualEffectView = {
+        let view = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
+        view.contentView.backgroundColor = DivoColorPalette.imageScrimMedium
+        view.layer.cornerRadius = 24
+        view.clipsToBounds = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
     private let likeButton = UIButton(type: .custom)
     private let likesLabel = UILabel()
     private let viewsIconView = UIImageView()
@@ -422,7 +431,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
                 self.backgroundColor = .black
                 self.mainCollectionView.transform = CGAffineTransform(translationX: 0, y: translation.y)
                 self.previewCollectionView.transform = CGAffineTransform(translationX: 0, y: translation.y)
-                self.engagementStack.transform = CGAffineTransform(translationX: 0, y: translation.y)
+                self.engagementBackground.transform = CGAffineTransform(translationX: 0, y: translation.y)
             }
         case .ended, .cancelled:
             if translation.y > 150 || velocity.y > 500 {
@@ -437,7 +446,7 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
                 UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseOut) {
                     self.mainCollectionView.transform = .identity
                     self.previewCollectionView.transform = .identity
-                    self.engagementStack.transform = .identity
+                    self.engagementBackground.transform = .identity
                 }
             }
         default:
@@ -453,6 +462,8 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         engagementStack.alignment = .center
         engagementStack.spacing = 16
         engagementStack.translatesAutoresizingMaskIntoConstraints = false
+        engagementStack.layoutMargins = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
+        engagementStack.isLayoutMarginsRelativeArrangement = true
 
         likeButton.tintColor = .white
         likeButton.addTarget(self, action: #selector(likeTapped), for: .touchUpInside)
@@ -474,10 +485,16 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
         engagementStack.addArrangedSubview(Self.counterColumn(icon: likeButton, label: likesLabel))
         engagementStack.addArrangedSubview(Self.counterColumn(icon: viewsIconView, label: viewsLabel))
 
-        self.view.addSubview(engagementStack)
+        engagementBackground.contentView.addSubview(engagementStack)
+        self.view.addSubview(engagementBackground)
         NSLayoutConstraint.activate([
-            engagementStack.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -16),
-            engagementStack.bottomAnchor.constraint(equalTo: self.previewCollectionView.topAnchor, constant: -24),
+            engagementStack.topAnchor.constraint(equalTo: engagementBackground.contentView.topAnchor),
+            engagementStack.leadingAnchor.constraint(equalTo: engagementBackground.contentView.leadingAnchor),
+            engagementStack.trailingAnchor.constraint(equalTo: engagementBackground.contentView.trailingAnchor),
+            engagementStack.bottomAnchor.constraint(equalTo: engagementBackground.contentView.bottomAnchor),
+            engagementBackground.widthAnchor.constraint(greaterThanOrEqualToConstant: 48),
+            engagementBackground.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -16),
+            engagementBackground.bottomAnchor.constraint(equalTo: self.previewCollectionView.topAnchor, constant: -24),
             likeButton.widthAnchor.constraint(equalToConstant: 32),
             likeButton.heightAnchor.constraint(equalToConstant: 32),
             viewsIconView.widthAnchor.constraint(equalToConstant: 28),
@@ -516,10 +533,10 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
 
     private func updateEngagementPanel() {
         guard let current = currentEngagement() else {
-            engagementStack.isHidden = true
+            engagementBackground.isHidden = true
             return
         }
-        engagementStack.isHidden = false
+        engagementBackground.isHidden = false
         let icon = current.value.isLiked
             ? DivoImage.statLikeFilled
             : DivoImage.statLike.withRenderingMode(.alwaysTemplate)
