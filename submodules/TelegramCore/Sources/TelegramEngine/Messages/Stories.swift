@@ -1957,14 +1957,15 @@ func _internal_checkStoriesUploadAvailability(account: Account, target: Stories.
                 return .single(.weeklyLimit)
             } else if error.errorDescription.hasPrefix("STORY_SEND_FLOOD_MONTHLY_") {
                 return .single(.monthlyLimit)
-            } else if error.errorDescription.hasPrefix("PREMIUM_ACCOUNT_REQUIRED") {
-                return .single(.premiumRequired)
             } else if error.errorDescription.hasPrefix("STORIES_TOO_MUCH") {
                 return .single(.expiringLimit)
             } else if error.errorDescription.hasPrefix("BOOSTS_REQUIRED") {
                 return .single(.channelBoostRequired)
             }
-            return .single(.unknownLimit)
+            // DIVO: Premium в DIVO не продаётся. PREMIUM_ACCOUNT_REQUIRED и неизвестные ошибки
+            // (сервер может не поддерживать stories.canSendStory) не блокируют постинг — иначе камера
+            // показывает экран «Купите Premium». Реальный отказ сервер вернёт при отправке сторис.
+            return .single(.available(remainingCount: 10))
         }
     }
 }
