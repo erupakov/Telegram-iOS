@@ -132,10 +132,6 @@
 		<string>INSendMessageIntent</string>
 		<string>RemindAboutChatIntent</string>
 	</array>
-	<key>UIAppFonts</key>
-	<array>
-		<string>SFCompactRounded-Semibold.otf</string>
-	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

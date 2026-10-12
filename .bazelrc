@@ -11,6 +11,13 @@ build --host_crosstool_top=@local_config_apple_cc//:toolchain
 build --per_file_copt=".*\.m$","@-fno-objc-msgsend-selector-stubs"
 build --per_file_copt=".*\.mm$","@-fno-objc-msgsend-selector-stubs"
 
+# Минимальная iOS — 15.0 (требование App Store, ITMS-90068). API, объявленные deprecated в iOS 14/15,
+# дают предупреждения, а модули собираются с -warnings-as-errors / -Werror. Депрекации оставляем
+# предупреждениями (а не ошибками), остальные предупреждения по-прежнему ошибки.
+# --swiftcopt в rules_swift идёт после copts модуля, поэтому перекрывает -warnings-as-errors (SE-0443).
+build --swiftcopt=-Wwarning --swiftcopt=DeprecatedDeclaration
+build --copt=-Wno-error=deprecated-declarations
+
 build --features=debug_prefix_map_pwd_is_dot
 build --features=swift.cacheable_swiftmodules
 build --features=swift.debug_prefix_map
