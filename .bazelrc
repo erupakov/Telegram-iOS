@@ -14,8 +14,10 @@ build --per_file_copt=".*\.mm$","@-fno-objc-msgsend-selector-stubs"
 # Минимальная iOS — 15.0 (требование App Store, ITMS-90068). API, объявленные deprecated в iOS 14/15,
 # дают предупреждения, а модули собираются с -warnings-as-errors / -Werror. Депрекации оставляем
 # предупреждениями (а не ошибками), остальные предупреждения по-прежнему ошибки.
-# --swiftcopt в rules_swift идёт после copts модуля, поэтому перекрывает -warnings-as-errors (SE-0443).
-build --swiftcopt=-Wwarning --swiftcopt=DeprecatedDeclaration
+# Флаги из //swift:copt rules_swift ставит после copts модуля, поэтому они перекрывают
+# -warnings-as-errors (SE-0443). (--swiftcopt в Bazel 8 удалён.)
+build --@build_bazel_rules_swift//swift:copt=-Wwarning
+build --@build_bazel_rules_swift//swift:copt=DeprecatedDeclaration
 build --copt=-Wno-error=deprecated-declarations
 
 build --features=debug_prefix_map_pwd_is_dot
