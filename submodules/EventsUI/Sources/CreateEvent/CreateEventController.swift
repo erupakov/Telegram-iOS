@@ -528,6 +528,17 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.present(nav, animated: true)
     }
     
+    /// Круглый кроп обложки события — как у аватара в профиле.
+    private func presentAvatarCrop(_ image: UIImage) {
+        let cropController = DivoAvatarCropController(image: image, onComplete: { [weak self] cropped in
+            guard let self = self else { return }
+            self.createEventNode.setAvatarLoading(true)
+            self.createEventNode.currentPhoto = cropped
+            self.uploadAvatar(image: cropped)
+        })
+        self.present(cropController, animated: true)
+    }
+
     private func uploadAvatar(image: UIImage) {
         self.selectedAvatarImage = image
         self.selectedAvatarUUID = nil
@@ -743,9 +754,8 @@ extension CreateEventController: PHPickerViewControllerDelegate {
                 let normalized = uiImage.fixedOrientation()
                 
                 DispatchQueue.main.async {
-                    self.createEventNode.setAvatarLoading(true)
+                    self.presentAvatarCrop(normalized)
                 }
-                self.uploadAvatar(image: normalized)
             }
             
         case .gallery:
@@ -767,12 +777,11 @@ extension CreateEventController: PHPickerViewControllerDelegate {
 
 extension CreateEventController: UIImagePickerControllerDelegate {
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true)
-        
-        if let editedImage = info[.editedImage] as? UIImage {
-            handleSelectedImage(editedImage)
-        } else if let originalImage = info[.originalImage] as? UIImage {
-            handleSelectedImage(originalImage)
+        let picked = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
+        // Кроп презентуем в completion dismiss — иначе конфликт с ещё идущим закрытием пикера.
+        picker.dismiss(animated: true) { [weak self] in
+            guard let self = self, let picked = picked else { return }
+            self.handleSelectedImage(picked)
         }
     }
     
@@ -785,9 +794,7 @@ extension CreateEventController: UIImagePickerControllerDelegate {
         
         switch currentPickerTarget {
         case .avatar:
-            self.createEventNode.setAvatarLoading(true)
-            self.createEventNode.currentPhoto = normalized
-            self.uploadAvatar(image: normalized)
+            self.presentAvatarCrop(normalized)
             
         case .gallery:
             let galleryItem = self.createEventNode.startPhotoUpload(image: normalized)
