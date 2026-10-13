@@ -639,6 +639,10 @@ public enum DivoStrings {
     public static var deadlineTime: String { L(en: "Application deadline time *", ru: "Время окончания приема заявок *", es: "Hora límite de solicitud *", pt: "Horário limite para inscrição *", zh: "申请截止时间 *", fr: "Heure limite de candidature *") }
     public static var rate: String { L(en: "Rate", ru: "Ставка", es: "Tarifa", pt: "Taxa", zh: "费率", fr: "Tarif") }
     public static var rateTime: String { L(en: "Rate time", ru: "Время ставки", es: "Tiempo de tarifa", pt: "Tempo da taxa", zh: "费率时间", fr: "Durée du tarif") }
+    public static var ratePerHour: String { L(en: "per hour", ru: "в час", es: "por hora", pt: "por hora", zh: "每小时", fr: "par heure") }
+    public static var ratePerDay: String { L(en: "per day", ru: "в день", es: "por día", pt: "por dia", zh: "每天", fr: "par jour") }
+    public static var ratePerMonth: String { L(en: "per month", ru: "в месяц", es: "por mes", pt: "por mês", zh: "每月", fr: "par mois") }
+    public static var ratePerProject: String { L(en: "per project", ru: "за проект", es: "por proyecto", pt: "por projeto", zh: "每个项目", fr: "par projet") }
     public static var publicEvent: String { L(en: "Public event", ru: "Публичное мероприятие", es: "Evento público", pt: "Evento público", zh: "公开活动", fr: "Événement public") }
     public static var visibleAllUsers: String { L(en: "Visible to all users", ru: "Видно всем пользователям", es: "Visible para todos los usuarios", pt: "Visível para todos os usuários", zh: "对所有用户可见", fr: "Visible par tous les utilisateurs") }
     public static var galleryCreateEvent: String { L(en: "Events Photo Gallery", ru: "Фотогалерея событий", es: "Galería de fotos de eventos", pt: "Galeria de fotos de eventos", zh: "活动照片画廊", fr: "Galerie photos de l’événement") }
