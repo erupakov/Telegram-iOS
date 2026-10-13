@@ -441,13 +441,21 @@ final class CreateEventNode: ASDisplayNode {
     
     private var rateTime = FilterRowView()
     private var rateTimeId: String?
-    private var rateTimeTitle: String = "per hour"
+    private var rateTimeTitle: String = DivoStrings.ratePerHour
     var rateTimeOptions: [FilterOptionItem] = [
-        FilterOptionItem(id: "1", title: "per hour"),
-        FilterOptionItem(id: "2", title: "per day"),
-        FilterOptionItem(id: "3", title: "per month"),
-        FilterOptionItem(id: "4", title: "per project")
+        FilterOptionItem(id: "1", title: DivoStrings.ratePerHour),
+        FilterOptionItem(id: "2", title: DivoStrings.ratePerDay),
+        FilterOptionItem(id: "3", title: DivoStrings.ratePerMonth),
+        FilterOptionItem(id: "4", title: DivoStrings.ratePerProject)
     ]
+
+    /// Локализованное название периода ставки по id; сервер присылает английский title.
+    private func localizedRateTimeTitle(id: String?, fallback: String?) -> String {
+        if let id, let option = rateTimeOptions.first(where: { $0.id == id }) {
+            return option.title
+        }
+        return fallback ?? ""
+    }
     
     private let publicEventSwitch: UISwitch = UISwitch()
 
@@ -2364,7 +2372,7 @@ final class CreateEventNode: ASDisplayNode {
         paidEventSwitch.isOn = detail.paymentType?.id == 1
         rateTextField.text = formatCost(detail.cost)
         rateTimeId = String(detail.paymentFrequency?.id ?? 0)
-        rateTimeTitle = detail.paymentFrequency?.title ?? ""
+        rateTimeTitle = localizedRateTimeTitle(id: rateTimeId, fallback: detail.paymentFrequency?.title)
         
         publicEventSwitch.isOn = detail.isPublic ?? false
         
@@ -2514,7 +2522,7 @@ final class CreateEventNode: ASDisplayNode {
         paidEventSwitch.isOn = initialSnapshot?.paymentType == 1
         rateTextField.text = initialSnapshot?.cost
         rateTimeId = String(initialSnapshot?.paymentFrequency ?? 0)
-        rateTimeTitle = initialSnapshot?.paymentFrequencyTitle ?? ""
+        rateTimeTitle = localizedRateTimeTitle(id: rateTimeId, fallback: initialSnapshot?.paymentFrequencyTitle)
         
         publicEventSwitch.isOn = initialSnapshot?.isPublic ?? false
         
@@ -2691,7 +2699,7 @@ final class CreateEventNode: ASDisplayNode {
                 self?.rateTimeTitle = selected.title
             } else {
                 self?.rateTimeId = nil
-                self?.rateTimeTitle = "per hour"
+                self?.rateTimeTitle = DivoStrings.ratePerHour
             }
             self?.updateDropdownsUI()
         }
