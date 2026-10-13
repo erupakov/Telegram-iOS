@@ -1055,7 +1055,6 @@ func editingItems(data: PeerInfoScreenData?, boostStatus: ChannelBoostStatus?, s
                 let ItemBanned = 11
                 let ItemRecentActions = 12
                 let ItemAffiliatePrograms = 13
-                let ItemPostSuggestionsSettings = 14
                 let ItemPeerAutoTranslate = 15
                 
                 let isCreator = channel.flags.contains(.isCreator)
@@ -1184,44 +1183,7 @@ func editingItems(data: PeerInfoScreenData?, boostStatus: ChannelBoostStatus?, s
                 }
                 
                 if isCreator || (channel.adminRights?.rights.contains(.canChangeInfo) == true) {
-                    let labelString: NSAttributedString
-                    if channel.linkedMonoforumId != nil {
-                        if let monoforumPeer = data.linkedMonoforumPeer as? TelegramChannel {
-                            if let sendPaidMessageStars = monoforumPeer.sendPaidMessageStars {
-                                let formattedLabel = formatStarsAmountText(sendPaidMessageStars, dateTimeFormat: presentationData.dateTimeFormat)
-                                let smallLabelFont = Font.regular(floor(presentationData.listsFontSize.itemListBaseFontSize / 17.0 * 13.0))
-                                let labelFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
-                                let labelColor = presentationData.theme.list.itemSecondaryTextColor
-                                let attributedString = tonAmountAttributedString(formattedLabel, integralFont: labelFont, fractionalFont: smallLabelFont, color: labelColor, decimalSeparator: presentationData.dateTimeFormat.decimalSeparator).mutableCopy() as! NSMutableAttributedString
-                                attributedString.insert(NSAttributedString(string: "*", font: labelFont, textColor: labelColor), at: 0)
-                                
-                                if let range = attributedString.string.range(of: "*") {
-                                    attributedString.addAttribute(ChatTextInputAttributes.customEmoji, value: ChatTextInputTextCustomEmojiAttribute(interactivelySelectedFromPackId: nil, fileId: 0, file: nil, custom: .stars(tinted: false)), range: NSRange(range, in: attributedString.string))
-                                    attributedString.addAttribute(.baselineOffset, value: 1.5, range: NSRange(range, in: attributedString.string))
-                                }
-                                labelString = attributedString
-                            } else {
-                                let labelFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
-                                let labelColor = presentationData.theme.list.itemSecondaryTextColor
-                                
-                                labelString = NSAttributedString(string: presentationData.strings.PeerInfo_AllowChannelMessages_Free, font: labelFont, textColor: labelColor)
-                            }
-                        } else {
-                            let labelFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
-                            let labelColor = presentationData.theme.list.itemSecondaryTextColor
-                            
-                            labelString = NSAttributedString(string: " ", font: labelFont, textColor: labelColor)
-                        }
-                    } else {
-                        let labelFont = Font.regular(presentationData.listsFontSize.itemListBaseFontSize)
-                        let labelColor = presentationData.theme.list.itemSecondaryTextColor
-                        
-                        labelString = NSAttributedString(string: presentationData.strings.PeerInfo_AllowChannelMessages_Off, font: labelFont, textColor: labelColor)
-                    }
-                    
-                    items[.peerSettings]!.append(PeerInfoScreenDisclosureItem(id: ItemPostSuggestionsSettings, label: .attributedText(labelString), additionalBadgeLabel: presentationData.strings.Settings_New, text: presentationData.strings.PeerInfo_AllowChannelMessages, icon: PresentationResourcesSettings.channelMessages, action: {
-                        interaction.editingOpenPostSuggestionsSetup()
-                    }))
+                    // DIVO: пункт «Личные сообщения» / приём сообщений канала (монофорум) убран.
                     
                     if let personalChannel = data.personalChannel {
                         let peerId = personalChannel.peer.peerId
