@@ -19,6 +19,7 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
     private let maxValue: Double
     private let isSingleValue: Bool
     private let isOpenPresent: Bool
+    /// Не используется: нижняя кнопка теперь всегда «Подтвердить». Параметр init оставлен для совместимости вызовов.
     private let isResetButton: Bool
 
     public var onSave: ((Double?, Double?) -> Void)?
@@ -39,15 +40,16 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
 
     private let rangeSlider = RangeSlider()
 
-    private let deleteButton: UIButton = {
-        let deleteButton = UIButton(type: .custom)
-        deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
-        deleteButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
-        deleteButton.titleLabel?.font = Font.helveticaNeue(18)
-        deleteButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
-        deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
-        deleteButton.translatesAutoresizingMaskIntoConstraints = false
-        return deleteButton
+    /// Нижняя оранжевая «Подтвердить» — сохраняет выбор (раньше: «Сбросить параметр»).
+    private let confirmButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.setTitle(DivoStrings.confirm, for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
+        button.titleLabel?.font = Font.helveticaNeue(18)
+        button.backgroundColor = DivoColorPalette.accent
+        button.layer.cornerRadius = DivoDesignTokens.Radius.card
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
     
     public init(
@@ -83,7 +85,8 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             title: title,
             font: Font.medium(16),
             backButtonConfiguration: isOpenPresent ? .circle(DivoImage.searchCloseIcon) : .circle(DivoImage.searchChevronLeft),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteCheckmark, .primary),
+            // Правая круглая — крестик отмены (без сохранения). В модальном показе отмена уже слева.
+            rightButtonConfiguration: isOpenPresent ? nil : .circle(DivoColorPalette.cardBackground, DivoColorPalette.primaryText, DivoImage.searchCloseIcon, .pill),
             onBackTapped: isOpenPresent ?
             { [weak self] in
                 self?.navigationController?.dismiss(animated: true)
@@ -93,7 +96,8 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
                 self?.navigationController?.popViewController(animated: true)
             },
             onCircleRightTapped: { [weak self] in
-                self?.saveTapped()
+                self?.view.endEditing(true)
+                self?.navigationController?.popViewController(animated: true)
             }
         )
     }
@@ -110,7 +114,6 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         setupNavBar()
         setupUI()
         updateTextFields()
-        updateDeleteButtonState()
 
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tapGesture.cancelsTouchesInView = false
@@ -150,12 +153,9 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         rangeSlider.addTarget(self, action: #selector(sliderChanged), for: .valueChanged)
         container.addSubview(rangeSlider)
 
-        deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
-        deleteButton.addDivoPressState(.secondary)
-
-        if isResetButton {
-            view.addSubview(deleteButton)
-        }
+        confirmButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        confirmButton.addDivoPressState(.primary)
+        view.addSubview(confirmButton)
 
         NSLayoutConstraint.activate([
             container.topAnchor.constraint(equalTo: navigationBar.bottomAnchor, constant: DivoDesignTokens.Spacing.m),
@@ -177,14 +177,12 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             rangeSlider.heightAnchor.constraint(equalToConstant: 28),
         ])
 
-        if isResetButton {
-            NSLayoutConstraint.activate([
-                deleteButton.topAnchor.constraint(equalTo: container.bottomAnchor, constant: 32),
-                deleteButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-                deleteButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-                deleteButton.heightAnchor.constraint(equalToConstant: 48)
-            ])
-        }
+        NSLayoutConstraint.activate([
+            confirmButton.topAnchor.constraint(equalTo: container.bottomAnchor, constant: 32),
+            confirmButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            confirmButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            confirmButton.heightAnchor.constraint(equalToConstant: 48)
+        ])
 
         minTextField.isHidden = isSingleValue
         dashLabel.isHidden = isSingleValue
@@ -219,14 +217,8 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         }
     }
     
-    @objc private func deleteTapped() {
-        onSave?(nil, nil)
-        navigationController?.popViewController(animated: true)
-    }
-    
     @objc private func sliderChanged() {
         updateTextFields()
-        updateDeleteButtonState()
     }
 
     private func updateTextFields() {
@@ -238,15 +230,6 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
         }
     }
 
-    private func updateDeleteButtonState() {
-        let isDefault: Bool
-        if isSingleValue {
-            isDefault = Int(rangeSlider.upperValue) == Int(rangeSlider.maximumValue)
-        } else {
-            isDefault = Int(rangeSlider.lowerValue) == Int(rangeSlider.minimumValue) && Int(rangeSlider.upperValue) == Int(rangeSlider.maximumValue)
-        }
-        deleteButton.isEnabled = !isDefault
-    }
     
     @objc private func textFieldDidChange(_ textField: UITextField) {
         guard let text = textField.text, let value = Double(text) else { return }
@@ -279,7 +262,6 @@ public final class RangeFilterController: UIViewController, UITextFieldDelegate 
             rangeSlider.upperValue = CGFloat(clampedValue)
         }
         updateTextFields()
-        updateDeleteButtonState()
     }
 
     @objc private func dismissKeyboard() {

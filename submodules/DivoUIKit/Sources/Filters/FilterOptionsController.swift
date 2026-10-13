@@ -21,6 +21,7 @@ public final class FilterOptionsController: UIViewController {
     private let isMultiSelect: Bool
     private let showSearch: Bool
     private let isOpenPresent: Bool
+    /// Не используется: нижняя кнопка теперь всегда «Подтвердить». Параметр init оставлен для совместимости вызовов.
     private let isResetButton: Bool
     /// false для single-select (онбординг): первая опция — не псевдо-«Все».
     private let firstOptionIsAll: Bool
@@ -90,15 +91,16 @@ public final class FilterOptionsController: UIViewController {
         return field
     }()
 
-    private let deleteButton: UIButton = {
-        let deleteButton = UIButton(type: .custom)
-        deleteButton.setTitle(DivoStrings.feedSearchResetParameter, for: .normal)
-        deleteButton.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
-        deleteButton.titleLabel?.font = Font.helveticaNeue(18)
-        deleteButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
-        deleteButton.layer.cornerRadius = DivoDesignTokens.Radius.card
-        deleteButton.translatesAutoresizingMaskIntoConstraints = false
-        return deleteButton
+    /// Нижняя оранжевая «Подтвердить» — сохраняет выбор (раньше: «Сбросить параметр»).
+    private let confirmButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.setTitle(DivoStrings.confirm, for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
+        button.titleLabel?.font = Font.helveticaNeue(18)
+        button.backgroundColor = DivoColorPalette.accent
+        button.layer.cornerRadius = DivoDesignTokens.Radius.card
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
 
     public init(
@@ -125,7 +127,8 @@ public final class FilterOptionsController: UIViewController {
             title: title,
             font: Font.medium(16),
             backButtonConfiguration: isOpenPresent ? .circle(DivoImage.searchCloseIcon) : .circle(DivoImage.searchChevronLeft),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteCheckmark, .primary),
+            // Правая круглая — крестик отмены (без сохранения). В модальном показе отмена уже слева.
+            rightButtonConfiguration: isOpenPresent ? nil : .circle(DivoColorPalette.cardBackground, DivoColorPalette.primaryText, DivoImage.searchCloseIcon, .pill),
             onBackTapped: isOpenPresent ?
             { [weak self] in
                 self?.navigationController?.dismiss(animated: true)
@@ -135,7 +138,7 @@ public final class FilterOptionsController: UIViewController {
                 self?.navigationController?.popViewController(animated: true)
             },
             onCircleRightTapped: { [weak self] in
-                self?.saveTapped()
+                self?.navigationController?.popViewController(animated: true)
             }
         )
     }
@@ -158,8 +161,8 @@ public final class FilterOptionsController: UIViewController {
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
 
-        deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
-        deleteButton.addDivoPressState(.secondary)
+        confirmButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        confirmButton.addDivoPressState(.primary)
 
         if showSearch {
             scrollView.keyboardDismissMode = .onDrag
@@ -199,9 +202,7 @@ public final class FilterOptionsController: UIViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(stackView)
 
-        if isResetButton {
-            scrollView.addSubview(deleteButton)
-        }
+        scrollView.addSubview(confirmButton)
 
         let backgroundView = UIView()
         backgroundView.backgroundColor = DivoColorPalette.cardBackground
@@ -258,16 +259,14 @@ public final class FilterOptionsController: UIViewController {
             stackView.bottomAnchor.constraint(lessThanOrEqualTo: scrollView.bottomAnchor),
         ])
         
-        if isResetButton {
-            NSLayoutConstraint.activate([
-                deleteButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
-                // Ширина от видимой области скролла, а не от stackView — он схлопывается в 0 при пустом поиске.
-                deleteButton.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor),
-                deleteButton.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor),
-                deleteButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-                deleteButton.heightAnchor.constraint(equalToConstant: 48)
-            ])
-        }
+        NSLayoutConstraint.activate([
+            confirmButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
+            // Ширина от видимой области скролла, а не от stackView — он схлопывается в 0 при пустом поиске.
+            confirmButton.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor),
+            confirmButton.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor),
+            confirmButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+            confirmButton.heightAnchor.constraint(equalToConstant: 48)
+        ])
     }
     
     private func reloadOptions() {
@@ -291,12 +290,6 @@ public final class FilterOptionsController: UIViewController {
 
             stackView.addArrangedSubview(cell)
         }
-        updateDeleteButtonState()
-    }
-
-    private func updateDeleteButtonState() {
-        let isDefault = selectedOptionIds.isEmpty
-        deleteButton.isEnabled = !isDefault
     }
 
     private func createOptionCell(option: FilterOptionItem, isSelected: Bool, isLast: Bool) -> UIView {
@@ -396,15 +389,6 @@ public final class FilterOptionsController: UIViewController {
             let selectedItems = allOptions.filter { selectedOptionIds.contains($0.id) }
             onSave?(selectedItems)
         }
-        if isOpenPresent {
-            navigationController?.dismiss(animated: true)
-        } else {
-            navigationController?.popViewController(animated: true)
-        }
-    }
-
-    @objc private func deleteTapped() {
-        onSave?([])
         if isOpenPresent {
             navigationController?.dismiss(animated: true)
         } else {
