@@ -1892,9 +1892,12 @@ final class EventDetailControllerNode: ASDisplayNode {
         let appearance = buildAppearanceList(attributes: newEventData.modelAttributes)
         parametersView.update(appearance: appearance)
         
-        likesView.setValue("1.2K")
-        viewsView.setValue("2.4K")
-        savesView.setValue("300")
+        // Раньше здесь были захардкоженные значения — у всех событий одинаковые счётчики.
+        likesView.setValue(Self.formatCount(newEventData.likesCount ?? 0))
+        likesView.setActive(newEventData.isLiked ?? false, animated: false)
+        viewsView.setValue(Self.formatCount(newEventData.viewsCount ?? 0))
+        savesView.setValue(Self.formatCount(newEventData.favoritesCount ?? 0))
+        savesView.setActive(newEventData.isFavourite ?? false, animated: false)
 
         // Все поля заполнены — теперь атомарно переключаем фазу: applyPhase().content
         // спрячет шиммеры и покажет контент-контейнеры одним кадром, без промежутка.
@@ -2019,14 +2022,31 @@ final class EventDetailControllerNode: ASDisplayNode {
         }
         
         // Статистика по нулям
-        likesView.setValue("1K")
-        viewsView.setValue("1K")
-        savesView.setValue("1K")
+        likesView.setValue("0")
+        viewsView.setValue("0")
+        savesView.setValue("0")
 
         updateGallery(data.gallery)
 
         self.phase = .content
         activateTitleVisibility()
+    }
+
+    /// Компактный счётчик, как в шапке профиля: 999 → "999", 1K, 288K, 1.5M, 1.5B.
+    private static func formatCount(_ count: Int) -> String {
+        let units: [(Double, String)] = [(1_000_000_000, "B"), (1_000_000, "M")]
+        for (divisor, suffix) in units where Double(count) >= divisor {
+            let value = Double(count) / divisor
+            if value >= 10 {
+                return "\(Int(value))\(suffix)"
+            }
+            let formatted = String(format: "%.1f", value)
+            return formatted.hasSuffix(".0") ? "\(Int(value))\(suffix)" : "\(formatted)\(suffix)"
+        }
+        if count >= 1_000 {
+            return "\(count / 1_000)K"
+        }
+        return "\(count)"
     }
 
     // Метод управления загрузкой отзыва
