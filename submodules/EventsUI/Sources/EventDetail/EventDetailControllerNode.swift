@@ -1896,7 +1896,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         likesView.setValue(Self.formatCount(newEventData.likesCount ?? 0))
         likesView.setActive(newEventData.isLiked ?? false, animated: false)
         viewsView.setValue(Self.formatCount(newEventData.viewsCount ?? 0))
-        savesView.setValue(Self.formatCount(newEventData.favouritesCount ?? 0))
+        savesView.setValue(Self.formatCount(newEventData.favoritesCount ?? 0))
         savesView.setActive(newEventData.isFavourite ?? false, animated: false)
 
         // Все поля заполнены — теперь атомарно переключаем фазу: applyPhase().content

@@ -126,9 +126,9 @@ public struct EventFullDetailData: Decodable {
     public let appliesCount: Int?
     public let viewsCount: Int?
     /// Счётчики/флаги лайка и избранного (`/event/{id}/like`, `/event/{id}/set-favourite`).
-    /// Опциональны: если бэк их не отдаёт, UI показывает 0.
+    /// Имена — по openapi `GET /event/{id}` (EventData); опциональны: нет поля → UI показывает 0.
     public let likesCount: Int?
-    public let favouritesCount: Int?
+    public let favoritesCount: Int?
     public let isLiked: Bool?
     public let isFavourite: Bool?
     public let userReachCount: Int?
