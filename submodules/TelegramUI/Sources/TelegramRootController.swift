@@ -966,6 +966,17 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         }
     }
     
+    public func openDivoHome() {
+        guard let rootTabController = self.rootTabController else {
+            return
+        }
+        
+        self.popToRoot(animated: false)
+        
+        let index = rootTabController.controllers.firstIndex(where: { $0 is ModelsFeedController }) ?? 0
+        rootTabController.selectedIndex = index
+    }
+    
     public func openContacts() {
         guard let rootTabController = self.rootTabController else {
             return

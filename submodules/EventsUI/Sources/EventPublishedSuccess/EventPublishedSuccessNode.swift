@@ -15,7 +15,7 @@ import DivoGallery
 
 final class EventPublishedSuccessNode: ASDisplayNode {
     var onViewEvent: (() -> Void)?
-    var onManageApplications: (() -> Void)?
+    var onGoHome: (() -> Void)?
     var onBackTapped: (() -> Void)?
         
     private let emptyModelsIcon: UIImageView = {
@@ -59,7 +59,7 @@ final class EventPublishedSuccessNode: ASDisplayNode {
     }()
     
     private let viewEventButton = DivoButton()
-    private let manageAppsButton = DivoButton()
+    private let goHomeButton = DivoButton()
     
     override init() {
         super.init()
@@ -68,9 +68,9 @@ final class EventPublishedSuccessNode: ASDisplayNode {
         viewEventButton.makeDivoButton(title: DivoStrings.viewEventPage, buttonFont: Font.helveticaNeue(20), radius: 28)
         viewEventButton.addTarget(self, action: #selector(viewTapped), for: .touchUpInside)
         
-        manageAppsButton.makeDivoButton(title: DivoStrings.manageApplications, buttonFont: Font.helveticaNeue(20), radius: 28, divoButtonStyle: .secondary)
-        manageAppsButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
-        manageAppsButton.addTarget(self, action: #selector(manageTapped), for: .touchUpInside)
+        goHomeButton.makeDivoButton(title: DivoStrings.goToHome, buttonFont: Font.helveticaNeue(20), radius: 28, divoButtonStyle: .secondary)
+        goHomeButton.backgroundColor = DivoColorPalette.secondaryButtonBackground
+        goHomeButton.addTarget(self, action: #selector(goHomeTapped), for: .touchUpInside)
         
         view.addSubview(contentStack)
                 
@@ -82,7 +82,7 @@ final class EventPublishedSuccessNode: ASDisplayNode {
         contentStack.setCustomSpacing(6, after: titleLabel)
         
         self.view.addSubview(viewEventButton)
-        self.view.addSubview(manageAppsButton)
+        self.view.addSubview(goHomeButton)
         
         let centerGuide = UILayoutGuide()
         view.addLayoutGuide(centerGuide)
@@ -102,12 +102,12 @@ final class EventPublishedSuccessNode: ASDisplayNode {
             contentStack.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             contentStack.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             
-            manageAppsButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor),
-            manageAppsButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            manageAppsButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            manageAppsButton.heightAnchor.constraint(equalToConstant: 56),
+            goHomeButton.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor),
+            goHomeButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            goHomeButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            goHomeButton.heightAnchor.constraint(equalToConstant: 56),
             
-            viewEventButton.bottomAnchor.constraint(equalTo: manageAppsButton.topAnchor, constant: -10),
+            viewEventButton.bottomAnchor.constraint(equalTo: goHomeButton.topAnchor, constant: -10),
             viewEventButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
             viewEventButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
             viewEventButton.heightAnchor.constraint(equalToConstant: 56),
@@ -115,5 +115,5 @@ final class EventPublishedSuccessNode: ASDisplayNode {
     }
     
     @objc private func viewTapped() { onViewEvent?() }
-    @objc private func manageTapped() { onManageApplications?() }
+    @objc private func goHomeTapped() { onGoHome?() }
 }

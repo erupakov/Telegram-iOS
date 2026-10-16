@@ -21,7 +21,7 @@ public final class EventPublishedSuccessController: TelegramBaseController {
     private let context: AccountContext
     
     public var onViewEventTapped: (() -> Void)?
-    public var onManageApplicationsTapped: (() -> Void)?
+    public var onGoHomeTapped: (() -> Void)?
     
     public init(context: AccountContext) {
         self.context = context
@@ -46,8 +46,8 @@ public final class EventPublishedSuccessController: TelegramBaseController {
             self?.onViewEventTapped?()
         }
         
-        self.controllerNode.onManageApplications = { [weak self] in
-            self?.onManageApplicationsTapped?()
+        self.controllerNode.onGoHome = { [weak self] in
+            self?.onGoHomeTapped?()
         }
         
         self.controllerNode.onBackTapped = {[weak self] in

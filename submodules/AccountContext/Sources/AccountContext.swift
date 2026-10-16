@@ -1040,6 +1040,8 @@ public protocol TelegramRootControllerInterface: NavigationController {
         
     func openContacts()
     func openSettings(edit: Bool)
+    // DIVO: pop to root and select the main (Models feed) tab
+    func openDivoHome()
     func openBirthdaySetup()
     func openPhotoSetup(completedWithUploadingImage: @escaping (UIImage, Signal<PeerInfoAvatarUploadStatus, NoError>) -> UIView?)
     func openAvatars()
