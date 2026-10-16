@@ -371,10 +371,11 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                             backToProfile()
                         }
                     }
-                    successController.onManageApplicationsTapped = { [weak self] in
+                    successController.onGoHomeTapped = { [weak self] in
                         guard let self else { return }
-                        if let id = resultEventId {
-                            self.push(ApplicationsListController(context: self.context, eventId: id))
+                        if let rootController = self.context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface {
+                            self.delegate?.didCreateEvent()
+                            rootController.openDivoHome()
                         } else {
                             backToProfile()
                         }
