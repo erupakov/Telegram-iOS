@@ -5195,6 +5195,11 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
 // MARK: - UIScrollViewDelegate
 
 extension PublicProfileScreenNode: UIScrollViewDelegate {
+    /// Наверх профиля (повторный тап по вкладке «Профиль»).
+    func scrollToTop() {
+        scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: -scrollView.contentInset.top), animated: true)
+    }
+
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if scrollView === tabsPager {
             // Горизонтальный пейджер — двигаем индикатор сегмент-бара вместе

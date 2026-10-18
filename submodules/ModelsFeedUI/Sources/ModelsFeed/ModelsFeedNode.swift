@@ -737,6 +737,11 @@ final class ModelsFeedNode: ASDisplayNode, UICollectionViewDataSource, UICollect
         return offset < midpoint ? headerExpandedOffset : headerCollapsedOffset
     }
 
+    /// Наверх ленты с раскрытой шапкой (повторный тап по вкладке).
+    func scrollToTop() {
+        mainCollectionView.setContentOffset(CGPoint(x: mainCollectionView.contentOffset.x, y: headerExpandedOffset), animated: true)
+    }
+
     func scrollViewWillEndDragging(_ scrollView: UIScrollView, withVelocity velocity: CGPoint, targetContentOffset: UnsafeMutablePointer<CGPoint>) {
         guard scrollView === mainCollectionView else { return }
         if let target = headerSnapTarget(for: targetContentOffset.pointee.y, velocity: velocity.y) {
