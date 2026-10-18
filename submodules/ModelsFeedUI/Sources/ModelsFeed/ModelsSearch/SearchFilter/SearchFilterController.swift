@@ -594,15 +594,11 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName.divoURLQueryEncoded
-                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
-                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
-                    method: "GET"
-                )
+                let resolved = try await DivoGeoCityResolver.resolveCity(query: cityName)
                 
                 self.cityRow.setLoading(false)
                 
-                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                if let firstResult = resolved, let cityId = firstResult.city?.id {
                     self.currentFilters.cityId = cityId
                     
                     let resolvedCityName = firstResult.city?.name ?? cityName

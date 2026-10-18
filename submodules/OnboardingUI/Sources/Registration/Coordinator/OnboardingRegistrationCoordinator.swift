@@ -619,15 +619,11 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName.divoURLQueryEncoded
-                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
-                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
-                    method: "GET"
-                )
+                let resolved = try await DivoGeoCityResolver.resolveCity(query: cityName)
                 
                 controller.setFieldLoading(false, forKey: fieldKey)
                 
-                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                if let firstResult = resolved, let cityId = firstResult.city?.id {
                     let resolvedCityId = String(cityId)
                     let resolvedCityName = firstResult.city?.name ?? cityName
                     let countryCode = firstResult.country?.code ?? firstResult.city?.countryCode
