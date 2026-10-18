@@ -256,8 +256,9 @@ public final class EventDetailController: TelegramBaseController {
                         guard let order2 = $1.order else { return true }
                         return order1 < order2
                     }
-                    // Фильтруем обложку (обычно order == 0) и конвертируем остальные фото в UserPhoto
-                    self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
+                    // Обложка — первый файл по order (order nullable и не обязательно начинается с 0), остальное — галерея.
+                    let coverUuid = sortedFiles.first(where: { $0.fileUuid != nil })?.fileUuid
+                    self.currentGalleryPhotos = sortedFiles.filter { $0.fileUuid != coverUuid }.compactMap { file in
                         guard let uuid = file.fileUuid,
                               let fileExtension = file.fileExtension,
                               let fullUrl = file.fullUrl,
