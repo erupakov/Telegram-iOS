@@ -484,6 +484,7 @@ public enum DivoStrings {
     public static var agencyName: String { L(en: "Agency name", ru: "Название агентства", es: "Nombre de la agencia", pt: "Nome da agência", zh: "经纪公司名称", fr: "Nom de l’agence") }
     public static var name: String { L(en: "Name", ru: "Имя", es: "Nombre", pt: "Nome", zh: "姓名", fr: "Nom") }
     public static var followersCount: String { L(en: "followers", ru: "подписчиков", es: "seguidores", pt: "seguidores", zh: "粉丝", fr: "abonnés") }
+    public static var privateChannel: String { L(en: "Private channel", ru: "Приватный канал", es: "Canal privado", pt: "Canal privado", zh: "私有频道", fr: "Chaîne privée") }
     public static var videoUnavailable: String { L(en: "Video unavailable", ru: "Видео недоступно", es: "Video no disponible", pt: "Vídeo indisponível", zh: "视频不可用", fr: "Vidéo indisponible") }
     public static var failedToDelete: String { L(en: "Failed to delete", ru: "Не удалось удалить", es: "Error al eliminar", pt: "Falha ao excluir", zh: "删除失败", fr: "Échec de la suppression") }
     public static var emptyPhoto: String { L(en: "Photo is missing", ru: "Фото отсутствует", es: "Falta la foto", pt: "Foto está faltando", zh: "照片缺失", fr: "Photo manquante") }
