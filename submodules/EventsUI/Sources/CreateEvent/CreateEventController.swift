@@ -180,7 +180,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     if let files = detail.files {
                         // Файлы без order считаем «без порядка» и кладём в конец списка.
                         let sortedFiles = files.sorted { ($0.order ?? Int.max) < ($1.order ?? Int.max) }
-                        self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
+                        // Обложка — первый файл по order (order nullable и не обязательно начинается с 0), остальное — галерея.
+                        let coverUuid = sortedFiles.first(where: { $0.fileUuid != nil })?.fileUuid
+                        self.currentGalleryPhotos = sortedFiles.filter { $0.fileUuid != coverUuid }.compactMap { file in
                             guard let uuid = file.fileUuid,
                                   let fileExtension = file.fileExtension,
                                   let fullUrl = file.fullUrl,

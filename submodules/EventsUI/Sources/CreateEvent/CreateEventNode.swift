@@ -1521,19 +1521,27 @@ final class CreateEventNode: ASDisplayNode {
             return order1 < order2
         }
         
-        if let avatarFile = sortedFiles.first(where: { $0.order == 0 }), let uuid = avatarFile.fileUuid, let urlString = avatarFile.fullUrl, let url = URL(string: urlString) {
+        // Обложка — первый файл по order. Раньше искали строго order == 0, но order у бэка nullable,
+        // а события, созданные не этим клиентом, нумеруют файлы иначе (например, с 1). Тогда обложка
+        // не находилась, hasPhoto = false и кнопка «Продолжить» в редактировании оставалась неактивной.
+        let avatarFile = sortedFiles.first(where: { $0.fileUuid != nil })
+        if let avatarFile = avatarFile, let uuid = avatarFile.fileUuid {
             self.avatarFileUuid = uuid
-            Task { @MainActor in
-                if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
-                    self.currentPhoto = image
+            if let urlString = avatarFile.fullUrl, let url = URL(string: urlString) {
+                Task { @MainActor in
+                    if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
+                        self.currentPhoto = image
+                    }
                     self.setAvatarLoading(false)
                 }
+            } else {
+                self.setAvatarLoading(false)
             }
         } else {
             self.setAvatarLoading(false)
         }
         
-        let galleryFiles = sortedFiles.filter { $0.order != 0 }
+        let galleryFiles = sortedFiles.filter { $0.fileUuid != avatarFile?.fileUuid }
         self.galleryItems = galleryFiles.compactMap { file in
             guard let uuid = file.fileUuid else { return nil }
             return EventGalleryItem(image: nil, isUploading: false, fileUuid: uuid)
@@ -2416,6 +2424,8 @@ final class CreateEventNode: ASDisplayNode {
     func markDataLoaded() {
         loadPhase = .ready
         hasLoadedInitialData = true
+        // Пока шла загрузка, validateCurrentStep держал кнопку выключенной — пересчитываем по заполненной форме.
+        validateCurrentStep()
     }
 
     /// Отметить, что загрузка данных завершилась ошибкой
