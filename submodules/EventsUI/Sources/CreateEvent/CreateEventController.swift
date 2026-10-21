@@ -709,16 +709,11 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName.divoURLQueryEncoded
-
-                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
-                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
-                    method: "GET"
-                )
+                let resolved = try await DivoGeoCityResolver.resolveCity(query: cityName)
                 
                 self.createEventNode.setCityRowLoading(false)
                 
-                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                if let firstResult = resolved, let cityId = firstResult.city?.id {
                     let resolvedCityId = String(cityId)
                     
                     let resolvedCityName = firstResult.city?.name ?? cityName
