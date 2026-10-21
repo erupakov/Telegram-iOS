@@ -197,7 +197,10 @@ private func incomingMessagePrivacyScreenEntries(presentationData: PresentationD
     entries.append(.header)
     entries.append(.optionEverybody(value: state.updatedValue))
     entries.append(.optionPremium(value: state.updatedValue, isEnabled: enableSetting))
-    if configuration.paidMessagesAvailable {
+    // DIVO: платные сообщения (цена в звёздах) отключены — на teamgram настройка не сохраняется.
+    // Пункт показываем, только если значение уже `.paidMessages` (выставлено раньше), чтобы оно было
+    // видно и его можно было сменить на «Все»/«Контакты».
+    if configuration.paidMessagesAvailable, case .paidMessages = state.updatedValue {
         entries.append(.optionChargeForMessages(value: state.updatedValue, isEnabled: isPremium))
     }
     
