@@ -1165,7 +1165,7 @@ public enum DivoStrings {
     public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)", fr: "Date limite : \(data)") }
     public static func afterDeadlineData(_ data: String) -> String { L(en: "Applications closed \(data)", ru: "Прием заявок закрыт \(data)", es: "Inscripciones cerradas \(data)", pt: "Inscrições encerradas \(data)", zh: "申请已截止 \(data)", fr: "Candidatures clôturées \(data)") }
     public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭", fr: "Clôture dans \(time)") }
-    public static func currentApplied(_ users: Int) -> String { L(en: "\(users) applied", ru: "\(users) подано заявок", es: "\(users) aplicaron", pt: "\(users) candidaturas", zh: "\(users) 人已申请", fr: "\(users) candidatures") }
+    public static func currentApplied(_ users: Int) -> String { L(en: "Applications: \(users)", ru: "Подано заявок: \(users)", es: "Solicitudes: \(users)", pt: "Candidaturas: \(users)", zh: "已申请：\(users)", fr: "Candidatures : \(users)") }
     public static func allApplied(_ users: Int) -> String { L(en: "\(users) max spots", ru: "Максимум \(users) мест", es: "\(users) plazas máximas", pt: "Máximo \(users) vagas", zh: "最多 \(users) 个名额", fr: "\(users) places max") }
 
     // MARK: - Event Applications List
