@@ -2049,6 +2049,11 @@ final class EventDetailControllerNode: ASDisplayNode {
         return "\(count)"
     }
 
+    /// Подменить организатора (своё событие, у которого бэк не прислал creator / его имя).
+    func updateOrganizer(name: String?, isVerified: Bool?, logoURLString: String?) {
+        organizerView.configure(name: name, isVerified: isVerified, logoURLString: logoURLString)
+    }
+
     // Метод управления загрузкой отзыва
     func toggleWithdrawLoading(active: Bool) {
         appliedStatusView.setWithdrawLoading(active)
