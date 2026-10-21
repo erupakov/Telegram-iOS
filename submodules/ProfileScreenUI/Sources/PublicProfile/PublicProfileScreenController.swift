@@ -583,6 +583,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
     public func configureAsProfileTab() {
         self.isProfileTab = true
         self.tabBarItem.title = DivoStrings.tabProfile
+        // Повторный тап по активной вкладке «Профиль» — наверх.
+        self.scrollToTop = { [weak self] in
+            guard let self, self.isNodeLoaded else { return }
+            self.controllerNode.scrollToTop()
+        }
         self.applyTabBarIcon(avatar: nil)
         // Свой профиль отредактировали (имя/ава/поля) на другом экране → тихо перечитываем себя,
         // иначе таб держит устаревшие данные до перезахода в приложение.

@@ -67,6 +67,12 @@ public final class ModelsFeedController: TelegramBaseController {
         let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
+        // Повторный тап по активной вкладке таб-бара (TabBarController → scrollToTopWithTabBar) — лента наверх.
+        self.scrollToTop = { [weak self] in
+            guard let self, self.isNodeLoaded else { return }
+            self.controllerNode.scrollToTop()
+        }
+
         let icon: UIImage = DivoImage.iconModels
         self.tabBarItem.title = DivoStrings.tabModels
         self.tabBarItem.image = icon
