@@ -7,6 +7,16 @@ struct ProfileChannelItem {
     let subtitle: String?
     let username: String?
     let isVerified: Bool
+    /// telegramChatId из /channels/list — нужен для приватных каналов (без username).
+    var telegramChatId: Int64? = nil
+
+    /// Стабильный ключ элемента (для апдейтов после асинхронного резолва).
+    var identity: String {
+        if let telegramChatId = telegramChatId {
+            return "id:\(telegramChatId)"
+        }
+        return "u:\(username ?? title)"
+    }
 }
 
 final class ChannelListCell: UICollectionViewCell {

@@ -1239,12 +1239,23 @@ extension PublicProfileScreenController {
     }
 }
 
-// Загрузка каналов модели через REST (/channels/list). В публичном профиле показываем
-// только публичные каналы (с username); приватные не выводим. Название/подписчиков/verified
-// подтягиваем из MTProto резолвом по username.
+// Загрузка каналов модели через REST (/channels/list). В чужом профиле показываем только публичные
+// каналы (с username); в своём — и приватные (резолв по telegramChatId из локального кэша владельца).
+// Название/подписчиков/verified подтягиваем из MTProto. Группы (в т.ч. группа обсуждений канала,
+// если её зарегистрировал другой клиент) — не каналы: после резолва выкидываем их из списка.
 extension PublicProfileScreenController {
+    /// id профиля для /channels/list: у своего профиля (таб) в модели userId нет — берём id из
+    /// загруженного /user/info, а до его прихода — id текущей DIVO-сессии.
+    private var channelsOwnerUserId: Int? {
+        if let userId = model.userId {
+            return userId
+        }
+        guard self.isMyProfile else { return nil }
+        return self.userID > 0 ? self.userID : DivoConfig.currentDivoUserId
+    }
+
     func loadTelegramChannels() {
-        guard let userId = model.userId else {
+        guard let userId = self.channelsOwnerUserId else {
             DispatchQueue.main.async { [weak self] in
                 self?.controllerNode.updateChannelsList([])
             }
@@ -1253,6 +1264,7 @@ extension PublicProfileScreenController {
 
         self.channelInfoDisposables.dispose()
         self.channelInfoDisposables = DisposableSet()
+        let includePrivate = self.isMyProfile
 
         Task { @MainActor in
             do {
@@ -1260,17 +1272,25 @@ extension PublicProfileScreenController {
                     path: "/channels/list?user_id=\(userId)",
                     method: "GET"
                 )
-                // Приватные каналы (без username) в публичном профиле не показываем.
                 let base = (response.data?.items ?? []).compactMap { channel -> ProfileChannelItem? in
-                    guard let username = channel.username?.trimmingCharacters(in: .whitespacesAndNewlines),
-                          !username.isEmpty else {
-                        return nil
+                    let username = channel.username?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if let username = username, !username.isEmpty {
+                        return ProfileChannelItem(
+                            title: username,
+                            subtitle: "@\(username)",
+                            username: username,
+                            isVerified: false,
+                            telegramChatId: channel.telegramChatId
+                        )
                     }
+                    // Приватные каналы (без username) — только в своём профиле.
+                    guard includePrivate, let chatId = channel.telegramChatId else { return nil }
                     return ProfileChannelItem(
-                        title: username,
-                        subtitle: "@\(username)",
-                        username: username,
-                        isVerified: false
+                        title: DivoStrings.privateChannel,
+                        subtitle: nil,
+                        username: nil,
+                        isVerified: false,
+                        telegramChatId: chatId
                     )
                 }
 
@@ -1285,13 +1305,16 @@ extension PublicProfileScreenController {
         }
     }
 
-    // Реальное название/verified и число подписчиков берём из MTProto резолвом по username.
-    // Подписчики — best-effort: если ещё не в кэше, оставляем @username как подпись.
-    private func enrichChannelsFromMTProto() {
-        for (index, item) in self.channelItems.enumerated() {
-            guard let username = item.username, !username.isEmpty else { continue }
+    /// PeerId канала по telegramChatId из REST. Наш клиент регистрирует «сырой» id канала, но бэк
+    /// документирует и Bot-API форму (-100XXXXXXXXXX) — нормализуем обе.
+    private static func channelPeerId(telegramChatId: Int64) -> EnginePeer.Id {
+        let rawId = telegramChatId < 0 ? -(telegramChatId + 1_000_000_000_000) : telegramChatId
+        return EnginePeer.Id(namespace: Namespaces.Peer.CloudChannel, id: EnginePeer.Id.Id._internalFromInt64Value(rawId))
+    }
 
-            let signal = self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
+    private func resolveChannelPeer(_ item: ProfileChannelItem) -> Signal<EnginePeer?, NoError> {
+        if let username = item.username, !username.isEmpty {
+            return self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
             |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
                 switch result {
                 case .progress:
@@ -1301,6 +1324,18 @@ extension PublicProfileScreenController {
                 }
             }
             |> take(1)
+        }
+        if let chatId = item.telegramChatId {
+            return self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: Self.channelPeerId(telegramChatId: chatId)))
+        }
+        return .single(nil)
+    }
+
+    // Реальное название/verified и число подписчиков берём из MTProto.
+    // Подписчики — best-effort: если ещё не в кэше, оставляем @username как подпись.
+    private func enrichChannelsFromMTProto() {
+        for item in self.channelItems {
+            let signal = self.resolveChannelPeer(item)
             |> mapToSignal { [weak self] peer -> Signal<(EnginePeer, Int?)?, NoError> in
                 guard let self = self, let peer = peer else { return .single(nil) }
                 return self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.ParticipantCount(id: peer.id))
@@ -1310,41 +1345,41 @@ extension PublicProfileScreenController {
             self.channelInfoDisposables.add((signal
             |> deliverOnMainQueue).startStrict(next: { [weak self] pair in
                 guard let self = self, let (peer, count) = pair else { return }
-                self.applyChannelInfo(peer: peer, participantsCount: count, at: index)
+                self.applyChannelInfo(peer: peer, participantsCount: count, for: item.identity)
             }))
         }
     }
 
-    private func applyChannelInfo(peer: EnginePeer, participantsCount: Int?, at index: Int) {
-        guard index < self.channelItems.count else { return }
-        let current = self.channelItems[index]
+    private func applyChannelInfo(peer: EnginePeer, participantsCount: Int?, for identity: String) {
+        // Поиск по идентичности, а не по индексу: соседние элементы могли быть уже удалены.
+        guard let index = self.channelItems.firstIndex(where: { $0.identity == identity }) else { return }
 
+        // В «Каналы» попадают только broadcast-каналы: группы/супергруппы (группа обсуждений) убираем.
+        guard case let .channel(channel) = peer, case .broadcast = channel.info else {
+            self.channelItems.remove(at: index)
+            self.controllerNode.updateChannelsList(self.channelItems)
+            return
+        }
+
+        let current = self.channelItems[index]
         self.channelItems[index] = ProfileChannelItem(
             title: peer.debugDisplayTitle,
             subtitle: participantsCount.map { DivoStrings.followersString($0) } ?? current.subtitle,
             username: current.username,
-            isVerified: peer.isVerified
+            isVerified: peer.isVerified,
+            telegramChatId: current.telegramChatId
         )
         self.controllerNode.updateChannelsList(self.channelItems)
     }
 
     func openChannel(_ item: ProfileChannelItem) {
         guard let navigationController = self.navigationController as? NavigationController else { return }
-        guard let username = item.username, !username.isEmpty else {
+        guard (item.username?.isEmpty == false) || item.telegramChatId != nil else {
             self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
             return
         }
 
-        self.openChatDisposable.set((self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
-        |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
-            switch result {
-            case .progress:
-                return .complete()
-            case let .result(peer):
-                return .single(peer)
-            }
-        }
-        |> take(1)
+        self.openChatDisposable.set((self.resolveChannelPeer(item)
         |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
             guard let self = self else { return }
             guard let peer = peer else {
