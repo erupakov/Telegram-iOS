@@ -2131,12 +2131,14 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
         return UIImage(cgImage: cgImage)
     }
 
-    /// Кадрирование фона: квадратная рамка — фото фона профиля по продукту квадратное (так его
-    /// кадрируют и показывают другие клиенты). Раньше рамка была вертикальной с aspect экрана.
+    /// Кадрирование фона: прямоугольная рамка с aspect экрана — фон в шапке растянут на весь
+    /// экран профиля (aspect fill), поэтому пользователь сразу видит, какая часть фото попадёт в кадр.
     private func presentBackgroundCrop(_ image: UIImage) {
+        let bounds = self.view.bounds
+        let aspectRatio = bounds.height > 0 ? bounds.width / bounds.height : 9.0 / 16.0
         let cropController = DivoAvatarCropController(
             image: image,
-            shape: .rectangle(aspectRatio: 1.0),
+            shape: .rectangle(aspectRatio: aspectRatio),
             onComplete: { [weak self] cropped in
                 guard let self = self else { return }
                 self.controllerNode.updateBackgroundImage(cropped)
