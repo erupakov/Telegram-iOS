@@ -91,6 +91,8 @@ public final class FilterOptionsController: UIViewController {
         return field
     }()
 
+    private static let confirmButtonHeight: CGFloat = 48
+
     /// Нижняя оранжевая «Подтвердить» — сохраняет выбор (раньше: «Сбросить параметр»).
     private let confirmButton: UIButton = {
         let button = UIButton(type: .custom)
@@ -202,7 +204,9 @@ public final class FilterOptionsController: UIViewController {
         view.addSubview(scrollView)
         scrollView.addSubview(stackView)
 
-        scrollView.addSubview(confirmButton)
+        // «Подтвердить» плавает над списком: в длинных списках (страны) раньше её было не достать,
+        // не пролистав до конца.
+        view.addSubview(confirmButton)
 
         let backgroundView = UIView()
         backgroundView.backgroundColor = DivoColorPalette.cardBackground
@@ -256,17 +260,23 @@ public final class FilterOptionsController: UIViewController {
             stackView.topAnchor.constraint(equalTo: scrollView.topAnchor),
             stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            stackView.bottomAnchor.constraint(lessThanOrEqualTo: scrollView.bottomAnchor),
+            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
         ])
         
+        // Кнопка закреплена внизу экрана и поднимается над клавиатурой поиска; список прокручивается
+        // под ней — нижний inset, чтобы последний пункт не прятался за кнопкой.
+        scrollView.contentInset.bottom = Self.confirmButtonHeight + DivoDesignTokens.Spacing.m * 2
+        scrollView.verticalScrollIndicatorInsets.bottom = scrollView.contentInset.bottom
         NSLayoutConstraint.activate([
-            confirmButton.topAnchor.constraint(equalTo: stackView.bottomAnchor, constant: DivoDesignTokens.Spacing.xl),
-            // Ширина от видимой области скролла, а не от stackView — он схлопывается в 0 при пустом поиске.
-            confirmButton.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor),
-            confirmButton.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor),
-            confirmButton.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            confirmButton.heightAnchor.constraint(equalToConstant: 48)
+            confirmButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            confirmButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            confirmButton.heightAnchor.constraint(equalToConstant: Self.confirmButtonHeight)
         ])
+        if #available(iOS 15.0, *) {
+            confirmButton.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
+        } else {
+            confirmButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
+        }
     }
     
     private func reloadOptions() {
