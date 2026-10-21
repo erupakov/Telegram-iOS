@@ -66,6 +66,12 @@ public final class ApplicationsListController: TelegramBaseController {
         self.controllerNode.onSelectionTapped = { [weak self] id in
             self?.toggleApplicantSelection(id: id)
         }
+
+        // Тап по отклику — профиль откликнувшейся модели (раньше колбэк не был подключён).
+        self.controllerNode.onApplicantTapped = { [weak self] item in
+            guard let self, let makeProfile = EventsUIRouting.makeUserProfileController else { return }
+            self.push(makeProfile(self.context, item.id))
+        }
         
         // Связываем кнопку повтора на экране ошибок
         self.controllerNode.onRetry = { [weak self] in

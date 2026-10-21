@@ -313,6 +313,10 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         // Заголовок вкладки чатов ведём через DivoStrings, а не Telegram-пак (DialogList_Title):
         // teamgram не отдаёт langpack, поэтому нативная строка не переключается на выбранный язык.
         chatListController.tabBarItem.title = DivoStrings.tabChats
+        // Профиль из EventsUI (например, из списка откликов) — EventsUI не может импортировать ProfileScreenUI.
+        EventsUIRouting.makeUserProfileController = { context, userId in
+            return PublicProfileScreenController(context: context, model: ProfileModel(userId: userId))
+        }
         let eventsController = EventsController(context: self.context)
         let modelsFeedNode = ModelsFeedController(context: self.context)
 
