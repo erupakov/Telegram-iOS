@@ -382,6 +382,14 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
         return
     }
     
+    // DIVO: ссылка «Поделиться» (api.divo.fashion/profile|event/{id}) из чата открывается в приложении,
+    // а не в браузере (у API-хоста нет веб-страницы — ссылка «не открывалась»).
+    if let navigationController = navigationController, let target = divoShareLinkTarget(context: context, url: canonicalUrl) {
+        dismissInput()
+        navigationController.pushViewController(target.controller, animated: true)
+        return
+    }
+    
     if canonicalUrl.scheme == "mailto" {
         context.sharedContext.applicationBindings.openUrl(url)
         return
