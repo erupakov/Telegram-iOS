@@ -947,49 +947,12 @@ final class AuthorizedApplicationContext {
     }
 
     private func handleDivoUniversalLink(_ url: URL) -> Bool {
-        guard let host = url.host?.lowercased(),
-              (host == DivoConfig.shareHost || host == "divo.fashion") else {
+        guard let target = divoShareLinkTarget(context: self.context, url: url) else {
             return false
         }
-
-        let pathComponents = url.pathComponents.filter { $0 != "/" }
-        guard pathComponents.count == 2,
-              let idString = pathComponents.last,
-              let id = Int(idString) else {
-            return false
-        }
-
-        let type = pathComponents[0].lowercased()
-        let navigationController = self.rootController
-
-        switch type {
-        case "profile":
-            self.rootController.rootTabController?.selectedIndex = 0
-            let profileModel = ProfileModel(
-                name: "",
-                age: 0,
-                location: "",
-                isVerified: false,
-                likesCount: "0",
-                viewsCount: "0",
-                savesCount: "0",
-                biography: "",
-                socialMediaHandles: [],
-                userId: id
-            )
-            let controller = PublicProfileScreenController(context: self.context, model: profileModel)
-            navigationController.pushViewController(controller, animated: true)
-            return true
-
-        case "event":
-            self.rootController.rootTabController?.selectedIndex = 1
-            let controller = EventDetailController(context: self.context, eventId: id)
-            navigationController.pushViewController(controller, animated: true)
-            return true
-
-        default:
-            return false
-        }
+        self.rootController.rootTabController?.selectedIndex = target.tabIndex
+        self.rootController.pushViewController(target.controller, animated: true)
+        return true
     }
     
     func openRootSearch() {
