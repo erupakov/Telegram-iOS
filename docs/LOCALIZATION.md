@@ -4,6 +4,7 @@
 
 | Дата | Изменение |
 |------|-----------|
+| 2026-10-26 | Аудит хардкодов: локализованы тексты экрана отправки онбординга и фолбэки загрузки видео (`onboardingSubmit*`, `failedToLoad`); путь к `DivoStrings.swift` и список языков (+`fr`) актуализированы |
 | 2026-04-01 | Код-ревью ветки PROJ-83: пофикшены хардкоды `"Edit"`/`"Apply"` в `EventListCell`, `param.rawValue` в `EventParametersSheetController`; добавлены строки `addShort`, `nSelected()`, `searchPlaceholder`, `paramXxx` (12 параметров); раздел «Известные хардкоды и ограничения» |
 
 ## Где хранятся строки
@@ -11,10 +12,10 @@
 Все пользовательские строки DIVO-слоя хранятся в одном файле:
 
 ```
-submodules/TelegramCore/Sources/TelegramEngine/Divo/Services/DivoStrings.swift
+submodules/DivoCore/Sources/Services/DivoStrings.swift
 ```
 
-Поддерживаемые языки: `en`, `ru`, `es`, `pt`, `zh`.
+Поддерживаемые языки: `en`, `ru`, `es`, `pt`, `zh`, `fr`.
 
 ## Как добавить новую строку
 
@@ -23,7 +24,7 @@ submodules/TelegramCore/Sources/TelegramEngine/Divo/Services/DivoStrings.swift
 
 ```swift
 public static var myNewString: String {
-    L(en: "English text", ru: "Русский текст", es: "Texto español", pt: "Texto português", zh: "中文文本")
+    L(en: "English text", ru: "Русский текст", es: "Texto español", pt: "Texto português", zh: "中文文本", fr: "Texte français")
 }
 ```
 

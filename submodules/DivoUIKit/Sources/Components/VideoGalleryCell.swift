@@ -10,8 +10,6 @@ public final class VideoGalleryCell: UICollectionViewCell {
     private enum Constants {
         static let softTimeoutSeconds: TimeInterval = 30.0
         static let hardTimeoutSeconds: TimeInterval = 60.0
-        static let softTimeoutMessage = "Загрузка…"
-        static let hardTimeoutMessage = "Не удалось загрузить"
 
         // Генерация first-frame из remote-URL через AVAssetImageGenerator может быть дорогой.
         // Поэтому:
@@ -363,7 +361,7 @@ public final class VideoGalleryCell: UICollectionViewCell {
                 if !self.shimmerContainer.isHidden {
                     self.hideShimmer()
                     if !self.hasVisualContent {
-                        self.showFallback(message: Constants.softTimeoutMessage)
+                        self.showFallback(message: DivoStrings.loading)
                     }
                 }
             }
@@ -378,7 +376,7 @@ public final class VideoGalleryCell: UICollectionViewCell {
             guard !self.hasVisualContent else { return }
             self.hideShimmer()
             if self.isFallbackEnabled {
-                self.showFallback(message: Constants.hardTimeoutMessage)
+                self.showFallback(message: DivoStrings.failedToLoad)
             }
         }
         hardFailureWorkItem = hardFailureItem

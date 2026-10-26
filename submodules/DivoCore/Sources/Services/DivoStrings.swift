@@ -438,6 +438,10 @@ public enum DivoStrings {
     public static var viewApplications: String { L(en: "View applications", ru: "Посмотреть заявки", es: "Ver solicitudes", pt: "Ver inscrições", zh: "查看申请", fr: "Voir les candidatures") }
     public static var create: String { L(en: "Create", ru: "Создать", es: "Crear", pt: "Criar", zh: "创建", fr: "Créer") }
     public static var loading: String { L(en: "Loading...", ru: "Загрузка...", es: "Cargando...", pt: "Carregando...", zh: "加载中...", fr: "Chargement...") }
+    public static var failedToLoad: String { L(en: "Couldn't load", ru: "Не удалось загрузить", es: "No se pudo cargar", pt: "Não foi possível carregar", zh: "加载失败", fr: "Échec du chargement") }
+    public static var onboardingSubmitInProgress: String { L(en: "Setting up your profile…", ru: "Настраиваем ваш профиль…", es: "Configurando tu perfil…", pt: "Configurando seu perfil…", zh: "正在设置您的个人资料…", fr: "Configuration de votre profil…") }
+    public static var onboardingSubmitSuccess: String { L(en: "You're all set", ru: "Всё готово", es: "Todo listo", pt: "Tudo pronto", zh: "一切就绪", fr: "Tout est prêt") }
+    public static var onboardingSubmitFailed: String { L(en: "We couldn't finish that", ru: "Не удалось завершить", es: "No pudimos completarlo", pt: "Não conseguimos concluir", zh: "未能完成", fr: "Nous n'avons pas pu terminer") }
     public static var continueButton: String { L(en: "Continue", ru: "Продолжить", es: "Continuar", pt: "Continuar", zh: "继续", fr: "Continuer") }
     public static var notSet: String { L(en: "Not set", ru: "Не задано", es: "No establecido", pt: "Não definido", zh: "未设置", fr: "Non défini") }
     public static var discardChanges: String { L(en: "Discard changes", ru: "Отменить изменения", es: "Descartar cambios", pt: "Descartar alterações", zh: "放弃更改", fr: "Annuler les modifications") }
