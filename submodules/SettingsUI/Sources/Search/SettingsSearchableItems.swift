@@ -4342,7 +4342,7 @@ func settingsSearchableItems(
     let canAddAccount = activeAccountsAndPeers(context: context)
     |> take(1)
     |> map { accountsAndPeers -> Bool in
-        return accountsAndPeers.1.count + 1 < maximumNumberOfAccounts
+        return divoMultipleAccountsEnabled && accountsAndPeers.1.count + 1 < maximumNumberOfAccounts
     }
     
     let notificationSettings = context.account.postbox.preferencesView(keys: [PreferencesKeys.globalNotifications])

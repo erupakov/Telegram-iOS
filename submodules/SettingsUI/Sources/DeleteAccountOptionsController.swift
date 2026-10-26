@@ -150,7 +150,7 @@ private func deleteAccountOptionsEntries(presentationData: PresentationData, can
     var entries: [DeleteAccountOptionsEntry] = []
 
     entries.append(.changePhoneNumber(presentationData.theme, presentationData.strings.DeleteAccount_Options_ChangePhoneNumberTitle, presentationData.strings.DeleteAccount_Options_ChangePhoneNumberText))
-    if canAddAccounts {
+    if divoMultipleAccountsEnabled && canAddAccounts {
         entries.append(.addAccount(presentationData.theme, presentationData.strings.DeleteAccount_Options_AddAccountTitle, presentationData.strings.DeleteAccount_Options_AddAccountText))
     }
 

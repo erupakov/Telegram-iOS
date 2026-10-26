@@ -7013,7 +7013,7 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
     }
     
     override public func tabBarItemContextAction(sourceView: ContextExtractedContentContainingView, gesture: ContextGesture) {
-        guard let (maybePrimary, other) = self.accountsAndPeersValue, let primary = maybePrimary else {
+        guard divoMultipleAccountsEnabled, let (maybePrimary, other) = self.accountsAndPeersValue, let primary = maybePrimary else {
             return
         }
         
