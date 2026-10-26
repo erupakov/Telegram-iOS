@@ -317,6 +317,10 @@ public final class TelegramRootController: NavigationController, TelegramRootCon
         EventsUIRouting.makeUserProfileController = { context, userId in
             return PublicProfileScreenController(context: context, model: ProfileModel(userId: userId))
         }
+        // Публичность канала изменилась (ChannelVisibilityController) — синхронизируем каналы профиля.
+        divoChannelVisibilityDidChange = { context, peerId in
+            divoSyncChannelRegistration(context: context, peerId: peerId)
+        }
         let eventsController = EventsController(context: self.context)
         let modelsFeedNode = ModelsFeedController(context: self.context)
 

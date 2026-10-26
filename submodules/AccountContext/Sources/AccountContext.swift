@@ -1914,3 +1914,7 @@ public struct TranslationConfiguration {
         }
     }
 }
+
+/// DIVO: публичность канала изменилась (задан/снят @username) — TelegramUI синхронизирует запись канала
+/// в профиле (/channels/list: только публичные каналы). Регистрирует TelegramRootController.
+public var divoChannelVisibilityDidChange: ((AccountContext, EnginePeer.Id) -> Void)?
