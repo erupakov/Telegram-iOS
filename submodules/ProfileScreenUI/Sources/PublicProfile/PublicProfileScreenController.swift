@@ -1244,10 +1244,10 @@ extension PublicProfileScreenController {
     }
 }
 
-// Загрузка каналов модели через REST (/channels/list). В чужом профиле показываем только публичные
-// каналы (с username); в своём — и приватные (резолв по telegramChatId из локального кэша владельца).
-// Название/подписчиков/verified подтягиваем из MTProto. Группы (в т.ч. группа обсуждений канала,
-// если её зарегистрировал другой клиент) — не каналы: после резолва выкидываем их из списка.
+// Загрузка каналов модели через REST (/channels/list). В профиле (своём и чужом) — только публичные
+// каналы (с username). Название/подписчиков/verified подтягиваем из MTProto. Группы (в т.ч. группа
+// обсуждений канала, если её зарегистрировал другой клиент) после резолва выкидываем из списка.
+// В своём профиле записи приватных каналов и групп, оставшиеся в REST с прежних версий, удаляем.
 extension PublicProfileScreenController {
     /// id профиля для /channels/list: у своего профиля (таб) в модели userId нет — берём id из
     /// загруженного /user/info, а до его прихода — id текущей DIVO-сессии.
@@ -1269,7 +1269,7 @@ extension PublicProfileScreenController {
 
         self.channelInfoDisposables.dispose()
         self.channelInfoDisposables = DisposableSet()
-        let includePrivate = self.isMyProfile
+        let isOwnProfile = self.isMyProfile
 
         Task { @MainActor in
             do {
@@ -1279,23 +1279,20 @@ extension PublicProfileScreenController {
                 )
                 let base = (response.data?.items ?? []).compactMap { channel -> ProfileChannelItem? in
                     let username = channel.username?.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if let username = username, !username.isEmpty {
-                        return ProfileChannelItem(
-                            title: username,
-                            subtitle: "@\(username)",
-                            username: username,
-                            isVerified: false,
-                            telegramChatId: channel.telegramChatId
-                        )
+                    guard let username = username, !username.isEmpty else {
+                        // Приватный канал в профиль не попадает; свою устаревшую запись чистим.
+                        if isOwnProfile {
+                            Self.deleteChannelRecord(id: channel.id)
+                        }
+                        return nil
                     }
-                    // Приватные каналы (без username) — только в своём профиле.
-                    guard includePrivate, let chatId = channel.telegramChatId else { return nil }
                     return ProfileChannelItem(
-                        title: DivoStrings.privateChannel,
-                        subtitle: nil,
-                        username: nil,
+                        title: username,
+                        subtitle: "@\(username)",
+                        username: username,
                         isVerified: false,
-                        telegramChatId: chatId
+                        telegramChatId: channel.telegramChatId,
+                        recordId: channel.id
                     )
                 }
 
@@ -1361,6 +1358,9 @@ extension PublicProfileScreenController {
 
         // В «Каналы» попадают только broadcast-каналы: группы/супергруппы (группа обсуждений) убираем.
         guard case let .channel(channel) = peer, case .broadcast = channel.info else {
+            if self.isMyProfile, let recordId = self.channelItems[index].recordId {
+                Self.deleteChannelRecord(id: recordId)
+            }
             self.channelItems.remove(at: index)
             self.controllerNode.updateChannelsList(self.channelItems)
             return
@@ -1372,9 +1372,22 @@ extension PublicProfileScreenController {
             subtitle: participantsCount.map { DivoStrings.followersString($0) } ?? current.subtitle,
             username: current.username,
             isVerified: peer.isVerified,
-            telegramChatId: current.telegramChatId
+            telegramChatId: current.telegramChatId,
+            recordId: current.recordId
         )
         self.controllerNode.updateChannelsList(self.channelItems)
+    }
+
+    /// Удалить запись из /channels/list (best-effort): приватные каналы и группы в профиле не держим.
+    private static func deleteChannelRecord(id: Int) {
+        Task {
+            do {
+                _ = try await DivoAPIClient.shared.requestRawData(path: "/channels/\(id)", method: "DELETE")
+                divoLog("[CHANNELS] запись \(id) (приватный канал / группа) удалена из профиля")
+            } catch {
+                divoLog("[CHANNELS] не удалось удалить запись \(id): \(error)", level: .error)
+            }
+        }
     }
 
     func openChannel(_ item: ProfileChannelItem) {
