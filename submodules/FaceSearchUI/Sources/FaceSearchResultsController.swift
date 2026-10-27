@@ -292,8 +292,9 @@ public final class FaceSearchResultsController: ViewController {
                 )
                 guard let self else { return }
                 try Task.checkCancellation()
+                let matchedResults = response.results.filter { filters.matchesGender($0.gender) }
 
-                if response.results.isEmpty {
+                if matchedResults.isEmpty {
                     let fallbackSteps = self.lowerSimilaritySteps(from: filters.similarity)
                     if !fallbackSteps.isEmpty {
                         try await self.performFallback(
@@ -308,10 +309,10 @@ public final class FaceSearchResultsController: ViewController {
                     return
                 }
 
-                self.results = response.results
-                self.transition(to: .results(items: response.results, threshold: filters.similarity))
+                self.results = matchedResults
+                self.transition(to: .results(items: matchedResults, threshold: filters.similarity))
                 self.resultsNode?.updateFilterBadge(count: self.currentFilters.activeFilterCount)
-                self.saveFilteredHistoryEntry(results: response.results, filters: filters)
+                self.saveFilteredHistoryEntry(results: matchedResults, filters: filters)
             } catch is CancellationError {
                 return
             } catch {
@@ -355,13 +356,14 @@ public final class FaceSearchResultsController: ViewController {
                 fields: fields
             )
             try Task.checkCancellation()
+            let matchedResults = response.results.filter { filters.matchesGender($0.gender) }
 
-            if !response.results.isEmpty {
-                self.results = response.results
+            if !matchedResults.isEmpty {
+                self.results = matchedResults
                 let originalPercent = Int((filters.similarity * 100).rounded())
                 let actualPercent = Int((fallbackSimilarity * 100).rounded())
                 self.transition(to: .fallback(
-                    items: response.results,
+                    items: matchedResults,
                     originalPercent: originalPercent,
                     actualPercent: actualPercent,
                     similarity: fallbackSimilarity,
@@ -370,7 +372,7 @@ public final class FaceSearchResultsController: ViewController {
 
                 var fallbackFiltersForHistory = filters
                 fallbackFiltersForHistory.similarity = fallbackSimilarity
-                self.saveFilteredHistoryEntry(results: response.results, filters: fallbackFiltersForHistory)
+                self.saveFilteredHistoryEntry(results: matchedResults, filters: fallbackFiltersForHistory)
                 return
             }
         }
@@ -390,6 +392,9 @@ public final class FaceSearchResultsController: ViewController {
         }
         if let countries = filters.apiCountries {
             fields["country_ids"] = countries.joined(separator: ",")
+        }
+        if let genders = filters.apiGenders {
+            fields["gender"] = genders.joined(separator: ",")
         }
         if let ageRange = filters.ageRange {
             fields["age_from"] = "\(ageRange.lowerBound)"
@@ -424,6 +429,7 @@ public final class FaceSearchResultsController: ViewController {
         let similarityPercent = Int((filters.similarity * 100).rounded())
         var filterParts: [String] = []
         filterParts.append(contentsOf: filters.roleTitles)
+        filterParts.append(contentsOf: filters.genderTitles)
         filterParts.append(contentsOf: filters.countryTitles)
 
         let fields = Self.buildFields(faceIndex: faceIndex, filters: filters)
