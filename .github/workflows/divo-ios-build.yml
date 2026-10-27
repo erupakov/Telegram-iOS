@@ -64,7 +64,7 @@ jobs:
 
     steps:
       - name: Checkout (с сабмодулями и тегами)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
           fetch-depth: 0
@@ -145,7 +145,7 @@ jobs:
           echo "Сборка $TARGET ($ENV_NAME): $INPUT_VERSION ($BUILD_NUMBER), коммит $(git rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Restore Bazel cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/bazel-disk-cache
@@ -243,7 +243,7 @@ jobs:
           echo "ARTIFACT_NAME=$NAME" >> "$GITHUB_ENV"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.ARTIFACTS_DIR }}
