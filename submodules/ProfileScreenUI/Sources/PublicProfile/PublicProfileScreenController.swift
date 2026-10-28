@@ -656,11 +656,29 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }.withRenderingMode(.alwaysOriginal)
     }
 
-    /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers.
-    /// teamgram не валидирует access_hash, поэтому 0 проходит.
+    /// Резолвит teamgram-peer по DIVO telegramId:
+    /// 1) из Postbox (уже была переписка / контакт);
+    /// 2) users.getUsers с access_hash = 0;
+    /// 3) contacts.search по имени из профиля DIVO и сверка по id.
+    /// Шаг 3 нужен, потому что teamgram на getUsers с access_hash = 0 не отдаёт пользователей, которых
+    /// нет у нас в кэше, — «Написать» не открывался даже у реальных юзеров. Поиск возвращает
+    /// пользователя с настоящим access_hash и кладёт его в Postbox.
     private func resolveTeamgramPeer(telegramId: Int) -> (peerId: PeerId, peer: Signal<EnginePeer?, NoError>) {
         let context = self.context
         let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))
+        let searchName = self.userDetailModel?.fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        let searchByName: Signal<EnginePeer?, NoError>
+        if searchName.isEmpty {
+            searchByName = .single(nil)
+        } else {
+            searchByName = context.engine.contacts.searchRemotePeers(query: searchName)
+            |> take(1)
+            |> map { localPeers, remotePeers -> EnginePeer? in
+                return (localPeers + remotePeers).first(where: { $0.peer.id == peerId }).map { EnginePeer($0.peer) }
+            }
+        }
+
         let signal: Signal<EnginePeer?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
         |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
             if let peer = peer {
@@ -669,6 +687,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
             return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: 0))
             |> map { peer -> EnginePeer? in EnginePeer(peer) }
             |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
+            |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
+                if let peer = peer {
+                    return .single(peer)
+                }
+                divoLog("resolveTeamgramPeer: users.getUsers не вернул \(telegramId) — ищем по имени")
+                return searchByName
+            }
         }
         return (peerId, signal)
     }
