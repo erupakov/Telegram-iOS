@@ -688,7 +688,8 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self.isOpeningChat = false
             guard let peer = peer else {
                 divoLog("openDirectMessage: не удалось получить peer для telegramId=\(telegramId)", level: .error)
-                self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
+                self.controllerNode.setDirectMessageAvailable(false)
+                self.controllerNode.showSnackbar(message: DivoStrings.userUnavailableForMessages, style: .error)
                 return
             }
             guard let navigationController = self.navigationController as? NavigationController else { return }
@@ -762,7 +763,13 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self.storyPeerId = peerId
             self.storyStateDisposable.set((resolved.peer
             |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
-                guard let self = self, peer != nil else { return }
+                guard let self = self else { return }
+                // telegramId есть, но teamgram такого пользователя не знает (демо-профили без
+                // реального аккаунта) — написать ему нельзя, «Написать» прячем.
+                guard peer != nil else {
+                    self.controllerNode.setDirectMessageAvailable(false)
+                    return
+                }
                 // Кольцо — из реальных сторис (getPeerStories), как PeerInfo. user.stories_max_id
                 // не годится: teamgram не сбрасывает его после истечения сторис, кольцо вело в пустоту
                 let storyList = PeerExpiringStoryListContext(account: self.context.account, peerId: peerId)

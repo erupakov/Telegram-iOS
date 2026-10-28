@@ -3879,6 +3879,12 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return profileHeaderView.avatarTransitionView
     }
 
+    /// Скрыть «Написать», если собеседника нет в teamgram (демо-профиль без аккаунта).
+    func setDirectMessageAvailable(_ available: Bool) {
+        guard !model.isMyProfile, !available else { return }
+        dmButton.isHidden = true
+    }
+
     func updateEngagementStats(likes: Int, views: Int, saves: Int, isLiked: Bool = false, isSaved: Bool = false) {
         self.currentLikesCount = likes
         self.currentIsLiked = isLiked
