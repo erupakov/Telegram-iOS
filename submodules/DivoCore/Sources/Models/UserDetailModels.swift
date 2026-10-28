@@ -15,6 +15,10 @@ public struct UserDetail: Decodable {
     public let email: String?
     public let phone: String?
     public let telegramId: Int?
+    /// access_hash пользователя в teamgram: без него users.getUsers не отдаёт тех, кого нет у нас в
+    /// кэше (не было переписки / не в контактах) — «Написать» в профиле не открывал чат.
+    public var telegramAccessHash: Int64? { telegramAccessHashValue?.value }
+    private let telegramAccessHashValue: DivoLenientInt64?
     public let photo: UserFile?
     public let avatar: UserFile?
     public let role: String?
@@ -40,6 +44,7 @@ public struct UserDetail: Decodable {
     enum CodingKeys: String, CodingKey {
         case id, fullName, gender, birthday, city, email, phone
         case telegramId
+        case telegramAccessHashValue = "telegramAccessHash"
         case photo, avatar, role, subrole, roleLabel
         case measuringSystem, pushNotifications
         case isPremium = "is_premium"
@@ -47,6 +52,24 @@ public struct UserDetail: Decodable {
         case statistic, isFavorite, isFollowed, isLikedByUser
         case userRatingStatus, userSocialNetworks
         case isUnavailable
+    }
+}
+
+/// Int64, который бэк может прислать числом или строкой (access_hash не влезает в Double без потерь,
+/// поэтому часть бэкендов отдаёт его строкой). Нераспознанное значение → nil, а не ошибка разбора
+/// всего ответа.
+public struct DivoLenientInt64: Decodable {
+    public let value: Int64?
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let number = try? container.decode(Int64.self) {
+            self.value = number
+        } else if let string = try? container.decode(String.self), let number = Int64(string.trimmingCharacters(in: .whitespaces)) {
+            self.value = number
+        } else {
+            self.value = nil
+        }
     }
 }
 

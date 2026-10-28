@@ -43,6 +43,22 @@ final class ResponseDecodingTests: DivoCoreTestCase {
         XCTAssertNil(response.data.avatar)
     }
 
+    func testProfileTelegramAccessHashAsNumberStringOrMissing() throws {
+        let number = try decode(UserDetailResponse.self, envelope(data: #"{"id":1,"telegramId":1571285668,"telegramAccessHash":-4611686018427387904}"#))
+        XCTAssertEqual(number.data.telegramAccessHash, -4611686018427387904)
+
+        let string = try decode(UserDetailResponse.self, envelope(data: #"{"id":1,"telegramAccessHash":"9223372036854775807"}"#))
+        XCTAssertEqual(string.data.telegramAccessHash, Int64.max)
+
+        // Мусор/null/отсутствие не ломают разбор профиля.
+        let garbage = try decode(UserDetailResponse.self, envelope(data: #"{"id":1,"telegramAccessHash":"abc"}"#))
+        XCTAssertNil(garbage.data.telegramAccessHash)
+        let null = try decode(UserDetailResponse.self, envelope(data: #"{"id":1,"telegramAccessHash":null}"#))
+        XCTAssertNil(null.data.telegramAccessHash)
+        let missing = try decode(UserDetailResponse.self, envelope(data: #"{"id":1}"#))
+        XCTAssertNil(missing.data.telegramAccessHash)
+    }
+
     // MARK: - Список заблокированных
 
     func testBlockedUserPrefersAvatarOverPhoto() throws {
