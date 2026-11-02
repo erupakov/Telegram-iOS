@@ -48,8 +48,9 @@
     return self;
 }
 
-// DIVO: серверный конфиг содержит KeyFingerprint=12240908862933197005 (0xa9e071c1771060cd).
-// sha1(publicKey) даёт другое значение — handshake падает. Шлём захардкоженный.
+// DIVO: отпечаток можно задать явно (как отдаёт сервер в KeyFingerprint) — для стандартного ключа
+// teamgram sha1(publicKey) давал другое значение и handshake падал. У текущего ключа (0x288da68ea22f8a5c)
+// явный отпечаток совпадает с вычисленным по PEM.
 - (uint64_t)fingerprintWithEncryptionProvider:(id<EncryptionProvider>)encryptionProvider {
     if (_overrideFingerprint != 0) {
         return _overrideFingerprint;
