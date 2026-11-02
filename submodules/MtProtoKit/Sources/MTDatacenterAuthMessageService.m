@@ -59,23 +59,32 @@
 
 @end
 
+// DIVO: публичный RSA-ключ teamgram-сервера для обмена ключами (req_DH_params).
+// Окружение — ключ `DivoEnvironment` в Info.plist (флаг --define=divoEnv=prod, см. Telegram/BUILD), как
+// выбор IP в TelegramCore/Network.swift:
+// - prod (18.185.234.86) — собственный ключ сервера; стандартный ключ teamgram в prod НЕ принимаем:
+//   его приватная часть опубликована в открытом репозитории teamgram;
+// - stage (34.44.72.74) — пока стандартный ключ teamgram (заменить, когда поменяют на stage-сервере).
+// `isProduction` — тестовый/боевой контур Telegram, для DIVO не различается.
 static NSArray<MTDatacenterAuthPublicKey *> *defaultPublicKeys(bool isProduction) {
-    static NSArray<MTDatacenterAuthPublicKey *> *testingPublicKeys = nil;
-    static NSArray<MTDatacenterAuthPublicKey *> *productionPublicKeys = nil;
+    (void)isProduction;
+    static NSArray<MTDatacenterAuthPublicKey *> *divoProductionPublicKeys = nil;
+    static NSArray<MTDatacenterAuthPublicKey *> *divoStagePublicKeys = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        testingPublicKeys = @[
+        divoProductionPublicKeys = @[
             [[MTDatacenterAuthPublicKey alloc] initWithPublicKey:@"-----BEGIN RSA PUBLIC KEY-----\n"
-             "MIIBCgKCAQEAvKLEOWTzt9Hn3/9Kdp/RdHcEhzmd8xXeLSpHIIzaXTLJDw8BhJy1\n"
-             "jR/iqeG8Je5yrtVabqMSkA6ltIpgylH///FojMsX1BHu4EPYOXQgB0qOi6kr08iX\n"
-             "ZIH9/iOPQOWDsL+Lt8gDG0xBy+sPe/2ZHdzKMjX6O9B4sOsxjFrk5qDoWDrioJor\n"
-             "AJ7eFAfPpOBf2w73ohXudSrJE0lbQ8pCWNpMY8cB9i8r+WBitcvouLDAvmtnTX7a\n"
-             "khoDzmKgpJBYliAY4qA73v7u5UIepE8QgV0jCOhxJCPubP8dg+/PlLLVKyxU5Cdi\n"
-             "QtZj2EMy4s9xlNKzX8XezE0MHEa6bQpnFwIDAQAB\n"
-             "-----END RSA PUBLIC KEY-----"]
+             "MIIBCgKCAQEA6KkPLYsv3Z71G35/z1BrPJOguH0WboVJsVU8GMOGbsNVh6XWAjaU\n"
+             "zi6zT5+Tm6oPcBgbxnuMNDRHp0UCHUKqpImM09ravfQvuK+eSXtldCmILi+nOfTo\n"
+             "RosmUziDNtLqoPG4V4oi+IQxmIeY/c2EQ1CKWirnqVS0aglI2bk0ipvA1eCXC2Cu\n"
+             "7AiDMW82fhclwUt1EbPo0Tp1z2DSZb5uypW5Jct/4Qzzh/F2PfXepM3R2E3Rarkf\n"
+             "WeCs5dyP+0wchk5C/kDKeOmelia+g7XqUf/RGhwVbGc4xvrEPUnFNQxheE53NBux\n"
+             "ni99hSyXqFpBPIYEax4yJwXSVRe+xtxXowIDAQAB\n"
+             "-----END RSA PUBLIC KEY-----"
+             fingerprint:0x288da68ea22f8a5cULL]
         ];
 
-        productionPublicKeys = @[
+        divoStagePublicKeys = @[
             [[MTDatacenterAuthPublicKey alloc] initWithPublicKey:@"-----BEGIN RSA PUBLIC KEY-----\n"
              "MIIBCgKCAQEAvKLEOWTzt9Hn3/9Kdp/RdHcEhzmd8xXeLSpHIIzaXTLJDw8BhJy1\n"
              "jR/iqeG8Je5yrtVabqMSkA6ltIpgylH///FojMsX1BHu4EPYOXQgB0qOi6kr08iX\n"
@@ -87,10 +96,11 @@ static NSArray<MTDatacenterAuthPublicKey *> *defaultPublicKeys(bool isProduction
              fingerprint:0xa9e071c1771060cdULL]
         ];
     });
-    if (isProduction) {
-        return productionPublicKeys;
+    NSString *divoEnvironment = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"DivoEnvironment"];
+    if ([divoEnvironment isKindOfClass:[NSString class]] && [divoEnvironment isEqualToString:@"prod"]) {
+        return divoProductionPublicKeys;
     } else {
-        return testingPublicKeys;
+        return divoStagePublicKeys;
     }
 }
 
