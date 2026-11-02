@@ -656,17 +656,19 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }.withRenderingMode(.alwaysOriginal)
     }
 
-    /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers.
-    /// teamgram не валидирует access_hash, поэтому 0 проходит.
+    /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers с access_hash
+    /// из профиля (`telegramAccessHash`). Без него (старый бэк) — 0: так находятся только юзеры,
+    /// которых teamgram отдаёт без проверки access_hash.
     private func resolveTeamgramPeer(telegramId: Int) -> (peerId: PeerId, peer: Signal<EnginePeer?, NoError>) {
         let context = self.context
+        let accessHash = self.userDetailModel?.telegramAccessHash ?? 0
         let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))
         let signal: Signal<EnginePeer?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
         |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
             if let peer = peer {
                 return .single(peer)
             }
-            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: 0))
+            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: accessHash))
             |> map { peer -> EnginePeer? in EnginePeer(peer) }
             |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
         }
