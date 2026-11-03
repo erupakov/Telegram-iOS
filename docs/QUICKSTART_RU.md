@@ -191,7 +191,7 @@ telegram_aps_environment = "production"
 
 | Окружение | Флаг | REST API | teamgram IP | Firebase | Иконка |
 |---|---|---|---|---|---|
-| debug/stage | *(не нужен, дефолт)* | `api-stage.divo.fashion/api` | `34.44.72.74` | `divo-2-stage` | ленточка **DEBUG** |
+| debug/stage | *(не нужен, дефолт)* | `api-stage.divo.fashion/api` | `3.125.30.84` | `divo-2-stage` | ленточка **DEBUG** |
 | prod | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `18.185.234.86` | `divodev-62848` | чистая |
 
 **debug (stage + ленточка):**

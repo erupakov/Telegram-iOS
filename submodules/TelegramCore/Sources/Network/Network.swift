@@ -533,7 +533,7 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             // модуль (TelegramCore) не импортит DivoCore — держать значение в синхроне с DivoEnvironment.
             // Дефолт (ключа нет / плист расширения без него) — stage: безопаснее уйти на отладочный контур.
             let isDivoProduction = (Bundle.main.object(forInfoDictionaryKey: "DivoEnvironment") as? String) == "prod"
-            let divoTeamgramIP = isDivoProduction ? "18.185.234.86" : "34.44.72.74"
+            let divoTeamgramIP = isDivoProduction ? "18.185.234.86" : "3.125.30.84"
 
             if testingEnvironment {
                 seedAddressList = [
