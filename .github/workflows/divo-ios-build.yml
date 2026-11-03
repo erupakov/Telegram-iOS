@@ -262,9 +262,28 @@ jobs:
           for name in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY; do
             if [ -z "${!name}" ]; then echo "::error::Не задан секрет $name"; exit 1; fi
           done
-          # altool ищет ключ в ~/.appstoreconnect/private_keys/AuthKey_<id>.p8
+          # 401 NOT_AUTHORIZED от altool = невалидный JWT: перепутаны Key ID / Issuer ID, ключ отозван,
+          # ключ Individual (а не Team) или испорчено содержимое .p8. Проверяем формат заранее,
+          # чтобы ошибка говорила, что именно не так.
+          ASC_KEY_ID="$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')"
+          ASC_ISSUER_ID="$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')"
+          if ! [[ "$ASC_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]; then
+            echo "::error::ASC_KEY_ID должен быть 10-символьным Key ID ключа (Users and Access → Integrations → App Store Connect API → Team Keys)"; exit 1
+          fi
+          if ! [[ "$ASC_ISSUER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "::error::ASC_ISSUER_ID должен быть UUID (Issuer ID над списком Team Keys). У Individual-ключей Issuer ID нет — нужен Team-ключ"; exit 1
+          fi
+          # altool ищет ключ в ~/.appstoreconnect/private_keys/AuthKey_<id>.p8.
+          # Нормализуем: CRLF → LF, буквальные «\n» (ключ вставлен одной строкой) → переводы строк.
           mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s' "$ASC_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          KEY_FILE=~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
+          printf '%s\n' "$ASC_PRIVATE_KEY" | tr -d '\r' | perl -pe 's/\\n/\n/g' > "$KEY_FILE"
+          if ! grep -q -- '-----BEGIN PRIVATE KEY-----' "$KEY_FILE" || ! grep -q -- '-----END PRIVATE KEY-----' "$KEY_FILE"; then
+            echo "::error::ASC_PRIVATE_KEY должен содержать файл AuthKey_${ASC_KEY_ID}.p8 целиком, со строками BEGIN/END PRIVATE KEY"; exit 1
+          fi
+          if ! openssl pkey -in "$KEY_FILE" -noout 2>/dev/null; then
+            echo "::error::ASC_PRIVATE_KEY не читается как приватный ключ (.p8 повреждён или обрезан)"; exit 1
+          fi
           xcrun altool --upload-app --type ios \
             --file "$ARTIFACTS_DIR/$ARTIFACT_NAME.ipa" \
             --apiKey "$ASC_KEY_ID" \
