@@ -13,7 +13,7 @@ description: Собрать сборку для TestFlight в нужном ок�
 
 | Аргумент | Флаг | REST API | teamgram IP | Firebase | Иконка |
 |---|---|---|---|---|---|
-| `debug` | *(флаг не нужен, дефолт stage)* | `api-stage.divo.fashion/api` | `34.44.72.74` | `divo-2-stage` | ленточка **DEBUG** |
+| `debug` | *(флаг не нужен, дефолт stage)* | `api-stage.divo.fashion/api` | `3.125.30.84` | `divo-2-stage` | ленточка **DEBUG** |
 | `prod` | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `18.185.234.86` | `divodev-62848` | чистая |
 
 Механизм: флаг вшивает ключ `DivoEnvironment` в `Info.plist`; на старте приложение читает его из
