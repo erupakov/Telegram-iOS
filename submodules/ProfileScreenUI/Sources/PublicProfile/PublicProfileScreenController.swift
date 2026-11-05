@@ -710,29 +710,65 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func openDirectMessage() {
-        guard !self.isOpeningChat, let telegramId = self.userDetailModel?.telegramId else { return }
+        guard let telegramId = self.userDetailModel?.telegramId else {
+            divoLog("openDirectMessage: у профиля нет telegramId", level: .error)
+            return
+        }
+        guard !self.isOpeningChat else {
+            divoLog("openDirectMessage: предыдущее открытие ещё идёт (telegramId=\(telegramId))")
+            return
+        }
         self.isOpeningChat = true
+        divoLog("openDirectMessage: start telegramId=\(telegramId), accessHash=\(self.userDetailModel?.telegramAccessHash != nil ? "есть" : "нет")")
 
         divoTrack(.directMessageStarted(
             sourceUserId: DivoConfig.currentDivoUserId ?? 0,
             targetUserId: Int64(model.userId ?? 0)
         ))
 
-        self.openChatDisposable.set((self.resolveTeamgramPeer(telegramId: telegramId).peer
+        // Таймаут: если резолв не ответит (сеть/разбор ответа), нажатие не «залипает» навсегда —
+        // isOpeningChat сбрасывается, пользователь видит ошибку и может нажать ещё раз.
+        let resolved = self.resolveTeamgramPeer(telegramId: telegramId).peer
+        |> timeout(15.0, queue: Queue.mainQueue(), alternate: Signal<EnginePeer?, NoError> { subscriber in
+            divoLog("openDirectMessage: таймаут резолва telegramId=\(telegramId)", level: .error)
+            subscriber.putNext(nil)
+            subscriber.putCompletion()
+            return EmptyDisposable
+        })
+        |> take(1)
+
+        var didReceivePeer = false
+        self.openChatDisposable.set((resolved
         |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
             guard let self = self else { return }
+            didReceivePeer = true
             self.isOpeningChat = false
             guard let peer = peer else {
                 divoLog("openDirectMessage: не удалось получить peer для telegramId=\(telegramId)", level: .error)
                 self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
                 return
             }
-            guard let navigationController = self.navigationController as? NavigationController else { return }
+            // Профиль обычно в стеке TelegramRootController; если нет (показан из UIKit-навигации) —
+            // открываем чат в корневом NavigationController приложения, а не выходим молча.
+            let navigationController = (self.navigationController as? NavigationController)
+                ?? (self.context.sharedContext.mainWindow?.viewController as? NavigationController)
+            guard let navigationController else {
+                divoLog("openDirectMessage: нет NavigationController для открытия чата (telegramId=\(telegramId))", level: .error)
+                self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
+                return
+            }
+            divoLog("openDirectMessage: открываем чат peer=\(peer.id.id._internalGetInt64Value())")
             self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(
                 navigationController: navigationController,
                 context: self.context,
                 chatLocation: .peer(peer)
             ))
+        }, completed: { [weak self] in
+            // Сигнал завершился без значения — тоже ошибка, а не тихий выход с залипшим флагом.
+            guard let self = self, !didReceivePeer else { return }
+            self.isOpeningChat = false
+            divoLog("openDirectMessage: резолв завершился без результата (telegramId=\(telegramId))", level: .error)
+            self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
         }))
     }
 
