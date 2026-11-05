@@ -589,6 +589,16 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self.controllerNode.scrollToTop()
         }
         self.applyTabBarIcon(avatar: nil)
+        // Иконка таба — аватар. Раньше он подгружался только с профилем (viewWillAppear), т.е. после
+        // первого открытия вкладки — до этого в таб-баре висела заглушка. Грузим сразу; если сессия
+        // DIVO ещё не готова (токен ставится после входа) — повторяем при смене токена.
+        self.prefetchTabBarAvatar()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleTokenDidChangeForTabIcon),
+            name: DivoConfig.tokenDidChangeNotification,
+            object: nil
+        )
         // Свой профиль отредактировали (имя/ава/поля) на другом экране → тихо перечитываем себя,
         // иначе таб держит устаревшие данные до перезахода в приложение.
         NotificationCenter.default.addObserver(
@@ -597,6 +607,27 @@ public final class PublicProfileScreenController: TelegramBaseController {
             name: DivoConfig.profileDidUpdateNotification,
             object: nil
         )
+    }
+
+    private var tabBarAvatarLoaded = false
+
+    private func prefetchTabBarAvatar() {
+        // currentDivoUserId есть только у залогиненной DIVO-сессии: без неё /user/info ушёл бы с
+        // fallback-токеном и вернул чужой профиль.
+        guard self.isProfileTab, !self.tabBarAvatarLoaded, DivoConfig.currentDivoUserId != nil else { return }
+        Task {
+            let profile = await self.fetchUserProfile()
+            await MainActor.run {
+                guard let detail = profile else { return }
+                self.updateTabBarAvatarIcon(from: detail)
+            }
+        }
+    }
+
+    @objc private func handleTokenDidChangeForTabIcon() {
+        DispatchQueue.main.async { [weak self] in
+            self?.prefetchTabBarAvatar()
+        }
     }
 
     @objc private func handleOwnProfileDidUpdate() {
@@ -630,6 +661,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
         ImageLoader.shared.load(url: url) { [weak self] image in
             guard let self, self.isProfileTab else { return }
+            if image != nil {
+                self.tabBarAvatarLoaded = true
+            }
             self.applyTabBarIcon(avatar: image)
         }
     }
