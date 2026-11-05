@@ -722,7 +722,10 @@ private func channelPermissionsControllerEntries(context: AccountContext, presen
             entries.append(.conversionInfo(presentationData.theme, presentationData.strings.GroupInfo_Permissions_BroadcastConvertInfo(presentationStringsFormattedNumber(participantsLimit, presentationData.dateTimeFormat.groupingSeparator)).string))
         }
         
-        if cachedData.flags.contains(.paidMessagesAvailable) && channel.hasPermission(.banMembers) {
+        // DIVO: плата за сообщения в группе отключена — переключатель показываем, только пока плата
+        // уже включена (на сервере или в несохранённом состоянии), чтобы её можно было выключить.
+        let hasPaidMessagesEnabled = (state.modifiedStarsAmount?.value ?? (channel.sendPaidMessageStars?.value ?? 0)) > 0
+        if cachedData.flags.contains(.paidMessagesAvailable) && channel.hasPermission(.banMembers) && hasPaidMessagesEnabled {
             let sendPaidMessageStars = state.modifiedStarsAmount?.value ?? (channel.sendPaidMessageStars?.value ?? 0)
             let chargeEnabled = sendPaidMessageStars > 0
             entries.append(.chargeForMessages(presentationData.theme, presentationData.strings.GroupInfo_Permissions_ChargeForMessages, chargeEnabled))

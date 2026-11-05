@@ -82,6 +82,12 @@ public final class EventsController: TelegramBaseController {
         let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: DivoColorPalette.primaryText, disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor, primaryTextColor: DivoColorPalette.primaryTextOnDark, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
 
+        // Повторный тап по активной вкладке таб-бара — список событий наверх.
+        self.scrollToTop = { [weak self] in
+            guard let self, self.isNodeLoaded else { return }
+            self.controllerNode.scrollToTop()
+        }
+
         let icon: UIImage = DivoImage.iconEvents
         self.tabBarItem.title = DivoStrings.tabEvents
         self.tabBarItem.image = icon
@@ -134,6 +140,13 @@ public final class EventsController: TelegramBaseController {
             self,
             selector: #selector(self.handleGlobalEventCreated),
             name: DivoConfig.divoEventCreated,
+            object: nil
+        )
+        // Заблокировали автора — его кастинги сервер больше не отдаёт (event/{id} → 404); чистим кэш вкладок.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleUserBlocked(_:)),
+            name: DivoBlockedUsers.userBlockedNotification,
             object: nil
         )
     }
@@ -657,6 +670,21 @@ public final class EventsController: TelegramBaseController {
         }
         
         self.controllerNode.removeEventLocally(eventId: eventId)
+    }
+
+    @objc private func handleUserBlocked(_ notification: Notification) {
+        guard let userId = notification.userInfo?["userId"] as? Int else { return }
+        var eventIds = Set<Int>()
+        for tabIndex in 0..<self.tabStates.count {
+            for event in self.tabStates[tabIndex].events where event.creatorId == userId {
+                eventIds.insert(event.id)
+            }
+            self.tabStates[tabIndex].events.removeAll(where: { $0.creatorId == userId })
+        }
+        guard self.isNodeLoaded else { return }
+        for eventId in eventIds {
+            self.controllerNode.removeEventLocally(eventId: eventId)
+        }
     }
 
     @objc private func handleGlobalEventCreated() {

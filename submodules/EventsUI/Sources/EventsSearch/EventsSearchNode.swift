@@ -901,6 +901,13 @@ final class EventsSearchNode: ASDisplayNode {
         }
     }
     
+    func removeEvents(createdBy userId: Int) {
+        let eventIds = currentGridResults.filter { $0.creatorId == userId }.map { $0.id }
+        for eventId in eventIds {
+            removeEventLocally(eventId: eventId)
+        }
+    }
+
     func removeEventLocally(eventId: Int) {
         if let index = currentGridResults.firstIndex(where: { $0.id == eventId }) {
             currentGridResults.remove(at: index)

@@ -1548,6 +1548,8 @@ public func channelVisibilityController(context: AccountContext, updatedPresenta
                 return state.withUpdatedRevokingPeerId(nil)
             }
         }, completed: {
+            // DIVO: у канала отозвали ссылку — он стал приватным, из профиля его убираем.
+            divoChannelVisibilityDidChange?(context, peerId)
             revokedPeerAddressName?(peerId)
             dismissImpl?()
         }))
@@ -1907,6 +1909,8 @@ public func channelVisibilityController(context: AccountContext, updatedPresenta
                                     updateState { state in
                                         return state.withUpdatedUpdatingAddressName(false)
                                     }
+                                    // DIVO: канал стал публичным/приватным — синхронизируем его запись в профиле.
+                                    divoChannelVisibilityDidChange?(context, peerId)
                                     switch mode {
                                         case .initialSetup:
                                             nextImpl?()

@@ -23,6 +23,8 @@ struct UserProfileViewModel {
     let location: String
     let countryFlag: String
     let role: Role
+    /// Готовая подпись роли (roleLabel бэкенда по подроли, например «AI creator»); nil — `role.title`.
+    let roleTitle: String?
     let avatarImage: UIImage?
     let isPremium: Bool
 
@@ -32,6 +34,7 @@ struct UserProfileViewModel {
         location: String,
         countryFlag: String,
         role: Role,
+        roleTitle: String? = nil,
         avatarImage: UIImage?,
         isPremium: Bool
     ) {
@@ -40,6 +43,7 @@ struct UserProfileViewModel {
         self.location = location
         self.countryFlag = countryFlag
         self.role = role
+        self.roleTitle = roleTitle
         self.avatarImage = avatarImage
         self.isPremium = isPremium
     }
@@ -208,7 +212,7 @@ class ProfileHeaderView: UIView {
         
         nameLabel.attributedText = NSAttributedString(string: viewModel.name, attributes: attributes)
         
-        roleLabel.text = viewModel.role.title
+        roleLabel.text = viewModel.roleTitle ?? viewModel.role.title
 
         var infoSegments: [String] = []
         if let age = viewModel.age {

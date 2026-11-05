@@ -441,13 +441,21 @@ final class CreateEventNode: ASDisplayNode {
     
     private var rateTime = FilterRowView()
     private var rateTimeId: String?
-    private var rateTimeTitle: String = "per hour"
+    private var rateTimeTitle: String = DivoStrings.ratePerHour
     var rateTimeOptions: [FilterOptionItem] = [
-        FilterOptionItem(id: "1", title: "per hour"),
-        FilterOptionItem(id: "2", title: "per day"),
-        FilterOptionItem(id: "3", title: "per month"),
-        FilterOptionItem(id: "4", title: "per project")
+        FilterOptionItem(id: "1", title: DivoStrings.ratePerHour),
+        FilterOptionItem(id: "2", title: DivoStrings.ratePerDay),
+        FilterOptionItem(id: "3", title: DivoStrings.ratePerMonth),
+        FilterOptionItem(id: "4", title: DivoStrings.ratePerProject)
     ]
+
+    /// Локализованное название периода ставки по id; сервер присылает английский title.
+    private func localizedRateTimeTitle(id: String?, fallback: String?) -> String {
+        if let id, let option = rateTimeOptions.first(where: { $0.id == id }) {
+            return option.title
+        }
+        return fallback ?? ""
+    }
     
     private let publicEventSwitch: UISwitch = UISwitch()
 
@@ -1513,19 +1521,27 @@ final class CreateEventNode: ASDisplayNode {
             return order1 < order2
         }
         
-        if let avatarFile = sortedFiles.first(where: { $0.order == 0 }), let uuid = avatarFile.fileUuid, let urlString = avatarFile.fullUrl, let url = URL(string: urlString) {
+        // Обложка — первый файл по order. Раньше искали строго order == 0, но order у бэка nullable,
+        // а события, созданные не этим клиентом, нумеруют файлы иначе (например, с 1). Тогда обложка
+        // не находилась, hasPhoto = false и кнопка «Продолжить» в редактировании оставалась неактивной.
+        let avatarFile = sortedFiles.first(where: { $0.fileUuid != nil })
+        if let avatarFile = avatarFile, let uuid = avatarFile.fileUuid {
             self.avatarFileUuid = uuid
-            Task { @MainActor in
-                if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
-                    self.currentPhoto = image
+            if let urlString = avatarFile.fullUrl, let url = URL(string: urlString) {
+                Task { @MainActor in
+                    if let (data, _) = try? await URLSession.shared.data(from: url), let image = UIImage(data: data) {
+                        self.currentPhoto = image
+                    }
                     self.setAvatarLoading(false)
                 }
+            } else {
+                self.setAvatarLoading(false)
             }
         } else {
             self.setAvatarLoading(false)
         }
         
-        let galleryFiles = sortedFiles.filter { $0.order != 0 }
+        let galleryFiles = sortedFiles.filter { $0.fileUuid != avatarFile?.fileUuid }
         self.galleryItems = galleryFiles.compactMap { file in
             guard let uuid = file.fileUuid else { return nil }
             return EventGalleryItem(image: nil, isUploading: false, fileUuid: uuid)
@@ -2364,7 +2380,7 @@ final class CreateEventNode: ASDisplayNode {
         paidEventSwitch.isOn = detail.paymentType?.id == 1
         rateTextField.text = formatCost(detail.cost)
         rateTimeId = String(detail.paymentFrequency?.id ?? 0)
-        rateTimeTitle = detail.paymentFrequency?.title ?? ""
+        rateTimeTitle = localizedRateTimeTitle(id: rateTimeId, fallback: detail.paymentFrequency?.title)
         
         publicEventSwitch.isOn = detail.isPublic ?? false
         
@@ -2408,6 +2424,8 @@ final class CreateEventNode: ASDisplayNode {
     func markDataLoaded() {
         loadPhase = .ready
         hasLoadedInitialData = true
+        // Пока шла загрузка, validateCurrentStep держал кнопку выключенной — пересчитываем по заполненной форме.
+        validateCurrentStep()
     }
 
     /// Отметить, что загрузка данных завершилась ошибкой
@@ -2514,7 +2532,7 @@ final class CreateEventNode: ASDisplayNode {
         paidEventSwitch.isOn = initialSnapshot?.paymentType == 1
         rateTextField.text = initialSnapshot?.cost
         rateTimeId = String(initialSnapshot?.paymentFrequency ?? 0)
-        rateTimeTitle = initialSnapshot?.paymentFrequencyTitle ?? ""
+        rateTimeTitle = localizedRateTimeTitle(id: rateTimeId, fallback: initialSnapshot?.paymentFrequencyTitle)
         
         publicEventSwitch.isOn = initialSnapshot?.isPublic ?? false
         
@@ -2691,7 +2709,7 @@ final class CreateEventNode: ASDisplayNode {
                 self?.rateTimeTitle = selected.title
             } else {
                 self?.rateTimeId = nil
-                self?.rateTimeTitle = "per hour"
+                self?.rateTimeTitle = DivoStrings.ratePerHour
             }
             self?.updateDropdownsUI()
         }

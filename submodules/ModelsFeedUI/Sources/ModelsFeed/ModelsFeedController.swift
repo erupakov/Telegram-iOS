@@ -54,6 +54,7 @@ public final class ModelsFeedController: TelegramBaseController {
     private var roleChangeObserver: NSObjectProtocol?
     private var followObserver: NSObjectProtocol?
     private var likeObserver: NSObjectProtocol?
+    private var blockObserver: NSObjectProtocol?
 
     private let createActionDisposable = MetaDisposable()
     private let clearDisposable = MetaDisposable()
@@ -65,6 +66,12 @@ public final class ModelsFeedController: TelegramBaseController {
 
         let navTheme = NavigationBarTheme(overallDarkAppearance: true, buttonColor: .black, disabledButtonColor: DivoColorPalette.navBarDisabledButtonColor, primaryTextColor: .white, backgroundColor: .clear, opaqueBackgroundColor: .clear, enableBackgroundBlur: false, separatorColor: .clear, badgeBackgroundColor: .clear, badgeStrokeColor: .clear, badgeTextColor: .clear)
         super.init(context: context, navigationBarPresentationData: NavigationBarPresentationData(theme: navTheme, strings: NavigationBarStrings(presentationStrings: self.presentationData.strings)))
+
+        // Повторный тап по активной вкладке таб-бара (TabBarController → scrollToTopWithTabBar) — лента наверх.
+        self.scrollToTop = { [weak self] in
+            guard let self, self.isNodeLoaded else { return }
+            self.controllerNode.scrollToTop()
+        }
 
         let icon: UIImage = DivoImage.iconModels
         self.tabBarItem.title = DivoStrings.tabModels
@@ -131,6 +138,31 @@ public final class ModelsFeedController: TelegramBaseController {
                   let userId = note.userInfo?["userId"] as? Int,
                   let isLiked = note.userInfo?["isLiked"] as? Bool else { return }
             self.applyLikeChange(userId: userId, isLiked: isLiked)
+        }
+        // Заблокировали (профиль / чат) — убираем его карточки из всех закэшированных вкладок.
+        self.blockObserver = NotificationCenter.default.addObserver(
+            forName: DivoBlockedUsers.userBlockedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, let userId = note.userInfo?["userId"] as? Int else { return }
+            self.removeBlockedUser(userId: userId)
+        }
+    }
+
+    private func removeBlockedUser(userId: Int) {
+        var selectedTabChanged = false
+        for t in tabStates.indices {
+            let before = tabStates[t].cards.count
+            tabStates[t].cards.removeAll(where: { $0.userId == userId })
+            if t == selectedTabIndex && tabStates[t].cards.count != before {
+                selectedTabChanged = true
+            }
+        }
+        // offset пагинации не трогаем: он считает полученное с сервера, а не показанное.
+        if selectedTabChanged && isNodeLoaded {
+            controllerNode.updateCards(tabStates[selectedTabIndex].cards)
+            controllerNode.showEmptyStateIfNeeded()
         }
     }
 
@@ -316,6 +348,9 @@ public final class ModelsFeedController: TelegramBaseController {
             NotificationCenter.default.removeObserver(observer)
         }
         if let observer = self.followObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = self.blockObserver {
             NotificationCenter.default.removeObserver(observer)
         }
         if let observer = self.likeObserver {
@@ -519,7 +554,8 @@ public final class ModelsFeedController: TelegramBaseController {
             mainImageURL: mainURL,
             avatarImageURL: avatarURL,
             previewImageURLs: previewURLs,
-            likesCount: item.likesCount,
+            // Лайки человека — уникальные люди по всем его записям (как в профиле), а не лайки одной карточки
+            likesCount: item.user.likesCount ?? item.likesCount,
             viewsCount: item.user.viewsCount ?? 0,
             savesCount: item.user.followersCount ?? 0,
             isFavorite: item.isFavoriteByUser,

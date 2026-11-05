@@ -548,32 +548,41 @@ func _internal_updatePeerPhotoInternal(postbox: Postbox, network: Network, state
                 |> mapError {_ in return UploadPeerPhotoError.generic}
                 |> mapToSignal { updates -> Signal<UpdatePeerPhotoStatus, UploadPeerPhotoError> in
                     stateManager?.addUpdates(updates)
-                    for chat in updates.chats {
-                        if chat.peerId == peer.id {
-                            if let groupOrChannel = parseTelegramGroupOrChannel(chat: chat) {
-                                return postbox.transaction { transaction -> UpdatePeerPhotoStatus in
-                                    updatePeersCustom(transaction: transaction, peers: [groupOrChannel], update: { _, updated in
-                                        return updated
-                                    })
-                                    
-                                    transaction.updatePeerCachedData(peerIds: Set([peer.id]), update: { _, current in
-                                        if let current = current as? CachedChannelData {
-                                            return current.withUpdatedPhoto(nil)
-                                        } else if let current = current as? CachedGroupData {
-                                            return current.withUpdatedPhoto(nil)
-                                        } else {
-                                            return current
-                                        }
-                                    })
-                                    
-                                    return .complete(groupOrChannel.profileImageRepresentations)
-                                }
-                                |> mapError { _ -> UploadPeerPhotoError in }
+                    // DIVO: teamgram на успешный editPhoto(empty) может вернуть Updates без chats. Раньше это
+                    // считалось ошибкой (.fail) и локальный peer/cached data оставались с прежним фото —
+                    // в настройках канала фото «не удалялось». Запрос прошёл → чистим фото локально сами.
+                    let returnedPeer: Peer? = updates.chats.first(where: { $0.peerId == peer.id }).flatMap(parseTelegramGroupOrChannel(chat:))
+                    return postbox.transaction { transaction -> UpdatePeerPhotoStatus in
+                        let updatedPeer: Peer
+                        if let returnedPeer = returnedPeer {
+                            updatedPeer = returnedPeer
+                        } else {
+                            let currentPeer = transaction.getPeer(peer.id) ?? peer
+                            if let channel = currentPeer as? TelegramChannel {
+                                updatedPeer = channel.withUpdatedPhoto([])
+                            } else if let group = currentPeer as? TelegramGroup {
+                                updatedPeer = TelegramGroup(id: group.id, title: group.title, photo: [], participantCount: group.participantCount, role: group.role, membership: group.membership, flags: group.flags, defaultBannedRights: group.defaultBannedRights, migrationReference: group.migrationReference, creationDate: group.creationDate, version: group.version)
+                            } else {
+                                updatedPeer = currentPeer
                             }
                         }
+                        updatePeersCustom(transaction: transaction, peers: [updatedPeer], update: { _, updated in
+                            return updated
+                        })
+                        
+                        transaction.updatePeerCachedData(peerIds: Set([peer.id]), update: { _, current in
+                            if let current = current as? CachedChannelData {
+                                return current.withUpdatedPhoto(nil)
+                            } else if let current = current as? CachedGroupData {
+                                return current.withUpdatedPhoto(nil)
+                            } else {
+                                return current
+                            }
+                        })
+                        
+                        return .complete(updatedPeer.profileImageRepresentations)
                     }
-                    
-                    return .fail(.generic)
+                    |> mapError { _ -> UploadPeerPhotoError in }
                 }
             }
         }

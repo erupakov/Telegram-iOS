@@ -180,7 +180,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     if let files = detail.files {
                         // Файлы без order считаем «без порядка» и кладём в конец списка.
                         let sortedFiles = files.sorted { ($0.order ?? Int.max) < ($1.order ?? Int.max) }
-                        self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
+                        // Обложка — первый файл по order (order nullable и не обязательно начинается с 0), остальное — галерея.
+                        let coverUuid = sortedFiles.first(where: { $0.fileUuid != nil })?.fileUuid
+                        self.currentGalleryPhotos = sortedFiles.filter { $0.fileUuid != coverUuid }.compactMap { file in
                             guard let uuid = file.fileUuid,
                                   let fileExtension = file.fileExtension,
                                   let fullUrl = file.fullUrl,
@@ -371,10 +373,11 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                             backToProfile()
                         }
                     }
-                    successController.onManageApplicationsTapped = { [weak self] in
+                    successController.onGoHomeTapped = { [weak self] in
                         guard let self else { return }
-                        if let id = resultEventId {
-                            self.push(ApplicationsListController(context: self.context, eventId: id))
+                        if let rootController = self.context.sharedContext.mainWindow?.viewController as? TelegramRootControllerInterface {
+                            self.delegate?.didCreateEvent()
+                            rootController.openDivoHome()
                         } else {
                             backToProfile()
                         }
@@ -382,7 +385,8 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     previewController?.toggleSaving(active: false)
                     self.push(successController)
                 } else {
-                    let errorMsg = response.errors?.joined(separator: "\n") ?? DivoStrings.unknownError
+                    let errorLines = response.errors?.messages ?? []
+                    let errorMsg = errorLines.isEmpty ? DivoStrings.unknownError : errorLines.joined(separator: "\n")
                     previewController?.toggleSaving(active: false)
                     previewController?.showSnackbar(message: DivoStrings.errorCreateUpdateEvent)
                     self.createEventNode.showSnackbar(message: errorMsg, style: .error)
@@ -527,6 +531,21 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.present(nav, animated: true)
     }
     
+    /// Круглый кроп обложки события — как у аватара в профиле.
+    /// Кадрирование обложки события: прямоугольник с пропорциями карточки в списке событий
+    /// (ширина : высота = 1 : 1.35, см. EventsControllerNode.gridAspectRatio). Раньше кроп был круглым,
+    /// как у аватара профиля, но обложка показывается прямоугольником на всю карточку и шапку события —
+    /// квадрат из круга растягивался, и картинка вставала криво.
+    private func presentAvatarCrop(_ image: UIImage) {
+        let cropController = DivoAvatarCropController(image: image, shape: .rectangle(aspectRatio: 1.0 / 1.35), onComplete: { [weak self] cropped in
+            guard let self = self else { return }
+            self.createEventNode.setAvatarLoading(true)
+            self.createEventNode.currentPhoto = cropped
+            self.uploadAvatar(image: cropped)
+        })
+        self.present(cropController, animated: true)
+    }
+
     private func uploadAvatar(image: UIImage) {
         self.selectedAvatarImage = image
         self.selectedAvatarUUID = nil
@@ -694,16 +713,11 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         
         Task { @MainActor in
             do {
-                let encodedQuery = cityName.divoURLQueryEncoded
-
-                let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
-                    path: "/geo/search-by-address-name?query=\(encodedQuery)",
-                    method: "GET"
-                )
+                let resolved = try await DivoGeoCityResolver.resolveCity(query: cityName)
                 
                 self.createEventNode.setCityRowLoading(false)
                 
-                if let firstResult = response.data?.first, let cityId = firstResult.city?.id {
+                if let firstResult = resolved, let cityId = firstResult.city?.id {
                     let resolvedCityId = String(cityId)
                     
                     let resolvedCityName = firstResult.city?.name ?? cityName
@@ -742,9 +756,8 @@ extension CreateEventController: PHPickerViewControllerDelegate {
                 let normalized = uiImage.fixedOrientation()
                 
                 DispatchQueue.main.async {
-                    self.createEventNode.setAvatarLoading(true)
+                    self.presentAvatarCrop(normalized)
                 }
-                self.uploadAvatar(image: normalized)
             }
             
         case .gallery:
@@ -766,12 +779,11 @@ extension CreateEventController: PHPickerViewControllerDelegate {
 
 extension CreateEventController: UIImagePickerControllerDelegate {
     public func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true)
-        
-        if let editedImage = info[.editedImage] as? UIImage {
-            handleSelectedImage(editedImage)
-        } else if let originalImage = info[.originalImage] as? UIImage {
-            handleSelectedImage(originalImage)
+        let picked = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
+        // Кроп презентуем в completion dismiss — иначе конфликт с ещё идущим закрытием пикера.
+        picker.dismiss(animated: true) { [weak self] in
+            guard let self = self, let picked = picked else { return }
+            self.handleSelectedImage(picked)
         }
     }
     
@@ -784,9 +796,7 @@ extension CreateEventController: UIImagePickerControllerDelegate {
         
         switch currentPickerTarget {
         case .avatar:
-            self.createEventNode.setAvatarLoading(true)
-            self.createEventNode.currentPhoto = normalized
-            self.uploadAvatar(image: normalized)
+            self.presentAvatarCrop(normalized)
             
         case .gallery:
             let galleryItem = self.createEventNode.startPhotoUpload(image: normalized)

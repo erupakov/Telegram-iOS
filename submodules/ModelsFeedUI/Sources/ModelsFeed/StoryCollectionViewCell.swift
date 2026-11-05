@@ -29,7 +29,8 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     }()
 
     // Кольцо сторис из дизайна: линейный градиент #180800→#FF5C02 (непросмотрено) либо ровный серый (просмотрено).
-    // Градиент рисуется обводкой-маской; лежит внутри круга аватара (inset в layoutSubviews), чтобы masksToBounds не срезал штрих.
+    // Градиент рисуется обводкой-маской на слое contentView ВОКРУГ аватара (кольцо → зазор → фото). Раньше кольцо
+    // лежало внутри круга фото: снаружи штриха оставалась полоска пикселей фото, и кольцо выглядело обрезанным.
     private let ringGradientLayer: CAGradientLayer = {
         let layer = CAGradientLayer()
         // Вертикальный градиент (верх→низ) — как кольцо сторис в чат-листе.
@@ -52,7 +53,7 @@ final class StoryCollectionViewCell: UICollectionViewCell {
 
         contentView.addSubview(avatarImageView)
         ringGradientLayer.mask = ringMaskLayer
-        avatarImageView.layer.addSublayer(ringGradientLayer)
+        contentView.layer.addSublayer(ringGradientLayer)
         contentView.addSubview(nameLabel)
         contentView.addSubview(statusIndicator)
     }
@@ -87,23 +88,26 @@ final class StoryCollectionViewCell: UICollectionViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
         
-        let avatarSize: CGFloat = 60
-        avatarImageView.frame = CGRect(x: (contentView.bounds.width - avatarSize) / 2,
-                                       y: 0,
-                                       width: avatarSize,
-                                       height: avatarSize)
-        avatarImageView.layer.cornerRadius = avatarSize / 2
+        // Внешний круг 60pt = кольцо (2.5pt) + зазор (1.5pt) + фото.
+        let ringSize: CGFloat = 60
+        let ringFrame = CGRect(x: (contentView.bounds.width - ringSize) / 2, y: 0, width: ringSize, height: ringSize)
+        let ringLineWidth = ringMaskLayer.lineWidth
+        let avatarInset = ringLineWidth + 1.5
+        avatarImageView.frame = ringFrame.insetBy(dx: avatarInset, dy: avatarInset)
+        avatarImageView.layer.cornerRadius = avatarImageView.bounds.width / 2
 
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        ringGradientLayer.frame = avatarImageView.bounds
-        ringMaskLayer.frame = avatarImageView.bounds
-        // inset держит обводку (2.5pt) целиком внутри круглой маски avatarImageView, иначе внешний край срежется.
-        ringMaskLayer.path = UIBezierPath(ovalIn: avatarImageView.bounds.insetBy(dx: 2, dy: 2)).cgPath
+        ringGradientLayer.frame = ringFrame
+        ringMaskLayer.frame = ringGradientLayer.bounds
+        // Штрих центрируется по пути — inset на половину толщины держит его целиком внутри ringFrame.
+        ringMaskLayer.path = UIBezierPath(ovalIn: ringGradientLayer.bounds.insetBy(dx: ringLineWidth / 2, dy: ringLineWidth / 2)).cgPath
         CATransaction.commit()
 
+        let avatarAreaMaxY = ringFrame.maxY
+
         nameLabel.frame = CGRect(x: 0,
-                                 y: avatarImageView.frame.maxY + 4,
+                                 y: avatarAreaMaxY + 4,
                                  width: contentView.bounds.width,
                                  height: 14)
         

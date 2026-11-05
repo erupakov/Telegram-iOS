@@ -776,6 +776,62 @@ final class PublicProfileScreenNode: ASDisplayNode {
     var onFaceScanTapped: (() -> Void)?
     var onReportProfileTapped: (() -> Void)?
     var onBlockTapped: (() -> Void)?
+    var onUnblockTapped: (() -> Void)?
+
+    /// Пользователь в списке заблокированных (POST /user/blocked) — в меню «⋯» вместо
+    /// «Заблокировать» показываем «Разблокировать».
+    var isUserBlocked = false {
+        didSet {
+            guard oldValue != isUserBlocked else { return }
+            rebuildMoreMenu()
+        }
+    }
+
+    /// Профиль закрыт блокировкой (`isUnavailable` в ответе /user/{id}): поверх контента —
+    /// заглушка «Профиль недоступен», навбар (назад / «⋯») остаётся доступным.
+    private(set) var isProfileUnavailable = false
+    private var unavailableOverlay: UIView?
+
+    func showProfileUnavailable() {
+        isProfileUnavailable = true
+        screenPhase = .failed
+        if unavailableOverlay == nil {
+            let overlay = UIView()
+            overlay.backgroundColor = DivoColorPalette.screenBackground
+            overlay.translatesAutoresizingMaskIntoConstraints = false
+
+            let label = UILabel()
+            label.text = DivoStrings.profileUnavailable
+            label.textColor = DivoColorPalette.secondaryText
+            label.font = .systemFont(ofSize: 17.0, weight: .medium)
+            label.textAlignment = .center
+            label.numberOfLines = 0
+            label.translatesAutoresizingMaskIntoConstraints = false
+            overlay.addSubview(label)
+
+            view.insertSubview(overlay, belowSubview: customNavBar)
+            NSLayoutConstraint.activate([
+                overlay.topAnchor.constraint(equalTo: view.topAnchor),
+                overlay.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                overlay.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                overlay.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+                label.centerYAnchor.constraint(equalTo: overlay.centerYAnchor),
+                label.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: DivoDesignTokens.Spacing.xl),
+                label.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -DivoDesignTokens.Spacing.xl)
+            ])
+            unavailableOverlay = overlay
+        }
+        rebuildMoreMenu()
+    }
+
+    /// Снимает заглушку перед повторной загрузкой профиля (например, после разблокировки).
+    func hideProfileUnavailable() {
+        guard isProfileUnavailable else { return }
+        isProfileUnavailable = false
+        unavailableOverlay?.removeFromSuperview()
+        unavailableOverlay = nil
+        rebuildMoreMenu()
+    }
 
     var onEditProfileTapped: ((Int) -> Void)?
     var onChangeBackgroundTapped: (() -> Void)?
@@ -1370,7 +1426,10 @@ final class PublicProfileScreenNode: ASDisplayNode {
     private func setupMoreMenu() {
         moreButton.adjustsImageWhenHighlighted = false
         moreButton.addDivoPressState(.pill)
+        rebuildMoreMenu()
+    }
 
+    private func rebuildMoreMenu() {
         if #available(iOS 14.0, *) {
             let faceScanAction = UIAction(
                 title: DivoStrings.findSimilar,
@@ -1386,15 +1445,31 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 self?.onReportProfileTapped?()
             }
             
-            let blockAction = UIAction(
-                title: DivoStrings.blockUser,
-                image: DivoImage.block,
-                attributes: .destructive
-            ) { [weak self] _ in
-                self?.onBlockTapped?()
+            let blockAction: UIAction
+            if isUserBlocked {
+                blockAction = UIAction(
+                    title: DivoStrings.unblockUser,
+                    image: DivoImage.block
+                ) { [weak self] _ in
+                    self?.onUnblockTapped?()
+                }
+            } else {
+                blockAction = UIAction(
+                    title: DivoStrings.blockUser,
+                    image: DivoImage.block,
+                    attributes: .destructive
+                ) { [weak self] _ in
+                    self?.onBlockTapped?()
+                }
             }
             
             var children: [UIMenuElement] = []
+            if isProfileUnavailable {
+                // Контента нет — из действий остаётся только блок / разблок.
+                moreButton.menu = UIMenu(title: "", children: [blockAction])
+                moreButton.showsMenuAsPrimaryAction = true
+                return
+            }
             if modelRole != .agency {
                 children.append(faceScanAction)
             }
@@ -3090,6 +3165,19 @@ final class PublicProfileScreenNode: ASDisplayNode {
         }
     }
     
+    /// Пользователя заблокировали на другом экране — убираем его из «Похожих профилей» и ростера.
+    func removeBlockedUser(userId: Int) {
+        let similarBefore = similarProfiles.count
+        similarProfiles.removeAll(where: { $0.id == userId })
+        if similarProfiles.count != similarBefore {
+            similarProfilesCollectionView.reloadData()
+            similarPhase = similarProfiles.isEmpty ? .hidden : .visible
+        }
+        if modelGalleryItems.contains(where: { $0.userId == userId }) {
+            updateModelsList(modelGalleryItems.filter { $0.userId != userId })
+        }
+    }
+
     // Заполняет коллекцию реальными данными
     func appendSimilarProfiles(_ profiles: [SimilarProfileItem]) {
         let previousCount = self.similarProfiles.count
@@ -3602,6 +3690,13 @@ final class PublicProfileScreenNode: ASDisplayNode {
         return avatarImage ?? headerImageView.image
     }
     
+    /// Подпись по подроли (AI creator, Photographer…): бэкенд строит roleLabel по subrole. Без подроли —
+    /// nil, остаётся клиентский `Role.title`, как раньше.
+    private static func subroleTitle(for detail: UserDetail) -> String? {
+        guard let subrole = detail.subrole, !subrole.isEmpty else { return nil }
+        return detail.roleLabel ?? Role.subroleTitle(subrole)
+    }
+
     // Обновление профиля, после загрузки baseURL/user/userId
     func updateWithUserDetail(_ detail: UserDetail, _ isMyProfile: Bool) {
         self.modelDetail = detail
@@ -3651,7 +3746,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
             setupNavigationBarTitle(
                 name: detail.fullName ?? DivoStrings.noName,
                 info: Self.navbarInfo(
-                    rolePrefix: self.modelRole.title,
+                    rolePrefix: Self.subroleTitle(for: detail) ?? self.modelRole.title,
                     middle: age.map { DivoStrings.ageString($0) },
                     cityName: detail.city?.name,
                     countryCode: detail.city?.countryCode
@@ -3762,6 +3857,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                     location: detail.city?.name ?? "",
                     countryFlag: Self.flag(for: detail.city?.countryCode),
                     role: self.modelRole,
+                    roleTitle: Self.subroleTitle(for: detail),
                     avatarImage: nil,
                     isPremium: detail.isPremium ?? false
                 )
@@ -5099,6 +5195,11 @@ extension PublicProfileScreenNode: UICollectionViewDelegateFlowLayout {
 // MARK: - UIScrollViewDelegate
 
 extension PublicProfileScreenNode: UIScrollViewDelegate {
+    /// Наверх профиля (повторный тап по вкладке «Профиль»).
+    func scrollToTop() {
+        scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: -scrollView.contentInset.top), animated: true)
+    }
+
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         if scrollView === tabsPager {
             // Горизонтальный пейджер — двигаем индикатор сегмент-бара вместе

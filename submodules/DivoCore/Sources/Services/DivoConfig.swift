@@ -365,6 +365,8 @@ public enum DivoConfig {
         DivoTeamgramName.clearLocalName()
         // История поиска по лицу — per-device кэш (фото лиц на диске), не должна утечь следующему аккаунту.
         FaceSearchHistoryStorage.shared.clearAll()
+        // Кэш заблокированных — список прошлого аккаунта.
+        DivoBlockedUsers.reset()
     }
 
     // MARK: - DIVO session user id

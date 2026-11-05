@@ -54,14 +54,18 @@ static NSString *TGCameraEncodeText(NSString *string, int key)
     return [UIColor colorWithWhite:0.0f alpha:0.7];
 }
 
+// DIVO: вшитый шрифт SF Camera удалён из бандла (ITMS-91198), fontWithName: теперь возвращает nil.
+// nil в литерале атрибутов (TGCameraModeControl) ронял приложение при открытии камеры — берём системный.
 + (UIFont *)regularFontOfSize:(CGFloat)size
 {
-    return [UIFont fontWithName:TGCameraEncodeText(@"TGDbnfsb.Sfhvmbs", -1) size:size];
+    UIFont *font = [UIFont fontWithName:TGCameraEncodeText(@"TGDbnfsb.Sfhvmbs", -1) size:size];
+    return font ?: [UIFont systemFontOfSize:size weight:UIFontWeightRegular];
 }
 
 + (UIFont *)boldFontOfSize:(CGFloat)size
 {
-    return [UIFont fontWithName:TGCameraEncodeText(@"TGDbnfsb.Tfnjcpme", -1) size:size];
+    UIFont *font = [UIFont fontWithName:TGCameraEncodeText(@"TGDbnfsb.Tfnjcpme", -1) size:size];
+    return font ?: [UIFont systemFontOfSize:size weight:UIFontWeightSemibold];
 }
 
 @end

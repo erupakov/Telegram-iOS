@@ -32,6 +32,7 @@ public final class FaceSearchResultsController: ViewController {
     private var state: FaceSearchResultsState
     private var followObserver: NSObjectProtocol?
     private var likeObserver: NSObjectProtocol?
+    private var blockObserver: NSObjectProtocol?
 
     public var onOpenProfile: ((FRSearchResult) -> Void)?
 
@@ -80,6 +81,31 @@ public final class FaceSearchResultsController: ViewController {
                   let isLiked = note.userInfo?["isLiked"] as? Bool else { return }
             self.resultsNode?.applyLikeChange(userId: userId, isLiked: isLiked)
         }
+        // Заблокировали (зашли в профиль из результатов) — убираем его из выдачи.
+        self.blockObserver = NotificationCenter.default.addObserver(
+            forName: DivoBlockedUsers.userBlockedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, let userId = note.userInfo?["userId"] as? Int else { return }
+            self.removeBlockedUser(userId: userId)
+        }
+    }
+
+    private func removeBlockedUser(userId: Int) {
+        self.results.removeAll(where: { $0.userId == userId })
+        switch self.state {
+        case let .results(items, threshold):
+            let filtered = items.filter { $0.userId != userId }
+            guard filtered.count != items.count else { return }
+            self.transition(to: filtered.isEmpty ? .empty : .results(items: filtered, threshold: threshold))
+        case let .fallback(items, originalPercent, actualPercent, similarity, originalThreshold):
+            let filtered = items.filter { $0.userId != userId }
+            guard filtered.count != items.count else { return }
+            self.transition(to: filtered.isEmpty ? .empty : .fallback(items: filtered, originalPercent: originalPercent, actualPercent: actualPercent, similarity: similarity, originalThreshold: originalThreshold))
+        case .loading, .empty, .error, .noResultsWithFilters:
+            break
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -90,6 +116,9 @@ public final class FaceSearchResultsController: ViewController {
         currentTask?.cancel()
         if let followObserver {
             NotificationCenter.default.removeObserver(followObserver)
+        }
+        if let blockObserver {
+            NotificationCenter.default.removeObserver(blockObserver)
         }
         if let likeObserver {
             NotificationCenter.default.removeObserver(likeObserver)
@@ -263,8 +292,9 @@ public final class FaceSearchResultsController: ViewController {
                 )
                 guard let self else { return }
                 try Task.checkCancellation()
+                let matchedResults = response.results.filter { filters.matchesGender($0.gender) }
 
-                if response.results.isEmpty {
+                if matchedResults.isEmpty {
                     let fallbackSteps = self.lowerSimilaritySteps(from: filters.similarity)
                     if !fallbackSteps.isEmpty {
                         try await self.performFallback(
@@ -279,10 +309,10 @@ public final class FaceSearchResultsController: ViewController {
                     return
                 }
 
-                self.results = response.results
-                self.transition(to: .results(items: response.results, threshold: filters.similarity))
+                self.results = matchedResults
+                self.transition(to: .results(items: matchedResults, threshold: filters.similarity))
                 self.resultsNode?.updateFilterBadge(count: self.currentFilters.activeFilterCount)
-                self.saveFilteredHistoryEntry(results: response.results, filters: filters)
+                self.saveFilteredHistoryEntry(results: matchedResults, filters: filters)
             } catch is CancellationError {
                 return
             } catch {
@@ -326,13 +356,14 @@ public final class FaceSearchResultsController: ViewController {
                 fields: fields
             )
             try Task.checkCancellation()
+            let matchedResults = response.results.filter { filters.matchesGender($0.gender) }
 
-            if !response.results.isEmpty {
-                self.results = response.results
+            if !matchedResults.isEmpty {
+                self.results = matchedResults
                 let originalPercent = Int((filters.similarity * 100).rounded())
                 let actualPercent = Int((fallbackSimilarity * 100).rounded())
                 self.transition(to: .fallback(
-                    items: response.results,
+                    items: matchedResults,
                     originalPercent: originalPercent,
                     actualPercent: actualPercent,
                     similarity: fallbackSimilarity,
@@ -341,7 +372,7 @@ public final class FaceSearchResultsController: ViewController {
 
                 var fallbackFiltersForHistory = filters
                 fallbackFiltersForHistory.similarity = fallbackSimilarity
-                self.saveFilteredHistoryEntry(results: response.results, filters: fallbackFiltersForHistory)
+                self.saveFilteredHistoryEntry(results: matchedResults, filters: fallbackFiltersForHistory)
                 return
             }
         }
@@ -361,6 +392,9 @@ public final class FaceSearchResultsController: ViewController {
         }
         if let countries = filters.apiCountries {
             fields["country_ids"] = countries.joined(separator: ",")
+        }
+        if let genders = filters.apiGenders {
+            fields["gender"] = genders.joined(separator: ",")
         }
         if let ageRange = filters.ageRange {
             fields["age_from"] = "\(ageRange.lowerBound)"
@@ -395,6 +429,7 @@ public final class FaceSearchResultsController: ViewController {
         let similarityPercent = Int((filters.similarity * 100).rounded())
         var filterParts: [String] = []
         filterParts.append(contentsOf: filters.roleTitles)
+        filterParts.append(contentsOf: filters.genderTitles)
         filterParts.append(contentsOf: filters.countryTitles)
 
         let fields = Self.buildFields(faceIndex: faceIndex, filters: filters)
@@ -420,7 +455,10 @@ public final class FaceSearchResultsController: ViewController {
                 )
                 NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
             } catch {
-                // TODO: rollback
+                // Откат оптимистичного тоггла ячейки: сеть, 5xx или 422 «Действие недоступно»
+                // (блокировка в любую сторону, docs/divo-api-user-block.md).
+                divoLog("[LIKE] Face Match: ошибка like/unlike для user \(userId): \(error)", level: .error)
+                self.resultsNode?.applyLikeChange(userId: userId, isLiked: !isLiked)
             }
         }
     }
@@ -437,7 +475,9 @@ public final class FaceSearchResultsController: ViewController {
                 )
                 NotificationCenter.default.post(name: DivoConfig.divoFollowStateChanged, object: nil, userInfo: ["userId": userId, "isFollowed": isSaved])
             } catch {
-                // TODO: rollback
+                // Откат оптимистичного тоггла ячейки (в т.ч. 422 «Действие недоступно» при блокировке).
+                divoLog("[SAVE/FOLLOW] Face Match: ошибка follow/unfollow для user \(userId): \(error)", level: .error)
+                self.resultsNode?.applyFollowChange(userId: userId, isFollowed: !isSaved)
             }
         }
     }
@@ -448,7 +488,7 @@ public final class FaceSearchResultsController: ViewController {
         let shareItem = DivoShareItemSource(
             url: shareURL,
             title: result.fullName ?? "",
-            subtitle: FaceSearchResultsMapper.roleLabel(for: result.role) ?? "",
+            subtitle: FaceSearchResultsMapper.roleLabel(for: result.role, subrole: result.subrole) ?? "",
             image: image
         )
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
@@ -480,7 +520,10 @@ public enum FaceSearchResultsMapper {
         return "\(flag) \(name)"
     }
 
-    public static func roleLabel(for role: String?) -> String? {
+    public static func roleLabel(for role: String?, subrole: String? = nil) -> String? {
+        if let subroleTitle = Role.subroleTitle(subrole) {
+            return subroleTitle
+        }
         switch role {
         case "model": return DivoStrings.debugModel
         case "new_face": return DivoStrings.debugNewTalent
@@ -545,7 +588,7 @@ public enum FaceSearchResultsMapper {
             userId: result.userId,
             name: result.fullName,
             infoText: infoText.isEmpty ? nil : infoText,
-            roleLabel: roleLabel(for: result.role),
+            roleLabel: roleLabel(for: result.role, subrole: result.subrole),
             likesCount: likesCount,
             isLikedByUser: isLiked,
             isFavoriteByUser: isFollowedOverride ?? (result.isFollowedByUser ?? false),

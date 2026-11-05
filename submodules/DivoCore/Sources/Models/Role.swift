@@ -15,6 +15,26 @@ public enum Role {
         }
     }
 
+    /// Название подроли бэкенда (`subrole`, например `ai_creator`) — там, где бэкенд не отдаёт `roleLabel`
+    /// (результаты Face Match). Неизвестная подроль → nil.
+    public static func subroleTitle(_ subrole: String?) -> String? {
+        switch subrole {
+        case "ai_creator": return DivoStrings.onboardingRoleDancer
+        case "new_talent": return DivoStrings.onboardingRoleNewTalent
+        case "actor": return DivoStrings.onboardingRoleActor
+        case "singer": return DivoStrings.onboardingRoleSingerPerformer
+        case "photographer": return DivoStrings.onboardingRolePhotographer
+        case "stylist": return DivoStrings.onboardingRoleStylist
+        case "mua": return DivoStrings.onboardingRoleMakeupArtist
+        case "hair_stylist": return DivoStrings.onboardingRoleHairStylist
+        case "fashion_designer": return DivoStrings.onboardingRoleFashionDesigner
+        case "videographer": return DivoStrings.onboardingRoleVideographer
+        case "creative_director": return DivoStrings.onboardingRoleCreativeDirector
+        case "studio": return DivoStrings.onboardingRoleStudioLocation
+        default: return nil
+        }
+    }
+
     public var title: String {
         switch self {
         case .model: DivoStrings.roleModel

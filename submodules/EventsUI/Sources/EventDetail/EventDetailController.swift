@@ -240,6 +240,33 @@ public final class EventDetailController: TelegramBaseController {
         self.controllerNode.updateWithPreviewData(data)
     }
 
+    /// В собственных событиях бэк может не прислать `creator` (или прислать без имени) — тогда в блоке
+    /// «Организатор» было «НЕИЗВЕСТНОЕ АГЕНТСТВО». Подставляем себя из /user/info: агентство
+    /// (название + лого), а если его нет — своё имя и аватар.
+    private func fillOwnOrganizerIfNeeded(_ item: EventFullDetailData) async {
+        let creatorName = item.creator?.fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard creatorName.isEmpty else { return }
+        let isOwn = self.isMyEvent == true
+            || (item.creator?.id != nil && item.creator?.id == DivoConfig.currentDivoUserId)
+        guard isOwn else { return }
+
+        do {
+            let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
+                path: "/user/info",
+                method: "GET"
+            )
+            let me = userResponse.data
+            let agencyTitle = me.agency?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let name = agencyTitle.isEmpty ? me.fullName : agencyTitle
+            let logo = agencyTitle.isEmpty ? me.avatar?.fullUrl : (me.agency?.photo?.fullUrl ?? me.avatar?.fullUrl)
+            await MainActor.run {
+                self.controllerNode.updateOrganizer(name: name, isVerified: item.creator?.isVerified, logoURLString: logo)
+            }
+        } catch {
+            divoLog("[DivoAPI] event organizer fallback /user/info error: \(error)", level: .error)
+        }
+    }
+
     private func getEvent() {
         guard let eventId = eventId else { return }
         Task {
@@ -256,8 +283,9 @@ public final class EventDetailController: TelegramBaseController {
                         guard let order2 = $1.order else { return true }
                         return order1 < order2
                     }
-                    // Фильтруем обложку (обычно order == 0) и конвертируем остальные фото в UserPhoto
-                    self.currentGalleryPhotos = sortedFiles.filter { $0.order != 0 }.compactMap { file in
+                    // Обложка — первый файл по order (order nullable и не обязательно начинается с 0), остальное — галерея.
+                    let coverUuid = sortedFiles.first(where: { $0.fileUuid != nil })?.fileUuid
+                    self.currentGalleryPhotos = sortedFiles.filter { $0.fileUuid != coverUuid }.compactMap { file in
                         guard let uuid = file.fileUuid,
                               let fileExtension = file.fileExtension,
                               let fullUrl = file.fullUrl,
@@ -286,6 +314,7 @@ public final class EventDetailController: TelegramBaseController {
                     self.controllerNode.updateEventData(item)
                     self.controllerNode.updateGallery(self.currentGalleryPhotos) // Отдаем фото в Node
                 }
+                await self.fillOwnOrganizerIfNeeded(item)
             } catch {
                 divoLog("[DivoAPI] event/\(eventId) error: \(error)", level: .error)
                 await MainActor.run {

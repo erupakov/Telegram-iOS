@@ -11,10 +11,10 @@ description: Собрать сборку для TestFlight в нужном ок�
 **Обе сборки идут в TestFlight и подписаны одинаково** (дистрибуционный профиль). Единственное
 отличие — флаг `--define=divoEnv`:
 
-| Аргумент | Флаг | REST API | teamgram IP | Firebase | Иконка |
+| Аргумент | Флаг | REST API | teamgram | Firebase | Иконка |
 |---|---|---|---|---|---|
-| `debug` | *(флаг не нужен, дефолт stage)* | `api-stage.divo.fashion/api` | `34.44.72.74` | `divo-2-stage` | ленточка **DEBUG** |
-| `prod` | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `18.185.234.86` | `divodev-62848` | чистая |
+| `debug` | *(флаг не нужен, дефолт stage)* | `api-stage.divo.fashion/api` | `dc1/dc2.divo.global` | `divo-2-stage` | ленточка **DEBUG** |
+| `prod` | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `dc1/dc2.divo.global` | `divodev-62848` | чистая |
 
 Механизм: флаг вшивает ключ `DivoEnvironment` в `Info.plist`; на старте приложение читает его из
 `Bundle.main` и выбирает контур. Иконку Bazel подставляет через `select()`. Подробнее — `Telegram/BUILD`,
@@ -46,9 +46,11 @@ description: Собрать сборку для TestFlight в нужном ок�
    - `build-input/configuration-repository/provisioning/Telegram.mobileprovision` — **distribution**
      профиль (App Store / TestFlight).
 
-4. **Номер сборки.** Попросить Marina посмотреть последний `buildNumber` в TestFlight (App Store
-   Connect) или последний тег `v0.<N>` — и взять `N+1`. `buildNumber` должен быть строго больше
-   предыдущего в TF, иначе загрузка отклонится.
+4. **Номер сборки.** Схема: **debug (stage) — чётные, prod — нечётные** (46 — debug, 47 — prod).
+   Попросить Marina посмотреть **максимальный** `buildNumber` в App Store Connect (по обоим окружениям)
+   или последний тег `v0.<N>` и взять следующее число нужной чётности (макс. 47 → debug 48, prod 49).
+   `buildNumber` должен быть строго больше любой ранее загруженной сборки, иначе загрузка отклонится.
+   Тот же расчёт — `scripts/divo/ci_next_build_number.sh <stage|prod> [известные номера…]`.
 
 5. **Версия.** `--define=telegramVersion=2.0.0` (или актуальная версия релиза). Она же уходит в
    REST-заголовок `app-version` (читается из бандла).
@@ -87,7 +89,7 @@ description: Собрать сборку для TestFlight в нужном ок�
 - **debug:** на иконке ленточка DEBUG; приложение работает на stage (`api-stage.divo.fashion`).
 - **prod:** иконка чистая; приложение на боевом (`api.divo.fashion/v2`).
 
-⚠️ Прод-контур teamgram (IP `18.185.234.86`) на устройстве стоит проверить живьём перед раздачей
+⚠️ Контур teamgram (`dc1.divo.global` / `dc2.divo.global`, общий для stage и prod) на устройстве стоит проверить живьём перед раздачей
 prod-сборки тестерам — убедиться, что боевой мессенджер поднимается.
 (Firebase prod исправлен в коммите `480dfca8bcb` (DIVI-118): `bundleID` = `app.divo.fashion`,
 проект `divodev-62848` — рассинхрона с бандлом больше нет.)

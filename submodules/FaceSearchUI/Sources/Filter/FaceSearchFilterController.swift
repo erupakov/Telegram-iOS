@@ -9,6 +9,9 @@ final class FaceSearchFilterController: UIViewController {
 
     var hairLengthOptions: [FilterOptionAppearanceItem] = []
 
+    /// Опции пола из /dictionary/gender (грузим при открытии; до загрузки строка «Пол» скрыта).
+    private var genderOptions: [FilterOptionItem] = []
+
     var roleOptions: [FilterOptionItem] = [
         FilterOptionItem(id: "all", title: DivoStrings.feedSearchAllRoles),
         FilterOptionItem(id: "model", title: DivoStrings.debugModel),
@@ -92,6 +95,7 @@ final class FaceSearchFilterController: UIViewController {
 
     private let roleRow = FilterRowView(title: DivoStrings.debugRole)
     private let countryRow = FilterRowView(title: DivoStrings.debugCountry)
+    private let genderRow = FilterRowView(title: DivoStrings.paramGender)
 
     // MARK: Expandable
 
@@ -179,6 +183,28 @@ final class FaceSearchFilterController: UIViewController {
         setupCustomNavBar()
         setupUI()
         updateUI()
+        loadGenderOptions()
+    }
+
+    private func loadGenderOptions() {
+        Task { @MainActor [weak self] in
+            do {
+                let response: GenderResponse = try await DivoAPIClient.shared.request(
+                    path: "/dictionary/gender",
+                    method: "GET"
+                )
+                guard let self else { return }
+                self.genderOptions = DivoGender.pickerOptions(from: response.data).map {
+                    FilterOptionItem(id: $0.id, title: $0.title)
+                }
+                // Без словаря строку не показываем (без хардкод-фолбэка, см. docs/CODE_REVIEW.md);
+                // уже выбранный пол остаётся виден, чтобы его можно было снять.
+                self.genderRow.isHidden = self.genderOptions.isEmpty && self.currentFilters.genderIds.isEmpty
+            } catch {
+                divoLog("[FaceSearchFilter] /dictionary/gender error: \(error)", level: .error)
+                self?.genderRow.isHidden = self?.currentFilters.genderIds.isEmpty ?? true
+            }
+        }
     }
 
     override func viewDidLayoutSubviews() {
@@ -302,7 +328,8 @@ final class FaceSearchFilterController: UIViewController {
         setupSimilarityCard()
         stackView.addArrangedSubview(similarityCard)
 
-        let innerStack = UIStackView(arrangedSubviews: [roleRow, countryRow])
+        genderRow.isHidden = true
+        let innerStack = UIStackView(arrangedSubviews: [roleRow, genderRow, countryRow])
         innerStack.axis = .vertical
         innerStack.spacing = DivoDesignTokens.Spacing.m
         innerStack.translatesAutoresizingMaskIntoConstraints = false
@@ -344,6 +371,7 @@ final class FaceSearchFilterController: UIViewController {
 
         roleRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(roleTapped)))
         countryRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countryTapped)))
+        genderRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(genderTapped)))
 
         similaritySlider.addTarget(self, action: #selector(similarityChanged), for: .valueChanged)
 
@@ -402,6 +430,7 @@ final class FaceSearchFilterController: UIViewController {
     private func updateUI() {
         roleRow.setItems(currentFilters.roleTitles, emptyTitle: DivoStrings.feedSearchAllRoles)
         countryRow.setItems(currentFilters.countryTitles, emptyTitle: DivoStrings.feedSearchAllCountries)
+        genderRow.setItems(currentFilters.genderTitles, emptyTitle: DivoStrings.feedSearchAllGenders)
 
         let sliderIndex = FaceSearchFilterState.similaritySteps.firstIndex(of: currentFilters.similarity) ?? 0
         similaritySlider.selectedIndex = sliderIndex
@@ -560,6 +589,32 @@ final class FaceSearchFilterController: UIViewController {
         vc.onSave = { [weak self] selectedItems in
             self?.currentFilters.roleIds = selectedItems.map { $0.id }
             self?.currentFilters.roleTitles = selectedItems.map { $0.title }
+            self?.updateUI()
+        }
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    @objc private func genderTapped() {
+        var displayOptions = [FilterOptionItem(id: "all", title: DivoStrings.feedSearchAllGenders)]
+        displayOptions.append(contentsOf: genderOptions)
+
+        let vc = FilterOptionsController(
+            title: DivoStrings.paramGender,
+            options: displayOptions,
+            selectedOptionIds: currentFilters.genderIds,
+            isMultiSelect: true,
+            showSearch: false
+        )
+        vc.onSave = { [weak self] selectedItems in
+            let picked = selectedItems.filter { $0.id != "all" }
+            // «Все» (или пустой выбор) — фильтр по полу снят.
+            if selectedItems.contains(where: { $0.id == "all" }) || picked.isEmpty {
+                self?.currentFilters.genderIds = []
+                self?.currentFilters.genderTitles = []
+            } else {
+                self?.currentFilters.genderIds = picked.map { $0.id }
+                self?.currentFilters.genderTitles = picked.map { $0.title }
+            }
             self?.updateUI()
         }
         navigationController?.pushViewController(vc, animated: true)

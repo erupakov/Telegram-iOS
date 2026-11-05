@@ -99,12 +99,6 @@ public final class PublicProfileScreenController: TelegramBaseController {
 
     private var similarProfilesIsLoading: Bool = false
 
-    private struct EngagementTotals {
-        let likes: Int
-        let views: Int
-        let saves: Int
-    }
-    
     public init(context: AccountContext, model: ProfileModel, peer: Peer? = nil) {
         self.context = context
         self.model = model
@@ -154,6 +148,32 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 object: nil
             )
         }
+        // Заблокировали кого-то (из «Похожих», ростера или чата) — убираем его из этих секций.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleUserBlocked(_:)),
+            name: DivoBlockedUsers.userBlockedNotification,
+            object: nil
+        )
+        if !model.isMyProfile, model.userId != nil {
+            // Блок/разблок этого пользователя (здесь или на экране «Заблокированные») → обновляем меню «⋯».
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(self.handleBlockedUsersDidChange),
+                name: DivoBlockedUsers.didChangeNotification,
+                object: nil
+            )
+        }
+    }
+
+    @objc private func handleUserBlocked(_ notification: Notification) {
+        guard self.isNodeLoaded, let userId = notification.userInfo?["userId"] as? Int, userId != model.userId else { return }
+        self.controllerNode.removeBlockedUser(userId: userId)
+    }
+
+    @objc private func handleBlockedUsersDidChange() {
+        guard self.isNodeLoaded, let userId = model.userId else { return }
+        self.controllerNode.isUserBlocked = DivoBlockedUsers.isBlocked(userId: userId) ?? false
     }
 
     @objc private func handleChannelsDidChange() {
@@ -468,6 +488,19 @@ public final class PublicProfileScreenController: TelegramBaseController {
             self?.presentBlockConfirmation()
         }
 
+        self.controllerNode.onUnblockTapped = { [weak self] in
+            self?.presentUnblockConfirmation()
+        }
+
+        if !model.isMyProfile, let userId = model.userId {
+            self.controllerNode.isUserBlocked = DivoBlockedUsers.isBlocked(userId: userId) ?? false
+            // Статус блокировки берём из POST /user/blocked (один раз за сессию); после загрузки
+            // меню обновится через didChangeNotification.
+            Task {
+                await DivoBlockedUsers.fetchIfNeeded()
+            }
+        }
+
         self.controllerNode.storiesButtonTapped = { [weak self] in
             self?.openStoryComposer()
         }
@@ -550,7 +583,22 @@ public final class PublicProfileScreenController: TelegramBaseController {
     public func configureAsProfileTab() {
         self.isProfileTab = true
         self.tabBarItem.title = DivoStrings.tabProfile
+        // Повторный тап по активной вкладке «Профиль» — наверх.
+        self.scrollToTop = { [weak self] in
+            guard let self, self.isNodeLoaded else { return }
+            self.controllerNode.scrollToTop()
+        }
         self.applyTabBarIcon(avatar: nil)
+        // Иконка таба — аватар. Раньше он подгружался только с профилем (viewWillAppear), т.е. после
+        // первого открытия вкладки — до этого в таб-баре висела заглушка. Грузим сразу; если сессия
+        // DIVO ещё не готова (токен ставится после входа) — повторяем при смене токена.
+        self.prefetchTabBarAvatar()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.handleTokenDidChangeForTabIcon),
+            name: DivoConfig.tokenDidChangeNotification,
+            object: nil
+        )
         // Свой профиль отредактировали (имя/ава/поля) на другом экране → тихо перечитываем себя,
         // иначе таб держит устаревшие данные до перезахода в приложение.
         NotificationCenter.default.addObserver(
@@ -559,6 +607,27 @@ public final class PublicProfileScreenController: TelegramBaseController {
             name: DivoConfig.profileDidUpdateNotification,
             object: nil
         )
+    }
+
+    private var tabBarAvatarLoaded = false
+
+    private func prefetchTabBarAvatar() {
+        // currentDivoUserId есть только у залогиненной DIVO-сессии: без неё /user/info ушёл бы с
+        // fallback-токеном и вернул чужой профиль.
+        guard self.isProfileTab, !self.tabBarAvatarLoaded, DivoConfig.currentDivoUserId != nil else { return }
+        Task {
+            let profile = await self.fetchUserProfile()
+            await MainActor.run {
+                guard let detail = profile else { return }
+                self.updateTabBarAvatarIcon(from: detail)
+            }
+        }
+    }
+
+    @objc private func handleTokenDidChangeForTabIcon() {
+        DispatchQueue.main.async { [weak self] in
+            self?.prefetchTabBarAvatar()
+        }
     }
 
     @objc private func handleOwnProfileDidUpdate() {
@@ -571,9 +640,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     /// возвращает экран в loading-стейт, что на фоновой правке имени выглядело бы миганием.
     private func refreshProfileTabSilently() {
         Task {
-            async let profileResult = fetchUserProfile()
-            async let engagementResult = fetchEngagementTotals()
-            let (profile, engagement) = await (profileResult, engagementResult)
+            let profile = await fetchUserProfile()
             await MainActor.run {
                 guard let detail = profile else { return }
                 self.userDetailModel = detail
@@ -582,15 +649,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.loadAgencyLinks(for: detail)
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
-                if let eng = engagement {
-                    self.controllerNode.updateEngagementStats(
-                        likes: eng.likes,
-                        views: eng.views,
-                        saves: eng.saves,
-                        isLiked: detail.isLikedByUser ?? false,
-                        isSaved: detail.isFollowed ?? false
-                    )
-                }
+                self.applyEngagementStats(from: detail)
             }
         }
     }
@@ -602,6 +661,9 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
         ImageLoader.shared.load(url: url) { [weak self] image in
             guard let self, self.isProfileTab else { return }
+            if image != nil {
+                self.tabBarAvatarLoaded = true
+            }
             self.applyTabBarIcon(avatar: image)
         }
     }
@@ -628,17 +690,19 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }.withRenderingMode(.alwaysOriginal)
     }
 
-    /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers.
-    /// teamgram не валидирует access_hash, поэтому 0 проходит.
+    /// Резолвит teamgram-peer по DIVO telegramId: сперва из Postbox, иначе users.getUsers с access_hash
+    /// из профиля (`telegramAccessHash`). Без него (старый бэк) — 0: так находятся только юзеры,
+    /// которых teamgram отдаёт без проверки access_hash.
     private func resolveTeamgramPeer(telegramId: Int) -> (peerId: PeerId, peer: Signal<EnginePeer?, NoError>) {
         let context = self.context
+        let accessHash = self.userDetailModel?.telegramAccessHash ?? 0
         let peerId = PeerId(namespace: Namespaces.Peer.CloudUser, id: PeerId.Id._internalFromInt64Value(Int64(telegramId)))
         let signal: Signal<EnginePeer?, NoError> = context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
         |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
             if let peer = peer {
                 return .single(peer)
             }
-            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: 0))
+            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: accessHash))
             |> map { peer -> EnginePeer? in EnginePeer(peer) }
             |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
         }
@@ -781,9 +845,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     private func loadInitialData() {
         profileLoaded = true
         Task {
-            async let profileResult = fetchUserProfile()
-            async let engagementResult = fetchEngagementTotals()
-            let (profile, engagement) = await (profileResult, engagementResult)
+            let profile = await fetchUserProfile()
             await MainActor.run {
                 guard let detail = profile else {
                     self.profileLoaded = false
@@ -805,6 +867,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
                     )
                     return
                 }
+                // Блокировка в любую сторону: вместо профиля — заглушка `isUnavailable` без полей.
+                if detail.isUnavailable == true {
+                    self.controllerNode.showProfileUnavailable()
+                    return
+                }
                 self.userDetailModel = detail
                 if self.isProfileTab {
                     self.updateTabBarAvatarIcon(from: detail)
@@ -814,15 +881,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 self.userID = detail.id
                 self.userRole = Role(apiRole: detail.role)
                 self.setupStoryRing()
-                if let eng = engagement {
-                    self.controllerNode.updateEngagementStats(
-                        likes: eng.likes,
-                        views: eng.views,
-                        saves: eng.saves,
-                        isLiked: detail.isLikedByUser ?? false,
-                        isSaved: detail.isFollowed ?? false
-                    )
-                }
+                self.applyEngagementStats(from: detail)
                 self.loadGalleryPage(userId: self.userID, offset: 0)
                 self.loadVideoGalleryPage(userId: self.userID, offset: 0)
                 if !isMyProfile && userRole != .agency {
@@ -851,28 +910,37 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
     }
 
-    private func fetchEngagementTotals() async -> EngagementTotals? {
-        guard isMyProfile || model.userId != nil else { return nil }
-        do {
-            let path = isMyProfile ? "/user/engagement?offset=0&limit=1" : "/user/engagement?offset=0&limit=1&userId=\(model.userId!)"
-            let response: UserEngagementResponse = try await DivoAPIClient.shared.request(
-                path: path,
-                method: "GET"
-            )
-            let likes = response.data?.liked?.pagination?.meta?.totalCount ?? response.data?.liked?.pagination?.total ?? 0
-            let views = response.data?.viewed?.pagination?.meta?.totalCount ?? response.data?.viewed?.pagination?.total ?? 0
-            let saves = response.data?.followed?.pagination?.meta?.totalCount ?? response.data?.followed?.pagination?.total ?? 0
-            return EngagementTotals(likes: likes, views: views, saves: saves)
-        } catch {
-            divoLog("[ENGAGEMENT TOTALS] Error: \(error)", level: .error)
-            return nil
-        }
+    /// Счётчики шапки — из `statistic` профиля, тот же источник, что `user` в ленте:
+    /// просмотры — все события просмотра, лайки — уникальные люди, сохранения — подписчики.
+    /// Итоги `/user/engagement` для этого не годятся: `viewed` там — уникальные зрители.
+    private func applyEngagementStats(from detail: UserDetail) {
+        self.controllerNode.updateEngagementStats(
+            likes: detail.statistic?.likesCount ?? 0,
+            views: detail.statistic?.viewsCount ?? 0,
+            saves: detail.statistic?.followersCount ?? 0,
+            isLiked: detail.isLikedByUser ?? false,
+            isSaved: detail.isFollowed ?? false
+        )
     }
 
     // MARK: - Face Scan
 
+    /// Фото для «Найти похожие»: из загруженного профиля (основное фото, затем аватар), запасной —
+    /// URL, переданный экраном, который открыл профиль. Профиль, открытый из чата / настроек / по
+    /// диплинку (`ProfileModel(userId:)`), mainImageURL не несёт — раньше там всегда была ошибка.
+    private func faceScanPhotoURLs() -> [URL] {
+        var urls: [URL] = []
+        let detailURLs = [userDetailModel?.photo?.fullUrl, userDetailModel?.avatar?.fullUrl]
+            .compactMap { CDNURLHelper.convertToCDNURL($0) }
+        for url in detailURLs + [self.model.mainImageURL].compactMap({ $0 }) where !urls.contains(url) {
+            urls.append(url)
+        }
+        return urls
+    }
+
     private func openFaceScanForCurrentProfile() {
-        guard let url = self.model.mainImageURL else {
+        let urls = faceScanPhotoURLs()
+        guard !urls.isEmpty else {
             self.controllerNode.showSnackbar(
                 message: DivoStrings.faceRecognitionProfilePhotoLoadFailed,
                 style: .error
@@ -881,7 +949,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
 
         FaceSearchPhotoLoader.loadProfilePhoto(
-            url: url,
+            urls: urls,
             host: self.view.window?.rootViewController?.view
         ) { [weak self] image in
             guard let self else { return }
@@ -1212,12 +1280,23 @@ extension PublicProfileScreenController {
     }
 }
 
-// Загрузка каналов модели через REST (/channels/list). В публичном профиле показываем
-// только публичные каналы (с username); приватные не выводим. Название/подписчиков/verified
-// подтягиваем из MTProto резолвом по username.
+// Загрузка каналов модели через REST (/channels/list). В профиле (своём и чужом) — только публичные
+// каналы (с username). Название/подписчиков/verified подтягиваем из MTProto. Группы (в т.ч. группа
+// обсуждений канала, если её зарегистрировал другой клиент) после резолва выкидываем из списка.
+// В своём профиле записи приватных каналов и групп, оставшиеся в REST с прежних версий, удаляем.
 extension PublicProfileScreenController {
+    /// id профиля для /channels/list: у своего профиля (таб) в модели userId нет — берём id из
+    /// загруженного /user/info, а до его прихода — id текущей DIVO-сессии.
+    private var channelsOwnerUserId: Int? {
+        if let userId = model.userId {
+            return userId
+        }
+        guard self.isMyProfile else { return nil }
+        return self.userID > 0 ? self.userID : DivoConfig.currentDivoUserId
+    }
+
     func loadTelegramChannels() {
-        guard let userId = model.userId else {
+        guard let userId = self.channelsOwnerUserId else {
             DispatchQueue.main.async { [weak self] in
                 self?.controllerNode.updateChannelsList([])
             }
@@ -1226,6 +1305,7 @@ extension PublicProfileScreenController {
 
         self.channelInfoDisposables.dispose()
         self.channelInfoDisposables = DisposableSet()
+        let isOwnProfile = self.isMyProfile
 
         Task { @MainActor in
             do {
@@ -1233,17 +1313,22 @@ extension PublicProfileScreenController {
                     path: "/channels/list?user_id=\(userId)",
                     method: "GET"
                 )
-                // Приватные каналы (без username) в публичном профиле не показываем.
                 let base = (response.data?.items ?? []).compactMap { channel -> ProfileChannelItem? in
-                    guard let username = channel.username?.trimmingCharacters(in: .whitespacesAndNewlines),
-                          !username.isEmpty else {
+                    let username = channel.username?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard let username = username, !username.isEmpty else {
+                        // Приватный канал в профиль не попадает; свою устаревшую запись чистим.
+                        if isOwnProfile {
+                            Self.deleteChannelRecord(id: channel.id)
+                        }
                         return nil
                     }
                     return ProfileChannelItem(
                         title: username,
                         subtitle: "@\(username)",
                         username: username,
-                        isVerified: false
+                        isVerified: false,
+                        telegramChatId: channel.telegramChatId,
+                        recordId: channel.id
                     )
                 }
 
@@ -1258,13 +1343,16 @@ extension PublicProfileScreenController {
         }
     }
 
-    // Реальное название/verified и число подписчиков берём из MTProto резолвом по username.
-    // Подписчики — best-effort: если ещё не в кэше, оставляем @username как подпись.
-    private func enrichChannelsFromMTProto() {
-        for (index, item) in self.channelItems.enumerated() {
-            guard let username = item.username, !username.isEmpty else { continue }
+    /// PeerId канала по telegramChatId из REST. Наш клиент регистрирует «сырой» id канала, но бэк
+    /// документирует и Bot-API форму (-100XXXXXXXXXX) — нормализуем обе.
+    private static func channelPeerId(telegramChatId: Int64) -> EnginePeer.Id {
+        let rawId = telegramChatId < 0 ? -(telegramChatId + 1_000_000_000_000) : telegramChatId
+        return EnginePeer.Id(namespace: Namespaces.Peer.CloudChannel, id: EnginePeer.Id.Id._internalFromInt64Value(rawId))
+    }
 
-            let signal = self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
+    private func resolveChannelPeer(_ item: ProfileChannelItem) -> Signal<EnginePeer?, NoError> {
+        if let username = item.username, !username.isEmpty {
+            return self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
             |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
                 switch result {
                 case .progress:
@@ -1274,6 +1362,18 @@ extension PublicProfileScreenController {
                 }
             }
             |> take(1)
+        }
+        if let chatId = item.telegramChatId {
+            return self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: Self.channelPeerId(telegramChatId: chatId)))
+        }
+        return .single(nil)
+    }
+
+    // Реальное название/verified и число подписчиков берём из MTProto.
+    // Подписчики — best-effort: если ещё не в кэше, оставляем @username как подпись.
+    private func enrichChannelsFromMTProto() {
+        for item in self.channelItems {
+            let signal = self.resolveChannelPeer(item)
             |> mapToSignal { [weak self] peer -> Signal<(EnginePeer, Int?)?, NoError> in
                 guard let self = self, let peer = peer else { return .single(nil) }
                 return self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.ParticipantCount(id: peer.id))
@@ -1283,41 +1383,57 @@ extension PublicProfileScreenController {
             self.channelInfoDisposables.add((signal
             |> deliverOnMainQueue).startStrict(next: { [weak self] pair in
                 guard let self = self, let (peer, count) = pair else { return }
-                self.applyChannelInfo(peer: peer, participantsCount: count, at: index)
+                self.applyChannelInfo(peer: peer, participantsCount: count, for: item.identity)
             }))
         }
     }
 
-    private func applyChannelInfo(peer: EnginePeer, participantsCount: Int?, at index: Int) {
-        guard index < self.channelItems.count else { return }
-        let current = self.channelItems[index]
+    private func applyChannelInfo(peer: EnginePeer, participantsCount: Int?, for identity: String) {
+        // Поиск по идентичности, а не по индексу: соседние элементы могли быть уже удалены.
+        guard let index = self.channelItems.firstIndex(where: { $0.identity == identity }) else { return }
 
+        // В «Каналы» попадают только broadcast-каналы: группы/супергруппы (группа обсуждений) убираем.
+        guard case let .channel(channel) = peer, case .broadcast = channel.info else {
+            if self.isMyProfile, let recordId = self.channelItems[index].recordId {
+                Self.deleteChannelRecord(id: recordId)
+            }
+            self.channelItems.remove(at: index)
+            self.controllerNode.updateChannelsList(self.channelItems)
+            return
+        }
+
+        let current = self.channelItems[index]
         self.channelItems[index] = ProfileChannelItem(
             title: peer.debugDisplayTitle,
             subtitle: participantsCount.map { DivoStrings.followersString($0) } ?? current.subtitle,
             username: current.username,
-            isVerified: peer.isVerified
+            isVerified: peer.isVerified,
+            telegramChatId: current.telegramChatId,
+            recordId: current.recordId
         )
         self.controllerNode.updateChannelsList(self.channelItems)
     }
 
+    /// Удалить запись из /channels/list (best-effort): приватные каналы и группы в профиле не держим.
+    private static func deleteChannelRecord(id: Int) {
+        Task {
+            do {
+                _ = try await DivoAPIClient.shared.requestRawData(path: "/channels/\(id)", method: "DELETE")
+                divoLog("[CHANNELS] запись \(id) (приватный канал / группа) удалена из профиля")
+            } catch {
+                divoLog("[CHANNELS] не удалось удалить запись \(id): \(error)", level: .error)
+            }
+        }
+    }
+
     func openChannel(_ item: ProfileChannelItem) {
         guard let navigationController = self.navigationController as? NavigationController else { return }
-        guard let username = item.username, !username.isEmpty else {
+        guard (item.username?.isEmpty == false) || item.telegramChatId != nil else {
             self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
             return
         }
 
-        self.openChatDisposable.set((self.context.engine.peers.resolvePeerByName(name: username, referrer: nil)
-        |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
-            switch result {
-            case .progress:
-                return .complete()
-            case let .result(peer):
-                return .single(peer)
-            }
-        }
-        |> take(1)
+        self.openChatDisposable.set((self.resolveChannelPeer(item)
         |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
             guard let self = self else { return }
             guard let peer = peer else {
@@ -1884,10 +2000,8 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
                     guard let self = self, let uiImage = image as? UIImage else { return }
                     let normalized = uiImage.fixedOrientation()
                     DispatchQueue.main.async {
-                        self.controllerNode.updateBackgroundImage(normalized)
-                        self.controllerNode.setBackgroundLoading(true)
+                        self.presentBackgroundCrop(normalized)
                     }
-                    self.uploadAndSetBackground(normalized)
                 }
             }
         case .photo:
@@ -2106,6 +2220,30 @@ extension PublicProfileScreenController: PHPickerViewControllerDelegate {
         return UIImage(cgImage: cgImage)
     }
 
+    /// Кадрирование фона: вертикальная прямоугольная рамка с пропорциями 3:2 (высота : ширина),
+    /// т.е. aspectRatio = ширина / высота = 2 / 3.
+    private func presentBackgroundCrop(_ image: UIImage) {
+        let aspectRatio: CGFloat = 2.0 / 3.0
+        let cropController = DivoAvatarCropController(
+            image: image,
+            shape: .rectangle(aspectRatio: aspectRatio),
+            onComplete: { [weak self] cropped in
+                guard let self = self else { return }
+                self.controllerNode.updateBackgroundImage(cropped)
+                self.controllerNode.setBackgroundLoading(true)
+                self.uploadAndSetBackground(cropped)
+            }
+        )
+        // PHPicker ещё может закрываться — показываем кроп после окончания анимации.
+        if let coordinator = self.transitionCoordinator ?? self.presentedViewController?.transitionCoordinator {
+            coordinator.animate(alongsideTransition: nil, completion: { [weak self] _ in
+                self?.present(cropController, animated: true)
+            })
+        } else {
+            self.present(cropController, animated: true)
+        }
+    }
+
     private func uploadAndSetBackground(_ image: UIImage) {
         guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             DispatchQueue.main.async {
@@ -2299,20 +2437,65 @@ extension PublicProfileScreenController {
 
     private func blockUser() {
         guard let userId = model.userId else { return }
+        // teamgram-id собеседника — чтобы плашка блокировки в чате обновилась сразу.
+        let telegramId = userDetailModel?.telegramId.map { Int64($0) }
         Task { [weak self] in
             do {
-                let _: BlockUserResponse = try await DivoAPIClient.shared.request(
-                    path: "/messenger/block-user",
-                    method: "POST",
-                    body: BlockUserRequest(recipientId: userId)
-                )
+                try await DivoBlockedUsers.block(userId: userId, telegramId: telegramId)
                 divoTrack(.userBlocked(targetUserId: Int64(userId)))
                 await MainActor.run {
-                    self?.controllerNode.showSnackbar(message: DivoStrings.userBlocked, style: .success)
+                    guard let self else { return }
+                    self.controllerNode.isUserBlocked = true
+                    // После блока сервер отдаёт профиль заглушкой и отписывает в обе стороны —
+                    // перерисовываем экран как недоступный (разблокировать можно из «⋯»).
+                    self.controllerNode.showProfileUnavailable()
+                    self.controllerNode.showSnackbar(message: DivoStrings.userBlocked, style: .success)
                 }
             } catch {
                 await MainActor.run {
                     self?.controllerNode.showSnackbar(message: DivoStrings.blockUserFailed, style: .error)
+                }
+            }
+        }
+    }
+
+    func presentUnblockConfirmation() {
+        guard model.userId != nil else { return }
+        let alert = UIAlertController(
+            title: DivoStrings.unblockUser,
+            message: DivoStrings.unblockUserConfirmMessage,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: DivoStrings.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: DivoStrings.unblock, style: .default) { [weak self] _ in
+            self?.unblockUser()
+        })
+        self.present(alert, animated: true)
+    }
+
+    private func unblockUser() {
+        guard let userId = model.userId else { return }
+        // Профиль заблокированного — заглушка без telegramId; тогда берём его из списка заблокированных.
+        let telegramId = userDetailModel?.telegramId.map { Int64($0) } ?? DivoBlockedUsers.telegramId(userId: userId)
+        Task { [weak self] in
+            do {
+                try await DivoBlockedUsers.unblock(userId: userId, telegramId: telegramId)
+                await MainActor.run {
+                    guard let self else { return }
+                    self.controllerNode.isUserBlocked = false
+                    self.controllerNode.showSnackbar(message: DivoStrings.userUnblocked, style: .success)
+                    // Профиль был заглушкой — перечитываем. Если блок есть и с другой стороны,
+                    // сервер снова отдаст заглушку.
+                    if self.controllerNode.isProfileUnavailable {
+                        self.controllerNode.hideProfileUnavailable()
+                        self.controllerNode.resetToInitialLoading()
+                        self.profileLoaded = false
+                        self.loadInitialData()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self?.controllerNode.showSnackbar(message: DivoStrings.unblockUserFailed, style: .error)
                 }
             }
         }

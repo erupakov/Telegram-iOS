@@ -20,6 +20,22 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
 
     public init() {}
 
+    /// Роль онбординга → `subrole` бэкенда для `role = new_face`. Model (уходит как new_face без агентства)
+    /// подроли не имеет. Роль D4 (бывш. «Танцор») — AI creator.
+    private static let backendSubroles: [OnboardingRoleID: String] = [
+        .newTalent: "new_talent",
+        .actor: "actor",
+        .dancer: "ai_creator",
+        .singerPerformer: "singer",
+        .photographer: "photographer",
+        .stylist: "stylist",
+        .makeupArtist: "mua",
+        .hairStylist: "hair_stylist",
+        .videographer: "videographer",
+        .creativeDirector: "creative_director",
+        .fashionDesigner: "fashion_designer",
+    ]
+
     public func submit(state: OnboardingRegistrationState, registry: OnboardingRoleRegistry) async throws {
         let roleDef = state.selectedRoleId.flatMap { registry.definition(for: $0) }
         let rawRole = roleDef?.backendRoleRaw ?? "model"
@@ -28,6 +44,8 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
         // агентства = New Talent по квизу). Иначе update-profile даёт 422 по agency_id, имя/фото не лягут.
         // Когда добавим сбор агентства в model-путь (беклог Option B) — слать `model` + agency_id.
         let role = rawRole == "model" ? "new_face" : rawRole
+        // Подроль new_face для бэкенда: по ней он строит roleLabel («AI creator», «Photographer»…) во всех списках.
+        let subrole = role == "new_face" ? state.selectedRoleId.flatMap { Self.backendSubroles[$0] } : nil
         let phone = DivoConfig.pendingPhoneNumber
         let socialCreds = DivoConfig.pendingSocialRegistration
         // email для профиля: соц — реальный из Google/Apple, phone — синтетический из номера.
@@ -74,7 +92,7 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                 // Соц-новый (ветка D): заводим DIVO-аккаунт. Роль + профиль — в additionalInfo.
                 divoLog("Onboarding submit: registration-social role=\(role) uid=\(creds.uid)", level: .info)
                 let token = try await AuthRestService.shared.registerSocial(
-                    uid: creds.uid, providerId: creds.providerId, role: role, email: creds.email, additionalInfo: additionalInfo
+                    uid: creds.uid, providerId: creds.providerId, role: role, subrole: subrole, email: creds.email, additionalInfo: additionalInfo
                 )
                 DivoConfig.accessToken = token.accessToken
                 DivoConfig.currentDivoUserId = token.user.id
@@ -86,7 +104,7 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                 let password = PhoneAuthLinker.derivedPassword(for: phone)
                 divoLog("Onboarding submit: registration (phone) role=\(role)", level: .info)
                 let token = try await AuthRestService.shared.register(
-                    role: role, email: email, password: password, additionalInfo: additionalInfo
+                    role: role, subrole: subrole, email: email, password: password, additionalInfo: additionalInfo
                 )
                 DivoConfig.accessToken = token.accessToken
                 DivoConfig.currentDivoUserId = token.user.id
@@ -167,7 +185,9 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                         gender: genderId,
                         geoCityId: geoCityId,
                         birthday: formDate("dateOfBirth", state: state, registry: registry) ?? detail?.birthday,
-                        avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) }
+                        avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) },
+                        // Существующий аккаунт меняет роль через change-role, а тот подроль не принимает
+                        subrole: subrole
                     )
                     try await AuthRestService.shared.updateProfile(req)
                     divoLog("Onboarding submit: updateProfile OK (имя/фото, genderId=\(genderId ?? "nil"))", level: .info)

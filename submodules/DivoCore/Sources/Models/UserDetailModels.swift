@@ -15,6 +15,10 @@ public struct UserDetail: Decodable {
     public let email: String?
     public let phone: String?
     public let telegramId: Int?
+    /// access_hash пользователя в teamgram: без него users.getUsers не отдаёт тех, кого нет у нас в
+    /// кэше (не было переписки / не в контактах) — «Написать» в профиле не открывал чат.
+    public var telegramAccessHash: Int64? { telegramAccessHashValue?.value }
+    private let telegramAccessHashValue: DivoLenientInt64?
     public let photo: UserFile?
     public let avatar: UserFile?
     public let role: String?
@@ -33,16 +37,39 @@ public struct UserDetail: Decodable {
     public let isLikedByUser: Bool?
     public let userRatingStatus: String?
     public let userSocialNetworks: [UserSocialNetwork]?
+    /// Заглушка вместо профиля, если между текущим пользователем и этим есть блокировка (в любую
+    /// сторону): `{ "id": 42, "isUnavailable": true }` без остальных полей. Проверять до разбора профиля.
+    public let isUnavailable: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, fullName, gender, birthday, city, email, phone
         case telegramId
+        case telegramAccessHashValue = "telegramAccessHash"
         case photo, avatar, role, subrole, roleLabel
         case measuringSystem, pushNotifications
         case isPremium = "is_premium"
         case model, customer, agency, agencyEmployee
         case statistic, isFavorite, isFollowed, isLikedByUser
         case userRatingStatus, userSocialNetworks
+        case isUnavailable
+    }
+}
+
+/// Int64, который бэк может прислать числом или строкой (access_hash не влезает в Double без потерь,
+/// поэтому часть бэкендов отдаёт его строкой). Нераспознанное значение → nil, а не ошибка разбора
+/// всего ответа.
+public struct DivoLenientInt64: Decodable {
+    public let value: Int64?
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let number = try? container.decode(Int64.self) {
+            self.value = number
+        } else if let string = try? container.decode(String.self), let number = Int64(string.trimmingCharacters(in: .whitespaces)) {
+            self.value = number
+        } else {
+            self.value = nil
+        }
     }
 }
 
@@ -212,6 +239,7 @@ public struct UserStatistic: Decodable {
     public let followersCount: Int?
     public let followingCount: Int?
     public let viewsCount: Int?
+    public let likesCount: Int?
     public let sentToAgenciesCount: Int?
     public let modelsCount: Int?
 }
@@ -274,6 +302,8 @@ public struct UpdateBiographyPageRequest: Encodable {
     public let model: ModelData?
     public let avatar: AvatarUuid?
     public let photo: AvatarUuid?
+    /// Подроль new_face (`ai_creator`…). nil не кодируется — бэк оставляет текущую подроль.
+    public let subrole: String?
 
     public struct AvatarUuid: Encodable {
         public let uuid: String
@@ -289,7 +319,7 @@ public struct UpdateBiographyPageRequest: Encodable {
         }
     }
 
-    public init(fullName: String? = nil, gender: String? = nil, geoCityId: Int? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil) {
+    public init(fullName: String? = nil, gender: String? = nil, geoCityId: Int? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil, subrole: String? = nil) {
         self.fullName = fullName
         self.gender = gender
         self.geoCityId = geoCityId
@@ -297,6 +327,7 @@ public struct UpdateBiographyPageRequest: Encodable {
         self.model = model
         self.avatar = avatar
         self.photo = photo
+        self.subrole = subrole
     }
 }
 

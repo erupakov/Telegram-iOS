@@ -255,23 +255,17 @@ public struct Font {
                         font = UIFont(name: "Menlo", size: size - 1.0) ?? UIFont.systemFont(ofSize: size)
                     }
                 case .round:
-                    font = UIFont(name: ".SFCompactRounded-Semibold", size: size) ?? UIFont.systemFont(ofSize: size)
-                case .camera:
-                    func encodeText(string: String, key: Int16) -> String {
-                        let nsString = string as NSString
-                        let result = NSMutableString()
-                        for i in 0 ..< nsString.length {
-                            var c: unichar = nsString.character(at: i)
-                            c = unichar(Int16(c) + key)
-                            result.append(NSString(characters: &c, length: 1) as String)
-                        }
-                        return result as String
-                    }
-                    if case .semibold = weight {
-                        font = UIFont(name: encodeText(string: "TGDbnfsb.Tfnjcpme", key: -1), size: size) ?? UIFont.systemFont(ofSize: size, weight: weight.weight)
+                    // Системный SF Pro Rounded вместо вшитого SFCompactRounded: Apple запрещает
+                    // встраивать свои шрифты в бандл (ITMS-91182).
+                    let base = UIFont.systemFont(ofSize: size, weight: .semibold)
+                    if let descriptor = base.fontDescriptor.withDesign(.rounded) {
+                        font = UIFont(descriptor: descriptor, size: size)
                     } else {
-                        font = UIFont(name: encodeText(string: "TGDbnfsb.Sfhvmbs", key: -1), size: size) ?? UIFont.systemFont(ofSize: size, weight: weight.weight)
+                        font = base
                     }
+                case .camera:
+                    // Системный шрифт вместо вшитого SF Camera (ITMS-91198).
+                    font = UIFont.systemFont(ofSize: size, weight: weight.weight)
             }
             
             self.cache.set(font, key: key)

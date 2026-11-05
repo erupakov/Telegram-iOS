@@ -33,6 +33,10 @@ public struct FaceSearchFilterState: Equatable {
     public var countryIds: [String] = []
     public var countryTitles: [String] = []
 
+    /// Пол: id из /dictionary/gender (male/female/other). Пусто — любой.
+    public var genderIds: [String] = []
+    public var genderTitles: [String] = []
+
     public var ageRange: ClosedRange<Int>?
     public var heightRange: ClosedRange<Double>?
     public var waistRange: ClosedRange<Double>?
@@ -45,6 +49,7 @@ public struct FaceSearchFilterState: Equatable {
             similarity != FaceSearchFilterState.defaultSimilarity,
             !roleIds.isEmpty,
             !countryIds.isEmpty,
+            !genderIds.isEmpty,
             ageRange != nil,
             heightRange != nil,
             waistRange != nil,
@@ -68,6 +73,8 @@ public struct FaceSearchFilterState: Equatable {
         roleTitles = []
         countryIds = []
         countryTitles = []
+        genderIds = []
+        genderTitles = []
         ageRange = nil
         heightRange = nil
         waistRange = nil
@@ -82,6 +89,19 @@ public struct FaceSearchFilterState: Equatable {
 
     public var apiCountries: [String]? {
         countryIds.isEmpty ? nil : countryIds
+    }
+
+    public var apiGenders: [String]? {
+        genderIds.isEmpty ? nil : genderIds
+    }
+
+    /// Проходит ли результат FR по полу. Фильтр дублируется на клиенте: если /fr/search не учтёт
+    /// параметр `gender`, выдача всё равно не покажет людей другого пола. Пол не указан → «other».
+    public func matchesGender(_ gender: String?) -> Bool {
+        guard !genderIds.isEmpty else { return true }
+        let normalized = gender?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+        let value = (normalized == DivoGender.male || normalized == DivoGender.female) ? normalized : DivoGender.notSpecified
+        return genderIds.contains(value)
     }
 
     public init() {}

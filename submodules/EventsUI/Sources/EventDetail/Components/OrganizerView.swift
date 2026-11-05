@@ -130,7 +130,8 @@ final class OrganizerView: UIView {
     
     func configure(name: String?, isVerified: Bool?, logoURLString: String?) {
         UIView.performWithoutAnimation {
-            self.agencyNameLabel.text = name?.uppercased() ?? DivoStrings.unknownAgency
+            let trimmedName = name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            self.agencyNameLabel.text = trimmedName.isEmpty ? DivoStrings.unknownAgency : trimmedName.uppercased()
             self.agencyNameLabel.layer.removeAllAnimations()
             self.layoutIfNeeded()
         }

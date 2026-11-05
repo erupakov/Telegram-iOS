@@ -38,6 +38,11 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
     
     var onSingleTap: (() -> Void)?
 
+    // Ячейка переиспользуется при скролле: старая (медленная) загрузка не должна
+    // перезаписать картинку нового элемента — отменяем таск и сверяем id конфигурации.
+    private var imageLoadingTask: URLSessionDataTask?
+    private var configurationId: Int = 0
+
 
     // MARK: - Init
     
@@ -78,6 +83,7 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        self.cancelImageLoading()
         self.imageView.image = nil
         self.scrollView.zoomScale = 1.0
         self.spinner.startAnimating()
@@ -87,6 +93,7 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
     // MARK: - Internal
 
     func configure(with file: UserFile) {
+        self.cancelImageLoading()
         self.spinner.startAnimating()
         self.scrollView.zoomScale = 1.0
         self.imageView.image = nil
@@ -96,15 +103,22 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
             return
         }
         
-        Task { @MainActor in
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                if let image = UIImage(data: data) {
+        let currentConfigurationId = self.configurationId
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
+            let image = data.flatMap { UIImage(data: $0) }
+            DispatchQueue.main.async {
+                guard let self = self, self.configurationId == currentConfigurationId else { return }
+                self.imageLoadingTask = nil
+                if let image = image {
                     self.imageView.image = image
+                } else if let error = error, (error as NSError).code != NSURLErrorCancelled {
+                    print("Failed to load image: \(error)")
                 }
-            } catch { print("Failed to load image: \(error)") }
-            self.spinner.stopAnimating()
+                self.spinner.stopAnimating()
+            }
         }
+        self.imageLoadingTask = task
+        task.resume()
     }
     
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -116,6 +130,14 @@ final class PhotoGalleryCellNode: UICollectionViewCell, UIScrollViewDelegate {
         let offsetY = max((scrollView.bounds.height - scrollView.contentSize.height) * 0.5, 0)
         self.imageView.center = CGPoint(x: scrollView.contentSize.width * 0.5 + offsetX,
                                         y: scrollView.contentSize.height * 0.5 + offsetY)
+    }
+
+    // MARK: - Private
+
+    private func cancelImageLoading() {
+        self.configurationId &+= 1
+        self.imageLoadingTask?.cancel()
+        self.imageLoadingTask = nil
     }
 
     // MARK: - @objc

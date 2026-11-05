@@ -150,7 +150,7 @@ genrule(
     ],
 )
 
-minimum_os_version = "13.0"
+minimum_os_version = "15.0"
 
 notificationServiceExtensionVersion = "v1"
 
@@ -1723,9 +1723,6 @@ plist_fragment(
     </array>
     <key>UIAppFonts</key>
     <array>
-        <string>SFCompactRounded-Semibold.otf</string>
-        <string>AremacFS-Regular.otf</string>
-        <string>AremacFS-Semibold.otf</string>
         <string>HelveticaNeue-Semibold.ttf</string>
     </array>
     <key>UIBackgroundModes</key>
@@ -1915,7 +1912,7 @@ swift_library(
 ios_ui_test_suite(
     name = "iOSAppUITestSuite",
     bundle_id = "org.telegram.Telegram-iOS-uitests",
-    minimum_os_version = "13.0",
+    minimum_os_version = minimum_os_version,
     runners = [
         ":iPhone-17__26.2",
     ],

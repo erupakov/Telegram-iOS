@@ -116,7 +116,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
             }))
         }
         
-        if !settings.accountsAndPeers.isEmpty {
+        if divoMultipleAccountsEnabled && !settings.accountsAndPeers.isEmpty {
             for (peerAccountContext, peer, badgeCount) in settings.accountsAndPeers {
                 let mappedContext = ItemListPeerItem.Context.custom(ItemListPeerItem.Context.Custom(
                     accountPeerId: peerAccountContext.account.peerId,
@@ -471,26 +471,28 @@ func settingsEditingItems(data: PeerInfoScreenData?, state: PeerInfoState, conte
         }
     }
     
-    items[.account]!.append(PeerInfoScreenActionItem(id: ItemAddAccount, text: presentationData.strings.Settings_AddAnotherAccount, alignment: .center, action: {
-        interaction.openSettings(.addAccount)
-    }))
-    
-    var hasPremiumAccounts = false
-    if data.peer?.isPremium == true && !context.account.testingEnvironment {
-        hasPremiumAccounts = true
-    }
-    if let settings = data.globalSettings {
-        for (accountContext, peer, _) in settings.accountsAndPeers {
-            if !accountContext.account.testingEnvironment {
-                if peer.isPremium {
-                    hasPremiumAccounts = true
-                    break
+    if divoMultipleAccountsEnabled {
+        items[.account]!.append(PeerInfoScreenActionItem(id: ItemAddAccount, text: presentationData.strings.Settings_AddAnotherAccount, alignment: .center, action: {
+            interaction.openSettings(.addAccount)
+        }))
+        
+        var hasPremiumAccounts = false
+        if data.peer?.isPremium == true && !context.account.testingEnvironment {
+            hasPremiumAccounts = true
+        }
+        if let settings = data.globalSettings {
+            for (accountContext, peer, _) in settings.accountsAndPeers {
+                if !accountContext.account.testingEnvironment {
+                    if peer.isPremium {
+                        hasPremiumAccounts = true
+                        break
+                    }
                 }
             }
         }
+        
+        items[.account]!.append(PeerInfoScreenCommentItem(id: ItemAddAccountHelp, text: hasPremiumAccounts ? presentationData.strings.Settings_AddAnotherAccount_PremiumHelp : presentationData.strings.Settings_AddAnotherAccount_Help))
     }
-    
-    items[.account]!.append(PeerInfoScreenCommentItem(id: ItemAddAccountHelp, text: hasPremiumAccounts ? presentationData.strings.Settings_AddAnotherAccount_PremiumHelp : presentationData.strings.Settings_AddAnotherAccount_Help))
     
     items[.logout]!.append(PeerInfoScreenActionItem(id: ItemLogout, text: presentationData.strings.Settings_Logout, color: .destructive, alignment: .center, action: {
         interaction.openSettings(.logout)

@@ -53,6 +53,7 @@ public class ModelsSearchController: ViewController {
     private var currentSearchTask: Task<Void, Never>?
     private var followObserver: NSObjectProtocol?
     private var likeObserver: NSObjectProtocol?
+    private var blockObserver: NSObjectProtocol?
 
     public init(context: AccountContext) {
         self.context = context
@@ -89,6 +90,16 @@ public class ModelsSearchController: ViewController {
                   let isLiked = note.userInfo?["isLiked"] as? Bool else { return }
             self.searchNode.applyGridLikeState(userId: userId, isLiked: isLiked)
         }
+        // Заблокировали (зашли в профиль из грида) — убираем его из результатов.
+        self.blockObserver = NotificationCenter.default.addObserver(
+            forName: DivoBlockedUsers.userBlockedNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            guard let self, self.isNodeLoaded,
+                  let userId = note.userInfo?["userId"] as? Int else { return }
+            self.searchNode.removeUser(userId: userId)
+        }
     }
 
     required public init(coder aDecoder: NSCoder) {
@@ -100,6 +111,9 @@ public class ModelsSearchController: ViewController {
         self.currentSearchTask?.cancel()
         if let followObserver {
             NotificationCenter.default.removeObserver(followObserver)
+        }
+        if let blockObserver {
+            NotificationCenter.default.removeObserver(blockObserver)
         }
         if let likeObserver {
             NotificationCenter.default.removeObserver(likeObserver)

@@ -112,7 +112,7 @@ private enum LogoutOptionsEntry: ItemListNodeEntry, Equatable {
 private func logoutOptionsEntries(presentationData: PresentationData, canAddAccounts: Bool, hasPasscode: Bool) -> [LogoutOptionsEntry] {
     var entries: [LogoutOptionsEntry] = []
     entries.append(.alternativeHeader(presentationData.theme, presentationData.strings.LogoutOptions_AlternativeOptionsSection))
-    if canAddAccounts {
+    if divoMultipleAccountsEnabled && canAddAccounts {
         entries.append(.addAccount(presentationData.theme, presentationData.strings.LogoutOptions_AddAccountTitle, presentationData.strings.LogoutOptions_AddAccountText))
     }
     if !hasPasscode {

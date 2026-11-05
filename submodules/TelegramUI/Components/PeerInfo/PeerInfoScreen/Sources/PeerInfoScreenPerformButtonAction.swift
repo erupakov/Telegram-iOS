@@ -816,22 +816,24 @@ extension PeerInfoScreenNode {
                             })))
                         }
                         
-                        let boostTitle: String
-                        switch channel.info {
-                        case .group:
-                            boostTitle = presentationData.strings.PeerInfo_Group_Boost
-                        case .broadcast:
-                            boostTitle = presentationData.strings.PeerInfo_Channel_Boost
+                        // DIVO: у канала (broadcast) пункты «Голоса» (бусты) и «Архив историй» убраны; у групп — как было.
+                        let isBroadcast: Bool
+                        if case .broadcast = channel.info {
+                            isBroadcast = true
+                        } else {
+                            isBroadcast = false
                         }
-                        items.append(.action(ContextMenuActionItem(text: boostTitle, badge: nil, icon: { theme in
-                            generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Boost"), color: theme.contextMenu.primaryColor)
-                        }, action: { [weak self] _, f in
-                            f(.dismissWithoutContent)
-                            
-                            self?.openBoost()
-                        })))
+                        if !isBroadcast {
+                            items.append(.action(ContextMenuActionItem(text: presentationData.strings.PeerInfo_Group_Boost, badge: nil, icon: { theme in
+                                generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Boost"), color: theme.contextMenu.primaryColor)
+                            }, action: { [weak self] _, f in
+                                f(.dismissWithoutContent)
+                                
+                                self?.openBoost()
+                            })))
+                        }
                                                 
-                        if channel.hasPermission(.editStories) {
+                        if !isBroadcast && channel.hasPermission(.editStories) {
                             items.append(.action(ContextMenuActionItem(text: presentationData.strings.PeerInfo_Channel_ArchivedStories, icon: { theme in
                                 generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Archive"), color: theme.contextMenu.primaryColor)
                             }, action: { [weak self] _, f in

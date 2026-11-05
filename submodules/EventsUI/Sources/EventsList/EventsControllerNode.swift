@@ -512,6 +512,11 @@ final class EventsControllerNode: ASDisplayNode {
     }
 
     // Показ системного снэкбара при ошибке пагинации
+    /// Наверх списка (повторный тап по вкладке).
+    func scrollToTop() {
+        collectionView.setContentOffset(CGPoint(x: collectionView.contentOffset.x, y: -collectionView.adjustedContentInset.top), animated: true)
+    }
+
     func showPaginationError() {
         isPaginating = false
         showSnackbar(

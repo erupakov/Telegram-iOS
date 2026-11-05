@@ -7,6 +7,18 @@ struct ProfileChannelItem {
     let subtitle: String?
     let username: String?
     let isVerified: Bool
+    /// telegramChatId из /channels/list — резолв канала, если по username не нашёлся.
+    var telegramChatId: Int64? = nil
+    /// id записи в /channels/list (для удаления записи, если канал оказался группой).
+    var recordId: Int? = nil
+
+    /// Стабильный ключ элемента (для апдейтов после асинхронного резолва).
+    var identity: String {
+        if let telegramChatId = telegramChatId {
+            return "id:\(telegramChatId)"
+        }
+        return "u:\(username ?? title)"
+    }
 }
 
 final class ChannelListCell: UICollectionViewCell {

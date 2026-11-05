@@ -120,19 +120,19 @@ public final class OnboardingSubmitViewController: UIViewController {
             snackbar.hide(animated: false)
 
         case .submitting:
-            titleLabel.text = "Setting up your profile…"
+            titleLabel.text = DivoStrings.onboardingSubmitInProgress
             spinner.startAnimating()
             primaryButton.isHidden = true
             snackbar.hide(animated: false)
 
         case .success:
-            titleLabel.text = "You're all set"
+            titleLabel.text = DivoStrings.onboardingSubmitSuccess
             spinner.stopAnimating()
             primaryButton.isHidden = true
             snackbar.hide(animated: false)
 
         case .failed(let message, _):
-            titleLabel.text = "We couldn't finish that"
+            titleLabel.text = DivoStrings.onboardingSubmitFailed
             spinner.stopAnimating()
             primaryButton.isHidden = false
             primaryButton.makeDivoButton(title: OnboardingStrings.resolve("onboarding.button.continue"))

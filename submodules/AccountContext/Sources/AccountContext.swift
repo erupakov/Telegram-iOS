@@ -1026,6 +1026,10 @@ public enum StoryCameraMode {
     case live
 }
 
+/// DIVO: в приложении один аккаунт — все точки добавления/переключения аккаунтов скрыты
+/// (настройки, меню вкладки, экраны выхода и удаления аккаунта, поиск по настройкам).
+public let divoMultipleAccountsEnabled = false
+
 public protocol TelegramRootControllerInterface: NavigationController {
     @discardableResult
     func openStoryCamera(mode: StoryCameraMode, customTarget: Stories.PendingTarget?, resumeLiveStream: Bool, transitionIn: StoryCameraTransitionIn?, transitionedIn: @escaping () -> Void, transitionOut: @escaping (Stories.PendingTarget?, Bool) -> StoryCameraTransitionOut?) -> StoryCameraTransitionInCoordinator?
@@ -1040,6 +1044,8 @@ public protocol TelegramRootControllerInterface: NavigationController {
         
     func openContacts()
     func openSettings(edit: Bool)
+    // DIVO: pop to root and select the main (Models feed) tab
+    func openDivoHome()
     func openBirthdaySetup()
     func openPhotoSetup(completedWithUploadingImage: @escaping (UIImage, Signal<PeerInfoAvatarUploadStatus, NoError>) -> UIView?)
     func openAvatars()
@@ -1912,3 +1918,7 @@ public struct TranslationConfiguration {
         }
     }
 }
+
+/// DIVO: публичность канала изменилась (задан/снят @username) — TelegramUI синхронизирует запись канала
+/// в профиле (/channels/list: только публичные каналы). Регистрирует TelegramRootController.
+public var divoChannelVisibilityDidChange: ((AccountContext, EnginePeer.Id) -> Void)?

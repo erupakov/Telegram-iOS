@@ -6,9 +6,9 @@ swift_library(
     srcs = glob([
         "Sources/**/*.swift",
     ]),
-    copts = [
-        "-suppress-warnings",
-    ],
+    # Без -suppress-warnings: swiftc запрещает его вместе с глобальным
+    # «-Wwarning DeprecatedDeclaration» из .bazelrc. -warnings-as-errors здесь нет,
+    # так что предупреждения FlatBuffers сборку не валят.
     deps = [
     ],
     visibility = [

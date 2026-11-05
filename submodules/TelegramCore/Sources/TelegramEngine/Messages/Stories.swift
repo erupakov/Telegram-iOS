@@ -1356,20 +1356,40 @@ func _internal_uploadStoryImpl(
                             flags |= 1 << 8
                         }
                         
-                        return network.request(Api.functions.stories.sendStory_teamgram_layer201(
-                            flags: flags,
-                            peer: inputPeer,
-                            media: inputMedia,
-                            mediaAreas: inputMediaAreas,
-                            caption: apiCaption,
-                            entities: apiEntities,
-                            privacyRules: privacyRules,
-                            randomId: randomId,
-                            period: Int32(period),
-                            fwdFromId: fwdFromId,
-                            fwdFromStory: fwdFromStory,
-                            albums: folders.isEmpty ? nil : folders.map(Int32.init(clamping:))
-                        ))
+                        // DIVO/teamgram: with albums selected send the stock layer 222 sendStory#737fc2ec
+                        // (the server accepts it as a compat extension to layer 201, divo-server MR !3);
+                        // without albums keep the layer 201 encoding e4e6694b that any server understands.
+                        let albums: [Int32]? = folders.isEmpty ? nil : folders.map(Int32.init(clamping:))
+                        let sendStoryRequest = albums != nil
+                            ? Api.functions.stories.sendStory(
+                                flags: flags,
+                                peer: inputPeer,
+                                media: inputMedia,
+                                mediaAreas: inputMediaAreas,
+                                caption: apiCaption,
+                                entities: apiEntities,
+                                privacyRules: privacyRules,
+                                randomId: randomId,
+                                period: Int32(period),
+                                fwdFromId: fwdFromId,
+                                fwdFromStory: fwdFromStory,
+                                albums: albums
+                            )
+                            : Api.functions.stories.sendStory_teamgram_layer201(
+                                flags: flags,
+                                peer: inputPeer,
+                                media: inputMedia,
+                                mediaAreas: inputMediaAreas,
+                                caption: apiCaption,
+                                entities: apiEntities,
+                                privacyRules: privacyRules,
+                                randomId: randomId,
+                                period: Int32(period),
+                                fwdFromId: fwdFromId,
+                                fwdFromStory: fwdFromStory,
+                                albums: nil
+                            )
+                        return network.request(sendStoryRequest)
                         |> map(Optional.init)
                         |> `catch` { _ -> Signal<Api.Updates?, NoError> in
                             return .single(nil)
@@ -1937,14 +1957,15 @@ func _internal_checkStoriesUploadAvailability(account: Account, target: Stories.
                 return .single(.weeklyLimit)
             } else if error.errorDescription.hasPrefix("STORY_SEND_FLOOD_MONTHLY_") {
                 return .single(.monthlyLimit)
-            } else if error.errorDescription.hasPrefix("PREMIUM_ACCOUNT_REQUIRED") {
-                return .single(.premiumRequired)
             } else if error.errorDescription.hasPrefix("STORIES_TOO_MUCH") {
                 return .single(.expiringLimit)
             } else if error.errorDescription.hasPrefix("BOOSTS_REQUIRED") {
                 return .single(.channelBoostRequired)
             }
-            return .single(.unknownLimit)
+            // DIVO: Premium в DIVO не продаётся. PREMIUM_ACCOUNT_REQUIRED и неизвестные ошибки
+            // (сервер может не поддерживать stories.canSendStory) не блокируют постинг — иначе камера
+            // показывает экран «Купите Premium». Реальный отказ сервер вернёт при отправке сторис.
+            return .single(.available(remainingCount: 10))
         }
     }
 }

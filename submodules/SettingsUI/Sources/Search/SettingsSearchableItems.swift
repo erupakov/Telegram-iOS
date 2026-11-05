@@ -2220,7 +2220,8 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
             icon: icon,
             breadcrumbs: [strings.Settings_PrivacySettings],
             present: { context, _, present in
-                present(.push, blockedPeersController(context: context, blockedPeersContext: BlockedPeersContext(account: context.account, subject: .blocked)))
+                // DIVO: список заблокированных — REST POST /user/blocked.
+                present(.push, divoBlockedUsersController(context: context))
             }
         )
     )
@@ -2231,7 +2232,7 @@ private func privacySearchableItems(context: AccountContext, privacySettings: Ac
             breadcrumbs: [strings.Settings_PrivacySettings, strings.Settings_BlockedUsers],
             isVisible: false,
             present: { context, _, present in
-                present(.push, blockedPeersController(context: context, blockedPeersContext: BlockedPeersContext(account: context.account, subject: .blocked), forceEdit: true))
+                present(.push, divoBlockedUsersController(context: context))
             }
         )
     )
@@ -4341,7 +4342,7 @@ func settingsSearchableItems(
     let canAddAccount = activeAccountsAndPeers(context: context)
     |> take(1)
     |> map { accountsAndPeers -> Bool in
-        return accountsAndPeers.1.count + 1 < maximumNumberOfAccounts
+        return divoMultipleAccountsEnabled && accountsAndPeers.1.count + 1 < maximumNumberOfAccounts
     }
     
     let notificationSettings = context.account.postbox.preferencesView(keys: [PreferencesKeys.globalNotifications])

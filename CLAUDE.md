@@ -48,7 +48,7 @@ This is a fork of Telegram-iOS with a DIVO layer on top. DIVO code uses REST API
 - Core launch and application extensions code is in `Telegram/` directory
 - Most code is organized into libraries in `submodules/`
 - External code is located in `third-party/`
-- No tests are used at the moment
+- Tests: only DivoCore unit tests — `submodules/DivoCore/Tests`, target `//submodules/DivoCore:DivoCoreTests` (`ios_unit_test`, simulator iPhone 17 / iOS 26.2). They build only DivoCore, not the app; network goes through `StubURLProtocol` (`DivoAPIClient.installTestTransport`). The user runs `bazel test` manually
 
 ## Boilerplate Adaptations (dummy → TelegramApp)
 When migrating code from the dummy repo, apply these transformations:

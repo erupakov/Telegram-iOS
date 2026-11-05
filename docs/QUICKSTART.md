@@ -9,6 +9,12 @@
 
 # Install CMake
 brew install cmake
+
+# Xcode 26+: the Metal compiler is a separate component — without it the build fails
+# on shaders (CallScreenShaders: "missing Metal Toolchain")
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer   # full Xcode, not Command Line Tools
+xcodebuild -downloadComponent MetalToolchain                      # ~700 MB; or Xcode → Settings → Components
+xcrun metal --version                                             # check: prints a version
 ```
 
 ## Build & Run (5 minutes)
@@ -16,22 +22,38 @@ brew install cmake
 ### 1. Clone
 
 ```bash
-git clone --recursive -j8 https://github.com/ShagMichail/TelegramApp.git
-cd TelegramApp
+git clone --recursive -j8 https://github.com/erupakov/Telegram-iOS.git
+cd Telegram-iOS
+git checkout dev
+```
+
+The build needs the git submodules (`build-system/bazel-rules/*`, `third-party/*`, several GB).
+If you cloned without `--recursive` or the download was interrupted, fetch and verify them:
+
+```bash
+git submodule sync --recursive
+git submodule update --init --recursive --jobs 8
+git submodule status --recursive   # no line may start with "-"
 ```
 
 ### 2. Setup Configuration
 
-```bash
-mkdir -p build-input/configuration-repository
-cp -r build-system/example-configuration/* build-input/configuration-repository/
+The DIVO configuration is already committed in `build-input/configuration-repository/`
+(`variables.bzl` with bundle id `app.divo.fashion`, the DIVO team id, `telegram_bazel_path`, etc.).
+**Do not copy `build-system/example-configuration`:** it is the stock Telegram example and
+overwrites `variables.bzl`, which breaks the build.
 
-cat > build-input/configuration-repository/MODULE.bazel << 'EOF'
-module(
-    name = "build_configuration",
-    version = "1.0.0",
-)
-EOF
+Only check the Bazel path — `telegram_bazel_path` in `variables.bzl` (default
+`/opt/homebrew/bin/bazel`, Apple Silicon + Homebrew):
+
+```bash
+which bazel   # if it differs (e.g. /usr/local/bin/bazel on Intel), edit it locally
+```
+
+If the configuration was already overwritten, restore the committed one:
+
+```bash
+git checkout -- build-input/configuration-repository
 ```
 
 ### 3. Build
