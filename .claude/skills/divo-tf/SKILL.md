@@ -11,10 +11,10 @@ description: Собрать сборку для TestFlight в нужном ок�
 **Обе сборки идут в TestFlight и подписаны одинаково** (дистрибуционный профиль). Единственное
 отличие — флаг `--define=divoEnv`:
 
-| Аргумент | Флаг | REST API | teamgram IP | Firebase | Иконка |
+| Аргумент | Флаг | REST API | teamgram | Firebase | Иконка |
 |---|---|---|---|---|---|
-| `debug` | *(флаг не нужен, дефолт stage)* | `api-stage.divo.fashion/api` | `3.125.30.84` | `divo-2-stage` | ленточка **DEBUG** |
-| `prod` | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `18.185.234.86` | `divodev-62848` | чистая |
+| `debug` | *(флаг не нужен, дефолт stage)* | `api-stage.divo.fashion/api` | `dc1/dc2.divo.global` | `divo-2-stage` | ленточка **DEBUG** |
+| `prod` | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `dc1/dc2.divo.global` | `divodev-62848` | чистая |
 
 Механизм: флаг вшивает ключ `DivoEnvironment` в `Info.plist`; на старте приложение читает его из
 `Bundle.main` и выбирает контур. Иконку Bazel подставляет через `select()`. Подробнее — `Telegram/BUILD`,
@@ -89,7 +89,7 @@ description: Собрать сборку для TestFlight в нужном ок�
 - **debug:** на иконке ленточка DEBUG; приложение работает на stage (`api-stage.divo.fashion`).
 - **prod:** иконка чистая; приложение на боевом (`api.divo.fashion/v2`).
 
-⚠️ Прод-контур teamgram (IP `18.185.234.86`) на устройстве стоит проверить живьём перед раздачей
+⚠️ Контур teamgram (`dc1.divo.global` / `dc2.divo.global`, общий для stage и prod) на устройстве стоит проверить живьём перед раздачей
 prod-сборки тестерам — убедиться, что боевой мессенджер поднимается.
 (Firebase prod исправлен в коммите `480dfca8bcb` (DIVI-118): `bundleID` = `app.divo.fashion`,
 проект `divodev-62848` — рассинхрона с бандлом больше нет.)

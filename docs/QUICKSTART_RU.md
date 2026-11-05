@@ -189,10 +189,10 @@ telegram_aps_environment = "production"
 в одном флаге `--define=divoEnv`. Подпись у обеих одинаковая (дистрибуционная). Проще всего собирать
 через скилл `/divo-tf debug` / `/divo-tf prod` — он подставит всё сам.
 
-| Окружение | Флаг | REST API | teamgram IP | Firebase | Иконка |
+| Окружение | Флаг | REST API | teamgram | Firebase | Иконка |
 |---|---|---|---|---|---|
-| debug/stage | *(не нужен, дефолт)* | `api-stage.divo.fashion/api` | `3.125.30.84` | `divo-2-stage` | ленточка **DEBUG** |
-| prod | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `18.185.234.86` | `divodev-62848` | чистая |
+| debug/stage | *(не нужен, дефолт)* | `api-stage.divo.fashion/api` | `dc1/dc2.divo.global` | `divo-2-stage` | ленточка **DEBUG** |
+| prod | `--define=divoEnv=prod` | `api.divo.fashion/v2` | `dc1/dc2.divo.global` | `divodev-62848` | чистая |
 
 **debug (stage + ленточка):**
 
