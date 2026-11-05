@@ -444,6 +444,27 @@ private extension OnboardingFormCatalog {
 
     func makeTalentActorDancerSinger(state: OnboardingRegistrationState) -> FormSchema {
         let specialisationOptions = specialisationOptionsForActorDancerSinger(roleId: state.selectedRoleId)
+        var locationFields: [FormField] = [
+            field("country", 
+                  kind: .country(options: countryOptions), 
+                  title: "onboarding.form.field.country.title", 
+                  placeholder: "onboarding.form.field.country.placeholder", 
+                  required: true),
+            field("city",
+                  kind: .city,
+                  title: "onboarding.form.field.city.title",
+                  placeholder: "onboarding.form.field.city.placeholder",
+                  required: true),
+        ]
+        // Специализация — только для ролей со своим списком (актёр, певец). У AI-креатора (бывш.
+        // «Танцор», .dancer) поля нет: танцевальные стили к нему не относятся.
+        if !specialisationOptions.isEmpty {
+            locationFields.append(field("specialisation",
+                  kind: .picker(options: specialisationOptions),
+                  title: "onboarding.form.4D3.specialisation.title",
+                  placeholder: "onboarding.form.4D3.specialisation.placeholder",
+                  required: true))
+        }
         return FormSchema(
             id: .talentActorDancerSinger,
             internalTitleKey: "onboarding.form.4D3.title",
@@ -452,23 +473,7 @@ private extension OnboardingFormCatalog {
                 FormStep(
                     titleKey: "onboarding.form.section.location.title",
                     stepProgressKey: progress(2, of: 4),
-                    fields: [
-                        field("country", 
-                              kind: .country(options: countryOptions), 
-                              title: "onboarding.form.field.country.title", 
-                              placeholder: "onboarding.form.field.country.placeholder", 
-                              required: true),
-                        field("city",
-                              kind: .city,
-                              title: "onboarding.form.field.city.title",
-                              placeholder: "onboarding.form.field.city.placeholder",
-                              required: true),
-                        field("specialisation",
-                              kind: .picker(options: specialisationOptions),
-                              title: "onboarding.form.4D3.specialisation.title",
-                              placeholder: "onboarding.form.4D3.specialisation.placeholder",
-                              required: true),
-                    ],
+                    fields: locationFields,
                     primaryButtonKey: "onboarding.button.continue"
                 ),
                 FormStep(
@@ -504,16 +509,8 @@ private extension OnboardingFormCatalog {
                 .init(id: "other",      titleKey: "onboarding.form.4D3.actor.specialisation.other"),
             ]
         case .dancer:
-            return [
-                .init(id: "contemporary", titleKey: "onboarding.form.4D3.dancer.specialisation.contemporary"),
-                .init(id: "ballet",       titleKey: "onboarding.form.4D3.dancer.specialisation.ballet"),
-                .init(id: "hiphop",       titleKey: "onboarding.form.4D3.dancer.specialisation.hiphop"),
-                .init(id: "ballroom",     titleKey: "onboarding.form.4D3.dancer.specialisation.ballroom"),
-                .init(id: "commercial",   titleKey: "onboarding.form.4D3.dancer.specialisation.commercial"),
-                .init(id: "latin",        titleKey: "onboarding.form.4D3.dancer.specialisation.latin"),
-                .init(id: "jazz",         titleKey: "onboarding.form.4D3.dancer.specialisation.jazz"),
-                .init(id: "other",        titleKey: "onboarding.form.4D3.dancer.specialisation.other"),
-            ]
+            // AI-креатор: специализации нет — поле на шаге «Локация» не показывается.
+            return []
         case .singerPerformer:
             return [
                 .init(id: "pop",            titleKey: "onboarding.form.4D3.singer.specialisation.pop"),
