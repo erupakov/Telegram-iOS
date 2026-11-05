@@ -528,26 +528,25 @@ func initializedNetwork(accountId: AccountRecordId, arguments: NetworkInitializa
             
             let seedAddressList: [Int: [String]]
 
-            // DIVO teamgram-IP по окружению сборки. Ключ `DivoEnvironment` вшивается в Info.plist
-            // (флаг --define=divoEnv=prod, см. Telegram/BUILD). Читаем из Bundle.main напрямую: этот
-            // модуль (TelegramCore) не импортит DivoCore — держать значение в синхроне с DivoEnvironment.
-            // Дефолт (ключа нет / плист расширения без него) — stage: безопаснее уйти на отладочный контур.
-            let isDivoProduction = (Bundle.main.object(forInfoDictionaryKey: "DivoEnvironment") as? String) == "prod"
-            let divoTeamgramIP = isDivoProduction ? "18.185.234.86" : "3.125.30.84"
+            // DIVO: teamgram-серверы по доменным именам (одинаково для prod и stage): DC1 — dc1.divo.global,
+            // DC2 — dc2.divo.global, остальные DC — на dc1. Имя резолвит GCDAsyncSocket (getaddrinfo) при
+            // каждом подключении, так что смена IP сервера не требует новой сборки.
+            let divoDC1Host = "dc1.divo.global"
+            let divoDC2Host = "dc2.divo.global"
 
             if testingEnvironment {
                 seedAddressList = [
-                    1: [divoTeamgramIP],
-                    2: [divoTeamgramIP],
-                    3: [divoTeamgramIP]
+                    1: [divoDC1Host],
+                    2: [divoDC2Host],
+                    3: [divoDC1Host]
                 ]
             } else {
                 seedAddressList = [
-                    1: [divoTeamgramIP],
-                    2: [divoTeamgramIP],
-                    3: [divoTeamgramIP],
-                    4: [divoTeamgramIP],
-                    5: [divoTeamgramIP]
+                    1: [divoDC1Host],
+                    2: [divoDC2Host],
+                    3: [divoDC1Host],
+                    4: [divoDC1Host],
+                    5: [divoDC1Host]
                 ]
             }
             

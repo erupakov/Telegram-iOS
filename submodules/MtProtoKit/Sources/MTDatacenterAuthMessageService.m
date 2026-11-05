@@ -60,7 +60,7 @@
 
 @end
 
-// DIVO: публичный RSA-ключ teamgram-серверов (prod 18.185.234.86 и stage 3.125.30.84 — один ключ) для
+// DIVO: публичный RSA-ключ teamgram-серверов (dc1.divo.global / dc2.divo.global, prod и stage — один ключ) для
 // обмена ключами (req_DH_params). Стандартный ключ teamgram (0xa9e071c1771060cd) НЕ принимаем: его
 // приватная часть опубликована в открытом репозитории teamgram.
 // `isProduction` — тестовый/боевой контур Telegram, для DIVO не различается.
