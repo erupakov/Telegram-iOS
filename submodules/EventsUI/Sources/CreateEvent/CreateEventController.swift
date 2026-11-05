@@ -532,8 +532,12 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
     }
     
     /// Круглый кроп обложки события — как у аватара в профиле.
+    /// Кадрирование обложки события: прямоугольник с пропорциями карточки в списке событий
+    /// (ширина : высота = 1 : 1.35, см. EventsControllerNode.gridAspectRatio). Раньше кроп был круглым,
+    /// как у аватара профиля, но обложка показывается прямоугольником на всю карточку и шапку события —
+    /// квадрат из круга растягивался, и картинка вставала криво.
     private func presentAvatarCrop(_ image: UIImage) {
-        let cropController = DivoAvatarCropController(image: image, onComplete: { [weak self] cropped in
+        let cropController = DivoAvatarCropController(image: image, shape: .rectangle(aspectRatio: 1.0 / 1.35), onComplete: { [weak self] cropped in
             guard let self = self else { return }
             self.createEventNode.setAvatarLoading(true)
             self.createEventNode.currentPhoto = cropped
