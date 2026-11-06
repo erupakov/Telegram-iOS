@@ -15,7 +15,7 @@ This is a fork of Telegram-iOS with a DIVO layer on top. DIVO code uses REST API
 - Events UI: `submodules/EventsUI/Sources/`
 - Models Feed: `submodules/ModelsFeedUI/Sources/`
 - Onboarding: `submodules/OnboardingUI/Sources/`
-- City search DB: `submodules/DivoCore/Resources/Geo/divo_cities.txt` (копия `assets/cities.txt` из Android-клиента, GeoNames; при обновлении — просто копировать файл), поиск — `DivoCityDatabase`
+- City search DB: `submodules/DivoCore/Resources/Geo/divo_cities.txt` (копия `assets/cities.txt` из Android-клиента, GeoNames + русские названия; собирается его `Tools/divo/build_cities.py`; при обновлении — просто копировать файл), поиск — `DivoCityDatabase`
 
 ## Build
 - Bazel. **Never run `bazel` or `make` — the user always runs builds manually.**

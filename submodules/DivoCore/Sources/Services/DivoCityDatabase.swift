@@ -12,8 +12,10 @@ public struct DivoLocalCity: Equatable {
     public let population: Int
     /// GeoNames admin1: у США — штат («NJ»), в остальных странах часто число. Отличает одноимённые города.
     public let adminCode: String
+    /// Русское название по языковым меткам GeoNames («Дубай», а не сербское «Дубаи»); пусто, если у GeoNames нет.
+    public let ruName: String
 
-    public init(id: Int64, name: String, asciiName: String, alternateNames: String, countryCode: String, population: Int, adminCode: String) {
+    public init(id: Int64, name: String, asciiName: String, alternateNames: String, countryCode: String, population: Int, adminCode: String, ruName: String = "") {
         self.id = id
         self.name = name
         self.asciiName = asciiName
@@ -21,6 +23,7 @@ public struct DivoLocalCity: Equatable {
         self.countryCode = countryCode
         self.population = population
         self.adminCode = adminCode
+        self.ruName = ruName
     }
 }
 
@@ -29,13 +32,14 @@ public struct DivoLocalCity: Equatable {
 /// Не зависит от Apple Maps: для стран с редким покрытием (Армения, Афганистан) находятся и столицы.
 ///
 /// Файл базы — колонки GeoNames через TAB: 0 id, 1 name, 2 asciiname, 3 alternatenames, 8 country code,
-/// 10 admin1 code, 14 population. Обновляется копированием `cities.txt` из Android-клиента.
+/// 10 admin1 code, 14 population, 19 — русское название (нет в старых версиях файла). Собирается скриптом
+/// `Tools/divo/build_cities.py` Android-клиента; обновляется копированием его `cities.txt`.
 public final class DivoCityDatabase {
     public static let shared = DivoCityDatabase(bundleResource: "divo_cities", fileExtension: "txt")
 
     private struct Entry {
         let city: DivoLocalCity
-        /// name \u{1} asciiName \u{1} alternateNames в нижнем регистре: одно сканирование вместо трёх.
+        /// name \u{1} asciiName \u{1} ruName \u{1} alternateNames в нижнем регистре: одно сканирование вместо четырёх.
         let key: String
     }
 
@@ -77,7 +81,7 @@ public final class DivoCityDatabase {
         parsed.reserveCapacity(cities.count)
         var byCountry: [String: [Int]] = [:]
         for (index, city) in cities.enumerated() {
-            let key = [city.name, city.asciiName, city.alternateNames].joined(separator: "\u{1}").lowercased()
+            let key = [city.name, city.asciiName, city.ruName, city.alternateNames].joined(separator: "\u{1}").lowercased()
             parsed.append(Entry(city: city, key: key))
             byCountry[city.countryCode.uppercased(), default: []].append(index)
         }
@@ -143,27 +147,54 @@ public final class DivoCityDatabase {
 
     // MARK: - Разбор
 
-    /// Разбор файла GeoNames. Строки с менее чем 15 колонками пропускаются.
+    /// Разбор файла GeoNames. Строки с менее чем 15 колонками пропускаются; 20-я колонка (русское название)
+    /// необязательна. Разбираем по байтам, не создавая объектов на каждую из ~1 млн колонок.
     public static func parse(data: Data) -> [DivoLocalCity] {
         var cities: [DivoLocalCity] = []
-        cities.reserveCapacity(34_000)
+        cities.reserveCapacity(data.count / 200)
 
-        func text(_ slice: Data) -> String {
-            return String(decoding: slice, as: UTF8.self)
-        }
+        data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) -> Void in
+            let count = raw.count
+            var tabs: [Int] = []
+            tabs.reserveCapacity(24)
 
-        for line in data.split(separator: 0x0A) {
-            let columns = line.split(separator: 0x09, omittingEmptySubsequences: false)
-            guard columns.count > 14, let id = Int64(text(columns[0])) else { continue }
-            cities.append(DivoLocalCity(
-                id: id,
-                name: text(columns[1]),
-                asciiName: text(columns[2]),
-                alternateNames: text(columns[3]),
-                countryCode: text(columns[8]),
-                population: Int(text(columns[14])) ?? 0,
-                adminCode: text(columns[10])
-            ))
+            func text(_ from: Int, _ to: Int) -> String {
+                return String(decoding: raw[from ..< to], as: UTF8.self)
+            }
+
+            var lineStart = 0
+            while lineStart < count {
+                var lineEnd = lineStart
+                tabs.removeAll(keepingCapacity: true)
+                while lineEnd < count && raw[lineEnd] != 0x0A {
+                    if raw[lineEnd] == 0x09 { tabs.append(lineEnd) }
+                    lineEnd += 1
+                }
+                let next = lineEnd + 1
+                if lineEnd > lineStart && raw[lineEnd - 1] == 0x0D { lineEnd -= 1 }   // CRLF
+
+                // колонок на одну больше, чем табов
+                if tabs.count >= 14 {
+                    func column(_ index: Int) -> String {
+                        let from = index == 0 ? lineStart : tabs[index - 1] + 1
+                        let to = index < tabs.count ? tabs[index] : lineEnd
+                        return from <= to ? text(from, to) : ""
+                    }
+                    if let id = Int64(column(0)) {
+                        cities.append(DivoLocalCity(
+                            id: id,
+                            name: column(1),
+                            asciiName: column(2),
+                            alternateNames: column(3),
+                            countryCode: column(8),
+                            population: Int(column(14)) ?? 0,
+                            adminCode: column(10),
+                            ruName: tabs.count >= 19 ? column(19) : ""
+                        ))
+                    }
+                }
+                lineStart = next
+            }
         }
         return cities
     }
@@ -178,6 +209,8 @@ public final class DivoCityDatabase {
 
         if city.name.lowercased().contains(query) { return city.name }
         if city.asciiName.lowercased().contains(query) { return city.asciiName }
+        // Русское название по меткам GeoNames надёжнее выбора среди альтернативных без языка («Дубай», не «Дубаи»).
+        if !city.ruName.isEmpty && city.ruName.lowercased().contains(query) { return city.ruName }
 
         if city.alternateNames.lowercased().contains(query) {
             let alternates = city.alternateNames.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
