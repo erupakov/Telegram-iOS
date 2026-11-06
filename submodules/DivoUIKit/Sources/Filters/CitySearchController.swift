@@ -8,6 +8,7 @@
 import Display
 import UIKit
 import MapKit
+import CoreLocation
 import DivoCore
 
 public final class CitySearchController: UIViewController, MKLocalSearchCompleterDelegate {
@@ -133,6 +134,39 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
 
     private var filterCountryCode: String?
     private var allowedCountryNames: Set<String> = []
+    private let countryRegionGeocoder = CLGeocoder()
+
+    /// Запрос для комплитера с привязкой к выбранной стране («Ереван, Армения»). Без неё Apple ищет по всему
+    /// миру с уклоном в регион пользователя, и для стран с редким покрытием (Армения, Афганистан) нужных
+    /// городов нет в подсказках — а страновой фильтр ниже отбрасывает всё чужое, оставляя «ничего не найдено».
+    private func completerQuery(for text: String) -> String {
+        guard filterCountryCode != nil else { return text }
+        let lowered = text.lowercased()
+        // Пользователь уже написал страну («Ереван Армения») — не дублируем.
+        if allowedCountryNames.contains(where: { lowered.contains($0) }) {
+            return text
+        }
+        guard let countryName = Locale(identifier: DivoStrings.current.rawValue).localizedString(forRegionCode: filterCountryCode ?? "")
+            ?? Locale(identifier: "en").localizedString(forRegionCode: filterCountryCode ?? "") else {
+            return text
+        }
+        return "\(text), \(countryName)"
+    }
+
+    /// Смещает регион поиска комплитера на выбранную страну (по геокодингу названия страны). Это лишь
+    /// подсказка для ранжирования, не жёсткий фильтр: итоговый отбор по стране делается отдельно.
+    private func biasCompleterRegionToCountry() {
+        guard let countryCode = filterCountryCode,
+              let countryName = Locale(identifier: "en").localizedString(forRegionCode: countryCode) else { return }
+        countryRegionGeocoder.geocodeAddressString(countryName) { [weak self] placemarks, _ in
+            guard let self = self,
+                  let region = placemarks?.first?.region as? CLCircularRegion else { return }
+            let diameter = max(region.radius * 2, 100_000)
+            DispatchQueue.main.async {
+                self.completer.region = MKCoordinateRegion(center: region.center, latitudinalMeters: diameter, longitudinalMeters: diameter)
+            }
+        }
+    }
 
     // Имя от MapKit («ОАЭ») ≠ форма Foundation → неоднозначные дорешиваем по ISO-коду, с кэшем.
     private var resolvedCountryCodeCache: [String: String] = [:]
@@ -205,6 +239,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
 
         completer.delegate = self
         completer.resultTypes = .address
+        biasCompleterRegionToCountry()
 
         let tapDismiss = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboardTap))
         tapDismiss.cancelsTouchesInView = false
@@ -489,6 +524,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     
     public func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
         let base = completer.results.filter { !hasHouseNumber($0) }
+        divoLog("CitySearch: query=\"\(completer.queryFragment)\" country=\(filterCountryCode ?? "-") raw=\(completer.results.count) afterHouseFilter=\(base.count) searching=\(completer.isSearching)")
 
         // Без привязки к стране показываем всё — как раньше.
         guard let countryCode = filterCountryCode else {
@@ -531,6 +567,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
     }
 
     private func present(_ results: [MKLocalSearchCompletion], settled: Bool) {
+        divoLog("CitySearch: present count=\(results.count) settled=\(settled)")
         if !results.isEmpty {
             state = .loaded(results)
         } else if settled {
@@ -622,7 +659,7 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
             guard let self = self, case .searching = self.state else { return }
             let query = self.trimmedQuery
             guard !query.isEmpty else { return }
-            self.completer.queryFragment = query
+            self.completer.queryFragment = self.completerQuery(for: query)
         }
     }
 
@@ -713,7 +750,8 @@ public final class CitySearchController: UIViewController, MKLocalSearchComplete
             // Пока идёт новый поиск, держим на экране прошлые результаты — без мигания заглушками.
             state = .searching(stale: state.visibleResults)
             searchDebounceTimer = Foundation.Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
-                self?.completer.queryFragment = text
+                guard let self = self else { return }
+                self.completer.queryFragment = self.completerQuery(for: text)
             }
         }
     }
