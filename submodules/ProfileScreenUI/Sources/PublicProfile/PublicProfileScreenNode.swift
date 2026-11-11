@@ -1132,7 +1132,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
         self.view.backgroundColor = DivoColorPalette.profileEmptyBackground
 
         setupContent()
-        segmentedBar.configure(isAgency: model.role == "agency_employee", isMyProfile: model.isMyProfile, animated: false)
+        segmentedBar.configure(isAgency: !DivoWorkExperience.isAllowed(profileRole: model.role, isMyProfile: model.isMyProfile), isMyProfile: model.isMyProfile, animated: false)
         rebuildTabsPagerLayout()
         // Initial state: screenPhase = .loading + photoPhase = .loading + similarPhase = .hidden
         // (значения по умолчанию у stored properties). applyState() расставит
@@ -5480,5 +5480,9 @@ extension PublicProfileScreenNode: CurrentAgencyViewDelegate {
     func didTapSeeHistory() {
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.controller?.push(historyController)
+    }
+
+    func didTapAgency() {
+        (self.controller as? PublicProfileScreenController)?.openCurrentAgencyProfile()
     }
 }

@@ -116,6 +116,25 @@ public final class CitySearchController: UIViewController {
         return field
     }()
 
+    private static let confirmButtonHeight: CGFloat = 48
+
+    /// Нижняя плавающая «Подтвердить» — как в шторке выбора страны (`FilterOptionsController`).
+    private let confirmButton: UIButton = {
+        let button = UIButton(type: .custom)
+        button.setTitle(DivoStrings.confirm, for: .normal)
+        button.setTitleColor(DivoColorPalette.primaryTextOnDark, for: .normal)
+        button.titleLabel?.font = Font.helveticaNeue(18)
+        button.backgroundColor = DivoColorPalette.accent
+        button.layer.cornerRadius = DivoDesignTokens.Radius.card
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    /// Нижний inset списка: кнопка + отступы (+ перекрытие клавиатурой), чтобы последний пункт не прятался за кнопкой.
+    private func bottomInset(keyboardOverlap: CGFloat) -> CGFloat {
+        return max(keyboardOverlap, view.safeAreaInsets.bottom) + Self.confirmButtonHeight + DivoDesignTokens.Spacing.m * 2
+    }
+
     private var filterCountryCode: String?
     /// Номер запроса: результат устаревшего поиска не должен затирать новый.
     private var searchGeneration = 0
@@ -142,7 +161,6 @@ public final class CitySearchController: UIViewController {
             title: title,
             font: Font.medium(16),
             backButtonConfiguration: isOpenPresent ? .circle(DivoImage.searchCloseIcon) : .circle(DivoImage.searchChevronLeft),
-            rightButtonConfiguration: .circle(DivoColorPalette.accent, DivoColorPalette.cardBackground, DivoImage.searchWhiteCheckmark, .primary),
             onBackTapped: isOpenPresent ?
             { [weak self] in
                 self?.navigationController?.dismiss(animated: true)
@@ -150,9 +168,6 @@ public final class CitySearchController: UIViewController {
             :
             { [weak self] in
                 self?.navigationController?.popViewController(animated: true)
-            },
-            onCircleRightTapped: { [weak self] in
-                self?.saveTapped()
             }
         )
     }
@@ -174,6 +189,9 @@ public final class CitySearchController: UIViewController {
 
         searchTextField.delegate = self
         searchTextField.addTarget(self, action: #selector(searchTextChanged), for: .editingChanged)
+
+        confirmButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        confirmButton.addDivoPressState(.primary)
 
         // Разбор базы (~8 МБ) — в фоне, пока пользователь набирает первые буквы.
         DivoCityDatabase.shared.preload()
@@ -201,13 +219,13 @@ public final class CitySearchController: UIViewController {
         // scrollView прибит к view.bottomAnchor, поэтому перекрытие = высота вьюхи минус верх клавиатуры.
         let keyboardTop = view.convert(frame, from: nil).minY
         let overlap = max(0, view.bounds.maxY - keyboardTop)
-        scrollView.contentInset.bottom = overlap
-        scrollView.verticalScrollIndicatorInsets.bottom = overlap
+        scrollView.contentInset.bottom = bottomInset(keyboardOverlap: overlap)
+        scrollView.verticalScrollIndicatorInsets.bottom = scrollView.contentInset.bottom
     }
 
     @objc private func keyboardWillHide(_ notification: Notification) {
-        scrollView.contentInset.bottom = 0
-        scrollView.verticalScrollIndicatorInsets.bottom = 0
+        scrollView.contentInset.bottom = bottomInset(keyboardOverlap: 0)
+        scrollView.verticalScrollIndicatorInsets.bottom = scrollView.contentInset.bottom
     }
 
     private func setupCustomNavBar() {
@@ -281,6 +299,21 @@ public final class CitySearchController: UIViewController {
         ])
         
         scrollView.contentInset.top = DivoDesignTokens.Spacing.m
+
+        // Кнопка закреплена внизу и поднимается над клавиатурой поиска.
+        view.addSubview(confirmButton)
+        scrollView.contentInset.bottom = Self.confirmButtonHeight + DivoDesignTokens.Spacing.m * 2
+        scrollView.verticalScrollIndicatorInsets.bottom = scrollView.contentInset.bottom
+        NSLayoutConstraint.activate([
+            confirmButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            confirmButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            confirmButton.heightAnchor.constraint(equalToConstant: Self.confirmButtonHeight)
+        ])
+        if #available(iOS 15.0, *) {
+            confirmButton.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
+        } else {
+            confirmButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
+        }
     }
     
     private func render() {

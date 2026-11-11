@@ -20,6 +20,11 @@ final class WorkExperience: ASDisplayNode {
     private var presentationData: PresentationData
     private var containerLayout: (ContainerViewLayout, CGFloat)?
     
+    /// Править опыт (добавлять/менять/удалять) можно только в своём профиле и только «нанимаемым» ролям.
+    static func canEdit(_ model: ProfileModel) -> Bool {
+        return model.isMyProfile && DivoWorkExperience.isAllowed(profileRole: model.role, isMyProfile: true)
+    }
+
     var openAddWorkExperience: (() -> Void)?
     var onBackTapped: (() -> Void)?
     
@@ -109,9 +114,9 @@ final class WorkExperience: ASDisplayNode {
         navigationBar.makeNavigationBar(
             title: DivoStrings.workExperience.uppercased(),
             backButtonConfiguration: .circle(DivoImage.searchChevronLeft),
-            rightButtonConfiguration: model.isMyProfile ? .circle(DivoColorPalette.cardBackground, DivoColorPalette.primaryText, DivoImage.plusWorkHistory, .pill) : nil,
+            rightButtonConfiguration: WorkExperience.canEdit(model) ? .circle(DivoColorPalette.cardBackground, DivoColorPalette.primaryText, DivoImage.plusWorkHistory, .pill) : nil,
             onBackTapped: { [weak self] in self?.onBackTapped?() },
-            onCircleRightTapped: model.isMyProfile ? { [weak self] in self?.openAddWorkExperience?() } : nil
+            onCircleRightTapped: WorkExperience.canEdit(model) ? { [weak self] in self?.openAddWorkExperience?() } : nil
         )
         
         addExperienceButton.makeDivoButton(title: DivoStrings.addWorkExperience)
@@ -253,7 +258,7 @@ final class WorkExperience: ASDisplayNode {
 
                 let cell = ExperienceView()
 
-                let showOptions = model.isMyProfile
+                let showOptions = WorkExperience.canEdit(model)
                 let shouldLoadImmediately = logoURL != nil || item.agencyId == nil
                 cell.configure(with: wItem, showOptions: showOptions, loadImage: shouldLoadImmediately)
                 
@@ -290,7 +295,7 @@ final class WorkExperience: ASDisplayNode {
             scrollView.isHidden = false
         } else if rawItems.isEmpty {
             emptyStateContainer.isHidden = false
-            addExperienceButton.isHidden = !model.isMyProfile
+            addExperienceButton.isHidden = !WorkExperience.canEdit(model)
             scrollView.isHidden = true
         } else {
             emptyStateContainer.isHidden = true

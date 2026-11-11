@@ -305,6 +305,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToAddWorkExperience() {
+        guard DivoWorkExperience.isAllowed(profileRole: self.userDetailModel?.role ?? self.model.role, isMyProfile: self.model.isMyProfile) else {
+            divoLog("[EXPERIENCE] добавление опыта недоступно для роли агентства/компании", level: .info)
+            return
+        }
         divoTrack(.workHistoryCreateOpened)
         let controller = AddWorkExperienceController(context: self.context)
         controller.delegate = self
@@ -702,9 +706,23 @@ public final class PublicProfileScreenController: TelegramBaseController {
             if let peer = peer {
                 return .single(peer)
             }
-            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: accessHash))
-            |> map { peer -> EnginePeer? in EnginePeer(peer) }
-            |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
+            divoLog("[DM] peer \(telegramId) нет в Postbox, users.getUsers с accessHash \(accessHash == 0 ? "0" : "из профиля")")
+            func fetch(_ hash: Int64) -> Signal<EnginePeer?, NoError> {
+                return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: hash))
+                |> map { peer -> EnginePeer? in EnginePeer(peer) }
+                |> `catch` { error -> Signal<EnginePeer?, NoError> in
+                    divoLog("[DM] updatedRemotePeer(\(telegramId), hash \(hash == 0 ? "0" : "из профиля")) failed: \(error)", level: .error)
+                    return .single(nil)
+                }
+            }
+            return fetch(accessHash)
+            |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
+                if peer != nil || accessHash == 0 {
+                    return .single(peer)
+                }
+                // Хэш из профиля мог не подойти (свежесозданный аккаунт) — пробуем без него.
+                return fetch(0)
+            }
         }
         return (peerId, signal)
     }
@@ -1502,6 +1520,47 @@ extension PublicProfileScreenController {
             } catch {
                 // Best-effort: без ссылок агентства блок покажет то, что есть в профиле.
                 divoLog("[AGENCY LINKS] Error: \(error)", level: .error)
+            }
+        }
+    }
+}
+
+// Переход из карточки «Текущее агентство» в профиль агентства
+extension PublicProfileScreenController {
+    /// В профиле модели у агентства нет userId аккаунта — берём его из истории работы
+    /// (`/model-work-history`: запись с тем же agencyId, `agencyUserId`).
+    func openCurrentAgencyProfile() {
+        guard let agencyId = self.userDetailModel?.agency?.id, let modelUserId = self.model.userId else { return }
+        Task { @MainActor [weak self] in
+            do {
+                let path = self?.model.isMyProfile == true ? "/model-work-history" : "/model-work-history?user_id=\(modelUserId)"
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(path: path)
+                guard let self else { return }
+                guard let item = response.data.items.first(where: { $0.agencyId == agencyId && $0.agencyUserId != nil }),
+                      let agencyUserId = item.agencyUserId else {
+                    divoLog("[AGENCY] у агентства \(agencyId) нет аккаунта для перехода", level: .error)
+                    return
+                }
+                let avatarURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+                let profileModel = ProfileModel(
+                    name: item.agencyDisplayName ?? item.agencyName ?? self.userDetailModel?.agency?.title ?? "",
+                    age: nil,
+                    location: "",
+                    isVerified: false,
+                    likesCount: "0",
+                    viewsCount: "0",
+                    savesCount: "0",
+                    biography: "",
+                    socialMediaHandles: [],
+                    userId: agencyUserId,
+                    role: DivoConfig.UserRole.agency.rawValue,
+                    mainImageURL: avatarURL,
+                    avatarImageURL: avatarURL
+                )
+                let controller = PublicProfileScreenController(context: self.context, model: profileModel)
+                (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+            } catch {
+                divoLog("[AGENCY] не удалось получить аккаунт агентства: \(error)", level: .error)
             }
         }
     }
