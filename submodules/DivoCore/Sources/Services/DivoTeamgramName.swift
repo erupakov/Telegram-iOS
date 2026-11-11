@@ -87,7 +87,16 @@ public enum DivoTeamgramName {
             divoLog("[name] reconcile: /user/info недоступен — пропускаю", level: .info)
             return
         }
-        let full = (detail.fullName ?? detail.agency?.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Для агентства (agency_employee) отображаемое имя — название агентства (`agency.title`), а не личное
+        // `fullName` контактного лица: иначе после переименования агентства reconcile вернул бы в teamgram старое имя.
+        let agencyTitle = detail.agency?.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let preferred: String?
+        if detail.role == "agency_employee", let agencyTitle, !agencyTitle.isEmpty {
+            preferred = agencyTitle
+        } else {
+            preferred = detail.fullName ?? detail.agency?.title
+        }
+        let full = (preferred ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !full.isEmpty else { return }
         let tgJoined = [teamgramFirstName, teamgramLastName]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
