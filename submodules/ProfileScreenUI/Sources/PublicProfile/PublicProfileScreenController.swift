@@ -305,6 +305,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToAddWorkExperience() {
+        guard DivoWorkExperience.isAllowed(profileRole: self.userDetailModel?.role ?? self.model.role, isMyProfile: self.model.isMyProfile) else {
+            divoLog("[EXPERIENCE] добавление опыта недоступно для роли агентства/компании", level: .info)
+            return
+        }
         divoTrack(.workHistoryCreateOpened)
         let controller = AddWorkExperienceController(context: self.context)
         controller.delegate = self

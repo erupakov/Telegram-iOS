@@ -44,3 +44,20 @@ public enum Role {
         }
     }
 }
+/// Опыт работы (история мест работы) ведут только «нанимаемые» участники — модели и таланты.
+/// У «нанимающих» (агентства, бренды, компании, индустриальные профи — все с бэк-ролью `agency_employee`)
+/// раздела и возможности добавлять опыт нет.
+public enum DivoWorkExperience {
+    /// - Parameters:
+    ///   - profileRole: бэк-роль профиля, который открыт (может быть nil/пустой, пока профиль не загрузился).
+    ///   - isMyProfile: свой ли профиль — для него дополнительно смотрим роль текущей сессии.
+    public static func isAllowed(profileRole: String?, isMyProfile: Bool) -> Bool {
+        if Role(apiRole: profileRole) == .agency {
+            return false
+        }
+        if isMyProfile && DivoConfig.currentUserRole == .agency {
+            return false
+        }
+        return true
+    }
+}

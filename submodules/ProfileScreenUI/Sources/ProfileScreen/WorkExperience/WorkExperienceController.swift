@@ -59,6 +59,7 @@ public final class WorkExperienceController: TelegramBaseController {
     }
 
     private func addWorkExperience() {
+        guard WorkExperience.canEdit(model) else { return }
         let controller = AddWorkExperienceController(context: self.context)
         controller.delegate = self
         self.push(controller)
