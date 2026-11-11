@@ -456,7 +456,20 @@ func updateChatPresentationInterfaceStateImpl(
     
     selfController.tempHideAccessoryPanels = selfController.presentationInterfaceState.search != nil
     
-    if let chatTitleContent = selfController.contentData?.state.chatTitleContent {
+    if var chatTitleContent = selfController.contentData?.state.chatTitleContent {
+        //DIVO--START
+        // Личный чат: в заголовке имя из DIVO-профиля (если у собеседника он есть) вместо номера/Telegram-имени.
+        if case let .peer(peerData, customTitle, customSubtitle, onlineMemberCount, isScheduledMessages, isMuted, customMessageCount, isEnabled) = chatTitleContent,
+           customTitle == nil, !isScheduledMessages,
+           peerData.peerId.namespace == Namespaces.Peer.CloudUser, peerData.peerId != selfController.context.account.peerId,
+           let user = peerData.peer as? TelegramUser, user.botInfo == nil {
+            if let divoName = DivoChatTitleNames.shared.name(for: peerData.peerId.id._internalGetInt64Value(), onResolved: { [weak selfController] in
+                selfController?.updateChatPresentationInterfaceState(transition: .immediate, interactive: false, force: true, { $0 })
+            }) {
+                chatTitleContent = .peer(peerView: peerData, customTitle: divoName, customSubtitle: customSubtitle, onlineMemberCount: onlineMemberCount, isScheduledMessages: isScheduledMessages, isMuted: isMuted, customMessageCount: customMessageCount, isEnabled: isEnabled)
+            }
+        }
+        //DIVO--END
         var titleTransition = ComponentTransition(transition)
         if case .messageOptions = selfController.subject {
             titleTransition = titleTransition.withAnimation(.none)
