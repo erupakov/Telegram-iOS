@@ -702,9 +702,23 @@ public final class PublicProfileScreenController: TelegramBaseController {
             if let peer = peer {
                 return .single(peer)
             }
-            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: accessHash))
-            |> map { peer -> EnginePeer? in EnginePeer(peer) }
-            |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
+            divoLog("[DM] peer \(telegramId) нет в Postbox, users.getUsers с accessHash \(accessHash == 0 ? "0" : "из профиля")")
+            func fetch(_ hash: Int64) -> Signal<EnginePeer?, NoError> {
+                return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: hash))
+                |> map { peer -> EnginePeer? in EnginePeer(peer) }
+                |> `catch` { error -> Signal<EnginePeer?, NoError> in
+                    divoLog("[DM] updatedRemotePeer(\(telegramId), hash \(hash == 0 ? "0" : "из профиля")) failed: \(error)", level: .error)
+                    return .single(nil)
+                }
+            }
+            return fetch(accessHash)
+            |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
+                if peer != nil || accessHash == 0 {
+                    return .single(peer)
+                }
+                // Хэш из профиля мог не подойти (свежесозданный аккаунт) — пробуем без него.
+                return fetch(0)
+            }
         }
         return (peerId, signal)
     }
