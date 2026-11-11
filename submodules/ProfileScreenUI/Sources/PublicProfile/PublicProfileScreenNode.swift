@@ -5481,4 +5481,8 @@ extension PublicProfileScreenNode: CurrentAgencyViewDelegate {
         let historyController = WorkExperienceController(context: self.context, model: self.model)
         self.controller?.push(historyController)
     }
+
+    func didTapAgency() {
+        (self.controller as? PublicProfileScreenController)?.openCurrentAgencyProfile()
+    }
 }

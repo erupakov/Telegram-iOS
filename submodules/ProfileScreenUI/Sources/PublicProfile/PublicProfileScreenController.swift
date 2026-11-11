@@ -1507,6 +1507,47 @@ extension PublicProfileScreenController {
     }
 }
 
+// Переход из карточки «Текущее агентство» в профиль агентства
+extension PublicProfileScreenController {
+    /// В профиле модели у агентства нет userId аккаунта — берём его из истории работы
+    /// (`/model-work-history`: запись с тем же agencyId, `agencyUserId`).
+    func openCurrentAgencyProfile() {
+        guard let agencyId = self.userDetailModel?.agency?.id, let modelUserId = self.model.userId else { return }
+        Task { @MainActor [weak self] in
+            do {
+                let path = self?.model.isMyProfile == true ? "/model-work-history" : "/model-work-history?user_id=\(modelUserId)"
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(path: path)
+                guard let self else { return }
+                guard let item = response.data.items.first(where: { $0.agencyId == agencyId && $0.agencyUserId != nil }),
+                      let agencyUserId = item.agencyUserId else {
+                    divoLog("[AGENCY] у агентства \(agencyId) нет аккаунта для перехода", level: .error)
+                    return
+                }
+                let avatarURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+                let profileModel = ProfileModel(
+                    name: item.agencyDisplayName ?? item.agencyName ?? self.userDetailModel?.agency?.title ?? "",
+                    age: nil,
+                    location: "",
+                    isVerified: false,
+                    likesCount: "0",
+                    viewsCount: "0",
+                    savesCount: "0",
+                    biography: "",
+                    socialMediaHandles: [],
+                    userId: agencyUserId,
+                    role: DivoConfig.UserRole.agency.rawValue,
+                    mainImageURL: avatarURL,
+                    avatarImageURL: avatarURL
+                )
+                let controller = PublicProfileScreenController(context: self.context, model: profileModel)
+                (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+            } catch {
+                divoLog("[AGENCY] не удалось получить аккаунт агентства: \(error)", level: .error)
+            }
+        }
+    }
+}
+
 // Загрузка моделей, состоящих в агентстве
 extension PublicProfileScreenController {
     func loadModels() {
