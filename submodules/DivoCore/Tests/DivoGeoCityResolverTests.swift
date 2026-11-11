@@ -15,7 +15,14 @@ final class DivoGeoCityResolverTests: DivoCoreTestCase {
     func testFullQueryThenCityOnly() {
         XCTAssertEqual(
             DivoGeoCityResolver.queryCandidates(for: "Гонконг, САР Китая"),
-            ["Гонконг, САР Китая", "Гонконг"]
+            ["Гонконг", "Гонконг, САР Китая"]
+        )
+    }
+
+    func testAddsDiacriticFreeCandidate() {
+        XCTAssertEqual(
+            DivoGeoCityResolver.queryCandidates(for: "Herāt|||Afghanistan"),
+            ["Herāt", "Herāt, Afghanistan", "Herat"]
         )
     }
 
@@ -46,7 +53,55 @@ final class DivoGeoCityResolverTests: DivoCoreTestCase {
 
         XCTAssertEqual(item?.city?.id, 7)
         XCTAssertEqual(requests.count, 2)
-        XCTAssertEqual(requests.last?.url.query?.removingPercentEncoding, "query=Гонконг")
+        XCTAssertEqual(requests.last?.url.query?.removingPercentEncoding, "query=Гонконг, САР Китая")
+    }
+
+    func testPrefersItemWithExpectedCountry() async throws {
+        StubURLProtocol.respondInOrder([
+            .json(200, envelope(data: #"[{"city":{"id":1,"name":"Newark","countryCode":"GB"}},{"city":{"id":2,"name":"Newark","countryCode":"US"}}]"#)),
+        ])
+
+        let item = try await DivoGeoCityResolver.resolveCity(query: "Newark|||United States")
+
+        XCTAssertEqual(item?.city?.id, 2)
+        XCTAssertEqual(requests.count, 1)
+    }
+
+    func testTriesNextCandidateWhenCountryDoesNotMatch() async throws {
+        StubURLProtocol.respondInOrder([
+            .json(200, envelope(data: #"[{"city":{"id":1,"name":"Yerevan","countryCode":"US"}}]"#)),
+            .json(200, envelope(data: #"[{"city":{"id":9,"name":"Yerevan","countryCode":"AM"}}]"#)),
+        ])
+
+        let item = try await DivoGeoCityResolver.resolveCity(query: "Yerevan|||Armenia")
+
+        XCTAssertEqual(item?.city?.id, 9)
+        XCTAssertEqual(requests.count, 2)
+    }
+
+    func testFallsBackToWrongCountryItemWhenNothingBetter() async throws {
+        StubURLProtocol.respondInOrder([
+            .json(200, envelope(data: #"[{"city":{"id":1,"name":"Yerevan","countryCode":"US"}}]"#)),
+            .json(200, envelope(data: "[]")),
+        ])
+
+        let item = try await DivoGeoCityResolver.resolveCity(query: "Yerevan|||Armenia")
+
+        XCTAssertEqual(item?.city?.id, 1)
+        XCTAssertEqual(requests.count, 2)
+    }
+
+    func testRetriesWithoutDiacritics() async throws {
+        StubURLProtocol.respondInOrder([
+            .json(200, envelope(data: "[]")),
+            .json(200, envelope(data: "[]")),
+            .json(200, envelope(data: #"[{"city":{"id":5,"name":"Herat","countryCode":"AF"}}]"#)),
+        ])
+
+        let item = try await DivoGeoCityResolver.resolveCity(query: "Herāt|||Afghanistan")
+
+        XCTAssertEqual(item?.city?.id, 5)
+        XCTAssertEqual(requests.last?.url.query?.removingPercentEncoding, "query=Herat")
     }
 
     func testReturnsNilWhenNothingFound() async throws {
