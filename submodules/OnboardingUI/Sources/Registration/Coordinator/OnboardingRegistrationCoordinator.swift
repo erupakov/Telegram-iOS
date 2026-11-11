@@ -640,7 +640,7 @@ extension OnboardingRegistrationCoordinator: OnboardingFormStepViewController.De
                     controller.updateFieldValue(value, forKey: fieldKey)
                 } else {
                     self.rawOnboardingCityId = nil
-                    controller.showSnackbar(message: DivoStrings.cityNotFound, style: .error)
+                    controller.showSnackbar(message: DivoStrings.cityNotSupported, style: .error)
                 }
             } catch {
                 controller.setFieldLoading(false, forKey: fieldKey)

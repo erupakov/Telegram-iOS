@@ -726,7 +726,7 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     self.createEventNode.updateCity(id: resolvedCityId, title: resolvedCityName, code: countryCode)
                 } else {
                     self.createEventNode.updateCity(id: nil, title: nil, code: nil)
-                    self.createEventNode.showSnackbar(message: DivoStrings.cityNotFound, style: .error)
+                    self.createEventNode.showSnackbar(message: DivoStrings.cityNotSupported, style: .error)
                 }
             } catch {
                 self.createEventNode.setCityRowLoading(false)
