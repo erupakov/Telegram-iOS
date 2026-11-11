@@ -184,6 +184,7 @@ final class ChannelAppearanceScreenComponent: Component {
         private let bannerSection = ComponentView<Empty>()
         private let replySection = ComponentView<Empty>()
         private let wallpaperSection = ComponentView<Empty>()
+        private static let isWallpaperChangeAvailable = false
         private let resetColorSection = ComponentView<Empty>()
         private let emojiStatusSection = ComponentView<Empty>()
         private let emojiPackSection = ComponentView<Empty>()
@@ -1634,7 +1635,8 @@ final class ChannelAppearanceScreenComponent: Component {
                 contentHeight += sectionSpacing
             }
             
-            if !chatThemes.isEmpty {
+            //DIVO: смена обоев чата/канала отключена — секцию «Обои» не показываем (цвета и эмодзи остаются).
+            if Self.isWallpaperChangeAvailable && !chatThemes.isEmpty {
                 var wallpaperLogoContents: [AnyComponentWithIdentity<Empty>] = []
                 wallpaperLogoContents.append(AnyComponentWithIdentity(id: 0, component: AnyComponent(MultilineTextComponent(
                     text: .plain(NSAttributedString(
