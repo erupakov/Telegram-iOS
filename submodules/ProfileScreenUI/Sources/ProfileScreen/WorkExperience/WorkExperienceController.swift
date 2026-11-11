@@ -90,6 +90,12 @@ public final class WorkExperienceController: TelegramBaseController {
                     self.controllerNode.reloadWorkHistory(items: response.data.items)
                 }
             } catch {
+                // 404 на историю — у пользователя просто нет записей: пустое состояние, а не ошибка.
+                if case DivoAPIError.httpError(let statusCode, _) = error, statusCode == 404 {
+                    await MainActor.run { self.controllerNode.reloadWorkHistory(items: []) }
+                    return
+                }
+                divoLog("[WORK HISTORY] load failed: \(error)", level: .error)
                 await MainActor.run {
                     self.controllerNode.showSnackbar(
                         message: DivoStrings.failedToLoadWorkHistory,
@@ -117,6 +123,12 @@ public final class WorkExperienceController: TelegramBaseController {
                     self.controllerNode.reloadWorkHistory(items: items)
                 }
             } catch {
+                // 404 на историю — у пользователя просто нет записей: пустое состояние, а не ошибка.
+                if case DivoAPIError.httpError(let statusCode, _) = error, statusCode == 404 {
+                    await MainActor.run { self.controllerNode.reloadWorkHistory(items: []) }
+                    return
+                }
+                divoLog("[WORK HISTORY] load failed: \(error)", level: .error)
                 await MainActor.run {
                     self.controllerNode.showSnackbar(
                         message: DivoStrings.failedToLoadWorkHistory,
