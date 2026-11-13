@@ -14,6 +14,12 @@ import DivoUIKit
 // Делегат для обработки нажатия на кнопку
 protocol CurrentAgencyViewDelegate: AnyObject {
     func didTapSeeHistory()
+    /// Нажатие на карточку/название агентства — переход в профиль агентства.
+    func didTapAgency()
+}
+
+extension CurrentAgencyViewDelegate {
+    func didTapAgency() {}
 }
 
 final class CurrentAgencyView: UIView {
@@ -117,6 +123,8 @@ final class CurrentAgencyView: UIView {
         containerView.addSubview(seeHistoryButton)
         
         seeHistoryButton.addTarget(self, action: #selector(historyTapped), for: .touchUpInside)
+        // Тап по карточке (кнопка «История» перехватывает свои нажатия сама).
+        containerView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(agencyTapped)))
         
         seeHistoryButton.setContentCompressionResistancePriority(.required, for: .horizontal)
         agencyNameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -151,6 +159,10 @@ final class CurrentAgencyView: UIView {
         ])
     }
     
+    @objc private func agencyTapped() {
+        delegate?.didTapAgency()
+    }
+
     @objc private func historyTapped() {
         delegate?.didTapSeeHistory()
     }

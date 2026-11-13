@@ -471,7 +471,7 @@ public class EditProfileController: ViewController, UINavigationControllerDelega
                     self.editProfileNode.updateCity(id: cityId, title: finalTitle)
                 } else {
                     self.editProfileNode.updateCity(id: nil, title: nil)
-                    self.editProfileNode.showSnackbar(message: DivoStrings.cityNotFound, style: .error)
+                    self.editProfileNode.showSnackbar(message: DivoStrings.cityNotSupported, style: .error)
                 }
                 
             } catch {

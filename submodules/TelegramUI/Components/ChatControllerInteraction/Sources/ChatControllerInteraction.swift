@@ -138,6 +138,8 @@ public final class ChatControllerInteraction: ChatControllerInteractionProtocol 
     public enum OpenPeerSource {
         case `default`
         case reaction
+        /// Нажатие на «Переслано от …» в баббле (DIVO: пользователь открывается в DIVO-профиле, если он есть).
+        case forwardHeader
         case groupParticipant(storyStats: PeerStoryStats?, avatarHeaderNode: ASDisplayNode?)
     }
     

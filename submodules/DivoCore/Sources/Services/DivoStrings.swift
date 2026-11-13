@@ -1194,6 +1194,7 @@ public enum DivoStrings {
     // MARK: - City Search
 
     public static var citySearchPlaceholder: String { L(en: "Search city", ru: "Поиск города", es: "Buscar ciudad", pt: "Pesquisar cidade", zh: "搜索城市", fr: "Rechercher une ville") }
+    public static var cityNotSupported: String { L(en: "This city isn't supported yet. Please choose another city.", ru: "Этот город пока не поддерживается. Выберите другой город.", es: "Esta ciudad aún no es compatible. Elige otra ciudad.", pt: "Esta cidade ainda não é suportada. Escolha outra cidade.", zh: "暂不支持该城市，请选择其他城市。", fr: "Cette ville n'est pas encore prise en charge. Choisissez une autre ville.") }
     public static var cityNotFound: String { L(en: "City not found in database", ru: "Город не найден в базе данных", es: "Ciudad no encontrada en la base de datos", pt: "Cidade não encontrada no banco de dados", zh: "数据库中未找到城市", fr: "Ville introuvable dans la base de données") }
     public static var chooseCity: String { L(en: "Choose City", ru: "Выберите город", es: "Elige ciudad", pt: "Escolha cidade", zh: "选择城市", fr: "Choisir une ville") }
 

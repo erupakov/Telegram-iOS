@@ -612,7 +612,7 @@ final class SearchFilterController: UIViewController, UITextFieldDelegate {
                 } else {
                     self.currentFilters.cityId = nil
                     self.currentFilters.cityTitle = nil
-                    self.showFilterSnackbar(DivoStrings.cityNotFound)
+                    self.showFilterSnackbar(DivoStrings.cityNotSupported)
                 }
 
                 self.updateUI()

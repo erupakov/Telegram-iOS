@@ -4,10 +4,35 @@ public struct WorkHistoryResponse: Decodable {
     public let message: String?
     public let data: WorkHistoryData
     public let errors: DivoResponseErrors?
+
+    private enum CodingKeys: String, CodingKey { case message, data, errors }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.message = try container.decodeIfPresent(String.self, forKey: .message)
+        self.errors = try container.decodeIfPresent(DivoResponseErrors.self, forKey: .errors)
+        self.data = (try? container.decode(WorkHistoryData.self, forKey: .data)) ?? WorkHistoryData(items: [])
+    }
 }
 
 public struct WorkHistoryData: Decodable {
     public let items: [WorkHistoryItem]
+
+    public init(items: [WorkHistoryItem]) {
+        self.items = items
+    }
+
+    private enum CodingKeys: String, CodingKey { case items }
+
+    /// Пустая история: бэк (PHP) может отдать `data: []` или `data: null` вместо `{"items": []}` —
+    /// это «нет записей», а не ошибка загрузки.
+    public init(from decoder: Decoder) throws {
+        if let container = try? decoder.container(keyedBy: CodingKeys.self) {
+            self.items = try container.decodeIfPresent([WorkHistoryItem].self, forKey: .items) ?? []
+        } else {
+            self.items = []
+        }
+    }
 }
 
 public struct WorkHistoryItem: Decodable {

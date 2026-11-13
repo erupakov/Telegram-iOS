@@ -305,6 +305,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
     }
 
     private func navigateToAddWorkExperience() {
+        guard DivoWorkExperience.isAllowed(profileRole: self.userDetailModel?.role ?? self.model.role, isMyProfile: self.model.isMyProfile) else {
+            divoLog("[EXPERIENCE] добавление опыта недоступно для роли агентства/компании", level: .info)
+            return
+        }
         divoTrack(.workHistoryCreateOpened)
         let controller = AddWorkExperienceController(context: self.context)
         controller.delegate = self
@@ -702,37 +706,87 @@ public final class PublicProfileScreenController: TelegramBaseController {
             if let peer = peer {
                 return .single(peer)
             }
-            return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: accessHash))
-            |> map { peer -> EnginePeer? in EnginePeer(peer) }
-            |> `catch` { _ -> Signal<EnginePeer?, NoError> in .single(nil) }
+            divoLog("[DM] peer \(telegramId) нет в Postbox, users.getUsers с accessHash \(accessHash == 0 ? "0" : "из профиля")")
+            func fetch(_ hash: Int64) -> Signal<EnginePeer?, NoError> {
+                return context.engine.peers.updatedRemotePeer(peer: .user(id: Int64(telegramId), accessHash: hash))
+                |> map { peer -> EnginePeer? in EnginePeer(peer) }
+                |> `catch` { error -> Signal<EnginePeer?, NoError> in
+                    divoLog("[DM] updatedRemotePeer(\(telegramId), hash \(hash == 0 ? "0" : "из профиля")) failed: \(error)", level: .error)
+                    return .single(nil)
+                }
+            }
+            return fetch(accessHash)
+            |> mapToSignal { peer -> Signal<EnginePeer?, NoError> in
+                if peer != nil || accessHash == 0 {
+                    return .single(peer)
+                }
+                // Хэш из профиля мог не подойти (свежесозданный аккаунт) — пробуем без него.
+                return fetch(0)
+            }
         }
         return (peerId, signal)
     }
 
     private func openDirectMessage() {
-        guard !self.isOpeningChat, let telegramId = self.userDetailModel?.telegramId else { return }
+        guard let telegramId = self.userDetailModel?.telegramId else {
+            divoLog("openDirectMessage: у профиля нет telegramId", level: .error)
+            return
+        }
+        guard !self.isOpeningChat else {
+            divoLog("openDirectMessage: предыдущее открытие ещё идёт (telegramId=\(telegramId))")
+            return
+        }
         self.isOpeningChat = true
+        divoLog("openDirectMessage: start telegramId=\(telegramId), accessHash=\(self.userDetailModel?.telegramAccessHash != nil ? "есть" : "нет")")
 
         divoTrack(.directMessageStarted(
             sourceUserId: DivoConfig.currentDivoUserId ?? 0,
             targetUserId: Int64(model.userId ?? 0)
         ))
 
-        self.openChatDisposable.set((self.resolveTeamgramPeer(telegramId: telegramId).peer
+        // Таймаут: если резолв не ответит (сеть/разбор ответа), нажатие не «залипает» навсегда —
+        // isOpeningChat сбрасывается, пользователь видит ошибку и может нажать ещё раз.
+        let resolved = self.resolveTeamgramPeer(telegramId: telegramId).peer
+        |> timeout(15.0, queue: Queue.mainQueue(), alternate: Signal<EnginePeer?, NoError> { subscriber in
+            divoLog("openDirectMessage: таймаут резолва telegramId=\(telegramId)", level: .error)
+            subscriber.putNext(nil)
+            subscriber.putCompletion()
+            return EmptyDisposable
+        })
+        |> take(1)
+
+        var didReceivePeer = false
+        self.openChatDisposable.set((resolved
         |> deliverOnMainQueue).startStrict(next: { [weak self] peer in
             guard let self = self else { return }
+            didReceivePeer = true
             self.isOpeningChat = false
             guard let peer = peer else {
                 divoLog("openDirectMessage: не удалось получить peer для telegramId=\(telegramId)", level: .error)
                 self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
                 return
             }
-            guard let navigationController = self.navigationController as? NavigationController else { return }
+            // Профиль обычно в стеке TelegramRootController; если нет (показан из UIKit-навигации) —
+            // открываем чат в корневом NavigationController приложения, а не выходим молча.
+            let navigationController = (self.navigationController as? NavigationController)
+                ?? (self.context.sharedContext.mainWindow?.viewController as? NavigationController)
+            guard let navigationController else {
+                divoLog("openDirectMessage: нет NavigationController для открытия чата (telegramId=\(telegramId))", level: .error)
+                self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
+                return
+            }
+            divoLog("openDirectMessage: открываем чат peer=\(peer.id.id._internalGetInt64Value())")
             self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(
                 navigationController: navigationController,
                 context: self.context,
                 chatLocation: .peer(peer)
             ))
+        }, completed: { [weak self] in
+            // Сигнал завершился без значения — тоже ошибка, а не тихий выход с залипшим флагом.
+            guard let self = self, !didReceivePeer else { return }
+            self.isOpeningChat = false
+            divoLog("openDirectMessage: резолв завершился без результата (telegramId=\(telegramId))", level: .error)
+            self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
         }))
     }
 
@@ -1466,6 +1520,47 @@ extension PublicProfileScreenController {
             } catch {
                 // Best-effort: без ссылок агентства блок покажет то, что есть в профиле.
                 divoLog("[AGENCY LINKS] Error: \(error)", level: .error)
+            }
+        }
+    }
+}
+
+// Переход из карточки «Текущее агентство» в профиль агентства
+extension PublicProfileScreenController {
+    /// В профиле модели у агентства нет userId аккаунта — берём его из истории работы
+    /// (`/model-work-history`: запись с тем же agencyId, `agencyUserId`).
+    func openCurrentAgencyProfile() {
+        guard let agencyId = self.userDetailModel?.agency?.id, let modelUserId = self.model.userId else { return }
+        Task { @MainActor [weak self] in
+            do {
+                let path = self?.model.isMyProfile == true ? "/model-work-history" : "/model-work-history?user_id=\(modelUserId)"
+                let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(path: path)
+                guard let self else { return }
+                guard let item = response.data.items.first(where: { $0.agencyId == agencyId && $0.agencyUserId != nil }),
+                      let agencyUserId = item.agencyUserId else {
+                    divoLog("[AGENCY] у агентства \(agencyId) нет аккаунта для перехода", level: .error)
+                    return
+                }
+                let avatarURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
+                let profileModel = ProfileModel(
+                    name: item.agencyDisplayName ?? item.agencyName ?? self.userDetailModel?.agency?.title ?? "",
+                    age: nil,
+                    location: "",
+                    isVerified: false,
+                    likesCount: "0",
+                    viewsCount: "0",
+                    savesCount: "0",
+                    biography: "",
+                    socialMediaHandles: [],
+                    userId: agencyUserId,
+                    role: DivoConfig.UserRole.agency.rawValue,
+                    mainImageURL: avatarURL,
+                    avatarImageURL: avatarURL
+                )
+                let controller = PublicProfileScreenController(context: self.context, model: profileModel)
+                (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
+            } catch {
+                divoLog("[AGENCY] не удалось получить аккаунт агентства: \(error)", level: .error)
             }
         }
     }

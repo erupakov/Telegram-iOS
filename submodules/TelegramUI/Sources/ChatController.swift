@@ -2,6 +2,8 @@ import Foundation
 import UIKit
 import Postbox
 import SwiftSignalKit
+import DivoCore
+import ProfileScreenUI
 import Display
 import AsyncDisplayKit
 import TelegramCore
@@ -1638,6 +1640,25 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             if case .reaction = source {
                 fromReactionMessageId = fromMessage?.id
             }
+            //DIVO--START
+            // «Переслано от …»: у пользователя с DIVO-аккаунтом открываем DIVO-профиль, иначе — обычный профиль Telegram.
+            if case .forwardHeader = source, case .user = peer, case .info = navigation,
+               let strongSelf = self, peer.id != strongSelf.context.account.peerId {
+                let telegramId = peer.id.id._internalGetInt64Value()
+                Task { @MainActor [weak strongSelf] in
+                    let info = await resolveDivoPublicProfile(telegramId: telegramId)
+                    guard let strongSelf else {
+                        return
+                    }
+                    if let info, let navigationController = strongSelf.navigationController as? NavigationController {
+                        navigationController.pushViewController(PublicProfileScreenController(context: strongSelf.context, model: ProfileModel(userId: info.userId)))
+                    } else {
+                        strongSelf.openPeer(peer: peer, navigation: navigation, fromMessage: fromMessage, fromReactionMessageId: nil, expandAvatar: false)
+                    }
+                }
+                return
+            }
+            //DIVO--END
             self?.openPeer(peer: peer, navigation: navigation, fromMessage: fromMessage, fromReactionMessageId: fromReactionMessageId, expandAvatar: expandAvatar)
         }, openPeerMention: { [weak self] name, progress in
             self?.openPeerMention(name, progress: progress)
