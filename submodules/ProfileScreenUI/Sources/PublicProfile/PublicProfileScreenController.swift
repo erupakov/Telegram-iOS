@@ -738,6 +738,10 @@ public final class PublicProfileScreenController: TelegramBaseController {
         }
         self.isOpeningChat = true
         self.controllerNode.setDirectMessageLoading(true)
+        // Имя для заголовка чата берём из этого профиля: агентству — название, иначе имя пользователя.
+        let agencyTitle = self.userDetailModel?.agency?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let titleName = (self.userDetailModel?.role == "agency_employee" && !agencyTitle.isEmpty) ? agencyTitle : (self.userDetailModel?.fullName ?? self.model.name)
+        DivoChatTitleNames.shared.seed(telegramId: Int64(telegramId), name: titleName)
         divoLog("openDirectMessage: start telegramId=\(telegramId), accessHash=\(self.userDetailModel?.telegramAccessHash != nil ? "есть" : "нет")")
 
         divoTrack(.directMessageStarted(
