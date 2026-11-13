@@ -4,6 +4,19 @@ import XCTest
 
 /// DivoGeoCityResolver: чистка запроса из подсказки Apple Maps и выбор результата с городом.
 final class DivoGeoCityResolverTests: DivoCoreTestCase {
+    private var savedGeonamesIdLookup = DivoGeoCityResolver.geonamesIdLookup
+
+    override func setUp() {
+        super.setUp()
+        savedGeonamesIdLookup = DivoGeoCityResolver.geonamesIdLookup
+        // Without a GeoNames id the resolver goes straight to the name lookup, whatever the test bundle's city base
+        DivoGeoCityResolver.geonamesIdLookup = { _, _ in nil }
+    }
+
+    override func tearDown() {
+        DivoGeoCityResolver.geonamesIdLookup = savedGeonamesIdLookup
+        super.tearDown()
+    }
 
     // MARK: - queryCandidates
 
@@ -31,6 +44,37 @@ final class DivoGeoCityResolverTests: DivoCoreTestCase {
     }
 
     // MARK: - resolveCity
+
+    func testResolvesByGeonamesIdFirst() async throws {
+        let lookup = DivoGeoCityResolver.geonamesIdLookup
+        DivoGeoCityResolver.geonamesIdLookup = { name, code in name == "Gyumri" && code == "AM" ? 616635 : nil }
+        defer { DivoGeoCityResolver.geonamesIdLookup = lookup }
+        StubURLProtocol.respondInOrder([
+            .json(200, envelope(data: #"[{"city":{"id":15,"name":"Gyumri","countryCode":"AM"},"country":{"code":"AM"}}]"#)),
+        ])
+
+        let item = try await DivoGeoCityResolver.resolveCity(query: "Gyumri|||Armenia")
+
+        XCTAssertEqual(item?.city?.id, 15)
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertEqual(requests.first?.url.query, "geonamesId=616635")
+    }
+
+    func testFallsBackToNameWhenGeonamesCityIsNotImported() async throws {
+        let lookup = DivoGeoCityResolver.geonamesIdLookup
+        DivoGeoCityResolver.geonamesIdLookup = { _, _ in 616635 }
+        defer { DivoGeoCityResolver.geonamesIdLookup = lookup }
+        StubURLProtocol.respondInOrder([
+            .json(200, envelope(data: "[]")),
+            .json(200, envelope(data: #"[{"city":{"id":15,"name":"Gyumri","countryCode":"AM"},"country":{"code":"AM"}}]"#)),
+        ])
+
+        let item = try await DivoGeoCityResolver.resolveCity(query: "Gyumri|||Armenia")
+
+        XCTAssertEqual(item?.city?.id, 15)
+        XCTAssertEqual(requests.count, 2)
+        XCTAssertEqual(requests.last?.url.query?.removingPercentEncoding, "query=Gyumri")
+    }
 
     func testSkipsResultsWithoutCity() async throws {
         StubURLProtocol.respondInOrder([

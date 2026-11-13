@@ -8,6 +8,8 @@ import Foundation
 /// поэтому важно перебрать варианты запроса и не отбросить подходящий результат.
 ///
 /// Порядок запросов (останавливаемся на первом подходящем):
+/// 0. по id GeoNames (`?geonamesId=`): бэкенд импортировал тот же список городов (`geo:import-geonames`)
+///    и отдаёт город без геокодера — основной путь; остальные шаги нужны, если город ещё не импортирован;
 /// 1. «название» — как делает Android-клиент (`searchByAddressName(city.name)`);
 /// 2. «название, страна» — различает одноимённые города разных стран;
 /// 3. название без диакритики («Herāt» → «Herat»);
@@ -15,6 +17,13 @@ import Foundation
 /// В ответе смотрим ВСЕ элементы, а не только первый (Android берёт `firstOrNull`): с известной страной
 /// предпочитаем элемент, чей код страны совпал; если такого нет ни в одном ответе — берём первый с городом.
 public enum DivoGeoCityResolver {
+    /// id GeoNames выбранного города по локальной базе: точное название в стране, крупнейший первым
+    /// (тот же порядок, что в пикере). Подменяется в тестах.
+    static var geonamesIdLookup: (_ name: String, _ countryCode: String) -> Int64? = { name, countryCode in
+        DivoCityDatabase.shared.searchSync(query: name, countryCode: countryCode, limit: 20)
+            .first(where: { $0.name == name })?.id
+    }
+
     private struct ParsedQuery {
         let name: String
         let countryName: String?
@@ -83,6 +92,18 @@ public enum DivoGeoCityResolver {
     public static func resolveCity(query rawQuery: String) async throws -> GeoAddressItem? {
         guard let parsed = parse(rawQuery) else { return nil }
         let expectedCountry = parsed.countryName.flatMap { countryCode(forName: $0) }
+
+        if let code = expectedCountry, let geonamesId = geonamesIdLookup(parsed.name, code) {
+            let response: GeoSearchResponse = try await DivoAPIClient.shared.request(
+                path: "/geo/search-by-address-name?geonamesId=\(geonamesId)",
+                method: "GET"
+            )
+            if let item = (response.data ?? []).first(where: { $0.city?.id != nil }) {
+                divoLog("[GEO] \"\(rawQuery)\": geonamesId=\(geonamesId) -> city \(item.city?.id ?? 0)")
+                return item
+            }
+            divoLog("[GEO] \"\(rawQuery)\": geonamesId=\(geonamesId) не импортирован на бэкенде, ищем по названию", level: .error)
+        }
 
         var candidates = queryCandidates(for: rawQuery)
         // Русское и ASCII-название из локальной базы: бэкенд-геокодер может знать город под другим именем.
