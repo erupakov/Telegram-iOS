@@ -4876,6 +4876,35 @@ final class PublicProfileScreenNode: ASDisplayNode {
     @objc private func dmButtonTapped() {
         onSendDMTapped?()
     }
+
+    private let dmSpinner: UIActivityIndicatorView = {
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.color = DivoColorPalette.primaryTextOnDark
+        spinner.hidesWhenStopped = true
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        return spinner
+    }()
+
+    /// Индикатор на кнопке «Написать» на время резолва teamgram-пира: без него нажатие выглядит как «кнопка не нажимается»
+    /// (резолв может идти до 15 с, пока не придёт ответ или не сработает таймаут).
+    func setDirectMessageLoading(_ loading: Bool) {
+        if dmSpinner.superview == nil {
+            dmButton.addSubview(dmSpinner)
+            NSLayoutConstraint.activate([
+                dmSpinner.centerYAnchor.constraint(equalTo: dmButton.centerYAnchor),
+                dmSpinner.trailingAnchor.constraint(equalTo: dmButton.trailingAnchor, constant: -10),
+            ])
+        }
+        if loading {
+            dmSpinner.startAnimating()
+        } else {
+            dmSpinner.stopAnimating()
+        }
+        dmButton.isUserInteractionEnabled = !loading
+        UIView.animate(withDuration: 0.15) {
+            self.dmButton.alpha = loading ? 0.7 : 1.0
+        }
+    }
     
     @objc private func handleTouchDown(_ sender: UIControl) {
         UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseOut, animations: {
