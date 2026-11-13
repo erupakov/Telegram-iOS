@@ -737,6 +737,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
             return
         }
         self.isOpeningChat = true
+        self.controllerNode.setDirectMessageLoading(true)
+        // Имя для заголовка чата берём из этого профиля: агентству — название, иначе имя пользователя.
+        let agencyTitle = self.userDetailModel?.agency?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let titleName = (self.userDetailModel?.role == "agency_employee" && !agencyTitle.isEmpty) ? agencyTitle : (self.userDetailModel?.fullName ?? self.model.name)
+        DivoChatTitleNames.shared.seed(telegramId: Int64(telegramId), name: titleName)
         divoLog("openDirectMessage: start telegramId=\(telegramId), accessHash=\(self.userDetailModel?.telegramAccessHash != nil ? "есть" : "нет")")
 
         divoTrack(.directMessageStarted(
@@ -761,6 +766,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
             guard let self = self else { return }
             didReceivePeer = true
             self.isOpeningChat = false
+            self.controllerNode.setDirectMessageLoading(false)
             guard let peer = peer else {
                 divoLog("openDirectMessage: не удалось получить peer для telegramId=\(telegramId)", level: .error)
                 self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
@@ -785,6 +791,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
             // Сигнал завершился без значения — тоже ошибка, а не тихий выход с залипшим флагом.
             guard let self = self, !didReceivePeer else { return }
             self.isOpeningChat = false
+            self.controllerNode.setDirectMessageLoading(false)
             divoLog("openDirectMessage: резолв завершился без результата (telegramId=\(telegramId))", level: .error)
             self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
         }))
