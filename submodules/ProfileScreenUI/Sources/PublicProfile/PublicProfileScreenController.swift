@@ -1530,20 +1530,36 @@ extension PublicProfileScreenController {
     /// В профиле модели у агентства нет userId аккаунта — берём его из истории работы
     /// (`/model-work-history`: запись с тем же agencyId, `agencyUserId`).
     func openCurrentAgencyProfile() {
-        guard let agencyId = self.userDetailModel?.agency?.id, let modelUserId = self.model.userId else { return }
+        // Карточка «Текущее агентство» рисуется из `model.agency` (у модели `agency` верхнего уровня пуст).
+        let agency = self.userDetailModel?.model?.agency ?? self.userDetailModel?.agency
+        guard let agencyId = agency?.id, let modelUserId = self.model.userId else {
+            divoLog("[AGENCY] нет agency.id в профиле — переход невозможен", level: .error)
+            return
+        }
+        let agencyTitle = agency?.title
         Task { @MainActor [weak self] in
             do {
                 let path = self?.model.isMyProfile == true ? "/model-work-history" : "/model-work-history?user_id=\(modelUserId)"
                 let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(path: path)
                 guard let self else { return }
-                guard let item = response.data.items.first(where: { $0.agencyId == agencyId && $0.agencyUserId != nil }),
+                // Сначала по agencyId, затем (если id в истории не совпал) по названию агентства.
+                let items = response.data.items.filter { $0.agencyUserId != nil }
+                let normalizedTitle = agencyTitle?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                guard let item = items.first(where: { $0.agencyId == agencyId })
+                        ?? items.first(where: { candidate in
+                            guard let normalizedTitle, !normalizedTitle.isEmpty else { return false }
+                            return [candidate.agencyName, candidate.agencyDisplayName]
+                                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                                .contains(normalizedTitle)
+                        }),
                       let agencyUserId = item.agencyUserId else {
-                    divoLog("[AGENCY] у агентства \(agencyId) нет аккаунта для перехода", level: .error)
+                    divoLog("[AGENCY] у агентства \(agencyId) нет аккаунта для перехода (записей истории: \(response.data.items.count))", level: .error)
+                    self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenProfile, style: .error)
                     return
                 }
                 let avatarURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
                 let profileModel = ProfileModel(
-                    name: item.agencyDisplayName ?? item.agencyName ?? self.userDetailModel?.agency?.title ?? "",
+                    name: item.agencyDisplayName ?? item.agencyName ?? agencyTitle ?? "",
                     age: nil,
                     location: "",
                     isVerified: false,
@@ -1561,6 +1577,7 @@ extension PublicProfileScreenController {
                 (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
             } catch {
                 divoLog("[AGENCY] не удалось получить аккаунт агентства: \(error)", level: .error)
+                self?.controllerNode.showSnackbar(message: DivoStrings.failedToOpenProfile, style: .error)
             }
         }
     }
