@@ -16,6 +16,8 @@ public enum DivoColorPalette {
     public static let accentCopperMutedBorder = UIColor(red: 0.6, green: 0.4, blue: 0.2, alpha: 0.8)
     /// #BC8461 — copper tint иконки «добавить» на nav bar.
     public static let accentCopperTint = UIColor(hexString: "#BC8461")!
+    /// Включённый лайк (сердце) — красный.
+    public static let likeActive = UIColor(red: 1.0, green: 59/255, blue: 48/255, alpha: 1.0)
     public static let roleBadgeBlue = UIColor(red: 34/255, green: 98/255, blue: 216/255, alpha: 1)
     public static let roleBadgeCopperTint = UIColor(red: 0.95, green: 0.92, blue: 0.90, alpha: 1)
     public static let borderWorkHistoryImage = UIColor(hexString: "#F6F6F6")!
