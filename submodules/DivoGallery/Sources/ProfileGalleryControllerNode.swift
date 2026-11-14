@@ -537,9 +537,9 @@ final class ProfileGalleryControllerNode: ASDisplayNode {
             return
         }
         engagementBackground.isHidden = false
-        let icon = current.value.isLiked
-            ? DivoImage.statLikeFilled
-            : DivoImage.statLike.withRenderingMode(.alwaysTemplate)
+        // Включённый лайк — красное заливное сердце, выключенный — белый контур.
+        let icon = (current.value.isLiked ? DivoImage.statLikeFilled : DivoImage.statLike).withRenderingMode(.alwaysTemplate)
+        likeButton.tintColor = current.value.isLiked ? DivoColorPalette.likeActive : .white
         likeButton.setImage(icon, for: .normal)
         likesLabel.text = Self.formatCount(current.value.likesCount)
         viewsLabel.text = Self.formatCount(current.value.viewsCount)
