@@ -879,7 +879,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         let shareItem = DivoShareItemSource(
             url: shareURL,
             title: item.fullName ?? "",
-            subtitle: item.roleLabel ?? "",
+            subtitle: DivoRoleLabel.display(item.roleLabel) ?? "",
             image: image
         )
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
@@ -2004,7 +2004,7 @@ extension PublicProfileScreenController {
                     return InteractionUser(
                         id: id,
                         name: item.fullName ?? DivoStrings.noName,
-                        role: item.roleLabel ?? item.role ?? DivoStrings.roleFallbackUser,
+                        role: DivoRoleLabel.display(item.roleLabel) ?? item.role ?? DivoStrings.roleFallbackUser,
                         avatarUrl: finalAvatarUrl,
                         isPremium: false
                     )

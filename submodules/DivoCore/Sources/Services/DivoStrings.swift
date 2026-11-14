@@ -236,7 +236,7 @@ public enum DivoStrings {
     // MARK: - Roles
 
     public static var roleModel: String { L(en: "Model", ru: "Модель", es: "Modelo", pt: "Modelo", zh: "模特", fr: "Mannequin") }
-    public static var roleNewFace: String { L(en: "New face", ru: "Новое лицо", es: "Cara nueva", pt: "Rosto novo", zh: "新面孔", fr: "Nouveau visage") }
+    public static var roleNewFace: String { L(en: "Talent", ru: "Талант", es: "Talento", pt: "Talento", zh: "人才", fr: "Talent") }
     public static var roleAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司", fr: "Agence") }
     public static var roleFan: String { L(en: "Fan", ru: "Фанат", es: "Fan", pt: "Fã", zh: "粉丝", fr: "Fan") }
     public static var statusModel: String { L(en: "♦️ model", ru: "♦️ модель", es: "♦️ modelo", pt: "♦️ modelo", zh: "♦️ 模特", fr: "♦️ mannequin") }
@@ -682,8 +682,8 @@ public enum DivoStrings {
     public static var noUsersFoundSubtitle: String { L(en: "There are no users\nto display right now.", ru: "Сейчас нет пользователей\nдля отображения.", es: "No hay usuarios\npara mostrar ahora.", pt: "Não há usuários\npara exibir agora.", zh: "当前没有\n可显示的用户。", fr: "Aucun utilisateur\nà afficher pour le moment.") }
     public static var noModelsTitle: String { L(en: "No Models", ru: "Нет моделей", es: "Sin modelos", pt: "Sem modelos", zh: "暂无模特", fr: "Aucun mannequin") }
     public static var noModelsSubtitle: String { L(en: "No models\nfound at the moment.", ru: "Модели\nне найдены.", es: "No se encontraron\nmodelos.", pt: "Nenhum modelo\nencontrado.", zh: "暂未找到\n模特。", fr: "Aucun mannequin\ntrouvé pour le moment.") }
-    public static var noNewTalentsTitle: String { L(en: "No New Talents", ru: "Нет новых лиц", es: "Sin nuevos talentos", pt: "Sem novos talentos", zh: "暂无新人才", fr: "Aucun nouveau talent") }
-    public static var noNewTalentsSubtitle: String { L(en: "No new talents\nfound at the moment.", ru: "Новые лица\nне найдены.", es: "No se encontraron\nnuevos talentos.", pt: "Nenhum novo talento\nencontrado.", zh: "暂未找到\n新人才。", fr: "Aucun nouveau talent\ntrouvé pour le moment.") }
+    public static var noNewTalentsTitle: String { L(en: "No New Talents", ru: "Нет талантов", es: "Sin nuevos talentos", pt: "Sem novos talentos", zh: "暂无新人才", fr: "Aucun nouveau talent") }
+    public static var noNewTalentsSubtitle: String { L(en: "No new talents\nfound at the moment.", ru: "Таланты\nне найдены.", es: "No se encontraron\nnuevos talentos.", pt: "Nenhum novo talento\nencontrado.", zh: "暂未找到\n新人才。", fr: "Aucun nouveau talent\ntrouvé pour le moment.") }
     public static var noAgenciesTitle: String { L(en: "No Agencies", ru: "Нет агентств", es: "Sin agencias", pt: "Sem agências", zh: "暂无经纪公司", fr: "Aucune agence") }
     public static var noAgenciesSubtitle: String { L(en: "No agencies\nfound at the moment.", ru: "Агентства\nне найдены.", es: "No se encontraron\nagencias.", pt: "Nenhuma agência\nencontrada.", zh: "暂未找到\n经纪公司。", fr: "Aucune agence\ntrouvée pour le moment.") }
 

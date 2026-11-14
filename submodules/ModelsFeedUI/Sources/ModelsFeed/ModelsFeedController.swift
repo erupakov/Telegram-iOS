@@ -550,7 +550,7 @@ public final class ModelsFeedController: TelegramBaseController {
             name: item.title ?? item.user.fullName ?? "",
             userId: item.user.id,
             role: item.user.role,
-            roleLabel: item.user.roleLabel,
+            roleLabel: DivoRoleLabel.display(item.user.roleLabel),
             mainImageURL: mainURL,
             avatarImageURL: avatarURL,
             previewImageURLs: previewURLs,
