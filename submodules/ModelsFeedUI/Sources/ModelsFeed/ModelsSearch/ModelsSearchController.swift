@@ -552,7 +552,7 @@ public class ModelsSearchController: ViewController {
         let shareItem = DivoShareItemSource(
             url: shareURL,
             title: item.title ?? item.user?.fullName ?? "",
-            subtitle: item.user?.roleLabel ?? "",
+            subtitle: DivoRoleLabel.display(item.user?.roleLabel) ?? "",
             image: image
         )
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)

@@ -3694,7 +3694,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     /// nil, остаётся клиентский `Role.title`, как раньше.
     private static func subroleTitle(for detail: UserDetail) -> String? {
         guard let subrole = detail.subrole, !subrole.isEmpty else { return nil }
-        return detail.roleLabel ?? Role.subroleTitle(subrole)
+        return DivoRoleLabel.display(detail.roleLabel) ?? Role.subroleTitle(subrole)
     }
 
     // Обновление профиля, после загрузки baseURL/user/userId

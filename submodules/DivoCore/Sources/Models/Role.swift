@@ -61,3 +61,18 @@ public enum DivoWorkExperience {
         return true
     }
 }
+
+/// Подпись роли из бэка (`roleLabel`) для показа. Бэк для роли `new_face` без подроли отдаёт «New Face» /
+/// «Новое Лицо» — в приложении эта роль называется «Талант» (как вкладка ленты), поэтому такие подписи
+/// подменяем локализованным `roleNewFace`. Остальные подписи (подроли: «Photographer», «AI creator»…) — как есть.
+public enum DivoRoleLabel {
+    private static let legacyNewFaceLabels: Set<String> = [
+        "new face", "new faces", "новое лицо", "новые лица", "nueva cara", "cara nueva", "rosto novo", "nouveau visage", "新面孔",
+    ]
+
+    public static func display(_ label: String?) -> String? {
+        guard let label else { return nil }
+        let normalized = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return legacyNewFaceLabels.contains(normalized) ? DivoStrings.roleNewFace : label
+    }
+}
