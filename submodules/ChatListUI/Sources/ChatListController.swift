@@ -428,6 +428,23 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 if count.0 == 0 {
                     strongSelf.tabBarItem.badgeValue = ""
                 } else {
+                    //DIVO: диагностика «бейдж Чатов не гаснет»: какие именно чаты (корень/архив) дают непрочитанное.
+                    let diagnosticContext = strongSelf.context
+                    let _ = (diagnosticContext.account.postbox.transaction { transaction -> String in
+                        var lines: [String] = []
+                        for groupId in [PeerGroupId.root, PeerGroupId.group(1)] {
+                            let total = transaction.getTotalUnreadState(groupId: groupId)
+                            let peerIds = transaction.getUnreadChatListPeerIds(groupId: groupId, filterPredicate: nil, additionalFilter: nil, stopOnFirstMatch: false)
+                            let details = peerIds.map { peerId -> String in
+                                let unread = transaction.getCombinedPeerReadState(peerId)?.count ?? 0
+                                return "\(peerId.toInt64()):\(unread)"
+                            }
+                            lines.append("group=\(groupId) totalFiltered=\(total.filteredCounters.keys.count) unreadPeers=[\(details.joined(separator: ","))]")
+                        }
+                        return lines.joined(separator: " | ")
+                    } |> deliverOnMainQueue).startStandalone(next: { info in
+                        print("[DIVO][badge] Чаты: badge=\(count.0) \(info)")
+                    })
                     strongSelf.tabBarItem.badgeValue = compactNumericCountString(Int(count.0), decimalSeparator: presentationData.dateTimeFormat.decimalSeparator)
                 }
             }
