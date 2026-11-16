@@ -4,7 +4,7 @@ import FaceSearchUI
 
 extension ProfileModel {
     public init(faceSearchResult result: FRSearchResult) {
-        let mainImageURL = result.image.flatMap(URL.init(string:))
+        let mainImageURL = CDNURLHelper.convertToCDNURL(result.image)
         let location = FaceSearchResultsMapper.countryText(code: result.countryCode, name: result.countryName) ?? ""
         self.init(
             name: result.fullName ?? "",
