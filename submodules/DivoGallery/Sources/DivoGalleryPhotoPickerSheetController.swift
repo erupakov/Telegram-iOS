@@ -21,7 +21,8 @@ public final class DivoGalleryPhotoPickerSheetController: UIViewController {
     }
 
     private let userId: Int
-    private let pageLimit = 30
+    /// Страница небольшая: /user-gallery/list с большим limit отвечает долго (таймаут), а грид догружается по скроллу.
+    private let pageLimit = 12
 
     private var photos: [UserPhoto] = []
     private var isFetching = false
@@ -87,8 +88,11 @@ public final class DivoGalleryPhotoPickerSheetController: UIViewController {
 
     private let snackbar = DivoSnackbar()
 
-    public init(userId: Int) {
+    /// - Parameter initialPhotos: уже загруженные фото профиля (из медиа-просмотра) — показываются сразу,
+    ///   без ожидания сети; остальные догружаются с offset = их количеству.
+    public init(userId: Int, initialPhotos: [UserPhoto] = []) {
         self.userId = userId
+        self.photos = initialPhotos
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .pageSheet
         if #available(iOS 15.0, *), let sheet = sheetPresentationController {
@@ -115,8 +119,15 @@ public final class DivoGalleryPhotoPickerSheetController: UIViewController {
         collectionView.delegate = self
         collectionView.register(DivoGalleryPickerCell.self, forCellWithReuseIdentifier: DivoGalleryPickerCell.reuseId)
 
-        applyPhase()
-        fetch(offset: 0)
+        if photos.isEmpty {
+            applyPhase()
+            fetch(offset: 0)
+        } else {
+            phase = .content
+            applyPhase()
+            collectionView.reloadData()
+            fetch(offset: photos.count)
+        }
     }
 
     public override func viewWillLayoutSubviews() {
@@ -198,6 +209,7 @@ public final class DivoGalleryPhotoPickerSheetController: UIViewController {
         isFetching = true
         currentTask = Task { @MainActor in
             do {
+                let startedAt = Date()
                 let body = GalleryListRequest(offset: offset, limit: pageLimit, userId: userId)
                 let response: UserGalleryResponse = try await DivoAPIClient.shared.request(
                     path: "/user-gallery/list",
@@ -205,6 +217,7 @@ public final class DivoGalleryPhotoPickerSheetController: UIViewController {
                     body: body
                 )
                 guard !Task.isCancelled else { return }
+                divoLog("[GalleryPicker] /user-gallery/list offset=\(offset) items=\(response.data.items.count) за \(String(format: "%.1f", Date().timeIntervalSince(startedAt))) с")
 
                 if offset == 0 {
                     self.photos = response.data.items
