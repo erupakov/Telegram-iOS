@@ -592,7 +592,7 @@ public enum FaceSearchResultsMapper {
             likesCount: likesCount,
             isLikedByUser: isLiked,
             isFavoriteByUser: isFollowedOverride ?? (result.isFollowedByUser ?? false),
-            imageURL: result.image.flatMap(URL.init(string:))
+            imageURL: CDNURLHelper.convertToCDNURL(result.image)
         )
     }
 }
