@@ -1042,7 +1042,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     /// Открывает грид фото профиля модели поверх экрана поиска по лицу; выбранное фото
     /// уходит в `updateImage`, что перезапускает детект и поиск (DIVI-70).
     private func presentGalleryPhotoPicker(over faceSearchController: FaceSearchController) {
-        let picker = DivoGalleryPhotoPickerSheetController(userId: self.userID)
+        let picker = DivoGalleryPhotoPickerSheetController(userId: self.userID, initialPhotos: self.currentGalleryPhotos)
         picker.onPhotoSelected = { [weak self, weak picker, weak faceSearchController] photo in
             guard let self, let faceSearchController else { return }
             // Шторку закрываем сразу — свап ощущается мгновенным; лоадер/ошибка уходят
