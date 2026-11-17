@@ -159,12 +159,21 @@ public struct FollowResponse: Decodable {
 }
 
 /// Тело `/user/like` и `/user/unlike` — лайк модели по её userId (миграция с feedId-based
-/// `/feedline/like`, DIVI-64). Бэк ждёт snake_case `user_id`, энкодер дефолтный (без
-/// keyEncodingStrategy) → имя поля задаётся через CodingKeys.
+/// `/feedline/like`, DIVI-64). iOS исторически слал snake_case `user_id`, Android — `userId`; бэк мог
+/// начать принимать только один вариант (лайки профиля перестали ставиться), поэтому шлём ОБА ключа с
+/// одним значением: лишнее поле бэк игнорирует. Энкодер дефолтный (без keyEncodingStrategy).
 public struct UserLikeRequest: Encodable {
     public let userId: Int
     public init(userId: Int) { self.userId = userId }
+
     private enum CodingKeys: String, CodingKey {
-        case userId = "user_id"
+        case snakeUserId = "user_id"
+        case camelUserId = "userId"
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(userId, forKey: .snakeUserId)
+        try container.encode(userId, forKey: .camelUserId)
     }
 }
