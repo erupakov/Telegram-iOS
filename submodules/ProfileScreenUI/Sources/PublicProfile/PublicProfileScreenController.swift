@@ -1132,7 +1132,15 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
                 completion(true)
             } catch {
-                divoLog("[LIKE] Error toggling like for user \(userId): \(error)", level: .error)
+                var details = "\(error)"
+                if case let DivoAPIError.httpError(statusCode, body) = error {
+                    details = "HTTP \(statusCode) \(body)"
+                }
+                divoLog("[LIKE] Error toggling like for user \(userId): \(details)", level: .error)
+                self.controllerNode.showSnackbar(
+                    message: (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError,
+                    style: .error
+                )
                 completion(false)
             }
         }
