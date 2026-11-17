@@ -1415,7 +1415,10 @@ final class CreateEventNode: ASDisplayNode {
                 // Не сдвинутый ползунок оставляем в исходной метрике — обратная
                 // конвертация с округлением дрейфовала бы значение на каждом сохранении
                 func toMetric(_ display: Double, original: Double?, originalDisplay: Double?) -> Double {
-                    if display == originalDisplay, let original { return original }
+                    if display == originalDisplay, let original {
+                        // Обувь: исходное значение могло прийти «грязным» (35.18…) — приводим к полуразмеру
+                        return kind == .shoeSize ? DivoMeasuring.metricValue(display: original, kind: .shoeSize, system: .metric) : original
+                    }
                     return kind.map { DivoMeasuring.metricValue(display: display, kind: $0, system: system) } ?? display
                 }
                 let lower = toMetric(firstValue, original: currentRange?.lowerBound.doubleValue, originalDisplay: currentMin)
@@ -1964,6 +1967,12 @@ final class CreateEventNode: ASDisplayNode {
     /// Округляет значение слайдера до 2 знаков после запятой и конвертит в Float.
     /// Слайдер выдаёт сырой Double (например, 76.79375 из интерполяции по позиции),
     /// бэк ожидает аккуратные значения — режем хвост на границе сериализации.
+    /// Размер обуви на отправку — с шагом в полразмера (защита от дробного мусора вроде 35.18007662835248).
+    private func shoeRangeFloat(_ value: Double?) -> Float {
+        guard let value = value else { return 0 }
+        return rangeFloat(DivoMeasuring.metricValue(display: value, kind: .shoeSize, system: .metric))
+    }
+
     private func rangeFloat(_ value: Double?) -> Float {
         guard let value = value else { return 0 }
         return Float((value * 100).rounded() / 100)
@@ -2115,7 +2124,7 @@ final class CreateEventNode: ASDisplayNode {
         weightRange = EventRangeRequest(from: rangeFloat(selectedWeight?.lowerBound), to: rangeFloat(selectedWeight?.upperBound))
         waistRange = EventRangeRequest(from: rangeFloat(selectedWaist?.lowerBound), to: rangeFloat(selectedWaist?.upperBound))
         hipsRange = EventRangeRequest(from: rangeFloat(selectedHips?.lowerBound), to: rangeFloat(selectedHips?.upperBound))
-        shoesRange = EventRangeRequest(from: rangeFloat(selectedShoeSize?.lowerBound), to: rangeFloat(selectedShoeSize?.upperBound))
+        shoesRange = EventRangeRequest(from: shoeRangeFloat(selectedShoeSize?.lowerBound), to: shoeRangeFloat(selectedShoeSize?.upperBound))
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2
         
@@ -2237,7 +2246,7 @@ final class CreateEventNode: ASDisplayNode {
             hipsRange = EventRangeRequest(from: rangeFloat(selectedHips.lowerBound), to: rangeFloat(selectedHips.upperBound))
         }
         if let selectedShoeSize = selectedShoeSize {
-            shoesRange = EventRangeRequest(from: rangeFloat(selectedShoeSize.lowerBound), to: rangeFloat(selectedShoeSize.upperBound))
+            shoesRange = EventRangeRequest(from: shoeRangeFloat(selectedShoeSize.lowerBound), to: shoeRangeFloat(selectedShoeSize.upperBound))
         }
         
         let paymentType = paidEventSwitch.isOn ? 1 : 2

@@ -52,6 +52,12 @@ public enum DivoMeasuring {
     // EU 34–48 → US 2–16 (низ мужской шкалы, верх женской); бренды сами гуляют на ±1
     private static let usShoeOffset = 32.0
 
+    /// Размер обуви — с шагом в полразмера (35, 35.5, 36…): слайдер отдаёт сырой Double
+    /// (35.18007662835248), его нельзя ни показывать, ни отправлять на сервер как есть.
+    private static func roundToHalf(_ value: Double) -> Double {
+        return (value * 2).rounded() / 2
+    }
+
     // MARK: - Конвертация
 
     /// Метрическое значение → число в единицах `system` (целое — под слайдеры и поля ввода).
@@ -59,14 +65,14 @@ public enum DivoMeasuring {
         guard system == .imperial else {
             // Дробный мусор старых серверных записей не показываем: рост/вес/талия/бёдра —
             // целые (как их и вводит пикер), обувь оставляем с полуразмером
-            return kind == .shoeSize ? metric : metric.rounded()
+            return kind == .shoeSize ? roundToHalf(metric) : metric.rounded()
         }
         switch kind {
         case .height, .waist, .hips: return (metric / cmPerInch).rounded()
         case .weight: return (metric * lbPerKg).rounded()
         // Сдвиг шкалы без округления — полуразмеры сохраняются; кламп к US 1 прячет
         // старые записи EU 30–33 (детские размеры, взрослого US-числа у них нет)
-        case .shoeSize: return Swift.max(metric - usShoeOffset, 1)
+        case .shoeSize: return Swift.max(roundToHalf(metric - usShoeOffset), 1)
         }
     }
 
@@ -75,12 +81,12 @@ public enum DivoMeasuring {
         guard system == .imperial else {
             // Метрический ввод тоже к целому: слайдер отдаёт сырой Double, без этого
             // дробь ушла бы на сервер. Обувь — полуразмер, не трогаем
-            return kind == .shoeSize ? display : display.rounded()
+            return kind == .shoeSize ? roundToHalf(display) : display.rounded()
         }
         switch kind {
         case .height, .waist, .hips: return (display * cmPerInch).rounded()
         case .weight: return (display / lbPerKg).rounded()
-        case .shoeSize: return display + usShoeOffset
+        case .shoeSize: return roundToHalf(display) + usShoeOffset
         }
     }
 
@@ -88,7 +94,7 @@ public enum DivoMeasuring {
     /// говорит, в каких единицах записаны числа: чужие записи могут быть в imperial.
     public static func normalizedMetric(_ value: Double, sourceSystem: String?, kind: DivoMeasureKind) -> Double {
         // Обувь на проводе всегда в EU независимо от маркера — US-шкала живёт только на показе
-        guard kind != .shoeSize else { return value }
+        guard kind != .shoeSize else { return roundToHalf(value) }
         let source = sourceSystem.flatMap(DivoMeasuringSystem.init(rawValue:)) ?? .metric
         // metricValue округляет и metric-ветку — дробный мусор старых записей
         // нормализуется до целого уже на входе и не уходит обратно на сервер
