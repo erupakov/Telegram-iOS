@@ -39,7 +39,7 @@ public final class DivoSettingsController: TelegramBaseController {
         super.init(context: context, navigationBarPresentationData: nil)
 
         self.tabBarItem.title = DivoStrings.tabSettings
-        let settingsIcon = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Tabs/IconSettings"), color: DivoColorPalette.tabInactiveIcon)
+        let settingsIcon = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Tabs/IconSettings"), color: DivoColorPalette.tabIconDark)
         let settingsIconSelected = generateTintedImage(image: UIImage(bundleImageName: "Chat List/Tabs/IconSettings"), color: DivoColorPalette.tabActiveIcon)
         self.tabBarItem.image = settingsIcon
         self.tabBarItem.selectedImage = settingsIconSelected
