@@ -1978,7 +1978,8 @@ public final class ChatListNode: ListView {
         
         let contacts: Signal<[ChatListContactPeer], NoError>
         // DIVO: панель «Ваши контакты в Telegram» в списке чатов не показываем.
-        let isTelegramContactsPanelEnabled = false
+        // Читаем флаг в рантайме (UserDefaults, по умолчанию false): константа `false` ломает сборку — Swift считает ветку недостижимой (warnings-as-errors).
+        let isTelegramContactsPanelEnabled = UserDefaults.standard.bool(forKey: "DivoShowTelegramContactsPanel")
         if isTelegramContactsPanelEnabled, case .chatList(groupId: .root) = location, chatListFilter == nil, case .chatList = mode {
             contacts = ApplicationSpecificNotice.displayChatListContacts(accountManager: context.sharedContext.accountManager)
             |> distinctUntilChanged
