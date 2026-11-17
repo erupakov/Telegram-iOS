@@ -463,10 +463,10 @@ final class AuthorizationSequenceCodeEntryControllerNode: ASDisplayNode, UITextF
         }
         self.appleSignInAllowed = appleSignInAllowed
         
-        if case .sms = codeType {
-            // DIVO: «We sent a 6-digit code to {phone}» — серый текст, номер жирным/тёмным.
+        if case let .sms(smsCodeLength) = codeType {
+            // DIVO: «We sent a N-digit code to {phone}» (N — длина кода от сервера) — серый текст, номер жирным/тёмным.
             let phone = self.phoneNumber
-            let full = String(format: DivoStrings.otpCodeSentToFormat, phone)
+            let full = DivoStrings.otpCodeSent(length: smsCodeLength, phone: phone)
             let subtitle = NSMutableAttributedString(string: full, attributes: [.font: Font.regular(16.0), .foregroundColor: DivoColorPalette.secondaryText])
             if !phone.isEmpty, let range = full.range(of: phone) {
                 subtitle.addAttributes([.font: Font.semibold(16.0), .foregroundColor: DivoColorPalette.primaryText], range: NSRange(range, in: full))
