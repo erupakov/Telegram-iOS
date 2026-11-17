@@ -99,6 +99,8 @@ public enum DivoColorPalette {
     /// #E4E4E4 — universal disabled button background (primary & secondary).
     public static let buttonDisabledBackground = UIColor(hexString: "#E4E4E4")!
     /// 0.55 — неактивная иконка таба (DivoSettings).
+    /// Тёмный цвет иконок таб-бара, нарисованных тинтом (как зашитый цвет иконок «Модели»/«События»: #0A0A0A).
+    public static let tabIconDark = UIColor(white: 10.0 / 255.0, alpha: 1)
     public static let tabInactiveIcon = UIColor(white: 0.55, alpha: 1)
     /// 0.2 — активная иконка таба.
     public static let tabActiveIcon = UIColor(white: 0.2, alpha: 1)
