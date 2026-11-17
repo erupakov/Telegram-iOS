@@ -405,7 +405,10 @@ public enum DivoStrings {
 
     // MARK: - OTP / Code entry
     /// Подзаголовок экрана ввода кода. %@ — номер телефона (выделяется жирным в UI).
-    public static var otpCodeSentToFormat: String { L(en: "We sent a 6-digit code to %@", ru: "Мы отправили 6-значный код на %@", es: "Enviamos un código de 6 dígitos a %@", pt: "Enviamos um código de 6 dígitos para %@", zh: "我们已向 %@ 发送6位验证码", fr: "Nous avons envoyé un code à 6 chiffres au %@") }
+    /// «Мы отправили N-значный код на <номер>»: длина кода приходит с сервера (teamgram — 5 цифр), не зашита в тексте.
+    public static func otpCodeSent(length: Int32, phone: String) -> String {
+        return L(en: "We sent a \(length)-digit code to \(phone)", ru: "Мы отправили \(length)-значный код на \(phone)", es: "Enviamos un código de \(length) dígitos a \(phone)", pt: "Enviamos um código de \(length) dígitos para \(phone)", zh: "我们已向 \(phone) 发送\(length)位验证码", fr: "Nous avons envoyé un code à \(length) chiffres au \(phone)")
+    }
     public static var otpIncorrectCode: String { L(en: "Incorrect code. Try again.", ru: "Неверный код. Попробуйте ещё раз.", es: "Código incorrecto. Inténtalo de nuevo.", pt: "Código incorreto. Tente novamente.", zh: "验证码错误，请重试。", fr: "Code incorrect. Réessayez.") }
     public static var otpCodeExpired: String { L(en: "Code Expired", ru: "Срок действия кода истёк", es: "Código caducado", pt: "Código expirado", zh: "验证码已过期", fr: "Code expiré") }
     /// Текст таймера повторной отправки. %@ — оставшееся время в формате m:ss.
