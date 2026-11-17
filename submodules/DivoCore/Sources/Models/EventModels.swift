@@ -49,9 +49,16 @@ public struct EventListItem: Decodable {
     public let address: EventFullAddress?
     public let files: [EventFile]?
     public let modelAttributes: EventFullModelAttributes?
+    /// Настоящий автор: «моё событие» и фильтр creatorId считаются по нему.
     public let creator: EventFullCreator?
+    /// Кем событие показывается организованным: аккаунт агентства для события сотрудника агентства, иначе автор.
+    /// nil у старого бэкенда — используйте `displayOrganizer`.
+    public let organizer: EventFullCreator?
     public let previsiousEventsFromSameOrigin: [EventSmallItem]?
     public let applicationDeadline: String?
+
+    /// Карточка организатора (имя, лого, галочка): organizer, иначе creator.
+    public var displayOrganizer: EventFullCreator? { organizer ?? creator }
 }
 
 public struct EventSmallItem: Decodable {
@@ -148,9 +155,16 @@ public struct EventFullDetailData: Decodable {
     public let address: EventFullAddress?
     public let files: [EventFile]?
     public let modelAttributes: EventFullModelAttributes?
+    /// Настоящий автор: «моё событие» и фильтр creatorId считаются по нему.
     public let creator: EventFullCreator?
+    /// Кем событие показывается организованным: аккаунт агентства для события сотрудника агентства, иначе автор.
+    /// nil у старого бэкенда — используйте `displayOrganizer`.
+    public let organizer: EventFullCreator?
     public let previsiousEventsFromSameOrigin: [EventSmallItem]?
     public let appliedMembers: [EventAppliedMember]?
+
+    /// Карточка организатора (имя, лого, галочка): organizer, иначе creator.
+    public var displayOrganizer: EventFullCreator? { organizer ?? creator }
 }
 
 public struct EventAppliedMember: Decodable {

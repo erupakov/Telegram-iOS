@@ -765,7 +765,7 @@ final class EventApplyConfirmationNode: ASDisplayNode {
         if let costPart = costPart { locationSegments.append("$ \(costPart)") }
         let fullLocationString = locationSegments.joined(separator: " • ")
 
-        profileHeader.configure(fullUrl: event.creator?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventTypeId: event.type?.id, eventInfo: fullLocationString)
+        profileHeader.configure(fullUrl: event.displayOrganizer?.avatar?.fullUrl, fullName: event.title, eventType: event.type?.title, eventTypeId: event.type?.id, eventInfo: fullLocationString)
         
         // User profile Card
         var metaParts: [String] = []
