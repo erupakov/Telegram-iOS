@@ -153,6 +153,31 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     }()
     
     private let addExperienceButton = DivoButton()
+
+    /// Уведомление для Таланта в своём профиле: вместо «добавьте опыт» — ждём подтверждения агентства.
+    private let pendingNoticeTitleLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.helveticaNeue(16)
+        label.textColor = DivoColorPalette.primaryText
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.text = DivoStrings.talentAwaitingAgencyTitle.uppercased()
+        label.isHidden = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let pendingNoticeTextLabel: UILabel = {
+        let label = UILabel()
+        label.font = Font.regular(14)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.6)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.text = DivoStrings.talentAwaitingAgencyText
+        label.isHidden = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
     
     private lazy var emptyBioView: UIView = {
         let view = UIView()
@@ -336,7 +361,9 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
     
     // MARK: - Public Updates
     
-    func update(biography: String?, appearance: [AppearanceAttribute], experience: ExperienceNode? = nil, isMyProfile: Bool, isAgency: Bool = false) {
+    /// - Parameter isAwaitingAgencyConfirmation: Талант в своём профиле без опыта — вместо «добавьте опыт» показываем
+    ///   уведомление о подтверждении агентства (после зачисления в ростер и смены роли на модель вернётся обычная панель).
+    func update(biography: String?, appearance: [AppearanceAttribute], experience: ExperienceNode? = nil, isMyProfile: Bool, isAgency: Bool = false, isAwaitingAgencyConfirmation: Bool = false) {
         self.appearanceData = appearance
         
         self.currentAppearanceExpandedState = nil
@@ -370,7 +397,11 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
                 newActiveContainers.append(experienceContainer)
             } else {
                 newActiveContainers.append(emptyCurrentAgencyView)
-                addExperienceButton.isHidden = !isMyProfile
+                let showPendingNotice = isMyProfile && isAwaitingAgencyConfirmation
+                pendingNoticeTitleLabel.isHidden = !showPendingNotice
+                pendingNoticeTextLabel.isHidden = !showPendingNotice
+                emptyWorkTitleLabel.isHidden = showPendingNotice
+                addExperienceButton.isHidden = !isMyProfile || showPendingNotice
                 emptyWorkIcon.isHidden = isMyProfile
             }
         }
@@ -452,7 +483,7 @@ final class ProfileInfoView: UIView, UIScrollViewDelegate {
         
         experienceInternalContainer.addSubview(currentAgencyView)
                 
-        let emptyWorkStack = UIStackView(arrangedSubviews: [emptyWorkIcon, emptyWorkTitleLabel, addExperienceButton])
+        let emptyWorkStack = UIStackView(arrangedSubviews: [emptyWorkIcon, emptyWorkTitleLabel, pendingNoticeTitleLabel, pendingNoticeTextLabel, addExperienceButton])
         emptyWorkStack.distribution = .fill
         emptyWorkStack.spacing = DivoDesignTokens.Spacing.s
         emptyWorkStack.alignment = .center

@@ -3776,7 +3776,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 experience = ExperienceNode(title: detail.model?.agency?.title, period: detail.model?.agency?.title, logoURL: logoURL, delegate: self)
             }
             UIView.performWithoutAnimation {
-                profileInfoView.update(biography: bio, appearance: appearance, experience: experience, isMyProfile: isMyProfile)
+                profileInfoView.update(biography: bio, appearance: appearance, experience: experience, isMyProfile: isMyProfile, isAwaitingAgencyConfirmation: detail.role == "new_face")
                 profileInfoView.openAddWorkExperience = { [weak self] in
                     self?.onEditProfileTapped?(2)
                 }
