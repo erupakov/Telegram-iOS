@@ -171,6 +171,9 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                     )
                     try await AuthRestService.shared.updateAgency(req)
                     divoLog("Onboarding submit: agency create/update OK (agencyId=\(detail?.agency?.id.map(String.init) ?? "draft"), site=\(site ?? "nil"))", level: .info)
+                    // /agency/update флаг регистрации не ставит: без него карточка профиля в ленте неактивна,
+                    // профиль агентства не лайкается (404). Ставим отдельным update-profile.
+                    try await AuthRestService.shared.updateProfile(UpdateBiographyPageRequest(isRegistrationFinished: true))
                 } else {
                     // Модель/талант/fan/creative И индустрия-специалист (B, agency_employee без своего
                     // агентства): имя = fullName, фото = avatar через /user/update-profile. Индивид-специалист
@@ -187,7 +190,8 @@ public final class DivoOnboardingSubmitService: OnboardingSubmitService {
                         birthday: formDate("dateOfBirth", state: state, registry: registry) ?? detail?.birthday,
                         avatar: photoUuid.map { UpdateBiographyPageRequest.AvatarUuid(uuid: $0) },
                         // Существующий аккаунт меняет роль через change-role, а тот подроль не принимает
-                        subrole: subrole
+                        subrole: subrole,
+                        isRegistrationFinished: true
                     )
                     try await AuthRestService.shared.updateProfile(req)
                     divoLog("Onboarding submit: updateProfile OK (имя/фото, genderId=\(genderId ?? "nil"))", level: .info)

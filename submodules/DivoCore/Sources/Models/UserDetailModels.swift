@@ -304,6 +304,9 @@ public struct UpdateBiographyPageRequest: Encodable {
     public let photo: AvatarUuid?
     /// Подроль new_face (`ai_creator`…). nil не кодируется — бэк оставляет текущую подроль.
     public let subrole: String?
+    /// true в конце онбординга. Без него бэк держит `is_registration_finished = false`: карточка профиля
+    /// в ленте неактивна, профиль не лайкается (404). nil не кодируется — бэк не меняет флаг.
+    public let isRegistrationFinished: Bool?
 
     public struct AvatarUuid: Encodable {
         public let uuid: String
@@ -319,7 +322,7 @@ public struct UpdateBiographyPageRequest: Encodable {
         }
     }
 
-    public init(fullName: String? = nil, gender: String? = nil, geoCityId: Int? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil, subrole: String? = nil) {
+    public init(fullName: String? = nil, gender: String? = nil, geoCityId: Int? = nil, birthday: String? = nil, model: ModelData? = nil, avatar: AvatarUuid? = nil, photo: AvatarUuid? = nil, subrole: String? = nil, isRegistrationFinished: Bool? = nil) {
         self.fullName = fullName
         self.gender = gender
         self.geoCityId = geoCityId
@@ -328,6 +331,7 @@ public struct UpdateBiographyPageRequest: Encodable {
         self.avatar = avatar
         self.photo = photo
         self.subrole = subrole
+        self.isRegistrationFinished = isRegistrationFinished
     }
 }
 
