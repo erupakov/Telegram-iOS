@@ -240,17 +240,17 @@ public final class EventDetailController: TelegramBaseController {
         self.controllerNode.updateWithPreviewData(data)
     }
 
-    /// Бэк может прислать `creator` без имени/аватара (у агентств название лежит в `agency.title`, а не в
+    /// Бэк может прислать организатора (`organizer`, иначе `creator`) без имени/аватара (у агентств название лежит в `agency.title`, а не в
     /// `fullName`) — тогда в блоке «Организатор» было «НЕИЗВЕСТНОЕ АГЕНТСТВО» и пустая иконка.
     /// Догружаем профиль организатора: своё событие — из /user/info, чужое — из /user/{creator.id};
     /// берём агентство (название + лого), а если его нет — имя и аватар пользователя.
     private func fillOrganizerIfNeeded(_ item: EventFullDetailData) async {
-        let creatorName = item.creator?.fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let creatorLogo = item.creator?.avatar?.fullUrl ?? item.creator?.photo?.fullUrl
+        let creatorName = item.displayOrganizer?.fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let creatorLogo = item.displayOrganizer?.avatar?.fullUrl ?? item.displayOrganizer?.photo?.fullUrl
         guard creatorName.isEmpty || creatorLogo == nil else { return }
         let isOwn = self.isMyEvent == true
             || (item.creator?.id != nil && item.creator?.id == DivoConfig.currentDivoUserId)
-        guard isOwn || item.creator?.id != nil else { return }
+        guard isOwn || item.displayOrganizer?.id != nil else { return }
 
         do {
             let me: UserDetail
@@ -260,8 +260,9 @@ public final class EventDetailController: TelegramBaseController {
                     method: "GET"
                 )
                 me = userResponse.data
-            } else if let creatorId = item.creator?.id {
-                me = try await AuthRestService.shared.userDetail(id: creatorId)
+            } else if let organizerId = item.displayOrganizer?.id {
+                // Чужое событие: профиль организатора (аккаунт агентства для события сотрудника)
+                me = try await AuthRestService.shared.userDetail(id: organizerId)
             } else {
                 return
             }
@@ -272,7 +273,7 @@ public final class EventDetailController: TelegramBaseController {
             let name = creatorName.isEmpty ? fetchedName : creatorName
             let logo = creatorLogo ?? fetchedLogo
             await MainActor.run {
-                self.controllerNode.updateOrganizer(name: name, isVerified: item.creator?.isVerified, logoURLString: logo)
+                self.controllerNode.updateOrganizer(name: name, isVerified: item.displayOrganizer?.isVerified, logoURLString: logo)
             }
         } catch {
             divoLog("[DivoAPI] event organizer fallback error: \(error)", level: .error)

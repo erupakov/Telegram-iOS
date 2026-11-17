@@ -632,13 +632,13 @@ public final class EventsSearchController: ViewController {
             let timeRemainingStr = EventDateFormatter.timeRemaining(deadline: item.applicationDeadline)
             
             let coverURL = item.files?.first?.fullUrl
-            let avatarURL = item.creator?.avatar?.fullUrl
+            let avatarURL = item.displayOrganizer?.avatar?.fullUrl
             let cityName = item.address?.city?.name ?? ""
             return EventData(
                 id: item.id,
                 title: item.title,
                 subtitle: item.type?.title,
-                profileName: item.creator?.fullName,
+                profileName: item.displayOrganizer?.fullName,
                 timeRemaining: timeRemainingStr,
                 type: item.type?.title,
                 typeId: item.type?.id,
@@ -654,7 +654,7 @@ public final class EventsSearchController: ViewController {
                 isCurrentRoleAgency: DivoConfig.currentUserRole == .agency,
                 isApplied: item.isApplied,
                 creatorId: item.creator?.id,
-                isVerified: item.creator?.isVerified
+                isVerified: item.displayOrganizer?.isVerified
             )
         }
     }
@@ -768,14 +768,14 @@ public final class EventsSearchController: ViewController {
         let timeRemainingStr = EventDateFormatter.timeRemaining(deadline: detail.applicationDeadline)
         
         let coverURL = detail.files?.first?.fullUrl
-        let avatarURL = detail.creator?.avatar?.fullUrl
+        let avatarURL = detail.displayOrganizer?.avatar?.fullUrl
         let cityName = detail.address?.city?.name ?? ""
         
         return EventData(
             id: detail.id,
             title: detail.title,
             subtitle: detail.type?.title,
-            profileName: detail.creator?.fullName,
+            profileName: detail.displayOrganizer?.fullName,
             timeRemaining: timeRemainingStr,
             type: detail.type?.title,
             typeId: detail.type?.id,
