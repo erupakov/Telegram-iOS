@@ -7,14 +7,18 @@ public struct FeedlineListRequest: Encodable {
     public let modelsOnly: Bool?
     public let role: String?
     public let withoutNfts: Bool?
+    /// Только карточки профилей (entity «users»), по одной на человека: без флага лента отдаёт ещё публикации/посты,
+    /// из-за чего порядок и пагинация расходились с Android (`GetFeedUseCase`: `isProfiles = true`).
+    public let isProfiles: Bool?
 
-    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil, withoutNfts: Bool? = nil) {
+    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil, withoutNfts: Bool? = nil, isProfiles: Bool? = nil) {
         self.offset = offset
         self.limit = limit
         self.subscribedOnly = subscribedOnly
         self.modelsOnly = modelsOnly
         self.role = role
         self.withoutNfts = withoutNfts
+        self.isProfiles = isProfiles
     }
 }
 
@@ -25,6 +29,20 @@ public struct FeedlineResponse: Decodable {
 
 public struct FeedlineData: Decodable {
     public let items: [FeedlineItem]
+    /// Пагинация ответа (`pagination.meta.totalCount`): Android считает `hasMore = загружено < totalCount`.
+    public let pagination: FeedlinePagination?
+
+    /// Всего элементов в выдаче (nil — сервер не прислал).
+    public var totalCount: Int? { pagination?.meta?.totalCount }
+}
+
+public struct FeedlinePagination: Decodable {
+    public struct Meta: Decodable {
+        public let limit: Int?
+        public let currentOffset: Int?
+        public let totalCount: Int?
+    }
+    public let meta: Meta?
 }
 
 public struct FeedlineItem: Decodable {

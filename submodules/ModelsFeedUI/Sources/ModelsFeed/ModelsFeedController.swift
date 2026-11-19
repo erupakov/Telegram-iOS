@@ -438,7 +438,8 @@ public final class ModelsFeedController: TelegramBaseController {
         case 2: role = DivoConfig.UserRole.agency.rawValue
         default: role = DivoConfig.UserRole.model.rawValue
         }
-        return FeedlineListRequest(offset: offset, limit: limit, role: role, withoutNfts: true)
+        // Параметры как у Android (`FeedRequestDto`/`GetFeedUseCase`): только профили, без подписок-фильтра и «только модели».
+        return FeedlineListRequest(offset: offset, limit: limit, subscribedOnly: false, modelsOnly: false, role: role, withoutNfts: true, isProfiles: true)
     }
 
     private let maxAutoFetches = 3
@@ -485,7 +486,12 @@ public final class ModelsFeedController: TelegramBaseController {
                     }
                     let totalReceived = response.data.items.count
                     self.tabStates[tabIndex].offset = offset + totalReceived
-                    self.tabStates[tabIndex].hasMore = totalReceived >= limit
+                    // Как в Android (`OffsetPaginator`): есть ещё, пока загружено меньше totalCount; нет totalCount — по размеру страницы.
+                    if let totalCount = response.data.totalCount {
+                        self.tabStates[tabIndex].hasMore = totalReceived > 0 && self.tabStates[tabIndex].offset < totalCount
+                    } else {
+                        self.tabStates[tabIndex].hasMore = totalReceived >= limit
+                    }
                     self.tabStates[tabIndex].isLoading = false
                     self.tabStates[tabIndex].isLoaded = true
                     self.tabStates[tabIndex].hasPaginationError = false
