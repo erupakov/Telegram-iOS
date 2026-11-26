@@ -384,6 +384,8 @@ public struct AgencyItem: Decodable {
     public let title: String
     public let nickname: String?
     public let agencyAvatarLink: String?
+    /// Event types only: localized category label from the new classifier (nil for agencies/legacy types)
+    public let category: String?
 }
 
 public struct AppearanceDictionaryResponse: Codable {

@@ -287,6 +287,12 @@ public final class FilterOptionsController: UIViewController {
         let allOptionId = allOptions.first(where: { $0.id == "all" })?.id
 
         for (index, option) in filteredOptions.enumerated() {
+            // Заголовок группы (например, категория типа события) — над первым пунктом секции
+            let previousSectionTitle = index > 0 ? filteredOptions[index - 1].sectionTitle : nil
+            if let sectionTitle = option.sectionTitle, sectionTitle != previousSectionTitle {
+                stackView.addArrangedSubview(self.createSectionHeaderCell(title: sectionTitle))
+            }
+
             let cell = createOptionCell(
                 option: option,
                 isSelected: selectedOptionIds.contains(option.id) || (firstOptionIsAll && selectedOptionIds.isEmpty && option.id == allOptionId),
@@ -300,6 +306,29 @@ public final class FilterOptionsController: UIViewController {
 
             stackView.addArrangedSubview(cell)
         }
+    }
+
+    private func createSectionHeaderCell(title: String) -> UIView {
+        let cell = UIView()
+        cell.backgroundColor = .clear
+        cell.translatesAutoresizingMaskIntoConstraints = false
+        cell.heightAnchor.constraint(equalToConstant: 34).isActive = true
+        cell.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.width - 32).isActive = true
+
+        let label = UILabel()
+        label.text = title
+        label.font = Font.regular(13)
+        label.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.5)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        cell.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            label.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+            label.bottomAnchor.constraint(equalTo: cell.bottomAnchor, constant: -6)
+        ])
+
+        return cell
     }
 
     private func createOptionCell(option: FilterOptionItem, isSelected: Bool, isLast: Bool) -> UIView {

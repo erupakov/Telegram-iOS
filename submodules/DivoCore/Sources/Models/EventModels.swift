@@ -220,6 +220,10 @@ public struct EventFullModelAttributes: Decodable {
     public let eyeColor: [EventFullIdTitle]?
     public let skinColor: [EventFullIdTitle]?
     public let measuringSystem: String?
+    /// How the casting takes place: open_call, go_see_invite_only, online_self_tape, client_casting, agency_casting
+    public let selectionFormat: String?
+    /// Target gender of the casting: female, male, non_binary, transgender_female, transgender_male, custom, other
+    public let targetGender: String?
 }
 
 public struct EventFullRange: Decodable {
@@ -306,6 +310,8 @@ public struct CreateEventPreview: Codable {
     public let hairLength: [String]?
     public let eyeColor: [String]?
     public let skinColor: [String]?
+    public let selectionFormat: String?
+    public let targetGender: String?
 
     public init(
         title: String,
@@ -336,7 +342,9 @@ public struct CreateEventPreview: Codable {
         hairColor: [String]?,
         hairLength: [String]?,
         eyeColor: [String]?,
-        skinColor: [String]?
+        skinColor: [String]?,
+        selectionFormat: String? = nil,
+        targetGender: String? = nil
     ) {
         self.title = title
         self.description = description
@@ -367,6 +375,8 @@ public struct CreateEventPreview: Codable {
         self.hairLength = hairLength
         self.eyeColor = eyeColor
         self.skinColor = skinColor
+        self.selectionFormat = selectionFormat
+        self.targetGender = targetGender
     }
 }
 
@@ -405,6 +415,9 @@ public struct CreateEventRequest: Codable {
     
     public let measuringSystem: String?
 
+    public let selectionFormat: String?
+    public let targetGender: String?
+
     public init(
         title: String,
         description: String,
@@ -434,7 +447,9 @@ public struct CreateEventRequest: Codable {
         hairLength: [Int]?,
         eyeColor: [Int]?,
         skinColor: [Int]?,
-        measuringSystem: String?
+        measuringSystem: String?,
+        selectionFormat: String? = nil,
+        targetGender: String? = nil
     ) {
         self.title = title
         self.description = description
@@ -465,6 +480,8 @@ public struct CreateEventRequest: Codable {
         self.eyeColor = eyeColor
         self.skinColor = skinColor
         self.measuringSystem = measuringSystem
+        self.selectionFormat = selectionFormat
+        self.targetGender = targetGender
     }
 }
 

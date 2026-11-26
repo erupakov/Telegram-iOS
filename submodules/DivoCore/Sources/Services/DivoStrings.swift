@@ -615,6 +615,8 @@ public enum DivoStrings {
     public static var chooseEventType: String { L(en: "Choose event type", ru: "Выберите тип", es: "Elija el tipo", pt: "Escolha o tipo", zh: "选择活动类型", fr: "Choisissez le type") }
     public static var eventDate: String { L(en: "Event Date", ru: "Дата события", es: "Fecha del evento", pt: "Data do evento", zh: "活动日期", fr: "Date de l’événement") }
     public static var eventTime: String { L(en: "Event Time", ru: "Время события", es: "Hora del evento", pt: "Hora do evento", zh: "活动时间", fr: "Heure de l’événement") }
+    public static var eventEndDate: String { L(en: "Event End Date", ru: "Дата завершения", es: "Fecha de fin del evento", pt: "Data de fim do evento", zh: "活动结束日期", fr: "Date de fin de l’événement") }
+    public static var eventEndTime: String { L(en: "Event End Time", ru: "Время завершения", es: "Hora de fin del evento", pt: "Horário de fim do evento", zh: "活动结束时间", fr: "Heure de fin de l’événement") }
     public static var venueOfEvent: String { L(en: "Venue of the event", ru: "Место проведения", es: "Lugar del evento", pt: "Local do evento", zh: "活动地点", fr: "Lieu de l’événement") }
     public static var chooseCountry: String { L(en: "Choose a country", ru: "Выберите страну", es: "Elija un país", pt: "Escolha um país", zh: "选择国家", fr: "Choisissez un pays") }
     public static var parametersForApplying: String { L(en: "Parameters for Applying", ru: "Параметры для заявки", es: "Parámetros de solicitud", pt: "Parâmetros para candidatura", zh: "申请参数", fr: "Paramètres de candidature") }
@@ -1173,6 +1175,27 @@ public enum DivoStrings {
     public static var paramHairColor: String { L(en: "Hair color", ru: "Цвет волос", es: "Color de cabello", pt: "Cor do cabelo", zh: "发色", fr: "Couleur des cheveux") }
     public static var paramEyeColor: String { L(en: "Eye color", ru: "Цвет глаз", es: "Color de ojos", pt: "Cor dos olhos", zh: "眼色", fr: "Couleur des yeux") }
     public static var paramSkinColor: String { L(en: "Skin color", ru: "Цвет кожи", es: "Color de piel", pt: "Cor da pele", zh: "肤色", fr: "Couleur de peau") }
+    public static var paramSelectionFormat: String { L(en: "Selection format", ru: "Формат отбора", es: "Formato de selección", pt: "Formato de seleção", zh: "选拔形式", fr: "Format de sélection") }
+    public static var paramTargetGender: String { L(en: "Gender", ru: "Гендер", es: "Género", pt: "Gênero", zh: "性别", fr: "Genre") }
+
+    // MARK: - Event Casting Attributes (selection format / target gender)
+
+    public static var attrSelectionFormat: String { L(en: "Selection format", ru: "Формат отбора", es: "Formato de selección", pt: "Formato de seleção", zh: "选拔形式", fr: "Format de sélection") }
+    public static var attrTargetGender: String { L(en: "Gender", ru: "Гендер", es: "Género", pt: "Gênero", zh: "性别", fr: "Genre") }
+
+    public static var selectionFormatOpenCall: String { L(en: "Open Call", ru: "Открытый кастинг", es: "Open Call", pt: "Open Call", zh: "公开招募", fr: "Open Call") }
+    public static var selectionFormatGoSee: String { L(en: "Go-See / Invite Only", ru: "Go-See / по приглашению", es: "Go-See / solo por invitación", pt: "Go-See / apenas por convite", zh: "Go-See / 仅限邀请", fr: "Go-See / sur invitation") }
+    public static var selectionFormatOnlineSelfTape: String { L(en: "Online / Self-Tape", ru: "Онлайн / селф-тейп", es: "Online / self-tape", pt: "Online / self-tape", zh: "线上 / 自拍试镜", fr: "En ligne / self-tape") }
+    public static var selectionFormatClientCasting: String { L(en: "Client Casting", ru: "Кастинг клиента", es: "Casting del cliente", pt: "Casting do cliente", zh: "客户试镜", fr: "Casting client") }
+    public static var selectionFormatAgencyCasting: String { L(en: "Agency Casting", ru: "Кастинг агентства", es: "Casting de la agencia", pt: "Casting da agência", zh: "经纪公司试镜", fr: "Casting agence") }
+
+    public static var targetGenderFemale: String { L(en: "Female", ru: "Женский", es: "Femenino", pt: "Feminino", zh: "女性", fr: "Féminin") }
+    public static var targetGenderMale: String { L(en: "Male", ru: "Мужской", es: "Masculino", pt: "Masculino", zh: "男性", fr: "Masculin") }
+    public static var targetGenderNonBinary: String { L(en: "Non-binary", ru: "Небинарный", es: "No binario", pt: "Não binário", zh: "非二元", fr: "Non binaire") }
+    public static var targetGenderTransgenderFemale: String { L(en: "Transgender female", ru: "Трансгендерная женщина", es: "Mujer transgénero", pt: "Mulher transgênero", zh: "跨性别女性", fr: "Femme transgenre") }
+    public static var targetGenderTransgenderMale: String { L(en: "Transgender male", ru: "Трансгендерный мужчина", es: "Hombre transgénero", pt: "Homem transgênero", zh: "跨性别男性", fr: "Homme transgenre") }
+    public static var targetGenderCustom: String { L(en: "Custom", ru: "Свой вариант", es: "Personalizado", pt: "Personalizado", zh: "自定义", fr: "Personnalisé") }
+    public static var targetGenderOther: String { L(en: "Other", ru: "Другой", es: "Otro", pt: "Outro", zh: "其他", fr: "Autre") }
     public static func deadlineData(_ data: String) -> String { L(en: "Deadline: \(data)", ru: "Дедлайн: \(data)", es: "Fecha límite: \(data)", pt: "Prazo final: \(data)", zh: "截止日期: \(data)", fr: "Date limite : \(data)") }
     public static func afterDeadlineData(_ data: String) -> String { L(en: "Applications closed \(data)", ru: "Прием заявок закрыт \(data)", es: "Inscripciones cerradas \(data)", pt: "Inscrições encerradas \(data)", zh: "申请已截止 \(data)", fr: "Candidatures clôturées \(data)") }
     public static func deadlineDataTime(_ time: String) -> String { L(en: "Closes in \(time)", ru: "Закрывается через \(time)", es: "Cierra en \(time)", pt: "Fecha em \(time)", zh: "\(time)后关闭", fr: "Clôture dans \(time)") }

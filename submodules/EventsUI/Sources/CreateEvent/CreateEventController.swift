@@ -97,6 +97,9 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
         self.createEventNode.scheduleTimeController = { [weak self] mode in
             self?.scheduleTimeController(mode: mode)
         }
+        self.createEventNode.scheduleEndTimeController = { [weak self] mode in
+            self?.scheduleEndTimeController(mode: mode)
+        }
         self.createEventNode.scheduleDeadlineTimeController = { [weak self] mode in
             self?.scheduleDeadlineTimeController(mode: mode)
         }
@@ -462,6 +465,64 @@ public class CreateEventController: ViewController, UINavigationControllerDelega
                     }
                 }
             }
+        }
+        
+        let nav = UINavigationController(rootViewController: controller)
+        nav.setNavigationBarHidden(true, animated: false)
+        if #available(iOS 15.0, *) {
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+                sheet.preferredCornerRadius = DivoDesignTokens.Radius.card
+            }
+        }
+        
+        self.present(nav, animated: true)
+    }
+    
+    private func scheduleEndTimeController(mode: TimeControllerMode) {
+        let pickerMode: DivoDatePickerController.Mode
+        let currentTime: Int32
+        
+        var minimumTimestamp: Int32? = nil
+        
+        switch mode {
+        case .date:
+            pickerMode = .date
+            currentTime = self.createEventNode.eventDateToInt
+            
+            // Конец не может быть раньше начала: минимальная дата — день начала
+            let startDay = self.createEventNode.eventDateInt > 0
+                ? Calendar.current.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(self.createEventNode.eventDateInt)))
+                : Calendar.current.startOfDay(for: Date())
+            minimumTimestamp = Int32(startDay.timeIntervalSince1970)
+            
+        case .time:
+            pickerMode = .time
+            currentTime = self.createEventNode.eventTimeToInt
+            
+            // Если конец в тот же день, что и начало, — время не раньше времени начала
+            let calendar = Calendar.current
+            let startDay = calendar.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(self.createEventNode.eventDateInt)))
+            let endDay = self.createEventNode.eventDateToInt > 0
+                ? calendar.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(self.createEventNode.eventDateToInt)))
+                : startDay
+            if startDay == endDay, self.createEventNode.eventTimeInt > 0 {
+                minimumTimestamp = self.createEventNode.eventTimeInt
+            }
+        }
+        
+        let initialTime = currentTime > 0 ? currentTime : Int32(Date().timeIntervalSince1970)
+        
+        let controller = DivoDatePickerController(
+            mode: pickerMode,
+            initialTimestamp: initialTime,
+            title: mode == .date ? DivoStrings.eventEndDate : DivoStrings.eventEndTime,
+            minimumTimestamp: minimumTimestamp
+        )
+        
+        controller.onSave = { [weak self] selectedTimestamp in
+            self?.createEventNode.updateEndTime(selectedTimestamp, mode)
         }
         
         let nav = UINavigationController(rootViewController: controller)

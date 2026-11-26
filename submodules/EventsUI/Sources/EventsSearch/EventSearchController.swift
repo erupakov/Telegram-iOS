@@ -429,7 +429,7 @@ public final class EventsSearchController: ViewController {
                 )
 
                 self.preloadedEventTypes = response.data.items.map {
-                    FilterOptionItem(id: String($0.id), title: $0.title)
+                    FilterOptionItem(id: String($0.id), title: $0.title, sectionTitle: $0.category)
                 }
             } catch {
                 self.dictionaryLoadFailed = true

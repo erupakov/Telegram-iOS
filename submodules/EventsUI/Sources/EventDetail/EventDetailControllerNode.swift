@@ -1617,11 +1617,11 @@ final class EventDetailControllerNode: ASDisplayNode {
             }
         }
         
-        if let gender = attributes?.gender {
-            let genderTitles = gender.compactMap { $0.title }.joined(separator: ", ")
-            if !genderTitles.isEmpty {
-                items.append(.init(title: DivoStrings.attrGender, value: genderTitles))
-            }
+        if let targetGenderTitle = DivoEventTargetGender.title(for: attributes?.targetGender) {
+            items.append(.init(title: DivoStrings.attrTargetGender, value: targetGenderTitle))
+        }
+        if let selectionFormatTitle = DivoEventSelectionFormat.title(for: attributes?.selectionFormat) {
+            items.append(.init(title: DivoStrings.attrSelectionFormat, value: selectionFormatTitle))
         }
         if let age = attributes?.age, let str = rangeString(from: age.from, to: age.to) {
             items.append(.init(title: DivoStrings.ageYo, value: str))
@@ -1970,9 +1970,11 @@ final class EventDetailControllerNode: ASDisplayNode {
                 attrs.append(.init(title: DivoStrings.debugRole, value: rolesTitles))
             }
         }
-        if let gender = data.request.gender {
-            let genderTitles = gender.joined(separator: ", ")
-            attrs.append(.init(title: DivoStrings.attrGender, value: genderTitles))
+        if let targetGenderTitle = DivoEventTargetGender.title(for: data.request.targetGender) {
+            attrs.append(.init(title: DivoStrings.attrTargetGender, value: targetGenderTitle))
+        }
+        if let selectionFormatTitle = DivoEventSelectionFormat.title(for: data.request.selectionFormat) {
+            attrs.append(.init(title: DivoStrings.attrSelectionFormat, value: selectionFormatTitle))
         }
         if let age = data.request.age, let str = rangeString(from: age.from, to: age.to) {
             attrs.append(.init(title: DivoStrings.ageYo, value: str))

@@ -13,9 +13,13 @@ import Foundation
 public struct FilterOptionItem: Equatable, Hashable {
     public let id: String
     public let title: String
+    /// Необязательный заголовок группы: рисуется над первым пунктом своей секции.
+    /// Пункты одной секции должны идти подряд — контроллер выводит заголовок при смене значения.
+    public let sectionTitle: String?
 
-    public init(id: String, title: String) {
+    public init(id: String, title: String, sectionTitle: String? = nil) {
         self.id = id
         self.title = title
+        self.sectionTitle = sectionTitle
     }
 }

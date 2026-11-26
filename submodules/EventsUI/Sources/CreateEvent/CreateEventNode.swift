@@ -127,6 +127,8 @@ final class CreateEventNode: ASDisplayNode {
     // MARK: - Core & Context
     private(set) var eventDateInt: Int32 = 0
     private(set) var eventTimeInt: Int32 = 0
+    private(set) var eventDateToInt: Int32 = 0
+    private(set) var eventTimeToInt: Int32 = 0
     
     private(set) var deadlineDateInt: Int32 = 0
     private(set) var deadlineTimeInt: Int32 = 0
@@ -265,6 +267,8 @@ final class CreateEventNode: ASDisplayNode {
     
     private let eventDate: DateSelectionControl
     private let eventTime: DateSelectionControl
+    private let eventDateTo: DateSelectionControl
+    private let eventTimeTo: DateSelectionControl
 
     private let cityRow = FilterRowView(title: DivoStrings.debugCity + " *")
     private var rawCityId: String?
@@ -502,10 +506,18 @@ final class CreateEventNode: ASDisplayNode {
     private var selectedParameters: Set<EventParameter> = []
     private var deleteButtons: [EventParameter: ASButtonNode] = [:]
     
-    private var genderDropdown = FilterRowView(title: DivoStrings.paramGender)
+    // Пол-кандидат больше не редактируется в UI, но оставлен в запросе для совместимости
     private var genderDropdownIds: [String]?
     private var genderDropdownTitles: [String]?
     var genderOptions: [FilterOptionItem] = []
+
+    private var selectionFormatDropdown = FilterRowView(title: DivoStrings.paramSelectionFormat)
+    private var selectionFormatId: String?
+    private var selectionFormatTitle: String?
+
+    private var targetGenderDropdown = FilterRowView(title: DivoStrings.paramTargetGender)
+    private var targetGenderId: String?
+    private var targetGenderTitle: String?
     
     private var selectedAge: ClosedRange<Int>?
     private var selectedHeight: ClosedRange<Double>?
@@ -541,6 +553,7 @@ final class CreateEventNode: ASDisplayNode {
     var onCreateEventTapped: (() -> Void)?
     private let addPhoto: () -> Void
     var scheduleTimeController: ((TimeControllerMode) -> Void)?
+    var scheduleEndTimeController: ((TimeControllerMode) -> Void)?
     var scheduleDeadlineTimeController: ((TimeControllerMode) -> Void)?
     var onAddGalleryPhotoTapped: (() -> Void)?
     var loadEventTypesList: ((Int, Int) -> Void)?
@@ -612,11 +625,16 @@ final class CreateEventNode: ASDisplayNode {
         let name: String?
         let description: String?
         let date: String?
+        let endDate: String?
         let role: [String]?
         let maxAttendees: Int?
         let requirements: String?
         let genderId: [String]?
         let genderTitle: [String]?
+        let selectionFormatId: String?
+        let selectionFormatTitle: String?
+        let targetGenderId: String?
+        let targetGenderTitle: String?
         let age: ClosedRange<Int>?
         let height: ClosedRange<Double>?
         let weight: ClosedRange<Double>?
@@ -668,6 +686,10 @@ final class CreateEventNode: ASDisplayNode {
 
         eventTime = DateSelectionControl(placeholder: Int32(Date().timeIntervalSince1970), localeIdentifier: DivoStrings.current.localeIdentifier, isTime: true)
  
+        eventDateTo = DateSelectionControl(placeholder: Int32(Date().timeIntervalSince1970), localeIdentifier: DivoStrings.current.localeIdentifier, isTime: false)
+
+        eventTimeTo = DateSelectionControl(placeholder: Int32(Date().timeIntervalSince1970), localeIdentifier: DivoStrings.current.localeIdentifier, isTime: true)
+ 
         self.requirementsTextField = DivoTextView(title: DivoStrings.requirementsCreateEvent + " *", initialText: "", placeholder: DivoStrings.placeholderRequirementsCreateEvent)
         self.requirementsTextField.textView.text = DivoStrings.placeholderRequirementsCreateEvent
         self.requirementsTextField.textView.textColor = DivoColorPalette.primaryText.withAlphaComponent(0.4)
@@ -712,6 +734,16 @@ final class CreateEventNode: ASDisplayNode {
         eventTime.onTap = { [weak self] in
             self?.view.endEditing(true)
             self?.scheduleTimeController?(.time)
+        }
+        
+        eventDateTo.onTap = { [weak self] in
+            self?.view.endEditing(true)
+            self?.scheduleEndTimeController?(.date)
+        }
+                
+        eventTimeTo.onTap = { [weak self] in
+            self?.view.endEditing(true)
+            self?.scheduleEndTimeController?(.time)
         }
         
         deadlineDate.onTap = { [weak self] in
@@ -1043,6 +1075,16 @@ final class CreateEventNode: ASDisplayNode {
         step1StackView.addArrangedSubview(dateTimeRow)
         dateTimeRow.heightAnchor.constraint(equalToConstant: 68).isActive = true
 
+        let dateToTimeRow = UIStackView()
+        dateToTimeRow.axis = .horizontal
+        dateToTimeRow.spacing = 12
+        dateToTimeRow.distribution = .fillEqually
+
+        dateToTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventEndDate + " *", inputView: eventDateTo))
+        dateToTimeRow.addArrangedSubview(makeInputStack(title: DivoStrings.eventEndTime + " *", inputView: eventTimeTo))
+        step1StackView.addArrangedSubview(dateToTimeRow)
+        dateToTimeRow.heightAnchor.constraint(equalToConstant: 68).isActive = true
+
         step1StackView.addArrangedSubview(countryRow)
         countryRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
         countryRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(countryTapped)))
@@ -1060,6 +1102,9 @@ final class CreateEventNode: ASDisplayNode {
         whoCanApplyDropdown.leadingAnchor.constraint(equalTo: step2StackView.leadingAnchor, constant: DivoDesignTokens.Spacing.m).isActive = true
         whoCanApplyDropdown.trailingAnchor.constraint(equalTo: step2StackView.trailingAnchor, constant: -DivoDesignTokens.Spacing.m).isActive = true
 
+        step2StackView.addArrangedSubview(selectionFormatDropdown)
+        selectionFormatDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(selectionFormatTapped)))
+
         step2StackView.addArrangedSubview(maxParticipantsDropdown)
         maxParticipantsDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(maxParticipantsTapped)))
         
@@ -1067,8 +1112,8 @@ final class CreateEventNode: ASDisplayNode {
         requirementsTextField.heightAnchor.constraint(equalToConstant: 140).isActive = true
         
         step2StackView.addArrangedSubview(parametersForApplying)
-        step2StackView.addArrangedSubview(genderDropdown)
-        genderDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(genderDropdownTapped)))
+        step2StackView.addArrangedSubview(targetGenderDropdown)
+        targetGenderDropdown.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(targetGenderTapped)))
                 
         step2StackView.addArrangedSubview(appearanceBackgroundView)
         appearanceBackgroundView.addSubview(dynamicParametersStack)
@@ -1485,7 +1530,8 @@ final class CreateEventNode: ASDisplayNode {
         
         whoCanApplyDropdown.setItems(whoCanApplyTitles ?? [], emptyTitle: DivoStrings.notSet)
         maxParticipantsDropdown.setItems(maxParticipants.map {["\($0)"] } ?? [], emptyTitle: DivoStrings.notSet)
-        genderDropdown.setItems(genderDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
+        selectionFormatDropdown.setItems(selectionFormatTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.notSet)
+        targetGenderDropdown.setItems(targetGenderTitle.map { [$0] } ?? [], emptyTitle: DivoStrings.notSet)
         hairLengthDropdown.setItems(hairLengthDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
         hairColorDropdown.setItems(hairColorDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
         eyeColorDropdown.setItems(eyeColorDropdownTitles ?? [], emptyTitle: DivoStrings.notSet)
@@ -1682,6 +1728,11 @@ final class CreateEventNode: ASDisplayNode {
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let dateString = formatter.string(from: finalDate)
         
+        let endDateString: String? = {
+            guard let end = combinedTimestamp(date: eventDateToInt, time: eventTimeToInt) else { return nil }
+            return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(end)))
+        }()
+
         let dateDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineDateInt))
         let timeDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineTimeInt))
         
@@ -1699,11 +1750,16 @@ final class CreateEventNode: ASDisplayNode {
             name: nameEventTextField.textField.text?.trimmingCharacters(in: .whitespaces),
             description: aboutEventTextField.text,
             date: dateString,
+            endDate: endDateString,
             role: resolvedSelection(whoCanApplyIds, options: roleOptions),
             maxAttendees: maxParticipants,
             requirements: requirementsTextField.text.trimmingCharacters(in: .whitespaces),
             genderId: resolvedSelection(genderDropdownIds, options: genderOptions),
             genderTitle: genderDropdownTitles,
+            selectionFormatId: selectionFormatId,
+            selectionFormatTitle: selectionFormatTitle,
+            targetGenderId: targetGenderId,
+            targetGenderTitle: targetGenderTitle,
             age: selectedAge,
             height: selectedHeight,
             weight: selectedWeight,
@@ -1985,11 +2041,58 @@ final class CreateEventNode: ASDisplayNode {
         case .time:
             eventTimeInt = timestamp
             eventTime.setDate(timestamp: timestamp)
+            if eventTimeToInt == 0 {
+                eventTimeToInt = timestamp
+                eventTimeTo.setDate(timestamp: timestamp)
+            }
         case .date:
             eventDateInt = timestamp
             eventDate.setDate(timestamp: timestamp)
+            if eventDateToInt == 0 {
+                eventDateToInt = timestamp
+                eventDateTo.setDate(timestamp: timestamp)
+            }
         }
+        clampEndToStartIfNeeded()
         validateCurrentStep()
+    }
+    
+    func updateEndTime(_ timestamp: Int32, _ mode: TimeControllerMode) {
+        switch mode {
+        case .time:
+            eventTimeToInt = timestamp
+            eventTimeTo.setDate(timestamp: timestamp)
+        case .date:
+            eventDateToInt = timestamp
+            eventDateTo.setDate(timestamp: timestamp)
+        }
+        clampEndToStartIfNeeded()
+        validateCurrentStep()
+    }
+    
+    /// Событие не может закончиться раньше, чем начаться: если начало переехало
+    /// за конец — подтягиваем конец к началу (как в Android-клиенте).
+    private func clampEndToStartIfNeeded() {
+        guard eventDateToInt > 0, eventTimeToInt > 0 else { return }
+        guard let start = combinedTimestamp(date: eventDateInt, time: eventTimeInt),
+              let end = combinedTimestamp(date: eventDateToInt, time: eventTimeToInt) else { return }
+        if end < start {
+            eventDateToInt = eventDateInt
+            eventTimeToInt = eventTimeInt
+            eventDateTo.setDate(timestamp: eventDateInt)
+            eventTimeTo.setDate(timestamp: eventTimeInt)
+        }
+    }
+    
+    /// Склеивает дату и время в один timestamp (год/месяц/день из date, часы/минуты из time).
+    private func combinedTimestamp(date: Int32, time: Int32) -> Int32? {
+        guard date > 0, time > 0 else { return nil }
+        let calendar = Calendar.current
+        let dateObj = Date(timeIntervalSince1970: TimeInterval(date))
+        let timeObj = Date(timeIntervalSince1970: TimeInterval(time))
+        let components = calendar.dateComponents([.hour, .minute], from: timeObj)
+        let finalDate = calendar.date(bySettingHour: components.hour ?? 0, minute: components.minute ?? 0, second: 0, of: dateObj) ?? dateObj
+        return Int32(finalDate.timeIntervalSince1970)
     }
     
     func updateDeadlineTime(_ timestamp: Int32, _ mode: TimeControllerMode) {
@@ -2066,8 +2169,18 @@ final class CreateEventNode: ASDisplayNode {
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         let dateString = formatter.string(from: finalDate)
         
-        let dateToObj = calendar.date(byAdding: .hour, value: 2, to: finalDate) ?? finalDate
-        let dateToString = formatter.string(from: dateToObj)
+        // Конец события берём из полей «Дата/время завершения»; fallback на +2 часа — только для старых вызовов
+        let dateToString: String
+        if eventDateToInt > 0, eventTimeToInt > 0 {
+            let dateToObj = Date(timeIntervalSince1970: TimeInterval(eventDateToInt))
+            let timeToObj = Date(timeIntervalSince1970: TimeInterval(eventTimeToInt))
+            let timeToComponents = calendar.dateComponents([.hour, .minute], from: timeToObj)
+            let finalDateTo = calendar.date(bySettingHour: timeToComponents.hour ?? 0, minute: timeToComponents.minute ?? 0, second: 0, of: dateToObj) ?? dateToObj
+            dateToString = formatter.string(from: finalDateTo)
+        } else {
+            let dateToObj = calendar.date(byAdding: .hour, value: 2, to: finalDate) ?? finalDate
+            dateToString = formatter.string(from: dateToObj)
+        }
         
         let dateDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineDateInt))
         let timeDeadlineObj = Date(timeIntervalSince1970: TimeInterval(deadlineTimeInt))
@@ -2114,6 +2227,8 @@ final class CreateEventNode: ASDisplayNode {
         var hipsRange: EventRangeRequest?
         var shoesRange: EventRangeRequest?
         let genders = resolvedSelection(genderDropdownIds, options: genderOptions)
+        // Поле «Пол» убрано из UI: для новых событий шлём «все полы», для старых сохраняем загруженное значение
+        let gendersForApi = genders ?? ["male", "female"]
         let hairColors: [Int] = resolvedSelection(hairColorDropdownIds, options: hairColorOptions)?.compactMap { Int($0) } ?? []
         let hairLengths: [Int] = resolvedSelection(hairLengthDropdownIds, options: hairLengthOptions)?.compactMap { Int($0) } ?? []
         let eyeColors: [Int] = resolvedSelection(eyeColorDropdownIds, options: eyeColorOptions)?.compactMap { Int($0) } ?? []
@@ -2150,7 +2265,7 @@ final class CreateEventNode: ASDisplayNode {
             maxAttendees: maxParticipants,
             requirements: requirements,
             role: roles,
-            gender: genders,
+            gender: gendersForApi,
             age: ageRange,
             height: heightRange,
             weight: weightRange,
@@ -2162,7 +2277,9 @@ final class CreateEventNode: ASDisplayNode {
             hairLength: hairLengths,
             eyeColor: eyeColors,
             skinColor: skinColors,
-            measuringSystem: "metric"
+            measuringSystem: "metric",
+            selectionFormat: selectionFormatId,
+            targetGender: targetGenderId
         )
     }
 
@@ -2283,7 +2400,9 @@ final class CreateEventNode: ASDisplayNode {
             hairColor: hairColors,
             hairLength: hairLengths,
             eyeColor: eyeColors,
-            skinColor: skinColors
+            skinColor: skinColors,
+            selectionFormat: selectionFormatId,
+            targetGender: targetGenderId
         )
     }
     
@@ -2313,6 +2432,18 @@ final class CreateEventNode: ASDisplayNode {
                 let timestamp = Int32(dateObj.timeIntervalSince1970)
                 self.updateTime(timestamp, .date)
                 self.updateTime(timestamp, .time)
+            }
+        }
+        
+        if let endDateString = detail.dateTo {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            
+            if let dateObj = formatter.date(from: endDateString) {
+                let timestamp = Int32(dateObj.timeIntervalSince1970)
+                self.updateEndTime(timestamp, .date)
+                self.updateEndTime(timestamp, .time)
             }
         }
         
@@ -2347,6 +2478,11 @@ final class CreateEventNode: ASDisplayNode {
         
         genderDropdownIds = detail.modelAttributes?.gender?.map(\.id!)
         genderDropdownTitles = detail.modelAttributes?.gender?.map(\.title!)
+        
+        selectionFormatId = detail.modelAttributes?.selectionFormat
+        selectionFormatTitle = DivoEventSelectionFormat.title(for: selectionFormatId)
+        targetGenderId = detail.modelAttributes?.targetGender
+        targetGenderTitle = DivoEventTargetGender.title(for: targetGenderId)
         
         hairLengthDropdownIds = detail.modelAttributes?.hairLength?.compactMap { String($0.id!) }
         hairLengthDropdownTitles = detail.modelAttributes?.hairLength?.map(\.title!)
@@ -2505,6 +2641,23 @@ final class CreateEventNode: ASDisplayNode {
         genderDropdownIds = initialSnapshot?.genderId
         genderDropdownTitles = initialSnapshot?.genderTitle
         
+        selectionFormatId = initialSnapshot?.selectionFormatId
+        selectionFormatTitle = initialSnapshot?.selectionFormatTitle
+        targetGenderId = initialSnapshot?.targetGenderId
+        targetGenderTitle = initialSnapshot?.targetGenderTitle
+        
+        if let endDateString = initialSnapshot?.endDate {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            
+            if let dateObj = formatter.date(from: endDateString) {
+                let timestamp = Int32(dateObj.timeIntervalSince1970)
+                self.updateEndTime(timestamp, .date)
+                self.updateEndTime(timestamp, .time)
+            }
+        }
+        
         hairLengthDropdownIds = initialSnapshot?.hairLengthId?.compactMap({String($0)})
         hairLengthDropdownTitles = initialSnapshot?.hairLengthTitle
         
@@ -2569,7 +2722,7 @@ final class CreateEventNode: ASDisplayNode {
     @objc private func eventTypeTapped() {
         self.view.endEditing(true)
         
-        let options = eventTypeItems.map { FilterOptionItem(id: String($0.id), title: $0.title) }
+        let options = eventTypeItems.map { FilterOptionItem(id: String($0.id), title: $0.title, sectionTitle: $0.category) }
         let selectedIds = eventTypeId != nil ? [String(eventTypeId!)] : []
         
         let vc = FilterOptionsController(
@@ -2687,15 +2840,62 @@ final class CreateEventNode: ASDisplayNode {
         }
     }
     
-    @objc private func genderDropdownTapped() {
-        presentMultiSelectFilter(
-            title: DivoStrings.gender,
-            options: genderOptions,
-            currentIds: genderDropdownIds
-        ) { [weak self] ids, titles in
-            self?.genderDropdownIds = ids
-            self?.genderDropdownTitles = titles
+    @objc private func selectionFormatTapped() {
+        self.view.endEditing(true)
+        let options = DivoEventSelectionFormat.options.map { FilterOptionItem(id: $0.id, title: $0.title) }
+        let selectedIds = selectionFormatId.map { [$0] } ?? []
+        
+        let vc = FilterOptionsController(
+            title: DivoStrings.paramSelectionFormat,
+            options: options,
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: false,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            if let selected = selectedItems.first {
+                self?.selectionFormatId = selected.id
+                self?.selectionFormatTitle = selected.title
+            } else {
+                self?.selectionFormatId = nil
+                self?.selectionFormatTitle = nil
+            }
+            self?.updateDropdownsUI()
         }
+        
+        presentSheet(vc)
+    }
+    
+    @objc private func targetGenderTapped() {
+        self.view.endEditing(true)
+        let options = DivoEventTargetGender.options.map { FilterOptionItem(id: $0.id, title: $0.title) }
+        let selectedIds = targetGenderId.map { [$0] } ?? []
+        
+        let vc = FilterOptionsController(
+            title: DivoStrings.paramTargetGender,
+            options: options,
+            selectedOptionIds: selectedIds,
+            isMultiSelect: false,
+            showSearch: false,
+            isOpenPresent: true,
+            isResetButton: false
+        )
+        
+        vc.onSave = { [weak self] selectedItems in
+            if let selected = selectedItems.first {
+                self?.targetGenderId = selected.id
+                self?.targetGenderTitle = selected.title
+            } else {
+                self?.targetGenderId = nil
+                self?.targetGenderTitle = nil
+            }
+            self?.updateDropdownsUI()
+        }
+        
+        presentSheet(vc)
     }
     
     @objc private func rateTimeTapped() {
@@ -2825,9 +3025,16 @@ final class CreateEventNode: ASDisplayNode {
             
             let hasDate = eventDateInt > 0
             let hasTime = eventTimeInt > 0
+            let hasEndDate = eventDateToInt > 0
+            let hasEndTime = eventTimeToInt > 0
+            let isEndNotBeforeStart: Bool = {
+                guard let start = combinedTimestamp(date: eventDateInt, time: eventTimeInt),
+                      let end = combinedTimestamp(date: eventDateToInt, time: eventTimeToInt) else { return false }
+                return end >= start
+            }()
             let hasCountry = cityId != nil && !cityId!.isEmpty
             
-            isValid = hasPhoto && hasEventType && hasName && hasDesc && hasDate && hasTime && hasCountry
+            isValid = hasPhoto && hasEventType && hasName && hasDesc && hasDate && hasTime && hasEndDate && hasEndTime && isEndNotBeforeStart && hasCountry
             
         case 2:
             // Пустой массив тоже валиден — означает выбор мастер-пункта «Все»
