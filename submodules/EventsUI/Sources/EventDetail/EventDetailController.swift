@@ -240,30 +240,43 @@ public final class EventDetailController: TelegramBaseController {
         self.controllerNode.updateWithPreviewData(data)
     }
 
-    /// В собственных событиях бэк может не прислать `creator` (или прислать без имени) — тогда в блоке
-    /// «Организатор» было «НЕИЗВЕСТНОЕ АГЕНТСТВО». Подставляем себя из /user/info: агентство
-    /// (название + лого), а если его нет — своё имя и аватар.
-    private func fillOwnOrganizerIfNeeded(_ item: EventFullDetailData) async {
-        let creatorName = item.creator?.fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard creatorName.isEmpty else { return }
+    /// Бэк может прислать организатора (`organizer`, иначе `creator`) без имени/аватара (у агентств название лежит в `agency.title`, а не в
+    /// `fullName`) — тогда в блоке «Организатор» было «НЕИЗВЕСТНОЕ АГЕНТСТВО» и пустая иконка.
+    /// Догружаем профиль организатора: своё событие — из /user/info, чужое — из /user/{creator.id};
+    /// берём агентство (название + лого), а если его нет — имя и аватар пользователя.
+    private func fillOrganizerIfNeeded(_ item: EventFullDetailData) async {
+        let creatorName = item.displayOrganizer?.fullName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let creatorLogo = item.displayOrganizer?.avatar?.fullUrl ?? item.displayOrganizer?.photo?.fullUrl
+        guard creatorName.isEmpty || creatorLogo == nil else { return }
         let isOwn = self.isMyEvent == true
             || (item.creator?.id != nil && item.creator?.id == DivoConfig.currentDivoUserId)
-        guard isOwn else { return }
+        guard isOwn || item.displayOrganizer?.id != nil else { return }
 
         do {
-            let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
-                path: "/user/info",
-                method: "GET"
-            )
-            let me = userResponse.data
+            let me: UserDetail
+            if isOwn {
+                let userResponse: UserDetailResponse = try await DivoAPIClient.shared.request(
+                    path: "/user/info",
+                    method: "GET"
+                )
+                me = userResponse.data
+            } else if let organizerId = item.displayOrganizer?.id {
+                // Чужое событие: профиль организатора (аккаунт агентства для события сотрудника)
+                me = try await AuthRestService.shared.userDetail(id: organizerId)
+            } else {
+                return
+            }
             let agencyTitle = me.agency?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            let name = agencyTitle.isEmpty ? me.fullName : agencyTitle
-            let logo = agencyTitle.isEmpty ? me.avatar?.fullUrl : (me.agency?.photo?.fullUrl ?? me.avatar?.fullUrl)
+            let fetchedName = agencyTitle.isEmpty ? me.fullName : agencyTitle
+            let fetchedLogo = agencyTitle.isEmpty ? me.avatar?.fullUrl : (me.agency?.photo?.fullUrl ?? me.avatar?.fullUrl)
+            // Не затираем то, что бэк уже прислал в событии.
+            let name = creatorName.isEmpty ? fetchedName : creatorName
+            let logo = creatorLogo ?? fetchedLogo
             await MainActor.run {
-                self.controllerNode.updateOrganizer(name: name, isVerified: item.creator?.isVerified, logoURLString: logo)
+                self.controllerNode.updateOrganizer(name: name, isVerified: item.displayOrganizer?.isVerified, logoURLString: logo)
             }
         } catch {
-            divoLog("[DivoAPI] event organizer fallback /user/info error: \(error)", level: .error)
+            divoLog("[DivoAPI] event organizer fallback error: \(error)", level: .error)
         }
     }
 
@@ -314,7 +327,7 @@ public final class EventDetailController: TelegramBaseController {
                     self.controllerNode.updateEventData(item)
                     self.controllerNode.updateGallery(self.currentGalleryPhotos) // Отдаем фото в Node
                 }
-                await self.fillOwnOrganizerIfNeeded(item)
+                await self.fillOrganizerIfNeeded(item)
             } catch {
                 divoLog("[DivoAPI] event/\(eventId) error: \(error)", level: .error)
                 await MainActor.run {

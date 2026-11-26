@@ -7,14 +7,18 @@ public struct FeedlineListRequest: Encodable {
     public let modelsOnly: Bool?
     public let role: String?
     public let withoutNfts: Bool?
+    /// Только карточки профилей (entity «users»), по одной на человека: без флага лента отдаёт ещё публикации/посты,
+    /// из-за чего порядок и пагинация расходились с Android (`GetFeedUseCase`: `isProfiles = true`).
+    public let isProfiles: Bool?
 
-    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil, withoutNfts: Bool? = nil) {
+    public init(offset: Int, limit: Int, subscribedOnly: Bool? = nil, modelsOnly: Bool? = nil, role: String? = nil, withoutNfts: Bool? = nil, isProfiles: Bool? = nil) {
         self.offset = offset
         self.limit = limit
         self.subscribedOnly = subscribedOnly
         self.modelsOnly = modelsOnly
         self.role = role
         self.withoutNfts = withoutNfts
+        self.isProfiles = isProfiles
     }
 }
 
@@ -25,6 +29,20 @@ public struct FeedlineResponse: Decodable {
 
 public struct FeedlineData: Decodable {
     public let items: [FeedlineItem]
+    /// Пагинация ответа (`pagination.meta.totalCount`): Android считает `hasMore = загружено < totalCount`.
+    public let pagination: FeedlinePagination?
+
+    /// Всего элементов в выдаче (nil — сервер не прислал).
+    public var totalCount: Int? { pagination?.meta?.totalCount }
+}
+
+public struct FeedlinePagination: Decodable {
+    public struct Meta: Decodable {
+        public let limit: Int?
+        public let currentOffset: Int?
+        public let totalCount: Int?
+    }
+    public let meta: Meta?
 }
 
 public struct FeedlineItem: Decodable {
@@ -159,12 +177,21 @@ public struct FollowResponse: Decodable {
 }
 
 /// Тело `/user/like` и `/user/unlike` — лайк модели по её userId (миграция с feedId-based
-/// `/feedline/like`, DIVI-64). Бэк ждёт snake_case `user_id`, энкодер дефолтный (без
-/// keyEncodingStrategy) → имя поля задаётся через CodingKeys.
+/// `/feedline/like`, DIVI-64). iOS исторически слал snake_case `user_id`, Android — `userId`; бэк мог
+/// начать принимать только один вариант (лайки профиля перестали ставиться), поэтому шлём ОБА ключа с
+/// одним значением: лишнее поле бэк игнорирует. Энкодер дефолтный (без keyEncodingStrategy).
 public struct UserLikeRequest: Encodable {
     public let userId: Int
     public init(userId: Int) { self.userId = userId }
+
     private enum CodingKeys: String, CodingKey {
-        case userId = "user_id"
+        case snakeUserId = "user_id"
+        case camelUserId = "userId"
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(userId, forKey: .snakeUserId)
+        try container.encode(userId, forKey: .camelUserId)
     }
 }

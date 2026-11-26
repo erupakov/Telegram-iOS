@@ -236,7 +236,7 @@ public enum DivoStrings {
     // MARK: - Roles
 
     public static var roleModel: String { L(en: "Model", ru: "Модель", es: "Modelo", pt: "Modelo", zh: "模特", fr: "Mannequin") }
-    public static var roleNewFace: String { L(en: "New face", ru: "Новое лицо", es: "Cara nueva", pt: "Rosto novo", zh: "新面孔", fr: "Nouveau visage") }
+    public static var roleNewFace: String { L(en: "Talent", ru: "Талант", es: "Talento", pt: "Talento", zh: "人才", fr: "Talent") }
     public static var roleAgency: String { L(en: "Agency", ru: "Агентство", es: "Agencia", pt: "Agência", zh: "经纪公司", fr: "Agence") }
     public static var roleFan: String { L(en: "Fan", ru: "Фанат", es: "Fan", pt: "Fã", zh: "粉丝", fr: "Fan") }
     public static var statusModel: String { L(en: "♦️ model", ru: "♦️ модель", es: "♦️ modelo", pt: "♦️ modelo", zh: "♦️ 模特", fr: "♦️ mannequin") }
@@ -405,7 +405,10 @@ public enum DivoStrings {
 
     // MARK: - OTP / Code entry
     /// Подзаголовок экрана ввода кода. %@ — номер телефона (выделяется жирным в UI).
-    public static var otpCodeSentToFormat: String { L(en: "We sent a 6-digit code to %@", ru: "Мы отправили 6-значный код на %@", es: "Enviamos un código de 6 dígitos a %@", pt: "Enviamos um código de 6 dígitos para %@", zh: "我们已向 %@ 发送6位验证码", fr: "Nous avons envoyé un code à 6 chiffres au %@") }
+    /// «Мы отправили N-значный код на <номер>»: длина кода приходит с сервера (teamgram — 5 цифр), не зашита в тексте.
+    public static func otpCodeSent(length: Int32, phone: String) -> String {
+        return L(en: "We sent a \(length)-digit code to \(phone)", ru: "Мы отправили \(length)-значный код на \(phone)", es: "Enviamos un código de \(length) dígitos a \(phone)", pt: "Enviamos um código de \(length) dígitos para \(phone)", zh: "我们已向 \(phone) 发送\(length)位验证码", fr: "Nous avons envoyé un code à \(length) chiffres au \(phone)")
+    }
     public static var otpIncorrectCode: String { L(en: "Incorrect code. Try again.", ru: "Неверный код. Попробуйте ещё раз.", es: "Código incorrecto. Inténtalo de nuevo.", pt: "Código incorreto. Tente novamente.", zh: "验证码错误，请重试。", fr: "Code incorrect. Réessayez.") }
     public static var otpCodeExpired: String { L(en: "Code Expired", ru: "Срок действия кода истёк", es: "Código caducado", pt: "Código expirado", zh: "验证码已过期", fr: "Code expiré") }
     /// Текст таймера повторной отправки. %@ — оставшееся время в формате m:ss.
@@ -551,6 +554,8 @@ public enum DivoStrings {
     public static var noProfileViewedSubtitleMyProfile: String { L(en: "No one’s viewed your profile yet.", ru: "Ваш профиль пока никто не просматривал.", es: "Nadie ha visto tu perfil aún.", pt: "Ninguém visualizou seu perfil ainda.", zh: "尚未有人浏览过你的资料。", fr: "Personne n’a encore vu votre profil.") }
     public static var noSearchResults: String { L(en: "Nothing found", ru: "Ничего не найдено", es: "No se encontró nada", pt: "Nada encontrado", zh: "未找到结果", fr: "Aucun résultat") }
     public static var noSearchResultsSubtitle: String { L(en: "Try a different search query", ru: "Попробуйте изменить запрос", es: "Prueba otra búsqueda", pt: "Tente uma busca diferente", zh: "试试其他搜索词", fr: "Essayez une autre recherche") }
+    public static var talentAwaitingAgencyTitle: String { L(en: "Agency confirmation required", ru: "Требуется подтверждение агентства", es: "Se requiere la confirmación de la agencia", pt: "Confirmação da agência necessária", zh: "需要经纪公司确认", fr: "Confirmation de l’agence requise") }
+    public static var talentAwaitingAgencyText: String { L(en: "The change from Talent to Model status is possible after confirmation by the mother or main agency. The status will update automatically.", ru: "Переход из статуса Талант в Модель возможен после подтверждения материнского или основного агентства. Статус обновится автоматически.", es: "El paso de Talento a Modelo es posible tras la confirmación de la agencia madre o principal. El estado se actualizará automáticamente.", pt: "A mudança de Talento para Modelo é possível após a confirmação da agência mãe ou principal. O status será atualizado automaticamente.", zh: "从“人才”变为“模特”需经母经纪公司或主要经纪公司确认。状态将自动更新。", fr: "Le passage du statut Talent à Modèle est possible après confirmation de l’agence mère ou principale. Le statut sera mis à jour automatiquement.") }
     public static var noWorkExperienceYetProfile: String { L(en: "There is no work experience yet.", ru: "Опыт работы пока отсутствует.", es: "Aún no hay experiencia laboral.", pt: "Ainda não há experiência de trabalho.", zh: "暂无工作经历。", fr: "Aucune expérience professionnelle pour l’instant.") }
     public static var noBioYetProfile: String { L(en: "No bio yet.", ru: "Информация о себе пока не заполнена.", es: "Información personal aún no completada.", pt: "Informação pessoal ainda não preenchida.", zh: "尚未填写个人简介。", fr: "Aucune bio pour l’instant.") }
     public static var noAppearanceYetProfile: String { L(en: "Model parameters are not filled in", ru: "Параметры модели не заполнены", es: "Los parámetros de la modelo no están completados", pt: "Os parâmetros da modelo não foram preenchidos", zh: "模特参数未填写", fr: "Les paramètres du mannequin ne sont pas renseignés") }
@@ -682,8 +687,8 @@ public enum DivoStrings {
     public static var noUsersFoundSubtitle: String { L(en: "There are no users\nto display right now.", ru: "Сейчас нет пользователей\nдля отображения.", es: "No hay usuarios\npara mostrar ahora.", pt: "Não há usuários\npara exibir agora.", zh: "当前没有\n可显示的用户。", fr: "Aucun utilisateur\nà afficher pour le moment.") }
     public static var noModelsTitle: String { L(en: "No Models", ru: "Нет моделей", es: "Sin modelos", pt: "Sem modelos", zh: "暂无模特", fr: "Aucun mannequin") }
     public static var noModelsSubtitle: String { L(en: "No models\nfound at the moment.", ru: "Модели\nне найдены.", es: "No se encontraron\nmodelos.", pt: "Nenhum modelo\nencontrado.", zh: "暂未找到\n模特。", fr: "Aucun mannequin\ntrouvé pour le moment.") }
-    public static var noNewTalentsTitle: String { L(en: "No New Talents", ru: "Нет новых лиц", es: "Sin nuevos talentos", pt: "Sem novos talentos", zh: "暂无新人才", fr: "Aucun nouveau talent") }
-    public static var noNewTalentsSubtitle: String { L(en: "No new talents\nfound at the moment.", ru: "Новые лица\nне найдены.", es: "No se encontraron\nnuevos talentos.", pt: "Nenhum novo talento\nencontrado.", zh: "暂未找到\n新人才。", fr: "Aucun nouveau talent\ntrouvé pour le moment.") }
+    public static var noNewTalentsTitle: String { L(en: "No New Talents", ru: "Нет талантов", es: "Sin nuevos talentos", pt: "Sem novos talentos", zh: "暂无新人才", fr: "Aucun nouveau talent") }
+    public static var noNewTalentsSubtitle: String { L(en: "No new talents\nfound at the moment.", ru: "Таланты\nне найдены.", es: "No se encontraron\nnuevos talentos.", pt: "Nenhum novo talento\nencontrado.", zh: "暂未找到\n新人才。", fr: "Aucun nouveau talent\ntrouvé pour le moment.") }
     public static var noAgenciesTitle: String { L(en: "No Agencies", ru: "Нет агентств", es: "Sin agencias", pt: "Sem agências", zh: "暂无经纪公司", fr: "Aucune agence") }
     public static var noAgenciesSubtitle: String { L(en: "No agencies\nfound at the moment.", ru: "Агентства\nне найдены.", es: "No se encontraron\nagencias.", pt: "Nenhuma agência\nencontrada.", zh: "暂未找到\n经纪公司。", fr: "Aucune agence\ntrouvée pour le moment.") }
 
@@ -714,6 +719,7 @@ public enum DivoStrings {
     public static var profileEmptyEventsSubtitleOther: String { L(en: "This profile hasn't created any events yet", ru: "В этом профиле пока нет событий", es: "Este perfil aún no ha creado eventos", pt: "Este perfil ainda não criou eventos", zh: "该资料尚未创建任何活动", fr: "Ce profil n’a encore créé aucun événement") }
     public static var profileEmptyEventsCTA: String { L(en: "Create new event", ru: "Создать событие", es: "Crear evento", pt: "Criar evento", zh: "创建新活动", fr: "Créer un nouvel événement") }
     public static var sendDM: String { L(en: "Send DM", ru: "Написать", es: "Enviar MD", pt: "Enviar MD", zh: "发私信", fr: "Envoyer un message") }
+    public static var failedToOpenProfile: String { L(en: "Couldn't open profile", ru: "Не удалось открыть профиль", es: "No se pudo abrir el perfil", pt: "Não foi possível abrir o perfil", zh: "无法打开个人资料", fr: "Impossible d'ouvrir le profil") }
     public static var failedToOpenChat: String { L(en: "Couldn't open chat", ru: "Не удалось открыть чат", es: "No se pudo abrir el chat", pt: "Não foi possível abrir o chat", zh: "无法打开聊天", fr: "Impossible d’ouvrir la discussion") }
     public static var loadingModelsList: String { L(en: "LOADING MODELS LIST...", ru: "ЗАГРУЗКА СПИСКА МОДЕЛЕЙ...", es: "CARGANDO LISTA DE MODELOS...", pt: "CARREGANDO LISTA DE MODELOS...", zh: "加载模特列表...", fr: "CHARGEMENT DE LA LISTE DES MANNEQUINS...") }
     public static var loadingTalentsList: String { L(en: "LOADING TALENTS...", ru: "ЗАГРУЗКА ТАЛАНТОВ...", es: "CARGANDO TALENTOS...", pt: "CARREGANDO TALENTOS...", zh: "加载新人才...", fr: "CHARGEMENT DES TALENTS...") }

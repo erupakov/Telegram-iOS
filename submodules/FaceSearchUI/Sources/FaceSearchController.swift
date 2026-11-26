@@ -47,7 +47,7 @@ public final class FaceSearchController: ViewController {
 
     public init(context: AccountContext, image: UIImage) {
         self.context = context
-        self.selectedImage = image
+        self.selectedImage = Self.downscaledForSearch(image)
         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
         super.init(navigationBarPresentationData: nil)
     }
@@ -98,9 +98,30 @@ public final class FaceSearchController: ViewController {
     }
 
     public func updateImage(_ image: UIImage) {
+        let image = Self.downscaledForSearch(image)
         self.selectedImage = image
         (self.displayNode as? FaceSearchNode)?.updateImage(image)
         runDetect()
+    }
+
+    /// Длинная сторона фото для поиска, px. Камера и галерея дают 12–48 Мп (JPEG 4–20 МБ), а фото уходит дважды
+    /// (/fr/detect, затем /fr/search): на мобильной сети это упиралось в таймаут. Для распознавания лица хватает.
+    private static let searchMaxPixelSide: CGFloat = 1600
+
+    /// Уменьшенная копия для detect/search/результатов — одна и та же, поэтому bbox лица везде совпадает.
+    private static func downscaledForSearch(_ image: UIImage) -> UIImage {
+        let pixelWidth = image.size.width * image.scale
+        let pixelHeight = image.size.height * image.scale
+        let longSide = max(pixelWidth, pixelHeight)
+        guard longSide > searchMaxPixelSide else { return image }
+
+        let ratio = searchMaxPixelSide / longSide
+        let targetSize = CGSize(width: (pixelWidth * ratio).rounded(), height: (pixelHeight * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
     }
 
     // MARK: - State Machine

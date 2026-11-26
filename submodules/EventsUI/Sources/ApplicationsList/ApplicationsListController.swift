@@ -122,7 +122,7 @@ public final class ApplicationsListController: TelegramBaseController {
                         name: user.fullName ?? "",
                         avatarUrl: user.avatar?.fullUrl,
                         isVerified: user.isVerified,
-                        role: user.roleLabel,
+                        role: DivoRoleLabel.display(user.roleLabel),
                         dateApplied: dateStr,
                         status: ApplicationStatus(rawValue: member.status ?? "")
                     )

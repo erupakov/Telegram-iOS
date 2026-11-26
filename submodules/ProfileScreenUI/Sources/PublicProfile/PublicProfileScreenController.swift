@@ -737,6 +737,11 @@ public final class PublicProfileScreenController: TelegramBaseController {
             return
         }
         self.isOpeningChat = true
+        self.controllerNode.setDirectMessageLoading(true)
+        // Имя для заголовка чата берём из этого профиля: агентству — название, иначе имя пользователя.
+        let agencyTitle = self.userDetailModel?.agency?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let titleName = (self.userDetailModel?.role == "agency_employee" && !agencyTitle.isEmpty) ? agencyTitle : (self.userDetailModel?.fullName ?? self.model.name)
+        DivoChatTitleNames.shared.seed(telegramId: Int64(telegramId), name: titleName)
         divoLog("openDirectMessage: start telegramId=\(telegramId), accessHash=\(self.userDetailModel?.telegramAccessHash != nil ? "есть" : "нет")")
 
         divoTrack(.directMessageStarted(
@@ -761,6 +766,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
             guard let self = self else { return }
             didReceivePeer = true
             self.isOpeningChat = false
+            self.controllerNode.setDirectMessageLoading(false)
             guard let peer = peer else {
                 divoLog("openDirectMessage: не удалось получить peer для telegramId=\(telegramId)", level: .error)
                 self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
@@ -785,6 +791,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
             // Сигнал завершился без значения — тоже ошибка, а не тихий выход с залипшим флагом.
             guard let self = self, !didReceivePeer else { return }
             self.isOpeningChat = false
+            self.controllerNode.setDirectMessageLoading(false)
             divoLog("openDirectMessage: резолв завершился без результата (telegramId=\(telegramId))", level: .error)
             self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenChat, style: .error)
         }))
@@ -872,7 +879,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
         let shareItem = DivoShareItemSource(
             url: shareURL,
             title: item.fullName ?? "",
-            subtitle: item.roleLabel ?? "",
+            subtitle: DivoRoleLabel.display(item.roleLabel) ?? "",
             image: image
         )
         let activityVC = UIActivityViewController(activityItems: [shareItem], applicationActivities: nil)
@@ -1035,7 +1042,7 @@ public final class PublicProfileScreenController: TelegramBaseController {
     /// Открывает грид фото профиля модели поверх экрана поиска по лицу; выбранное фото
     /// уходит в `updateImage`, что перезапускает детект и поиск (DIVI-70).
     private func presentGalleryPhotoPicker(over faceSearchController: FaceSearchController) {
-        let picker = DivoGalleryPhotoPickerSheetController(userId: self.userID)
+        let picker = DivoGalleryPhotoPickerSheetController(userId: self.userID, initialPhotos: self.currentGalleryPhotos)
         picker.onPhotoSelected = { [weak self, weak picker, weak faceSearchController] photo in
             guard let self, let faceSearchController else { return }
             // Шторку закрываем сразу — свап ощущается мгновенным; лоадер/ошибка уходят
@@ -1125,7 +1132,15 @@ public final class PublicProfileScreenController: TelegramBaseController {
                 NotificationCenter.default.post(name: DivoConfig.divoLikeStateChanged, object: nil, userInfo: ["userId": userId, "isLiked": isLiked])
                 completion(true)
             } catch {
-                divoLog("[LIKE] Error toggling like for user \(userId): \(error)", level: .error)
+                var details = "\(error)"
+                if case let DivoAPIError.httpError(statusCode, body) = error {
+                    details = "HTTP \(statusCode) \(body)"
+                }
+                divoLog("[LIKE] Error toggling like for user \(userId): \(details)", level: .error)
+                self.controllerNode.showSnackbar(
+                    message: (error as? DivoAPIError)?.userFacingMessage ?? DivoStrings.genericError,
+                    style: .error
+                )
                 completion(false)
             }
         }
@@ -1530,20 +1545,36 @@ extension PublicProfileScreenController {
     /// В профиле модели у агентства нет userId аккаунта — берём его из истории работы
     /// (`/model-work-history`: запись с тем же agencyId, `agencyUserId`).
     func openCurrentAgencyProfile() {
-        guard let agencyId = self.userDetailModel?.agency?.id, let modelUserId = self.model.userId else { return }
+        // Карточка «Текущее агентство» рисуется из `model.agency` (у модели `agency` верхнего уровня пуст).
+        let agency = self.userDetailModel?.model?.agency ?? self.userDetailModel?.agency
+        guard let agencyId = agency?.id, let modelUserId = self.model.userId else {
+            divoLog("[AGENCY] нет agency.id в профиле — переход невозможен", level: .error)
+            return
+        }
+        let agencyTitle = agency?.title
         Task { @MainActor [weak self] in
             do {
                 let path = self?.model.isMyProfile == true ? "/model-work-history" : "/model-work-history?user_id=\(modelUserId)"
                 let response: WorkHistoryResponse = try await DivoAPIClient.shared.request(path: path)
                 guard let self else { return }
-                guard let item = response.data.items.first(where: { $0.agencyId == agencyId && $0.agencyUserId != nil }),
+                // Сначала по agencyId, затем (если id в истории не совпал) по названию агентства.
+                let items = response.data.items.filter { $0.agencyUserId != nil }
+                let normalizedTitle = agencyTitle?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                guard let item = items.first(where: { $0.agencyId == agencyId })
+                        ?? items.first(where: { candidate in
+                            guard let normalizedTitle, !normalizedTitle.isEmpty else { return false }
+                            return [candidate.agencyName, candidate.agencyDisplayName]
+                                .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                                .contains(normalizedTitle)
+                        }),
                       let agencyUserId = item.agencyUserId else {
-                    divoLog("[AGENCY] у агентства \(agencyId) нет аккаунта для перехода", level: .error)
+                    divoLog("[AGENCY] у агентства \(agencyId) нет аккаунта для перехода (записей истории: \(response.data.items.count))", level: .error)
+                    self.controllerNode.showSnackbar(message: DivoStrings.failedToOpenProfile, style: .error)
                     return
                 }
                 let avatarURL = item.agencyAvatarLink.flatMap { URL(string: $0) }
                 let profileModel = ProfileModel(
-                    name: item.agencyDisplayName ?? item.agencyName ?? self.userDetailModel?.agency?.title ?? "",
+                    name: item.agencyDisplayName ?? item.agencyName ?? agencyTitle ?? "",
                     age: nil,
                     location: "",
                     isVerified: false,
@@ -1561,6 +1592,7 @@ extension PublicProfileScreenController {
                 (self.navigationController as? NavigationController)?.pushViewController(controller, animated: true)
             } catch {
                 divoLog("[AGENCY] не удалось получить аккаунт агентства: \(error)", level: .error)
+                self?.controllerNode.showSnackbar(message: DivoStrings.failedToOpenProfile, style: .error)
             }
         }
     }
@@ -1980,7 +2012,7 @@ extension PublicProfileScreenController {
                     return InteractionUser(
                         id: id,
                         name: item.fullName ?? DivoStrings.noName,
-                        role: item.roleLabel ?? item.role ?? DivoStrings.roleFallbackUser,
+                        role: DivoRoleLabel.display(item.roleLabel) ?? item.role ?? DivoStrings.roleFallbackUser,
                         avatarUrl: finalAvatarUrl,
                         isPremium: false
                     )

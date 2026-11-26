@@ -479,7 +479,7 @@ final class RosterApplyConfirmationNode: ASDisplayNode {
         let parts = [agePart, cityPart].compactMap { $0 }
         let fullLocationString = parts.isEmpty ? nil : parts.joined(separator: " • ")
         
-        profileHeader.configure(fullUrl: user.avatar?.fullUrl, fullName: user.fullName, role: user.roleLabel,  meta: fullLocationString)
+        profileHeader.configure(fullUrl: user.avatar?.fullUrl, fullName: user.fullName, role: DivoRoleLabel.display(user.roleLabel),  meta: fullLocationString)
 
         let app = user.model?.appearance
         let h = app?.height.flatMap { "H \(Int($0))" } ?? ""

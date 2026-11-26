@@ -3694,7 +3694,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
     /// nil, остаётся клиентский `Role.title`, как раньше.
     private static func subroleTitle(for detail: UserDetail) -> String? {
         guard let subrole = detail.subrole, !subrole.isEmpty else { return nil }
-        return detail.roleLabel ?? Role.subroleTitle(subrole)
+        return DivoRoleLabel.display(detail.roleLabel) ?? Role.subroleTitle(subrole)
     }
 
     // Обновление профиля, после загрузки baseURL/user/userId
@@ -3776,7 +3776,7 @@ final class PublicProfileScreenNode: ASDisplayNode {
                 experience = ExperienceNode(title: detail.model?.agency?.title, period: detail.model?.agency?.title, logoURL: logoURL, delegate: self)
             }
             UIView.performWithoutAnimation {
-                profileInfoView.update(biography: bio, appearance: appearance, experience: experience, isMyProfile: isMyProfile)
+                profileInfoView.update(biography: bio, appearance: appearance, experience: experience, isMyProfile: isMyProfile, isAwaitingAgencyConfirmation: detail.role == "new_face")
                 profileInfoView.openAddWorkExperience = { [weak self] in
                     self?.onEditProfileTapped?(2)
                 }
@@ -4875,6 +4875,35 @@ final class PublicProfileScreenNode: ASDisplayNode {
     
     @objc private func dmButtonTapped() {
         onSendDMTapped?()
+    }
+
+    private let dmSpinner: UIActivityIndicatorView = {
+        let spinner = UIActivityIndicatorView(style: .medium)
+        spinner.color = DivoColorPalette.primaryTextOnDark
+        spinner.hidesWhenStopped = true
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        return spinner
+    }()
+
+    /// Индикатор на кнопке «Написать» на время резолва teamgram-пира: без него нажатие выглядит как «кнопка не нажимается»
+    /// (резолв может идти до 15 с, пока не придёт ответ или не сработает таймаут).
+    func setDirectMessageLoading(_ loading: Bool) {
+        if dmSpinner.superview == nil {
+            dmButton.addSubview(dmSpinner)
+            NSLayoutConstraint.activate([
+                dmSpinner.centerYAnchor.constraint(equalTo: dmButton.centerYAnchor),
+                dmSpinner.trailingAnchor.constraint(equalTo: dmButton.trailingAnchor, constant: -10),
+            ])
+        }
+        if loading {
+            dmSpinner.startAnimating()
+        } else {
+            dmSpinner.stopAnimating()
+        }
+        dmButton.isUserInteractionEnabled = !loading
+        UIView.animate(withDuration: 0.15) {
+            self.dmButton.alpha = loading ? 0.7 : 1.0
+        }
     }
     
     @objc private func handleTouchDown(_ sender: UIControl) {

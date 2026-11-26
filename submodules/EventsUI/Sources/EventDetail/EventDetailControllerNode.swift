@@ -1884,7 +1884,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         currentAppliedLabel.text = DivoStrings.currentApplied(newEventData.appliesCount ?? 0)
         allAppliedLabel.text = DivoStrings.allApplied(newEventData.maxAttendees ?? 0)
         
-        organizerView.configure(name: newEventData.creator?.fullName, isVerified: newEventData.creator?.isVerified, logoURLString: newEventData.creator?.avatar?.fullUrl)
+        organizerView.configure(name: newEventData.displayOrganizer?.fullName, isVerified: newEventData.displayOrganizer?.isVerified, logoURLString: newEventData.displayOrganizer?.avatar?.fullUrl)
         
         descriptionView.update(biography: newEventData.description)
         requirementsLabel.text = newEventData.requirements

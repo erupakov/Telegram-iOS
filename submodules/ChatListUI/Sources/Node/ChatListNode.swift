@@ -1977,7 +1977,10 @@ public final class ChatListNode: ListView {
         let currentPeerId: EnginePeer.Id = context.account.peerId
         
         let contacts: Signal<[ChatListContactPeer], NoError>
-        if case .chatList(groupId: .root) = location, chatListFilter == nil, case .chatList = mode {
+        // DIVO: панель «Ваши контакты в Telegram» в списке чатов не показываем.
+        // Читаем флаг в рантайме (UserDefaults, по умолчанию false): константа `false` ломает сборку — Swift считает ветку недостижимой (warnings-as-errors).
+        let isTelegramContactsPanelEnabled = UserDefaults.standard.bool(forKey: "DivoShowTelegramContactsPanel")
+        if isTelegramContactsPanelEnabled, case .chatList(groupId: .root) = location, chatListFilter == nil, case .chatList = mode {
             contacts = ApplicationSpecificNotice.displayChatListContacts(accountManager: context.sharedContext.accountManager)
             |> distinctUntilChanged
             |> mapToSignal { value -> Signal<[ChatListContactPeer], NoError> in
