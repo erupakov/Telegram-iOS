@@ -5,12 +5,16 @@ import DivoCore
 import ProfileScreenUI
 import EventsUI
 
-/// Экран для DIVO-ссылки «Поделиться»: https://api.divo.fashion/profile/{id} или /event/{id}
-/// (а также divo.fashion). nil — ссылка не DIVO-шная, открывается как обычно.
+/// Экран для DIVO-ссылки «Поделиться»: https://t.divo.global/profile/{id} или /event/{id}
+/// (а также divo.fashion и старый REST-хост api.divo.fashion — для уже расшаренных ссылок).
+/// nil — ссылка не DIVO-шная, открывается как обычно.
 /// `tabIndex` — вкладка, к которой относится экран (для открытия извне приложения).
 func divoShareLinkTarget(context: AccountContext, url: URL) -> (tabIndex: Int, controller: ViewController)? {
     guard let host = url.host?.lowercased(),
-          host == DivoConfig.shareHost.lowercased() || host == "divo.fashion" || host == "www.divo.fashion" else {
+          host == DivoConfig.shareHost.lowercased()
+              || host == "divo.fashion"
+              || host == "www.divo.fashion"
+              || host == "api.divo.fashion" else {
         return nil
     }
 

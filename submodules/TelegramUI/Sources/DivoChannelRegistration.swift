@@ -85,7 +85,7 @@ func divoSyncChannelRegistration(context: AccountContext, peerId: PeerId) {
 }
 
 private func divoAddRegisteredChannel(telegramChatId: Int64, username: String) async {
-    let request = ChannelAddRequest(telegramChatId: telegramChatId, username: username, inviteLink: "https://t.me/\(username)")
+    let request = ChannelAddRequest(telegramChatId: telegramChatId, username: username, inviteLink: "https://t.divo.global/\(username)")
     do {
         do {
             let _: ChannelAddResponse = try await DivoAPIClient.shared.request(path: "/channels/add", method: "POST", body: request)

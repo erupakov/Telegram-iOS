@@ -226,8 +226,11 @@ public enum DivoConfig {
         return build.isEmpty ? short : "\(short) (\(build))"
     }
 
-    public static let shareBaseURL = "https://api.divo.fashion"
-    public static let shareHost = "api.divo.fashion"
+    // Базовый домен внешних ссылок на DIVO-профиль/событие: {shareBaseURL}/profile/{id} и
+    // {shareBaseURL}/event/{id}. Это web-фронтенд (t.divo.global), а НЕ REST-хост api.divo.fashion
+    // (у него нет веб-страницы — ссылка «не открывалась»). REST-база отдельно: `baseURL` (см. выше).
+    public static let shareBaseURL = "https://t.divo.global"
+    public static let shareHost = "t.divo.global"
 
     public static let eulaURL = "https://www.divo.global/legal-documents/mobile-app-eula"
     public static let privacyPolicyURL = "https://www.divo.global/legal-documents/privacy-policy"
