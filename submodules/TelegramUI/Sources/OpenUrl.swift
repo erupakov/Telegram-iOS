@@ -382,8 +382,9 @@ func openExternalUrlImpl(context: AccountContext, urlContext: OpenURLContext, ur
         return
     }
     
-    // DIVO: ссылка «Поделиться» (api.divo.fashion/profile|event/{id}) из чата открывается в приложении,
-    // а не в браузере (у API-хоста нет веб-страницы — ссылка «не открывалась»).
+    // DIVO: ссылка «Поделиться» (t.divo.global/profile|event/{id}) из чата открывается в приложении,
+    // а не в браузере. Домен web-фронтенда; раньше был REST-хост api.divo.fashion (без веб-страницы —
+    // ссылка «не открывалась»). divoShareLinkTarget принимает и старый хост для уже расшаренных ссылок.
     if let navigationController = navigationController, let target = divoShareLinkTarget(context: context, url: canonicalUrl) {
         dismissInput()
         navigationController.pushViewController(target.controller, animated: true)

@@ -5412,7 +5412,7 @@ public final class PeerInfoStoryPaneNode: ASDisplayNode, PeerInfoPaneNode, ASScr
             
             let shareController = ShareController(
                 context: self.context,
-                subject: .url("https://t.me/\(urlBase)/a/\(id)"),
+                subject: .url("https://t.divo.global/\(urlBase)/a/\(id)"),
                 presetText: nil,
                 preferredAction: .default,
                 showInChat: nil,
