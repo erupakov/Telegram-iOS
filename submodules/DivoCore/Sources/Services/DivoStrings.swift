@@ -617,6 +617,8 @@ public enum DivoStrings {
     public static var eventTime: String { L(en: "Event Time", ru: "Время события", es: "Hora del evento", pt: "Hora do evento", zh: "活动时间", fr: "Heure de l’événement") }
     public static var eventEndDate: String { L(en: "Event End Date", ru: "Дата завершения", es: "Fecha de fin del evento", pt: "Data de fim do evento", zh: "活动结束日期", fr: "Date de fin de l’événement") }
     public static var eventEndTime: String { L(en: "Event End Time", ru: "Время завершения", es: "Hora de fin del evento", pt: "Horário de fim do evento", zh: "活动结束时间", fr: "Heure de fin de l’événement") }
+    public static var eventAddressTitle: String { L(en: "Address", ru: "Адрес", es: "Dirección", pt: "Endereço", zh: "地址", fr: "Adresse") }
+    public static var eventAddressPlaceholder: String { L(en: "Street, house, apartment", ru: "Улица, дом, квартира", es: "Calle, casa, apartamento", pt: "Rua, casa, apartamento", zh: "街道、房屋、公寓", fr: "Rue, bâtiment, appartement") }
     public static var venueOfEvent: String { L(en: "Venue of the event", ru: "Место проведения", es: "Lugar del evento", pt: "Local do evento", zh: "活动地点", fr: "Lieu de l’événement") }
     public static var chooseCountry: String { L(en: "Choose a country", ru: "Выберите страну", es: "Elija un país", pt: "Escolha um país", zh: "选择国家", fr: "Choisissez un pays") }
     public static var parametersForApplying: String { L(en: "Parameters for Applying", ru: "Параметры для заявки", es: "Parámetros de solicitud", pt: "Parâmetros para candidatura", zh: "申请参数", fr: "Paramètres de candidature") }

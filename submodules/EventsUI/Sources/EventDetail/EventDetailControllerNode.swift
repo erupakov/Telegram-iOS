@@ -423,6 +423,16 @@ final class EventDetailControllerNode: ASDisplayNode {
         return view
     }()
     
+    private let addressView = EventAddressView()
+    /// Адрес для тапа на карту: текст + координаты (в preview и без геолокации — nil).
+    private var currentAddressInfo: (text: String, latitude: Double?, longitude: Double?)?
+    private let addressContainer: UIView = {
+        let view = UIView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isHidden = true
+        return view
+    }()
+
     private let organizerView: OrganizerView = {
         let organizerView = OrganizerView()
         organizerView.translatesAutoresizingMaskIntoConstraints = false
@@ -667,7 +677,9 @@ final class EventDetailControllerNode: ASDisplayNode {
         ).height
 
         let scrollViewHeight = layout.size.height - navigationBarHeight
-        let collapseOffset = collectionsContainer.frame.minY
+        // Панели доп. фото скрыты (паритет с Android 34649ba7c) — для расчёта нижнего
+        // спейсера ориентируемся на последнюю секцию (параметры), а не на контейнер галереи.
+        let collapseOffset = parametersView.frame.minY
         if collapseOffset > 0, scrollViewHeight > 0 {
             let minContentHeight = collapseOffset + scrollViewHeight
             let currentSpacerHeight = bottomSpacer.isHidden ? 0 : bottomSpacerHeightConstraint.constant
@@ -753,6 +765,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         setupCounterActionsContainer()
         setupEventType()
         setupProfileHeaderContainer()
+        setupAddressContainer()
         setupEventInfoWrapper()
         
         scrollView.insertSubview(whiteSheetBackground, belowSubview: contentViewStack)
@@ -762,11 +775,10 @@ final class EventDetailControllerNode: ASDisplayNode {
         setupAboutContainer()
         setupRequirementsContainer()
         setupParametersContainer()
-        setupCollections()
-        
+        // Панели доп. фото скрыты (паритет с Android 34649ba7c): остаётся обложка в шапке.
+
         contentViewStack.addArrangedSubview(bottomSpacer)
         bottomSpacerHeightConstraint.isActive = true
-        contentViewStack.setCustomSpacing(0, after: collectionsContainer)
         
         // Align Moving Blur
         NSLayoutConstraint.activate([
@@ -1066,6 +1078,23 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderWrapper)
         contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: profileHeaderShimmerView)
+    }
+
+    /// Карточка адреса (паритет с Android AddressCard, 34649ba7c): между шапкой события и
+    /// строкой дедлайна/заявки; вся карточка тапается — открывает карты. Скрыта без адреса.
+    private func setupAddressContainer() {
+        addressContainer.addSubview(addressView)
+        contentViewStack.addArrangedSubview(addressContainer)
+
+        NSLayoutConstraint.activate([
+            addressView.topAnchor.constraint(equalTo: addressContainer.topAnchor),
+            addressView.bottomAnchor.constraint(equalTo: addressContainer.bottomAnchor),
+            addressView.leadingAnchor.constraint(equalTo: addressContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
+            addressView.trailingAnchor.constraint(equalTo: addressContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
+        ])
+
+        contentViewStack.setCustomSpacing(DivoDesignTokens.Spacing.m, after: addressContainer)
+        addressView.onTap = { [weak self] in self?.addressTapped() }
     }
     
     private func setupEventInfoWrapper() {
@@ -1413,6 +1442,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         eventCostTypeContainer.isHidden = true
         eventTypeLabelContainer.isHidden = true
         profileHeaderView.isHidden = true
+        addressContainer.isHidden = true
         eventDeadlineContainer.isHidden = true
         applyButton.isHidden = true
         organizerView.isHidden = true
@@ -1841,6 +1871,14 @@ final class EventDetailControllerNode: ASDisplayNode {
                 cost: formatCost(newEventData.cost)
             )
         )
+
+        // Адрес проведения (паритет с Android AddressCard): скрыт, когда показывать нечего
+        let addressText = Self.addressDisplayText(from: newEventData.address)
+        currentAddressInfo = addressText.isEmpty ? nil : (addressText, newEventData.address?.latitude, newEventData.address?.longitude)
+        addressContainer.isHidden = addressText.isEmpty
+        if !addressText.isEmpty {
+            addressView.configure(text: addressText)
+        }
         
         // updateEventData может прийти повторно (ретрай, refresh) — сбрасываем
         // ранее навешанные targets, иначе один тап стрельнёт несколько действий.
@@ -1934,6 +1972,14 @@ final class EventDetailControllerNode: ASDisplayNode {
                 cost: formatCost(data.request.cost)
             )
         )
+
+        // Адрес в preview — из свободного поля формы (координат нет)
+        let previewAddressText = Self.previewAddressDisplayText(request: data.request)
+        currentAddressInfo = previewAddressText.map { ($0, nil, nil) }
+        addressContainer.isHidden = previewAddressText == nil
+        if let previewAddressText = previewAddressText {
+            addressView.configure(text: previewAddressText)
+        }
         
         if let deadlineText = EventDateFormatter.timeRemaining(deadline: data.request.applicationDeadline) {
             eventDeadlineLabel.text = deadlineText
@@ -2062,14 +2108,9 @@ final class EventDetailControllerNode: ASDisplayNode {
     }
     
     func updateGallery(_ photos: [UserPhoto]) {
+        // Панели доп. фото скрыты (паритет с Android 34649ba7c): остаётся только обложка
+        // в шапке. Фото сохраняем в данных, грид не показываем.
         self.galleryPhotos = photos
-        self.galleryCollectionView.reloadData()
-        if !photos.isEmpty {
-            self.galleryStatusView.isHidden = true
-            self.galleryCollectionView.isHidden = false
-        }
-        updateGalleryCollectionViewHeight()
-        updateCollectionsContainerHeight(animated: false)
     }
 
     func containerLayoutUpdated(_ layout: ContainerViewLayout, navigationBarHeight: CGFloat, transition: ContainedViewLayoutTransition) {
@@ -2081,8 +2122,7 @@ final class EventDetailControllerNode: ASDisplayNode {
         
         applyGradientBlurMask()
         updateNavBarBlurMask()
-        updateGalleryCollectionViewHeight()
-        updateCollectionsContainerHeight(animated: false)
+        // Панели доп. фото скрыты (паритет с Android 34649ba7c) — пересчёт высот грида не нужен.
         
         updateNavigationBarTitleVisibility()
         
@@ -2097,6 +2137,61 @@ final class EventDetailControllerNode: ASDisplayNode {
     @objc private func bookmarkTapped() { onBookmarkTapped?() }
     @objc private func applyTapped() { onApplyTapped?() }
     @objc private func viewApplicationsTapped() { onViewApplicationsTapped?() }
+
+    @objc private func addressTapped() {
+        guard let info = currentAddressInfo,
+              let url = Self.mapsURL(text: info.text, latitude: info.latitude, longitude: info.longitude) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    /// Ссылка на карты: с координатами (если есть и не нулевые — на Android координаты
+    /// захардкожены 0.0/FIXME), иначе поиск по адресу. iOS-аналог buildMapsUri на Android.
+    static func mapsURL(text: String, latitude: Double?, longitude: Double?) -> URL? {
+        var components: [String] = []
+        if let latitude = latitude, let longitude = longitude, latitude != 0, longitude != 0 {
+            components.append("ll=\(latitude),\(longitude)")
+        }
+        if let query = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed), !query.isEmpty {
+            components.append("q=\(query)")
+        }
+        guard !components.isEmpty else { return nil }
+        return URL(string: "https://maps.apple.com/?" + components.joined(separator: "&"))
+    }
+
+    /// Плоский текст адреса для карточки: street(+house+apartment) + город; fallback —
+    /// formatted с бэка, затем имя города (как displayText() на Android AddressCard).
+    static func addressDisplayText(from address: EventFullAddress?) -> String {
+        guard let address = address else { return "" }
+        let streetPart = [address.street, address.house, address.apartment]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let city = address.city?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !streetPart.isEmpty {
+            if let city = city, !city.isEmpty {
+                return streetPart + ", " + city
+            }
+            return streetPart
+        }
+        if let formatted = address.formatted?.trimmingCharacters(in: .whitespacesAndNewlines), !formatted.isEmpty {
+            return formatted
+        }
+        return city ?? ""
+    }
+
+    /// Текст адреса в preview: street → formatted → имя города (preview без координат).
+    static func previewAddressDisplayText(request: CreateEventPreview) -> String? {
+        if let street = request.address.street?.trimmingCharacters(in: .whitespacesAndNewlines), !street.isEmpty {
+            return street
+        }
+        if let formatted = request.address.formatted?.trimmingCharacters(in: .whitespacesAndNewlines), !formatted.isEmpty {
+            return formatted
+        }
+        if let city = request.cityName?.trimmingCharacters(in: .whitespacesAndNewlines), !city.isEmpty {
+            return city
+        }
+        return nil
+    }
     
     @objc private func likesViewDidTap() {}
     @objc private func viewsViewDidTap() {}

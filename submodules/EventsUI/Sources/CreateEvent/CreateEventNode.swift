@@ -264,6 +264,7 @@ final class CreateEventNode: ASDisplayNode {
 
     private let nameEventTextField: DivoTextField
     private let aboutEventTextField: DivoTextView
+    private let eventAddressTextField: DivoTextField
     
     private let eventDate: DateSelectionControl
     private let eventTime: DateSelectionControl
@@ -479,9 +480,9 @@ final class CreateEventNode: ASDisplayNode {
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
-    
-    private var galleryHeightConstraint: NSLayoutConstraint!
-    
+
+    // Панели доп. фото скрыты (паритет с Android 34649ba7c) — galleryHeightConstraint больше не нужен.
+
     private let galleryCollectionContainerView: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -657,6 +658,7 @@ final class CreateEventNode: ASDisplayNode {
         let paymentFrequencyTitle: String?
         let isPublic: Bool?
         let cityId: Int?
+        let address: String?
     }
 
     private var initialSnapshot: EventSnapshot?
@@ -677,6 +679,15 @@ final class CreateEventNode: ASDisplayNode {
             textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
         )
         self.nameEventTextField.isUserInteractionEnabled = true
+
+        self.eventAddressTextField = DivoTextField(title: "", prefix: "")
+        self.eventAddressTextField.textField.attributedPlaceholder = NSAttributedString(
+            string: DivoStrings.eventAddressPlaceholder,
+            font: Font.regular(16),
+            textColor: DivoColorPalette.primaryText.withAlphaComponent(0.4)
+        )
+        // Адрес — свободный текст: включаем капитализацию слов (в отличие от username-полей).
+        self.eventAddressTextField.textField.autocapitalizationType = .words
 
         self.aboutEventTextField = DivoTextView(title: DivoStrings.descriptionCreateEvent, initialText: "", placeholder: DivoStrings.placeholderDescriptionCreateEvent)
         self.aboutEventTextField.textView.text = DivoStrings.placeholderDescriptionCreateEvent
@@ -779,6 +790,7 @@ final class CreateEventNode: ASDisplayNode {
         self.view.frame = CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
         
         nameEventTextField.textField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
+        eventAddressTextField.textField.addTarget(self, action: #selector(validateCurrentStep), for: .editingChanged)
         rateTextField.addTarget(self, action: #selector(switchChange), for: .editingChanged)
         paidEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
         publicEventSwitch.addTarget(self, action: #selector(switchChange), for: .valueChanged)
@@ -1092,6 +1104,11 @@ final class CreateEventNode: ASDisplayNode {
         step1StackView.addArrangedSubview(cityRow)
         cityRow.heightAnchor.constraint(equalToConstant: 48).isActive = true
         cityRow.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cityTapped)))
+
+        // Адрес проведения — опциональное свободное поле (паритет с Android: последним на шаге 1,
+        // после страны/города; в валидацию не входит).
+        step1StackView.addArrangedSubview(eventAddressTextField.view)
+        eventAddressTextField.view.heightAnchor.constraint(equalToConstant: 48).isActive = true
     }
     
     private func buildStep2() {
@@ -1228,56 +1245,9 @@ final class CreateEventNode: ASDisplayNode {
             publicEventUI.bottomAnchor.constraint(equalTo: publicEventContainer.bottomAnchor),
             publicEventUI.topAnchor.constraint(equalTo: publicEventContainer.topAnchor),
         ])
-        
-        let stackGallery = UIStackView()
-        stackGallery.axis = .horizontal
-        stackGallery.translatesAutoresizingMaskIntoConstraints = false
-        
-        stackGallery.addArrangedSubview(galleryLabel)
-        stackGallery.addArrangedSubview(UIView())
-        
-        let stackGalleryContainer = UIView()
-        stackGalleryContainer.translatesAutoresizingMaskIntoConstraints = false
-        stackGalleryContainer.addSubview(stackGallery)
-        step3StackView.addArrangedSubview(stackGalleryContainer)
-        
-        NSLayoutConstraint.activate([
-            stackGallery.trailingAnchor.constraint(equalTo: stackGalleryContainer.trailingAnchor, constant: -DivoDesignTokens.Spacing.m),
-            stackGallery.leadingAnchor.constraint(equalTo: stackGalleryContainer.leadingAnchor, constant: DivoDesignTokens.Spacing.m),
-            stackGallery.topAnchor.constraint(equalTo: stackGalleryContainer.topAnchor),
-            stackGallery.bottomAnchor.constraint(equalTo: stackGalleryContainer.bottomAnchor),
-            stackGallery.heightAnchor.constraint(equalToConstant: 20),
-        ])
-        
-        step3StackView.setCustomSpacing(12, after: stackGalleryContainer)
 
-        step3StackView.addArrangedSubview(galleryCollectionContainerView)
-        galleryCollectionContainerView.addSubview(galleryCollectionView)
-        
-        NSLayoutConstraint.activate([
-            galleryCollectionView.topAnchor.constraint(equalTo: galleryCollectionContainerView.topAnchor),
-            galleryCollectionView.leadingAnchor.constraint(equalTo: galleryCollectionContainerView.leadingAnchor),
-            galleryCollectionView.trailingAnchor.constraint(equalTo: galleryCollectionContainerView.trailingAnchor),
-            galleryCollectionView.bottomAnchor.constraint(equalTo: galleryCollectionContainerView.bottomAnchor)
-        ])
-        
-        galleryHeightConstraint = galleryCollectionContainerView.heightAnchor.constraint(equalToConstant: 0)
-        galleryHeightConstraint.isActive = true
-        
-        step3StackView.setCustomSpacing(12, after: galleryCollectionContainerView)
-
-        let addButtonContainer = UIView()
-        addButtonContainer.translatesAutoresizingMaskIntoConstraints = false
-        addButtonContainer.addSubview(galleryAddButton)
-        
-        step3StackView.addArrangedSubview(addButtonContainer)
-        
-        NSLayoutConstraint.activate([
-            addButtonContainer.heightAnchor.constraint(equalToConstant: 40),
-            galleryAddButton.heightAnchor.constraint(equalToConstant: 40),
-            galleryAddButton.centerXAnchor.constraint(equalTo: addButtonContainer.centerXAnchor),
-            galleryAddButton.centerYAnchor.constraint(equalTo: addButtonContainer.centerYAnchor),
-        ])
+        // Панели доп. фото скрыты (паритет с Android 34649ba7c): остаётся только обложка на шаге 1.
+        // Данные галереи (edit-режим) сохраняются и при сохранении уходят на бэк как были.
     }
     
     private func reloadAppearanceOptions() {
@@ -1542,19 +1512,9 @@ final class CreateEventNode: ASDisplayNode {
     }
     
     private func updateGalleryHeight() {
-        if galleryItems.isEmpty {
-            galleryHeightConstraint.constant = 0
-            galleryCollectionView.isHidden = true
-        } else {
-            galleryCollectionView.isHidden = false
-            let fullWidth = UIScreen.main.bounds.width
-            let itemWidth = floor(fullWidth / 3.0)
-            let rows = ceil(CGFloat(galleryItems.count) / 3.0)
-            let newHeight = (rows * itemWidth) + ((rows - 1) * 4.0)
-            galleryHeightConstraint.constant = newHeight
-        }
-        
-        self.view.layoutIfNeeded()
+        // Панели доп. фото скрыты (паритет с Android 34649ba7c): грид не показываем,
+        // но сами фото (edit-режим) никуда не деваем — при сохранении уходят на бэк как были.
+        galleryCollectionView.isHidden = true
 
         updateHeaderAndButton()
         validateCurrentStep()
@@ -1781,7 +1741,8 @@ final class CreateEventNode: ASDisplayNode {
             paymentFrequency: Int(rateTimeId ?? "1"),
             paymentFrequencyTitle: rateTimeTitle,
             isPublic: publicEventSwitch.isOn,
-            cityId: self.cityId.flatMap(Int.init) ?? 1
+            cityId: self.cityId.flatMap(Int.init) ?? 1,
+            address: trimmedEventAddress.isEmpty ? nil : trimmedEventAddress
         )
     }
     
@@ -2152,6 +2113,11 @@ final class CreateEventNode: ASDisplayNode {
  
     // TODO DIVO: убрать round-trip String↔Int и `?? 0` для eventTypeId / `?? "1"` для rateTimeId
     // после переезда формы на новый контракт бэка. См. комментарий над makeSnapshot().
+    /// Свободный адрес проведения (паритет с Android): тримленный текст поля «Адрес».
+    private var trimmedEventAddress: String {
+        eventAddressTextField.textField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
     func collectEventData() throws -> CreateEventRequest {
         
         let title = nameEventTextField.textField.text ?? ""
@@ -2194,11 +2160,15 @@ final class CreateEventNode: ASDisplayNode {
         let deadlineDateString = formatter.string(from: deadlineFinalDate)
         
         let cityId = self.cityId.flatMap(Int.init) ?? 1
+        // Адрес проведения — свободный текст (паритет с Android): уходит в address.street,
+        // formatted дублирует его либо (когда поле пустое) имя города. Координаты не геокодим
+        // (на Android FIXME с 0.0) — шлём null.
+        let addressText = trimmedEventAddress
         let address = EventAddressRequest(
-            street: nil,
+            street: addressText.isEmpty ? nil : addressText,
             house: nil,
             apartment: nil,
-            formatted: nil,
+            formatted: addressText.isEmpty ? cityTitle : addressText,
             latitude: nil,
             longitude: nil,
             cityId: cityId
@@ -2309,11 +2279,15 @@ final class CreateEventNode: ASDisplayNode {
         let dateDeadlineString = formatter.string(from: finalDeadlineDate)
 
         let cityId = self.cityId.flatMap(Int.init) ?? 1
+        // Адрес проведения — свободный текст (паритет с Android): уходит в address.street,
+        // formatted дублирует его либо (когда поле пустое) имя города. Координаты не геокодим
+        // (на Android FIXME с 0.0) — шлём null.
+        let addressText = trimmedEventAddress
         let address = EventAddressRequest(
-            street: nil,
+            street: addressText.isEmpty ? nil : addressText,
             house: nil,
             apartment: nil,
-            formatted: nil,
+            formatted: addressText.isEmpty ? cityTitle : addressText,
             latitude: nil,
             longitude: nil,
             cityId: cityId
@@ -2406,6 +2380,27 @@ final class CreateEventNode: ASDisplayNode {
         )
     }
     
+    /// Плоский текст адреса для поля «Адрес»: street+house+apartment, затем город;
+    /// fallback — formatted с бэка (как buildAddressText на Android).
+    static func flatAddressText(from address: EventFullAddress?) -> String? {
+        guard let address = address else { return nil }
+        let streetPart = [address.street, address.house, address.apartment]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let city = address.city?.name?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !streetPart.isEmpty {
+            if let city = city, !city.isEmpty {
+                return streetPart + ", " + city
+            }
+            return streetPart
+        }
+        if let formatted = address.formatted?.trimmingCharacters(in: .whitespacesAndNewlines), !formatted.isEmpty {
+            return formatted
+        }
+        return city
+    }
+
     func populate(with detail: EventFullDetailData) {
 
         guard mode.isEdit else {
@@ -2465,7 +2460,10 @@ final class CreateEventNode: ASDisplayNode {
                 self.countryTitle = "\(flag) \(localizedCountry)"
             }
         }
-        
+
+        // Адрес: восстанавливаем плоский текст (street/house/apartment + город, fallback — formatted).
+        eventAddressTextField.textField.text = Self.flatAddressText(from: detail.address)
+
         whoCanApplyIds = detail.modelAttributes?.role
         whoCanApplyTitles = whoCanApplyIds?.compactMap { id in
             roleOptions.first(where: { $0.id == id })?.title
@@ -3058,8 +3056,9 @@ final class CreateEventNode: ASDisplayNode {
                 hasRate = !(rateTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             }
             
-            let hasGallery = !galleryItems.isEmpty
-            isValid = hasDate && hasTime && hasRate && hasGallery && self.hasChanges
+            // Панели доп. фото скрыты (паритет с Android 34649ba7c): обложка обязательна
+            // на шаге 1, доп. фото не требуются.
+            isValid = hasDate && hasTime && hasRate && self.hasChanges
             
         default:
             isValid = true
